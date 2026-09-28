@@ -91,6 +91,19 @@ a { color: var(--ink); }
 .cabinet { position: absolute; background: transparent; border: 0; padding: 0; cursor: pointer; }
 .cabinet:hover, .cabinet:focus-visible { outline: 2px solid #FFF4E6; outline-offset: 1px; }
 .tag.files { pointer-events: auto; cursor: pointer; transform: translate(-50%, -100%); }
+.cat .crown, .crown { position: absolute; width: 14px; height: 9px; pointer-events: none; background: #E8B23A;
+  filter: drop-shadow(1px 0 0 #50140D) drop-shadow(-1px 0 0 #50140D) drop-shadow(0 -1px 0 #50140D) drop-shadow(0 1px 0 #50140D);
+  clip-path: polygon(0 100%, 0 28%, 22% 62%, 50% 0, 78% 62%, 100% 28%, 100% 100%); }
+.crown.inline { position: static; display: inline-block; margin-right: 6px; }
+.crown.corner { right: 8px; bottom: 8px; transform: scale(2); transform-origin: 100% 100%; }
+ul.keeps { list-style: none; margin: 2px 0 6px; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+ul.keeps .kept { display: flex; align-items: center; gap: 6px; font-size: .88rem; }
+ul.keeps .kept .t { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+ul.keeps .dot { flex: none; width: 7px; height: 7px; background: var(--ink-soft); }
+ul.keeps .pin { font-weight: 700; }
+ul.keeps .pin .dot { background: #E8B23A; box-shadow: 0 0 0 1px var(--ink); }
+.btn.tiny { padding: 2px 7px; font-size: .74rem; }
+.queen-line { margin-top: 2px; }
 .pile-n { position: absolute; right: -4px; top: 6px; background: #FFF4E6; color: #50140D; font: 700 11px/1 var(--body); padding: 2px 4px; box-shadow: 0 0 0 1px #50140D; }
 
 /* sprite sheets: one step() animation per mood */
@@ -230,6 +243,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 <dialog id="catDlg" aria-labelledby="catName"></dialog>
 <dialog id="adoptDlg" aria-labelledby="adoptTitle"></dialog>
 <dialog id="roomsDlg" aria-labelledby="roomsTitle"></dialog>
+<dialog id="queenDlg" aria-labelledby="queenName"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script>
@@ -243,15 +257,15 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   // (the scene draws them at 2x). r = [x, y, w, h]; spots = where cats sit, as the point under their feet;
   // cabinet = the filing cabinet's box, where that room's projects are kept.
   const GEOM = {
-    garden:  { name: "Catio",       r: [448, 48, 160, 188], spots: [[474, 126], [514, 208], [568, 96], [586, 202], [500, 110]], cabinet: [457, 90, 22, 21] },
-    kitchen: { name: "Kitchen",     r: [32, 80, 85, 149],   spots: [[48, 212], [104, 146], [104, 212], [46, 146], [76, 202], [48, 180], [104, 180], [76, 140]], cabinet: [106, 105, 16, 27] },
-    dining:  { name: "Dining room", r: [112, 80, 101, 149], spots: [[124, 214], [200, 146], [200, 212], [124, 130]], cabinet: [186, 105, 16, 27] },
-    living:  { name: "Living room", r: [208, 48, 165, 181], spots: [[290, 162], [234, 212], [350, 206], [226, 118], [350, 150], [300, 216], [268, 118]], cabinet: [348, 72, 16, 27] },
-    sunroom: { name: "Sunroom",     r: [368, 80, 85, 149],  spots: [[426, 164], [392, 214], [398, 132]] },
-    study:   { name: "Craft room",  r: [272, 224, 165, 149], spots: [[300, 292], [352, 290], [396, 330], [322, 322], [420, 302], [292, 350], [346, 326], [366, 352], [392, 352], [316, 352], [370, 292], [296, 368], [336, 368], [376, 368], [416, 366]], cabinet: [414, 257, 16, 27] },
-    bedroom: { name: "Bedroom",     r: [96, 224, 117, 133], spots: [[122, 334], [198, 330], [140, 304], [200, 300]], cabinet: [103, 257, 16, 27] },
-    bath:    { name: "Bathroom",    r: [32, 224, 69, 117],  spots: [[62, 324], [90, 288]] },
-    hall:    { name: "Hall",        r: [208, 224, 69, 149], spots: [[246, 300], [252, 346]] },
+    garden:  { name: "Catio",       r: [448, 48, 160, 188], spots: [[474, 126], [514, 208], [568, 96], [586, 202]], cabinet: [457, 90, 22, 21], queen: [500, 110] },
+    kitchen: { name: "Kitchen",     r: [32, 80, 85, 149],   spots: [[48, 212], [104, 146], [104, 212], [46, 146], [76, 202], [48, 180], [104, 180]], cabinet: [106, 105, 16, 27], queen: [76, 140] },
+    dining:  { name: "Dining room", r: [112, 80, 101, 149], spots: [[124, 214], [200, 146], [200, 212]], cabinet: [186, 105, 16, 27], queen: [124, 130] },
+    living:  { name: "Living room", r: [208, 48, 165, 181], spots: [[290, 162], [234, 212], [350, 206], [226, 118], [350, 150], [300, 216]], cabinet: [348, 72, 16, 27], queen: [268, 118] },
+    sunroom: { name: "Sunroom",     r: [368, 80, 85, 149],  spots: [[426, 164], [392, 214]], queen: [398, 132] },
+    study:   { name: "Craft room",  r: [272, 224, 165, 149], spots: [[300, 292], [352, 290], [396, 330], [322, 322], [420, 302], [292, 350], [346, 326], [366, 352], [392, 352], [316, 352], [370, 292], [296, 368], [336, 368], [376, 368]], cabinet: [414, 257, 16, 27], queen: [416, 366] },
+    bedroom: { name: "Bedroom",     r: [96, 224, 117, 133], spots: [[122, 334], [198, 330], [140, 304]], cabinet: [103, 257, 16, 27], queen: [200, 300] },
+    bath:    { name: "Bathroom",    r: [32, 224, 69, 117],  spots: [[62, 324]], queen: [90, 288] },
+    hall:    { name: "Hall",        r: [208, 224, 69, 149], spots: [[246, 300]], queen: [252, 346] },
   };
   const ORDER = ["garden", "kitchen", "dining", "living", "sunroom", "study", "bedroom", "bath", "hall"];
   const WORLD = [640, 448];   // native size of the meadow
@@ -288,6 +302,13 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   const NAMES = ["Praline", "Noisette", "Biscotte", "Caramel", "Figue", "Brioche", "Madeleine", "Pistache", "Tartine", "Chouquette",
     "Galette", "Canelé", "Miso", "Yuzu", "Sésame", "Cannelle", "Muscade", "Olive", "Prune", "Myrtille", "Cerise", "Guimauve",
     "Nougat", "Réglisse", "Clafoutis", "Crumble", "Macaron", "Mirabelle", "Pomme", "Gaufre", "Tofu", "Matcha"];
+  // Every room has one queen: she is not a session, she never leaves, and she keeps what matters
+  // in that room. Older, statelier names than the working cats'.
+  const QUEEN_NAMES = ["Mémé", "Duchesse", "Joséphine", "Colette", "Berthe", "Augustine", "Odette",
+    "Simone", "Marguerite", "Hortense", "Célestine", "Philomène"];
+  const NOTE_MAX = 160;     // one line she can hold in her head
+  const NOTES_MAX = 12;     // more than this and nothing is important any more
+
   // A project's look: every cat of one project wears the same coat and carries the same emblem.
   const COATS = [
     { name: "Cream", f: "none" }, { name: "Ginger", f: "hue-rotate(-18deg) saturate(1.3)" }, { name: "Silver", f: "grayscale(1) brightness(1.05)" },
@@ -311,7 +332,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   const S = {
     sessions: null, sessionsAt: null, live: { state: "loading" },
     liveSessions: null, liveAt: null, copy: null, from: null,   // the live feed, and Claude's saved copy for when it's blocked
-    rooms: {}, tweaks: {}, adopted: [], projects: {},
+    rooms: {}, tweaks: {}, adopted: [], projects: {}, queens: {},
     focus: null, cam: null, sound: false, showOld: false, prevNeeding: null,
     db: null, mcp: null, perms: null, unwatch: null,
   };
@@ -379,6 +400,34 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     return { emblem, coat: COATS[d.coat] ? d.coat : hash(p.key) % COATS.length };
   }
 
+  // The queen of a room. Not a session and not adopted: she is always there, she is never counted
+  // among the cats that need you, and what she keeps is the point of her.
+  function queenOf(k) {
+    const d = S.queens[k] || {};
+    const notes = (Array.isArray(d.notes) ? d.notes : []).filter((n) => n && n.text);
+    return {
+      key: k,
+      name: d.name || QUEEN_NAMES[hash("queen:" + k) % QUEEN_NAMES.length],
+      notes: notes.slice().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.at || 0) - (a.at || 0)),
+      pinned: notes.filter((n) => n.pinned),
+      coat: COATS[hash("queen:" + k) % COATS.length].f,
+    };
+  }
+  // She sits up when the room needs you, and speaks up when she is holding something for you.
+  function queenMood(q, here) {
+    if (q.pinned.length) return "meow";
+    return here.some((c) => MOODS[c.mood].needs) ? "idle" : "sleep";
+  }
+  // The one line she gives you about her room, without your having to open anything.
+  function queenLine(q, here) {
+    if (q.pinned.length) return q.pinned[0].text;
+    const need = here.filter((c) => MOODS[c.mood].needs);
+    if (need.length === 1) return need[0].name + " needs you: " + (need[0].ask || need[0].title);
+    if (need.length) return need.length + " cats need you in here.";
+    if (here.length) return "All quiet \u2014 " + here.length + (here.length === 1 ? " cat" : " cats") + ", none needing you.";
+    return "Nothing in this room just now.";
+  }
+
   function roomInfo(key) {
     const d = S.rooms[key] || {};
     return { key, name: d.name || GEOM[key].name, blurb: d.blurb || "", repos: Array.isArray(d.repos) ? d.repos : [], catchAll: !!d.catchAll };
@@ -444,7 +493,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   }
   const clock = (t) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-  let VIEW = { cats: [], placed: [], piles: {}, upstairs: 0 };
+  let VIEW = { cats: [], placed: [], piles: {}, queens: {}, upstairs: 0 };
 
   function drawProps() {
     const box = $("props");
@@ -498,6 +547,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const layer = $("cats"); layer.replaceChildren();
     VIEW.placed = [];
     VIEW.piles = {};
+    VIEW.queens = {};
     for (const k of ORDER) {
       const here = cats.filter((c) => c.roomKey === k);
       const spots = GEOM[k].spots;
@@ -505,6 +555,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       const pile = here.length > spots.length ? here.slice(spots.length - 1) : [];
       direct.forEach((c, i) => placeCat(layer, c, spots[i], k));
       if (pile.length) placePile(layer, pile, spots[spots.length - 1], k);
+      placeQueen(layer, k, here);
     }
 
     renderStatus();
@@ -527,6 +578,29 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     layer.appendChild(b);
     VIEW.placed.push({ cat: c, x: spot[0] * 2, y: top + (c.mood === "idle" || c.mood === "box" ? 4 : 16), feet: spot[1] * 2, room });
   }
+  function placeQueen(layer, k, here) {
+    const spot = GEOM[k].queen;
+    if (!spot) return;
+    const q = queenOf(k);
+    q.mood = queenMood(q, here);
+    q.line = queenLine(q, here);
+    const sp = SPR[q.mood];
+    const b = el("button", "cat queen m-" + q.mood);
+    b.type = "button";
+    b.dataset.queen = k;
+    const top = spot[1] * 2 - sp.ay;
+    Object.assign(b.style, { left: spot[0] * 2 - sp.ax + "px", top: top + "px", width: sp.w + "px", height: sp.h + "px", zIndex: 1000 + spot[1] * 2 });
+    b.setAttribute("aria-label", q.name + ", queen of " + roomInfo(k).name + ". " + q.line);
+    b.appendChild(sprite(q.mood, q.coat));
+    const cr = el("span", "crown");
+    cr.style.left = sp.ax - 4 + "px"; cr.style.top = sp.ay - 30 + "px";
+    b.appendChild(cr);
+    b.addEventListener("click", (e) => { e.stopPropagation(); if (armed("queen", k)) return; hideMenu(); openQueen(k); });
+    hoverable(b, "queen", k);
+    layer.appendChild(b);
+    VIEW.queens[k] = { queen: q, x: spot[0] * 2, y: top + (q.mood === "idle" ? 4 : 16), feet: spot[1] * 2, room: k };
+  }
+
   function placePile(layer, pile, spot, room) {
     const top = pile[0];
     const sp = SPR[top.mood];
@@ -582,7 +656,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   /* ---------- hover menus: the only chrome ---------- */
   // Pointing at a room or a cat opens its menu beside it; moving onto the menu keeps it open.
   // On a touch screen the first tap opens the menu and the second does the usual thing.
-  const MENU = { kind: null, key: null, anchor: null, hideT: 0, touch: false };
+  const MENU = { kind: null, key: null, anchor: null, at: null, hideT: 0, touch: false };
   function hoverable(node, kind, key) {
     node.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") showMenu(kind, key, node); });
     node.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") hideSoon(); });
@@ -597,13 +671,14 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   function hideSoon() { clearTimeout(MENU.hideT); MENU.hideT = setTimeout(hideMenu, 260); }
   function hideMenu() {
     clearTimeout(MENU.hideT);
-    MENU.kind = MENU.key = MENU.anchor = null;
+    MENU.kind = MENU.key = MENU.anchor = MENU.at = null;
     $("menu").hidden = true;
     for (const b of $("hits").querySelectorAll(".lit")) b.classList.remove("lit");
   }
   function anchorOf(kind, key) {
     if (kind === "room") return $("hits").querySelector('.roomhit[data-room="' + key + '"]');
     if (kind === "pile") return $("cats").querySelector('.cat[data-pile="' + key + '"]');
+    if (kind === "queen") return $("cats").querySelector('.cat[data-queen="' + key + '"]');
     return $("cats").querySelector('.cat[data-id="' + CSS.escape(key) + '"]');
   }
   function showMenu(kind, key, node) {
@@ -611,7 +686,8 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const same = MENU.kind === kind && MENU.key === key;
     MENU.kind = kind; MENU.key = key;
     const menu = $("menu");
-    const body = kind === "room" ? roomMenu(key) : kind === "pile" ? pileMenu(key) : catMenu(key);
+    const body = kind === "room" ? roomMenu(key) : kind === "pile" ? pileMenu(key)
+      : kind === "queen" ? queenMenu(key) : catMenu(key);
     if (!body) { hideMenu(); return; }
     const keepScroll = same ? menu.scrollTop : 0;
     menu.replaceChildren(...body);
@@ -624,16 +700,25 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const st = $("stage").getBoundingClientRect();
     const W = st.width, H = st.height, mw = menu.offsetWidth, mh = menu.offsetHeight, g = 12;
     const ax = a.left - st.left, ay = a.top - st.top, aw = a.width, ah = a.height;
-    // beside it on the right, else on the left; on a narrow screen below it, else above it, so the
-    // cat itself stays tappable; a room that fills the screen gets the menu in its corner
-    let left = ax + aw + g, top = kind === "room" ? ay : ay + ah / 2 - mh / 2;
-    if (left + mw > W - g) left = ax - mw - g;
-    if (left < g) {
-      left = Math.max(g, Math.min(W - mw - g, ax + aw / 2 - mw / 2));
-      if (kind !== "room") top = ay + ah + g + mh <= H - g ? ay + ah + g : ay - mh - g;
-      else left = W - mw - g;
+    let left, top;
+    // Redrawing the menu you are already pointing at — a changed count, a button you just pressed —
+    // leaves it where it is. Moving it because it grew a line slides it out from under the pointer,
+    // which reads as a pointerleave and closes the thing you were using.
+    if (same && MENU.at && !node) { left = MENU.at[0]; top = MENU.at[1]; }
+    else {
+      // beside it on the right, else on the left; on a narrow screen below it, else above it, so the
+      // cat itself stays tappable; a room that fills the screen gets the menu in its corner
+      left = ax + aw + g; top = kind === "room" ? ay : ay + ah / 2 - mh / 2;
+      if (left + mw > W - g) left = ax - mw - g;
+      if (left < g) {
+        left = Math.max(g, Math.min(W - mw - g, ax + aw / 2 - mw / 2));
+        if (kind !== "room") top = ay + ah + g + mh <= H - g ? ay + ah + g : ay - mh - g;
+        else left = W - mw - g;
+      }
     }
-    top = Math.max(g, Math.min(H - mh - g, top));
+    left = Math.max(g, Math.min(Math.max(g, W - mw - g), left));
+    top = Math.max(g, Math.min(Math.max(g, H - mh - g), top));
+    MENU.at = [left, top];
     Object.assign(menu.style, { left: left + "px", top: top + "px" });
   }
   function plainBtn(label, cls, run) { const b = el("button", "btn plaque" + (cls ? " " + cls : ""), label); b.type = "button"; b.addEventListener("click", run); return b; }
@@ -655,7 +740,13 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     out.push(el("p", "sub", bits.join(" · ") || "No cats in here yet."));
     const needing = here.filter((c) => MOODS[c.mood].needs);
     if (needing.length) { const ul = el("ul"); needing.slice(0, 5).forEach((c) => ul.appendChild(catRow(c))); if (needing.length > 5) ul.appendChild(el("li", "sub", "and " + (needing.length - 5) + " more")); out.push(ul); }
+    const q = queenOf(k);
+    const keeps = el("p", "sub queen-line");
+    keeps.append(el("b", null, q.name), document.createTextNode(" keeps this room" + (q.notes.length ? ": " + q.notes.length + (q.notes.length === 1 ? " note" : " notes") : ", and has nothing written down yet.")));
+    out.push(keeps);
+    if (q.pinned.length) out.push(el("div", "ask-box need", q.pinned[0].text));
     const acts = el("div", "acts");
+    acts.appendChild(plainBtn("Ask " + q.name, "green", () => { hideMenu(); openQueen(k); }));
     acts.appendChild(S.focus === k ? plainBtn("Whole house", "", zoomOut) : plainBtn("Look in", "green", () => focusRoom(k)));
     if (GEOM[k].cabinet) acts.appendChild(plainBtn("Files", "", () => { hideMenu(); openCabinet(k); }));
     acts.appendChild(plainBtn("Adopt a cat here", "green", () => { hideMenu(); openAdopt(k); }));
@@ -677,6 +768,34 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const ul = el("ul"); pile.forEach((c) => ul.appendChild(catRow(c)));
     return [el("h3", null, pile.length + " cats curled up together"), el("p", "sub", roomInfo(room).name), ul];
   }
+  function queenMenu(k) {
+    const here = VIEW.cats.filter((c) => c.roomKey === k);
+    const q = (VIEW.queens[k] && VIEW.queens[k].queen) || queenOf(k);
+    const out = [];
+    const h = el("h3"); h.append(el("span", "crown inline"), document.createTextNode(q.name)); out.push(h);
+    out.push(el("p", "sub", "Queen of " + roomInfo(k).name + " \u2014 she keeps this room"));
+    out.push(el("div", q.pinned.length ? "ask-box need" : "sub", q.line || queenLine(q, here)));
+    if (q.notes.length) {
+      out.push(el("p", "sub", "What she keeps"));
+      const ul = el("ul", "keeps");
+      q.notes.slice(0, 5).forEach((n) => {
+        const li = el("li", n.pinned ? "kept pin" : "kept");
+        li.append(el("span", "dot"), el("span", null, n.text));
+        ul.appendChild(li);
+      });
+      if (q.notes.length > 5) ul.appendChild(el("li", "sub", "and " + (q.notes.length - 5) + " more"));
+      out.push(ul);
+    }
+    const needing = here.filter((c) => MOODS[c.mood].needs);
+    if (needing.length) { const ul = el("ul"); needing.slice(0, 4).forEach((c) => ul.appendChild(catRow(c))); out.push(ul); }
+    const acts = el("div", "acts");
+    acts.appendChild(plainBtn("What she keeps", "green", () => { hideMenu(); openQueen(k); }));
+    acts.appendChild(S.focus === k ? plainBtn("Whole house", "", zoomOut) : plainBtn("Look in", "", () => focusRoom(k)));
+    if (GEOM[k].cabinet) acts.appendChild(plainBtn("Files", "", () => { hideMenu(); openCabinet(k); }));
+    out.push(acts);
+    return out;
+  }
+
   function catMenu(id) {
     const c = VIEW.cats.find((x) => x.id === id);
     if (!c) return null;
@@ -732,14 +851,11 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       ov.appendChild(t);
       taken.push([sx - 26, sy - 30, sx + 26, sy]);
     }
-    for (const p of VIEW.placed) {
-      const m = MOODS[p.cat.mood];
-      if (!m.needs) continue;
-      if (S.focus && p.room !== S.focus) continue;
+    // A text bubble goes above the cat; if that is off the top or on another bubble, below it;
+    // failing both, the cat just shows the little face icon.
+    function bubble(p, kind, title, body, act, hoverKind, hoverKey, aria) {
       const [sx, sy] = toScreen(p.x, p.y);
-      if (sx < 0 || sx > cam.W || sy < 0 || sy > cam.H + 20) continue;
-      // A text bubble goes above the cat; if that is off the top or on another bubble, below it;
-      // failing both, the cat just shows the little face icon.
+      if (sx < 0 || sx > cam.W || sy < 0 || sy > cam.H + 20) return;
       const clampX = Math.min(Math.max(sx, 100), cam.W - 100);
       const feetY = toScreen(p.x, p.feet)[1] + 10;
       const up = [clampX - 97, sy - 84, clampX + 97, sy], down = [clampX - 97, feetY, clampX + 97, feetY + 84];
@@ -748,17 +864,35 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       if (text && up[1] >= 0 && free(up)) mode = "up";
       else if (text && down[3] <= cam.H + 10 && free(down)) mode = "down";
       if (mode !== "icon") taken.push(mode === "up" ? up : down);
-      else { const h = small ? 20 : 40; const r = [sx - h / 2, sy - h, sx + h / 2, sy]; if (!free(r)) continue; taken.push(r); }
+      else { const h = small ? 20 : 40; const r = [sx - h / 2, sy - h, sx + h / 2, sy]; if (!free(r)) return; taken.push(r); }
       const below = mode === "down", asText = mode !== "icon";
-      const b = el("button", "bub " + m.kind + (asText ? "" : " icon") + (below ? " below" : "") + (!asText && small ? " small" : ""));
+      const b = el("button", "bub " + kind + (asText ? "" : " icon") + (below ? " below" : "") + (!asText && small ? " small" : ""));
       b.type = "button";
-      b.setAttribute("aria-label", p.cat.name + ": " + m.short + ". " + p.cat.ask);
-      if (asText) { b.append(el("b", null, p.cat.name + " · " + m.short), el("span", "t", p.cat.ask)); }
+      b.setAttribute("aria-label", aria);
+      if (asText) { b.append(el("b", null, title), el("span", "t", body)); }
       else b.appendChild(el("span", "ui face face-ico"));
       Object.assign(b.style, { left: (asText ? clampX : sx) + "px", top: (below ? feetY : sy - 4) + "px" });
-      b.addEventListener("click", () => { if (!armed("cat", p.cat.id)) catClicked(p.cat, p.room); });
-      hoverable(b, "cat", p.cat.id);
+      b.addEventListener("click", act);
+      hoverable(b, hoverKind, hoverKey);
       ov.appendChild(b);
+    }
+    for (const p of VIEW.placed) {
+      const m = MOODS[p.cat.mood];
+      if (!m.needs) continue;
+      if (S.focus && p.room !== S.focus) continue;
+      bubble(p, m.kind, p.cat.name + " · " + m.short, p.cat.ask,
+        () => { if (!armed("cat", p.cat.id)) catClicked(p.cat, p.room); }, "cat", p.cat.id,
+        p.cat.name + ": " + m.short + ". " + p.cat.ask);
+    }
+    // the queens hand you what they are keeping, without your having to ask
+    for (const k of ORDER) {
+      const p = VIEW.queens[k];
+      if (!p || !p.queen.pinned.length) continue;
+      if (S.focus && p.room !== S.focus) continue;
+      const q = p.queen;
+      bubble(p, "need queenb", q.name + " · Keeping", q.pinned[0].text,
+        () => { if (!armed("queen", k)) { hideMenu(); openQueen(k); } }, "queen", k,
+        q.name + ", queen of " + roomInfo(k).name + ", is keeping: " + q.pinned[0].text);
     }
   }
 
@@ -866,6 +1000,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     db.collection("cats").onSnapshot((snap) => { S.adopted = snap.docs.map((d) => Object.assign({ id: d.id }, d.data())); render(); }, fail);
     db.doc("snapshot/sessions").onSnapshot((d) => { S.copy = d.exists ? d.data() : null; pick(); render(); }, fail);
     db.collection("projects").onSnapshot((snap) => { const p = {}; for (const d of snap.docs) p[d.id] = d.data(); S.projects = p; render(); }, fail);
+    db.collection("queens").onSnapshot((snap) => { const q = {}; for (const d of snap.docs) q[d.id] = d.data(); S.queens = q; render(); }, fail);
   }
   async function save(fn, ok) {
     if (!S.db) { toast("Saving isn't available in this view."); return false; }
@@ -928,6 +1063,73 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     } else {
       box.appendChild(adoptForm(c));
     }
+    dlg.appendChild(box);
+    show(dlg);
+  }
+
+  // Her card: what she is keeping, what to give her, and what she should say out loud.
+  function openQueen(k) {
+    const dlg = $("queenDlg"); dlg.replaceChildren();
+    const here = VIEW.cats.filter((c) => c.roomKey === k);
+    const q = queenOf(k);
+    const notes = q.notes.map((n) => ({ text: n.text, pinned: !!n.pinned, at: n.at || Date.now() }));
+    const box = el("div", "dlg");
+
+    const head = el("div", "head");
+    const por = el("div", "portrait");
+    por.append(sprite(queenMood(q, here), q.coat), el("span", "crown corner"));
+    const hd = el("div");
+    const h = el("h2", null, q.name); h.id = "queenName";
+    hd.append(h, el("span", "mood work", "Queen of " + roomInfo(k).name));
+    head.append(por, hd);
+    box.append(head, el("div", null, queenLine(q, here)));
+
+    box.appendChild(el("p", "sub", "What she keeps"));
+    const list = el("ul", "keeps");
+    function draw() {
+      list.replaceChildren();
+      if (!notes.length) list.appendChild(el("li", "sub", "She is keeping nothing for this room yet."));
+      notes.forEach((n, i) => {
+        const li = el("li", n.pinned ? "kept pin" : "kept");
+        const pin = plainBtn(n.pinned ? "Saying it" : "Say it", "tiny" + (n.pinned ? " green" : ""), () => { n.pinned = !n.pinned; draw(); });
+        pin.title = n.pinned ? "She says this in the room until you take it back" : "Have her say this out loud in the room";
+        pin.setAttribute("aria-pressed", String(n.pinned));
+        const rm = plainBtn("Forget", "tiny pink", () => { notes.splice(i, 1); draw(); });
+        rm.setAttribute("aria-label", "Forget: " + n.text);
+        li.append(el("span", "dot"), el("span", "t", n.text), pin, rm);
+        list.appendChild(li);
+      });
+    }
+    draw();
+    box.appendChild(list);
+
+    const add = el("input"); add.id = "queenAdd"; add.maxLength = NOTE_MAX; add.placeholder = "The Drive order goes in on Sunday";
+    const give = () => {
+      const t = add.value.trim();
+      if (!t) return;
+      if (notes.length >= NOTES_MAX) { toast("She can hold " + NOTES_MAX + " things at once. Let one go first."); return; }
+      notes.unshift({ text: t.slice(0, NOTE_MAX), pinned: false, at: Date.now() });
+      add.value = ""; draw(); add.focus();
+    };
+    add.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); give(); } });
+    const row = el("div", "row");
+    row.append(field("Something she should keep", add), plainBtn("Give it to her", "green", give));
+    box.appendChild(row);
+
+    const nm = el("input"); nm.id = "queenRename"; nm.value = (S.queens[k] && S.queens[k].name) || ""; nm.placeholder = q.name; nm.maxLength = 30;
+    box.appendChild(field("Her name", nm));
+    box.appendChild(el("p", "note", "What you type here is saved in this page. Anyone you share the page with can read it, so keep sensitive details out of it."));
+
+    const acts = el("div", "actions");
+    const sv = el("button", "btn plaque green", "Save"); sv.type = "button";
+    sv.id = "queenSave";
+    sv.addEventListener("click", async () => {
+      const name = nm.value.trim();
+      const ok = await save((db) => db.doc("queens/" + k).set({ name, notes, updatedAt: Date.now() }), "Saved. " + (name || q.name) + " has it.");
+      if (ok) dlg.close();
+    });
+    acts.append(closeBtn(dlg), el("span", "spacer"), sv);
+    box.appendChild(acts);
     dlg.appendChild(box);
     show(dlg);
   }
@@ -1131,9 +1333,16 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   new ResizeObserver(() => { hideMenu(); layout(true); }).observe($("stage"));
   $("menu").addEventListener("pointerenter", () => clearTimeout(MENU.hideT));
   $("menu").addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") hideSoon(); });
-  // tapping or clicking the open meadow closes the menu, then zooms back out
+  // tapping or clicking the open meadow closes the menu, then zooms back out.
+  // The path is taken when the event is dispatched, so a button the menu replaced while handling
+  // the click — Sound, Bring them down, anything that redraws the menu under your pointer — is
+  // still known to have come from the menu. Reading e.target alone sees a node with no parent by
+  // then, calls it a click on the meadow, and shuts the menu you are using.
   $("stage").addEventListener("click", (e) => {
-    if (e.target.closest("#menu, .cat, .roomhit, .cabinet, .bub, .tag")) return;
+    const path = (e.composedPath && e.composedPath()) || [e.target];
+    const chrome = path.some((n) => n && n.nodeType === 1 &&
+      (n === $("menu") || (n.matches && n.matches(".cat, .roomhit, .cabinet, .bub, .tag"))));
+    if (chrome) return;
     if (MENU.kind) hideMenu(); else zoomOut();
   });
   document.addEventListener("keydown", (e) => {
