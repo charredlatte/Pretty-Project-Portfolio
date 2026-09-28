@@ -35,7 +35,10 @@ body {
 button, input, select, textarea { font: inherit; color: inherit; }
 a { color: var(--ink); }
 :focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
-.px, .ico, .paw, .face-ico { image-rendering: pixelated; background-repeat: no-repeat; }
+.px { image-rendering: pixelated; background-repeat: no-repeat; }
+/* cells of ToffeeCraft's cat UI sheet: --x/--y is the cell in art pixels, --k the scale */
+.ui { --k: 1; image-rendering: pixelated; background: url(art/licensed/cat-ui.png) no-repeat;
+  background-size: calc(256px * var(--k)) calc(128px * var(--k)); background-position: calc(var(--x) * -1px * var(--k)) calc(var(--y) * -1px * var(--k)); }
 
 /* the one frame: the wooden trim from the cabin sheet, 9-sliced, paper inside */
 .panel { border: calc(16 * var(--u)) solid transparent; border-image: url(art/ui/frame-fill.png) 16 fill / calc(16 * var(--u)) round; }
@@ -50,11 +53,10 @@ h1 { font: 700 clamp(2rem, 6vw, 2.8rem)/1 var(--display); margin: 0; letter-spac
 .tally li { display: inline-flex; align-items: center; gap: 4px; font-size: .82rem; font-weight: 700; font-variant-numeric: tabular-nums;
   border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; padding: 0 6px 0 2px; }
 .tally li.zero { opacity: .6; }
-.face-ico { display: inline-block; width: 21px; height: 18px; background-image: url(art/licensed/cat-ui.png); background-size: 256px 128px; background-position: -5px -39px; flex: none; }
-.need > .face-ico, .face-ico.need { background-position: -37px -39px; }
-.fail > .face-ico, .face-ico.fail { background-position: -37px -71px; }
-.gift > .face-ico, .face-ico.gift { background-position: -5px -71px; }
-.work > .face-ico, .sleep > .face-ico { display: none; }
+.face-ico { display: inline-block; width: calc(21px * var(--k)); height: calc(18px * var(--k)); flex: none; --x: 5; --y: 39; }
+.need > .face-ico, .need .face { --x: 37; --y: 39; }
+.fail > .face-ico, .fail .face { --x: 37; --y: 71; }
+.gift > .face-ico, .gift .face { --x: 5; --y: 71; }
 .status { font-size: .82rem; color: var(--ink-soft); display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; align-items: center; }
 .status.warn { color: var(--ink); font-weight: 700; }
 .status .dot { width: 8px; height: 8px; background: #4F8A3A; display: inline-block; }
@@ -67,8 +69,6 @@ h1 { font: 700 clamp(2rem, 6vw, 2.8rem)/1 var(--display); margin: 0; letter-spac
 .plaque:active { translate: 0 var(--u); }
 .plaque.green { border-image-source: url(art/ui/plaque-green.png); color: #1F3A14; text-shadow: 0 1px 0 #CFE3A6; }
 .plaque.pink { border-image-source: url(art/ui/plaque-pink.png); color: #5A1C12; text-shadow: 0 1px 0 #FBE2D8; }
-.plaque.blue { border-image-source: url(art/ui/plaque-blue.png); color: #1D2F4A; text-shadow: 0 1px 0 #DDE9F4; }
-.plaque.dark { border-image-source: url(art/ui/plaque-dark.png); }
 
 .rooms { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; padding: 2px; }
 @media (max-width: 640px) { .rooms { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; scrollbar-width: thin; } }
@@ -120,17 +120,10 @@ h1 { font: 700 clamp(2rem, 6vw, 2.8rem)/1 var(--display); margin: 0; letter-spac
 .bub.below::after { bottom: auto; top: -12px; border: 6px solid transparent; border-bottom-color: #B06B43; border-top: 0; }
 .bub b { display: flex; align-items: center; gap: 4px; font: 700 11px/1.2 var(--display); letter-spacing: .02em; text-transform: uppercase; margin: 2px 0; }
 .bub .t { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.bub.icon { padding: 0; border: 0; border-image: none; width: 42px; height: 36px; }
+.bub.icon { padding: 0; border: 0; border-image: none; width: auto; }
 .bub.icon::after { display: none; }
-.bub.icon .face { display: block; width: 42px; height: 36px; background: url(art/licensed/cat-ui.png) -10px -78px / 512px 256px no-repeat; image-rendering: pixelated; }
-.bub.icon.fail .face { background-position: -74px -142px; }
-.bub.icon.gift .face { background-position: -10px -142px; }
-.bub.icon.need .face { background-position: -74px -78px; }
-.bub.icon.small, .bub.icon.small .face { width: 21px; height: 18px; }
-.bub.icon.small .face { background-size: 256px 128px; background-position: -5px -39px; }
-.bub.icon.small.fail .face { background-position: -37px -71px; }
-.bub.icon.small.gift .face { background-position: -5px -71px; }
-.bub.icon.small.need .face { background-position: -37px -39px; }
+.bub.icon .face { display: block; --k: 2; }
+.bub.icon.small .face { --k: 1; }
 .stage-msg { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: .85rem; padding: 2px 8px; max-width: calc(100% - 24px); text-align: center;
   border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; image-rendering: pixelated; }
 
@@ -141,26 +134,22 @@ h1 { font: 700 clamp(2rem, 6vw, 2.8rem)/1 var(--display); margin: 0; letter-spac
 .slot:hover .ico { translate: 0 -2px; }
 .slot:disabled { opacity: .5; cursor: default; }
 .slot:disabled .ico { translate: none; }
-.ico { width: 48px; height: 48px; background-image: url(art/licensed/cat-ui.png); background-size: 768px 384px; }
-.i-play { background-position: -384px 0; }
-.i-pause { background-position: -528px 0; }
-.i-check { background-position: -480px -48px; }
-.i-minus { background-position: -480px -96px; }
-.i-door { width: 32px; height: 48px; margin-inline: 8px; background: url(art/ui/door.png) 0 -6px / 32px 60px; }
+.ico { --k: 3; width: calc(16px * var(--k)); height: calc(16px * var(--k)); }
+.i-play { --x: 128; --y: 0; }
+.i-pause { --x: 176; --y: 0; }
+.i-check { --x: 160; --y: 16; }
+.i-minus { --x: 160; --y: 32; }
+.i-door { width: calc(10.67px * var(--k)); margin-inline: calc(2.67px * var(--k)); background: url(art/ui/door.png) 0 calc(-2px * var(--k)) / calc(10.67px * var(--k)) calc(20px * var(--k)); image-rendering: pixelated; }
 .slot.adopt { width: auto; min-width: 180px; grid-auto-flow: column; gap: 10px; padding: 2px 12px; font: 700 1.15rem/1.1 var(--display);
   border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(7 * var(--u)); border-image: url(art/ui/plaque-green.png) 4 4 7 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(7 * var(--u)); color: #1F3A14; text-shadow: 0 1px 0 #CFE3A6; }
 .slot.adopt small { display: block; font: 400 .72rem var(--body); margin-top: 2px; }
-.paw { width: 45px; height: 42px; background: url(art/licensed/cat-ui.png) -195px -99px / 768px 384px; }
+.paw { --k: 3; --x: 65; --y: 33; width: calc(15px * var(--k)); height: calc(14px * var(--k)); }
 @media (max-width: 480px) {
   .hotbar { gap: 3px; }
   .slot { width: 52px; font-size: .68rem; }
-  .ico { width: 32px; height: 32px; background-size: 512px 256px; }
-  .i-play { background-position: -256px 0; } .i-pause { background-position: -352px 0; }
-  .i-check { background-position: -320px -32px; } .i-minus { background-position: -320px -64px; }
-  .i-door { width: 21px; height: 32px; margin-inline: 5px; background-size: 21px 40px; background-position: 0 -4px; }
+  .ico, .paw { --k: 2; }
   .slot.adopt { min-width: 0; padding: 2px 6px; gap: 2px; font-size: .9rem; grid-auto-flow: row; }
   .slot.adopt small { display: none; }
-  .paw { width: 30px; height: 28px; background-position: -130px -66px; background-size: 512px 256px; }
 }
 
 /* needs panel */
@@ -251,10 +240,10 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   </div>
   <div class="hotbar" role="toolbar" aria-label="Catio tools">
     <button class="slot" id="roomsBtn" type="button"><span class="ico i-door" aria-hidden="true"></span>Rooms</button>
-    <button class="slot" id="soundBtn" type="button" aria-pressed="false"><span class="ico i-play" id="soundIco" aria-hidden="true"></span><span id="soundLbl">Sound off</span></button>
-    <button class="slot adopt" id="adoptBtn" type="button"><span class="paw" aria-hidden="true"></span><span>Adopt a cat<small>for a chat on claude.ai</small></span></button>
-    <button class="slot" id="refreshBtn" type="button"><span class="ico i-check" aria-hidden="true"></span>Check now</button>
-    <button class="slot" id="zoomOut" type="button" disabled><span class="ico i-minus" aria-hidden="true"></span>Whole house</button>
+    <button class="slot" id="soundBtn" type="button" aria-pressed="false"><span class="ui ico i-play" id="soundIco" aria-hidden="true"></span><span id="soundLbl">Sound off</span></button>
+    <button class="slot adopt" id="adoptBtn" type="button"><span class="ui paw" aria-hidden="true"></span><span>Adopt a cat<small>for a chat on claude.ai</small></span></button>
+    <button class="slot" id="refreshBtn" type="button"><span class="ui ico i-check" aria-hidden="true"></span>Check now</button>
+    <button class="slot" id="zoomOut" type="button" disabled><span class="ui ico i-minus" aria-hidden="true"></span>Whole house</button>
   </div>
   <section class="needs panel" aria-labelledby="needsTitle">
     <header>
@@ -335,7 +324,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 
   const S = {
     sessions: null, sessionsAt: null, live: { state: "loading" }, upstairs: 0,
-    rooms: {}, tweaks: {}, adopted: [], dbReady: false,
+    rooms: {}, tweaks: {}, adopted: [],
     focus: null, cam: null, sound: false, showOld: false, prevNeeding: null,
     db: null, mcp: null, perms: null, unwatch: null,
   };
@@ -479,7 +468,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const count = (m) => cats.filter((c) => c.mood === m).length;
     const tally = $("tally"); tally.replaceChildren();
     const t = [["need", count("meow"), "meowing"], ["fail", count("cry"), "upset"], ["gift", count("box"), "to review"], ["work", count("idle"), "at work"], ["sleep", count("sleep"), "asleep"]];
-    for (const [cls, n, label] of t) if (n || cls === "need") { const li = el("li", cls + (n ? "" : " zero")); li.append(el("span", "face-ico"), document.createTextNode(n + " " + label)); tally.appendChild(li); }
+    for (const [cls, n, label] of t) if (n || cls === "need") { const li = el("li", cls + (n ? "" : " zero")); if (cls === "need" || cls === "fail" || cls === "gift") li.appendChild(el("span", "ui face-ico")); li.appendChild(document.createTextNode(n + " " + label)); tally.appendChild(li); }
     const needing = cats.filter((c) => MOODS[c.mood].needs);
     document.title = (needing.length ? "(" + needing.length + ") " : "") + "The Catio";
 
@@ -519,7 +508,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       const li = el("li");
       const b = el("button", "item " + MOODS[c.mood].kind); b.type = "button";
       const th = el("span", "thumb"); th.appendChild(sprite(c.mood, c.coat));
-      b.appendChild(el("span", "face-ico"));
+      b.appendChild(el("span", "ui face-ico"));
       const txt = el("span");
       const who = el("span", "who", c.name + " "); who.appendChild(el("span", null, "· " + roomInfo(c.roomKey).name + " · " + ago(c.updated)));
       txt.append(who, el("div", "what", c.title), el("div", "ask", c.ask));
@@ -662,7 +651,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       b.type = "button";
       b.setAttribute("aria-label", p.cat.name + ": " + m.short + ". " + p.cat.ask);
       if (asText) { b.append(el("b", null, p.cat.name + " · " + m.short), el("span", "t", p.cat.ask)); }
-      else b.appendChild(el("span", "face"));
+      else b.appendChild(el("span", "ui face face-ico"));
       Object.assign(b.style, { left: (asText ? clampX : sx) + "px", top: (below ? feetY : sy - 4) + "px" });
       b.addEventListener("click", () => catClicked(p.cat, p.room));
       ov.appendChild(b);
@@ -729,7 +718,6 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     if (S.unwatch) { S.unwatch(); S.unwatch = null; }
     if (fresh && S.mcp.invalidate) S.mcp.invalidate(SERVER, "list_sessions").catch(() => {});
     S.live = { state: "loading" }; renderStatus();
-    let retried = false;
     S.unwatch = S.mcp.watchTool(SERVER, "list_sessions", { limit: PAGE }, (ev) => {
       if (ev.type === "data") {
         const list = sessionsFrom(ev.result);
@@ -745,7 +733,6 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
         const p = problem(err);
         S.live = { state: p.stale ? "stale" : "error", message: p.message, action: p.action };
         render();
-        if (err.retryable && !retried) { retried = true; setTimeout(() => watch(false), (err.retryAfterMs || 3000) + Math.random() * 2000); }
       }
     }, { refetchInterval: 60000 });
   }
@@ -754,7 +741,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   function subscribe() {
     const db = S.db;
     const fail = (e) => toast("Couldn't load saved rooms and chats (" + (e && e.code || "error") + ").");
-    db.collection("rooms").onSnapshot((snap) => { const r = {}; for (const d of snap.docs) r[d.id] = d.data(); S.rooms = r; S.dbReady = true; render(); }, fail);
+    db.collection("rooms").onSnapshot((snap) => { const r = {}; for (const d of snap.docs) r[d.id] = d.data(); S.rooms = r; render(); }, fail);
     db.collection("sessions").onSnapshot((snap) => { const t = {}; for (const d of snap.docs) t[d.id] = d.data(); S.tweaks = t; render(); }, fail);
     db.collection("cats").onSnapshot((snap) => { S.adopted = snap.docs.map((d) => Object.assign({ id: d.id }, d.data())); render(); }, fail);
   }
@@ -784,12 +771,12 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const por = el("div", "portrait"); por.appendChild(sprite(c.mood, c.coat));
     const hd = el("div");
     const h = el("h2", null, c.name); h.id = "catName";
-    const mood = el("span", "mood " + m.kind); mood.append(el("span", "face-ico"), document.createTextNode(m.label));
+    const mood = el("span", "mood " + m.kind); mood.append(el("span", "ui face-ico"), document.createTextNode(m.label));
     hd.append(h, mood);
     head.append(por, hd);
     box.appendChild(head);
     box.appendChild(el("div", null, c.title));
-    if (c.ask) { const a = el("div", "ask-box " + m.kind); a.append(el("span", "face-ico"), el("span", null, c.ask)); box.appendChild(a); }
+    if (c.ask) { const a = el("div", "ask-box " + m.kind); a.append(el("span", "ui face-ico"), el("span", null, c.ask)); box.appendChild(a); }
     const dl = el("dl", "facts");
     const row = (k, v) => { if (!v) return; dl.append(el("dt", null, k), el("dd", null, v)); };
     if (c.mood === "idle" && c.doing) row("Doing", c.doing);
@@ -945,7 +932,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       o.connect(f).connect(g).connect(audio.destination); o.start(t); o.stop(t + 0.6);
     } catch (e) {}
   }
-  function renderSound() { $("soundBtn").setAttribute("aria-pressed", String(S.sound)); $("soundLbl").textContent = S.sound ? "Sound on" : "Sound off"; $("soundIco").className = "ico " + (S.sound ? "i-pause" : "i-play"); }
+  function renderSound() { $("soundBtn").setAttribute("aria-pressed", String(S.sound)); $("soundLbl").textContent = S.sound ? "Sound on" : "Sound off"; $("soundIco").className = "ui ico " + (S.sound ? "i-pause" : "i-play"); }
 
   let toastT;
   function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 3200); }

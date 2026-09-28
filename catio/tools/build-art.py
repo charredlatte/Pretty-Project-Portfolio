@@ -101,13 +101,11 @@ def ui(cabin_zip):
 
     filled(frame, "frame-fill.png")
 
-    cut((0, 48, 16, 64), "paper.png")            # plain cream wallpaper (below the ceiling shadow)
     cut((64, 48, 80, 64), "paper-circles.png")   # cream wallpaper with circles
     cut((0, 68, 16, 80), "rail.png")             # wainscot rail
     cut((14, 98, 118, 111), "bar.png")           # capped wooden bar, for dividers
     cut((354, 34, 384, 62), "plaque-wood.png")   # raised floor plaques, for buttons and chips
     cut((418, 34, 448, 62), "plaque-dark.png")
-    cut((354, 272, 384, 302), "plaque-blue.png")
     cut((418, 272, 448, 302), "plaque-pink.png")
     cut((482, 272, 512, 302), "plaque-green.png")
     filled(cut((224, 160, 256, 192), "ring.png"), "ring-fill.png")  # cream wall-outline ring, for cards and inputs
