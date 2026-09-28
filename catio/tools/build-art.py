@@ -10,6 +10,7 @@ Writes, next to catio/index.html:
   art/licensed/decor.png         the catio, the garden and a few indoor pieces from Top Down Garden Castle
                                  and Wood Garden (see cabin.decor)
   art/licensed/meadow.png        a grass tile from Top Down Garden Castle, repeated under the cabin
+  art/licensed/emblems.png       the little things a cat carries to show its project
   art/licensed/mochi-idle.png, mochi-box.png, pochi.png, cat-ui.png   the ToffeeCraft cats, unchanged
 
 Only art/house.png and art/ui/ are committed (Cosy Cabin allows copying, with credit). The ToffeeCraft
@@ -113,6 +114,29 @@ def spring(im):
     return im
 
 
+EMBLEM = (20, 24)   # one cell of emblems.png; the page's EMBLEMS list follows this order
+
+
+def emblems(cats_zip, cabin_zip):
+    """Small pieces a cat carries to show its project: tin, coin, books, star, plant, yarn."""
+    pochi = member(zipfile.ZipFile(cats_zip), "PochiFree/FreeSprites.png")
+    catui = member(zipfile.ZipFile(cats_zip), "CatUIFree/free.png")
+    objects = member(zipfile.ZipFile(cabin_zip), "CosyCabin_Objects.png")
+    pieces = [
+        pochi.crop((103, 343, 121, 361)),     # tin of cat food: groceries, meals
+        catui.crop((160, 48, 176, 64)),       # coin button: shops, business, money
+        objects.crop((835, 81, 846, 95)),     # books: legal, admin, study
+        objects.crop((896, 241, 912, 256)),   # star: portfolio, design
+        objects.crop((834, 584, 848, 608)),   # potted plant: home, garden
+        pochi.crop((137, 410, 154, 425)),     # yarn: everything else
+    ]
+    w, h = EMBLEM
+    sheet = Image.new("RGBA", (w * len(pieces), h))
+    for i, p in enumerate(pieces):
+        sheet.alpha_composite(p, (i * w + (w - p.width) // 2, h - p.height))
+    return sheet
+
+
 def main():
     if len(sys.argv) != 5:
         raise SystemExit(__doc__)
@@ -125,6 +149,7 @@ def main():
     wood = zipfile.ZipFile(wood_zip)
     cabin.decor(cabin.SIZE, sheet, lambda name: member(wood, name)).save(OUT / "licensed" / "decor.png")
     sheet.crop((16, 16, 128, 48)).save(OUT / "licensed" / "meadow.png")
+    emblems(cats_zip, cabin_zip).save(OUT / "licensed" / "emblems.png")
     cats = zipfile.ZipFile(cats_zip)
     for suffix, name in [("MochiFree/Idle.png", "mochi-idle.png"), ("MochiFree/Box3.png", "mochi-box.png"),
                          ("PochiFree/FreeSprites.png", "pochi.png"), ("CatUIFree/free.png", "cat-ui.png")]:

@@ -16,6 +16,13 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
 - **The hotbar** under the cabin: Rooms, Sound, **Adopt a cat** in the middle, Check now, and
   Whole house.
 - **Meowing for you**: every cat waiting on her, most urgent first, then the cats at work.
+- **Filing cabinets** in the kitchen, dining room, living room, study and bedroom, and a chest
+  on the catio deck. Each holds the projects filed in that room with all their cats, including
+  the ones archived or napping upstairs.
+
+Cats wear their project: every cat of one project has the same coat and carries the same
+emblem (a tin of cat food for the grocery app, a coin for the shop, books for legal matters, a
+star for the portfolio, a plant, or yarn). The look can be changed from the project's cabinet.
 
 The cabin is a real floor plan, laid out the way small cabins usually are:
 

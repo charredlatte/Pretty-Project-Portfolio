@@ -40,6 +40,7 @@ SPRITES = {
     "chair_back": (641, 282, 14, 22), "chair_left": (658, 277, 14, 27),
     "fridge": (384, 808, 16, 40), "ctr_plain": (384, 628, 16, 27), "ctr_drawers": (416, 628, 16, 27),
     "ctr_door": (448, 628, 16, 27), "ctr_hob": (480, 754, 16, 29),
+    "cabinet": (608, 628, 16, 27),                   # dark drawers: the filing cabinets
     "bed": (176, 416, 32, 47), "nightstand": (176, 520, 16, 22), "dresser": (16, 501, 32, 27),
     "desk": (304, 507, 32, 32),
     "toilet": (17, 572, 14, 36), "shower": (691, 578, 12, 25), "basin": (353, 578, 14, 14), "towel": (834, 738, 12, 14),
@@ -56,27 +57,27 @@ SPRITES = {
 # furniture: (sprite, x, y); rugs first, the rest drawn back to front by their bottom edge
 FURNITURE = [
     # kitchen: counters under the window, fridge at the end of the run
-    ("fridge", 40, 92), ("ctr_drawers", 56, 105), ("ctr_plain", 72, 105), ("ctr_hob", 88, 103), ("ctr_door", 104, 105),
+    ("fridge", 40, 92), ("ctr_drawers", 56, 105), ("ctr_plain", 72, 105), ("ctr_hob", 88, 103), ("cabinet", 106, 105),
     ("win_grid_cream", 66, 88), ("plant_snake", 40, 186), ("pot", 96, 206),
     ("ctr_plain", 62, 152), ("ctr_drawers", 78, 152),                            # island
     # dining: round table on a red rug in front of the glass
     ("rug_red", 136, 158), ("table_round", 143, 152), ("chair_front", 153, 138), ("chair_back", 153, 176),
-    ("chair_right", 128, 156), ("chair_left", 179, 156), ("sunflower", 190, 180),
+    ("chair_right", 128, 156), ("chair_left", 179, 156), ("sunflower", 190, 180), ("cabinet", 186, 105),
     # living: fireplace between two glass walls; sofa and armchairs round a rug
     ("fireplace", 274, 58), ("rug_blue", 266, 140), ("sofa_blue_back", 270, 176),
-    ("armchair_blue_l", 236, 132), ("armchair_blue_r", 318, 132), ("lamp_floor", 346, 98), ("plant_pampas", 218, 90),
+    ("armchair_blue_l", 236, 132), ("armchair_blue_r", 318, 132), ("cabinet", 348, 72), ("lamp_floor", 352, 186), ("plant_pampas", 218, 90),
     # sunroom: green chair and plants in the light
     ("armchair_green", 380, 150), ("plants", 408, 186), ("plant_snake", 432, 124), ("rug_round", 410, 150),
     # bathroom (ensuite)
     ("mat_small", 58, 300), ("toilet", 40, 250), ("mirror_small", 62, 234), ("basin", 61, 258), ("shower", 82, 236),
     ("towel", 82, 264), ("plant_bath", 78, 306),
     # bedroom
-    ("runner_yellow", 157, 318), ("dresser", 103, 256), ("mirror", 113, 228), ("nightstand", 138, 264), ("bed", 156, 250),
+    ("runner_yellow", 157, 318), ("cabinet", 103, 257), ("dresser", 121, 256), ("mirror", 131, 228), ("bed", 156, 250),
     ("nightstand", 190, 264), ("plant_snake", 104, 318), ("frame1", 144, 238), ("frame2", 194, 238),
     # hall
     ("mat", 228, 354), ("plant_pampas", 214, 300),
     # study: desk under the frames, a reading lamp
-    ("runner_green", 300, 318), ("desk", 342, 258), ("chair_back", 351, 280), ("lamp_floor", 370, 262),
+    ("runner_green", 300, 318), ("desk", 342, 258), ("chair_back", 351, 280), ("cabinet", 368, 257),
     ("frame1", 348, 236), ("frame3", 360, 236), ("star", 290, 236),
 ]
 
@@ -249,6 +250,7 @@ def decor(size, sheet, wood_piece):
             stamp(deck, 453 + dx * 32, 88 + dy * 32)
     stamp(wood_piece("White flower box shelf/White flower box shelf-3.png"), 534, 60)   # cat shelves
     stamp(crop(113, 293, 81, 121), 548, 112)                          # shade tree, east corner
+    stamp(wood_piece("Chest/Chest-1.png"), 457, 90)                   # the catio's filing chest
     stamp(wood_piece("Medium wooden chair/Medium-chair-1.png"), 458, 150)
     stamp(wood_piece("Table/Table-1.png"), 484, 150)
     stamp(wood_piece("Small wooden flower box/Small wooden flower box-18.png"), 526, 176)

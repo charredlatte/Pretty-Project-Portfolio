@@ -91,6 +91,13 @@ h1 { font: 700 clamp(2rem, 6vw, 2.8rem)/1 var(--display); margin: 0; letter-spac
 .spr { display: inline-block; vertical-align: bottom; filter: var(--tint, none); image-rendering: pixelated; background-repeat: no-repeat; }
 .cat .spr { display: block; }
 .cat:focus-visible { outline: 2px solid #FFF4E6; outline-offset: 1px; }
+.emb { position: absolute; width: 20px; height: 24px; pointer-events: none; image-rendering: pixelated;
+  background: url(art/licensed/emblems.png) calc(var(--e) * -20px) 0 / 120px 24px no-repeat; }
+.emb.corner { left: auto; top: auto; right: 0; bottom: 0; }
+.emb.big { transform: scale(2); transform-origin: 100% 100%; right: 6px; bottom: 4px; }
+.cabinet { position: absolute; background: transparent; border: 0; padding: 0; cursor: pointer; }
+.cabinet:hover, .cabinet:focus-visible { outline: 2px solid #FFF4E6; outline-offset: 1px; }
+.tag.files { pointer-events: auto; cursor: pointer; transform: translate(-50%, -100%); }
 .pile-n { position: absolute; right: -4px; top: 6px; background: #FFF4E6; color: #50140D; font: 700 11px/1 var(--body); padding: 2px 4px; box-shadow: 0 0 0 1px #50140D; }
 
 /* sprite sheets: one step() animation per mood */
@@ -208,6 +215,12 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 .roomrow { display: grid; gap: 6px; }
 .roomrow h3 { margin: 0; font: 500 1rem var(--display); }
 .pilelist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.proj { display: grid; gap: 8px; padding: 4px; border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; image-rendering: pixelated; }
+.proj-head { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; align-items: center; }
+.proj-head h3 { margin: 0; font: 700 1.05rem/1.2 var(--display); overflow-wrap: anywhere; }
+.proj-pic { width: 56px; height: 48px; position: relative; overflow: hidden; background: url(art/licensed/meadow.png) 0 0 / 112px 32px; }
+.proj-pic .spr { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%) scale(1.3); transform-origin: 50% 100%; }
+.item.file { padding-right: 6px; text-decoration: none; color: inherit; }
 
 .toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); font-size: .9rem; padding: 2px 8px; max-width: calc(100vw - 32px);
   border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; image-rendering: pixelated; }
@@ -273,15 +286,16 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   const STALE_DAYS = 7;     // sleeping cats older than this go upstairs
 
   // Room geometry is fixed by the art, drawn to the plan in tools/cabin.py: native cabin pixels
-  // (the scene draws them at 2x). r = [x, y, w, h]; spots = where cats sit, as the point under their feet.
+  // (the scene draws them at 2x). r = [x, y, w, h]; spots = where cats sit, as the point under their feet;
+  // cabinet = the filing cabinet's box, where that room's projects are kept.
   const GEOM = {
-    garden:  { name: "Catio",       r: [448, 48, 160, 188], spots: [[474, 126], [514, 208], [568, 96], [586, 202], [500, 110]] },
-    kitchen: { name: "Kitchen",     r: [32, 80, 85, 149],   spots: [[48, 212], [104, 146], [104, 212], [46, 146]] },
-    dining:  { name: "Dining room", r: [112, 80, 101, 149], spots: [[124, 214], [200, 146], [200, 212], [124, 130]] },
-    living:  { name: "Living room", r: [208, 48, 165, 181], spots: [[290, 162], [234, 212], [350, 206], [226, 118], [350, 150], [300, 216], [268, 118]] },
+    garden:  { name: "Catio",       r: [448, 48, 160, 188], spots: [[474, 126], [514, 208], [568, 96], [586, 202], [500, 110]], cabinet: [457, 90, 22, 21] },
+    kitchen: { name: "Kitchen",     r: [32, 80, 85, 149],   spots: [[48, 212], [104, 146], [104, 212], [46, 146]], cabinet: [106, 105, 16, 27] },
+    dining:  { name: "Dining room", r: [112, 80, 101, 149], spots: [[124, 214], [200, 146], [200, 212], [124, 130]], cabinet: [186, 105, 16, 27] },
+    living:  { name: "Living room", r: [208, 48, 165, 181], spots: [[290, 162], [234, 212], [350, 206], [226, 118], [350, 150], [300, 216], [268, 118]], cabinet: [348, 72, 16, 27] },
     sunroom: { name: "Sunroom",     r: [368, 80, 85, 149],  spots: [[426, 164], [392, 214], [398, 132]] },
-    study:   { name: "Study",       r: [272, 224, 117, 133], spots: [[302, 340], [360, 326], [320, 306], [376, 344]] },
-    bedroom: { name: "Bedroom",     r: [96, 224, 117, 133], spots: [[122, 334], [198, 330], [140, 304], [200, 300]] },
+    study:   { name: "Study",       r: [272, 224, 117, 133], spots: [[302, 340], [360, 326], [320, 306], [376, 344]], cabinet: [368, 257, 16, 27] },
+    bedroom: { name: "Bedroom",     r: [96, 224, 117, 133], spots: [[122, 334], [198, 330], [140, 304], [200, 300]], cabinet: [103, 257, 16, 27] },
     bath:    { name: "Bathroom",    r: [32, 224, 69, 117],  spots: [[62, 324], [90, 288]] },
     hall:    { name: "Hall",        r: [208, 224, 69, 149], spots: [[246, 300], [252, 346]] },
   };
@@ -318,17 +332,29 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   const NAMES = ["Praline", "Noisette", "Biscotte", "Caramel", "Figue", "Brioche", "Madeleine", "Pistache", "Tartine", "Chouquette",
     "Galette", "Canelé", "Miso", "Yuzu", "Sésame", "Cannelle", "Muscade", "Olive", "Prune", "Myrtille", "Cerise", "Guimauve",
     "Nougat", "Réglisse", "Clafoutis", "Crumble", "Macaron", "Mirabelle", "Pomme", "Gaufre", "Tofu", "Matcha"];
-  const COATS = ["none", "hue-rotate(-18deg) saturate(1.3)", "grayscale(1) brightness(1.05)", "sepia(.5) saturate(1.4)",
-    "hue-rotate(180deg) saturate(.45) brightness(1.02)", "brightness(.62) saturate(.5)", "hue-rotate(20deg) saturate(1.7)",
-    "grayscale(.6) brightness(.8)"];
+  // A project's look: every cat of one project wears the same coat and carries the same emblem.
+  const COATS = [
+    { name: "Cream", f: "none" }, { name: "Ginger", f: "hue-rotate(-18deg) saturate(1.3)" }, { name: "Silver", f: "grayscale(1) brightness(1.05)" },
+    { name: "Honey", f: "sepia(.5) saturate(1.4)" }, { name: "Blue-grey", f: "hue-rotate(180deg) saturate(.45) brightness(1.02)" },
+    { name: "Shadow", f: "brightness(.62) saturate(.5)" }, { name: "Marmalade", f: "hue-rotate(20deg) saturate(1.7)" }, { name: "Smoke", f: "grayscale(.6) brightness(.8)" },
+  ];
+  // cells of art/licensed/emblems.png, in order; the first whose words match a project's name is its default
+  const EMBLEMS = [
+    { name: "Tin of cat food", words: /grocer|intermarch|meal|food|course|recipe|kitchen|cook/i },
+    { name: "Coin", words: /shop|store|montfort|business|sales|price|money|plan|invoice|budget/i },
+    { name: "Books", words: /law|legal|lease|contract|tenan|tax|admin|insurance|visa|research/i },
+    { name: "Star", words: /portfolio|design|art|catio|pretty|brand/i },
+    { name: "Potted plant", words: /garden|home|house|plant|health/i },
+    { name: "Yarn", words: null },
+  ];
 
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const hash = (s) => { let h = 2166136261; for (const c of String(s)) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 
   const S = {
-    sessions: null, sessionsAt: null, live: { state: "loading" }, upstairs: 0,
-    rooms: {}, tweaks: {}, adopted: [],
+    sessions: null, sessionsAt: null, live: { state: "loading" },
+    rooms: {}, tweaks: {}, adopted: [], projects: {},
     focus: null, cam: null, sound: false, showOld: false, prevNeeding: null,
     db: null, mcp: null, perms: null, unwatch: null,
   };
@@ -356,7 +382,6 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const status = lower(s.session_status).replace("session_status_", "");
     const meta = s.external_metadata || {};
     const pts = s.post_turn_summary || meta.post_turn_summary || {};
-    if (status === "archived") return null;
     let mood = "sleep";
     if (bucket === "failed") mood = "cry";
     else if (bucket === "blocked") mood = "meow";
@@ -365,7 +390,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     else if (bucket === "review_ready") mood = "box";
     const ask = pts.needs_action || pts.status_detail || (mood === "cry" ? "The last turn stopped with an error." : mood === "box" ? "Ready for you to look over." : "Waiting for your answer.");
     return {
-      id: s.id, kind: "session", mood,
+      id: s.id, kind: "session", mood, archived: status === "archived",
       title: s.title || "Untitled session",
       ask: MOODS[mood].needs ? ask : "",
       doing: s.task_summary || meta.task_summary || pts.recent_action || pts.status_detail || "",
@@ -381,8 +406,20 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       id: "adopted:" + d.id, docId: d.id, kind: "chat", mood,
       title: d.title || "A chat", ask: mood === "meow" ? (d.note || "You marked this as needing you.") : "",
       doing: d.note || "", repo: "", branch: "", origin: "a chat on claude.ai",
-      updated: d.updatedAt || d.adoptedAt || 0, link: d.link || "", room: d.room || "", nameOverride: d.name || "",
+      updated: d.updatedAt || d.adoptedAt || 0, link: d.link || "", room: d.room || "", nameOverride: d.name || "", projectName: d.project || "",
     };
+  }
+
+  const slug = (v) => lower(v).replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "none";
+  function projectOf(c) {
+    const name = c.kind === "chat" ? (c.projectName || c.title) : c.repo ? c.repo.split("/").pop() : "No repository";
+    return { key: slug(name), name, repo: c.kind === "session" ? c.repo : "" };
+  }
+  function lookOf(p) {
+    const d = S.projects[p.key] || {};
+    let emblem = EMBLEMS[d.emblem] ? d.emblem : EMBLEMS.findIndex((e) => e.words && e.words.test(p.name + " " + p.repo));
+    if (emblem < 0) emblem = EMBLEMS.length - 1;
+    return { emblem, coat: COATS[d.coat] ? d.coat : hash(p.key) % COATS.length };
   }
 
   function roomInfo(key) {
@@ -401,22 +438,25 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     return catchAllRoom();
   }
 
-  function allCats() {
+  // everything = also the archived and long-asleep sessions, which nap upstairs instead of in the rooms
+  function allCats(everything) {
     const cats = [];
-    let upstairs = S.upstairs;
+    let upstairs = 0;
     const cutoff = Date.now() - STALE_DAYS * 864e5;
     for (const s of S.sessions || []) {
       const c = catFromSession(s);
-      if (!c) continue;
-      if (c.mood === "sleep" && c.updated < cutoff && !S.showOld) { upstairs++; continue; }
+      c.away = c.archived || (c.mood === "sleep" && c.updated < cutoff && !S.showOld);
+      if (c.away && !everything) { upstairs++; continue; }
       cats.push(c);
     }
     for (const d of S.adopted) cats.push(catFromAdopted(d));
     for (const c of cats) {
-      const h = hash(c.id);
       const t = S.tweaks[c.id];
-      c.name = (t && t.name) || c.nameOverride || NAMES[h % NAMES.length];
-      c.coat = COATS[(h >>> 8) % COATS.length];
+      c.name = (t && t.name) || c.nameOverride || NAMES[hash(c.id) % NAMES.length];
+      c.project = projectOf(c);
+      const look = lookOf(c.project);
+      c.coat = COATS[look.coat].f;
+      c.emblem = look.emblem;
       c.roomKey = roomFor(c);
     }
     cats.sort((a, b) => MOODS[a.mood].rank - MOODS[b.mood].rank || b.updated - a.updated);
@@ -428,6 +468,12 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const s = el("span", "spr px " + SPR[mood].cls);
     if (coat && coat !== "none") s.style.setProperty("--tint", coat);
     return s;
+  }
+  function emblem(i, cls) {
+    const e = el("span", "emb " + (cls || ""));
+    e.style.setProperty("--e", i);
+    e.title = EMBLEMS[i].name;
+    return e;
   }
   function ago(t) {
     if (!t) return "";
@@ -460,6 +506,16 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       b.dataset.room = k;
       Object.assign(b.style, { left: x * 2 + "px", top: y * 2 + "px", width: w * 2 + "px", height: h * 2 + "px" });
       b.addEventListener("click", () => focusRoom(k));
+      hits.appendChild(b);
+    }
+    for (const k of ORDER) {
+      const box = GEOM[k].cabinet;
+      if (!box) continue;
+      const b = el("button", "cabinet");
+      b.type = "button";
+      b.setAttribute("aria-label", "Filing cabinet in the " + GEOM[k].name);
+      Object.assign(b.style, { left: box[0] * 2 + "px", top: box[1] * 2 + "px", width: box[2] * 2 + "px", height: box[3] * 2 + "px" });
+      b.addEventListener("click", (e) => { e.stopPropagation(); if (!S.focus && S.cam && S.cam.s < 0.9) focusRoom(k); else openCabinet(k); });
       hits.appendChild(b);
     }
   }
@@ -511,10 +567,10 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     for (const c of needing) {
       const li = el("li");
       const b = el("button", "item " + MOODS[c.mood].kind); b.type = "button";
-      const th = el("span", "thumb"); th.appendChild(sprite(c.mood, c.coat));
+      const th = el("span", "thumb"); th.append(sprite(c.mood, c.coat), emblem(c.emblem, "corner"));
       b.appendChild(el("span", "ui face-ico"));
       const txt = el("span");
-      const who = el("span", "who", c.name + " "); who.appendChild(el("span", null, "· " + roomInfo(c.roomKey).name + " · " + ago(c.updated)));
+      const who = el("span", "who", c.name + " "); who.appendChild(el("span", null, "· " + c.project.name + " · " + roomInfo(c.roomKey).name + " · " + ago(c.updated)));
       txt.append(who, el("div", "what", c.title), el("div", "ask", c.ask));
       b.append(th, txt);
       b.addEventListener("click", () => openCat(c.id));
@@ -556,8 +612,9 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     b.type = "button";
     const left = spot[0] * 2 - sp.ax, top = spot[1] * 2 - sp.ay;
     Object.assign(b.style, { left: left + "px", top: top + "px", width: sp.w + "px", height: sp.h + "px", zIndex: 1000 + spot[1] * 2 });
-    b.setAttribute("aria-label", c.name + ", " + MOODS[c.mood].label + ": " + c.title);
+    b.setAttribute("aria-label", c.name + " (" + c.project.name + "), " + MOODS[c.mood].label + ": " + c.title);
     b.appendChild(sprite(c.mood, c.coat));
+    const em = emblem(c.emblem); em.style.left = sp.ax + 6 + "px"; em.style.top = sp.ay - 24 + "px"; b.appendChild(em);
     b.addEventListener("click", (e) => { e.stopPropagation(); catClicked(c, room); });
     layer.appendChild(b);
     VIEW.placed.push({ cat: c, x: spot[0] * 2, y: top + (c.mood === "idle" || c.mood === "box" ? 4 : 16), feet: spot[1] * 2, room });
@@ -570,6 +627,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     Object.assign(b.style, { left: spot[0] * 2 - sp.ax + "px", top: spot[1] * 2 - sp.ay + "px", width: sp.w + "px", height: sp.h + "px", zIndex: 1000 + spot[1] * 2 });
     b.setAttribute("aria-label", pile.length + " cats curled up together in " + roomInfo(room).name);
     b.appendChild(sprite(top.mood, top.coat));
+    const em = emblem(top.emblem); em.style.left = sp.ax + 6 + "px"; em.style.top = sp.ay - 24 + "px"; b.appendChild(em);
     b.appendChild(el("span", "pile-n", "+" + (pile.length - 1)));
     b.addEventListener("click", (e) => { e.stopPropagation(); if (!S.focus && S.cam && S.cam.s < 0.9) focusRoom(room); else openPile(pile, room); });
     layer.appendChild(b);
@@ -598,7 +656,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     stage.classList.toggle("instant", !!instant);
     $("world").style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
     $("zoomOut").disabled = !S.focus;
-    for (const b of $("hits").children) {
+    for (const b of $("hits").querySelectorAll(".roomhit")) {
       const here = b.dataset.room === S.focus;
       b.classList.toggle("here", here);
       b.setAttribute("aria-label", here ? roomInfo(b.dataset.room).name : "Look in the " + roomInfo(b.dataset.room).name);
@@ -633,6 +691,17 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const text = !!S.focus;
     const small = cam.s < 0.8;   // on a phone's whole-house view the face icons drop to one art pixel per pixel
     const taken = [];
+    // the room's filing cabinet gets a sign when you're in the room; bubbles keep clear of it
+    const cab = S.focus && GEOM[S.focus].cabinet;
+    if (cab) {
+      const [sx, sy] = toScreen(cab[0] * 2 + cab[2], cab[1] * 2);
+      const t = el("button", "tag files", "Files");
+      t.type = "button";
+      Object.assign(t.style, { left: sx + "px", top: sy - 4 + "px" });
+      t.addEventListener("click", () => openCabinet(S.focus));
+      ov.appendChild(t);
+      taken.push([sx - 26, sy - 30, sx + 26, sy]);
+    }
     for (const p of VIEW.placed) {
       const m = MOODS[p.cat.mood];
       if (!m.needs) continue;
@@ -728,7 +797,6 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
         if (!list) { S.live = { state: "error", message: "Claude Code Remote answered in a shape this page doesn't recognise." }; renderStatus(); return; }
         S.sessions = list;
         S.sessionsAt = (ev.result.cache && ev.result.cache.storedAt) || Date.now();
-        S.upstairs = list.filter((s) => lower(s.session_status).includes("archived")).length;
         S.live = { state: "ok" };
         render();
       } else {
@@ -748,6 +816,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     db.collection("rooms").onSnapshot((snap) => { const r = {}; for (const d of snap.docs) r[d.id] = d.data(); S.rooms = r; render(); }, fail);
     db.collection("sessions").onSnapshot((snap) => { const t = {}; for (const d of snap.docs) t[d.id] = d.data(); S.tweaks = t; render(); }, fail);
     db.collection("cats").onSnapshot((snap) => { S.adopted = snap.docs.map((d) => Object.assign({ id: d.id }, d.data())); render(); }, fail);
+    db.collection("projects").onSnapshot((snap) => { const p = {}; for (const d of snap.docs) p[d.id] = d.data(); S.projects = p; render(); }, fail);
   }
   async function save(fn, ok) {
     if (!S.db) { toast("Saving isn't available in this view."); return false; }
@@ -772,7 +841,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const m = MOODS[c.mood];
     const box = el("div", "dlg");
     const head = el("div", "head");
-    const por = el("div", "portrait"); por.appendChild(sprite(c.mood, c.coat));
+    const por = el("div", "portrait"); por.append(sprite(c.mood, c.coat), emblem(c.emblem, "corner big"));
     const hd = el("div");
     const h = el("h2", null, c.name); h.id = "catName";
     const mood = el("span", "mood " + m.kind); mood.append(el("span", "ui face-ico"), document.createTextNode(m.label));
@@ -786,7 +855,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     if (c.mood === "idle" && c.doing) row("Doing", c.doing);
     else if (c.kind === "chat" && c.doing && c.mood !== "meow") row("Note", c.doing);
     row("Room", roomInfo(c.roomKey).name);
-    row("Project", c.repo);
+    row("Project", c.project.name + (c.repo && c.repo !== c.project.name ? " (" + c.repo + ")" : ""));
     row("Branch", c.branch);
     row("Started on", c.origin);
     row("Last active", c.updated ? ago(c.updated) + " (" + new Date(c.updated).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) + ")" : "");
@@ -823,7 +892,11 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     for (const [v, l] of [["needs", "Needs me"], ["busy", "In progress"], ["done", "Done for now"]]) { const o = el("option", null, l); o.value = v; if ((d.mood || "needs") === v) o.selected = true; mood.appendChild(o); }
     const note = el("textarea"); note.id = "adNote"; note.rows = 2; note.maxLength = 200; note.value = d.note || ""; note.placeholder = "What it's waiting on";
     const name = el("input"); name.id = "adName"; name.maxLength = 30; name.value = d.name || ""; name.placeholder = c ? c.name : "Picked for you";
-    f.append(field("What's the chat about?", title), field("Link to the chat", link));
+    const project = el("input"); project.id = "adProject"; project.maxLength = 60; project.value = d.project || ""; project.placeholder = "Same as the title";
+    project.setAttribute("list", "adProjects");
+    const known = el("datalist"); known.id = "adProjects";
+    for (const n of new Set(allCats(true).cats.map((x) => x.project.name))) { const o = el("option"); o.value = n; known.appendChild(o); }
+    f.append(field("What's the chat about?", title), field("Link to the chat", link), field("Project (cats of one project look alike)", project), known);
     const r = el("div", "row"); r.append(field("Lives in", roomSelect("adRoom", d.room || (c ? c.roomKey : "dining"))), field("Mood", mood)); f.appendChild(r);
     f.append(field("Note", note), field("Cat's name", name));
     f.appendChild(el("p", "note", "What you type here is saved in this page. Anyone you share the page with can read it, so keep sensitive details in the chat itself."));
@@ -844,13 +917,74 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     f.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!title.value.trim()) { title.focus(); return; }
-      const body = { title: title.value.trim(), link: link.value.trim(), room: $("adRoom").value, mood: mood.value, note: note.value.trim(), name: name.value.trim(), updatedAt: Date.now() };
+      const body = { title: title.value.trim(), link: link.value.trim(), project: project.value.trim(), room: $("adRoom").value, mood: mood.value, note: note.value.trim(), name: name.value.trim(), updatedAt: Date.now() };
       const ok = c
         ? await save((db) => db.doc("cats/" + c.docId).update(body), "Saved.")
         : await save((db) => db.collection("cats").doc().set(Object.assign({ adoptedAt: Date.now() }, body)), "Adopted.");
       if (ok) dlg.close();
     });
     return f;
+  }
+
+  function openCabinet(room) {
+    const groups = new Map();
+    for (const c of allCats(true).cats.filter((x) => x.roomKey === room)) {
+      const g = groups.get(c.project.key) || { p: c.project, cats: [] };
+      g.cats.push(c);
+      groups.set(c.project.key, g);
+    }
+    for (const r of roomInfo(room).repos) {
+      const name = r.split("/").pop(), key = slug(name);
+      if (!groups.has(key)) groups.set(key, { p: { key, name, repo: r.includes("/") ? r : "" }, cats: [] });
+    }
+    const dlg = $("roomsDlg"); dlg.replaceChildren();
+    const box = el("div", "dlg");
+    const h = el("h2", null, "Filing cabinet · " + roomInfo(room).name); h.id = "roomsTitle";
+    box.append(h, el("p", "note", "Every project filed in this room, with all its cats: the ones about the house and the ones napping upstairs or archived."));
+    if (!groups.size) box.appendChild(el("p", "empty", "Nothing is filed here yet. A project lands in this room when its repository is listed under Rooms, or when you move one of its cats here."));
+    for (const { p, cats } of groups.values()) {
+      const look = lookOf(p);
+      const card = el("section", "proj");
+      const head = el("div", "proj-head");
+      const pic = el("span", "proj-pic"); pic.append(sprite("idle", COATS[look.coat].f), emblem(look.emblem, "corner"));
+      const t = el("div");
+      t.appendChild(el("h3", null, p.name));
+      const n = (m) => cats.filter((c) => !c.away && c.mood === m).length;
+      const bits = [[n("meow") + n("cry") + n("box"), "need you"], [n("idle"), "at work"], [n("sleep"), "asleep"], [cats.filter((c) => c.away).length, "upstairs or archived"]]
+        .filter(([k]) => k).map(([k, w]) => k + " " + w);
+      t.appendChild(el("p", "note", bits.join(" · ") || "No cats right now"));
+      if (p.repo && p.repo.includes("/")) { const a = el("a", null, "On GitHub"); a.href = "https://github.com/" + p.repo; a.target = "_blank"; a.rel = "noopener"; t.appendChild(a); }
+      head.append(pic, t);
+      card.appendChild(head);
+      if (cats.length) {
+        const ul = el("ul", "pilelist");
+        for (const c of cats) {
+          const li = el("li");
+          const b = c.away ? el("a", "item file") : el("button", "item file " + MOODS[c.mood].kind);
+          if (c.away) { b.href = c.link; b.target = "_blank"; b.rel = "noopener"; } else { b.type = "button"; b.addEventListener("click", () => openCat(c.id)); }
+          const th = el("span", "thumb"); th.appendChild(sprite(c.away ? "sleep" : c.mood, c.coat));
+          const txt = el("span");
+          txt.append(el("span", "who", c.name), el("div", "what", (c.archived ? "Archived" : c.away ? "Napping upstairs" : MOODS[c.mood].short) + " · " + c.title + " · " + ago(c.updated)));
+          b.append(th, txt);
+          li.appendChild(b); ul.appendChild(li);
+        }
+        card.appendChild(ul);
+      }
+      const r = el("div", "row");
+      const em = el("select"); em.id = "em-" + p.key;
+      EMBLEMS.forEach((e, i) => { const o = el("option", null, e.name); o.value = i; if (i === look.emblem) o.selected = true; em.appendChild(o); });
+      const coat = el("select"); coat.id = "coat-" + p.key;
+      COATS.forEach((e, i) => { const o = el("option", null, e.name); o.value = i; if (i === look.coat) o.selected = true; coat.appendChild(o); });
+      const sv = el("button", "btn plaque green", "Save look"); sv.type = "button";
+      sv.addEventListener("click", () => save((db) => db.doc("projects/" + p.key).set({ name: p.name, emblem: Number(em.value), coat: Number(coat.value) }), "Saved. Every " + p.name + " cat now looks like this."));
+      r.append(field("Emblem", em), field("Coat", coat), sv);
+      card.appendChild(r);
+      box.appendChild(card);
+    }
+    const acts = el("div", "actions"); acts.append(el("span", "spacer"), closeBtn(dlg));
+    box.appendChild(acts);
+    dlg.appendChild(box);
+    show(dlg);
   }
 
   function openAdopt() {

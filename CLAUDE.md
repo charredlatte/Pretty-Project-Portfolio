@@ -12,7 +12,7 @@ Publish `catio/index.html` with:
 
 - `files`: every file the page references: `art/house.png`, `art/ui/*.png` (frames, plaques,
   wallpaper, rail, bar, slot, door) and `art/licensed/*.png` (`decor.png`, `meadow.png`,
-  `mochi-idle.png`, `mochi-box.png`, `pochi.png`, `cat-ui.png`);
+  `emblems.png`, `mochi-idle.png`, `mochi-box.png`, `pochi.png`, `cat-ui.png`);
 - `capabilities`: omit it on a republish to keep what's stored. The declaration is
   `{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions"] }] }, db: {} }`.
 
@@ -40,7 +40,7 @@ The footer credits all four. Keep it.
 doorways, glass (floor-to-ceiling on back walls, strips on outside walls), and furniture as
 `(sprite, x, y)`. `house()` draws it from Cosy Cabin alone (committed as `art/house.png`);
 `decor()` adds the catio, the garden and indoor pieces from the other packs (`decor.png`).
-The page's `GEOM` (room boxes and cat spots) and `WORLD` must match the plan. Change both
+The page's `GEOM` (room boxes, cat spots and filing-cabinet boxes) and `WORLD` must match the plan. Change both
 together, then re-render and check that no cat stands on furniture.
 
 The layout follows ordinary small-cabin planning: kitchen, dining and living as one open run
@@ -63,7 +63,8 @@ The artifact database, written by the page and seeded with `ArtifactData`:
 |---|---|---|
 | `rooms` | one per room key (`garden` (the catio), `kitchen`, `dining`, `living`, `sunroom`, `study`, `bedroom`, `bath`, `hall`) | `name`, `blurb`, `repos[]` (repo names or `owner/repo`), `catchAll` |
 | `sessions` | the Claude Code session id | `name`, `room`: her rename or move of one session's cat |
-| `cats` | generated id | an adopted chat: `title`, `link`, `room`, `mood` (`needs` / `busy` / `done`), `note`, `name` |
+| `cats` | generated id | an adopted chat: `title`, `link`, `project`, `room`, `mood` (`needs` / `busy` / `done`), `note`, `name` |
+| `projects` | the project's slug (repo name, or an adopted chat's project) | `name`, `emblem`, `coat`: the look every cat of that project shares, set from a filing cabinet |
 
 Room **geometry** (where each room is on the art and where its cats sit) is code, in `GEOM` in
 the page, because it is tied to the picture. Room **names and which projects live where** are
