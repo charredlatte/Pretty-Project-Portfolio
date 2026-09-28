@@ -237,11 +237,13 @@ def house(tm, objects, example):
     return img
 
 
-def decor(size, sheet, wood_piece):
-    """Pieces from the other packs: the catio, the garden round the cabin, and a few things indoors."""
+def decor(size, sheet, wood_piece, props, struct):
+    """Pieces from the other packs: the catio, the garden round the cabin, and a few things indoors.
+    `props` and `struct` are Cainos's sheets: stonework drawn on a 32 px grid, so it reads large here."""
     g = Image.new("RGBA", size, (0, 0, 0, 0))
     crop = lambda x, y, w, h: sheet.crop((x, y, x + w, y + h))
     stamp = lambda im, x, y: g.alpha_composite(im, (x, y))
+    stone = lambda x, y, w, h: props.crop((x, y, x + w, y + h))
 
     # catio: a deck against the sunroom, grass beyond, a tree for shade, shelves to climb, a table for people
     deck = wood_piece("Floor/Brown-floor-1.png")
@@ -273,13 +275,27 @@ def decor(size, sheet, wood_piece):
     for x, n in ((112, 18), (140, 14), (176, 16), (294, 20), (330, 18)):
         stamp(wood_piece(f"Small wooden flower box/Small wooden flower box-{n}.png"), x, 360)
 
+    # the gate onto the land: a stone archway with its wooden doors swung open, lanterns at the steps
+    stamp(stone(29, 166, 9, 53), 226, 392)                             # door leaves, behind the arch
+    stamp(stone(57, 166, 9, 53), 252, 392)
+    stamp(struct.crop((408, 27, 488, 91)), 203, 384)                  # stone archway
+    stamp(stone(165, 217, 21, 34), 186, 414)                          # vases either side
+    stamp(stone(165, 348, 21, 32), 284, 416)
+    stamp(stone(453, 118, 22, 37), 202, 352)                          # stone lanterns by the front steps
+    stamp(stone(453, 118, 22, 37), 262, 352)
+
+    # a little garden square in the south-east meadow: fountain, statue, a bench to sit and watch
+    stamp(stone(353, 269, 94, 72), 470, 340)                          # round stone fountain
+    stamp(stone(445, 21, 37, 72), 499, 318)                           # praying statue at its centre
+    stamp(stone(292, 19, 56, 41), 392, 380)                           # stone bench
+    stamp(stone(99, 160, 27, 32), 430, 286)                           # signpost to the catio
+
     # the meadow: pond, trees at the edges, bushes and rocks
     stamp(crop(64, 84, 64, 56), 20, 366)                              # pond
     stamp(crop(19, 295, 93, 125), -64, 120)                           # big tree, west edge
     stamp(crop(204, 291, 72, 138), 590, 300)                          # blossom tree, south-east
     stamp(crop(49, 424, 34, 30), 96, 44)
     stamp(crop(16, 427, 26, 23), 150, 50)
-    stamp(crop(49, 424, 34, 30), 400, 380)
     stamp(crop(99, 251, 24, 23), 100, 392)
     stamp(crop(41, 258, 23, 16), 440, 330)
     stamp(crop(71, 252, 22, 22), 360, 30)

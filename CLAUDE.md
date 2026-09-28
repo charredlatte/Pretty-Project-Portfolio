@@ -19,8 +19,8 @@ Publish `catio/index.html` with:
 `art/licensed/` is not in git (licences below). In a fresh session, get it back one of two ways:
 
 1. `Artifact` read with `path: "art/licensed/<file>"` on the published URL, for each file; or
-2. ask Charlotte for the four zips and run
-   `python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip Top_down_garden_castle.zip Wood_Garden_Asset_Pack.zip`
+2. ask Charlotte for the five zips and run
+   `python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip Top_down_garden_castle.zip Wood_Garden_Asset_Pack.zip "Pixel_Art_Top_Down_-_Basic_v1.2.3.zip"`
    (needs `pip install pillow`).
 
 ## Licences: what may be committed
@@ -31,8 +31,11 @@ Publish `catio/index.html` with:
 - **Top Down Garden Castle** (Heosphorus): **no distribution, even modified**. Never commit.
 - **Wood Garden** (rowdy41): no resale. It is baked into `decor.png` with Heosphorus's
   pieces, so that file stays uncommitted too.
+- **Pixel Art Top Down – Basic** (Cainos): free for any project, **no redistribution**. Its
+  stonework is also in `decor.png`. It is drawn on a 32 px grid, twice the cabin's, so its
+  pieces read large: use it for garden stonework, not indoor furniture.
 
-The footer credits all four. Keep it.
+The footer credits all five. Keep it.
 
 ## The cabin is a floor plan
 

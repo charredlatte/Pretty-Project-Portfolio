@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
-"""Rebuild the catio's art from Charlotte's four asset-pack zips.
+"""Rebuild the catio's art from Charlotte's five asset-pack zips.
 
     pip install pillow
-    python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip Top_down_garden_castle.zip Wood_Garden_Asset_Pack.zip
+    python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip Top_down_garden_castle.zip \
+        Wood_Garden_Asset_Pack.zip "Pixel_Art_Top_Down_-_Basic_v1.2.3.zip"
 
 Writes, next to catio/index.html:
   art/house.png                  the cabin, drawn from Cosy Cabin tiles and furniture to the plan in cabin.py
   art/ui/*.png                   frames, plaques, wallpaper and trim cut from the Cosy Cabin tile sheet
-  art/licensed/decor.png         the catio, the garden and a few indoor pieces from Top Down Garden Castle
-                                 and Wood Garden (see cabin.decor)
+  art/licensed/decor.png         the catio, the garden and a few indoor pieces from Top Down Garden Castle,
+                                 Wood Garden and Cainos's Top Down Basic (see cabin.decor)
   art/licensed/meadow.png        a grass tile from Top Down Garden Castle, repeated under the cabin
   art/licensed/emblems.png       the little things a cat carries to show its project
   art/licensed/mochi-idle.png, mochi-box.png, pochi.png, cat-ui.png   the ToffeeCraft cats, unchanged
 
-Only art/house.png and art/ui/ are committed (Cosy Cabin allows copying, with credit). The ToffeeCraft
-and Top Down Garden Castle licences forbid redistributing the files, so art/licensed/ is
+Only art/house.png and art/ui/ are committed (Cosy Cabin allows copying, with credit). The ToffeeCraft,
+Top Down Garden Castle and Cainos licences forbid redistributing the files, so art/licensed/ is
 gitignored and ships only inside the private artifact. See CLAUDE.md.
 """
 import io
@@ -138,16 +139,18 @@ def emblems(cats_zip, cabin_zip):
 
 
 def main():
-    if len(sys.argv) != 5:
+    if len(sys.argv) != 6:
         raise SystemExit(__doc__)
-    cabin_zip, cats_zip, garden_zip, wood_zip = sys.argv[1:]
+    cabin_zip, cats_zip, garden_zip, wood_zip, stone_zip = sys.argv[1:]
     (OUT / "licensed").mkdir(parents=True, exist_ok=True)
     cz = zipfile.ZipFile(cabin_zip)
     cabin.house(member(cz, "CosyCabin_TileMap.png"), member(cz, "CosyCabin_Objects.png"), example(cabin_zip)).save(OUT / "house.png")
     ui(cabin_zip)
     sheet = spring(member(zipfile.ZipFile(garden_zip), "Top down Garden Castle.png"))
     wood = zipfile.ZipFile(wood_zip)
-    cabin.decor(cabin.SIZE, sheet, lambda name: member(wood, name)).save(OUT / "licensed" / "decor.png")
+    sz = zipfile.ZipFile(stone_zip)
+    cabin.decor(cabin.SIZE, sheet, lambda name: member(wood, name), member(sz, "Texture/TX Props.png"),
+                member(sz, "Texture/TX Struct.png")).save(OUT / "licensed" / "decor.png")
     sheet.crop((16, 16, 128, 48)).save(OUT / "licensed" / "meadow.png")
     emblems(cats_zip, cabin_zip).save(OUT / "licensed" / "emblems.png")
     cats = zipfile.ZipFile(cats_zip)

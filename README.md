@@ -34,7 +34,10 @@ The cabin is a real floor plan, laid out the way small cabins usually are:
 | Catio | fenced decking against the sunroom, with a shade tree, flower shelves to climb, a table and bench, and a rose-arch gate. This portfolio lives here |
 | Study | the Montfortoise shop |
 | Bedroom and ensuite | legal questions, and a spare |
-| Hall | the front door, and the stepping stones out to the catio |
+| Hall | the front door, between two stone lanterns, and the stepping stones out to the catio |
+
+Outside, a stone archway with its wooden doors open marks the way in, and the south-east meadow
+has a small garden square: a fountain with a praying statue, a bench and a signpost to the catio.
 
 ## How it knows what the cats are doing
 
@@ -55,7 +58,7 @@ The cabin is a real floor plan, laid out the way small cabins usually are:
 Sleeping sessions older than a week and archived sessions nap upstairs, out of sight. Turn on
 Sound and a cat that starts meowing makes a small meow.
 
-## Made from four asset packs
+## Made from five asset packs
 
 Every piece of the picture and the interface comes from packs Charlotte chose: the frames,
 buttons, signs and wallpaper are cut from the cabin's own tile sheet, and the hotbar icons and
@@ -67,6 +70,7 @@ mood faces are ToffeeCraft's cat UI.
 | [Cat Pack Mochi](https://toffeecraft.itch.io/cat-pack) and [Pochi](https://toffeecraft.itch.io/cat-retro), Cat UI | ToffeeCraft | No: the licence forbids redistribution |
 | [Top Down Garden Castle](https://heosphorus.itch.io/) | Heosphorus | No: the licence forbids distribution |
 | [Wood Garden](https://rowdy41.itch.io/wood-garden) | rowdy41 | No: it is baked into the same file as Heosphorus's pieces |
+| [Pixel Art Top Down – Basic](https://cainos.itch.io/pixel-art-top-down-basic) | Cainos | No: the licence forbids redistribution |
 
 The uncommitted art (`catio/art/licensed/`) ships only inside the private artifact. See
 [`catio/art/CREDITS.md`](catio/art/CREDITS.md).
@@ -76,6 +80,6 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `catio/index.html`: the whole page, with no build step and no dependencies.
 - `catio/tools/cabin.py`: the floor plan, meaning rooms, doorways, glass and furniture.
 - `catio/tools/build-art.py`: draws the cabin from the plan and cuts the UI pieces, from the
-  four zips (`pip install pillow`, then see the script's docstring).
+  five zips (`pip install pillow`, then see the script's docstring).
 - `catio/art/`: the committed art. `licensed/` is rebuilt, not committed.
 - `CLAUDE.md`: how to change and republish the page.
