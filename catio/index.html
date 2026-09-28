@@ -79,10 +79,10 @@ h1 { font: 700 clamp(2rem, 6vw, 2.8rem)/1 var(--display); margin: 0; letter-spac
 /* the stage, inside the trim */
 .frame { border: calc(16 * var(--u)) solid transparent; border-image: url(art/ui/frame.png) 16 / calc(16 * var(--u)) round; }
 .stage { position: relative; overflow: hidden; width: 100%; touch-action: manipulation; background: #8FBF4F; }
-.world { position: absolute; left: 0; top: 0; width: 800px; height: 704px; transform-origin: 0 0; transition: transform .55s cubic-bezier(.3,.7,.2,1);
+.world { position: absolute; left: 0; top: 0; width: 1280px; height: 896px; transform-origin: 0 0; transition: transform .55s cubic-bezier(.3,.7,.2,1);
   background: url(art/licensed/meadow.png) 0 0 / 224px 64px repeat; image-rendering: pixelated; filter: var(--scene); }
 .stage.instant .world { transition: none; }
-.house { position: absolute; inset: 0; width: 800px; height: 704px; max-width: none; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
+.house { position: absolute; inset: 0; width: 1280px; height: 896px; max-width: none; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
 .prop { position: absolute; pointer-events: none; }
 .roomhit { position: absolute; background: transparent; border: 0; padding: 0; cursor: zoom-in; }
 .roomhit:hover { background: rgba(255, 245, 200, .12); }
@@ -228,8 +228,8 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   <div class="frame">
     <section class="stage" id="stage" aria-label="The cabin and its catio">
       <div class="world" id="world">
-        <img class="house" src="art/house.png" alt="" width="800" height="704">
-        <img class="house" src="art/licensed/garden.png" alt="" width="800" height="704">
+        <img class="house" src="art/house.png" alt="" width="1280" height="896">
+        <img class="house" src="art/licensed/decor.png" alt="" width="1280" height="896">
         <div id="props"></div>
         <div id="hits"></div>
         <div id="cats"></div>
@@ -272,28 +272,32 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   const PAGE = 50;          // sessions per fetch
   const STALE_DAYS = 7;     // sleeping cats older than this go upstairs
 
-  // Room geometry is fixed by the art: native cabin pixels (the scene draws them at 2x).
-  // r = [x, y, w, h]; spots = where cats sit, as the point under their feet.
+  // Room geometry is fixed by the art, drawn to the plan in tools/cabin.py: native cabin pixels
+  // (the scene draws them at 2x). r = [x, y, w, h]; spots = where cats sit, as the point under their feet.
   const GEOM = {
-    kitchen: { name: "Kitchen",     r: [16, 224, 112, 98],  spots: [[44, 300], [118, 300], [46, 264], [88, 316]] },
-    study:   { name: "Study",       r: [16, 16, 96, 84],    spots: [[46, 95], [100, 79], [72, 79], [30, 96]] },
-    dining:  { name: "Dining room", r: [128, 16, 112, 100], spots: [[142, 110], [226, 104], [222, 72], [196, 112]] },
-    blue:    { name: "Blue room",   r: [240, 16, 144, 68],  spots: [[262, 79], [346, 79], [292, 63], [320, 79]] },
-    bedroom: { name: "Bedroom",     r: [240, 112, 144, 68], spots: [[256, 175], [340, 175], [286, 175], [318, 159]] },
-    bath:    { name: "Bathroom",    r: [16, 128, 112, 66],  spots: [[38, 176], [108, 190], [72, 191]] },
-    living:  { name: "Living room", r: [128, 112, 112, 222], spots: [[150, 236], [216, 176], [200, 288], [184, 140], [222, 256], [196, 212], [150, 296], [178, 316], [212, 316]] },
-    garden:  { name: "Catio",       r: [236, 180, 160, 168], spots: [[264, 216], [378, 302], [360, 236], [270, 250], [292, 325]] },
+    garden:  { name: "Catio",       r: [448, 48, 160, 188], spots: [[474, 126], [514, 208], [568, 96], [586, 202], [500, 110]] },
+    kitchen: { name: "Kitchen",     r: [32, 80, 85, 149],   spots: [[48, 212], [104, 146], [104, 212], [46, 146]] },
+    dining:  { name: "Dining room", r: [112, 80, 101, 149], spots: [[124, 214], [200, 146], [200, 212], [124, 130]] },
+    living:  { name: "Living room", r: [208, 48, 165, 181], spots: [[290, 162], [234, 212], [350, 206], [226, 118], [350, 150], [300, 216], [268, 118]] },
+    sunroom: { name: "Sunroom",     r: [368, 80, 85, 149],  spots: [[426, 164], [392, 214], [398, 132]] },
+    study:   { name: "Study",       r: [272, 224, 117, 133], spots: [[302, 340], [360, 326], [320, 306], [376, 344]] },
+    bedroom: { name: "Bedroom",     r: [96, 224, 117, 133], spots: [[122, 334], [198, 330], [140, 304], [200, 300]] },
+    bath:    { name: "Bathroom",    r: [32, 224, 69, 117],  spots: [[62, 324], [90, 288]] },
+    hall:    { name: "Hall",        r: [208, 224, 69, 149], spots: [[246, 300], [252, 346]] },
   };
-  const ORDER = ["garden", "kitchen", "study", "dining", "blue", "bedroom", "bath", "living"];
-  const WHOLE = [0, 0, 400, 352];
+  const ORDER = ["garden", "kitchen", "dining", "living", "sunroom", "study", "bedroom", "bath", "hall"];
+  const WORLD = [640, 448];   // native size of the meadow
+  const WHOLE = [0, 0, ...WORLD];
 
   // Props from the Pochi sheet: [sx, sy, w, h] on the sheet, drawn with feet at native [x, y].
   const PROPS = [
-    { s: [9, 207, 43, 37], at: [72, 318] },     // food bowl, kitchen
-    { s: [216, 267, 33, 62], at: [24, 322] },   // food bag, kitchen
-    { s: [168, 407, 22, 20], at: [86, 96] },    // red yarn, study
-    { s: [103, 405, 22, 20], at: [306, 80] },   // blue yarn, blue room
-    { s: [137, 410, 17, 15], at: [232, 176] },  // small yarn, living room
+    { s: [6, 256, 85, 175], at: [578, 222] },   // cat tree, catio
+    { s: [9, 207, 43, 37], at: [60, 218] },     // food bowl, kitchen
+    { s: [139, 208, 43, 37], at: [506, 122] },  // water bowl, catio deck
+    { s: [216, 267, 33, 62], at: [104, 196] },  // food bag, by the fridge end of the island
+    { s: [168, 407, 22, 20], at: [296, 176] },  // red yarn, living-room rug
+    { s: [103, 405, 22, 20], at: [322, 344] },  // blue yarn, study
+    { s: [137, 410, 17, 15], at: [410, 206] },  // small yarn, sunroom
   ];
 
   // Sprite per mood: frame size and the point under the feet within the frame.
@@ -581,7 +585,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   function layout(instant) {
     const stage = $("stage");
     const W = stage.clientWidth;
-    const H = Math.round(W * 0.88);
+    const H = Math.round(W * WORLD[1] / WORLD[0]);
     stage.style.height = H + "px";
     let r = WHOLE;
     if (S.focus) { const [x, y, w, h] = GEOM[S.focus].r; const p = 6; r = [x - p, y - p, w + 2 * p, h + 2 * p]; }
@@ -589,7 +593,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const s = Math.min(W / rw, H / rh);
     // centre on the room, but never show past the edge of the meadow
     const fit = (t, view, world) => world <= view ? (view - world) / 2 : Math.min(0, Math.max(view - world, t));
-    const tx = fit((W - rw * s) / 2 - r[0] * 2 * s, W, 800 * s), ty = fit((H - rh * s) / 2 - r[1] * 2 * s, H, 704 * s);
+    const tx = fit((W - rw * s) / 2 - r[0] * 2 * s, W, WORLD[0] * 2 * s), ty = fit((H - rh * s) / 2 - r[1] * 2 * s, H, WORLD[1] * 2 * s);
     S.cam = { s, tx, ty, W, H };
     stage.classList.toggle("instant", !!instant);
     $("world").style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;

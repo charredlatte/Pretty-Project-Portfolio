@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Rebuild the catio's art from Charlotte's three asset-pack zips.
+"""Rebuild the catio's art from Charlotte's four asset-pack zips.
 
     pip install pillow
     python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip Top_down_garden_castle.zip Wood_Garden_Asset_Pack.zip
 
 Writes, next to catio/index.html:
-  art/house.png                  the Cosy Cabin example cabin at native 16 px tiles, placeholder figure removed
+  art/house.png                  the cabin, drawn from Cosy Cabin tiles and furniture to the plan in cabin.py
   art/ui/*.png                   frames, plaques, wallpaper and trim cut from the Cosy Cabin tile sheet
-  art/licensed/garden.png        the catio garden: pond, rocks and tree from Top Down Garden Castle,
-                                 fence, gate, decking and flower boxes from Wood Garden
+  art/licensed/decor.png         the catio, the garden and a few indoor pieces from Top Down Garden Castle
+                                 and Wood Garden (see cabin.decor)
   art/licensed/meadow.png        a grass tile from Top Down Garden Castle, repeated under the cabin
   art/licensed/mochi-idle.png, mochi-box.png, pochi.png, cat-ui.png   the ToffeeCraft cats, unchanged
 
@@ -23,6 +23,8 @@ from pathlib import Path
 
 from PIL import Image
 
+import cabin
+
 OUT = Path(__file__).resolve().parent.parent / "art"
 
 
@@ -33,30 +35,10 @@ def member(zf, suffix):
     raise SystemExit(f"{suffix} not found in {zf.filename}")
 
 
-def house(cabin_zip):
+def example(cabin_zip):
+    """The pack's second example cabin at native 16 px tiles (it ships drawn at 3x); used for its floorboards."""
     ex = member(zipfile.ZipFile(cabin_zip), "CosyCabin_Example2.png")
-    n = ex.resize((ex.width // 3, ex.height // 3), Image.NEAREST)  # the example is drawn at 3x
-    px = n.load()
-    for y in range(200, 250):  # paint the green placeholder character out of the living-room floor
-        for x in range(165, 200):
-            r, g, b, a = px[x, y]
-            if g > r + 30 and g > b + 30:
-                px[x, y] = px[x, y - 32]
-    # Clear the black night around the cabin so it can sit in the meadow.
-    w, h = n.size
-    todo = [(x, y) for x in range(w) for y in (0, h - 1)] + [(x, y) for y in range(h) for x in (0, w - 1)]
-    seen = set()
-    while todo:
-        x, y = todo.pop()
-        if (x, y) in seen or not (0 <= x < w and 0 <= y < h):
-            continue
-        seen.add((x, y))
-        r, g, b, a = px[x, y]
-        if a and max(r, g, b) > 34:
-            continue
-        px[x, y] = (0, 0, 0, 0)
-        todo += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
-    return n
+    return ex.resize((ex.width // 3, ex.height // 3), Image.NEAREST)
 
 
 def ui(cabin_zip):
@@ -131,58 +113,18 @@ def spring(im):
     return im
 
 
-def garden(garden_zip, wood_zip, size):
-    sheet = spring(member(zipfile.ZipFile(garden_zip), "Top down Garden Castle.png"))
-    wood = zipfile.ZipFile(wood_zip)
-    crop = lambda x, y, w, h: sheet.crop((x, y, x + w, y + h))
-    piece = lambda name: member(wood, name)
-    g = Image.new("RGBA", size, (0, 0, 0, 0))
-    stamp = lambda im, x, y: g.alpha_composite(im, (x, y))
-
-    stamp(crop(113, 293, 81, 121), 316, 176)         # tree, top right
-    stamp(crop(64, 84, 64, 56), 250, 262)            # pond, bottom left
-    stamp(crop(99, 251, 24, 23), 302, 300)           # rocks by the pond
-    stamp(crop(41, 258, 23, 16), 246, 250)
-
-    # Deck off the living room, with a doorway cut through the wall where the floor inside is clear.
-    floor = piece("Floor/Brown-floor-1.png")
-    for dx in range(2):
-        for dy in range(2):
-            stamp(floor, 244 + dx * 32, 186 + dy * 32)
-    stamp(floor.crop((0, 0, 10, 32)), 234, 196)
-    stamp(piece("Small wooden flower box/Small wooden flower box-18.png"), 288, 184)
-    stamp(piece("Small wooden flower box/Small wooden flower box-14.png"), 288, 226)
-
-    for sx, x, y in [(64, 312, 254), (80, 322, 274), (96, 330, 294)]:
-        stamp(crop(sx, 49, 15, 15), x, y)            # stepping stones from the deck to the gate
-
-    # White fence round the open sides, with the flower arch as the gate.
-    post, rail_end = piece("Fences/White fence/White-fence-4.png"), piece("Fences/White fence/White-fence-5.png")
-    for y in range(182, 318, 36):
-        stamp(post, 388, y)
-    left, mid, right = (piece(f"Fences/White fence/White-fence-{i}.png") for i in (1, 2, 3))
-    fy = 328
-    stamp(left, 244, fy)
-    for x in range(272, 332, 32):
-        stamp(mid, x, fy)
-    stamp(piece("Fences/Gates/White gate/White-red-flower-gate-1.png"), 334, fy - 21)
-    stamp(right, 368, fy)
-    stamp(rail_end, 388, fy - 23)
-    stamp(crop(49, 424, 34, 30), 350, 184)           # bush tucked under the bedroom wall
-    return g, crop(16, 16, 112, 32)
-
-
 def main():
     if len(sys.argv) != 5:
         raise SystemExit(__doc__)
     cabin_zip, cats_zip, garden_zip, wood_zip = sys.argv[1:]
     (OUT / "licensed").mkdir(parents=True, exist_ok=True)
-    h = house(cabin_zip)
-    h.save(OUT / "house.png")
+    cz = zipfile.ZipFile(cabin_zip)
+    cabin.house(member(cz, "CosyCabin_TileMap.png"), member(cz, "CosyCabin_Objects.png"), example(cabin_zip)).save(OUT / "house.png")
     ui(cabin_zip)
-    g, meadow = garden(garden_zip, wood_zip, h.size)
-    g.save(OUT / "licensed" / "garden.png")
-    meadow.save(OUT / "licensed" / "meadow.png")
+    sheet = spring(member(zipfile.ZipFile(garden_zip), "Top down Garden Castle.png"))
+    wood = zipfile.ZipFile(wood_zip)
+    cabin.decor(cabin.SIZE, sheet, lambda name: member(wood, name)).save(OUT / "licensed" / "decor.png")
+    sheet.crop((16, 16, 128, 48)).save(OUT / "licensed" / "meadow.png")
     cats = zipfile.ZipFile(cats_zip)
     for suffix, name in [("MochiFree/Idle.png", "mochi-idle.png"), ("MochiFree/Box3.png", "mochi-box.png"),
                          ("PochiFree/FreeSprites.png", "pochi.png"), ("CatUIFree/free.png", "cat-ui.png")]:

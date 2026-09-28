@@ -11,7 +11,7 @@ her rooms, renames and adopted chats belongs to that artifact.
 Publish `catio/index.html` with:
 
 - `files`: every file the page references: `art/house.png`, `art/ui/*.png` (frames, plaques,
-  wallpaper, rail, bar, slot, door) and `art/licensed/*.png` (`garden.png`, `meadow.png`,
+  wallpaper, rail, bar, slot, door) and `art/licensed/*.png` (`decor.png`, `meadow.png`,
   `mochi-idle.png`, `mochi-box.png`, `pochi.png`, `cat-ui.png`);
 - `capabilities`: omit it on a republish to keep what's stored. The declaration is
   `{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions"] }] }, db: {} }`.
@@ -29,10 +29,24 @@ Publish `catio/index.html` with:
   `art/ui/` (every frame, plaque and wallpaper on the page) are committed.
 - **ToffeeCraft cats** (free version): personal use only, **no redistribution**. Never commit.
 - **Top Down Garden Castle** (Heosphorus): **no distribution, even modified**. Never commit.
-- **Wood Garden** (rowdy41): no resale. It is baked into `garden.png` with Heosphorus's
+- **Wood Garden** (rowdy41): no resale. It is baked into `decor.png` with Heosphorus's
   pieces, so that file stays uncommitted too.
 
 The footer credits all four. Keep it.
+
+## The cabin is a floor plan
+
+`catio/tools/cabin.py` is the plan: rooms as tile boxes with their floors and wallpapers,
+doorways, glass (floor-to-ceiling on back walls, strips on outside walls), and furniture as
+`(sprite, x, y)`. `house()` draws it from Cosy Cabin alone (committed as `art/house.png`);
+`decor()` adds the catio, the garden and indoor pieces from the other packs (`decor.png`).
+The page's `GEOM` (room boxes and cat spots) and `WORLD` must match the plan. Change both
+together, then re-render and check that no cat stands on furniture.
+
+The layout follows ordinary small-cabin planning: kitchen, dining and living as one open run
+facing the light; the sunroom off the living room; bedroom, ensuite and study behind; the
+bathroom backing onto the kitchen's plumbing; the catio fenced against the sunroom's outside
+wall, reached by a cat flap, with shade, shelves to climb and seats for people.
 
 ## The UI is made of the packs
 
@@ -47,7 +61,7 @@ The artifact database, written by the page and seeded with `ArtifactData`:
 
 | Collection | Document | Holds |
 |---|---|---|
-| `rooms` | one per room key (`garden`, `kitchen`, `study`, `dining`, `blue`, `bedroom`, `bath`, `living`) | `name`, `blurb`, `repos[]` (repo names or `owner/repo`), `catchAll` |
+| `rooms` | one per room key (`garden` (the catio), `kitchen`, `dining`, `living`, `sunroom`, `study`, `bedroom`, `bath`, `hall`) | `name`, `blurb`, `repos[]` (repo names or `owner/repo`), `catchAll` |
 | `sessions` | the Claude Code session id | `name`, `room`: her rename or move of one session's cat |
 | `cats` | generated id | an adopted chat: `title`, `link`, `room`, `mood` (`needs` / `busy` / `done`), `note`, `name` |
 
