@@ -4,3 +4,5 @@ catio/art/licensed/
 
 __pycache__/
 catio/test/.page.html
+catio/data/sessions.json
+catio/dist/

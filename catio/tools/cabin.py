@@ -3,7 +3,7 @@
 Layout (the page's GEOM mirrors these numbers):
 
     north   kitchen + dining (open plan) | living room (glass + fireplace) | sunroom (all glass) | catio
-    south   bathroom (ensuite) | bedroom | hall (front door) | study
+    south   bathroom (ensuite) | bedroom | hall (front door) | craft room (the shop's workroom)
 
 Public rooms share one open run and face north with floor-to-ceiling glass; the private rooms sit
 behind them; the bathroom backs onto the kitchen's plumbing; the catio is fenced against the
@@ -29,7 +29,7 @@ ROOMS = {
     "bath":    ((2, 14, 6, 21), [(2, 6, "blue", 32)]),
     "bedroom": ((6, 14, 13, 22), [(6, 13, "wood", 16)]),
     "hall":    ((13, 14, 17, 23), [(13, 17, "sand", 0)]),
-    "study":   ((17, 14, 24, 22), [(17, 24, "dark", 0)]),
+    "study":   ((17, 14, 27, 23), [(17, 27, "wood", 16)]),    # the craft room: light boards, flowered paper
 }
 
 # Cosy Cabin object sprites: (x, y, w, h) on CosyCabin_Objects.png
@@ -42,7 +42,7 @@ SPRITES = {
     "ctr_door": (448, 628, 16, 27), "ctr_hob": (480, 754, 16, 29),
     "cabinet": (608, 628, 16, 27),                   # dark drawers: the filing cabinets
     "bed": (176, 416, 32, 47), "nightstand": (176, 520, 16, 22), "dresser": (16, 501, 32, 27),
-    "desk": (304, 507, 32, 32),
+    "desk": (304, 507, 32, 32), "bookcase_items": (657, 406, 46, 52),
     "toilet": (17, 572, 14, 36), "shower": (691, 578, 12, 25), "basin": (353, 578, 14, 14), "towel": (834, 738, 12, 14),
     "mirror": (962, 593, 12, 30), "mirror_small": (946, 593, 12, 21), "plant_bath": (834, 584, 14, 24),
     "lamp_floor": (897, 50, 13, 30), "rug_blue": (1008, 49, 48, 30), "rug_red": (1008, 81, 48, 30),
@@ -76,9 +76,10 @@ FURNITURE = [
     ("nightstand", 190, 264), ("plant_snake", 104, 318), ("frame1", 144, 238), ("frame2", 194, 238),
     # hall
     ("mat", 228, 354), ("plant_pampas", 214, 300),
-    # study: desk under the frames, a reading lamp
-    ("runner_green", 300, 318), ("desk", 342, 258), ("chair_back", 351, 280), ("cabinet", 368, 257),
-    ("frame1", 348, 236), ("frame3", 360, 236), ("star", 290, 236),
+    # craft room: supplies on the shelves, a sewing desk, the big worktable in the middle (in decor)
+    ("bookcase_items", 336, 232), ("desk", 380, 258), ("chair_back", 389, 280), ("cabinet", 414, 257),
+    ("frame1", 386, 234), ("frame3", 398, 234), ("frame2", 348, 234), ("star", 290, 236),
+    ("chair_right", 296, 304), ("chair_left", 372, 304), ("plant_snake", 282, 318),
 ]
 
 # doorways: ("v", wall tile x, y from, y to) through a side wall; ("h", wall tile y, x from, x to) through a back wall
@@ -100,11 +101,11 @@ WINDOWS = [
     ("tall", 374, 85, 74),          # sunroom
     ("v", 2, 128, 192),             # kitchen west
     ("v", 28, 88, 172), ("v", 28, 190, 222),         # sunroom east, broken by the cat flap
-    ("h", 14, 392, 446),            # sunroom south
+    ("h", 14, 440, 446),            # sunroom south, the bit past the craft room
     ("v", 2, 276, 322),             # bathroom west
     ("h", 22, 118, 196),            # bedroom south
-    ("h", 22, 290, 372),            # study south
-    ("v", 24, 272, 340),            # study east
+    ("h", 23, 290, 420),            # craft room south
+    ("v", 27, 272, 340),            # craft room east
 ]
 CAT_FLAP = (448, 174, 188)          # x of the sunroom's east wall, y span
 
@@ -272,7 +273,7 @@ def decor(size, sheet, wood_piece, props, struct):
 
     # the way in: steps from the front door, flowers along the front
     stamp(wood_piece("Stairs/Wood-stairs-1.png"), 227, 372)
-    for x, n in ((112, 18), (140, 14), (176, 16), (294, 20), (330, 18)):
+    for x, n in ((112, 18), (140, 14), (176, 16)):
         stamp(wood_piece(f"Small wooden flower box/Small wooden flower box-{n}.png"), x, 360)
 
     # the gate onto the land: a stone archway with its wooden doors swung open, lanterns at the steps
@@ -281,14 +282,14 @@ def decor(size, sheet, wood_piece, props, struct):
     stamp(struct.crop((408, 27, 488, 91)), 203, 384)                  # stone archway
     stamp(stone(165, 217, 21, 34), 186, 414)                          # vases either side
     stamp(stone(165, 348, 21, 32), 284, 416)
-    stamp(stone(453, 118, 22, 37), 202, 352)                          # stone lanterns by the front steps
-    stamp(stone(453, 118, 22, 37), 262, 352)
+    stamp(stone(453, 118, 22, 37), 198, 372)                          # stone lanterns by the front steps
+    stamp(stone(453, 118, 22, 37), 262, 372)
 
     # a little garden square in the south-east meadow: fountain, statue, a bench to sit and watch
     stamp(stone(353, 269, 94, 72), 470, 340)                          # round stone fountain
     stamp(stone(445, 21, 37, 72), 499, 318)                           # praying statue at its centre
-    stamp(stone(292, 19, 56, 41), 392, 380)                           # stone bench
-    stamp(stone(99, 160, 27, 32), 430, 286)                           # signpost to the catio
+    stamp(stone(292, 19, 56, 41), 380, 400)                           # stone bench
+    stamp(stone(99, 160, 27, 32), 452, 372)                           # signpost to the catio
 
     # the meadow: pond, trees at the edges, bushes and rocks
     stamp(crop(64, 84, 64, 56), 20, 366)                              # pond
@@ -299,10 +300,12 @@ def decor(size, sheet, wood_piece, props, struct):
     stamp(crop(99, 251, 24, 23), 100, 392)
     stamp(crop(41, 258, 23, 16), 440, 330)
     stamp(crop(71, 252, 22, 22), 360, 30)
-    for sx, x, y in [(64, 236, 408), (80, 262, 398), (96, 290, 392), (112, 322, 386), (64, 356, 376), (80, 388, 362), (96, 420, 344), (112, 452, 322), (64, 482, 298), (80, 508, 272), (96, 526, 250)]:
+    for sx, x, y in [(64, 292, 400), (80, 322, 396), (96, 356, 392), (112, 388, 388), (64, 420, 384), (80, 448, 366), (96, 466, 340), (112, 486, 314), (64, 504, 290), (80, 518, 266)]:
         stamp(crop(sx, 49, 15, 15), x, y)                             # stepping stones, front door to the catio gate
 
-    # indoors: a Wood Garden bookshelf in the study, a chest at the foot of the bed
-    stamp(wood_piece("Bookshelf/Bookshelf-1.png"), 282, 232)
+    # indoors: the craft room's shelves, worktable and supply chest; a chest at the foot of the bed
+    stamp(wood_piece("Bookshelf/Bookshelf-1.png"), 280, 232)
+    stamp(wood_piece("Table/Table-1.png"), 312, 296)
+    stamp(wood_piece("Chest/Chest-3.png"), 408, 322)
     stamp(wood_piece("Chest/Chest-1.png"), 161, 296)
     return g

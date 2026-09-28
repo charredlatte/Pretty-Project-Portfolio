@@ -3,10 +3,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:ital,wght@0,500;0,700;0,800;1,500&display=swap">
 <style>
-/* Layout: one centred column of wooden-framed panels standing in the meadow. Every frame, plaque,
-   slot, rail and icon is cut from Charlotte's asset packs (art/ui from Cosy Cabin, art/licensed for
-   the rest) and drawn at whole-pixel scale. The panels are lit cream paper in both themes;
-   dark mode turns the meadow and the cabin to night around them. */
+/* Layout: the catio is the whole screen, framed by the cabin's wooden trim. Nothing else shows until
+   you hover a room or a cat; then one paper menu opens beside it. A small sign in the corner says
+   whether the cats are live, and spells out any fix. Every frame, plaque and icon is cut from
+   Charlotte's asset packs and drawn at whole-pixel scale; dark mode turns the meadow to night. */
 :root {
   --ink: #50140D;          /* the cabin palette's dark walnut */
   --ink-soft: #823820;
@@ -26,12 +26,9 @@
 :root[data-theme="dark"] { --night: rgba(8, 20, 34, .62); --scene: brightness(.7) saturate(.85) hue-rotate(-12deg); }
 
 * { box-sizing: border-box; }
-body {
-  color: var(--ink); font: 500 0.95rem/1.5 var(--body);
-  background: linear-gradient(var(--night), var(--night)), url(art/licensed/meadow.png) 0 0 / 336px 96px #8FBF4F;
-  image-rendering: pixelated;
-}
-.wrap { max-width: 980px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 28px; display: grid; gap: 14px; }
+html, body { height: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { margin: 0; overflow: hidden; color: var(--ink); font: 500 0.95rem/1.5 var(--body); background: #5E8F34; image-rendering: pixelated; }
+.screen { position: fixed; inset: 0; }
 button, input, select, textarea { font: inherit; color: inherit; }
 a { color: var(--ink); }
 :focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
@@ -44,20 +41,11 @@ a { color: var(--ink); }
 .panel { border: calc(16 * var(--u)) solid transparent; border-image: url(art/ui/frame-fill.png) 16 fill / calc(16 * var(--u)) round; }
 @media (max-width: 560px) { :root { --u: 1px; } }
 
-/* header: a strip of wall, wallpaper above a wainscot rail */
-.top { display: grid; justify-items: center; gap: 6px; text-align: center; padding-bottom: calc(12 * var(--u) + 10px); position: relative; isolation: isolate; }
-.top::before { content: ""; position: absolute; inset: 0; z-index: -1; background: url(art/ui/paper-circles.png) 0 0 / calc(16 * var(--u)) calc(16 * var(--u)); }
-.top::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: calc(12 * var(--u)); background: url(art/ui/rail.png) 0 0 / calc(16 * var(--u)) calc(12 * var(--u)) repeat-x; }
-h1 { font: 600 clamp(2.1rem, 6.5vw, 3rem)/1 var(--display); margin: 0; letter-spacing: .01em; }
-.tally { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.tally li { display: inline-flex; align-items: center; gap: 4px; font-size: .82rem; font-weight: 700; font-variant-numeric: tabular-nums;
-  border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; padding: 0 6px 0 2px; }
-.tally li.zero { opacity: .6; }
 .face-ico { display: inline-block; width: calc(21px * var(--k)); height: calc(18px * var(--k)); flex: none; --x: 5; --y: 39; }
 .need > .face-ico, .need .face { --x: 37; --y: 39; }
 .fail > .face-ico, .fail .face { --x: 37; --y: 71; }
 .gift > .face-ico, .gift .face { --x: 5; --y: 71; }
-.status { font-size: .82rem; color: var(--ink-soft); display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; align-items: center; }
+.status { font-size: .8rem; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; }
 .status.warn { color: var(--ink); font-weight: 700; }
 .status .dot { width: 8px; height: 8px; background: #4F8A3A; display: inline-block; }
 .status.warn .dot { background: #C2412A; }
@@ -70,22 +58,27 @@ h1 { font: 600 clamp(2.1rem, 6.5vw, 3rem)/1 var(--display); margin: 0; letter-sp
 .plaque.green { border-image-source: url(art/ui/plaque-green.png); color: #1F3A14; text-shadow: 0 1px 0 #CFE3A6; }
 .plaque.pink { border-image-source: url(art/ui/plaque-pink.png); color: #5A1C12; text-shadow: 0 1px 0 #FBE2D8; }
 
-.rooms { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; padding: 2px; }
-@media (max-width: 640px) { .rooms { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; scrollbar-width: thin; } }
-.chip { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 0 6px; font: 500 .95rem/1.6 var(--display); }
-.chip[aria-current="true"] { border-image-source: url(art/ui/plaque-green.png); color: #1F3A14; text-shadow: 0 1px 0 #CFE3A6; }
-.chip .n { font: 700 .72rem/1.3 var(--body); background: #50140D; color: #FFF4E6; text-shadow: none; padding: 0 5px; }
-
-/* the stage, inside the trim */
-.frame { border: calc(16 * var(--u)) solid transparent; border-image: url(art/ui/frame.png) 16 / calc(16 * var(--u)) round; }
-.stage { position: relative; overflow: hidden; width: 100%; touch-action: manipulation; background: #8FBF4F; }
+/* the stage: the whole screen, the meadow tiled to follow the camera, the trim laid over the edge */
+.stage { position: absolute; inset: 0; overflow: hidden; touch-action: manipulation; background: #8FBF4F; }
+.meadow { position: absolute; inset: 0; background: url(art/licensed/meadow.png) repeat; image-rendering: pixelated; filter: var(--scene);
+  transition: background-size .55s cubic-bezier(.3,.7,.2,1), background-position .55s cubic-bezier(.3,.7,.2,1); }
+.stage.instant .meadow { transition: none; }
+.trim { position: fixed; inset: 0; pointer-events: none; z-index: 30; border: calc(16 * var(--u)) solid transparent; border-image: url(art/ui/frame.png) 16 / calc(16 * var(--u)) round; }
+.hud { position: fixed; z-index: 31; top: calc(16 * var(--u) + 8px + env(safe-area-inset-top, 0px)); left: calc(16 * var(--u) + 8px); max-width: min(520px, calc(100vw - 32 * var(--u) - 16px));
+  border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; padding: 0 6px; display: grid; gap: 0; image-rendering: pixelated; }
+.hud h1 { margin: 0; font: 600 1.15rem/1.2 var(--display); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.hud h1 span { font: 700 .78rem var(--body); color: var(--ink-soft); }
+.hud .status:not(.warn) .words { display: none; }
+.hud:hover .status .words, .hud:focus-within .status .words { display: inline; }
+.credits { position: fixed; z-index: 31; right: calc(16 * var(--u) + 6px); bottom: calc(16 * var(--u) + 4px + env(safe-area-inset-bottom, 0px)); margin: 0; font-size: .66rem; color: #FFF4E6; opacity: .85;
+  text-shadow: 0 1px 0 #2C4A18, 1px 0 0 #2C4A18, -1px 0 0 #2C4A18, 0 -1px 0 #2C4A18; max-width: calc(100vw - 32 * var(--u) - 12px); text-align: right; }
 .world { position: absolute; left: 0; top: 0; width: 1280px; height: 896px; transform-origin: 0 0; transition: transform .55s cubic-bezier(.3,.7,.2,1);
   background: url(art/licensed/meadow.png) 0 0 / 224px 64px repeat; image-rendering: pixelated; filter: var(--scene); }
 .stage.instant .world { transition: none; }
 .house { position: absolute; inset: 0; width: 1280px; height: 896px; max-width: none; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
 .prop { position: absolute; pointer-events: none; }
 .roomhit { position: absolute; background: transparent; border: 0; padding: 0; cursor: zoom-in; }
-.roomhit:hover { background: rgba(255, 245, 200, .12); }
+.roomhit:hover, .roomhit.lit { background: rgba(255, 245, 200, .14); }
 .roomhit.here { cursor: default; background: transparent; }
 .cat { position: absolute; background: transparent; border: 0; padding: 0; cursor: pointer; }
 .spr { display: inline-block; vertical-align: bottom; filter: var(--tint, none); image-rendering: pixelated; background-repeat: no-repeat; }
@@ -134,37 +127,22 @@ h1 { font: 600 clamp(2.1rem, 6.5vw, 3rem)/1 var(--display); margin: 0; letter-sp
 .stage-msg { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: .85rem; padding: 2px 8px; max-width: calc(100% - 24px); text-align: center;
   border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; image-rendering: pixelated; }
 
-/* hotbar: cat-UI buttons in slots, the adoption in the middle */
-.hotbar { justify-self: center; display: flex; align-items: stretch; gap: 6px; max-width: 100%;
-  border: calc(16 * var(--u)) solid transparent; border-image: url(art/ui/frame-fill.png) 16 fill / calc(16 * var(--u)) round; }
-.slot { width: 76px; border: 5px solid transparent; border-image: url(art/ui/slot.png) 5 fill / 5px; background: none; cursor: pointer; display: grid; place-items: center; align-content: center; gap: 2px; padding: 4px 0; font: 500 .8rem/1.1 var(--display); color: #FFF4E6; text-shadow: 0 1px 0 #2C1A12; text-align: center; image-rendering: pixelated; }
-.slot:hover .ico { translate: 0 -2px; }
-.slot:disabled { opacity: .5; cursor: default; }
-.slot:disabled .ico { translate: none; }
-.ico { --k: 3; width: calc(16px * var(--k)); height: calc(16px * var(--k)); }
-.i-play { --x: 128; --y: 0; }
-.i-pause { --x: 176; --y: 0; }
-.i-check { --x: 160; --y: 16; }
-.i-minus { --x: 160; --y: 32; }
-.i-door { width: calc(10.67px * var(--k)); margin-inline: calc(2.67px * var(--k)); background: url(art/ui/door.png) 0 calc(-2px * var(--k)) / calc(10.67px * var(--k)) calc(20px * var(--k)); image-rendering: pixelated; }
-.slot.adopt { width: auto; min-width: 180px; grid-auto-flow: column; gap: 10px; padding: 2px 12px; font: 600 1.15rem/1.1 var(--display);
-  border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(7 * var(--u)); border-image: url(art/ui/plaque-green.png) 4 4 7 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(7 * var(--u)); color: #1F3A14; text-shadow: 0 1px 0 #CFE3A6; }
-.slot.adopt small { display: block; font: 400 .72rem var(--body); margin-top: 2px; }
-.paw { --k: 3; --x: 65; --y: 33; width: calc(15px * var(--k)); height: calc(14px * var(--k)); }
-@media (max-width: 480px) {
-  .hotbar { gap: 3px; }
-  .slot { width: 52px; font-size: .68rem; }
-  .ico, .paw { --k: 2; }
-  .slot.adopt { min-width: 0; padding: 2px 6px; gap: 2px; font-size: .9rem; grid-auto-flow: row; }
-  .slot.adopt small { display: none; }
-}
-
-/* needs panel */
-.needs { display: grid; gap: 12px; min-width: 0; }
-.needs header { display: grid; gap: 2px; justify-items: center; text-align: center; }
-.needs h2 { font: 600 1.5rem/1.1 var(--display); margin: 0; }
-.needs .sub { margin: 0; font-size: .85rem; color: var(--ink-soft); }
-.needs ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+/* the hover menu: paper in the trim, beside the room or cat you're pointing at */
+.menu { position: absolute; z-index: 20; width: min(300px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow: auto; display: grid; gap: 8px; color: var(--ink);
+  border: 16px solid transparent; border-image: url(art/ui/frame-fill.png) 16 fill / 16px round; image-rendering: pixelated; }
+.menu h3 { margin: 0; font: 600 1.15rem/1.15 var(--display); display: flex; gap: 6px; align-items: center; overflow-wrap: anywhere; }
+.menu h3 .emb { position: static; flex: none; }
+.menu .sub { margin: -4px 0 0; font-size: .8rem; color: var(--ink-soft); overflow-wrap: anywhere; }
+.menu .acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.menu .acts .btn { font-size: .82rem; }
+.menu .foot { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: .75rem; color: var(--ink-soft); border-top: 2px dashed #D7A98A; padding-top: 6px; }
+.menu .foot .btn { font-size: .75rem; }
+.menu ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.menu .mini { display: flex; gap: 6px; align-items: flex-start; width: 100%; text-align: left; background: none; border: 0; padding: 2px 0; cursor: pointer; font-size: .82rem; }
+.menu .mini b { font-family: var(--display); font-weight: 600; }
+.menu .mini:hover b { text-decoration: underline; }
+.menu .moods { display: flex; gap: 4px; flex-wrap: wrap; }
+.menu .moods .btn[aria-pressed="true"] { border-image-source: url(art/ui/plaque-green.png); color: #1F3A14; text-shadow: 0 1px 0 #CFE3A6; }
 .item { position: relative; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; align-items: start; width: 100%; height: 100%; text-align: left; cursor: pointer;
   border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; background: none; padding: 4px 30px 4px 2px; image-rendering: pixelated; }
 .item:hover { border-image-source: url(art/ui/ring.png); background: #F3DDC8; background-clip: padding-box; }
@@ -177,14 +155,7 @@ h1 { font: 600 clamp(2.1rem, 6.5vw, 3rem)/1 var(--display); margin: 0; letter-sp
 .item .who span { font: 400 .78rem var(--body); color: var(--ink-soft); }
 .item .what { font-size: .8rem; color: var(--ink-soft); overflow-wrap: anywhere; }
 .item .ask { margin-top: 3px; overflow-wrap: anywhere; }
-.empty { font-size: .9rem; color: var(--ink-soft); margin: 0; text-align: center; grid-column: 1 / -1; }
-.bar { height: 14px; border: 0 solid transparent; border-width: 0 12px; border-image: url(art/ui/bar.png) 0 6 fill / 0 12px stretch; image-rendering: pixelated; }
-.busy { font-size: .85rem; color: var(--ink-soft); display: grid; gap: 4px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
-.busy b { color: var(--leaf); grid-column: 1 / -1; font-family: var(--display); font-size: 1rem; }
-.busy strong { color: var(--ink); }
-
-footer { font-size: .8rem; color: var(--on-grass); text-shadow: 0 1px 0 #2C4A18, 1px 0 0 #2C4A18, -1px 0 0 #2C4A18, 0 -1px 0 #2C4A18; display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center; text-align: center; }
-footer button { background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font-size: inherit; text-shadow: inherit; }
+.empty { font-size: .9rem; color: var(--ink-soft); margin: 0; }
 
 /* dialogs: paper in the trim */
 dialog { padding: 0; width: min(480px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); color: var(--ink); background: none; overflow: auto;
@@ -221,57 +192,40 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 .proj-pic { width: 56px; height: 48px; position: relative; overflow: hidden; background: url(art/licensed/meadow.png) 0 0 / 112px 32px; }
 .proj-pic .spr { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%) scale(1.3); transform-origin: 50% 100%; }
 .item.file { padding-right: 6px; text-decoration: none; color: inherit; }
+.item .branch { font: 600 .75rem/1.3 ui-monospace, "Cascadia Mono", monospace; }
+.status .copy { color: var(--ink-soft); font-weight: 500; flex-basis: 100%; }
+.status .btn { font-size: .75rem; }
 
 .toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); font-size: .9rem; padding: 2px 8px; max-width: calc(100vw - 32px);
   border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; image-rendering: pixelated; }
 
 @media (prefers-reduced-motion: reduce) {
   .spr, .cat.m-meow { animation: none !important; }
-  .world { transition: none; }
+  .world, .meadow { transition: none; }
 }
 </style>
 
-<div class="wrap">
-  <header class="top panel">
-    <h1>The Catio</h1>
-    <ul class="tally" id="tally" aria-label="Cats by mood"></ul>
-    <div class="status" id="status" role="status"><span class="dot"></span><span>Waking the cats…</span></div>
-  </header>
-  <nav class="rooms" id="chips" aria-label="Rooms"></nav>
-  <div class="frame">
-    <section class="stage" id="stage" aria-label="The cabin and its catio">
-      <div class="world" id="world">
-        <img class="house" src="art/house.png" alt="" width="1280" height="896">
-        <img class="house" src="art/licensed/decor.png" alt="" width="1280" height="896">
-        <div id="props"></div>
-        <div id="hits"></div>
-        <div id="cats"></div>
-      </div>
-      <div class="overlay" id="overlay"></div>
-      <div class="stage-msg" id="stageMsg" hidden></div>
-    </section>
-  </div>
-  <div class="hotbar" role="toolbar" aria-label="Catio tools">
-    <button class="slot" id="roomsBtn" type="button"><span class="ico i-door" aria-hidden="true"></span>Rooms</button>
-    <button class="slot" id="soundBtn" type="button" aria-pressed="false"><span class="ui ico i-play" id="soundIco" aria-hidden="true"></span><span id="soundLbl">Sound off</span></button>
-    <button class="slot adopt" id="adoptBtn" type="button"><span class="ui paw" aria-hidden="true"></span><span>Adopt a cat<small>for a chat on claude.ai</small></span></button>
-    <button class="slot" id="refreshBtn" type="button"><span class="ui ico i-check" aria-hidden="true"></span>Check now</button>
-    <button class="slot" id="zoomOut" type="button" disabled><span class="ui ico i-minus" aria-hidden="true"></span>Whole house</button>
-  </div>
-  <section class="needs panel" aria-labelledby="needsTitle">
-    <header>
-      <h2 id="needsTitle">Meowing for you</h2>
-      <p class="sub" id="needsSub"></p>
-    </header>
-    <ol id="needs"></ol>
-    <div class="bar" aria-hidden="true"></div>
-    <div class="busy" id="busy" hidden></div>
+<main class="screen">
+  <section class="stage" id="stage" aria-label="The Catio: hover a room or a cat">
+    <div class="meadow" id="meadow"></div>
+    <div class="world" id="world">
+      <img class="house" src="art/house.png" alt="" width="1280" height="896">
+      <img class="house" src="art/licensed/decor.png" alt="" width="1280" height="896">
+      <div id="props"></div>
+      <div id="hits"></div>
+      <div id="cats"></div>
+    </div>
+    <div class="overlay" id="overlay"></div>
+    <div class="stage-msg" id="stageMsg" hidden></div>
+    <div class="menu" id="menu" hidden></div>
   </section>
-  <footer>
-    <span id="upstairs"></span>
-    <span>Cabin by Marie Pepo · Cats by ToffeeCraft · Garden by Heosphorus and rowdy41 · Stonework by Cainos</span>
-  </footer>
-</div>
+  <div class="trim" aria-hidden="true"></div>
+  <header class="hud" id="hud">
+    <h1>The Catio <span id="tally"></span></h1>
+    <div class="status" id="status" role="status"><span class="dot"></span><span class="words">Waking the cats…</span></div>
+  </header>
+  <p class="credits">Cabin by Marie Pepo · Cats by ToffeeCraft · Garden by Heosphorus and rowdy41 · Stonework by Cainos</p>
+</main>
 
 <dialog id="catDlg" aria-labelledby="catName"></dialog>
 <dialog id="adoptDlg" aria-labelledby="adoptTitle"></dialog>
@@ -290,11 +244,11 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   // cabinet = the filing cabinet's box, where that room's projects are kept.
   const GEOM = {
     garden:  { name: "Catio",       r: [448, 48, 160, 188], spots: [[474, 126], [514, 208], [568, 96], [586, 202], [500, 110]], cabinet: [457, 90, 22, 21] },
-    kitchen: { name: "Kitchen",     r: [32, 80, 85, 149],   spots: [[48, 212], [104, 146], [104, 212], [46, 146]], cabinet: [106, 105, 16, 27] },
+    kitchen: { name: "Kitchen",     r: [32, 80, 85, 149],   spots: [[48, 212], [104, 146], [104, 212], [46, 146], [76, 202], [48, 180], [104, 180], [76, 140]], cabinet: [106, 105, 16, 27] },
     dining:  { name: "Dining room", r: [112, 80, 101, 149], spots: [[124, 214], [200, 146], [200, 212], [124, 130]], cabinet: [186, 105, 16, 27] },
     living:  { name: "Living room", r: [208, 48, 165, 181], spots: [[290, 162], [234, 212], [350, 206], [226, 118], [350, 150], [300, 216], [268, 118]], cabinet: [348, 72, 16, 27] },
     sunroom: { name: "Sunroom",     r: [368, 80, 85, 149],  spots: [[426, 164], [392, 214], [398, 132]] },
-    study:   { name: "Study",       r: [272, 224, 117, 133], spots: [[302, 340], [360, 326], [320, 306], [376, 344]], cabinet: [368, 257, 16, 27] },
+    study:   { name: "Craft room",  r: [272, 224, 165, 149], spots: [[300, 292], [352, 290], [396, 330], [322, 322], [420, 302], [292, 350], [346, 326], [366, 352], [392, 352], [316, 352], [370, 292], [296, 368], [336, 368], [376, 368], [416, 366]], cabinet: [414, 257, 16, 27] },
     bedroom: { name: "Bedroom",     r: [96, 224, 117, 133], spots: [[122, 334], [198, 330], [140, 304], [200, 300]], cabinet: [103, 257, 16, 27] },
     bath:    { name: "Bathroom",    r: [32, 224, 69, 117],  spots: [[62, 324], [90, 288]] },
     hall:    { name: "Hall",        r: [208, 224, 69, 149], spots: [[246, 300], [252, 346]] },
@@ -309,8 +263,10 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     { s: [9, 207, 43, 37], at: [60, 218] },     // food bowl, kitchen
     { s: [139, 208, 43, 37], at: [506, 122] },  // water bowl, catio deck
     { s: [216, 267, 33, 62], at: [104, 196] },  // food bag, by the fridge end of the island
-    { s: [168, 407, 22, 20], at: [296, 176] },  // red yarn, living-room rug
-    { s: [103, 405, 22, 20], at: [322, 344] },  // blue yarn, study
+    { s: [168, 407, 22, 20], at: [330, 316] },  // red yarn, on the craft-room worktable
+    { s: [103, 405, 22, 20], at: [348, 320] },  // blue yarn, beside it
+    { s: [103, 343, 18, 18], at: [362, 314] },  // a tin of buttons
+    { s: [202, 412, 17, 15], at: [296, 176] },  // small red yarn, living-room rug
     { s: [137, 410, 17, 15], at: [410, 206] },  // small yarn, sunroom
   ];
 
@@ -354,6 +310,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 
   const S = {
     sessions: null, sessionsAt: null, live: { state: "loading" },
+    liveSessions: null, liveAt: null, copy: null, from: null,   // the live feed, and Claude's saved copy for when it's blocked
     rooms: {}, tweaks: {}, adopted: [], projects: {},
     focus: null, cam: null, sound: false, showOld: false, prevNeeding: null,
     db: null, mcp: null, perms: null, unwatch: null,
@@ -487,7 +444,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   }
   const clock = (t) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-  let VIEW = { cats: [], placed: [] };
+  let VIEW = { cats: [], placed: [], piles: {}, upstairs: 0 };
 
   function drawProps() {
     const box = $("props");
@@ -505,7 +462,8 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       b.type = "button";
       b.dataset.room = k;
       Object.assign(b.style, { left: x * 2 + "px", top: y * 2 + "px", width: w * 2 + "px", height: h * 2 + "px" });
-      b.addEventListener("click", () => focusRoom(k));
+      b.addEventListener("click", (e) => { e.stopPropagation(); if (armed("room", k)) return; focusRoom(k); });
+      hoverable(b, "room", k);
       hits.appendChild(b);
     }
     for (const k of ORDER) {
@@ -515,7 +473,8 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       b.type = "button";
       b.setAttribute("aria-label", "Filing cabinet in the " + GEOM[k].name);
       Object.assign(b.style, { left: box[0] * 2 + "px", top: box[1] * 2 + "px", width: box[2] * 2 + "px", height: box[3] * 2 + "px" });
-      b.addEventListener("click", (e) => { e.stopPropagation(); if (!S.focus && S.cam && S.cam.s < 0.9) focusRoom(k); else openCabinet(k); });
+      b.addEventListener("click", (e) => { e.stopPropagation(); if (armed("room", k)) return; openCabinet(k); });
+      hoverable(b, "room", k);
       hits.appendChild(b);
     }
   }
@@ -524,12 +483,10 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const { cats, upstairs } = allCats();
     VIEW.cats = cats;
 
-    // tally
     const count = (m) => cats.filter((c) => c.mood === m).length;
-    const tally = $("tally"); tally.replaceChildren();
-    const t = [["need", count("meow"), "meowing"], ["fail", count("cry"), "upset"], ["gift", count("box"), "to review"], ["work", count("idle"), "at work"], ["sleep", count("sleep"), "asleep"]];
-    for (const [cls, n, label] of t) if (n || cls === "need") { const li = el("li", cls + (n ? "" : " zero")); if (cls === "need" || cls === "fail" || cls === "gift") li.appendChild(el("span", "ui face-ico")); li.appendChild(document.createTextNode(n + " " + label)); tally.appendChild(li); }
     const needing = cats.filter((c) => MOODS[c.mood].needs);
+    VIEW.upstairs = upstairs;
+    $("tally").textContent = [[needing.length, "need you"], [count("idle"), "at work"], [count("sleep"), "asleep"]].filter(([n]) => n).map(([n, w]) => n + " " + w).join(" · ");
     document.title = (needing.length ? "(" + needing.length + ") " : "") + "The Catio";
 
     // new meows make a sound
@@ -537,22 +494,10 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     if (S.prevNeeding && S.sound) { for (const id of ids) if (!S.prevNeeding.has(id)) { meow(); break; } }
     if (S.sessions) S.prevNeeding = ids;
 
-    // chips
-    const chips = $("chips"); chips.replaceChildren();
-    const mk = (key, label, n) => {
-      const b = el("button", "chip plaque"); b.type = "button";
-      b.setAttribute("aria-current", String(S.focus === key));
-      b.append(el("span", null, label));
-      if (n) b.append(el("span", "n", String(n)));
-      b.addEventListener("click", () => key ? focusRoom(key) : zoomOut());
-      chips.appendChild(b);
-    };
-    mk(null, "Whole house", needing.length);
-    for (const k of ORDER) mk(k, roomInfo(k).name, needing.filter((c) => c.roomKey === k).length);
-
     // cats in the scene
     const layer = $("cats"); layer.replaceChildren();
     VIEW.placed = [];
+    VIEW.piles = {};
     for (const k of ORDER) {
       const here = cats.filter((c) => c.roomKey === k);
       const spots = GEOM[k].spots;
@@ -562,60 +507,23 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       if (pile.length) placePile(layer, pile, spots[spots.length - 1], k);
     }
 
-    // needs list
-    const list = $("needs"); list.replaceChildren();
-    for (const c of needing) {
-      const li = el("li");
-      const b = el("button", "item " + MOODS[c.mood].kind); b.type = "button";
-      const th = el("span", "thumb"); th.append(sprite(c.mood, c.coat), emblem(c.emblem, "corner"));
-      b.appendChild(el("span", "ui face-ico"));
-      const txt = el("span");
-      const who = el("span", "who", c.name + " "); who.appendChild(el("span", null, "· " + c.project.name + " · " + roomInfo(c.roomKey).name + " · " + ago(c.updated)));
-      txt.append(who, el("div", "what", c.title), el("div", "ask", c.ask));
-      b.append(th, txt);
-      b.addEventListener("click", () => openCat(c.id));
-      li.appendChild(b); list.appendChild(li);
-    }
-    const sub = $("needsSub");
-    if (!needing.length) {
-      list.appendChild(el("li", "empty", S.sessions ? "Nobody is meowing. Every cat is busy or asleep." : "Cats that need you will line up here."));
-      sub.textContent = "";
-    } else sub.textContent = needing.length === 1 ? "One cat is waiting on you." : needing.length + " cats are waiting on you, most urgent first.";
-    const working = cats.filter((c) => c.mood === "idle");
-    const busy = $("busy"); busy.replaceChildren();
-    busy.hidden = !working.length;
-    if (working.length) {
-      busy.appendChild(el("b", null, working.length === 1 ? "1 cat at work" : working.length + " cats at work"));
-      for (const c of working.slice(0, 6)) {
-        const d = el("div"); d.append(el("strong", null, c.name + ": "), document.createTextNode(c.doing || c.title));
-        busy.appendChild(d);
-      }
-    }
-
-    // footer
-    const up = $("upstairs"); up.replaceChildren();
-    if (upstairs || S.showOld) {
-      up.append(document.createTextNode(upstairs ? upstairs + " old or archived sessions are napping upstairs. " : ""));
-      const tb = el("button", null, S.showOld ? "Send the old sleepers back up" : "Bring the old sleepers down");
-      tb.type = "button";
-      tb.addEventListener("click", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); });
-      up.appendChild(tb);
-    }
-
     renderStatus();
     placeOverlay();
+    if (MENU.kind) showMenu(MENU.kind, MENU.key);   // keep an open menu's numbers current
   }
 
   function placeCat(layer, c, spot, room) {
     const sp = SPR[c.mood];
     const b = el("button", "cat m-" + c.mood);
     b.type = "button";
+    b.dataset.id = c.id;
     const left = spot[0] * 2 - sp.ax, top = spot[1] * 2 - sp.ay;
     Object.assign(b.style, { left: left + "px", top: top + "px", width: sp.w + "px", height: sp.h + "px", zIndex: 1000 + spot[1] * 2 });
     b.setAttribute("aria-label", c.name + " (" + c.project.name + "), " + MOODS[c.mood].label + ": " + c.title);
     b.appendChild(sprite(c.mood, c.coat));
     const em = emblem(c.emblem); em.style.left = sp.ax + 6 + "px"; em.style.top = sp.ay - 24 + "px"; b.appendChild(em);
-    b.addEventListener("click", (e) => { e.stopPropagation(); catClicked(c, room); });
+    b.addEventListener("click", (e) => { e.stopPropagation(); if (armed("cat", c.id)) return; catClicked(c, room); });
+    hoverable(b, "cat", c.id);
     layer.appendChild(b);
     VIEW.placed.push({ cat: c, x: spot[0] * 2, y: top + (c.mood === "idle" || c.mood === "box" ? 4 : 16), feet: spot[1] * 2, room });
   }
@@ -624,38 +532,37 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const sp = SPR[top.mood];
     const b = el("button", "cat m-" + top.mood);
     b.type = "button";
+    b.dataset.pile = room;
     Object.assign(b.style, { left: spot[0] * 2 - sp.ax + "px", top: spot[1] * 2 - sp.ay + "px", width: sp.w + "px", height: sp.h + "px", zIndex: 1000 + spot[1] * 2 });
     b.setAttribute("aria-label", pile.length + " cats curled up together in " + roomInfo(room).name);
     b.appendChild(sprite(top.mood, top.coat));
     const em = emblem(top.emblem); em.style.left = sp.ax + 6 + "px"; em.style.top = sp.ay - 24 + "px"; b.appendChild(em);
     b.appendChild(el("span", "pile-n", "+" + (pile.length - 1)));
-    b.addEventListener("click", (e) => { e.stopPropagation(); if (!S.focus && S.cam && S.cam.s < 0.9) focusRoom(room); else openPile(pile, room); });
+    VIEW.piles[room] = pile;
+    b.addEventListener("click", (e) => { e.stopPropagation(); if (armed("pile", room)) return; hideMenu(); openPile(pile, room); });
+    hoverable(b, "pile", room);
     layer.appendChild(b);
     if (MOODS[top.mood].needs) VIEW.placed.push({ cat: top, x: spot[0] * 2, y: spot[1] * 2 - sp.ay + 16, feet: spot[1] * 2, room });
   }
 
-  function catClicked(c, room) {
-    if (!S.focus && S.cam && S.cam.s < 0.9) focusRoom(room);
-    else openCat(c.id);
-  }
+  function catClicked(c) { hideMenu(); openCat(c.id); }
 
   /* ---------- camera ---------- */
   function layout(instant) {
     const stage = $("stage");
-    const W = stage.clientWidth;
-    const H = Math.round(W * WORLD[1] / WORLD[0]);
-    stage.style.height = H + "px";
+    const W = stage.clientWidth, H = stage.clientHeight;
+    const m = 16 * (innerWidth <= 560 ? 1 : 2) + 6;   // keep the house clear of the trim
     let r = WHOLE;
     if (S.focus) { const [x, y, w, h] = GEOM[S.focus].r; const p = 6; r = [x - p, y - p, w + 2 * p, h + 2 * p]; }
     const rw = r[2] * 2, rh = r[3] * 2;
-    const s = Math.min(W / rw, H / rh);
+    const s = Math.min((W - 2 * m) / rw, (H - 2 * m) / rh);
     // centre on the room, but never show past the edge of the meadow
-    const fit = (t, view, world) => world <= view ? (view - world) / 2 : Math.min(0, Math.max(view - world, t));
+    const fit = (t, view, world) => world <= view ? (view - world) / 2 : Math.min(m, Math.max(view - world - m, t));
     const tx = fit((W - rw * s) / 2 - r[0] * 2 * s, W, WORLD[0] * 2 * s), ty = fit((H - rh * s) / 2 - r[1] * 2 * s, H, WORLD[1] * 2 * s);
     S.cam = { s, tx, ty, W, H };
     stage.classList.toggle("instant", !!instant);
     $("world").style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
-    $("zoomOut").disabled = !S.focus;
+    Object.assign($("meadow").style, { backgroundSize: `${224 * s}px ${64 * s}px`, backgroundPosition: `${tx}px ${ty}px` });
     for (const b of $("hits").querySelectorAll(".roomhit")) {
       const here = b.dataset.room === S.focus;
       b.classList.toggle("here", here);
@@ -669,8 +576,131 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       layout.t = setTimeout(() => { placeOverlay(); ov.classList.remove("moving"); }, 560);
     }
   }
-  function focusRoom(k) { if (S.focus === k) return; S.focus = k; layout(false); render(); }
-  function zoomOut() { if (!S.focus) return; S.focus = null; layout(false); render(); }
+  function focusRoom(k) { if (S.focus === k) return; hideMenu(); S.focus = k; layout(false); render(); }
+  function zoomOut() { if (!S.focus) return; hideMenu(); S.focus = null; layout(false); render(); }
+
+  /* ---------- hover menus: the only chrome ---------- */
+  // Pointing at a room or a cat opens its menu beside it; moving onto the menu keeps it open.
+  // On a touch screen the first tap opens the menu and the second does the usual thing.
+  const MENU = { kind: null, key: null, anchor: null, hideT: 0, touch: false };
+  function hoverable(node, kind, key) {
+    node.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") showMenu(kind, key, node); });
+    node.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") hideSoon(); });
+    node.addEventListener("pointerdown", (e) => { MENU.touch = e.pointerType !== "mouse"; });
+    node.addEventListener("focus", () => { if (node.matches(":focus-visible")) showMenu(kind, key, node); });   // keyboard only
+  }
+  function armed(kind, key) {
+    if (!MENU.touch || (MENU.kind === kind && MENU.key === key)) return false;
+    showMenu(kind, key, null);
+    return true;
+  }
+  function hideSoon() { clearTimeout(MENU.hideT); MENU.hideT = setTimeout(hideMenu, 260); }
+  function hideMenu() {
+    clearTimeout(MENU.hideT);
+    MENU.kind = MENU.key = MENU.anchor = null;
+    $("menu").hidden = true;
+    for (const b of $("hits").querySelectorAll(".lit")) b.classList.remove("lit");
+  }
+  function anchorOf(kind, key) {
+    if (kind === "room") return $("hits").querySelector('.roomhit[data-room="' + key + '"]');
+    if (kind === "pile") return $("cats").querySelector('.cat[data-pile="' + key + '"]');
+    return $("cats").querySelector('.cat[data-id="' + CSS.escape(key) + '"]');
+  }
+  function showMenu(kind, key, node) {
+    clearTimeout(MENU.hideT);
+    const same = MENU.kind === kind && MENU.key === key;
+    MENU.kind = kind; MENU.key = key;
+    const menu = $("menu");
+    const body = kind === "room" ? roomMenu(key) : kind === "pile" ? pileMenu(key) : catMenu(key);
+    if (!body) { hideMenu(); return; }
+    const keepScroll = same ? menu.scrollTop : 0;
+    menu.replaceChildren(...body);
+    menu.hidden = false;
+    menu.scrollTop = keepScroll;
+    for (const b of $("hits").querySelectorAll(".lit")) b.classList.remove("lit");
+    if (kind === "room") { const h = anchorOf("room", key); if (h) h.classList.add("lit"); }
+    // place it beside what it belongs to, inside the stage
+    const a = (node || anchorOf(kind, key) || $("stage")).getBoundingClientRect();
+    const st = $("stage").getBoundingClientRect();
+    const W = st.width, H = st.height, mw = menu.offsetWidth, mh = menu.offsetHeight, g = 12;
+    const ax = a.left - st.left, ay = a.top - st.top, aw = a.width, ah = a.height;
+    // beside it on the right, else on the left; on a narrow screen below it, else above it, so the
+    // cat itself stays tappable; a room that fills the screen gets the menu in its corner
+    let left = ax + aw + g, top = kind === "room" ? ay : ay + ah / 2 - mh / 2;
+    if (left + mw > W - g) left = ax - mw - g;
+    if (left < g) {
+      left = Math.max(g, Math.min(W - mw - g, ax + aw / 2 - mw / 2));
+      if (kind !== "room") top = ay + ah + g + mh <= H - g ? ay + ah + g : ay - mh - g;
+      else left = W - mw - g;
+    }
+    top = Math.max(g, Math.min(H - mh - g, top));
+    Object.assign(menu.style, { left: left + "px", top: top + "px" });
+  }
+  function plainBtn(label, cls, run) { const b = el("button", "btn plaque" + (cls ? " " + cls : ""), label); b.type = "button"; b.addEventListener("click", run); return b; }
+  function catRow(c) {
+    const b = el("button", "mini " + MOODS[c.mood].kind); b.type = "button";
+    b.appendChild(el("span", "ui face-ico"));
+    const t = el("span"); t.append(el("b", null, c.name), document.createTextNode(" · " + (c.ask || c.doing || c.title)));
+    b.appendChild(t);
+    b.addEventListener("click", () => { hideMenu(); openCat(c.id); });
+    return el("li", null).appendChild(b).parentNode;
+  }
+  function roomMenu(k) {
+    const r = roomInfo(k), here = VIEW.cats.filter((c) => c.roomKey === k);
+    const n = (f) => here.filter(f).length;
+    const out = [];
+    const h = el("h3", null, r.name); out.push(h);
+    if (r.blurb) out.push(el("p", "sub", r.blurb));
+    const bits = [[n((c) => MOODS[c.mood].needs), "need you"], [n((c) => c.mood === "idle"), "at work"], [n((c) => c.mood === "sleep"), "asleep"]].filter(([x]) => x).map(([x, w]) => x + " " + w);
+    out.push(el("p", "sub", bits.join(" · ") || "No cats in here yet."));
+    const needing = here.filter((c) => MOODS[c.mood].needs);
+    if (needing.length) { const ul = el("ul"); needing.slice(0, 5).forEach((c) => ul.appendChild(catRow(c))); if (needing.length > 5) ul.appendChild(el("li", "sub", "and " + (needing.length - 5) + " more")); out.push(ul); }
+    const acts = el("div", "acts");
+    acts.appendChild(S.focus === k ? plainBtn("Whole house", "", zoomOut) : plainBtn("Look in", "green", () => focusRoom(k)));
+    if (GEOM[k].cabinet) acts.appendChild(plainBtn("Files", "", () => { hideMenu(); openCabinet(k); }));
+    acts.appendChild(plainBtn("Adopt a cat here", "green", () => { hideMenu(); openAdopt(k); }));
+    acts.appendChild(plainBtn("Edit rooms", "", () => { hideMenu(); openRooms(); }));
+    out.push(acts);
+    const foot = el("div", "foot");
+    foot.appendChild(plainBtn(S.sound ? "Sound on" : "Sound off", S.sound ? "green" : "", () => { S.sound = !S.sound; try { localStorage.setItem("catio.sound", S.sound ? "on" : "off"); } catch (e) {} if (S.sound) meow(); showMenu("room", k); }));
+    if (S.mcp) foot.appendChild(plainBtn("Check now", "", () => watch(true)));
+    if (VIEW.upstairs || S.showOld) {
+      foot.appendChild(el("span", null, VIEW.upstairs ? VIEW.upstairs + " napping upstairs" : ""));
+      foot.appendChild(plainBtn(S.showOld ? "Send them back up" : "Bring them down", "", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }));
+    }
+    out.push(foot);
+    return out;
+  }
+  function pileMenu(room) {
+    const pile = VIEW.piles[room];
+    if (!pile) return null;
+    const ul = el("ul"); pile.forEach((c) => ul.appendChild(catRow(c)));
+    return [el("h3", null, pile.length + " cats curled up together"), el("p", "sub", roomInfo(room).name), ul];
+  }
+  function catMenu(id) {
+    const c = VIEW.cats.find((x) => x.id === id);
+    if (!c) return null;
+    const m = MOODS[c.mood], out = [];
+    const h = el("h3"); h.append(emblem(c.emblem), document.createTextNode(c.name)); out.push(h);
+    const mood = el("span", "mood " + m.kind); mood.append(el("span", "ui face-ico"), document.createTextNode(m.label)); out.push(mood);
+    out.push(el("p", "sub", c.project.name + " · " + roomInfo(c.roomKey).name + " · " + ago(c.updated)));
+    if (c.branch) out.push(el("p", "sub branch-line", c.branch));
+    out.push(el("div", c.ask ? "ask-box " + m.kind : "sub", c.ask || c.doing || c.title));
+    const acts = el("div", "acts");
+    if (c.link) { const a = el("a", "btn plaque green", c.kind === "chat" ? "Open chat" : "Open session"); a.href = c.link; a.target = "_blank"; a.rel = "noopener"; acts.appendChild(a); }
+    acts.appendChild(plainBtn("Details", "", () => { hideMenu(); openCat(c.id); }));
+    out.push(acts);
+    if (c.kind === "chat") {
+      const moods = el("div", "moods");
+      for (const [v, label, mk] of [["needs", "Needs me", "meow"], ["busy", "In progress", "idle"], ["done", "Done", "sleep"]]) {
+        const b = plainBtn(label, "", () => save((db) => db.doc("cats/" + c.docId).update({ mood: v, updatedAt: Date.now() }), label === "Done" ? "Done. " + c.name + " is having a nap." : "Saved."));
+        b.setAttribute("aria-pressed", String(c.mood === mk));
+        moods.appendChild(b);
+      }
+      out.push(moods);
+    }
+    return out;
+  }
 
   function placeOverlay() {
     const ov = $("overlay"); ov.replaceChildren();
@@ -726,7 +756,8 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       if (asText) { b.append(el("b", null, p.cat.name + " · " + m.short), el("span", "t", p.cat.ask)); }
       else b.appendChild(el("span", "ui face face-ico"));
       Object.assign(b.style, { left: (asText ? clampX : sx) + "px", top: (below ? feetY : sy - 4) + "px" });
-      b.addEventListener("click", () => catClicked(p.cat, p.room));
+      b.addEventListener("click", () => { if (!armed("cat", p.cat.id)) catClicked(p.cat, p.room); });
+      hoverable(b, "cat", p.cat.id);
       ov.appendChild(b);
     }
   }
@@ -735,23 +766,36 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   function renderStatus() {
     const st = $("status"); st.replaceChildren();
     const L = S.live;
-    st.classList.toggle("warn", L.state !== "ok" && L.state !== "loading");
+    st.classList.toggle("warn", L.state !== "ok" && L.state !== "loading" && L.state !== "local");
     st.appendChild(el("span", "dot"));
     const msg = $("stageMsg");
     msg.hidden = true;
-    if (L.state === "loading") st.appendChild(el("span", null, "Waking the cats… (the first visit asks to read your Claude Code sessions)"));
+    if (L.state === "loading") st.appendChild(el("span", "words", "Waking the cats… (the first visit asks to read your Claude Code sessions)"));
     else if (L.state === "ok") {
       const n = (S.sessions || []).length;
-      st.appendChild(el("span", null, "Live · updated " + clock(S.sessionsAt) + " · your " + n + " most recent Claude Code sessions, checked every minute"));
+      st.appendChild(el("span", "words", "Live · updated " + clock(S.sessionsAt) + " · your " + n + " most recent Claude Code sessions, checked every minute"));
+    } else if (L.state === "local") {
+      st.appendChild(el("span", "words", S.from === "copy"
+        ? "On this computer: your " + S.sessions.length + " sessions as Claude saved them " + new Date(S.sessionsAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) + ". Ask Claude to refresh data/sessions.json for newer cats."
+        : "On this computer, with no saved sessions yet. Put Claude's data/sessions.json next to the page."));
     } else {
-      st.appendChild(el("span", null, L.message));
+      st.appendChild(el("span", "words", L.message));
       if (L.action) { const b = el("button", "btn plaque", L.action.label); b.type = "button"; b.addEventListener("click", L.action.run); st.appendChild(b); }
+      if (S.from === "copy") st.appendChild(el("span", "copy words", "Meanwhile these are Claude's copy of your " + S.sessions.length + " sessions, saved " + new Date(S.sessionsAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) + "."));
       if (!S.sessions || !S.sessions.length) { msg.hidden = false; msg.textContent = L.state === "stale" ? "Couldn't reach your sessions just now." : "Only adopted chats are showing."; }
     }
+    if (L.state === "local" && (!S.sessions || !S.sessions.length)) { msg.hidden = false; msg.textContent = "Only adopted chats are showing."; }
     if (L.state === "loading") { msg.hidden = false; msg.textContent = "Waking the cats…"; }
   }
 
   /* ---------- live data: Claude Code sessions ---------- */
+  // The live feed wins; when it's blocked or unavailable, show the copy Claude last saved to snapshot/sessions.
+  function pick() {
+    if (S.liveSessions) { S.sessions = S.liveSessions; S.sessionsAt = S.liveAt; S.from = "live"; }
+    else if (S.copy && Array.isArray(S.copy.sessions)) { S.sessions = S.copy.sessions; S.sessionsAt = S.copy.at; S.from = "copy"; }
+    else { S.sessions = null; S.from = null; S.prevNeeding = null; }
+  }
+
   function sessionsFrom(result) {
     let p = result && result.payload;
     if (typeof p === "string") { try { p = JSON.parse(p); } catch (e) { p = null; } }
@@ -772,8 +816,10 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
         return { message: "Claude Code Remote needs reconnecting in claude.ai Settings → Connectors.", action: reload };
       case "not_in_manifest": case "consent_required":
         return { message: "This page isn't allowed to read your Claude Code sessions yet.", action: { label: "Allow", run: allow } };
-      case "blocked_by_policy": case "approval_required":
-        return { message: "Your organisation's settings stop this page from reading sessions." };
+      case "approval_required":
+        return { message: "Claude Code Remote's list_sessions tool is set to ask every time, which a page can't do. In claude.ai, open Customize → Connectors → Claude Code Remote and set list_sessions to Allow, then try again.", action: reload };
+      case "blocked_by_policy":
+        return { message: "Your organisation doesn't let pages use Claude Code Remote's list_sessions tool. In claude.ai, open Customize → Connectors → Claude Code Remote and set list_sessions to Allow; if you can't, an admin has capped it.", action: reload };
       case "not_granted": case "capability_disabled": case "capability_removed":
         return { message: "Live sessions can't load in this view. Open the page in claude.ai to see them." };
       case "tool_error":
@@ -795,13 +841,15 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       if (ev.type === "data") {
         const list = sessionsFrom(ev.result);
         if (!list) { S.live = { state: "error", message: "Claude Code Remote answered in a shape this page doesn't recognise." }; renderStatus(); return; }
-        S.sessions = list;
-        S.sessionsAt = (ev.result.cache && ev.result.cache.storedAt) || Date.now();
+        S.liveSessions = list;
+        S.liveAt = (ev.result.cache && ev.result.cache.storedAt) || Date.now();
         S.live = { state: "ok" };
+        pick();
         render();
       } else {
         const err = ev.error || {};
-        if (RETRACT.has(err.code)) { S.sessions = null; S.prevNeeding = null; }
+        if (RETRACT.has(err.code)) S.liveSessions = null;
+        pick();
         const p = problem(err);
         S.live = { state: p.stale ? "stale" : "error", message: p.message, action: p.action };
         render();
@@ -816,6 +864,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     db.collection("rooms").onSnapshot((snap) => { const r = {}; for (const d of snap.docs) r[d.id] = d.data(); S.rooms = r; render(); }, fail);
     db.collection("sessions").onSnapshot((snap) => { const t = {}; for (const d of snap.docs) t[d.id] = d.data(); S.tweaks = t; render(); }, fail);
     db.collection("cats").onSnapshot((snap) => { S.adopted = snap.docs.map((d) => Object.assign({ id: d.id }, d.data())); render(); }, fail);
+    db.doc("snapshot/sessions").onSnapshot((d) => { S.copy = d.exists ? d.data() : null; pick(); render(); }, fail);
     db.collection("projects").onSnapshot((snap) => { const p = {}; for (const d of snap.docs) p[d.id] = d.data(); S.projects = p; render(); }, fail);
   }
   async function save(fn, ok) {
@@ -883,7 +932,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     show(dlg);
   }
 
-  function adoptForm(c) {
+  function adoptForm(c, room) {
     const d = c ? S.adopted.find((x) => x.id === c.docId) || {} : {};
     const f = el("form", "dlg"); f.style.padding = "0";
     const title = el("input"); title.id = "adTitle"; title.required = true; title.maxLength = 80; title.value = d.title || ""; title.placeholder = "Montfortoise business plan";
@@ -897,7 +946,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const known = el("datalist"); known.id = "adProjects";
     for (const n of new Set(allCats(true).cats.map((x) => x.project.name))) { const o = el("option"); o.value = n; known.appendChild(o); }
     f.append(field("What's the chat about?", title), field("Link to the chat", link), field("Project (cats of one project look alike)", project), known);
-    const r = el("div", "row"); r.append(field("Lives in", roomSelect("adRoom", d.room || (c ? c.roomKey : "dining"))), field("Mood", mood)); f.appendChild(r);
+    const r = el("div", "row"); r.append(field("Lives in", roomSelect("adRoom", d.room || (c ? c.roomKey : room || "dining"))), field("Mood", mood)); f.appendChild(r);
     f.append(field("Note", note), field("Cat's name", name));
     f.appendChild(el("p", "note", "What you type here is saved in this page. Anyone you share the page with can read it, so keep sensitive details in the chat itself."));
     const acts = el("div", "actions");
@@ -965,6 +1014,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
           const th = el("span", "thumb"); th.appendChild(sprite(c.away ? "sleep" : c.mood, c.coat));
           const txt = el("span");
           txt.append(el("span", "who", c.name), el("div", "what", (c.archived ? "Archived" : c.away ? "Napping upstairs" : MOODS[c.mood].short) + " · " + c.title + " · " + ago(c.updated)));
+          if (c.branch) txt.appendChild(el("div", "what branch", c.branch));
           b.append(th, txt);
           li.appendChild(b); ul.appendChild(li);
         }
@@ -987,12 +1037,12 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     show(dlg);
   }
 
-  function openAdopt() {
+  function openAdopt(room) {
     const dlg = $("adoptDlg"); dlg.replaceChildren();
     const box = el("div", "dlg");
     const h = el("h2", null, "Adopt a cat"); h.id = "adoptTitle";
     box.append(h, el("p", "note", "Your Claude Code sessions move in by themselves. Chats on claude.ai can't be read by this page, so each one you adopt becomes a cat you look after by hand: a business plan, a legal question, anything else."));
-    box.appendChild(adoptForm(null));
+    box.appendChild(adoptForm(null, room));
     dlg.appendChild(box);
     show(dlg);
     $("adTitle").focus();
@@ -1070,32 +1120,83 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       o.connect(f).connect(g).connect(audio.destination); o.start(t); o.stop(t + 0.6);
     } catch (e) {}
   }
-  function renderSound() { $("soundBtn").setAttribute("aria-pressed", String(S.sound)); $("soundLbl").textContent = S.sound ? "Sound on" : "Sound off"; $("soundIco").className = "ui ico " + (S.sound ? "i-pause" : "i-play"); }
 
   let toastT;
   function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 3200); }
 
   /* ---------- start ---------- */
   drawProps();
-  renderSound();
   layout(true);
   render();
-  new ResizeObserver(() => layout(true)).observe($("stage"));
-  $("zoomOut").addEventListener("click", zoomOut);
-  $("adoptBtn").addEventListener("click", openAdopt);
-  $("roomsBtn").addEventListener("click", openRooms);
-  $("refreshBtn").addEventListener("click", () => { if (S.mcp) watch(true); else toast("Live sessions aren't available in this view."); });
-  $("soundBtn").addEventListener("click", () => { S.sound = !S.sound; try { localStorage.setItem("catio.sound", S.sound ? "on" : "off"); } catch (e) {} renderSound(); if (S.sound) meow(); });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.focus && !document.querySelector("dialog[open]")) zoomOut(); });
+  new ResizeObserver(() => { hideMenu(); layout(true); }).observe($("stage"));
+  $("menu").addEventListener("pointerenter", () => clearTimeout(MENU.hideT));
+  $("menu").addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") hideSoon(); });
+  // tapping or clicking the open meadow closes the menu, then zooms back out
+  $("stage").addEventListener("click", (e) => {
+    if (e.target.closest("#menu, .cat, .roomhit, .cabinet, .bub, .tag")) return;
+    if (MENU.kind) hideMenu(); else zoomOut();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || document.querySelector("dialog[open]")) return;
+    if (MENU.kind) hideMenu(); else zoomOut();
+  });
   setInterval(render, 60000); // keep "3 min ago" honest
 
-  const use = window.claude && window.claude.use ? (n) => window.claude.use(n).catch(() => null) : () => Promise.resolve(null);
+  // In claude.ai the artifact runtime serves db and mcp. Opened from a folder on localhost there is
+  // no runtime: keep rooms, looks and adopted cats in this browser, and read the cats from
+  // data/sessions.json, the copy of your sessions Claude saves.
+  const local = !(window.claude && window.claude.use);
+  const use = local ? localRuntime() : (n) => window.claude.use(n).catch(() => null);
   use("permissions").then((p) => { S.perms = p; });
   use("db").then((db) => { S.db = db; if (db) subscribe(); });
   use("mcp").then((mcp) => {
     S.mcp = mcp;
     if (mcp) watch(false);
-    else { S.live = { state: "error", message: "Live sessions can't load in this view. Open the page in claude.ai to see them." }; render(); }
+    else if (local) { S.live = { state: "local", message: "Running on this computer." }; pick(); render(); }
+    else { S.live = { state: "error", message: "Live sessions can't load in this view. Open the page in claude.ai to see them." }; pick(); render(); }
   });
+
+  function localRuntime() {
+    const KEY = "catio.local.db";
+    let store = {};
+    try { store = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
+    const listeners = new Set();
+    const segs = (p) => p.split("/");
+    const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} };
+    const docSnap = (p) => ({ id: segs(p).pop(), exists: p in store, data: () => store[p] && JSON.parse(JSON.stringify(store[p])) });
+    const collSnap = (c) => {
+      const docs = Object.keys(store).filter((p) => p.startsWith(c + "/") && segs(p).length === segs(c).length + 1).sort().map(docSnap);
+      return { docs, size: docs.length, empty: !docs.length };
+    };
+    const tell = () => { for (const l of listeners) setTimeout(l, 0); };
+    const doc = (p) => ({
+      path: p, id: segs(p).pop(),
+      get: async () => docSnap(p),
+      set: async (d) => { store[p] = JSON.parse(JSON.stringify(d)); persist(); tell(); },
+      update: async (d) => { if (!(p in store)) throw { code: "invalid_argument", message: "no such document" }; Object.assign(store[p], JSON.parse(JSON.stringify(d))); persist(); tell(); },
+      delete: async () => { delete store[p]; persist(); tell(); },
+      onSnapshot: (cb) => { const l = () => cb(docSnap(p)); listeners.add(l); setTimeout(l, 0); return () => listeners.delete(l); },
+    });
+    const collection = (c) => ({
+      path: c,
+      doc: (id) => doc(c + "/" + (id || Date.now().toString(36) + Math.random().toString(36).slice(2, 8))),
+      onSnapshot: (cb) => { const l = () => cb(collSnap(c)); listeners.add(l); setTimeout(l, 0); return () => listeners.delete(l); },
+    });
+    // another tab saved something: pick it up
+    addEventListener("storage", (e) => { if (e.key === KEY) { try { store = JSON.parse(e.newValue || "{}"); } catch (err) {} tell(); } });
+    const db = { doc, collection };
+    // first run: the rooms, then Claude's copy of the sessions, from the data folder
+    const ready = (async () => {
+      const get = async (f) => { try { const r = await fetch(f, { cache: "no-store" }); return r.ok ? r.json() : null; } catch (e) { return null; } };
+      if (!Object.keys(store).some((p) => p.startsWith("rooms/"))) {
+        const rooms = await get("data/rooms.json");
+        if (rooms) for (const [k, v] of Object.entries(rooms)) store["rooms/" + k] = v;
+      }
+      const copy = await get("data/sessions.json");
+      if (copy) store["snapshot/sessions"] = copy;
+      persist(); tell();
+    })();
+    return async (n) => { await ready; return n === "db" ? db : null; };
+  }
 })();
 </script>
