@@ -20,13 +20,15 @@
   "kitchen": { "name": "Kitchen",     "blurb": "Weekly meals and the Méré basket",   "repos": ["Intermarche-grocery-shopping-app", "intermarche-grocery-data"] },
   "dining":  { "name": "Dining room", "blurb": "Business plans, round the table",    "repos": [] },
   "living":  { "name": "Living room", "blurb": "New cats come in here",              "repos": [], "catchAll": true },
-  "sunroom": { "name": "Sunroom",     "blurb": "Spare, and full of light",           "repos": [] },
-  "study":   { "name": "Study",       "blurb": "The Montfortoise shop",              "repos": ["montfortoise-shopify"] },
+  "sunroom": { "name": "Sunroom",     "blurb": "TikTok saves, in the light",         "repos": ["tiktok-saves"] },
+  "study":   { "name": "Craft room",  "blurb": "The Montfortoise shop",              "repos": ["montfortoise-shopify"] },
   "bedroom": { "name": "Bedroom",     "blurb": "Legal questions, kept quiet",        "repos": [] },
   "bath":    { "name": "Bathroom",    "blurb": "Spare",                              "repos": [] },
-  "hall":    { "name": "Hall",        "blurb": "Spare",                              "repos": [] }
+  "hall":    { "name": "Hall",        "blurb": "Snail mail, by the front door",      "repos": ["Snail-Mail-Trail"] }
 };
   if (params.get("mode") !== "empty") for (const [k, v] of Object.entries(SEED)) T.store["rooms/" + k] = v;
+  // Claude's saved copy of the sessions, as written after a publish, for when the live read is blocked
+  T.seedCopy = () => { T.store["snapshot/sessions"] = { at: Date.now() - 3600e3, sessions: clone(T.sessions) }; };
   const snapOf = (coll) => {
     const docs = Object.keys(T.store).filter((p) => p.startsWith(coll + "/") && segs(p).length === segs(coll).length + 1).sort()
       .map((p) => Object.freeze({ id: segs(p).pop(), exists: true, data: () => Object.freeze(clone(T.store[p])), metadata: { fromCache: false, hasPendingWrites: false } }));
@@ -43,6 +45,12 @@
       set: async (d) => { refuse(); T.store[path] = clone(d); T.writes.push(["set", path, clone(d)]); notify(path); },
       update: async (d) => { refuse(); if (!(path in T.store)) throw { code: "invalid_argument", message: "no such document" }; Object.assign(T.store[path], clone(d)); T.writes.push(["update", path, clone(d)]); notify(path); },
       delete: async () => { refuse(); delete T.store[path]; T.writes.push(["delete", path]); notify(path); },
+      onSnapshot: (cb) => {
+        const coll = segs(path).slice(0, -1).join("/");
+        const deliver = () => cb({ id: segs(path).pop(), exists: path in T.store, data: () => T.store[path] && clone(T.store[path]), metadata: { fromCache: false, hasPendingWrites: false } });
+        const l = { coll, cb: deliver };
+        listeners.add(l); setTimeout(deliver, 5); return () => listeners.delete(l);
+      },
     };
   };
   const collRef = (coll) => {
@@ -63,6 +71,7 @@
     session("work1", "Week tab editing", "Intermarche-grocery-shopping-app", "WORKING", "RUNNING", 60e3, {}),
     session("old1", "Old parser", "Intermarche-grocery-shopping-app", "COMPLETED", "IDLE", 20 * 24 * H, { status_category: "completed" }),
   ];
+  if (params.get("mode") === "blocked") T.seedCopy();
   T.push = () => { if (T.handler) T.handler({ type: "data", result: { payload: { data: clone(T.sessions), has_more: false } } }); };
   T.fail = (code) => { if (T.handler) T.handler({ type: "error", error: { code, message: code } }); };
   T.setBucket = (id, bucket, status, pts) => {
@@ -73,7 +82,8 @@
   const mcp = Object.freeze({
     watchTool(server, tool, input, handler, opts) {
       T.calls++; T.watchArgs = { server, tool, input, opts }; T.handler = handler;
-      setTimeout(() => (params.get("mode") === "noconn" ? T.fail("server_not_connected") : T.push()), 30);
+      const mode = params.get("mode");
+      setTimeout(() => (mode === "noconn" ? T.fail("server_not_connected") : mode === "blocked" ? T.fail("blocked_by_policy") : T.push()), 30);
       return () => { if (T.handler === handler) T.handler = null; };
     },
     invalidate: async () => {},

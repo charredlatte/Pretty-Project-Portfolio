@@ -17,4 +17,14 @@ P=$(dirname "$T")
 : "${PLAYWRIGHT:=/opt/node22/lib/node_modules/playwright}"
 : "${CHROMIUM:=/opt/pw-browsers/chromium-1194/chrome-linux/chrome}"
 [ -x "$CHROMIUM" ] || unset CHROMIUM
-PLAYWRIGHT="$PLAYWRIGHT" CHROMIUM="$CHROMIUM" node "$T/e2e.mjs"
+# local mode: serve a copy of the bundle on localhost with no runtime at all, and invented sessions
+python3 "$P/tools/bundle.py" >/dev/null
+L=$(mktemp -d)
+cp -R "$P/dist/catio-local/." "$L/"
+cp "$T/sessions.json" "$L/data/sessions.json"
+PORT=${PORT:-8791}
+python3 -m http.server "$PORT" --bind 127.0.0.1 --directory "$L" >/dev/null 2>&1 &
+SERVER=$!
+trap 'kill $SERVER 2>/dev/null; rm -rf "$L"' EXIT
+sleep 1
+LOCAL_URL="http://127.0.0.1:$PORT/index.html" PLAYWRIGHT="$PLAYWRIGHT" CHROMIUM="$CHROMIUM" node "$T/e2e.mjs"

@@ -10,15 +10,19 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
 
 ## What's on the page
 
-- **The cabin**, seen from above in a meadow. Each room is a space for one kind of work. Tap a
-  room to zoom in; tap a cat for what it's doing, a link to open the session, and to rename it
-  or move it to another room.
-- **The hotbar** under the cabin: Rooms, Sound, **Adopt a cat** in the middle, Check now, and
-  Whole house.
-- **Meowing for you**: every cat waiting on her, most urgent first, then the cats at work.
-- **Filing cabinets** in the kitchen, dining room, living room, study and bedroom, and a chest
-  on the catio deck. Each holds the projects filed in that room with all their cats, including
-  the ones archived or napping upstairs.
+- **The cabin fills the screen**, seen from above in a meadow. Each room is a space for one kind
+  of work. There are no toolbars: everything opens from the picture.
+- **Hover over a room** for its menu: what it's for, how many cats need you, the ones meowing,
+  and Look in (zoom to that room), Files, **Adopt a cat here**, and Edit rooms. Its foot has
+  Sound, Check now, and the cats napping upstairs.
+- **Hover over a cat** for its menu: what it needs, its project, room and branch, and a link to
+  open the session or chat. Click it for the full card, to rename it or move it to another room.
+  On a phone, the first tap opens the menu and the second opens the card.
+- **The sign** in the top corner counts the cats that need you, are at work and are asleep. It
+  only speaks up when something is wrong, and then it says how to fix it.
+- **Filing cabinets** in the kitchen, dining room, living room, craft room and bedroom, and a
+  chest on the catio deck. Each holds the projects filed in that room with all their cats,
+  including the ones archived or napping upstairs.
 
 Cats wear their project: every cat of one project has the same coat and carries the same
 emblem (a tin of cat food for the grocery app, a coin for the shop, books for legal matters, a
@@ -30,11 +34,11 @@ The cabin is a real floor plan, laid out the way small cabins usually are:
 |---|---|
 | Kitchen and dining room | one open-plan run. The grocery app lives in the kitchen, business plans at the table |
 | Living room | floor-to-ceiling glass either side of a stone fireplace. New cats arrive here |
-| Sunroom | glass on three sides, with a cat flap into the catio |
+| Sunroom | glass on three sides, with a cat flap into the catio. TikTok saves |
 | Catio | fenced decking against the sunroom, with a shade tree, flower shelves to climb, a table and bench, and a rose-arch gate. This portfolio lives here |
-| Study | the Montfortoise shop |
+| Craft room | the Montfortoise shop: a craft table with yarn and tins, shelves of supplies, a sewing desk and glass on two walls |
 | Bedroom and ensuite | legal questions, and a spare |
-| Hall | the front door, between two stone lanterns, and the stepping stones out to the catio |
+| Hall | the front door, between two stone lanterns, and the stepping stones out to the catio. Snail mail |
 
 Outside, a stone archway with its wooden doors open marks the way in, and the south-east meadow
 has a small garden square: a fountain with a praying statue, a bench and a signpost to the catio.
@@ -46,6 +50,10 @@ has a small garden square: a fountain with a praying statue, a bench and a signp
   session's state decides its mood; its GitHub repository decides its room.
 - **Rooms, renames, moves and adopted chats** live in the artifact's own database, so they
   follow her between phone and PC. Nothing she does on the page is written back to this repo.
+- **When the live read is blocked**, the page shows the copy of her sessions Claude last saved,
+  and the sign names the setting to change: in claude.ai, **Customize → Connectors → Claude Code
+  Remote**, set `list_sessions` to **Allow**. If it can't be changed, an organisation admin has
+  capped it.
 
 | Mood | Session state | Cat |
 |---|---|---|
@@ -57,6 +65,22 @@ has a small garden square: a fountain with a praying statue, a bench and a signp
 
 Sleeping sessions older than a week and archived sessions nap upstairs, out of sight. Turn on
 Sound and a cat that starts meowing makes a small meow.
+
+## On her own computer
+
+The page also runs from a folder, off a USB stick, in VS Code, with no claude.ai at all.
+`python3 catio/tools/bundle.py` makes `catio/dist/catio-local/` (and a zip of it): the page as a
+complete HTML file, all the art, the rooms from `catio/data/rooms.json`, and
+`catio/data/sessions.json`, the copy of her sessions Claude saved. Serve the folder with VS
+Code's Live Server, `python -m http.server 8000` or `php -S localhost:8000`, and open
+<http://localhost:8000>. It's plain HTML: there is no PHP, and no server code of its own.
+
+On localhost the cats come from that saved copy, not live, and adopted chats, room names and
+project looks are kept in that browser. For newer cats, ask Claude to refresh
+`data/sessions.json` (`catio/tools/save-sessions.py`) and copy it into the folder.
+
+The folder holds the licensed art and her session list, so it is for her own use: it is never
+committed and never shared.
 
 ## Made from five asset packs
 
@@ -81,6 +105,9 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `catio/tools/cabin.py`: the floor plan, meaning rooms, doorways, glass and furniture.
 - `catio/tools/build-art.py`: draws the cabin from the plan and cuts the UI pieces, from the
   five zips (`pip install pillow`, then see the script's docstring).
+- `catio/tools/bundle.py`: the folder that runs on localhost.
+- `catio/tools/save-sessions.py`: trims a `list_sessions` result to the saved copy.
+- `catio/data/rooms.json`: the rooms, for the localhost copy. `sessions.json` is never committed.
 - `catio/art/`: the committed art. `licensed/` is rebuilt, not committed.
 - `catio/test/`: the end-to-end test (`sh catio/test/run.sh`).
 - `CLAUDE.md`: how to change and republish the page.
