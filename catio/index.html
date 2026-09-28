@@ -126,6 +126,11 @@ h1 { font: 700 clamp(2rem, 6vw, 2.8rem)/1 var(--display); margin: 0; letter-spac
 .bub.icon.fail .face { background-position: -74px -142px; }
 .bub.icon.gift .face { background-position: -10px -142px; }
 .bub.icon.need .face { background-position: -74px -78px; }
+.bub.icon.small, .bub.icon.small .face { width: 21px; height: 18px; }
+.bub.icon.small .face { background-size: 256px 128px; background-position: -5px -39px; }
+.bub.icon.small.fail .face { background-position: -37px -71px; }
+.bub.icon.small.gift .face { background-position: -5px -71px; }
+.bub.icon.small.need .face { background-position: -37px -39px; }
 .stage-msg { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: .85rem; padding: 2px 8px; max-width: calc(100% - 24px); text-align: center;
   border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; image-rendering: pixelated; }
 
@@ -593,7 +598,9 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     if (S.focus) { const [x, y, w, h] = GEOM[S.focus].r; const p = 6; r = [x - p, y - p, w + 2 * p, h + 2 * p]; }
     const rw = r[2] * 2, rh = r[3] * 2;
     const s = Math.min(W / rw, H / rh);
-    const tx = (W - rw * s) / 2 - r[0] * 2 * s, ty = (H - rh * s) / 2 - r[1] * 2 * s;
+    // centre on the room, but never show past the edge of the meadow
+    const fit = (t, view, world) => world <= view ? (view - world) / 2 : Math.min(0, Math.max(view - world, t));
+    const tx = fit((W - rw * s) / 2 - r[0] * 2 * s, W, 800 * s), ty = fit((H - rh * s) / 2 - r[1] * 2 * s, H, 704 * s);
     S.cam = { s, tx, ty, W, H };
     stage.classList.toggle("instant", !!instant);
     $("world").style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
@@ -631,6 +638,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       }
     }
     const text = !!S.focus;
+    const small = cam.s < 0.8;   // on a phone's whole-house view the face icons drop to one art pixel per pixel
     const taken = [];
     for (const p of VIEW.placed) {
       const m = MOODS[p.cat.mood];
@@ -648,9 +656,9 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       if (text && up[1] >= 0 && free(up)) mode = "up";
       else if (text && down[3] <= cam.H + 10 && free(down)) mode = "down";
       if (mode !== "icon") taken.push(mode === "up" ? up : down);
-      else { const r = [sx - 21, sy - 40, sx + 21, sy]; if (!free(r)) continue; taken.push(r); }
+      else { const h = small ? 20 : 40; const r = [sx - h / 2, sy - h, sx + h / 2, sy]; if (!free(r)) continue; taken.push(r); }
       const below = mode === "down", asText = mode !== "icon";
-      const b = el("button", "bub " + m.kind + (asText ? "" : " icon") + (below ? " below" : ""));
+      const b = el("button", "bub " + m.kind + (asText ? "" : " icon") + (below ? " below" : "") + (!asText && small ? " small" : ""));
       b.type = "button";
       b.setAttribute("aria-label", p.cat.name + ": " + m.short + ". " + p.cat.ask);
       if (asText) { b.append(el("b", null, p.cat.name + " · " + m.short), el("span", "t", p.cat.ask)); }
