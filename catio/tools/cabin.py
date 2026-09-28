@@ -41,7 +41,7 @@ SPRITES = {
     "fridge": (384, 808, 16, 40), "ctr_plain": (384, 628, 16, 27), "ctr_drawers": (416, 628, 16, 27),
     "ctr_door": (448, 628, 16, 27), "ctr_hob": (480, 754, 16, 29),
     "bed": (176, 416, 32, 47), "nightstand": (176, 520, 16, 22), "dresser": (16, 501, 32, 27),
-    "desk": (304, 507, 32, 32), "bookcase": (657, 406, 46, 52),
+    "desk": (304, 507, 32, 32),
     "toilet": (17, 572, 14, 36), "shower": (691, 578, 12, 25), "basin": (353, 578, 14, 14), "towel": (834, 738, 12, 14),
     "mirror": (962, 593, 12, 30), "mirror_small": (946, 593, 12, 21), "plant_bath": (834, 584, 14, 24),
     "lamp_floor": (897, 50, 13, 30), "rug_blue": (1008, 49, 48, 30), "rug_red": (1008, 81, 48, 30),
@@ -50,7 +50,7 @@ SPRITES = {
     "plant_pampas": (17, 868, 15, 43), "sunflower": (33, 871, 14, 40), "plants": (48, 881, 32, 30),
     "plant_snake": (82, 880, 11, 31), "pot": (98, 894, 13, 17),
     "frame1": (948, 386, 8, 13), "frame2": (964, 386, 9, 13), "frame3": (947, 402, 9, 13), "star": (896, 241, 32, 15),
-    "win_grid_cream": (946, 290, 28, 18), "win_panes_cream": (946, 354, 28, 18), "shelf_wall": (833, 229, 14, 27),
+    "win_grid_cream": (946, 290, 28, 18), "win_panes_cream": (946, 354, 28, 18),
 }
 
 # furniture: (sprite, x, y); rugs first, the rest drawn back to front by their bottom edge
@@ -228,7 +228,7 @@ def house(tm, objects, example):
             px[fx + i, y] = (65, 9, 9) if y in (fy0, fy1 - 1) else (88, 26, 17)
     # furniture
     rugs = {"rug_blue", "rug_red", "runner_yellow", "runner_green", "mat", "mat_small", "rug_round"}
-    wall = {"win_grid_cream", "mirror", "mirror_small", "frame1", "frame2", "frame3", "star", "shelf_wall"}
+    wall = {"win_grid_cream", "mirror", "mirror_small", "frame1", "frame2", "frame3", "star"}
     order = sorted(FURNITURE, key=lambda f: (0 if f[0] in rugs else 1 if f[0] in wall else 2, f[2] + SPRITES[f[0]][3]))
     for name, x, y in order:
         sx, sy, w, h = SPRITES[name]
