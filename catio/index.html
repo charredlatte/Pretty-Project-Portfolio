@@ -590,7 +590,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     b.dataset.queen = k;
     const top = spot[1] * 2 - sp.ay;
     Object.assign(b.style, { left: spot[0] * 2 - sp.ax + "px", top: top + "px", width: sp.w + "px", height: sp.h + "px", zIndex: 1000 + spot[1] * 2 });
-    b.setAttribute("aria-label", q.name + ", queen of " + roomInfo(k).name + ". " + q.line);
+    b.setAttribute("aria-label", q.name + ", queen of the " + roomInfo(k).name + ". " + q.line);
     b.appendChild(sprite(q.mood, q.coat));
     const cr = el("span", "crown");
     cr.style.left = sp.ax - 4 + "px"; cr.style.top = sp.ay - 30 + "px";
@@ -746,7 +746,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     out.push(keeps);
     if (q.pinned.length) out.push(el("div", "ask-box need", q.pinned[0].text));
     const acts = el("div", "acts");
-    acts.appendChild(plainBtn("Ask " + q.name, "green", () => { hideMenu(); openQueen(k); }));
+    acts.appendChild(plainBtn("Ask " + q.name, "", () => { hideMenu(); openQueen(k); }));
     acts.appendChild(S.focus === k ? plainBtn("Whole house", "", zoomOut) : plainBtn("Look in", "green", () => focusRoom(k)));
     if (GEOM[k].cabinet) acts.appendChild(plainBtn("Files", "", () => { hideMenu(); openCabinet(k); }));
     acts.appendChild(plainBtn("Adopt a cat here", "green", () => { hideMenu(); openAdopt(k); }));
@@ -773,17 +773,19 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const q = (VIEW.queens[k] && VIEW.queens[k].queen) || queenOf(k);
     const out = [];
     const h = el("h3"); h.append(el("span", "crown inline"), document.createTextNode(q.name)); out.push(h);
-    out.push(el("p", "sub", "Queen of " + roomInfo(k).name + " \u2014 she keeps this room"));
+    out.push(el("p", "sub", "Queen of the " + roomInfo(k).name + " \u2014 she keeps this room"));
     out.push(el("div", q.pinned.length ? "ask-box need" : "sub", q.line || queenLine(q, here)));
-    if (q.notes.length) {
-      out.push(el("p", "sub", "What she keeps"));
+    // the headline is already her top pinned note, so the list picks up from the next one
+    const rest = q.pinned.length ? q.notes.slice(1) : q.notes;
+    if (rest.length) {
+      out.push(el("p", "sub", q.pinned.length ? "She is also keeping" : "What she keeps"));
       const ul = el("ul", "keeps");
-      q.notes.slice(0, 5).forEach((n) => {
+      rest.slice(0, 5).forEach((n) => {
         const li = el("li", n.pinned ? "kept pin" : "kept");
         li.append(el("span", "dot"), el("span", null, n.text));
         ul.appendChild(li);
       });
-      if (q.notes.length > 5) ul.appendChild(el("li", "sub", "and " + (q.notes.length - 5) + " more"));
+      if (rest.length > 5) ul.appendChild(el("li", "sub", "and " + (rest.length - 5) + " more"));
       out.push(ul);
     }
     const needing = here.filter((c) => MOODS[c.mood].needs);
@@ -892,7 +894,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       const q = p.queen;
       bubble(p, "need queenb", q.name + " · Keeping", q.pinned[0].text,
         () => { if (!armed("queen", k)) { hideMenu(); openQueen(k); } }, "queen", k,
-        q.name + ", queen of " + roomInfo(k).name + ", is keeping: " + q.pinned[0].text);
+        q.name + ", queen of the " + roomInfo(k).name + ", is keeping: " + q.pinned[0].text);
     }
   }
 
@@ -1080,7 +1082,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     por.append(sprite(queenMood(q, here), q.coat), el("span", "crown corner"));
     const hd = el("div");
     const h = el("h2", null, q.name); h.id = "queenName";
-    hd.append(h, el("span", "mood work", "Queen of " + roomInfo(k).name));
+    hd.append(h, el("span", "mood work", "Queen of the " + roomInfo(k).name));
     head.append(por, hd);
     box.append(head, el("div", null, queenLine(q, here)));
 
