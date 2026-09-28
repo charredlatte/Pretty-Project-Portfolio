@@ -1,0 +1,6 @@
+# Art whose licence forbids redistributing the files (ToffeeCraft cats, Top Down Garden Castle).
+# It ships only inside the private artifact; rebuild it with catio/tools/build-art.py.
+catio/art/licensed/
+
+__pycache__/
+catio/test/.page.html

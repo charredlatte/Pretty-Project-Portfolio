@@ -1,0 +1,1101 @@
+<title>The Catio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:ital,wght@0,500;0,700;0,800;1,500&display=swap">
+<style>
+/* Layout: one centred column of wooden-framed panels standing in the meadow. Every frame, plaque,
+   slot, rail and icon is cut from Charlotte's asset packs (art/ui from Cosy Cabin, art/licensed for
+   the rest) and drawn at whole-pixel scale. The panels are lit cream paper in both themes;
+   dark mode turns the meadow and the cabin to night around them. */
+:root {
+  --ink: #50140D;          /* the cabin palette's dark walnut */
+  --ink-soft: #823820;
+  --paper: #EACBB3;        /* the wallpaper colour inside every frame */
+  --on-grass: #FFF4E6;
+  --leaf: #2D531F;
+  --night: rgba(8, 20, 34, 0);
+  --scene: none;
+  --display: "Fredoka", "Nunito", ui-rounded, system-ui, sans-serif;       /* rounded and bubbly, every letter distinct */
+  --body: "Nunito", ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --u: 2px;                /* one art pixel on screen */
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --night: rgba(8, 20, 34, .62); --scene: brightness(.7) saturate(.85) hue-rotate(-12deg); }
+}
+:root[data-theme="dark"] { --night: rgba(8, 20, 34, .62); --scene: brightness(.7) saturate(.85) hue-rotate(-12deg); }
+
+* { box-sizing: border-box; }
+body {
+  color: var(--ink); font: 500 0.95rem/1.5 var(--body);
+  background: linear-gradient(var(--night), var(--night)), url(art/licensed/meadow.png) 0 0 / 336px 96px #8FBF4F;
+  image-rendering: pixelated;
+}
+.wrap { max-width: 980px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 28px; display: grid; gap: 14px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--ink); }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.px { image-rendering: pixelated; background-repeat: no-repeat; }
+/* cells of ToffeeCraft's cat UI sheet: --x/--y is the cell in art pixels, --k the scale */
+.ui { --k: 1; image-rendering: pixelated; background: url(art/licensed/cat-ui.png) no-repeat;
+  background-size: calc(256px * var(--k)) calc(128px * var(--k)); background-position: calc(var(--x) * -1px * var(--k)) calc(var(--y) * -1px * var(--k)); }
+
+/* the one frame: the wooden trim from the cabin sheet, 9-sliced, paper inside */
+.panel { border: calc(16 * var(--u)) solid transparent; border-image: url(art/ui/frame-fill.png) 16 fill / calc(16 * var(--u)) round; }
+@media (max-width: 560px) { :root { --u: 1px; } }
+
+/* header: a strip of wall, wallpaper above a wainscot rail */
+.top { display: grid; justify-items: center; gap: 6px; text-align: center; padding-bottom: calc(12 * var(--u) + 10px); position: relative; isolation: isolate; }
+.top::before { content: ""; position: absolute; inset: 0; z-index: -1; background: url(art/ui/paper-circles.png) 0 0 / calc(16 * var(--u)) calc(16 * var(--u)); }
+.top::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: calc(12 * var(--u)); background: url(art/ui/rail.png) 0 0 / calc(16 * var(--u)) calc(12 * var(--u)) repeat-x; }
+h1 { font: 600 clamp(2.1rem, 6.5vw, 3rem)/1 var(--display); margin: 0; letter-spacing: .01em; }
+.tally { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.tally li { display: inline-flex; align-items: center; gap: 4px; font-size: .82rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; padding: 0 6px 0 2px; }
+.tally li.zero { opacity: .6; }
+.face-ico { display: inline-block; width: calc(21px * var(--k)); height: calc(18px * var(--k)); flex: none; --x: 5; --y: 39; }
+.need > .face-ico, .need .face { --x: 37; --y: 39; }
+.fail > .face-ico, .fail .face { --x: 37; --y: 71; }
+.gift > .face-ico, .gift .face { --x: 5; --y: 71; }
+.status { font-size: .82rem; color: var(--ink-soft); display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; align-items: center; }
+.status.warn { color: var(--ink); font-weight: 700; }
+.status .dot { width: 8px; height: 8px; background: #4F8A3A; display: inline-block; }
+.status.warn .dot { background: #C2412A; }
+
+/* wooden plaques: buttons, chips */
+.plaque { border: 0 solid transparent; border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(7 * var(--u));
+  border-image: url(art/ui/plaque-wood.png) 4 4 7 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(7 * var(--u)) repeat;
+  color: #FFF4E6; text-shadow: 0 1px 0 #5A2410, 1px 0 0 #5A2410, -1px 0 0 #5A2410, 0 -1px 0 #5A2410; cursor: pointer; background: none; }
+.plaque:active { translate: 0 var(--u); }
+.plaque.green { border-image-source: url(art/ui/plaque-green.png); color: #1F3A14; text-shadow: 0 1px 0 #CFE3A6; }
+.plaque.pink { border-image-source: url(art/ui/plaque-pink.png); color: #5A1C12; text-shadow: 0 1px 0 #FBE2D8; }
+
+.rooms { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; padding: 2px; }
+@media (max-width: 640px) { .rooms { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; scrollbar-width: thin; } }
+.chip { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 0 6px; font: 500 .95rem/1.6 var(--display); }
+.chip[aria-current="true"] { border-image-source: url(art/ui/plaque-green.png); color: #1F3A14; text-shadow: 0 1px 0 #CFE3A6; }
+.chip .n { font: 700 .72rem/1.3 var(--body); background: #50140D; color: #FFF4E6; text-shadow: none; padding: 0 5px; }
+
+/* the stage, inside the trim */
+.frame { border: calc(16 * var(--u)) solid transparent; border-image: url(art/ui/frame.png) 16 / calc(16 * var(--u)) round; }
+.stage { position: relative; overflow: hidden; width: 100%; touch-action: manipulation; background: #8FBF4F; }
+.world { position: absolute; left: 0; top: 0; width: 1280px; height: 896px; transform-origin: 0 0; transition: transform .55s cubic-bezier(.3,.7,.2,1);
+  background: url(art/licensed/meadow.png) 0 0 / 224px 64px repeat; image-rendering: pixelated; filter: var(--scene); }
+.stage.instant .world { transition: none; }
+.house { position: absolute; inset: 0; width: 1280px; height: 896px; max-width: none; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
+.prop { position: absolute; pointer-events: none; }
+.roomhit { position: absolute; background: transparent; border: 0; padding: 0; cursor: zoom-in; }
+.roomhit:hover { background: rgba(255, 245, 200, .12); }
+.roomhit.here { cursor: default; background: transparent; }
+.cat { position: absolute; background: transparent; border: 0; padding: 0; cursor: pointer; }
+.spr { display: inline-block; vertical-align: bottom; filter: var(--tint, none); image-rendering: pixelated; background-repeat: no-repeat; }
+.cat .spr { display: block; }
+.cat:focus-visible { outline: 2px solid #FFF4E6; outline-offset: 1px; }
+.emb { position: absolute; width: 20px; height: 24px; pointer-events: none; image-rendering: pixelated;
+  background: url(art/licensed/emblems.png) calc(var(--e) * -20px) 0 / 120px 24px no-repeat; }
+.emb.corner { left: auto; top: auto; right: 0; bottom: 0; }
+.emb.big { transform: scale(2); transform-origin: 100% 100%; right: 6px; bottom: 4px; }
+.cabinet { position: absolute; background: transparent; border: 0; padding: 0; cursor: pointer; }
+.cabinet:hover, .cabinet:focus-visible { outline: 2px solid #FFF4E6; outline-offset: 1px; }
+.tag.files { pointer-events: auto; cursor: pointer; transform: translate(-50%, -100%); }
+.pile-n { position: absolute; right: -4px; top: 6px; background: #FFF4E6; color: #50140D; font: 700 11px/1 var(--body); padding: 2px 4px; box-shadow: 0 0 0 1px #50140D; }
+
+/* sprite sheets: one step() animation per mood */
+.s-idle  { width: 32px; height: 32px; background-image: url(art/licensed/mochi-idle.png); animation: a-idle 1.25s steps(10) infinite; }
+.s-box   { width: 32px; height: 32px; background-image: url(art/licensed/mochi-box.png); animation: a-box .8s steps(4) infinite; }
+.s-cry   { width: 64px; height: 64px; background-image: url(art/licensed/pochi.png); background-position: 0 0; animation: a-cry .7s steps(4) infinite; }
+.s-meow  { width: 64px; height: 64px; background-image: url(art/licensed/pochi.png); background-position: 0 -64px; animation: a-meow .5s steps(2) infinite; }
+.s-sleep { width: 64px; height: 64px; background-image: url(art/licensed/pochi.png); background-position: 0 -128px; animation: a-sleep 2.4s steps(4) infinite; }
+@keyframes a-idle  { from { background-position: 0 0; } to { background-position: -320px 0; } }
+@keyframes a-box   { from { background-position: 0 0; } to { background-position: -128px 0; } }
+@keyframes a-cry   { from { background-position: 0 0; } to { background-position: -256px 0; } }
+@keyframes a-meow  { from { background-position: 0 -64px; } to { background-position: -128px -64px; } }
+@keyframes a-sleep { from { background-position: 0 -128px; } to { background-position: -256px -128px; } }
+.cat.m-meow { animation: hop 1s steps(2) infinite; }
+@keyframes hop { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
+
+/* overlay: bubbles and room names, drawn at screen size */
+.overlay { position: absolute; inset: 0; pointer-events: none; transition: opacity .15s; }
+.overlay.moving { opacity: 0; }
+.tag { position: absolute; font: 500 12px/1 var(--display); padding: 0 3px; white-space: nowrap; display: flex; gap: 5px; align-items: center;
+  border: 3px solid transparent; border-width: 3px 3px 5px; border-image: url(art/ui/plaque-dark.png) 4 4 7 4 fill / 3px 3px 5px; color: #FFF4E6; image-rendering: pixelated; }
+.tag .n { font: 700 11px/1 var(--body); background: #FFF4E6; color: #50140D; padding: 1px 4px; }
+.bub { position: absolute; pointer-events: auto; transform: translate(-50%, -100%); cursor: pointer; color: #50140D; padding: 0 3px; font: 400 12.5px/1.3 var(--body);
+  max-width: 194px; width: max-content; text-align: left; border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; image-rendering: pixelated; }
+.bub::after { content: ""; position: absolute; left: 50%; bottom: -12px; margin-left: -6px; border: 6px solid transparent; border-top-color: #B06B43; border-bottom: 0; }
+.bub.below { transform: translate(-50%, 0); }
+.bub.below::after { bottom: auto; top: -12px; border: 6px solid transparent; border-bottom-color: #B06B43; border-top: 0; }
+.bub b { display: flex; align-items: center; gap: 4px; font: 600 11px/1.2 var(--display); letter-spacing: .02em; text-transform: uppercase; margin: 2px 0; }
+.bub .t { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.bub.icon { padding: 0; border: 0; border-image: none; width: auto; }
+.bub.icon::after { display: none; }
+.bub.icon .face { display: block; --k: 2; }
+.bub.icon.small .face { --k: 1; }
+.stage-msg { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: .85rem; padding: 2px 8px; max-width: calc(100% - 24px); text-align: center;
+  border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; image-rendering: pixelated; }
+
+/* hotbar: cat-UI buttons in slots, the adoption in the middle */
+.hotbar { justify-self: center; display: flex; align-items: stretch; gap: 6px; max-width: 100%;
+  border: calc(16 * var(--u)) solid transparent; border-image: url(art/ui/frame-fill.png) 16 fill / calc(16 * var(--u)) round; }
+.slot { width: 76px; border: 5px solid transparent; border-image: url(art/ui/slot.png) 5 fill / 5px; background: none; cursor: pointer; display: grid; place-items: center; align-content: center; gap: 2px; padding: 4px 0; font: 500 .8rem/1.1 var(--display); color: #FFF4E6; text-shadow: 0 1px 0 #2C1A12; text-align: center; image-rendering: pixelated; }
+.slot:hover .ico { translate: 0 -2px; }
+.slot:disabled { opacity: .5; cursor: default; }
+.slot:disabled .ico { translate: none; }
+.ico { --k: 3; width: calc(16px * var(--k)); height: calc(16px * var(--k)); }
+.i-play { --x: 128; --y: 0; }
+.i-pause { --x: 176; --y: 0; }
+.i-check { --x: 160; --y: 16; }
+.i-minus { --x: 160; --y: 32; }
+.i-door { width: calc(10.67px * var(--k)); margin-inline: calc(2.67px * var(--k)); background: url(art/ui/door.png) 0 calc(-2px * var(--k)) / calc(10.67px * var(--k)) calc(20px * var(--k)); image-rendering: pixelated; }
+.slot.adopt { width: auto; min-width: 180px; grid-auto-flow: column; gap: 10px; padding: 2px 12px; font: 600 1.15rem/1.1 var(--display);
+  border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(7 * var(--u)); border-image: url(art/ui/plaque-green.png) 4 4 7 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(7 * var(--u)); color: #1F3A14; text-shadow: 0 1px 0 #CFE3A6; }
+.slot.adopt small { display: block; font: 400 .72rem var(--body); margin-top: 2px; }
+.paw { --k: 3; --x: 65; --y: 33; width: calc(15px * var(--k)); height: calc(14px * var(--k)); }
+@media (max-width: 480px) {
+  .hotbar { gap: 3px; }
+  .slot { width: 52px; font-size: .68rem; }
+  .ico, .paw { --k: 2; }
+  .slot.adopt { min-width: 0; padding: 2px 6px; gap: 2px; font-size: .9rem; grid-auto-flow: row; }
+  .slot.adopt small { display: none; }
+}
+
+/* needs panel */
+.needs { display: grid; gap: 12px; min-width: 0; }
+.needs header { display: grid; gap: 2px; justify-items: center; text-align: center; }
+.needs h2 { font: 600 1.5rem/1.1 var(--display); margin: 0; }
+.needs .sub { margin: 0; font-size: .85rem; color: var(--ink-soft); }
+.needs ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+.item { position: relative; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; align-items: start; width: 100%; height: 100%; text-align: left; cursor: pointer;
+  border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; background: none; padding: 4px 30px 4px 2px; image-rendering: pixelated; }
+.item:hover { border-image-source: url(art/ui/ring.png); background: #F3DDC8; background-clip: padding-box; }
+.item > .face-ico { position: absolute; right: 2px; top: 2px; }
+.item .thumb { width: 48px; height: 48px; position: relative; overflow: hidden; background: url(art/licensed/meadow.png) 0 0 / 112px 32px; }
+.thumb .spr, .portrait .spr { position: absolute; left: 50%; bottom: 0; transform-origin: 50% 100%; }
+.item .thumb .spr { transform: translateX(-50%) scale(.72); }
+.item .thumb .spr.s-idle, .item .thumb .spr.s-box { transform: translateX(-50%) scale(1.4); }
+.item .who { font: 600 .95rem/1.2 var(--display); }
+.item .who span { font: 400 .78rem var(--body); color: var(--ink-soft); }
+.item .what { font-size: .8rem; color: var(--ink-soft); overflow-wrap: anywhere; }
+.item .ask { margin-top: 3px; overflow-wrap: anywhere; }
+.empty { font-size: .9rem; color: var(--ink-soft); margin: 0; text-align: center; grid-column: 1 / -1; }
+.bar { height: 14px; border: 0 solid transparent; border-width: 0 12px; border-image: url(art/ui/bar.png) 0 6 fill / 0 12px stretch; image-rendering: pixelated; }
+.busy { font-size: .85rem; color: var(--ink-soft); display: grid; gap: 4px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+.busy b { color: var(--leaf); grid-column: 1 / -1; font-family: var(--display); font-size: 1rem; }
+.busy strong { color: var(--ink); }
+
+footer { font-size: .8rem; color: var(--on-grass); text-shadow: 0 1px 0 #2C4A18, 1px 0 0 #2C4A18, -1px 0 0 #2C4A18, 0 -1px 0 #2C4A18; display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center; text-align: center; }
+footer button { background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font-size: inherit; text-shadow: inherit; }
+
+/* dialogs: paper in the trim */
+dialog { padding: 0; width: min(480px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); color: var(--ink); background: none; overflow: auto;
+  border: calc(16 * var(--u)) solid transparent; border-image: url(art/ui/frame-fill.png) 16 fill / calc(16 * var(--u)) round; image-rendering: pixelated; }
+dialog::backdrop { background: rgba(18, 36, 20, .55); }
+.dlg { padding: 4px; display: grid; gap: 12px; }
+.dlg h2 { font: 600 1.5rem/1.1 var(--display); margin: 0; text-wrap: balance; }
+.dlg .head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: end; }
+.portrait { width: 112px; height: 96px; position: relative; overflow: hidden; background: url(art/licensed/meadow.png) 0 0 / 224px 64px; border: 5px solid transparent; border-image: url(art/ui/slot.png) 5 / 5px; }
+.portrait .spr { bottom: 2px; transform: translateX(-50%) scale(1.4); }
+.portrait .spr.s-idle, .portrait .spr.s-box { transform: translateX(-50%) scale(2.4); }
+.mood { display: inline-flex; align-items: center; gap: 4px; font-size: .82rem; font-weight: 700; padding: 0 6px 0 2px; border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; }
+.ask-box { display: flex; gap: 8px; align-items: flex-start; padding: 2px 6px; overflow-wrap: anywhere; border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; font-weight: 700; }
+dl.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: .9rem; }
+dl.facts dt { color: var(--ink-soft); }
+dl.facts dd { margin: 0; overflow-wrap: anywhere; }
+.field { display: grid; gap: 4px; font-size: .85rem; }
+.field > span { font-weight: 700; }
+.field input, .field select, .field textarea { border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; background: none; padding: 3px 5px; width: 100%; min-width: 0; image-rendering: pixelated; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--ink); outline-offset: 1px; }
+.field input[type="radio"] { border: 0; border-image: none; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+.row > .field { flex: 1 1 160px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; }
+.actions .spacer { flex: 1; }
+.btn { font: 700 .9rem/1.5 var(--body); padding: 0 8px; text-decoration: none; display: inline-block; }
+.note { font-size: .8rem; color: var(--ink-soft); margin: 0; }
+.roomrow { display: grid; gap: 6px; }
+.roomrow h3 { margin: 0; font: 500 1rem var(--display); }
+.pilelist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.proj { display: grid; gap: 8px; padding: 4px; border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; image-rendering: pixelated; }
+.proj-head { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; align-items: center; }
+.proj-head h3 { margin: 0; font: 600 1.05rem/1.2 var(--display); overflow-wrap: anywhere; }
+.proj-pic { width: 56px; height: 48px; position: relative; overflow: hidden; background: url(art/licensed/meadow.png) 0 0 / 112px 32px; }
+.proj-pic .spr { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%) scale(1.3); transform-origin: 50% 100%; }
+.item.file { padding-right: 6px; text-decoration: none; color: inherit; }
+
+.toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); font-size: .9rem; padding: 2px 8px; max-width: calc(100vw - 32px);
+  border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; image-rendering: pixelated; }
+
+@media (prefers-reduced-motion: reduce) {
+  .spr, .cat.m-meow { animation: none !important; }
+  .world { transition: none; }
+}
+</style>
+
+<div class="wrap">
+  <header class="top panel">
+    <h1>The Catio</h1>
+    <ul class="tally" id="tally" aria-label="Cats by mood"></ul>
+    <div class="status" id="status" role="status"><span class="dot"></span><span>Waking the cats…</span></div>
+  </header>
+  <nav class="rooms" id="chips" aria-label="Rooms"></nav>
+  <div class="frame">
+    <section class="stage" id="stage" aria-label="The cabin and its catio">
+      <div class="world" id="world">
+        <img class="house" src="art/house.png" alt="" width="1280" height="896">
+        <img class="house" src="art/licensed/decor.png" alt="" width="1280" height="896">
+        <div id="props"></div>
+        <div id="hits"></div>
+        <div id="cats"></div>
+      </div>
+      <div class="overlay" id="overlay"></div>
+      <div class="stage-msg" id="stageMsg" hidden></div>
+    </section>
+  </div>
+  <div class="hotbar" role="toolbar" aria-label="Catio tools">
+    <button class="slot" id="roomsBtn" type="button"><span class="ico i-door" aria-hidden="true"></span>Rooms</button>
+    <button class="slot" id="soundBtn" type="button" aria-pressed="false"><span class="ui ico i-play" id="soundIco" aria-hidden="true"></span><span id="soundLbl">Sound off</span></button>
+    <button class="slot adopt" id="adoptBtn" type="button"><span class="ui paw" aria-hidden="true"></span><span>Adopt a cat<small>for a chat on claude.ai</small></span></button>
+    <button class="slot" id="refreshBtn" type="button"><span class="ui ico i-check" aria-hidden="true"></span>Check now</button>
+    <button class="slot" id="zoomOut" type="button" disabled><span class="ui ico i-minus" aria-hidden="true"></span>Whole house</button>
+  </div>
+  <section class="needs panel" aria-labelledby="needsTitle">
+    <header>
+      <h2 id="needsTitle">Meowing for you</h2>
+      <p class="sub" id="needsSub"></p>
+    </header>
+    <ol id="needs"></ol>
+    <div class="bar" aria-hidden="true"></div>
+    <div class="busy" id="busy" hidden></div>
+  </section>
+  <footer>
+    <span id="upstairs"></span>
+    <span>Cabin by Marie Pepo · Cats by ToffeeCraft · Garden by Heosphorus and rowdy41 · Stonework by Cainos</span>
+  </footer>
+</div>
+
+<dialog id="catDlg" aria-labelledby="catName"></dialog>
+<dialog id="adoptDlg" aria-labelledby="adoptTitle"></dialog>
+<dialog id="roomsDlg" aria-labelledby="roomsTitle"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(() => {
+  "use strict";
+  const SERVER = "Claude Code Remote";
+  const PAGE = 50;          // sessions per fetch
+  const STALE_DAYS = 7;     // sleeping cats older than this go upstairs
+
+  // Room geometry is fixed by the art, drawn to the plan in tools/cabin.py: native cabin pixels
+  // (the scene draws them at 2x). r = [x, y, w, h]; spots = where cats sit, as the point under their feet;
+  // cabinet = the filing cabinet's box, where that room's projects are kept.
+  const GEOM = {
+    garden:  { name: "Catio",       r: [448, 48, 160, 188], spots: [[474, 126], [514, 208], [568, 96], [586, 202], [500, 110]], cabinet: [457, 90, 22, 21] },
+    kitchen: { name: "Kitchen",     r: [32, 80, 85, 149],   spots: [[48, 212], [104, 146], [104, 212], [46, 146]], cabinet: [106, 105, 16, 27] },
+    dining:  { name: "Dining room", r: [112, 80, 101, 149], spots: [[124, 214], [200, 146], [200, 212], [124, 130]], cabinet: [186, 105, 16, 27] },
+    living:  { name: "Living room", r: [208, 48, 165, 181], spots: [[290, 162], [234, 212], [350, 206], [226, 118], [350, 150], [300, 216], [268, 118]], cabinet: [348, 72, 16, 27] },
+    sunroom: { name: "Sunroom",     r: [368, 80, 85, 149],  spots: [[426, 164], [392, 214], [398, 132]] },
+    study:   { name: "Study",       r: [272, 224, 117, 133], spots: [[302, 340], [360, 326], [320, 306], [376, 344]], cabinet: [368, 257, 16, 27] },
+    bedroom: { name: "Bedroom",     r: [96, 224, 117, 133], spots: [[122, 334], [198, 330], [140, 304], [200, 300]], cabinet: [103, 257, 16, 27] },
+    bath:    { name: "Bathroom",    r: [32, 224, 69, 117],  spots: [[62, 324], [90, 288]] },
+    hall:    { name: "Hall",        r: [208, 224, 69, 149], spots: [[246, 300], [252, 346]] },
+  };
+  const ORDER = ["garden", "kitchen", "dining", "living", "sunroom", "study", "bedroom", "bath", "hall"];
+  const WORLD = [640, 448];   // native size of the meadow
+  const WHOLE = [0, 0, ...WORLD];
+
+  // Props from the Pochi sheet: [sx, sy, w, h] on the sheet, drawn with feet at native [x, y].
+  const PROPS = [
+    { s: [6, 256, 85, 175], at: [578, 222] },   // cat tree, catio
+    { s: [9, 207, 43, 37], at: [60, 218] },     // food bowl, kitchen
+    { s: [139, 208, 43, 37], at: [506, 122] },  // water bowl, catio deck
+    { s: [216, 267, 33, 62], at: [104, 196] },  // food bag, by the fridge end of the island
+    { s: [168, 407, 22, 20], at: [296, 176] },  // red yarn, living-room rug
+    { s: [103, 405, 22, 20], at: [322, 344] },  // blue yarn, study
+    { s: [137, 410, 17, 15], at: [410, 206] },  // small yarn, sunroom
+  ];
+
+  // Sprite per mood: frame size and the point under the feet within the frame.
+  const SPR = {
+    idle:  { cls: "s-idle",  w: 32, h: 32, ax: 12, ay: 32 },
+    box:   { cls: "s-box",   w: 32, h: 32, ax: 16, ay: 32 },
+    cry:   { cls: "s-cry",   w: 64, h: 64, ax: 32, ay: 64 },
+    meow:  { cls: "s-meow",  w: 64, h: 64, ax: 25, ay: 64 },
+    sleep: { cls: "s-sleep", w: 64, h: 64, ax: 32, ay: 64 },
+  };
+  const MOODS = {
+    cry:   { rank: 0, label: "Upset: the last run failed", short: "Upset", kind: "fail", needs: true },
+    meow:  { rank: 1, label: "Meowing for you", short: "Needs you", kind: "need", needs: true },
+    box:   { rank: 2, label: "Brought you something to review", short: "To review", kind: "gift", needs: true },
+    idle:  { rank: 3, label: "Busy working", short: "Working", kind: "work", needs: false },
+    sleep: { rank: 4, label: "Asleep: nothing to do", short: "Asleep", kind: "sleep", needs: false },
+  };
+  const NAMES = ["Praline", "Noisette", "Biscotte", "Caramel", "Figue", "Brioche", "Madeleine", "Pistache", "Tartine", "Chouquette",
+    "Galette", "Canelé", "Miso", "Yuzu", "Sésame", "Cannelle", "Muscade", "Olive", "Prune", "Myrtille", "Cerise", "Guimauve",
+    "Nougat", "Réglisse", "Clafoutis", "Crumble", "Macaron", "Mirabelle", "Pomme", "Gaufre", "Tofu", "Matcha"];
+  // A project's look: every cat of one project wears the same coat and carries the same emblem.
+  const COATS = [
+    { name: "Cream", f: "none" }, { name: "Ginger", f: "hue-rotate(-18deg) saturate(1.3)" }, { name: "Silver", f: "grayscale(1) brightness(1.05)" },
+    { name: "Honey", f: "sepia(.5) saturate(1.4)" }, { name: "Blue-grey", f: "hue-rotate(180deg) saturate(.45) brightness(1.02)" },
+    { name: "Shadow", f: "brightness(.62) saturate(.5)" }, { name: "Marmalade", f: "hue-rotate(20deg) saturate(1.7)" }, { name: "Smoke", f: "grayscale(.6) brightness(.8)" },
+  ];
+  // cells of art/licensed/emblems.png, in order; the first whose words match a project's name is its default
+  const EMBLEMS = [
+    { name: "Tin of cat food", words: /grocer|intermarch|meal|food|course|recipe|kitchen|cook/i },
+    { name: "Coin", words: /shop|store|montfort|business|sales|price|money|plan|invoice|budget/i },
+    { name: "Books", words: /law|legal|lease|contract|tenan|tax|admin|insurance|visa|research/i },
+    { name: "Star", words: /portfolio|design|art|catio|pretty|brand/i },
+    { name: "Potted plant", words: /garden|home|house|plant|health/i },
+    { name: "Yarn", words: null },
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const hash = (s) => { let h = 2166136261; for (const c of String(s)) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+
+  const S = {
+    sessions: null, sessionsAt: null, live: { state: "loading" },
+    rooms: {}, tweaks: {}, adopted: [], projects: {},
+    focus: null, cam: null, sound: false, showOld: false, prevNeeding: null,
+    db: null, mcp: null, perms: null, unwatch: null,
+  };
+  try { S.sound = localStorage.getItem("catio.sound") === "on"; S.showOld = localStorage.getItem("catio.showOld") === "on"; } catch (e) {}
+
+  /* ---------- turning sessions into cats ---------- */
+  const lower = (v) => String(v || "").toLowerCase();
+  function repoOf(s) {
+    const srcs = (s.session_context && s.session_context.sources) || [];
+    for (const src of srcs) {
+      const url = src && src.git_repository && src.git_repository.url;
+      if (url) { const m = String(url).match(/github\.com\/([^/]+)\/([^/#?]+)/i); return m ? m[1] + "/" + m[2].replace(/\.git$/, "") : url; }
+    }
+    return "";
+  }
+  function branchOf(s) {
+    const outs = (s.session_context && s.session_context.outcomes) || [];
+    for (const o of outs) { const b = o && o.git_repository && o.git_repository.git_info && o.git_repository.git_info.branches; if (b && b[0]) return b[0]; }
+    return "";
+  }
+  const ORIGINS = { android: "your phone", ios: "your phone", web_claude_ai: "the web", desktop_app: "the desktop app", cli: "a terminal" };
+
+  function catFromSession(s) {
+    const bucket = lower(s.status_bucket).replace("session_status_bucket_", "");
+    const status = lower(s.session_status).replace("session_status_", "");
+    const meta = s.external_metadata || {};
+    const pts = s.post_turn_summary || meta.post_turn_summary || {};
+    let mood = "sleep";
+    if (bucket === "failed") mood = "cry";
+    else if (bucket === "blocked") mood = "meow";
+    else if (bucket === "working" || status === "running") mood = "idle";
+    else if (pts.status_category === "need_input") mood = "meow";
+    else if (bucket === "review_ready") mood = "box";
+    const ask = pts.needs_action || pts.status_detail || (mood === "cry" ? "The last turn stopped with an error." : mood === "box" ? "Ready for you to look over." : "Waiting for your answer.");
+    return {
+      id: s.id, kind: "session", mood, archived: status === "archived",
+      title: s.title || "Untitled session",
+      ask: MOODS[mood].needs ? ask : "",
+      doing: s.task_summary || meta.task_summary || pts.recent_action || pts.status_detail || "",
+      repo: repoOf(s), branch: branchOf(s),
+      origin: ORIGINS[s.origin] || s.origin || "",
+      updated: Date.parse(s.updated_at || s.created_at) || 0,
+      link: "https://claude.ai/code/" + encodeURIComponent(s.id),
+    };
+  }
+  function catFromAdopted(d) {
+    const mood = d.mood === "needs" ? "meow" : d.mood === "busy" ? "idle" : "sleep";
+    return {
+      id: "adopted:" + d.id, docId: d.id, kind: "chat", mood,
+      title: d.title || "A chat", ask: mood === "meow" ? (d.note || "You marked this as needing you.") : "",
+      doing: d.note || "", repo: "", branch: "", origin: "a chat on claude.ai",
+      updated: d.updatedAt || d.adoptedAt || 0, link: d.link || "", room: d.room || "", nameOverride: d.name || "", projectName: d.project || "",
+    };
+  }
+
+  const slug = (v) => lower(v).replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "none";
+  function projectOf(c) {
+    const name = c.kind === "chat" ? (c.projectName || c.title) : c.repo ? c.repo.split("/").pop() : "No repository";
+    return { key: slug(name), name, repo: c.kind === "session" ? c.repo : "" };
+  }
+  function lookOf(p) {
+    const d = S.projects[p.key] || {};
+    let emblem = EMBLEMS[d.emblem] ? d.emblem : EMBLEMS.findIndex((e) => e.words && e.words.test(p.name + " " + p.repo));
+    if (emblem < 0) emblem = EMBLEMS.length - 1;
+    return { emblem, coat: COATS[d.coat] ? d.coat : hash(p.key) % COATS.length };
+  }
+
+  function roomInfo(key) {
+    const d = S.rooms[key] || {};
+    return { key, name: d.name || GEOM[key].name, blurb: d.blurb || "", repos: Array.isArray(d.repos) ? d.repos : [], catchAll: !!d.catchAll };
+  }
+  function catchAllRoom() { return ORDER.find((k) => S.rooms[k] && S.rooms[k].catchAll) || "living"; }
+  function roomFor(cat) {
+    const t = S.tweaks[cat.id];
+    if (t && GEOM[t.room]) return t.room;
+    if (cat.room && GEOM[cat.room]) return cat.room;
+    const repo = lower(cat.repo), name = repo.split("/").pop();
+    if (repo) for (const k of ORDER) {
+      if (roomInfo(k).repos.some((r) => { r = lower(r).trim(); return r && (r === repo || r === name); })) return k;
+    }
+    return catchAllRoom();
+  }
+
+  // everything = also the archived and long-asleep sessions, which nap upstairs instead of in the rooms
+  function allCats(everything) {
+    const cats = [];
+    let upstairs = 0;
+    const cutoff = Date.now() - STALE_DAYS * 864e5;
+    for (const s of S.sessions || []) {
+      const c = catFromSession(s);
+      c.away = c.archived || (c.mood === "sleep" && c.updated < cutoff && !S.showOld);
+      if (c.away && !everything) { upstairs++; continue; }
+      cats.push(c);
+    }
+    for (const d of S.adopted) cats.push(catFromAdopted(d));
+    for (const c of cats) {
+      const t = S.tweaks[c.id];
+      c.name = (t && t.name) || c.nameOverride || NAMES[hash(c.id) % NAMES.length];
+      c.project = projectOf(c);
+      const look = lookOf(c.project);
+      c.coat = COATS[look.coat].f;
+      c.emblem = look.emblem;
+      c.roomKey = roomFor(c);
+    }
+    cats.sort((a, b) => MOODS[a.mood].rank - MOODS[b.mood].rank || b.updated - a.updated);
+    return { cats, upstairs };
+  }
+
+  /* ---------- drawing ---------- */
+  function sprite(mood, coat) {
+    const s = el("span", "spr px " + SPR[mood].cls);
+    if (coat && coat !== "none") s.style.setProperty("--tint", coat);
+    return s;
+  }
+  function emblem(i, cls) {
+    const e = el("span", "emb " + (cls || ""));
+    e.style.setProperty("--e", i);
+    e.title = EMBLEMS[i].name;
+    return e;
+  }
+  function ago(t) {
+    if (!t) return "";
+    const m = Math.round((Date.now() - t) / 60000);
+    if (m < 1) return "just now";
+    if (m < 60) return m + " min ago";
+    const h = Math.round(m / 60);
+    if (h < 24) return h + " h ago";
+    const d = Math.round(h / 24);
+    return d === 1 ? "yesterday" : d + " days ago";
+  }
+  const clock = (t) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  let VIEW = { cats: [], placed: [] };
+
+  function drawProps() {
+    const box = $("props");
+    for (const p of PROPS) {
+      const d = el("div", "prop px");
+      const [sx, sy, w, h] = p.s;
+      Object.assign(d.style, { width: w + "px", height: h + "px", left: (p.at[0] * 2 - w / 2) + "px", top: (p.at[1] * 2 - h) + "px",
+        backgroundImage: "url(art/licensed/pochi.png)", backgroundPosition: `-${sx}px -${sy}px`, zIndex: p.at[1] * 2 });
+      box.appendChild(d);
+    }
+    const hits = $("hits");
+    for (const k of ORDER) {
+      const [x, y, w, h] = GEOM[k].r;
+      const b = el("button", "roomhit");
+      b.type = "button";
+      b.dataset.room = k;
+      Object.assign(b.style, { left: x * 2 + "px", top: y * 2 + "px", width: w * 2 + "px", height: h * 2 + "px" });
+      b.addEventListener("click", () => focusRoom(k));
+      hits.appendChild(b);
+    }
+    for (const k of ORDER) {
+      const box = GEOM[k].cabinet;
+      if (!box) continue;
+      const b = el("button", "cabinet");
+      b.type = "button";
+      b.setAttribute("aria-label", "Filing cabinet in the " + GEOM[k].name);
+      Object.assign(b.style, { left: box[0] * 2 + "px", top: box[1] * 2 + "px", width: box[2] * 2 + "px", height: box[3] * 2 + "px" });
+      b.addEventListener("click", (e) => { e.stopPropagation(); if (!S.focus && S.cam && S.cam.s < 0.9) focusRoom(k); else openCabinet(k); });
+      hits.appendChild(b);
+    }
+  }
+
+  function render() {
+    const { cats, upstairs } = allCats();
+    VIEW.cats = cats;
+
+    // tally
+    const count = (m) => cats.filter((c) => c.mood === m).length;
+    const tally = $("tally"); tally.replaceChildren();
+    const t = [["need", count("meow"), "meowing"], ["fail", count("cry"), "upset"], ["gift", count("box"), "to review"], ["work", count("idle"), "at work"], ["sleep", count("sleep"), "asleep"]];
+    for (const [cls, n, label] of t) if (n || cls === "need") { const li = el("li", cls + (n ? "" : " zero")); if (cls === "need" || cls === "fail" || cls === "gift") li.appendChild(el("span", "ui face-ico")); li.appendChild(document.createTextNode(n + " " + label)); tally.appendChild(li); }
+    const needing = cats.filter((c) => MOODS[c.mood].needs);
+    document.title = (needing.length ? "(" + needing.length + ") " : "") + "The Catio";
+
+    // new meows make a sound
+    const ids = new Set(cats.filter((c) => c.mood === "meow" || c.mood === "cry").map((c) => c.id));
+    if (S.prevNeeding && S.sound) { for (const id of ids) if (!S.prevNeeding.has(id)) { meow(); break; } }
+    if (S.sessions) S.prevNeeding = ids;
+
+    // chips
+    const chips = $("chips"); chips.replaceChildren();
+    const mk = (key, label, n) => {
+      const b = el("button", "chip plaque"); b.type = "button";
+      b.setAttribute("aria-current", String(S.focus === key));
+      b.append(el("span", null, label));
+      if (n) b.append(el("span", "n", String(n)));
+      b.addEventListener("click", () => key ? focusRoom(key) : zoomOut());
+      chips.appendChild(b);
+    };
+    mk(null, "Whole house", needing.length);
+    for (const k of ORDER) mk(k, roomInfo(k).name, needing.filter((c) => c.roomKey === k).length);
+
+    // cats in the scene
+    const layer = $("cats"); layer.replaceChildren();
+    VIEW.placed = [];
+    for (const k of ORDER) {
+      const here = cats.filter((c) => c.roomKey === k);
+      const spots = GEOM[k].spots;
+      const direct = here.length > spots.length ? here.slice(0, spots.length - 1) : here;
+      const pile = here.length > spots.length ? here.slice(spots.length - 1) : [];
+      direct.forEach((c, i) => placeCat(layer, c, spots[i], k));
+      if (pile.length) placePile(layer, pile, spots[spots.length - 1], k);
+    }
+
+    // needs list
+    const list = $("needs"); list.replaceChildren();
+    for (const c of needing) {
+      const li = el("li");
+      const b = el("button", "item " + MOODS[c.mood].kind); b.type = "button";
+      const th = el("span", "thumb"); th.append(sprite(c.mood, c.coat), emblem(c.emblem, "corner"));
+      b.appendChild(el("span", "ui face-ico"));
+      const txt = el("span");
+      const who = el("span", "who", c.name + " "); who.appendChild(el("span", null, "· " + c.project.name + " · " + roomInfo(c.roomKey).name + " · " + ago(c.updated)));
+      txt.append(who, el("div", "what", c.title), el("div", "ask", c.ask));
+      b.append(th, txt);
+      b.addEventListener("click", () => openCat(c.id));
+      li.appendChild(b); list.appendChild(li);
+    }
+    const sub = $("needsSub");
+    if (!needing.length) {
+      list.appendChild(el("li", "empty", S.sessions ? "Nobody is meowing. Every cat is busy or asleep." : "Cats that need you will line up here."));
+      sub.textContent = "";
+    } else sub.textContent = needing.length === 1 ? "One cat is waiting on you." : needing.length + " cats are waiting on you, most urgent first.";
+    const working = cats.filter((c) => c.mood === "idle");
+    const busy = $("busy"); busy.replaceChildren();
+    busy.hidden = !working.length;
+    if (working.length) {
+      busy.appendChild(el("b", null, working.length === 1 ? "1 cat at work" : working.length + " cats at work"));
+      for (const c of working.slice(0, 6)) {
+        const d = el("div"); d.append(el("strong", null, c.name + ": "), document.createTextNode(c.doing || c.title));
+        busy.appendChild(d);
+      }
+    }
+
+    // footer
+    const up = $("upstairs"); up.replaceChildren();
+    if (upstairs || S.showOld) {
+      up.append(document.createTextNode(upstairs ? upstairs + " old or archived sessions are napping upstairs. " : ""));
+      const tb = el("button", null, S.showOld ? "Send the old sleepers back up" : "Bring the old sleepers down");
+      tb.type = "button";
+      tb.addEventListener("click", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); });
+      up.appendChild(tb);
+    }
+
+    renderStatus();
+    placeOverlay();
+  }
+
+  function placeCat(layer, c, spot, room) {
+    const sp = SPR[c.mood];
+    const b = el("button", "cat m-" + c.mood);
+    b.type = "button";
+    const left = spot[0] * 2 - sp.ax, top = spot[1] * 2 - sp.ay;
+    Object.assign(b.style, { left: left + "px", top: top + "px", width: sp.w + "px", height: sp.h + "px", zIndex: 1000 + spot[1] * 2 });
+    b.setAttribute("aria-label", c.name + " (" + c.project.name + "), " + MOODS[c.mood].label + ": " + c.title);
+    b.appendChild(sprite(c.mood, c.coat));
+    const em = emblem(c.emblem); em.style.left = sp.ax + 6 + "px"; em.style.top = sp.ay - 24 + "px"; b.appendChild(em);
+    b.addEventListener("click", (e) => { e.stopPropagation(); catClicked(c, room); });
+    layer.appendChild(b);
+    VIEW.placed.push({ cat: c, x: spot[0] * 2, y: top + (c.mood === "idle" || c.mood === "box" ? 4 : 16), feet: spot[1] * 2, room });
+  }
+  function placePile(layer, pile, spot, room) {
+    const top = pile[0];
+    const sp = SPR[top.mood];
+    const b = el("button", "cat m-" + top.mood);
+    b.type = "button";
+    Object.assign(b.style, { left: spot[0] * 2 - sp.ax + "px", top: spot[1] * 2 - sp.ay + "px", width: sp.w + "px", height: sp.h + "px", zIndex: 1000 + spot[1] * 2 });
+    b.setAttribute("aria-label", pile.length + " cats curled up together in " + roomInfo(room).name);
+    b.appendChild(sprite(top.mood, top.coat));
+    const em = emblem(top.emblem); em.style.left = sp.ax + 6 + "px"; em.style.top = sp.ay - 24 + "px"; b.appendChild(em);
+    b.appendChild(el("span", "pile-n", "+" + (pile.length - 1)));
+    b.addEventListener("click", (e) => { e.stopPropagation(); if (!S.focus && S.cam && S.cam.s < 0.9) focusRoom(room); else openPile(pile, room); });
+    layer.appendChild(b);
+    if (MOODS[top.mood].needs) VIEW.placed.push({ cat: top, x: spot[0] * 2, y: spot[1] * 2 - sp.ay + 16, feet: spot[1] * 2, room });
+  }
+
+  function catClicked(c, room) {
+    if (!S.focus && S.cam && S.cam.s < 0.9) focusRoom(room);
+    else openCat(c.id);
+  }
+
+  /* ---------- camera ---------- */
+  function layout(instant) {
+    const stage = $("stage");
+    const W = stage.clientWidth;
+    const H = Math.round(W * WORLD[1] / WORLD[0]);
+    stage.style.height = H + "px";
+    let r = WHOLE;
+    if (S.focus) { const [x, y, w, h] = GEOM[S.focus].r; const p = 6; r = [x - p, y - p, w + 2 * p, h + 2 * p]; }
+    const rw = r[2] * 2, rh = r[3] * 2;
+    const s = Math.min(W / rw, H / rh);
+    // centre on the room, but never show past the edge of the meadow
+    const fit = (t, view, world) => world <= view ? (view - world) / 2 : Math.min(0, Math.max(view - world, t));
+    const tx = fit((W - rw * s) / 2 - r[0] * 2 * s, W, WORLD[0] * 2 * s), ty = fit((H - rh * s) / 2 - r[1] * 2 * s, H, WORLD[1] * 2 * s);
+    S.cam = { s, tx, ty, W, H };
+    stage.classList.toggle("instant", !!instant);
+    $("world").style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+    $("zoomOut").disabled = !S.focus;
+    for (const b of $("hits").querySelectorAll(".roomhit")) {
+      const here = b.dataset.room === S.focus;
+      b.classList.toggle("here", here);
+      b.setAttribute("aria-label", here ? roomInfo(b.dataset.room).name : "Look in the " + roomInfo(b.dataset.room).name);
+      b.tabIndex = here ? -1 : 0;
+    }
+    if (instant) placeOverlay();
+    else {
+      const ov = $("overlay"); ov.classList.add("moving");
+      clearTimeout(layout.t);
+      layout.t = setTimeout(() => { placeOverlay(); ov.classList.remove("moving"); }, 560);
+    }
+  }
+  function focusRoom(k) { if (S.focus === k) return; S.focus = k; layout(false); render(); }
+  function zoomOut() { if (!S.focus) return; S.focus = null; layout(false); render(); }
+
+  function placeOverlay() {
+    const ov = $("overlay"); ov.replaceChildren();
+    const cam = S.cam; if (!cam) return;
+    const toScreen = (x, y) => [cam.tx + x * cam.s, cam.ty + y * cam.s];
+    // room name tags on the whole-house view, when there is room for them
+    if (!S.focus && cam.s >= 0.75) {
+      for (const k of ORDER) {
+        const [x, y] = GEOM[k].r;
+        const [sx, sy] = toScreen(x * 2 + 6, y * 2 + 6);
+        const tag = el("div", "tag", roomInfo(k).name);
+        const n = VIEW.cats.filter((c) => c.roomKey === k && MOODS[c.mood].needs).length;
+        if (n) tag.appendChild(el("span", "n", String(n)));
+        Object.assign(tag.style, { left: sx + "px", top: sy + "px" });
+        ov.appendChild(tag);
+      }
+    }
+    const text = !!S.focus;
+    const small = cam.s < 0.8;   // on a phone's whole-house view the face icons drop to one art pixel per pixel
+    const taken = [];
+    // the room's filing cabinet gets a sign when you're in the room; bubbles keep clear of it
+    const cab = S.focus && GEOM[S.focus].cabinet;
+    if (cab) {
+      const [sx, sy] = toScreen(cab[0] * 2 + cab[2], cab[1] * 2);
+      const t = el("button", "tag files", "Files");
+      t.type = "button";
+      Object.assign(t.style, { left: sx + "px", top: sy - 4 + "px" });
+      t.addEventListener("click", () => openCabinet(S.focus));
+      ov.appendChild(t);
+      taken.push([sx - 26, sy - 30, sx + 26, sy]);
+    }
+    for (const p of VIEW.placed) {
+      const m = MOODS[p.cat.mood];
+      if (!m.needs) continue;
+      if (S.focus && p.room !== S.focus) continue;
+      const [sx, sy] = toScreen(p.x, p.y);
+      if (sx < 0 || sx > cam.W || sy < 0 || sy > cam.H + 20) continue;
+      // A text bubble goes above the cat; if that is off the top or on another bubble, below it;
+      // failing both, the cat just shows the little face icon.
+      const clampX = Math.min(Math.max(sx, 100), cam.W - 100);
+      const feetY = toScreen(p.x, p.feet)[1] + 10;
+      const up = [clampX - 97, sy - 84, clampX + 97, sy], down = [clampX - 97, feetY, clampX + 97, feetY + 84];
+      const free = (r) => !taken.some((t) => r[0] < t[2] && t[0] < r[2] && r[1] < t[3] && t[1] < r[3]);
+      let mode = "icon";
+      if (text && up[1] >= 0 && free(up)) mode = "up";
+      else if (text && down[3] <= cam.H + 10 && free(down)) mode = "down";
+      if (mode !== "icon") taken.push(mode === "up" ? up : down);
+      else { const h = small ? 20 : 40; const r = [sx - h / 2, sy - h, sx + h / 2, sy]; if (!free(r)) continue; taken.push(r); }
+      const below = mode === "down", asText = mode !== "icon";
+      const b = el("button", "bub " + m.kind + (asText ? "" : " icon") + (below ? " below" : "") + (!asText && small ? " small" : ""));
+      b.type = "button";
+      b.setAttribute("aria-label", p.cat.name + ": " + m.short + ". " + p.cat.ask);
+      if (asText) { b.append(el("b", null, p.cat.name + " · " + m.short), el("span", "t", p.cat.ask)); }
+      else b.appendChild(el("span", "ui face face-ico"));
+      Object.assign(b.style, { left: (asText ? clampX : sx) + "px", top: (below ? feetY : sy - 4) + "px" });
+      b.addEventListener("click", () => catClicked(p.cat, p.room));
+      ov.appendChild(b);
+    }
+  }
+
+  /* ---------- status line ---------- */
+  function renderStatus() {
+    const st = $("status"); st.replaceChildren();
+    const L = S.live;
+    st.classList.toggle("warn", L.state !== "ok" && L.state !== "loading");
+    st.appendChild(el("span", "dot"));
+    const msg = $("stageMsg");
+    msg.hidden = true;
+    if (L.state === "loading") st.appendChild(el("span", null, "Waking the cats… (the first visit asks to read your Claude Code sessions)"));
+    else if (L.state === "ok") {
+      const n = (S.sessions || []).length;
+      st.appendChild(el("span", null, "Live · updated " + clock(S.sessionsAt) + " · your " + n + " most recent Claude Code sessions, checked every minute"));
+    } else {
+      st.appendChild(el("span", null, L.message));
+      if (L.action) { const b = el("button", "btn plaque", L.action.label); b.type = "button"; b.addEventListener("click", L.action.run); st.appendChild(b); }
+      if (!S.sessions || !S.sessions.length) { msg.hidden = false; msg.textContent = L.state === "stale" ? "Couldn't reach your sessions just now." : "Only adopted chats are showing."; }
+    }
+    if (L.state === "loading") { msg.hidden = false; msg.textContent = "Waking the cats…"; }
+  }
+
+  /* ---------- live data: Claude Code sessions ---------- */
+  function sessionsFrom(result) {
+    let p = result && result.payload;
+    if (typeof p === "string") { try { p = JSON.parse(p); } catch (e) { p = null; } }
+    if (!p) return null;
+    const d = p.data || (p.ccr && p.ccr.data) || (Array.isArray(p) ? p : null);
+    return Array.isArray(d) ? d : null;
+  }
+  const RETRACT = new Set(["needs_reauth", "server_not_connected", "selection_required", "server_not_found", "blocked_by_policy", "approval_required", "not_in_manifest", "consent_required", "not_granted", "capability_disabled", "capability_removed"]);
+  function problem(err) {
+    const code = err && err.code;
+    const reload = { label: "Try again", run: () => watch(true) };
+    switch (code) {
+      case "server_not_connected": case "server_not_found":
+        return { message: "Claude Code Remote isn't connected for you. Add it in claude.ai Settings → Connectors, then try again.", action: reload };
+      case "selection_required":
+        return { message: "You have more than one Claude Code Remote connector. Pick one when claude.ai asks, then try again.", action: reload };
+      case "needs_reauth":
+        return { message: "Claude Code Remote needs reconnecting in claude.ai Settings → Connectors.", action: reload };
+      case "not_in_manifest": case "consent_required":
+        return { message: "This page isn't allowed to read your Claude Code sessions yet.", action: { label: "Allow", run: allow } };
+      case "blocked_by_policy": case "approval_required":
+        return { message: "Your organisation's settings stop this page from reading sessions." };
+      case "not_granted": case "capability_disabled": case "capability_removed":
+        return { message: "Live sessions can't load in this view. Open the page in claude.ai to see them." };
+      case "tool_error":
+        return { message: "Claude Code Remote answered with an error: " + (err.message || "no detail") + ".", action: reload };
+      default:
+        return { message: S.sessions ? "Couldn't refresh. These are the cats from " + clock(S.sessionsAt) + "." : "Couldn't reach your sessions just now.", action: reload, stale: true };
+    }
+  }
+  async function allow() {
+    if (S.perms) { try { await S.perms.request(["mcp:" + SERVER]); } catch (e) {} }
+    watch(true);
+  }
+  function watch(fresh) {
+    if (!S.mcp) return;
+    if (S.unwatch) { S.unwatch(); S.unwatch = null; }
+    if (fresh && S.mcp.invalidate) S.mcp.invalidate(SERVER, "list_sessions").catch(() => {});
+    S.live = { state: "loading" }; renderStatus();
+    S.unwatch = S.mcp.watchTool(SERVER, "list_sessions", { limit: PAGE }, (ev) => {
+      if (ev.type === "data") {
+        const list = sessionsFrom(ev.result);
+        if (!list) { S.live = { state: "error", message: "Claude Code Remote answered in a shape this page doesn't recognise." }; renderStatus(); return; }
+        S.sessions = list;
+        S.sessionsAt = (ev.result.cache && ev.result.cache.storedAt) || Date.now();
+        S.live = { state: "ok" };
+        render();
+      } else {
+        const err = ev.error || {};
+        if (RETRACT.has(err.code)) { S.sessions = null; S.prevNeeding = null; }
+        const p = problem(err);
+        S.live = { state: p.stale ? "stale" : "error", message: p.message, action: p.action };
+        render();
+      }
+    }, { refetchInterval: 60000 });
+  }
+
+  /* ---------- shared data: rooms, renames and moves, adopted chats ---------- */
+  function subscribe() {
+    const db = S.db;
+    const fail = (e) => toast("Couldn't load saved rooms and chats (" + (e && e.code || "error") + ").");
+    db.collection("rooms").onSnapshot((snap) => { const r = {}; for (const d of snap.docs) r[d.id] = d.data(); S.rooms = r; render(); }, fail);
+    db.collection("sessions").onSnapshot((snap) => { const t = {}; for (const d of snap.docs) t[d.id] = d.data(); S.tweaks = t; render(); }, fail);
+    db.collection("cats").onSnapshot((snap) => { S.adopted = snap.docs.map((d) => Object.assign({ id: d.id }, d.data())); render(); }, fail);
+    db.collection("projects").onSnapshot((snap) => { const p = {}; for (const d of snap.docs) p[d.id] = d.data(); S.projects = p; render(); }, fail);
+  }
+  async function save(fn, ok) {
+    if (!S.db) { toast("Saving isn't available in this view."); return false; }
+    try { await fn(S.db); if (ok) toast(ok); return true; }
+    catch (e) { toast(e && e.code === "invalid_argument" ? "You can look but not change things on this page." : "Couldn't save (" + (e && e.code || "error") + "). Try again."); return false; }
+  }
+
+  /* ---------- dialogs ---------- */
+  function field(label, input) { const l = el("label", "field"); l.append(el("span", null, label), input); return l; }
+  function roomSelect(id, value) {
+    const s = el("select"); s.id = id;
+    for (const k of ORDER) { const o = el("option", null, roomInfo(k).name); o.value = k; if (k === value) o.selected = true; s.appendChild(o); }
+    return s;
+  }
+  function closeBtn(dlg, label) { const b = el("button", "btn plaque", label || "Close"); b.type = "button"; b.addEventListener("click", () => dlg.close()); return b; }
+  function show(dlg) { if (!dlg.open) dlg.showModal(); }
+
+  function openCat(id) {
+    const c = VIEW.cats.find((x) => x.id === id);
+    if (!c) return;
+    const dlg = $("catDlg"); dlg.replaceChildren();
+    const m = MOODS[c.mood];
+    const box = el("div", "dlg");
+    const head = el("div", "head");
+    const por = el("div", "portrait"); por.append(sprite(c.mood, c.coat), emblem(c.emblem, "corner big"));
+    const hd = el("div");
+    const h = el("h2", null, c.name); h.id = "catName";
+    const mood = el("span", "mood " + m.kind); mood.append(el("span", "ui face-ico"), document.createTextNode(m.label));
+    hd.append(h, mood);
+    head.append(por, hd);
+    box.appendChild(head);
+    box.appendChild(el("div", null, c.title));
+    if (c.ask) { const a = el("div", "ask-box " + m.kind); a.append(el("span", "ui face-ico"), el("span", null, c.ask)); box.appendChild(a); }
+    const dl = el("dl", "facts");
+    const row = (k, v) => { if (!v) return; dl.append(el("dt", null, k), el("dd", null, v)); };
+    if (c.mood === "idle" && c.doing) row("Doing", c.doing);
+    else if (c.kind === "chat" && c.doing && c.mood !== "meow") row("Note", c.doing);
+    row("Room", roomInfo(c.roomKey).name);
+    row("Project", c.project.name + (c.repo && c.repo !== c.project.name ? " (" + c.repo + ")" : ""));
+    row("Branch", c.branch);
+    row("Started on", c.origin);
+    row("Last active", c.updated ? ago(c.updated) + " (" + new Date(c.updated).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) + ")" : "");
+    box.appendChild(dl);
+
+    if (c.kind === "session") {
+      const r = el("div", "row");
+      const nm = el("input"); nm.id = "catRename"; nm.value = (S.tweaks[c.id] && S.tweaks[c.id].name) || ""; nm.placeholder = c.name; nm.maxLength = 30;
+      r.append(field("Name", nm), field("Lives in", roomSelect("catRoom", c.roomKey)));
+      box.appendChild(r);
+      const acts = el("div", "actions");
+      const sv = el("button", "btn plaque green", "Save"); sv.type = "button";
+      sv.addEventListener("click", async () => {
+        const room = $("catRoom").value, name = nm.value.trim();
+        const ok = await save((db) => db.doc("sessions/" + c.id).set({ name, room, updatedAt: Date.now() }), "Saved.");
+        if (ok) dlg.close();
+      });
+      const open = el("a", "btn plaque green", "Open session"); open.href = c.link; open.target = "_blank"; open.rel = "noopener";
+      acts.append(closeBtn(dlg), el("span", "spacer"), sv, open);
+      box.appendChild(acts);
+    } else {
+      box.appendChild(adoptForm(c));
+    }
+    dlg.appendChild(box);
+    show(dlg);
+  }
+
+  function adoptForm(c) {
+    const d = c ? S.adopted.find((x) => x.id === c.docId) || {} : {};
+    const f = el("form", "dlg"); f.style.padding = "0";
+    const title = el("input"); title.id = "adTitle"; title.required = true; title.maxLength = 80; title.value = d.title || ""; title.placeholder = "Montfortoise business plan";
+    const link = el("input"); link.id = "adLink"; link.type = "url"; link.value = d.link || ""; link.placeholder = "https://claude.ai/chat/…";
+    const mood = el("select"); mood.id = "adMood";
+    for (const [v, l] of [["needs", "Needs me"], ["busy", "In progress"], ["done", "Done for now"]]) { const o = el("option", null, l); o.value = v; if ((d.mood || "needs") === v) o.selected = true; mood.appendChild(o); }
+    const note = el("textarea"); note.id = "adNote"; note.rows = 2; note.maxLength = 200; note.value = d.note || ""; note.placeholder = "What it's waiting on";
+    const name = el("input"); name.id = "adName"; name.maxLength = 30; name.value = d.name || ""; name.placeholder = c ? c.name : "Picked for you";
+    const project = el("input"); project.id = "adProject"; project.maxLength = 60; project.value = d.project || ""; project.placeholder = "Same as the title";
+    project.setAttribute("list", "adProjects");
+    const known = el("datalist"); known.id = "adProjects";
+    for (const n of new Set(allCats(true).cats.map((x) => x.project.name))) { const o = el("option"); o.value = n; known.appendChild(o); }
+    f.append(field("What's the chat about?", title), field("Link to the chat", link), field("Project (cats of one project look alike)", project), known);
+    const r = el("div", "row"); r.append(field("Lives in", roomSelect("adRoom", d.room || (c ? c.roomKey : "dining"))), field("Mood", mood)); f.appendChild(r);
+    f.append(field("Note", note), field("Cat's name", name));
+    f.appendChild(el("p", "note", "What you type here is saved in this page. Anyone you share the page with can read it, so keep sensitive details in the chat itself."));
+    const acts = el("div", "actions");
+    const dlg = c ? $("catDlg") : $("adoptDlg");
+    if (c) {
+      const go = el("button", "btn plaque pink", "Let go"); go.type = "button";
+      go.addEventListener("click", async () => {
+        if (go.dataset.sure !== "1") { go.dataset.sure = "1"; go.textContent = "Yes, let this cat go"; return; }
+        if (await save((db) => db.doc("cats/" + c.docId).delete(), "Let go.")) dlg.close();
+      });
+      acts.appendChild(go);
+      if (d.link) { const o = el("a", "btn plaque", "Open chat"); o.href = d.link; o.target = "_blank"; o.rel = "noopener"; acts.appendChild(o); }
+    }
+    acts.append(el("span", "spacer"), closeBtn(dlg, "Cancel"));
+    const sub = el("button", "btn plaque green", c ? "Save" : "Adopt"); sub.type = "submit"; acts.appendChild(sub);
+    f.appendChild(acts);
+    f.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!title.value.trim()) { title.focus(); return; }
+      const body = { title: title.value.trim(), link: link.value.trim(), project: project.value.trim(), room: $("adRoom").value, mood: mood.value, note: note.value.trim(), name: name.value.trim(), updatedAt: Date.now() };
+      const ok = c
+        ? await save((db) => db.doc("cats/" + c.docId).update(body), "Saved.")
+        : await save((db) => db.collection("cats").doc().set(Object.assign({ adoptedAt: Date.now() }, body)), "Adopted.");
+      if (ok) dlg.close();
+    });
+    return f;
+  }
+
+  function openCabinet(room) {
+    const groups = new Map();
+    for (const c of allCats(true).cats.filter((x) => x.roomKey === room)) {
+      const g = groups.get(c.project.key) || { p: c.project, cats: [] };
+      g.cats.push(c);
+      groups.set(c.project.key, g);
+    }
+    for (const r of roomInfo(room).repos) {
+      const name = r.split("/").pop(), key = slug(name);
+      if (!groups.has(key)) groups.set(key, { p: { key, name, repo: r.includes("/") ? r : "" }, cats: [] });
+    }
+    const dlg = $("roomsDlg"); dlg.replaceChildren();
+    const box = el("div", "dlg");
+    const h = el("h2", null, "Filing cabinet · " + roomInfo(room).name); h.id = "roomsTitle";
+    box.append(h, el("p", "note", "Every project filed in this room, with all its cats: the ones about the house and the ones napping upstairs or archived."));
+    if (!groups.size) box.appendChild(el("p", "empty", "Nothing is filed here yet. A project lands in this room when its repository is listed under Rooms, or when you move one of its cats here."));
+    for (const { p, cats } of groups.values()) {
+      const look = lookOf(p);
+      const card = el("section", "proj");
+      const head = el("div", "proj-head");
+      const pic = el("span", "proj-pic"); pic.append(sprite("idle", COATS[look.coat].f), emblem(look.emblem, "corner"));
+      const t = el("div");
+      t.appendChild(el("h3", null, p.name));
+      const n = (m) => cats.filter((c) => !c.away && c.mood === m).length;
+      const bits = [[n("meow") + n("cry") + n("box"), "need you"], [n("idle"), "at work"], [n("sleep"), "asleep"], [cats.filter((c) => c.away).length, "upstairs or archived"]]
+        .filter(([k]) => k).map(([k, w]) => k + " " + w);
+      t.appendChild(el("p", "note", bits.join(" · ") || "No cats right now"));
+      if (p.repo && p.repo.includes("/")) { const a = el("a", null, "On GitHub"); a.href = "https://github.com/" + p.repo; a.target = "_blank"; a.rel = "noopener"; t.appendChild(a); }
+      head.append(pic, t);
+      card.appendChild(head);
+      if (cats.length) {
+        const ul = el("ul", "pilelist");
+        for (const c of cats) {
+          const li = el("li");
+          const b = c.away ? el("a", "item file") : el("button", "item file " + MOODS[c.mood].kind);
+          if (c.away) { b.href = c.link; b.target = "_blank"; b.rel = "noopener"; } else { b.type = "button"; b.addEventListener("click", () => openCat(c.id)); }
+          const th = el("span", "thumb"); th.appendChild(sprite(c.away ? "sleep" : c.mood, c.coat));
+          const txt = el("span");
+          txt.append(el("span", "who", c.name), el("div", "what", (c.archived ? "Archived" : c.away ? "Napping upstairs" : MOODS[c.mood].short) + " · " + c.title + " · " + ago(c.updated)));
+          b.append(th, txt);
+          li.appendChild(b); ul.appendChild(li);
+        }
+        card.appendChild(ul);
+      }
+      const r = el("div", "row");
+      const em = el("select"); em.id = "em-" + p.key;
+      EMBLEMS.forEach((e, i) => { const o = el("option", null, e.name); o.value = i; if (i === look.emblem) o.selected = true; em.appendChild(o); });
+      const coat = el("select"); coat.id = "coat-" + p.key;
+      COATS.forEach((e, i) => { const o = el("option", null, e.name); o.value = i; if (i === look.coat) o.selected = true; coat.appendChild(o); });
+      const sv = el("button", "btn plaque green", "Save look"); sv.type = "button";
+      sv.addEventListener("click", () => save((db) => db.doc("projects/" + p.key).set({ name: p.name, emblem: Number(em.value), coat: Number(coat.value) }), "Saved. Every " + p.name + " cat now looks like this."));
+      r.append(field("Emblem", em), field("Coat", coat), sv);
+      card.appendChild(r);
+      box.appendChild(card);
+    }
+    const acts = el("div", "actions"); acts.append(el("span", "spacer"), closeBtn(dlg));
+    box.appendChild(acts);
+    dlg.appendChild(box);
+    show(dlg);
+  }
+
+  function openAdopt() {
+    const dlg = $("adoptDlg"); dlg.replaceChildren();
+    const box = el("div", "dlg");
+    const h = el("h2", null, "Adopt a cat"); h.id = "adoptTitle";
+    box.append(h, el("p", "note", "Your Claude Code sessions move in by themselves. Chats on claude.ai can't be read by this page, so each one you adopt becomes a cat you look after by hand: a business plan, a legal question, anything else."));
+    box.appendChild(adoptForm(null));
+    dlg.appendChild(box);
+    show(dlg);
+    $("adTitle").focus();
+  }
+
+  function openPile(pile, room) {
+    const dlg = $("catDlg"); dlg.replaceChildren();
+    const box = el("div", "dlg");
+    const h = el("h2", null, pile.length + " cats curled up in the " + roomInfo(room).name); h.id = "catName";
+    const ul = el("ul", "pilelist");
+    for (const c of pile) {
+      const li = el("li");
+      const b = el("button", "item " + MOODS[c.mood].kind); b.type = "button";
+      const th = el("span", "thumb"); th.appendChild(sprite(c.mood, c.coat));
+      const txt = el("span"); txt.append(el("span", "who", c.name), el("div", "what", MOODS[c.mood].short + " · " + c.title));
+      b.append(th, txt);
+      b.addEventListener("click", () => openCat(c.id));
+      li.appendChild(b); ul.appendChild(li);
+    }
+    const acts = el("div", "actions"); acts.appendChild(closeBtn(dlg));
+    box.append(h, ul, acts);
+    dlg.appendChild(box);
+    show(dlg);
+  }
+
+  function openRooms() {
+    const dlg = $("roomsDlg"); dlg.replaceChildren();
+    const f = el("form", "dlg");
+    const h = el("h2", null, "Rooms"); h.id = "roomsTitle";
+    f.append(h, el("p", "note", "A session's cat moves into the room that lists its GitHub repository. Cats from any other repository come in through the front door to the catch-all room. You can also move one cat at a time from its own card."));
+    const catchKey = catchAllRoom();
+    for (const k of ORDER) {
+      const r = roomInfo(k);
+      const row = el("div", "roomrow");
+      row.appendChild(el("h3", null, GEOM[k].name));
+      const nm = el("input"); nm.id = "rn-" + k; nm.value = r.name; nm.maxLength = 30;
+      const bl = el("input"); bl.id = "rb-" + k; bl.value = r.blurb; bl.maxLength = 80; bl.placeholder = "What lives here";
+      const rp = el("input"); rp.id = "rr-" + k; rp.value = r.repos.join(", "); rp.placeholder = "owner/repo, another-repo";
+      const rr = el("div", "row"); rr.append(field("Name", nm), field("What lives here", bl));
+      const ca = el("label", "field"); ca.style.gridAutoFlow = "column"; ca.style.justifyContent = "start"; ca.style.alignItems = "center";
+      const radio = el("input"); radio.type = "radio"; radio.name = "catchAll"; radio.value = k; radio.id = "rc-" + k; radio.checked = k === catchKey; radio.style.width = "auto";
+      ca.append(radio, el("span", null, "New cats come in here"));
+      row.append(rr, field("Repositories", rp), ca);
+      f.appendChild(row);
+    }
+    const acts = el("div", "actions"); acts.append(el("span", "spacer"), closeBtn(dlg, "Cancel"));
+    const sv = el("button", "btn plaque green", "Save rooms"); sv.type = "submit"; acts.appendChild(sv);
+    f.appendChild(acts);
+    f.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const chosen = (f.querySelector("input[name=catchAll]:checked") || {}).value || "living";
+      const ok = await save(async (db) => {
+        for (const k of ORDER) {
+          const repos = $("rr-" + k).value.split(",").map((x) => x.trim()).filter(Boolean);
+          await db.doc("rooms/" + k).set({ name: $("rn-" + k).value.trim() || GEOM[k].name, blurb: $("rb-" + k).value.trim(), repos, catchAll: k === chosen });
+        }
+      }, "Rooms saved.");
+      if (ok) dlg.close();
+    });
+    dlg.appendChild(f);
+    show(dlg);
+  }
+
+  /* ---------- sound ---------- */
+  let audio = null;
+  function meow() {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      const t = audio.currentTime;
+      const o = audio.createOscillator(), f = audio.createBiquadFilter(), g = audio.createGain();
+      o.type = "sawtooth"; f.type = "bandpass"; f.Q.value = 4;
+      o.frequency.setValueAtTime(480, t); o.frequency.linearRampToValueAtTime(760, t + 0.14); o.frequency.linearRampToValueAtTime(520, t + 0.5);
+      f.frequency.setValueAtTime(900, t); f.frequency.linearRampToValueAtTime(1900, t + 0.16); f.frequency.linearRampToValueAtTime(1000, t + 0.5);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.3, t + 0.06); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+      o.connect(f).connect(g).connect(audio.destination); o.start(t); o.stop(t + 0.6);
+    } catch (e) {}
+  }
+  function renderSound() { $("soundBtn").setAttribute("aria-pressed", String(S.sound)); $("soundLbl").textContent = S.sound ? "Sound on" : "Sound off"; $("soundIco").className = "ui ico " + (S.sound ? "i-pause" : "i-play"); }
+
+  let toastT;
+  function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 3200); }
+
+  /* ---------- start ---------- */
+  drawProps();
+  renderSound();
+  layout(true);
+  render();
+  new ResizeObserver(() => layout(true)).observe($("stage"));
+  $("zoomOut").addEventListener("click", zoomOut);
+  $("adoptBtn").addEventListener("click", openAdopt);
+  $("roomsBtn").addEventListener("click", openRooms);
+  $("refreshBtn").addEventListener("click", () => { if (S.mcp) watch(true); else toast("Live sessions aren't available in this view."); });
+  $("soundBtn").addEventListener("click", () => { S.sound = !S.sound; try { localStorage.setItem("catio.sound", S.sound ? "on" : "off"); } catch (e) {} renderSound(); if (S.sound) meow(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.focus && !document.querySelector("dialog[open]")) zoomOut(); });
+  setInterval(render, 60000); // keep "3 min ago" honest
+
+  const use = window.claude && window.claude.use ? (n) => window.claude.use(n).catch(() => null) : () => Promise.resolve(null);
+  use("permissions").then((p) => { S.perms = p; });
+  use("db").then((db) => { S.db = db; if (db) subscribe(); });
+  use("mcp").then((mcp) => {
+    S.mcp = mcp;
+    if (mcp) watch(false);
+    else { S.live = { state: "error", message: "Live sessions can't load in this view. Open the page in claude.ai to see them." }; render(); }
+  });
+})();
+</script>
