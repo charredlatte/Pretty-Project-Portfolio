@@ -91,14 +91,16 @@ The page calls `list_sessions` (limit 50) through the `mcp` capability as the vi
 calls a write tool. Don't add `mine: true`: a page has no calling session, and that flag can
 error without one. Every connector error code has its own message in `problem()`.
 
-Her organisation's settings can stop the page reading sessions (`approval_required`: the tool is
-set to ask every time, which a page can't do; `blocked_by_policy`: an admin has capped it). The
-fix is hers: claude.ai **Customize → Connectors → Claude Code Remote**, set `list_sessions` to
-**Allow**. Until then the page shows `snapshot/sessions`. To refresh it, call `list_sessions`
-(limit 50) from a session, save the result, run
+claude.ai can refuse the page's read (`approval_required`: the tool asks before every call,
+which a page can't do; `blocked_by_policy`). Claude Code Remote is a built-in connector: it is
+**not** in her Customize → Connectors list, so there is no `list_sessions` switch for her to set
+(checked against her settings, September 2026). Don't send her looking for one. The page shows
+`snapshot/sessions`. To refresh it, call `list_sessions` (limit 50) from a session, save the
+result, run
 `python3 catio/tools/save-sessions.py <result>.json`, and write `catio/data/sessions.json`'s
 object to `snapshot/sessions` with `ArtifactData` (`set`, pinned with `if_version`). The script
-keeps only what the page reads.
+keeps only what the page reads, and accepts the result as the tool returns it
+(wrapped in `ccr`).
 
 ## Running on localhost
 

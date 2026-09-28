@@ -51,9 +51,8 @@ has a small garden square: a fountain with a praying statue, a bench and a signp
 - **Rooms, renames, moves and adopted chats** live in the artifact's own database, so they
   follow her between phone and PC. Nothing she does on the page is written back to this repo.
 - **When the live read is blocked**, the page shows the copy of her sessions Claude last saved,
-  and the sign names the setting to change: in claude.ai, **Customize → Connectors → Claude Code
-  Remote**, set `list_sessions` to **Allow**. If it can't be changed, an organisation admin has
-  capped it.
+  with the time it was saved. Claude Code Remote is built into claude.ai, so it is not in her
+  Connectors list and has no per-tool switch she can flip; the copy is refreshed by Claude.
 
 | Mood | Session state | Cat |
 |---|---|---|

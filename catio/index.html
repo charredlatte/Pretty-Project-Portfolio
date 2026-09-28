@@ -809,17 +809,15 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const reload = { label: "Try again", run: () => watch(true) };
     switch (code) {
       case "server_not_connected": case "server_not_found":
-        return { message: "Claude Code Remote isn't connected for you. Add it in claude.ai Settings → Connectors, then try again.", action: reload };
+        return { message: "Claude Code Remote isn't connected for you right now. It's built into claude.ai, so it isn't in your Connectors list to add; try again later.", action: reload };
       case "selection_required":
         return { message: "You have more than one Claude Code Remote connector. Pick one when claude.ai asks, then try again.", action: reload };
       case "needs_reauth":
         return { message: "Claude Code Remote needs reconnecting in claude.ai Settings → Connectors.", action: reload };
       case "not_in_manifest": case "consent_required":
         return { message: "This page isn't allowed to read your Claude Code sessions yet.", action: { label: "Allow", run: allow } };
-      case "approval_required":
-        return { message: "Claude Code Remote's list_sessions tool is set to ask every time, which a page can't do. In claude.ai, open Customize → Connectors → Claude Code Remote and set list_sessions to Allow, then try again.", action: reload };
-      case "blocked_by_policy":
-        return { message: "Your organisation doesn't let pages use Claude Code Remote's list_sessions tool. In claude.ai, open Customize → Connectors → Claude Code Remote and set list_sessions to Allow; if you can't, an admin has capped it.", action: reload };
+      case "approval_required": case "blocked_by_policy":
+        return { message: "claude.ai doesn't let pages read your Claude Code sessions live yet. Claude Code Remote is built in, so it has no switch in your Connectors list: there's nothing for you to change.", action: reload };
       case "not_granted": case "capability_disabled": case "capability_removed":
         return { message: "Live sessions can't load in this view. Open the page in claude.ai to see them." };
       case "tool_error":

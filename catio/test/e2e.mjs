@@ -255,9 +255,9 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
 /* ---------- 7. degraded views ---------- */
 {
   const { page, ctx, errors } = await open("?mode=blocked");
-  await check("when settings block the live read, Claude's copy fills the rooms and the sign spells out the fix", async () => {
+  await check("when claude.ai blocks the live read, Claude's copy fills the rooms and the sign sends her nowhere", async () => {
     const t = await page.locator("#status").innerText();
-    expect(t.includes("Customize") && t.includes("list_sessions") && t.includes("Allow") && t.includes("Claude's copy"), t);
+    expect(t.includes("nothing for you to change") && !t.includes("Customize") && t.includes("Claude's copy"), t);
     expect(await page.locator("#cats .cat").count() >= 2, "rooms empty");
     expect(errors.length === 0, errors.join("; "));
   });
@@ -267,7 +267,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   const { page, ctx } = await open("?mode=noconn");
   await check("without the connector the sign says what to do", async () => {
     const t = await page.locator("#status").innerText();
-    expect(t.includes("isn't connected") && t.includes("Settings"), t);
+    expect(t.includes("isn't connected") && t.includes("built into claude.ai"), t);
   });
   await ctx.close();
 }
