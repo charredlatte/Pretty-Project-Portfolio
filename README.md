@@ -82,4 +82,5 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `catio/tools/build-art.py`: draws the cabin from the plan and cuts the UI pieces, from the
   five zips (`pip install pillow`, then see the script's docstring).
 - `catio/art/`: the committed art. `licensed/` is rebuilt, not committed.
+- `catio/test/`: the end-to-end test (`sh catio/test/run.sh`).
 - `CLAUDE.md`: how to change and republish the page.

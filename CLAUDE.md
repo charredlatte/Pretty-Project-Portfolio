@@ -84,7 +84,20 @@ error without one. Every connector error code has its own message in `problem()`
 
 ## Checking a change
 
-There is no test suite. Render the page before publishing: wrap `catio/index.html` in the
-publish skeleton with a stub `window.claude` that returns example sessions, then screenshot it
-at 390 px and 1280 px in light and dark. Chromium is at `/opt/pw-browsers`. Keep the stub and
-its example data out of the repo, and never paste her real session list into the page.
+Run the end-to-end test before every publish:
+
+```bash
+sh catio/test/run.sh
+```
+
+It loads the page in the same skeleton the Artifact tool publishes, against `runtime-stub.js`
+(an in-memory db with live snapshots and the real path rules, plus a sessions feed the test
+changes as it runs), and walks: adopting a chat, through in progress and done, to letting it
+go; a session going blocked, working, finished, archived and failed; renaming and moving a
+cat; a filing cabinet and a project's look; renaming rooms; the hotbar; and the no-connector,
+no-storage, view-only and phone cases. All checks must pass.
+
+Its example data is invented. Never paste her real session list into the stub or the page.
+
+After publishing, check the real database with `ArtifactData`: list `rooms`, and create,
+update and delete one probe document in `cats` the way the page does.

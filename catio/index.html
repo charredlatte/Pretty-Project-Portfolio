@@ -1,7 +1,7 @@
 <title>The Catio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:ital,wght@0,500;0,700;0,800;1,500&display=swap">
 <style>
 /* Layout: one centred column of wooden-framed panels standing in the meadow. Every frame, plaque,
    slot, rail and icon is cut from Charlotte's asset packs (art/ui from Cosy Cabin, art/licensed for
@@ -15,8 +15,8 @@
   --leaf: #2D531F;
   --night: rgba(8, 20, 34, 0);
   --scene: none;
-  --display: "Pixelify Sans", ui-monospace, "Cascadia Mono", monospace;
-  --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: "Fredoka", "Nunito", ui-rounded, system-ui, sans-serif;       /* rounded and bubbly, every letter distinct */
+  --body: "Nunito", ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
   --u: 2px;                /* one art pixel on screen */
   color-scheme: light;
 }
@@ -27,7 +27,7 @@
 
 * { box-sizing: border-box; }
 body {
-  color: var(--ink); font: 400 0.95rem/1.5 var(--body);
+  color: var(--ink); font: 500 0.95rem/1.5 var(--body);
   background: linear-gradient(var(--night), var(--night)), url(art/licensed/meadow.png) 0 0 / 336px 96px #8FBF4F;
   image-rendering: pixelated;
 }
@@ -48,7 +48,7 @@ a { color: var(--ink); }
 .top { display: grid; justify-items: center; gap: 6px; text-align: center; padding-bottom: calc(12 * var(--u) + 10px); position: relative; isolation: isolate; }
 .top::before { content: ""; position: absolute; inset: 0; z-index: -1; background: url(art/ui/paper-circles.png) 0 0 / calc(16 * var(--u)) calc(16 * var(--u)); }
 .top::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: calc(12 * var(--u)); background: url(art/ui/rail.png) 0 0 / calc(16 * var(--u)) calc(12 * var(--u)) repeat-x; }
-h1 { font: 700 clamp(2rem, 6vw, 2.8rem)/1 var(--display); margin: 0; letter-spacing: .03em; }
+h1 { font: 600 clamp(2.1rem, 6.5vw, 3rem)/1 var(--display); margin: 0; letter-spacing: .01em; }
 .tally { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .tally li { display: inline-flex; align-items: center; gap: 4px; font-size: .82rem; font-weight: 700; font-variant-numeric: tabular-nums;
   border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; padding: 0 6px 0 2px; }
@@ -125,7 +125,7 @@ h1 { font: 700 clamp(2rem, 6vw, 2.8rem)/1 var(--display); margin: 0; letter-spac
 .bub::after { content: ""; position: absolute; left: 50%; bottom: -12px; margin-left: -6px; border: 6px solid transparent; border-top-color: #B06B43; border-bottom: 0; }
 .bub.below { transform: translate(-50%, 0); }
 .bub.below::after { bottom: auto; top: -12px; border: 6px solid transparent; border-bottom-color: #B06B43; border-top: 0; }
-.bub b { display: flex; align-items: center; gap: 4px; font: 700 11px/1.2 var(--display); letter-spacing: .02em; text-transform: uppercase; margin: 2px 0; }
+.bub b { display: flex; align-items: center; gap: 4px; font: 600 11px/1.2 var(--display); letter-spacing: .02em; text-transform: uppercase; margin: 2px 0; }
 .bub .t { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .bub.icon { padding: 0; border: 0; border-image: none; width: auto; }
 .bub.icon::after { display: none; }
@@ -147,7 +147,7 @@ h1 { font: 700 clamp(2rem, 6vw, 2.8rem)/1 var(--display); margin: 0; letter-spac
 .i-check { --x: 160; --y: 16; }
 .i-minus { --x: 160; --y: 32; }
 .i-door { width: calc(10.67px * var(--k)); margin-inline: calc(2.67px * var(--k)); background: url(art/ui/door.png) 0 calc(-2px * var(--k)) / calc(10.67px * var(--k)) calc(20px * var(--k)); image-rendering: pixelated; }
-.slot.adopt { width: auto; min-width: 180px; grid-auto-flow: column; gap: 10px; padding: 2px 12px; font: 700 1.15rem/1.1 var(--display);
+.slot.adopt { width: auto; min-width: 180px; grid-auto-flow: column; gap: 10px; padding: 2px 12px; font: 600 1.15rem/1.1 var(--display);
   border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(7 * var(--u)); border-image: url(art/ui/plaque-green.png) 4 4 7 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(7 * var(--u)); color: #1F3A14; text-shadow: 0 1px 0 #CFE3A6; }
 .slot.adopt small { display: block; font: 400 .72rem var(--body); margin-top: 2px; }
 .paw { --k: 3; --x: 65; --y: 33; width: calc(15px * var(--k)); height: calc(14px * var(--k)); }
@@ -162,7 +162,7 @@ h1 { font: 700 clamp(2rem, 6vw, 2.8rem)/1 var(--display); margin: 0; letter-spac
 /* needs panel */
 .needs { display: grid; gap: 12px; min-width: 0; }
 .needs header { display: grid; gap: 2px; justify-items: center; text-align: center; }
-.needs h2 { font: 700 1.5rem/1.1 var(--display); margin: 0; }
+.needs h2 { font: 600 1.5rem/1.1 var(--display); margin: 0; }
 .needs .sub { margin: 0; font-size: .85rem; color: var(--ink-soft); }
 .needs ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
 .item { position: relative; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; align-items: start; width: 100%; height: 100%; text-align: left; cursor: pointer;
@@ -173,7 +173,7 @@ h1 { font: 700 clamp(2rem, 6vw, 2.8rem)/1 var(--display); margin: 0; letter-spac
 .thumb .spr, .portrait .spr { position: absolute; left: 50%; bottom: 0; transform-origin: 50% 100%; }
 .item .thumb .spr { transform: translateX(-50%) scale(.72); }
 .item .thumb .spr.s-idle, .item .thumb .spr.s-box { transform: translateX(-50%) scale(1.4); }
-.item .who { font: 700 .95rem/1.2 var(--display); }
+.item .who { font: 600 .95rem/1.2 var(--display); }
 .item .who span { font: 400 .78rem var(--body); color: var(--ink-soft); }
 .item .what { font-size: .8rem; color: var(--ink-soft); overflow-wrap: anywhere; }
 .item .ask { margin-top: 3px; overflow-wrap: anywhere; }
@@ -191,7 +191,7 @@ dialog { padding: 0; width: min(480px, calc(100vw - 24px)); max-height: calc(100
   border: calc(16 * var(--u)) solid transparent; border-image: url(art/ui/frame-fill.png) 16 fill / calc(16 * var(--u)) round; image-rendering: pixelated; }
 dialog::backdrop { background: rgba(18, 36, 20, .55); }
 .dlg { padding: 4px; display: grid; gap: 12px; }
-.dlg h2 { font: 700 1.5rem/1.1 var(--display); margin: 0; text-wrap: balance; }
+.dlg h2 { font: 600 1.5rem/1.1 var(--display); margin: 0; text-wrap: balance; }
 .dlg .head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: end; }
 .portrait { width: 112px; height: 96px; position: relative; overflow: hidden; background: url(art/licensed/meadow.png) 0 0 / 224px 64px; border: 5px solid transparent; border-image: url(art/ui/slot.png) 5 / 5px; }
 .portrait .spr { bottom: 2px; transform: translateX(-50%) scale(1.4); }
@@ -217,7 +217,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 .pilelist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .proj { display: grid; gap: 8px; padding: 4px; border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; image-rendering: pixelated; }
 .proj-head { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; align-items: center; }
-.proj-head h3 { margin: 0; font: 700 1.05rem/1.2 var(--display); overflow-wrap: anywhere; }
+.proj-head h3 { margin: 0; font: 600 1.05rem/1.2 var(--display); overflow-wrap: anywhere; }
 .proj-pic { width: 56px; height: 48px; position: relative; overflow: hidden; background: url(art/licensed/meadow.png) 0 0 / 112px 32px; }
 .proj-pic .spr { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%) scale(1.3); transform-origin: 50% 100%; }
 .item.file { padding-right: 6px; text-decoration: none; color: inherit; }
