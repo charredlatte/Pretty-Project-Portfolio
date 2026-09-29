@@ -216,12 +216,42 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   /* ---------- 5. rooms and sound, from a room's menu ---------- */
   await hoverRoom(page, "kitchen");
   await menuButton(page, "Edit rooms").click();
+  await check("Edit rooms opens the cabin plan on the room you pointed at, one card at a time", async () => {
+    expect((await page.locator("#rt-kitchen").getAttribute("aria-selected")) === "true", "kitchen not chosen");
+    expect(await page.locator("#rn-kitchen").isVisible() && !(await page.locator("#rn-sunroom").isVisible()), "cards");
+    expect(await page.evaluate(() => document.activeElement.id) === "rn-kitchen", "focus not on the name");
+    expect(await page.locator("#roomsDlg .rt").count() === 9 && await page.locator("#rt-living .door").count() === 1, "plan tabs / front door");
+  });
+  await page.click("#rt-sunroom");
   await page.fill("#rn-sunroom", "Conservatory");
+  await check("the plan follows the name as she types it", async () => {
+    expect((await page.locator("#rt-sunroom").getAttribute("aria-label")) === "Conservatory", "tab label");
+    expect((await page.locator("#catchAll option[value=sunroom]").innerText()) === "Conservatory", "front-door choice");
+  });
+  await page.locator("#rt-sunroom").focus();
+  await page.keyboard.press("ArrowRight");
+  await check("arrow keys move between rooms on the plan", async () => {
+    expect(await page.evaluate(() => document.activeElement.id) === "rt-garden", await page.evaluate(() => document.activeElement.id));
+    expect(await page.locator("#rr-garden").isVisible(), "catio card not shown");
+  });
+  await page.fill("#rr-garden", "Pretty-Project-Portfolio, charredlatte/other-site");
+  await page.fill("#rb-garden", "The portfolio, and this page");
+  await page.selectOption("#catchAll", "kitchen");
+  await check("choosing where new cats come in moves the front door on the plan", async () => {
+    expect(await page.locator("#rt-kitchen .door").count() === 1 && await page.locator("#rt-living .door").count() === 0, "door");
+    expect((await page.locator("#rt-kitchen").getAttribute("aria-label")).includes("where new cats come in"), "not spoken");
+  });
   await page.click('#roomsDlg button[type="submit"]');
   await page.waitForTimeout(200);
-  await check("renaming a room saves every room and relabels it", async () => {
-    const n = await T(page, () => Object.keys(window.__catio.store).filter((k) => k.startsWith("rooms/")).length);
-    expect(n === 9, "rooms saved: " + n);
+  await check("renaming a room saves every room, with one front door, and relabels it", async () => {
+    const rooms = await T(page, () => Object.fromEntries(Object.entries(window.__catio.store).filter(([k]) => k.startsWith("rooms/"))));
+    expect(Object.keys(rooms).length === 9, "rooms saved: " + Object.keys(rooms).length);
+    const g = rooms["rooms/garden"];
+    expect(g.repos.join("|") === "Pretty-Project-Portfolio|charredlatte/other-site" && g.name === "Catio" && g.blurb === "The portfolio, and this page", JSON.stringify(g));
+    expect(rooms["rooms/kitchen"].repos.length === 2 && rooms["rooms/kitchen"].blurb.startsWith("Weekly meals"), "untouched rooms keep their data: " + JSON.stringify(rooms["rooms/kitchen"]));
+    const front = Object.entries(rooms).filter(([, d]) => d.catchAll).map(([k]) => k);
+    expect(front.join() === "rooms/kitchen", "catch-all: " + front.join());
+    expect((await page.locator(".sign[data-room=sunroom] .nm").innerText()) === "Conservatory", "sign not renamed");
     await hoverRoom(page, "sunroom");
     expect((await menuText(page)).includes("Conservatory"), await menuText(page));
   });
@@ -231,7 +261,112 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await ctx.close();
 }
 
-/* ---------- 6. touch: the first tap opens the menu, the second acts ---------- */
+/* ---------- 6. rooms on the map: signs at every size, the ring, and the keyboard ---------- */
+{
+  const { page, ctx, errors } = await open("", { viewport: { width: 1280, height: 720 } });
+  await check("on a laptop screen every room still wears its name, inside its own walls", async () => {
+    const signs = page.locator("#overlay .sign");
+    expect(await signs.count() === 9, "signs: " + await signs.count());
+    for (const k of ["garden", "kitchen", "dining", "living", "sunroom", "study", "bedroom", "bath", "hall"]) {
+      const box = await page.locator(`.sign[data-room=${k}]`).boundingBox(), room = await page.locator(`#room-${k}`).boundingBox();
+      expect(box && box.x >= room.x && box.x + box.width <= room.x + room.width + 1 && box.y >= room.y, k + " sign outside its room");
+      expect(await page.locator(`.sign[data-room=${k}] .nm`).evaluate((e) => e.scrollWidth <= e.clientWidth + 1), k + " name cut short at its default length");
+    }
+  });
+  await check("the room where a cat needs you carries a badge with its face and count, quiet rooms none", async () => {
+    expect((await page.locator(".sign[data-room=study] .badge .n").innerText()) === "1", "craft room badge");
+    expect(await page.locator(".sign[data-room=study] .badge.need .face-ico").count() === 1, "no meowing face");
+    expect(await page.locator(".sign .badge").count() === 1, "badges on quiet rooms");
+    expect(await page.locator(".sign").first().evaluate((e) => getComputedStyle(e).pointerEvents) === "none", "signs catch the pointer");
+  });
+  await hoverRoom(page, "kitchen");
+  await check("the room under the pointer, and the one its menu belongs to, wear the cream ring", async () => {
+    const ring = await page.locator("#room-kitchen").evaluate((e) => e.classList.contains("lit") && getComputedStyle(e).borderImageSource);
+    expect(ring && ring.includes("ring.png"), "no ring: " + ring);
+  });
+  const hud = await page.locator("#hud").boundingBox();   // rest the pointer on the sign, off the rooms
+  await page.mouse.move(hud.x + 10, hud.y + 10);
+  await page.waitForTimeout(450);
+  const active = () => page.evaluate(() => document.activeElement.id || document.activeElement.className);
+  for (let i = 0; i < 8 && !(await active()).startsWith("room-"); i++) await page.keyboard.press("Tab");
+  await check("the map is one tab stop, landing on the room that needs you, with its menu open and the keys in it", async () => {
+    expect((await active()) === "room-study", "focus: " + (await active()));
+    expect(await page.evaluate(() => [...document.querySelectorAll(".roomhit, .cabinet, #cats .cat")].filter((b) => b.tabIndex >= 0).length) === 1, "more than one map stop");
+    const t = await menuText(page);
+    expect(t.includes("Craft room") && t.includes("Esc back"), t);
+    const ring = await page.locator("#room-study").evaluate((e) => getComputedStyle(e).borderImageSource);
+    expect(ring.includes("ring.png"), "no ring on the focused room");
+  });
+  await page.keyboard.press("Enter");
+  await check("Enter steps into the menu on its first action, with the cats needing you just above it", async () => {
+    expect((await page.evaluate(() => document.activeElement.textContent)) === "Look in", await active());
+    expect(await page.evaluate(() => { const b = document.activeElement.closest("#menu").querySelector("button"); return b.textContent.startsWith("Caramel"); }), "no cat row above");
+  });
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("ArrowUp");
+  await check("arrow keys move the ring to the room next door and open its menu", async () => {
+    expect((await active()) === "room-living", "focus: " + (await active()));
+    expect((await menuText(page)).startsWith("Living room"), await menuText(page));
+    expect((await page.locator("#room-living").getAttribute("tabindex")) === "0" && (await page.locator("#room-study").getAttribute("tabindex")) === "-1", "roving tabindex");
+  });
+  await page.keyboard.press("Enter");
+  await check("Enter steps into the room's menu", async () => expect((await page.evaluate(() => document.activeElement.textContent)) === "Look in", await active()));
+  await page.keyboard.press("Escape");
+  await check("Escape in the menu goes back to the room, menu still open", async () => {
+    expect((await active()) === "room-living" && await page.locator("#menu").isVisible(), await active());
+  });
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(700);
+  await check("Enter twice looks in; focus stays on the room, its menu open, and the move is said aloud", async () => {
+    expect(await page.locator('.roomhit.here[data-room="living"]').count() === 1, "not in the living room");
+    expect((await active()) === "room-living", "focus: " + (await active()));
+    expect((await menuText(page)).includes("Whole house"), "menu shut under the keyboard: " + (await menuText(page)));
+    expect((await page.locator("#say").textContent()).startsWith("Living room"), await page.locator("#say").textContent());
+  });
+  await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(700);
+  await check("in a room, arrows walk into the next one", async () => {
+    expect(await page.locator('.roomhit.here[data-room="sunroom"]').count() === 1, "not in the sunroom");
+    expect((await active()) === "room-sunroom", "focus: " + (await active()));
+  });
+  await page.keyboard.press("Enter");
+  for (let i = 0; i < 6 && (await page.evaluate(() => document.activeElement.textContent)) !== "Edit rooms"; i++) await page.keyboard.press("Tab");
+  await page.keyboard.press("Enter");
+  await check("every room action is reachable from the keyboard: Edit rooms opens on that room", async () => {
+    expect(await page.locator("#roomsDlg[open]").count() === 1, "editor not open");
+    expect((await page.locator("#rt-sunroom").getAttribute("aria-selected")) === "true", "not on the sunroom");
+  });
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(700);
+  await check("Escape comes back out to the whole house with the ring where you were", async () => {
+    expect(await page.locator(".roomhit.here").count() === 0, "still in a room");
+    expect((await active()) === "room-sunroom", "focus: " + (await active()));
+  });
+  const long = "The very long room for tax 2026";   // 31 typed, 30 kept
+  await hoverRoom(page, "bath");
+  await menuButton(page, "Edit rooms").click();
+  await page.fill("#rn-bath", long);
+  await page.click('#roomsDlg button[type="submit"]');
+  await page.waitForTimeout(200);
+  await check("a 30-character name is cut short on its sign, whole in the room's name and its menu", async () => {
+    const name = (await T(page, () => window.__catio.store["rooms/bath"])).name;
+    expect(name.length === 30, "saved " + name.length);
+    const box = await page.locator(".sign[data-room=bath]").boundingBox(), room = await page.locator("#room-bath").boundingBox();
+    expect(box.x + box.width <= room.x + room.width + 1, "sign spills out");
+    expect(await page.locator(".sign[data-room=bath] .nm").evaluate((e) => e.scrollWidth > e.clientWidth), "not cut short");
+    expect((await page.locator("#room-bath").getAttribute("aria-label")).startsWith(name), "full name not in the label");
+    await hoverRoom(page, "bath");
+    expect((await menuText(page)).includes(name), "menu lacks the full name");
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
+
+/* ---------- 7. touch: the first tap opens the menu, the second acts ---------- */
 {
   const { page, ctx, errors } = await open("", { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   const cat = page.locator("#cats .cat.m-meow").first();
@@ -249,10 +384,28 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), "horizontal scroll");
     expect(errors.length === 0, errors.join("; "));
   });
+  await check("on a phone the rooms show badges where cats need you, not squashed names", async () => {
+    expect(await page.locator("#overlay .sign .nm").count() === 0, "names on a phone map");
+    expect((await page.locator(".sign[data-room=study] .badge .n").innerText()) === "1", "craft room badge");
+  });
+  const room = await page.locator('.roomhit[data-room="study"]').boundingBox();
+  await page.touchscreen.tap(room.x + room.width * 0.9, room.y + room.height * 0.15);
+  await settle(page);
+  await menuButton(page, "Edit rooms").tap();
+  await check("on a phone the Rooms plan fits, opens on the tapped room, and its smallest rooms can be tapped", async () => {
+    const dlg = await page.locator("#roomsDlg").boundingBox();
+    expect(dlg.x >= 0 && dlg.x + dlg.width <= 390, JSON.stringify(dlg));
+    expect((await page.locator("#rt-study").getAttribute("aria-selected")) === "true", "not on the craft room");
+    const bath = await page.locator("#rt-bath").boundingBox();
+    expect(bath.width >= 24 && bath.height >= 24, "bath tab " + JSON.stringify(bath));
+    await page.locator("#rt-bath").tap();
+    expect(await page.locator("#rn-bath").isVisible(), "bath card");
+    expect(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), "horizontal scroll");
+  });
   await ctx.close();
 }
 
-/* ---------- 7. degraded views ---------- */
+/* ---------- 8. degraded views ---------- */
 {
   const { page, ctx, errors } = await open("?mode=blocked");
   await check("when claude.ai blocks the live read, Claude's copy fills the rooms and the sign sends her nowhere", async () => {
@@ -283,7 +436,7 @@ for (const [q, want, prep] of [["?mode=nodb", "isn't available", null], ["", "lo
   await ctx.close();
 }
 
-/* ---------- 8. local mode: the bundle on localhost, no runtime at all ---------- */
+/* ---------- 9. local mode: the bundle on localhost, no runtime at all ---------- */
 if (LOCAL) {
   const { page, ctx, errors } = await open("", { base: LOCAL });
   await check("on localhost the cats come from data/sessions.json and the sign says so", async () => {
