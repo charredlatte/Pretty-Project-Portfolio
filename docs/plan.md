@@ -95,6 +95,14 @@ new credits). Those four lines aren't on this branch, and that branch's later "L
 published. Whoever publishes next should start from the live page. `graphs/pretty-project-portfolio` and
 `rules/graph_first` are seeded.
 
+Version 11 went live on 29 September 2026, from `claude/amazing-bohr-1sfkqi` after merging version 10's
+branch (`ccr-8a70ed0a-mnmbj1`), so the project maps are kept. It adds walking cats (through the doorways, up
+the hall stairs when archived, working cats wander), coats without emblems (`art/licensed/emblems.png` was
+removed from the published files), the spruce forest and scattered grounds, the KittyChat Cafe terrace, no
+turrets, and hover menus that wait 240 ms before a neighbour takes over. e2e 112 passed before publishing.
+The capabilities were carried over unchanged. Checked after publishing: the ten `rooms` are intact, and a
+probe cat was created, updated and deleted. The Claude Code Remote calls themselves weren't exercised live.
+
 ## Publishing again
 
 Files: `art/licensed/house.png`, `art/furniture.png`, `art/licensed/furniture.png`, `art/licensed/decor.png`, and the
