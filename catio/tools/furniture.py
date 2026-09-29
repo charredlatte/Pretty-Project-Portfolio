@@ -27,6 +27,7 @@ SHEETS = {
     "tc": "CatMegaFree/CatMegaFree/CatRoomFree/Furnitures.png",
     "cainos": "Pixel_Art_Top_Down_-_Basic_v1.2.3/Texture/TX Struct.png",
     "pochi": "CatMegaFree/CatMegaFree/PochiFree/FreeSprites.png",
+    "plants": "plants/plants.png",
 }
 COMMITTABLE = {"cc"}
 
@@ -97,6 +98,15 @@ CATALOGUE = {
     "sideboard": piece("cc", (16, 501, 32, 27), foot=(0, 10, 32, 17)),
     "runner_yellow": piece("cc", (1009, 145, 30, 15), "connected", "rug", stations=[("fail", 15, 10)]),
     "sunflower": piece("cc", (33, 871, 14, 40)),
+    # the conservatory
+    "armchair_green": piece("cc", (12, 114, 24, 30), "connected", stations=[("queen", 12, 36)]),
+    "scratching_post": piece("tc", (197, 331, 55, 77), "connected", scale=0.5, stations=[("work", 14, 44)]),
+    "runner_green": piece("cc", (1009, 177, 30, 15), "connected", "rug", stations=[("fail", 15, 10)]),
+    "palm": piece("plants", (20, 30, 23, 34)),
+    "fiddle_fig": piece("plants", (55, 26, 19, 38)),
+    "fern": piece("plants", (181, 86, 22, 26)),
+    "monstera": piece("plants", (19, 86, 24, 25)),
+    "trailing_ivy": piece("plants", (211, 94, 23, 17)),
 }
 
 # the default layout, room by room: (key, x, y), native pixels, the sprite's top-left
@@ -148,6 +158,14 @@ LAYOUT = {
         ("chair_right", 248, 131), ("chair_left_queen", 316, 131),
         ("chair_back_work", 271, 154), ("chair_back_work", 293, 154),
         ("runner_yellow", 252, 184), ("cushion_green", 300, 186),
+    ],
+    # Conservatory: glass on three sides and plants all round; the green armchair in the sun (the queen's),
+    # a cushion for the warmest spot, a runner by the drawing-room door. The cat flap on the east wall stays
+    # clear; the scratching post lives out on the catio
+    "sunroom": [
+        ("palm", 664, 108), ("fiddle_fig", 729, 102), ("trailing_ivy", 700, 120),
+        ("armchair_green", 686, 132), ("fern", 728, 136),
+        ("cushion_white", 712, 176), ("runner_green", 670, 188),
     ],
 }
 
