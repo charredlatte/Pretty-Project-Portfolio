@@ -19,7 +19,7 @@ import cabin
 
 T = 16
 FACE = 32                       # a back wall, ceiling to floor
-SIZE = (60 * T, 34 * T)         # the whole grounds, native pixels
+SIZE = (60 * T, 36 * T)         # the whole grounds, native pixels
 
 # walls: 5 px bands, outer to inner. Outside walls are the pack's grey stone, inside ones its warm stone.
 STONE_OUT = [(65, 9, 9), (121, 101, 98), (152, 134, 129), (165, 149, 143), (121, 101, 98)]
@@ -39,8 +39,8 @@ ROOMS = {
     "hall":    ((19, 13, 34, 24), "stone", "stone_white"),   # stone flags, the old white stone left bare
     "study":   ((34, 13, 43, 22), "wood", "stone_brown"),    # the studio: exposed brick, refurbished
 }
-# the catio is outdoors: decking fenced against the conservatory's east wall
-CATIO = (47, 4, 56, 20)
+# the catio is outdoors: decking fenced against the conservatory's east wall, reached by the cat flap
+CATIO = (47, 4, 56, 19)
 
 # doorways: ("v", wall tile x, y from, y to) through a side wall; ("h", wall tile y, x from, x to) through a back wall
 DOORS = [
@@ -202,3 +202,69 @@ def shell(tm, objects, ex):
     under.paste(shade, (4, 4), alpha)
     under.alpha_composite(img)
     return under
+
+
+def grounds(sheet, wood, props, struct):
+    """Outdoors, from the licensed packs (never committed): the catio's deck and fence, the drive, the
+    fountain on it, parterres either side, the arch gate, a pond, trees, bushes and rocks.
+    sheet: Heosphorus's garden (already greened by build-art's spring()); wood(name): a Wood Garden piece;
+    props, struct: Cainos's sheets (drawn on a 32 px grid, so they read large: garden stonework only)."""
+    g = Image.new("RGBA", SIZE, (0, 0, 0, 0))
+    crop = lambda x, y, w, h: sheet.crop((x, y, x + w, y + h))
+    stone = lambda x, y, w, h: props.crop((x, y, x + w, y + h))
+    stamp = lambda im, x, y: g.alpha_composite(im, (x, y))
+    cx = (FRONT_DOOR[0] + FRONT_DOOR[1]) // 2          # the drive's axis
+    hy = ROOMS["hall"][0][3] * T + 5 + 10               # the foot of the front steps
+
+    # the catio: decking against the conservatory and studio, fenced, with a rose-arch gate to the garden
+    X0, Y0, X1, Y1 = CATIO[0] * T + 8, CATIO[1] * T + 16, CATIO[2] * T, CATIO[3] * T
+    deck = wood("Floor/Brown-floor-1.png")
+    for x in range(X0, X1, 32):
+        for y in range(Y0, Y1, 32):
+            stamp(deck.crop((0, 0, min(32, X1 - x), min(32, Y1 - y))), x, y)
+    for x in range(X0 - 2, X1 - 28, 32):
+        stamp(wood("White fence/White-fence-2.png"), x, Y0 - 14)
+    for y in range(Y0 - 8, Y1 - 20, 36):
+        stamp(wood("White fence/White-fence-4.png"), X1 - 4, y)
+    gx = X0 + 40
+    for x in range(X0 - 2, gx - 4, 28):
+        stamp(wood("White fence/White-fence-2.png"), x, Y1 - 8)
+    stamp(wood("White gate/White-red-flower-gate-1.png"), gx, Y1 - 29)
+    for x in range(gx + 42, X1 - 24, 28):
+        stamp(wood("White fence/White-fence-2.png"), x, Y1 - 8)
+    stamp(wood("White fence/White-fence-5.png"), X1 - 4, Y1 - 31)
+    stamp(crop(113, 293, 81, 121), X1 - 16, Y0 - 58)                                          # a shade tree over the fence
+
+    # the drive: stepping stones from the front steps round the fountain to the arch gate
+    fy = hy + 40
+    stamp(stone(353, 269, 94, 72), cx - 47, fy)                          # the round fountain
+    stamp(stone(445, 21, 37, 72), cx - 18, fy - 22)                      # the praying statue in it
+    path = [(-30, 6), (30, 6), (-58, 28), (58, 28), (-68, 52), (68, 52), (-62, 76), (62, 76), (-38, 98), (38, 98), (-14, 110), (14, 110)]
+    for i, (dx, dy) in enumerate(path):
+        stamp(crop(64 + 16 * (i % 4), 49, 15, 15), cx + dx - 7, hy + dy)
+    ay = SIZE[1] - 64
+    stamp(stone(29, 166, 9, 53), cx - 16, ay + 8)                        # the gate's wooden doors, swung open
+    stamp(stone(57, 166, 9, 53), cx + 10, ay + 8)
+    stamp(struct.crop((408, 27, 488, 91)), cx - 40, ay)                  # the stone archway
+    stamp(stone(165, 217, 21, 34), cx - 60, ay + 30)                     # vases either side
+    stamp(stone(165, 348, 21, 32), cx + 40, ay + 32)
+    stamp(stone(453, 118, 22, 37), FRONT_DOOR[0] - 36, hy - 8)           # lanterns by the front steps
+    stamp(stone(453, 118, 22, 37), FRONT_DOOR[1] + 14, hy - 8)
+
+    # parterres either side of the drive: stone-edged beds with a cross path, a bench facing one
+    bed = crop(150, 6, 102, 86)
+    stamp(bed, cx - 200, hy + 34)
+    stamp(bed, cx + 98, hy + 34)
+    stamp(stone(292, 19, 56, 41), cx + 120, hy + 128)                    # a stone bench
+    stamp(stone(99, 160, 27, 32), CATIO[0] * T + 24, CATIO[3] * T + 14)  # a signpost to the catio
+
+    # the edges: a pond, trees, bushes and rocks
+    stamp(crop(64, 84, 64, 56), 18, SIZE[1] - 110)
+    stamp(crop(19, 295, 93, 125), -40, 150)                              # big tree, west
+    stamp(crop(204, 291, 72, 138), SIZE[0] - 84, SIZE[1] - 190)          # blossom tree, south-east
+    for x, y, b in [(96, 404, (49, 424, 34, 30)), (150, 418, (16, 427, 26, 23)), (640, 400, (49, 424, 34, 30)),
+                    (700, 414, (16, 427, 26, 23)), (18, 36, (49, 424, 34, 30)), (900, 40, (16, 427, 26, 23))]:
+        stamp(crop(*b), x, y)
+    for x, y, b in [(126, 520, (99, 251, 24, 23)), (760, 530, (41, 258, 23, 16)), (60, 20, (71, 252, 22, 22))]:
+        stamp(crop(*b), x, y)
+    return g

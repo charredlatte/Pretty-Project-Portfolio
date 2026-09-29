@@ -128,6 +128,11 @@ CATALOGUE = {
     "towel": piece("cc", (834, 738, 12, 14), layer="wall"),
     "bath_mat": piece("cc", (1008, 277, 16, 10), "connected", "rug", stations=[("queen", 8, 8)]),
     "plant_bath": piece("cc", (834, 584, 14, 24)),
+    # the catio (outdoors)
+    "cat_tree": piece("pochi", (6, 256, 85, 175), "connected", scale=0.5, foot=(4, 60, 36, 28), stations=[("work", 22, 92)]),
+    "garden_table": piece("wg:Table/Table-2.png", (0, 0, 39, 66), foot=(0, 20, 39, 46)),
+    "garden_chair": piece("wg:Chairs/Medium Chair/Medium wooden chair/Medium-chair-1.png", (0, 0, 28, 36), "connected", foot=(0, 0, 0, 0), stations=[("queen", 14, 38)]),
+    "catio_chest": piece("wg:Chest/Chest-1.png", (0, 0, 22, 21), "essential", stations=[("review", 11, 28)]),
 }
 
 # the default layout, room by room: (key, x, y), native pixels, the sprite's top-left
@@ -211,6 +216,13 @@ LAYOUT = {
         ("bath_mat", 135, 250), ("toilet", 88, 240),
         ("plant_bath", 88, 290), ("cushion_white", 110, 296),
     ],
+    # Catio: the chest (its filing cabinet), a cat tree to climb (working), a scratching post, a table and
+    # chair for people (the queen's), water, a cushion in the sun, a runner by the cat flap
+    "garden": [
+        ("catio_chest", 770, 92), ("scratching_post", 812, 96), ("cat_tree", 846, 118),
+        ("garden_table", 780, 200), ("garden_chair", 822, 232), ("bowl_water", 770, 150),
+        ("cushion_orange", 858, 262), ("runner_blue", 764, 172),
+    ],
 }
 
 
@@ -248,8 +260,11 @@ def footprints(only=None):
 
 
 def floor_of(room):
-    """A room's open floor, in native pixels: inside its walls and below its back wall."""
+    """A room's open floor, in native pixels: inside its walls and below its back wall (the catio's deck)."""
     import manor
+    if room == "garden":
+        x0, y0, x1, y1 = manor.CATIO
+        return x0 * manor.T + 8, y0 * manor.T + 16, x1 * manor.T - 4, y1 * manor.T - 8
     X0, Y0, X1, Y1 = manor.box_px(manor.ROOMS[room][0])
     return X0 + 5, Y0 + 5 + manor.FACE, X1 - 5, Y1 - 5
 
