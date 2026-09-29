@@ -120,6 +120,14 @@ CATALOGUE = {
     "nightstand": piece("cc", (176, 520, 16, 22), foot=(0, 8, 16, 14)),
     "dresser": piece("cc", (16, 501, 32, 27), foot=(0, 10, 32, 17)),
     "foot_chest": piece("wg:Chest/Chest-1.png", (0, 0, 22, 21)),
+    # the bathroom (the ensuite)
+    "toilet": piece("cc", (32, 577, 16, 31), foot=(0, 10, 16, 21)),
+    "basin": piece("cc", (353, 578, 14, 14), layer="wall"),
+    "mirror_small": piece("cc", (946, 593, 12, 21), layer="wall"),
+    "shower": piece("cc", (691, 578, 12, 25), layer="wall"),
+    "towel": piece("cc", (834, 738, 12, 14), layer="wall"),
+    "bath_mat": piece("cc", (1008, 277, 16, 10), "connected", "rug", stations=[("queen", 8, 8)]),
+    "plant_bath": piece("cc", (834, 584, 14, 24)),
 }
 
 # the default layout, room by room: (key, x, y), native pixels, the sprite's top-left
@@ -195,6 +203,13 @@ LAYOUT = {
         ("dresser", 170, 226), ("nightstand", 198, 232), ("bed", 216, 222), ("nightstand", 250, 232),
         ("filing_cabinet", 280, 226), ("foot_chest", 221, 272),
         ("rug_blue_diamond", 204, 296), ("armchair_pink", 262, 290), ("plant_snake", 186, 305),
+    ],
+    # Bathroom, the ensuite: the toilet, a basin under its mirror, a shower with its mat (the queen stands on
+    # it), a towel, a plant, a cushion; the door to the bedroom on the east stays clear
+    "bath": [
+        ("mirror_small", 111, 216), ("basin", 110, 236), ("shower", 137, 216), ("towel", 90, 222),
+        ("bath_mat", 135, 250), ("toilet", 88, 240),
+        ("plant_bath", 88, 290), ("cushion_white", 110, 296),
     ],
 }
 
