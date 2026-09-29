@@ -67,7 +67,14 @@ Last updated 29 September 2026.
 - **Upstairs:** cats napping upstairs could sit on the stairs' `upstairs` stations instead of being
   hidden. The older e2e checks expect them hidden, so this is a decision for Charlotte.
 
-## Then: publish
+## Published
+
+Version 8 went live on 29 September 2026, with the manor, the brain, posting into sessions, the house rules
+panel, breeds and cats placed by state. The capabilities are Claude Code Remote (9 tools), `db`, `assets` and
+`sample`. `host:catio` can only be declared from the Claude desktop app, so agent cats won't show until it's
+published from there. `rooms/brain` and the eight `rules/*` are seeded.
+
+## Publishing again
 
 Files: `art/house.png`, `art/furniture.png`, `art/licensed/furniture.png`, `art/licensed/decor.png`, and the
 rest of CLAUDE.md's list. `art/licensed/` now also holds `furniture.png`.
