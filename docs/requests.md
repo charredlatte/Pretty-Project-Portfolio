@@ -86,7 +86,9 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 - **Every pack mixed freely**, for personal use. Licences are sorted out later.
   - That includes Sprout Lands Sprites and Little Dreamyland.
 - **`house.png` becomes licensed art.** A clone without the zips shows no house.
-- **Apply her Game UI / UX plugin** (from GitHub). The repo name hasn't come through yet.
+- **Apply her Game UI / UX plugin.** Received 29 September as a zip (MCPmarket's `ui` skill). Its Game UI Designer
+  rules are applied to the manor: map layers stay quiet under cats and signs, never colour alone, no motion,
+  integer scaling.
 - **Inspired by her photos of Peleș and Sinaia** (29 September). The pastel Baroque stays the base, with
   touches from the photos:
   - stained glass;
@@ -97,7 +99,6 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 
 ## Still waiting on her
 
-- The Game UI / UX plugin's repo (`owner/repo`).
 - Who made `plants.zip`.
 - The licence for `Game_UI_Pack_Pastel.zip`.
 - Whether to delete the "download" files (`.DS_Store`) in the Drive folder.

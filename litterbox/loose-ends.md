@@ -11,6 +11,10 @@
   - Until then Game UI Pastel stays out of the build.
 - **"download", "download (1)" and "download (2)"** in the Drive folder look like macOS `.DS_Store` files.
   Safe to delete?
+- **Her MCPmarket plugin zip** (`mcpmarket-plugin-me-claude.zip`, the Game UI / UX skill) has her live API
+  token in `.mcp.json`. It must never be committed. Since it has been passed around, she may want to rotate
+  it at mcpmarket.com. Its hooks sync with and report skill use to mcpmarket.com, so it wasn't installed here:
+  its `ui` skill was only read.
 - **Should "Rename" on a session's cat rename the real session?** It doesn't: the cat's name and the
   session's title are two different fields on the card.
 - **Should a filing cabinet ever leave its room** in renovation mode?
