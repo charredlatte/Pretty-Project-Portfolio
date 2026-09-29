@@ -82,6 +82,11 @@ panel, breeds and cats placed by state. The capabilities are Claude Code Remote 
 `sample`. `host:catio` can only be declared from the Claude desktop app, so agent cats won't show until it's
 published from there. `rooms/brain` and the eight `rules/*` are seeded.
 
+Version 9 went live on 29 September 2026: the storybook Transylvanian Baroque manor. The house is now
+`art/licensed/house.png`; the old `art/house.png` was removed from the published files. The capabilities were
+carried over unchanged. Checked after publishing: the ten `rooms` are intact, and a probe cat was created,
+updated and deleted.
+
 ## Publishing again
 
 Files: `art/licensed/house.png`, `art/furniture.png`, `art/licensed/furniture.png`, `art/licensed/decor.png`, and the
