@@ -107,6 +107,14 @@ CATALOGUE = {
     "fern": piece("plants", (181, 86, 22, 26)),
     "monstera": piece("plants", (19, 86, 24, 25)),
     "trailing_ivy": piece("plants", (211, 94, 23, 17)),
+    # the studio (the craft room: the Montfortoise shop's workroom)
+    "shelves_supplies": piece("cc", (657, 486, 46, 36), foot=(0, 16, 46, 20)),
+    "worktable": piece("wg:Table/Table-1.png", (0, 0, 58, 50), "connected", foot=(0, 8, 58, 42), stations=[("work", 29, 58)]),
+    "yarn_red": piece("pochi", (168, 407, 22, 20), layer="top", scale=0.5),
+    "yarn_blue": piece("pochi", (103, 405, 22, 20), layer="top", scale=0.5),
+    "tin_buttons": piece("pochi", (103, 343, 18, 18), layer="top", scale=0.5),
+    "supply_chest": piece("wg:Chest/Chest-3.png", (0, 0, 21, 26)),
+    "chair_right_queen": piece("cc", (624, 277, 14, 27), "connected", foot=(0, 0, 0, 0), stations=[("queen", 7, 30)]),
 }
 
 # the default layout, room by room: (key, x, y), native pixels, the sprite's top-left
@@ -166,6 +174,15 @@ LAYOUT = {
         ("palm", 664, 108), ("fiddle_fig", 729, 102), ("trailing_ivy", 700, 120),
         ("armchair_green", 686, 132), ("fern", 728, 136),
         ("cushion_white", 712, 176), ("runner_green", 670, 188),
+    ],
+    # Studio, the shop's workroom: shelves of supplies against the old brick, the big worktable with yarn and
+    # a tin of buttons on it (working), a sewing desk (working too), the supply chest, the filing cabinet
+    "study": [
+        ("bookcase_filled", 556, 213), ("shelves_supplies", 604, 222),
+        ("writing_desk", 636, 222), ("filing_cabinet", 670, 222),
+        ("worktable", 590, 272), ("yarn_red", 598, 282), ("yarn_blue", 612, 284), ("tin_buttons", 628, 281),
+        ("chair_right_queen", 572, 290), ("supply_chest", 662, 318),
+        ("cushion_blue", 572, 326), ("runner_yellow", 600, 334),
     ],
 }
 
