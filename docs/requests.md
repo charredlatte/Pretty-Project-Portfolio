@@ -10,6 +10,7 @@ compressed. Read this before starting something new. Last updated 29 September 2
 | `CLAUDE.md` | The operating brief. Partly stale: it still describes the cabin (`cabin.py`, "house.png is committed"). Only she can edit it |
 | `README.md` | What the page is, the rooms, the packs |
 | `docs/requests.md` | This file: her requests |
+| `docs/assets-wishlist.md` | What art and sound is missing: what to buy, what to draw, and at what sizes |
 | `docs/plan.md` | The harness and manor plan: what's done, what's blocked on her, how to publish |
 | `docs/renovation-mode.md` | The traps under drag-and-drop furniture |
 | `litterbox/` | The compressed 29 September harness chat, and `loose-ends.md` (open questions, lessons) |
