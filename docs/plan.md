@@ -4,7 +4,7 @@ Issue #3: "An AI harness that presents itself as a cat cafe." The Catio (`catio/
 artifact) becomes the harness. Every Claude Code session and every other agent is a cat in a refurbished
 manor. Files dropped on the page go to the right cat, and cats can be talked to and managed.
 
-Last updated 29 September 2026.
+Last updated 29 September 2026. What she has asked for, all in one place: [`requests.md`](requests.md).
 
 ## Done (on `main`)
 
