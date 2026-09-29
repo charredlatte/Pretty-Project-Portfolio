@@ -74,6 +74,13 @@ panel, breeds and cats placed by state. The capabilities are Claude Code Remote 
 `sample`. `host:catio` can only be declared from the Claude desktop app, so agent cats won't show until it's
 published from there. `rooms/brain` and the eight `rules/*` are seeded.
 
+Version 10 went live on 29 September 2026 with project maps: each filing cabinet shows the project's
+graphify map from `graphs/<repo>`, and its suggested questions ask a cat. It was built on the live version 9,
+which came from `claude/amazing-bohr-1sfkqi` at `6e96132` (the storybook manor: `art/licensed/house.png` and
+new credits). Those four lines aren't on this branch, and that branch's later "Let the cats walk" commit wasn't
+published. Whoever publishes next should start from the live page. `graphs/pretty-project-portfolio` and
+`rules/graph_first` are seeded.
+
 ## Publishing again
 
 Files: `art/house.png`, `art/furniture.png`, `art/licensed/furniture.png`, `art/licensed/decor.png`, and the
