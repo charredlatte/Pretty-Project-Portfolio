@@ -93,11 +93,13 @@ a { color: var(--ink); }
 .hud:hover .status .words, .hud:focus-within .status .words { display: inline; }
 .credits { position: fixed; z-index: 19; right: calc(6 * var(--u) + 8px); bottom: calc(6 * var(--u) + 4px + env(safe-area-inset-bottom, 0px)); margin: 0; font-size: .66rem; color: #FFF8EA; opacity: .9;
   text-shadow: 0 1px 0 #2C4A18, 1px 0 0 #2C4A18, -1px 0 0 #2C4A18, 0 -1px 0 #2C4A18; max-width: calc(100vw - 12 * var(--u) - 16px); text-align: right; }
-.world { position: absolute; left: 0; top: 0; width: 1280px; height: 896px; transform-origin: 0 0; transition: transform .55s cubic-bezier(.3,.7,.2,1);
+.world { position: absolute; left: 0; top: 0; width: 1920px; height: 1152px; transform-origin: 0 0; transition: transform .55s cubic-bezier(.3,.7,.2,1);
   background: url(art/licensed/meadow.png) 0 0 / 224px 64px repeat; image-rendering: pixelated; filter: var(--scene); }
 .stage.instant .world { transition: none; }
-.house { position: absolute; inset: 0; width: 1280px; height: 896px; max-width: none; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
+.house { position: absolute; inset: 0; width: 1920px; height: 1152px; max-width: none; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
 .prop { position: absolute; pointer-events: none; }
+/* a piece of furniture: one cell of an atlas, at two screen pixels an art pixel, in the cats' z-space */
+.piece { position: absolute; pointer-events: none; image-rendering: pixelated; background-repeat: no-repeat; }
 /* rooms, cabinets and cats light up with the pack's white selection brackets: a room under the pointer,
    with keyboard focus, or whose menu is open. A room's brackets keep one size on screen at any zoom
    (--cs is the camera scale). */
@@ -237,9 +239,9 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 /* the Rooms editor: the cabin cropped to the house in the pack's frame, each room a tab (brackets and a green
    sign when chosen, the arrow on the room new cats come in to), then the chosen room's card */
 dialog.wide { width: min(600px, calc(100vw - 24px)); }
-.plan { position: relative; box-sizing: content-box; aspect-ratio: 1168 / 672; overflow: clip; background: #8FBF4F padding-box;
+.plan { position: relative; box-sizing: content-box; aspect-ratio: 1660 / 740; overflow: clip; background: #8FBF4F padding-box;
   border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; image-rendering: pixelated; }
-.plan-art { position: absolute; left: -4.795%; top: -13.095%; width: 109.589%; height: 133.333%; filter: var(--scene); }
+.plan-art { position: absolute; left: -8.434%; top: -10.811%; width: 115.663%; height: 155.676%; filter: var(--scene); }
 .plan-art img { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
 .rt { position: absolute; padding: 0; background: transparent; border: 0 solid transparent; }
 .rt:hover { background: rgba(255, 250, 225, .16); }
@@ -313,8 +315,8 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
   <section class="stage" id="stage" aria-label="The Catio: hover a room or a cat">
     <div class="meadow" id="meadow"></div>
     <div class="world" id="world">
-      <img class="house" src="art/house.png" alt="" width="1280" height="896">
-      <img class="house" src="art/licensed/decor.png" alt="" width="1280" height="896">
+      <img class="house" src="art/licensed/decor.png" alt="" width="1920" height="1152">
+      <img class="house" src="art/house.png" alt="" width="1920" height="1152">
       <div id="props"></div>
       <div id="hits"></div>
       <div id="cats"></div>
@@ -358,23 +360,41 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
   const MODELS = [["claude-fable-5-1", "Fable 5.1"], ["claude-opus-5-5", "Opus 5.5"], ["claude-sonnet-5-5", "Sonnet 5.5"], ["claude-haiku-4-5-20251001", "Haiku 4.5"]];
   const STALE_DAYS = 7;     // sleeping cats older than this go upstairs
 
-  // Room geometry is fixed by the art, drawn to the plan in tools/cabin.py: native cabin pixels
-  // (the scene draws them at 2x). r = [x, y, w, h]; spots = where cats sit, as the point under their feet;
-  // cabinet = the filing cabinet's box, where that room's projects are kept.
-  const GEOM = {
-    garden:  { name: "Catio",       r: [448, 48, 160, 188], spots: [[474, 126], [514, 208], [568, 96], [586, 202]], cabinet: [457, 90, 22, 21], queen: [500, 110] },
-    kitchen: { name: "Kitchen",     r: [32, 80, 85, 149],   spots: [[48, 212], [104, 146], [104, 212], [46, 146], [76, 202], [48, 180], [104, 180]], cabinet: [106, 105, 16, 27], queen: [76, 140] },
-    dining:  { name: "Dining room", r: [112, 80, 101, 149], spots: [[124, 214], [200, 146], [200, 212]], cabinet: [186, 105, 16, 27], queen: [124, 130] },
-    living:  { name: "Living room", r: [208, 48, 165, 181], spots: [[290, 162], [234, 212], [350, 206], [226, 118], [350, 150], [300, 216]], cabinet: [348, 72, 16, 27], queen: [268, 118] },
-    sunroom: { name: "Sunroom",     r: [368, 80, 85, 149],  spots: [[426, 164], [392, 214]], queen: [398, 132] },
-    study:   { name: "Craft room",  r: [272, 224, 165, 149], spots: [[300, 292], [352, 290], [396, 330], [322, 322], [420, 302], [292, 350], [346, 326], [366, 352], [392, 352], [316, 352], [370, 292], [296, 368], [336, 368], [376, 368]], cabinet: [414, 257, 16, 27], queen: [416, 366] },
-    bedroom: { name: "Bedroom",     r: [96, 224, 117, 133], spots: [[122, 334], [198, 330], [140, 304]], cabinet: [103, 257, 16, 27], queen: [200, 300] },
-    bath:    { name: "Bathroom",    r: [32, 224, 69, 117],  spots: [[62, 324]], queen: [90, 288] },
-    hall:    { name: "Hall",        r: [208, 224, 69, 149], spots: [[246, 300]], queen: [252, 346] },
-  };
-  const ORDER = ["garden", "kitchen", "dining", "living", "sunroom", "study", "bedroom", "bath", "hall"];
-  const WORLD = [640, 448];   // native size of the meadow
+  // The manor, generated from tools/manor.py and tools/furniture.py: the grounds' size, each room's box and
+  // open floor, the furniture as atlas cells (kind, layer, footprint, stations) and its default layout.
+  /* MANOR:BEGIN generated by catio/tools/furniture.py: edit that, not this */
+  const MANOR = {"world":[960,576],"face":32,"rooms":{"kitchen":[80,64,149,149],"dining":[224,64,133,149],"brain":[352,64,149,149],"living":[496,64,165,149],"sunroom":[656,96,101,117],"bath":[80,208,101,117],"bedroom":[176,208,133,133],"hall":[304,208,245,181],"study":[544,208,149,149],"garden":[752,64,144,240]},"floors":{"kitchen":[85,101,224,208],"dining":[229,101,352,208],"brain":[357,101,496,208],"living":[501,101,656,208],"sunroom":[661,133,752,208],"bath":[85,245,176,320],"bedroom":[181,245,304,336],"hall":[309,245,544,384],"study":[549,245,688,352],"garden":[760,80,892,296]},"atlases":{"cc":[512,99],"lic":[512,131]},"pieces":{"stairs_west":{"atlas":"lic","at":[89,0],"size":[90,96],"kind":"essential","layer":"floor","foot":[0,30,90,66],"stations":[["upstairs",30,60],["upstairs",52,44],["upstairs",72,30]]},"stairs_east":{"atlas":"lic","at":[0,0],"size":[88,96],"kind":"essential","layer":"floor","foot":[0,30,88,66],"stations":[["upstairs",58,60],["upstairs",36,44],["upstairs",16,30]]},"door_mat":{"atlas":"cc","at":[227,84],"size":[30,10],"kind":"essential","layer":"rug","foot":null,"stations":[["needs",9,8],["needs",22,8]]},"rug_red_diamond":{"atlas":"cc","at":[63,53],"size":[48,30],"kind":"connected","layer":"rug","foot":null,"stations":[["fail",24,18]]},"rug_blue_diamond":{"atlas":"cc","at":[14,53],"size":[48,30],"kind":"connected","layer":"rug","foot":null,"stations":[["fail",24,18]]},"filing_cabinet":{"atlas":"cc","at":[271,53],"size":[16,27],"kind":"essential","layer":"floor","foot":[0,7,16,20],"stations":[["review",8,36]]},"writing_desk":{"atlas":"cc","at":[327,0],"size":[32,32],"kind":"connected","layer":"floor","foot":[0,8,32,24],"stations":[["work",16,42]]},"armchair_pink":{"atlas":"cc","at":[483,0],"size":[24,30],"kind":"connected","layer":"floor","foot":[0,8,24,22],"stations":[["queen",12,36]]},"lamp_floor":{"atlas":"cc","at":[0,53],"size":[13,30],"kind":"decor","layer":"floor","foot":[0,8,13,22],"stations":[]},"plant_pampas":{"atlas":"cc","at":[80,0],"size":[15,43],"kind":"decor","layer":"floor","foot":[0,11,15,32],"stations":[]},"plant_snake":{"atlas":"cc","at":[360,0],"size":[11,31],"kind":"decor","layer":"floor","foot":[0,8,11,23],"stations":[]},"cushion_blue":{"atlas":"cc","at":[137,84],"size":[14,14],"kind":"connected","layer":"rug","foot":null,"stations":[["sleep",7,10]]},"cushion_green":{"atlas":"cc","at":[152,84],"size":[14,14],"kind":"connected","layer":"rug","foot":null,"stations":[["sleep",7,10]]},"cushion_orange":{"atlas":"cc","at":[167,84],"size":[14,14],"kind":"connected","layer":"rug","foot":null,"stations":[["sleep",7,10]]},"cushion_white":{"atlas":"cc","at":[182,84],"size":[14,14],"kind":"connected","layer":"rug","foot":null,"stations":[["sleep",7,10]]},"bookcase_dark_books":{"atlas":"lic","at":[263,0],"size":[52,58],"kind":"decor","layer":"floor","foot":[0,34,52,24],"stations":[]},"bookcase_red_books":{"atlas":"lic","at":[316,0],"size":[52,58],"kind":"decor","layer":"floor","foot":[0,34,52,24],"stations":[]},"bookcase_filled":{"atlas":"cc","at":[0,0],"size":[46,52],"kind":"decor","layer":"floor","foot":[0,30,46,22],"stations":[]},"brain_desk":{"atlas":"cc","at":[225,0],"size":[50,32],"kind":"essential","layer":"floor","foot":[0,6,50,26],"stations":[]},"chair_back":{"atlas":"cc","at":[383,53],"size":[14,22],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["work",7,22]]},"brain_chest":{"atlas":"lic","at":[111,97],"size":[22,21],"kind":"essential","layer":"floor","foot":[0,5,22,16],"stations":[]},"armchair_blue":{"atlas":"cc","at":[389,0],"size":[22,30],"kind":"connected","layer":"floor","foot":[0,8,22,22],"stations":[["queen",11,36]]},"fireplace":{"atlas":"cc","at":[96,0],"size":[32,42],"kind":"essential","layer":"floor","foot":[0,30,32,12],"stations":[]},"sofa_blue_back":{"atlas":"cc","at":[430,53],"size":[40,22],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["sleep",20,16]]},"armchair_blue_l":{"atlas":"cc","at":[412,0],"size":[22,30],"kind":"connected","layer":"floor","foot":[0,8,22,22],"stations":[["queen",11,36]]},"armchair_blue_r":{"atlas":"cc","at":[435,0],"size":[22,30],"kind":"decor","layer":"floor","foot":[0,8,22,22],"stations":[]},"fridge":{"atlas":"cc","at":[146,0],"size":[16,40],"kind":"decor","layer":"floor","foot":[0,20,16,20],"stations":[]},"pantry":{"atlas":"cc","at":[129,0],"size":[16,42],"kind":"decor","layer":"floor","foot":[0,22,16,20],"stations":[]},"counter":{"atlas":"cc","at":[187,53],"size":[16,27],"kind":"decor","layer":"floor","foot":[0,10,16,17],"stations":[]},"counter_drawers":{"atlas":"cc","at":[221,53],"size":[16,27],"kind":"decor","layer":"floor","foot":[0,10,16,17],"stations":[]},"counter_door":{"atlas":"cc","at":[204,53],"size":[16,27],"kind":"decor","layer":"floor","foot":[0,10,16,17],"stations":[]},"hob":{"atlas":"cc","at":[288,53],"size":[16,27],"kind":"decor","layer":"floor","foot":[0,10,16,17],"stations":[]},"sink":{"atlas":"cc","at":[93,84],"size":[28,15],"kind":"decor","layer":"top","foot":null,"stations":[]},"island":{"atlas":"cc","at":[305,53],"size":[16,27],"kind":"connected","layer":"floor","foot":[0,10,16,17],"stations":[["work",8,32]]},"chair_front":{"atlas":"cc","at":[112,53],"size":[14,28],"kind":"connected","layer":"floor","foot":[0,7,14,21],"stations":[["queen",7,32]]},"runner_blue":{"atlas":"cc","at":[0,84],"size":[30,15],"kind":"connected","layer":"rug","foot":null,"stations":[["fail",15,10]]},"bowl_food":{"atlas":"lic","at":[180,97],"size":[22,18],"kind":"decor","layer":"floor","foot":[0,4,22,14],"stations":[]},"bowl_water":{"atlas":"lic","at":[203,97],"size":[22,18],"kind":"decor","layer":"floor","foot":[0,4,22,14],"stations":[]},"food_bag":{"atlas":"lic","at":[24,97],"size":[16,31],"kind":"decor","layer":"floor","foot":[0,8,16,23],"stations":[]},"dining_table":{"atlas":"cc","at":[276,0],"size":[50,32],"kind":"decor","layer":"floor","foot":[0,6,50,26],"stations":[]},"chair_front_decor":{"atlas":"cc","at":[127,53],"size":[14,28],"kind":"decor","layer":"floor","foot":[0,0,0,0],"stations":[]},"chair_back_work":{"atlas":"cc","at":[398,53],"size":[14,22],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["work",7,22]]},"chair_right":{"atlas":"cc","at":[157,53],"size":[14,27],"kind":"decor","layer":"floor","foot":[0,0,0,0],"stations":[]},"chair_left_queen":{"atlas":"cc","at":[142,53],"size":[14,27],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["queen",7,30]]},"sideboard":{"atlas":"cc","at":[322,53],"size":[32,27],"kind":"decor","layer":"floor","foot":[0,10,32,17],"stations":[]},"runner_yellow":{"atlas":"cc","at":[62,84],"size":[30,15],"kind":"connected","layer":"rug","foot":null,"stations":[["fail",15,10]]},"sunflower":{"atlas":"cc","at":[163,0],"size":[14,40],"kind":"decor","layer":"floor","foot":[0,10,14,30],"stations":[]},"armchair_green":{"atlas":"cc","at":[458,0],"size":[24,30],"kind":"connected","layer":"floor","foot":[0,8,24,22],"stations":[["queen",12,36]]},"scratching_post":{"atlas":"lic","at":[448,0],"size":[28,38],"kind":"connected","layer":"floor","foot":[0,10,28,28],"stations":[["work",14,44]]},"runner_green":{"atlas":"cc","at":[31,84],"size":[30,15],"kind":"connected","layer":"rug","foot":null,"stations":[["fail",15,10]]},"palm":{"atlas":"lic","at":[0,97],"size":[23,34],"kind":"decor","layer":"floor","foot":[0,8,23,26],"stations":[]},"fiddle_fig":{"atlas":"lic","at":[428,0],"size":[19,38],"kind":"decor","layer":"floor","foot":[0,10,19,28],"stations":[]},"fern":{"atlas":"lic","at":[41,97],"size":[22,26],"kind":"decor","layer":"floor","foot":[0,6,22,20],"stations":[]},"monstera":{"atlas":"lic","at":[86,97],"size":[24,25],"kind":"decor","layer":"floor","foot":[0,6,24,19],"stations":[]},"trailing_ivy":{"atlas":"lic","at":[226,97],"size":[23,17],"kind":"decor","layer":"floor","foot":[0,4,23,13],"stations":[]},"shelves_supplies":{"atlas":"cc","at":[178,0],"size":[46,36],"kind":"decor","layer":"floor","foot":[0,16,46,20],"stations":[]},"worktable":{"atlas":"lic","at":[369,0],"size":[58,50],"kind":"connected","layer":"floor","foot":[0,8,58,42],"stations":[["work",29,58]]},"yarn_red":{"atlas":"lic","at":[262,97],"size":[11,10],"kind":"decor","layer":"top","foot":null,"stations":[]},"yarn_blue":{"atlas":"lic","at":[250,97],"size":[11,10],"kind":"decor","layer":"top","foot":null,"stations":[]},"tin_buttons":{"atlas":"lic","at":[274,97],"size":[9,9],"kind":"decor","layer":"top","foot":null,"stations":[]},"supply_chest":{"atlas":"lic","at":[64,97],"size":[21,26],"kind":"decor","layer":"floor","foot":[0,6,21,20],"stations":[]},"chair_right_queen":{"atlas":"cc","at":[172,53],"size":[14,27],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["queen",7,30]]},"bed":{"atlas":"cc","at":[47,0],"size":[32,47],"kind":"connected","layer":"floor","foot":[0,8,32,39],"stations":[["sleep",16,34]]},"nightstand":{"atlas":"cc","at":[413,53],"size":[16,22],"kind":"decor","layer":"floor","foot":[0,8,16,14],"stations":[]},"dresser":{"atlas":"cc","at":[238,53],"size":[32,27],"kind":"decor","layer":"floor","foot":[0,10,32,17],"stations":[]},"foot_chest":{"atlas":"lic","at":[157,97],"size":[22,21],"kind":"decor","layer":"floor","foot":[0,5,22,16],"stations":[]},"toilet":{"atlas":"cc","at":[372,0],"size":[16,31],"kind":"decor","layer":"floor","foot":[0,10,16,21],"stations":[]},"basin":{"atlas":"cc","at":[122,84],"size":[14,14],"kind":"decor","layer":"wall","foot":null,"stations":[]},"mirror_small":{"atlas":"cc","at":[471,53],"size":[12,21],"kind":"decor","layer":"wall","foot":null,"stations":[]},"shower":{"atlas":"cc","at":[355,53],"size":[12,25],"kind":"decor","layer":"wall","foot":null,"stations":[]},"towel":{"atlas":"cc","at":[197,84],"size":[12,14],"kind":"decor","layer":"wall","foot":null,"stations":[]},"bath_mat":{"atlas":"cc","at":[210,84],"size":[16,10],"kind":"connected","layer":"rug","foot":null,"stations":[["queen",8,8]]},"plant_bath":{"atlas":"cc","at":[368,53],"size":[14,24],"kind":"decor","layer":"floor","foot":[0,6,14,18],"stations":[]},"cat_tree":{"atlas":"lic","at":[180,0],"size":[42,88],"kind":"connected","layer":"floor","foot":[4,60,36,28],"stations":[["work",22,92]]},"garden_table":{"atlas":"lic","at":[223,0],"size":[39,66],"kind":"decor","layer":"floor","foot":[0,20,39,46],"stations":[]},"garden_chair":{"atlas":"lic","at":[477,0],"size":[28,36],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["queen",14,38]]},"catio_chest":{"atlas":"lic","at":[134,97],"size":[22,21],"kind":"essential","layer":"floor","foot":[0,5,22,16],"stations":[["review",11,28]]}},"layout":{"hall":[["stairs_west",309,213],["stairs_east",456,213],["door_mat",411,372],["rug_red_diamond",403,318],["lamp_floor",399,262],["lamp_floor",441,262],["writing_desk",316,316],["armchair_pink",360,322],["filing_cabinet",524,316],["cushion_blue",470,344],["cushion_orange",494,356],["plant_pampas",312,340],["plant_snake",530,350]],"brain":[["bookcase_dark_books",357,64],["bookcase_dark_books",442,64],["rug_blue_diamond",364,168],["armchair_blue",360,124],["lamp_floor",384,122],["cushion_green",386,150],["brain_desk",402,128],["chair_back",420,152],["filing_cabinet",478,124],["brain_chest",454,178]],"living":[["fireplace",569,69],["rug_red_diamond",561,136],["armchair_blue_r",532,140],["armchair_blue_l",614,140],["sofa_blue_back",565,172],["cushion_white",596,114],["writing_desk",504,104],["filing_cabinet",640,104],["lamp_floor",520,168],["plant_snake",628,176]],"kitchen":[["fridge",86,74],["counter_drawers",102,89],["counter",118,89],["counter_door",134,89],["hob",150,89],["counter",166,89],["pantry",184,72],["filing_cabinet",206,89],["sink",120,91],["island",132,140],["island",148,140],["chair_front",112,138],["bowl_food",90,170],["bowl_water",90,186],["food_bag",114,172],["runner_blue",150,184],["cushion_orange",190,150]],"dining":[["filing_cabinet",232,89],["sideboard",314,89],["sunflower",336,84],["dining_table",264,128],["chair_front_decor",271,110],["chair_front_decor",293,110],["chair_right",248,131],["chair_left_queen",316,131],["chair_back_work",271,154],["chair_back_work",293,154],["runner_yellow",252,184],["cushion_green",300,186]],"sunroom":[["palm",664,108],["fiddle_fig",729,102],["trailing_ivy",700,120],["armchair_green",686,132],["fern",728,136],["cushion_white",712,176],["runner_green",670,188]],"study":[["bookcase_filled",556,213],["shelves_supplies",604,222],["writing_desk",636,222],["filing_cabinet",670,222],["worktable",590,272],["yarn_red",598,282],["yarn_blue",612,284],["tin_buttons",628,281],["chair_right_queen",572,290],["supply_chest",662,318],["cushion_blue",572,326],["runner_yellow",600,334]],"bedroom":[["nightstand",184,232],["bed",202,222],["nightstand",236,232],["dresser",254,226],["filing_cabinet",288,226],["foot_chest",207,272],["rug_blue_diamond",214,296],["armchair_pink",266,290],["plant_snake",292,300]],"bath":[["mirror_small",111,216],["basin",110,236],["shower",137,216],["towel",90,222],["bath_mat",135,250],["toilet",88,240],["plant_bath",88,290],["cushion_white",116,296]],"garden":[["catio_chest",770,92],["scratching_post",812,96],["cat_tree",846,118],["garden_table",780,200],["garden_chair",822,232],["bowl_water",770,150],["cushion_orange",858,262],["runner_blue",764,172]]}};
+  /* MANOR:END */
+  const ROOM_NAMES = { garden: "Catio", kitchen: "Kitchen", dining: "Dining room", brain: "Library", living: "Drawing room",
+    sunroom: "Conservatory", study: "Studio", bedroom: "Bedroom", bath: "Bathroom", hall: "Great hall" };
+  const ORDER = ["garden", "kitchen", "dining", "brain", "living", "sunroom", "study", "bedroom", "bath", "hall"];
+  const WORLD = MANOR.world;   // native size of the grounds (the scene draws them at 2x)
   const WHOLE = [0, 0, ...WORLD];
+  // Where a cat goes shows its state: the station of that kind in its room, else the nearest free floor.
+  const STATE = { meow: "needs", cry: "fail", box: "review", idle: "work", sleep: "sleep" };
+  const layoutOf = (k) => (MANOR.layout[k] || []).map(([key, x, y]) => ({ key, x, y, p: MANOR.pieces[key] }));
+  // GEOM keeps the shape the rest of the page reads: r = the room's box, cabinet = its filing cabinet's box
+  // (or the catio's chest), queen = her seat, all in native pixels.
+  const GEOM = {};
+  for (const k of ORDER) {
+    const pieces = layoutOf(k);
+    const cab = pieces.find((q) => q.key === "filing_cabinet" || q.key === "catio_chest");
+    const qs = pieces.flatMap((q) => q.p.stations.filter((st) => st[0] === "queen").map((st) => [q.x + st[1], q.y + st[2]]))[0];
+    GEOM[k] = { name: ROOM_NAMES[k], r: MANOR.rooms[k], cabinet: cab ? [cab.x, cab.y, ...cab.p.size] : null, queen: qs || null };
+  }
+  function stationsOf(k) {
+    return layoutOf(k).flatMap((q) => q.p.stations.map(([state, dx, dy]) => ({ state, x: q.x + dx, y: q.y + dy })));
+  }
+  // open floor a cat can stand on: a grid over the room's floor, off every piece's footprint
+  function freeFloor(k) {
+    const [x0, y0, x1, y1] = MANOR.floors[k];
+    const foots = layoutOf(k).filter((q) => q.p.foot && q.p.foot[2]).map((q) => [q.x + q.p.foot[0], q.y + q.p.foot[1], q.p.foot[2], q.p.foot[3]]);
+    const pts = [];
+    for (let y = y1 - 6; y >= y0 + 10; y -= 12) for (let x = x0 + 8; x < x1 - 8; x += 14) {
+      if (!foots.some(([fx, fy, fw, fh]) => x >= fx - 3 && x < fx + fw + 3 && y >= fy - 3 && y < fy + fh + 3)) pts.push([x, y]);
+    }
+    return pts;
+  }
 
   // The room next door in each direction, from the boxes above: the nearest room whose centre lies
   // within 45° of that way (distance along it plus twice the sideways offset). Arrow keys use it.
@@ -393,19 +413,6 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
       if (best) NEXT[a][d] = best;
     }
   }
-
-  // Props from the Pochi sheet: [sx, sy, w, h] on the sheet, drawn with feet at native [x, y].
-  const PROPS = [
-    { s: [6, 256, 85, 175], at: [578, 222] },   // cat tree, catio
-    { s: [9, 207, 43, 37], at: [60, 218] },     // food bowl, kitchen
-    { s: [139, 208, 43, 37], at: [506, 122] },  // water bowl, catio deck
-    { s: [216, 267, 33, 62], at: [104, 196] },  // food bag, by the fridge end of the island
-    { s: [168, 407, 22, 20], at: [330, 316] },  // red yarn, on the craft-room worktable
-    { s: [103, 405, 22, 20], at: [348, 320] },  // blue yarn, beside it
-    { s: [103, 343, 18, 18], at: [362, 314] },  // a tin of buttons
-    { s: [202, 412, 17, 15], at: [296, 176] },  // small red yarn, living-room rug
-    { s: [137, 410, 17, 15], at: [410, 206] },  // small yarn, sunroom
-  ];
 
   // Sprite per mood: frame size and the point under the feet within the frame.
   const SPR = {
@@ -650,15 +657,24 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
 
   let VIEW = { cats: [], placed: [], piles: {}, queens: {}, upstairs: 0 };
 
-  function drawProps() {
-    const box = $("props");
-    for (const p of PROPS) {
-      const d = el("div", "prop px");
-      const [sx, sy, w, h] = p.s;
-      Object.assign(d.style, { width: w + "px", height: h + "px", left: (p.at[0] * 2 - w / 2) + "px", top: (p.at[1] * 2 - h) + "px",
-        backgroundImage: "url(art/licensed/pochi.png)", backgroundPosition: `-${sx}px -${sy}px`, zIndex: p.at[1] * 2 });
+  // The furniture: each piece a cell of its atlas, drawn at 2x. Rugs lie under everything, wall pieces on
+  // the back wall, and the rest share the cats' z-space by their bottom edge, so a cat is in front of a
+  // table it stands before and behind one it stands behind.
+  const ATLAS = { cc: "art/furniture.png", lic: "art/licensed/furniture.png" };
+  function drawFurniture() {
+    const box = $("props"); box.replaceChildren();
+    for (const k of ORDER) for (const q of layoutOf(k)) {
+      const [w, h] = q.p.size, [ax, ay] = q.p.at, [aw, ah] = MANOR.atlases[q.p.atlas];
+      const d = el("div", "piece");
+      d.dataset.piece = q.key; d.dataset.room = k;
+      const z = q.p.layer === "rug" ? 900 : q.p.layer === "wall" ? 950 : q.p.layer === "top" ? 1001 + (q.y + h) * 2 : 1000 + (q.y + h) * 2;
+      Object.assign(d.style, { left: q.x * 2 + "px", top: q.y * 2 + "px", width: w * 2 + "px", height: h * 2 + "px", zIndex: z,
+        backgroundImage: "url(" + ATLAS[q.p.atlas] + ")", backgroundSize: aw * 2 + "px " + ah * 2 + "px", backgroundPosition: -ax * 2 + "px " + -ay * 2 + "px" });
       box.appendChild(d);
     }
+  }
+  function drawProps() {
+    drawFurniture();
     const hits = $("hits");
     for (const k of ORDER) {
       const [x, y, w, h] = GEOM[k].r;
@@ -710,11 +726,25 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     VIEW.queens = {};
     for (const k of ORDER) {
       const here = cats.filter((c) => c.roomKey === k);
-      const spots = GEOM[k].spots;
-      const direct = here.length > spots.length ? here.slice(0, spots.length - 1) : here;
-      const pile = here.length > spots.length ? here.slice(spots.length - 1) : [];
-      direct.forEach((c, i) => placeCat(layer, c, spots[i], k));
-      if (pile.length) placePile(layer, pile, spots[spots.length - 1], k);
+      const st = stationsOf(k), floor = freeFloor(k), taken = [];
+      if (GEOM[k].queen) taken.push(GEOM[k].queen);
+      const clear = (p) => !taken.some((t) => Math.abs(t[0] - p[0]) < 22 && Math.abs(t[1] - p[1]) < 14);   // a cat's width apart
+      const [rx, ry, rw, rh] = GEOM[k].r, mid = [rx + rw / 2, ry + rh / 2];
+      const pile = [];
+      for (const c of here) {
+        // its state's station, if one is free; else the free floor nearest one (or the room's middle)
+        const want = STATE[c.mood], mine = st.filter((s) => s.state === want).map((s) => [s.x, s.y]);
+        let spot = mine.find(clear);
+        if (!spot) {
+          // a cat that needs you with no mat to wait on waits at the front of the room, where she comes in
+          const a = mine[0] || (want === "needs" ? [mid[0], ry + rh - 16] : mid), d = (p) => Math.hypot(p[0] - a[0], p[1] - a[1]);
+          spot = floor.filter(clear).sort((p, q) => d(p) - d(q))[0];
+        }
+        if (!spot) { pile.push(c); continue; }
+        taken.push(spot);
+        placeCat(layer, c, spot, k);
+      }
+      if (pile.length) placePile(layer, pile, taken[taken.length - 1] || mid, k);
       placeQueen(layer, k, here);
     }
 
@@ -1590,7 +1620,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
 
   // The Rooms editor: the cabin as a plan, each room a tab; the chosen room's card below it; then the
   // one room new cats come in to. Saving writes every room, as before.
-  const PLAN = [56, 88, 1168, 672];   // the part of the meadow the house stands on, in scene pixels
+  const PLAN = [140, 80, 1660, 740];   // the part of the grounds the manor and catio stand on, in scene pixels
   function openRooms(start) {
     const dlg = $("roomsDlg"); dlg.replaceChildren(); dlg.classList.add("wide");
     dlg.setAttribute("aria-labelledby", "roomsTitle");
@@ -1598,7 +1628,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     const h = el("h2", null, "Rooms"); h.id = "roomsTitle";
     f.append(h, el("p", "note", "Pick a room on the plan to name it and list the GitHub repositories whose cats move in."));
     const plan = el("div", "plan"), art = el("div", "plan-art"), tabs = el("div");
-    for (const src of ["art/house.png", "art/licensed/decor.png"]) { const i = el("img"); i.src = src; i.alt = ""; art.appendChild(i); }
+    for (const src of ["art/licensed/decor.png", "art/house.png"]) { const i = el("img"); i.src = src; i.alt = ""; art.appendChild(i); }
     tabs.setAttribute("role", "tablist"); tabs.setAttribute("aria-label", "Rooms on the plan");
     plan.append(art, tabs);
     f.appendChild(plan);

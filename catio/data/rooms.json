@@ -63,5 +63,11 @@
    "Snail-Mail-Trail"
   ],
   "catchAll": false
+ },
+ "brain": {
+  "name": "Library",
+  "blurb": "The brain: drop files here and they find their cat",
+  "repos": [],
+  "catchAll": false
  }
 }

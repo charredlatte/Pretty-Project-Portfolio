@@ -25,7 +25,8 @@
   "study":   { "name": "Craft room",  "blurb": "The Montfortoise shop",              "repos": ["montfortoise-shopify"] },
   "bedroom": { "name": "Bedroom",     "blurb": "Legal questions, kept quiet",        "repos": [] },
   "bath":    { "name": "Bathroom",    "blurb": "Spare",                              "repos": [] },
-  "hall":    { "name": "Hall",        "blurb": "Snail mail, by the front door",      "repos": ["Snail-Mail-Trail"] }
+  "hall":    { "name": "Hall",        "blurb": "Snail mail, by the front door",      "repos": ["Snail-Mail-Trail"] },
+  "brain":   { "name": "Library",     "blurb": "The brain",                          "repos": [] }
 };
   if (params.get("mode") !== "empty") for (const [k, v] of Object.entries(SEED)) T.store["rooms/" + k] = v;
   // Claude's saved copy of the sessions, as written after a publish, for when the live read is blocked

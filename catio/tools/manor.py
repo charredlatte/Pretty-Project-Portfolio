@@ -34,8 +34,8 @@ ROOMS = {
     "brain":   ((22, 4, 31, 13), "dark", "panel_dark"),      # the library: dark boards, panelled
     "living":  ((31, 4, 41, 13), "wood", "paper64"),         # the drawing room: pale boards, damask
     "sunroom": ((41, 6, 47, 13), "sand", None),              # the conservatory: glass all round, sandstone
-    "bath":    ((5, 13, 10, 20), "blue", "paper0"),
-    "bedroom": ((10, 13, 19, 21), "wood", "paper48"),        # vines
+    "bath":    ((5, 13, 11, 20), "blue", "paper0"),
+    "bedroom": ((11, 13, 19, 21), "wood", "paper48"),        # vines
     "hall":    ((19, 13, 34, 24), "stone", "stone_white"),   # stone flags, the old white stone left bare
     "study":   ((34, 13, 43, 22), "wood", "stone_brown"),    # the studio: exposed brick, refurbished
 }
@@ -50,7 +50,7 @@ DOORS = [
     ("v", 41, 150, 198),            # drawing room <-> conservatory
     ("h", 13, 408, 446),            # hall -> library, between the two flights of stairs
     ("v", 19, 280, 330),            # bedroom <-> hall
-    ("v", 10, 280, 316),            # bath <-> bedroom (the ensuite)
+    ("v", 11, 280, 316),            # bath <-> bedroom (the ensuite)
     ("v", 34, 280, 330),            # hall <-> studio
 ]
 FRONT_DOOR = (411, 443)             # x span in the hall's south wall
@@ -66,7 +66,7 @@ WINDOWS = [
     ("v", 47, 104, 172), ("v", 47, 196, 206),               # conservatory east, broken by the cat flap
     ("h", 13, 690, 750),                                    # conservatory south, past the studio
     ("v", 5, 240, 304),                                     # bath west
-    ("h", 21, 180, 290),                                    # bedroom south
+    ("h", 21, 196, 290),                                    # bedroom south
     ("h", 24, 330, 395), ("h", 24, 459, 524),               # hall south, either side of the front door
     ("h", 22, 580, 680),                                    # studio south
     ("v", 43, 240, 330),                                    # studio east

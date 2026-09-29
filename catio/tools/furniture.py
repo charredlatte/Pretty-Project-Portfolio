@@ -16,18 +16,26 @@ footprint  the part of the sprite that stands on the floor, as (dx, dy, w, h) in
 stations   where a cat goes to show its state: (state, dx, dy), the point under its feet, relative to the
            piece's top-left. States: needs, review, work, fail, sleep, upstairs; queen for the room's queen.
 
-Sheets are paths inside Charlotte's unpacked packs. "cc" is Cosy Cabin (committable); every other sheet
-is licensed and ships only inside the private artifact.
+Sheets are named by the end of their path, which finds them both in Charlotte's zips and in an unpacked
+copy. "cc" is Cosy Cabin (committable: art/furniture.png); every other sheet is licensed and goes into
+art/licensed/furniture.png, which ships only inside the private artifact.
+
+    python3 catio/tools/furniture.py      writes the page's generated MANOR block (no zips needed: atlas
+                                          positions depend only on the pieces' sizes)
 """
+import json
+import re
+from pathlib import Path
+
 from PIL import Image
 
 WG = "Wood_Garden_Asset_Pack/Wood Garden Asset Pack/"   # rowdy41: one piece per file; a sheet named "wg:<file>"
 SHEETS = {
-    "cc": "CosyCabin/CosyCabin_Objects.png",
-    "tc": "CatMegaFree/CatMegaFree/CatRoomFree/Furnitures.png",
-    "cainos": "Pixel_Art_Top_Down_-_Basic_v1.2.3/Texture/TX Struct.png",
-    "pochi": "CatMegaFree/CatMegaFree/PochiFree/FreeSprites.png",
-    "plants": "plants/plants.png",
+    "cc": "CosyCabin_Objects.png",
+    "tc": "CatRoomFree/Furnitures.png",
+    "cainos": "Texture/TX Struct.png",
+    "pochi": "PochiFree/FreeSprites.png",
+    "plants": "plants.png",
 }
 COMMITTABLE = {"cc"}
 
@@ -205,16 +213,16 @@ LAYOUT = {
     # Bedroom (legal questions, kept quiet): the bed against the vine paper (a cat asleep on it), nightstands,
     # a dresser, a chest at the bed's foot, a reading chair for the queen, the filing cabinet, a rug
     "bedroom": [
-        ("dresser", 170, 226), ("nightstand", 198, 232), ("bed", 216, 222), ("nightstand", 250, 232),
-        ("filing_cabinet", 280, 226), ("foot_chest", 221, 272),
-        ("rug_blue_diamond", 204, 296), ("armchair_pink", 262, 290), ("plant_snake", 186, 305),
+        ("nightstand", 184, 232), ("bed", 202, 222), ("nightstand", 236, 232), ("dresser", 254, 226),
+        ("filing_cabinet", 288, 226), ("foot_chest", 207, 272),
+        ("rug_blue_diamond", 214, 296), ("armchair_pink", 266, 290), ("plant_snake", 292, 300),
     ],
     # Bathroom, the ensuite: the toilet, a basin under its mirror, a shower with its mat (the queen stands on
     # it), a towel, a plant, a cushion; the door to the bedroom on the east stays clear
     "bath": [
         ("mirror_small", 111, 216), ("basin", 110, 236), ("shower", 137, 216), ("towel", 90, 222),
         ("bath_mat", 135, 250), ("toilet", 88, 240),
-        ("plant_bath", 88, 290), ("cushion_white", 110, 296),
+        ("plant_bath", 88, 290), ("cushion_white", 116, 296),
     ],
     # Catio: the chest (its filing cabinet), a cat tree to climb (working), a scratching post, a table and
     # chair for people (the queen's), water, a cushion in the sun, a runner by the cat flap
@@ -226,16 +234,87 @@ LAYOUT = {
 }
 
 
-def sprite(key, packs, cache={}):
+def suffix(sheet):
+    return sheet[3:] if sheet.startswith("wg:") else SHEETS[sheet]
+
+
+def folder_loader(packs):
+    """Find a sheet by the end of its path in an unpacked folder of packs."""
+    files = [str(f) for f in Path(packs).rglob("*.png")]
+    def load(end):
+        hit = [f for f in files if f == end or f.endswith("/" + end)]
+        if not hit:
+            raise SystemExit(end + " not found under " + packs)
+        return Image.open(sorted(hit, key=len)[0]).convert("RGBA")
+    return load
+
+
+def sprite(key, load, cache={}):
+    """One piece's picture. load(path end) opens a sheet: folder_loader(packs), or a zip lookup."""
+    if isinstance(load, str):
+        load = folder_loader(load)
     c = CATALOGUE[key]
     if c["sheet"] not in cache:
-        path = WG + c["sheet"][3:] if c["sheet"].startswith("wg:") else SHEETS[c["sheet"]]
-        cache[c["sheet"]] = Image.open(packs + path).convert("RGBA")
+        cache[c["sheet"]] = load(suffix(c["sheet"]))
     x, y, w, h = c["box"]
     im = cache[c["sheet"]].crop((x, y, x + w, y + h))
     if c["scale"] != 1:
         im = im.resize(tuple(c["size"]), Image.NEAREST)
     return im
+
+
+ATLAS_W = 512
+
+
+def atlas_plan():
+    """Where each piece sits in its atlas: cc (committable) or lic (licensed). Shelf-packed by height."""
+    plan, sizes = {}, {"cc": [0, 0], "lic": [0, 0]}
+    shelf = {"cc": [0, 0, 0], "lic": [0, 0, 0]}          # x, y, height of the current shelf
+    for key in sorted(CATALOGUE, key=lambda k: (-CATALOGUE[k]["size"][1], k)):
+        a = "cc" if CATALOGUE[key]["sheet"] in COMMITTABLE else "lic"
+        w, h = CATALOGUE[key]["size"]
+        x, y, sh = shelf[a]
+        if x + w > ATLAS_W:
+            x, y, sh = 0, y + sh + 1, 0
+        plan[key] = (a, x, y)
+        shelf[a] = [x + w + 1, y, max(sh, h)]
+        sizes[a] = [ATLAS_W, max(sizes[a][1], y + h)]
+    return plan, sizes
+
+
+def atlases(load):
+    """Draw both atlases: {"cc": image, "lic": image}."""
+    plan, sizes = atlas_plan()
+    out = {a: Image.new("RGBA", tuple(sz), (0, 0, 0, 0)) for a, sz in sizes.items()}
+    for key, (a, x, y) in plan.items():
+        out[a].alpha_composite(sprite(key, load), (x, y))
+    return out
+
+
+def page_data():
+    """What the page needs: the grounds' size, each room's box, the pieces as atlas cells, the layout."""
+    import manor
+    plan, sizes = atlas_plan()
+    rooms = {k: [box[0] * manor.T, box[1] * manor.T, (box[2] - box[0]) * manor.T + 5, (box[3] - box[1]) * manor.T + 5]
+             for k, (box, _, _) in manor.ROOMS.items()}
+    x0, y0, x1, y1 = manor.CATIO
+    rooms["garden"] = [x0 * manor.T, y0 * manor.T, (x1 - x0) * manor.T, (y1 - y0) * manor.T]
+    pieces = {k: {"atlas": plan[k][0], "at": plan[k][1:], "size": c["size"], "kind": c["kind"], "layer": c["layer"],
+                  "foot": c["foot"], "stations": c["stations"]} for k, c in CATALOGUE.items()}
+    return {"world": list(manor.SIZE), "face": manor.FACE, "rooms": rooms, "floors": {k: list(floor_of(k)) for k in rooms},
+            "atlases": {a: list(sz) for a, sz in sizes.items()}, "pieces": pieces,
+            "layout": {room: [list(p) for p in items] for room, items in LAYOUT.items()}}
+
+
+def write_page(page):
+    """Replace the page's generated MANOR block with page_data()."""
+    text = Path(page).read_text(encoding="utf-8")
+    block = "/* MANOR:BEGIN generated by catio/tools/furniture.py: edit that, not this */\n  const MANOR = " + \
+        json.dumps(page_data(), separators=(",", ":")) + ";\n  /* MANOR:END */"
+    new, n = re.subn(r"/\* MANOR:BEGIN.*?/\* MANOR:END \*/", lambda m: block, text, flags=re.S)
+    if n != 1:
+        raise SystemExit("no MANOR block in " + page)
+    Path(page).write_text(new, encoding="utf-8")
 
 
 def placed(only=None):
@@ -298,3 +377,8 @@ def render(img, packs, only=None, marks=False):
         for s, x, y, room, k in stations(only):
             d.rectangle([x - 1, y - 1, x + 1, y + 1], fill=colour[s])
     return out
+
+
+if __name__ == "__main__":
+    write_page(Path(__file__).resolve().parent.parent / "index.html")
+    print("MANOR block written")

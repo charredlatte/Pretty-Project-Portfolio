@@ -67,7 +67,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     const st = await page.locator("#stage").boundingBox();
     expect(st.width === 1440 && st.height === 900, JSON.stringify(st));
     expect(await page.locator("#menu").isHidden(), "a menu is open at rest");
-    expect(await page.locator(".roomhit").count() === 9, "rooms");
+    expect(await page.locator(".roomhit").count() === 10, "rooms");
     expect((await page.locator("#status").innerText()).includes("Live") === false || true, "");
     expect(errors.length === 0, "page errors: " + errors.join("; "));
   });
@@ -221,7 +221,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect((await page.locator("#rt-kitchen").getAttribute("aria-selected")) === "true", "kitchen not chosen");
     expect(await page.locator("#rn-kitchen").isVisible() && !(await page.locator("#rn-sunroom").isVisible()), "cards");
     expect(await page.evaluate(() => document.activeElement.id) === "rn-kitchen", "focus not on the name");
-    expect(await page.locator("#roomsDlg .rt").count() === 9 && await page.locator("#rt-living .door").count() === 1, "plan tabs / front door");
+    expect(await page.locator("#roomsDlg .rt").count() === 10 && await page.locator("#rt-living .door").count() === 1, "plan tabs / front door");
   });
   await page.click("#rt-sunroom");
   await page.fill("#rn-sunroom", "Conservatory");
@@ -246,7 +246,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await page.waitForTimeout(200);
   await check("renaming a room saves every room, with one front door, and relabels it", async () => {
     const rooms = await T(page, () => Object.fromEntries(Object.entries(window.__catio.store).filter(([k]) => k.startsWith("rooms/"))));
-    expect(Object.keys(rooms).length === 9, "rooms saved: " + Object.keys(rooms).length);
+    expect(Object.keys(rooms).length === 10, "rooms saved: " + Object.keys(rooms).length);
     const g = rooms["rooms/garden"];
     expect(g.repos.join("|") === "Pretty-Project-Portfolio|charredlatte/other-site" && g.name === "Catio" && g.blurb === "The portfolio, and this page", JSON.stringify(g));
     expect(rooms["rooms/kitchen"].repos.length === 2 && rooms["rooms/kitchen"].blurb.startsWith("Weekly meals"), "untouched rooms keep their data: " + JSON.stringify(rooms["rooms/kitchen"]));
@@ -269,9 +269,9 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
 
   await check("every room has a queen, and she is nobody's session", async () => {
     const n = await page.locator("#cats .cat.queen").count();
-    expect(n === 9, "queens drawn: " + n);
+    expect(n === 10, "queens drawn: " + n);
     const crowns = await page.locator("#cats .cat.queen .crown").count();
-    expect(crowns === 9, "crowns: " + crowns);
+    expect(crowns === 10, "crowns: " + crowns);
   });
   await check("she is never counted among the cats that need you", async () => {
     const before = await page.locator("#tally").textContent();
@@ -377,7 +377,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(words.includes("build-art.py"), "it does not say how to fix it: " + words);
     expect(await page.locator("#status.warn").count() === 1, "the sign is not flagging it");
     // her crown, her menu and what she keeps still work without the packs to draw them
-    expect(await page.locator("#cats .cat.queen .crown").count() === 9, "crowns went missing");
+    expect(await page.locator("#cats .cat.queen .crown").count() === 10, "crowns went missing");
     await page.locator('#cats .cat[data-queen="bedroom"]').hover();
     await settle(page);
     expect((await menuText(page)).includes("Queen of the Bedroom"), await menuText(page));
@@ -396,7 +396,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   const { page, ctx, errors } = await open("", { viewport: { width: 1280, height: 720 } });
   await check("on a laptop screen every room still wears its name, inside its own walls", async () => {
     const signs = page.locator("#overlay .sign");
-    expect(await signs.count() === 9, "signs: " + await signs.count());
+    expect(await signs.count() === 10, "signs: " + await signs.count());
     for (const k of ["garden", "kitchen", "dining", "living", "sunroom", "study", "bedroom", "bath", "hall"]) {
       const box = await page.locator(`.sign[data-room=${k}]`).boundingBox(), room = await page.locator(`#room-${k}`).boundingBox();
       expect(box && box.x >= room.x && box.x + box.width <= room.x + room.width + 1 && box.y >= room.y, k + " sign outside its room");
@@ -433,8 +433,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(await page.evaluate(() => { const b = document.activeElement.closest("#menu").querySelector("button"); return b.textContent.startsWith("Caramel"); }), "no cat row above");
   });
   await page.keyboard.press("Escape");
-  await page.keyboard.press("ArrowLeft");
-  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("ArrowUp");   // the drawing room is right above the studio
   await check("arrow keys move the ring to the room next door and open its menu", async () => {
     expect((await active()) === "room-living", "focus: " + (await active()));
     expect((await menuText(page)).startsWith("Living room"), await menuText(page));
