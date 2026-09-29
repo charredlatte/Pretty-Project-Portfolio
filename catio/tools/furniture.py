@@ -9,7 +9,8 @@ can move it (see docs/renovation-mode.md). This file is the one source for:
 kind       essential: never moves (front door mat, stairs, filing cabinets, the brain's desk)
            connected: carries a station, so it can move but not be removed
            decor:     can move, be added and be removed
-layer      rug (under everything), wall (on the back wall band), floor (sorted by bottom edge, like cats)
+layer      rug (under everything), wall (on the back wall band), floor (sorted by bottom edge, like cats),
+           top (set into a floor piece: a sink in a counter)
 footprint  the part of the sprite that stands on the floor, as (dx, dy, w, h) inside the box; no cat
            stands on it. Rugs and wall pieces have none.
 stations   where a cat goes to show its state: (state, dx, dy), the point under its feet, relative to the
@@ -25,6 +26,7 @@ SHEETS = {
     "cc": "CosyCabin/CosyCabin_Objects.png",
     "tc": "CatMegaFree/CatMegaFree/CatRoomFree/Furnitures.png",
     "cainos": "Pixel_Art_Top_Down_-_Basic_v1.2.3/Texture/TX Struct.png",
+    "pochi": "CatMegaFree/CatMegaFree/PochiFree/FreeSprites.png",
 }
 COMMITTABLE = {"cc"}
 
@@ -72,6 +74,20 @@ CATALOGUE = {
     "sofa_blue_back": piece("cc", (620, 74, 40, 22), "connected", foot=(0, 0, 0, 0), stations=[("sleep", 20, 16)]),
     "armchair_blue_l": piece("cc", (409, 66, 22, 30), "connected", stations=[("queen", 11, 36)]),
     "armchair_blue_r": piece("cc", (481, 66, 22, 30), "decor"),
+    # the kitchen
+    "fridge": piece("cc", (384, 808, 16, 40), "decor", foot=(0, 20, 16, 20)),
+    "pantry": piece("cc", (448, 806, 16, 42), "decor", foot=(0, 22, 16, 20)),
+    "counter": piece("cc", (576, 628, 16, 27), foot=(0, 10, 16, 17)),
+    "counter_drawers": piece("cc", (608, 628, 16, 27), foot=(0, 10, 16, 17)),
+    "counter_door": piece("cc", (640, 628, 16, 27), foot=(0, 10, 16, 17)),
+    "hob": piece("cc", (576, 756, 16, 27), foot=(0, 10, 16, 17)),
+    "sink": piece("cc", (2, 784, 28, 15), layer="top"),
+    "island": piece("cc", (576, 628, 16, 27), "connected", foot=(0, 10, 16, 17), stations=[("work", 8, 32)]),
+    "chair_front": piece("cc", (609, 276, 14, 28), "connected", stations=[("queen", 7, 32)]),
+    "runner_blue": piece("cc", (1009, 113, 30, 15), "connected", "rug", stations=[("fail", 15, 10)]),
+    "bowl_food": piece("pochi", (9, 207, 43, 37), scale=0.5),
+    "bowl_water": piece("tc", (395, 335, 43, 37), scale=0.5),
+    "food_bag": piece("pochi", (216, 267, 33, 62), scale=0.5),
 }
 
 # the default layout, room by room: (key, x, y), native pixels, the sprite's top-left
@@ -104,6 +120,16 @@ LAYOUT = {
         ("writing_desk", 504, 104), ("filing_cabinet", 640, 104),
         ("lamp_floor", 520, 168), ("plant_snake", 628, 176),
     ],
+    # Kitchen: the counter run under the window (fridge, drawers, the sink, the hob, a pantry), an island to
+    # work at, the cats' bowls and food bag by the west glass, a runner, a cushion, the filing cabinet
+    "kitchen": [
+        ("fridge", 86, 74), ("counter_drawers", 102, 89), ("counter", 118, 89), ("counter_door", 134, 89),
+        ("hob", 150, 89), ("counter", 166, 89), ("pantry", 184, 72), ("filing_cabinet", 206, 89),
+        ("sink", 120, 91),
+        ("island", 132, 140), ("island", 148, 140), ("chair_front", 112, 138),
+        ("bowl_food", 90, 170), ("bowl_water", 90, 186), ("food_bag", 114, 172),
+        ("runner_blue", 150, 184), ("cushion_orange", 190, 150),
+    ],
 }
 
 
@@ -122,7 +148,7 @@ def sprite(key, packs, cache={}):
 def placed(only=None):
     """Every piece in the layout as (key, x, y, room), in draw order: rugs, wall pieces, then by bottom edge."""
     rows = [(k, x, y, room) for room, items in LAYOUT.items() if not only or room == only for k, x, y in items]
-    order = {"rug": 0, "wall": 1, "floor": 2}
+    order = {"rug": 0, "wall": 1, "floor": 2, "top": 3}
     return sorted(rows, key=lambda r: (order[CATALOGUE[r[0]]["layer"]], r[2] + CATALOGUE[r[0]]["size"][1]))
 
 
