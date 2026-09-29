@@ -30,7 +30,7 @@ What you'll see: the cabin, with a cat for every Claude Code session in data/ses
 copy Claude saved. Adopted cats, room names and project looks are saved in this browser.
 To get newer cats, ask Claude to refresh data/sessions.json and copy the new file into data/.
 
-The art belongs to Marie Pepo, ToffeeCraft, Heosphorus, rowdy41 and Cainos. It's licensed for
+The art belongs to Marie Pepo, ToffeeCraft, Heosphorus, rowdy41, Cainos and Cup Nooble. It's licensed for
 your own use: please don't share this folder.
 """
 

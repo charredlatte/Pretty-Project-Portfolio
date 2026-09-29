@@ -14,6 +14,10 @@ P=$(dirname "$T")
   cat "$P/index.html"
   printf '</body></html>'
 } > "$T/.page.html"
+# the same page over a folder with only the committed art, as anyone else's checkout is
+N="$T/.noart"
+rm -rf "$N"; mkdir -p "$N/art"; cp "$P/art/house.png" "$N/art/"
+sed "s#<base href=\"file://$P/\">#<base href=\"file://$N/\">#" "$T/.page.html" > "$T/.page-noart.html"
 : "${PLAYWRIGHT:=/opt/node22/lib/node_modules/playwright}"
 : "${CHROMIUM:=/opt/pw-browsers/chromium-1194/chrome-linux/chrome}"
 [ -x "$CHROMIUM" ] || unset CHROMIUM

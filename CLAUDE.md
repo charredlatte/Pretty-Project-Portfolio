@@ -10,9 +10,11 @@ her rooms, renames and adopted chats belongs to that artifact.
 
 Publish `catio/index.html` with:
 
-- `files`: every file the page references: `art/house.png`, `art/ui/*.png` (frames, plaques,
-  wallpaper, rail, bar, slot, door) and `art/licensed/*.png` (`decor.png`, `meadow.png`,
-  `emblems.png`, `mochi-idle.png`, `mochi-box.png`, `pochi.png`, `cat-ui.png`);
+- `files`: every file the page references: `art/house.png`, `art/licensed/*.png` (`decor.png`,
+  `meadow.png`, `emblems.png`, `mochi-idle.png`, `mochi-box.png`, `pochi.png`) and the interface
+  in `art/licensed/ui/` (`panel`, `button`, `button-hover`, `button-down`, `button-green`,
+  `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `bubble-tail`, `corners`,
+  `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point` `.png`, and `sprout.ttf`);
 - `capabilities`: omit it on a republish to keep what's stored. The declaration is
   `{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions"] }] }, db: {} }`.
 
@@ -21,14 +23,15 @@ Publish `catio/index.html` with:
 `art/licensed/` is not in git (licences below). In a fresh session, get it back one of two ways:
 
 1. `Artifact` read with `path: "art/licensed/<file>"` on the published URL, for each file; or
-2. ask Charlotte for the five zips and run
-   `python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip Top_down_garden_castle.zip Wood_Garden_Asset_Pack.zip "Pixel_Art_Top_Down_-_Basic_v1.2.3.zip"`
-   (needs `pip install pillow`).
+2. ask Charlotte for the six zips and run
+   `python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip Top_down_garden_castle.zip Wood_Garden_Asset_Pack.zip "Pixel_Art_Top_Down_-_Basic_v1.2.3.zip" "Sprout_Lands_-_UI_Pack_-_Basic_pack.zip"`
+   (needs `pip install pillow fonttools`). Given only the Sprout Lands zip, it rebuilds just the
+   interface.
 
 ## Licences: what may be committed
 
-- **Cosy Cabin** (Marie Pepo): copying and modifying allowed, with credit. `art/house.png` and
-  `art/ui/` (every frame, plaque and wallpaper on the page) are committed.
+- **Cosy Cabin** (Marie Pepo): copying and modifying allowed, with credit. `art/house.png` is
+  committed.
 - **ToffeeCraft cats** (free version): personal use only, **no redistribution**. Never commit.
 - **Top Down Garden Castle** (Heosphorus): **no distribution, even modified**. Never commit.
 - **Wood Garden** (rowdy41): no resale. It is baked into `decor.png` with Heosphorus's
@@ -36,8 +39,10 @@ Publish `catio/index.html` with:
 - **Pixel Art Top Down – Basic** (Cainos): free for any project, **no redistribution**. Its
   stonework is also in `decor.png`. It is drawn on a 32 px grid, twice the cabin's, so its
   pieces read large: use it for garden stonework, not indoor furniture.
+- **Sprout Lands UI Pack – Basic** (Cup Nooble): modifying allowed, **no redistribution or resale,
+  even modified**, non-commercial use only. The whole interface (`art/licensed/ui/`). Never commit.
 
-The footer credits all five. Keep it.
+The footer credits all six. Keep it.
 
 ## The cabin is a floor plan
 
@@ -61,10 +66,30 @@ placed beside it so it never covers what the pointer is on. Keyboard focus opens
 `:focus-visible`; on touch the first tap opens the menu and the second acts (`armed()`). A new
 control goes into one of these menus, not onto the screen.
 
-Frames, menus, buttons, chips, slots and dividers are 9-slice `border-image`s cut from the
-Cosy Cabin tile sheet (`art/ui/`). The mood faces and paw come from ToffeeCraft's cat UI sheet.
-Keep it that way: a new control should reuse one of these pieces rather than a CSS border or
-gradient. `--u` is one art pixel on screen (2px, or 1px on phones).
+Hover means the pointer really moved onto the thing (`moved()`): when the camera moves or a dialog
+closes, the room that slides under a still pointer gets no menu until she moves. Without that, a
+neighbour's menu opens over the room she just looked into.
+
+The interface is Cup Nooble's Sprout Lands UI pack, cut by `build-art.py` into
+`art/licensed/ui/`. Menus, dialogs, the sign and the screen's frame are its tan panel; buttons are
+its cream square button (white on hover, pressed in when held; `green` and `pink` are recoloured
+copies); inputs are its grey pressed-in button; speech bubbles and a cat's ask are its grey bubble;
+a filing cabinet's project sits in its pressed cream well; rooms and cabinets light up with its
+white selection brackets (on a room they stay one size on screen at any zoom), and so does the
+chosen room on the Edit rooms plan, which sits in its picture frame with its arrow, on its white
+button, pointing into the room new cats come in to. Each is a 9-slice `border-image`. The mood faces are its cat emoji
+(`faces.png`, in `MOODS` order, then a queen's heart eyes), the sound control is its toggle, the
+sign's tick and cross are its own, a queen's crown is its crown icon gilded, what she keeps is
+starred with its stars, and the pointer is its cat paw. Keep it that way: a new control should
+reuse one of these pieces rather than a CSS border or gradient. `--u` is one art pixel on screen
+(2px, or 1px on phones); the scene's overlay (room tags, bubbles) is drawn at one art pixel a
+pixel.
+
+Titles, labels, buttons and names use the pack's pixel font (`--pixel`, `sprout.ttf`) at **18px**,
+where one font pixel is one screen pixel (36px for a cat's name on its card); anything else blurs.
+It has capitals only (small letters draw as capitals), so body text stays in Nunito.
+`build-art.py` adds the accents French names need (à â ä ç é è ê ë î ï ô ö ù û ü ÿ, a middle
+dot, an ellipsis, curly quotes); other symbols fall back to Fredoka.
 
 ## Data
 
@@ -76,14 +101,24 @@ The artifact database, written by the page and seeded with `ArtifactData`:
 | `sessions` | the Claude Code session id | `name`, `room`: her rename or move of one session's cat |
 | `cats` | generated id | an adopted chat: `title`, `link`, `project`, `room`, `mood` (`needs` / `busy` / `done`), `note`, `name` |
 | `projects` | the project's slug (repo name, or an adopted chat's project) | `name`, `emblem`, `coat`: the look every cat of that project shares, set from a filing cabinet |
+| `queens` | the room key | the room's queen: `name`, `notes[]` of `{text, pinned, at}`. A pinned note is one she says out loud in her room |
 | `snapshot` | `sessions` | `{at, savedBy, sessions[]}`: Claude's saved copy of `list_sessions`, shown when the live read is blocked. Written only by Claude, with `ArtifactData` |
 
 Room **geometry** (where each room is on the art and where its cats sit) is code, in `GEOM` in
 the page, because it is tied to the picture. Room **names and which projects live where** are
 data. Don't hardcode those.
 
+**Every room has a queen** — one cat who is not a session, never leaves, and keeps what matters
+in that room. She sits on `GEOM[room].queen`, the seat held back from `spots` for her, so adding
+one to a room means taking a seat out of `spots`, not inventing a coordinate. She is deliberately
+outside `allCats()`: she is never in `VIEW.cats`, never in a pile, never in the filing cabinets
+and never counted by the sign, because she is not work to be done. What she keeps is hers alone;
+a note she is *saying* (`pinned`) becomes her line in the menus and a bubble in her room. Keep her
+out of the counts if you touch this — a queen that inflates "3 need you" makes the sign a liar.
+
 Adopted chats can hold anything she types, including legal matters. They live only in the
-artifact database, never in this repo. The adopt form says so.
+artifact database, never in this repo. The adopt form says so. The same goes for what a queen
+keeps: her card carries the same warning.
 
 ## Live sessions
 
@@ -91,14 +126,20 @@ The page calls `list_sessions` (limit 50) through the `mcp` capability as the vi
 calls a write tool. Don't add `mine: true`: a page has no calling session, and that flag can
 error without one. Every connector error code has its own message in `problem()`.
 
-Her organisation's settings can stop the page reading sessions (`approval_required`: the tool is
-set to ask every time, which a page can't do; `blocked_by_policy`: an admin has capped it). The
-fix is hers: claude.ai **Customize → Connectors → Claude Code Remote**, set `list_sessions` to
-**Allow**. Until then the page shows `snapshot/sessions`. To refresh it, call `list_sessions`
-(limit 50) from a session, save the result, run
+claude.ai can refuse the page's read (`approval_required`: the tool asks before every call,
+which a page can't do; `blocked_by_policy`). Claude Code Remote is a built-in connector: it is
+**not** in her Customize → Connectors list, so there is no `list_sessions` switch for her to set
+(checked against her settings, September 2026). Don't send her looking for one. The page shows
+`snapshot/sessions`. To refresh it, call `list_sessions` (limit 50) from a session, save the
+result, run
 `python3 catio/tools/save-sessions.py <result>.json`, and write `catio/data/sessions.json`'s
 object to `snapshot/sessions` with `ArtifactData` (`set`, pinned with `if_version`). The script
-keeps only what the page reads.
+keeps only what the page reads, and accepts the result as the tool returns it
+(wrapped in `ccr`).
+
+A Routine, "Refresh the catio", does this every two hours from 07:59 to 19:59 Paris time. It fires
+into the Claude Code session it was created from, not a fresh one: a fresh routine session has
+neither `list_sessions` nor `ArtifactData`, so it can't refresh anything (tried September 2026).
 
 ## Running on localhost
 
@@ -131,8 +172,9 @@ changes as it runs), and walks: adopting a chat, through in progress and done, t
 go; a session going blocked, working, finished, archived and failed; renaming and moving a
 cat; a filing cabinet and a project's look; renaming rooms; the room and cat menus by hover,
 keyboard and touch; the saved copy when settings block the live read; the no-connector,
-no-storage, view-only and phone cases; and the localhost bundle, served on port 8791 with its
-own `data/`. All checks must pass.
+no-storage, view-only and phone cases; a copy with none of the licensed art (`.page-noart.html`,
+as anyone else's clone is, whether or not this checkout has the packs); and the localhost bundle,
+served on port 8791 with its own `data/`. All checks must pass.
 
 Its example data is invented. Never paste her real session list into the stub or the page.
 

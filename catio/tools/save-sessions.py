@@ -18,6 +18,8 @@ OUT = Path(__file__).resolve().parent.parent / "data" / "sessions.json"
 
 def main(src):
     raw = json.loads(Path(src).read_text(encoding="utf-8"))
+    if isinstance(raw, dict) and "ccr" in raw:
+        raw = raw["ccr"]
     rows = raw.get("data", raw) if isinstance(raw, dict) else raw
     sessions = []
     for s in rows:

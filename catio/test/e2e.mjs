@@ -11,6 +11,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT || "playwright");
 const url = "file://" + join(here, ".page.html");
 const LOCAL = process.env.LOCAL_URL;   // set by run.sh when it serves the local bundle
+const NOART = "file://" + join(here, ".page-noart.html");   // the same page with no licensed art, built by run.sh
 const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 let pass = 0, fail = 0;
 const results = [];
@@ -216,12 +217,42 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   /* ---------- 5. rooms and sound, from a room's menu ---------- */
   await hoverRoom(page, "kitchen");
   await menuButton(page, "Edit rooms").click();
+  await check("Edit rooms opens the cabin plan on the room you pointed at, one card at a time", async () => {
+    expect((await page.locator("#rt-kitchen").getAttribute("aria-selected")) === "true", "kitchen not chosen");
+    expect(await page.locator("#rn-kitchen").isVisible() && !(await page.locator("#rn-sunroom").isVisible()), "cards");
+    expect(await page.evaluate(() => document.activeElement.id) === "rn-kitchen", "focus not on the name");
+    expect(await page.locator("#roomsDlg .rt").count() === 9 && await page.locator("#rt-living .door").count() === 1, "plan tabs / front door");
+  });
+  await page.click("#rt-sunroom");
   await page.fill("#rn-sunroom", "Conservatory");
+  await check("the plan follows the name as she types it", async () => {
+    expect((await page.locator("#rt-sunroom").getAttribute("aria-label")) === "Conservatory", "tab label");
+    expect((await page.locator("#catchAll option[value=sunroom]").innerText()) === "Conservatory", "front-door choice");
+  });
+  await page.locator("#rt-sunroom").focus();
+  await page.keyboard.press("ArrowRight");
+  await check("arrow keys move between rooms on the plan", async () => {
+    expect(await page.evaluate(() => document.activeElement.id) === "rt-garden", await page.evaluate(() => document.activeElement.id));
+    expect(await page.locator("#rr-garden").isVisible(), "catio card not shown");
+  });
+  await page.fill("#rr-garden", "Pretty-Project-Portfolio, charredlatte/other-site");
+  await page.fill("#rb-garden", "The portfolio, and this page");
+  await page.selectOption("#catchAll", "kitchen");
+  await check("choosing where new cats come in moves the front door on the plan", async () => {
+    expect(await page.locator("#rt-kitchen .door").count() === 1 && await page.locator("#rt-living .door").count() === 0, "door");
+    expect((await page.locator("#rt-kitchen").getAttribute("aria-label")).includes("where new cats come in"), "not spoken");
+  });
   await page.click('#roomsDlg button[type="submit"]');
   await page.waitForTimeout(200);
-  await check("renaming a room saves every room and relabels it", async () => {
-    const n = await T(page, () => Object.keys(window.__catio.store).filter((k) => k.startsWith("rooms/")).length);
-    expect(n === 9, "rooms saved: " + n);
+  await check("renaming a room saves every room, with one front door, and relabels it", async () => {
+    const rooms = await T(page, () => Object.fromEntries(Object.entries(window.__catio.store).filter(([k]) => k.startsWith("rooms/"))));
+    expect(Object.keys(rooms).length === 9, "rooms saved: " + Object.keys(rooms).length);
+    const g = rooms["rooms/garden"];
+    expect(g.repos.join("|") === "Pretty-Project-Portfolio|charredlatte/other-site" && g.name === "Catio" && g.blurb === "The portfolio, and this page", JSON.stringify(g));
+    expect(rooms["rooms/kitchen"].repos.length === 2 && rooms["rooms/kitchen"].blurb.startsWith("Weekly meals"), "untouched rooms keep their data: " + JSON.stringify(rooms["rooms/kitchen"]));
+    const front = Object.entries(rooms).filter(([, d]) => d.catchAll).map(([k]) => k);
+    expect(front.join() === "rooms/kitchen", "catch-all: " + front.join());
+    expect((await page.locator(".sign[data-room=sunroom] .nm").innerText()) === "Conservatory", "sign not renamed");
     await hoverRoom(page, "sunroom");
     expect((await menuText(page)).includes("Conservatory"), await menuText(page));
   });
@@ -231,7 +262,261 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await ctx.close();
 }
 
-/* ---------- 6. touch: the first tap opens the menu, the second acts ---------- */
+/* ---------- 5b. the queens: one per room, keeping what matters in it ---------- */
+{
+  const { page, ctx, errors } = await open();
+  const queen = (room) => page.locator('#cats .cat[data-queen="' + room + '"]');
+
+  await check("every room has a queen, and she is nobody's session", async () => {
+    const n = await page.locator("#cats .cat.queen").count();
+    expect(n === 9, "queens drawn: " + n);
+    const crowns = await page.locator("#cats .cat.queen .crown").count();
+    expect(crowns === 9, "crowns: " + crowns);
+  });
+  await check("she is never counted among the cats that need you", async () => {
+    const before = await page.locator("#tally").textContent();
+    // the sign counts working cats only: a queen sitting up must not add to it
+    const needing = await page.locator("#cats .cat:not(.queen).m-meow, #cats .cat:not(.queen).m-cry, #cats .cat:not(.queen).m-box").count();
+    const said = (before.match(/(\d+) need you/) || [])[1];
+    expect(String(needing) === String(said || 0), "sign says " + said + ", cats needing you: " + needing);
+  });
+  await queen("kitchen").hover();
+  await settle(page);
+  await check("hovering her gives the room in one line", async () => {
+    const t = await menuText(page);
+    expect(t.includes("Queen of the Kitchen"), t);
+    expect(/needs you|need you in here|All quiet|Nothing in this room/.test(t), t);
+  });
+  await queen("kitchen").click();
+  await settle(page);
+  await check("her card opens with nothing kept yet", async () => {
+    const t = await page.locator("#queenDlg").innerText();
+    expect(t.includes("She is keeping nothing for this room yet."), t.slice(0, 200));
+  });
+  await page.fill("#queenAdd", "The Drive order goes in on Sunday.");
+  await page.locator('#queenDlg button:has-text("Give it to her")').click();
+  await page.fill("#queenAdd", "Chilli is a health rule, never a taste.");
+  await page.locator('#queenDlg button:has-text("Give it to her")').click();
+  await page.locator('#queenDlg button:has-text("Say it")').last().click();
+  await page.fill("#queenRename", "Mémé");
+  await page.click("#queenSave");
+  await settle(page);
+  await check("what you give her is written as one document for that room", async () => {
+    const d = await T(page, () => window.__catio.store["queens/kitchen"]);
+    expect(d && d.name === "Mémé", JSON.stringify(d));
+    expect(d.notes.length === 2, "notes: " + JSON.stringify(d.notes));
+    const said = d.notes.filter((n) => n.pinned);
+    expect(said.length === 1 && said[0].text.startsWith("The Drive order"), JSON.stringify(said));
+  });
+  await check("she takes her new name and sits up to say it", async () => {
+    const label = await queen("kitchen").getAttribute("aria-label");
+    expect(label.startsWith("Mémé, queen of the Kitchen"), label);
+    expect((await queen("kitchen").getAttribute("class")).includes("m-meow"), await queen("kitchen").getAttribute("class"));
+  });
+  await page.evaluate(() => document.querySelector('.roomhit[data-room="kitchen"]').click());
+  await page.waitForTimeout(800);
+  await check("in her room she says it out loud, and it opens her card", async () => {
+    const bub = page.locator("#overlay .bub.queenb");
+    expect(await bub.count() === 1, "bubbles: " + (await bub.count()));
+    expect((await bub.innerText()).includes("The Drive order"), await bub.innerText());
+    await bub.click();
+    await settle(page);
+    expect(await page.locator("#queenDlg").isVisible(), "her card did not open");
+  });
+  await check("the one she is saying is not listed twice in her menu", async () => {
+    await page.keyboard.press("Escape");
+    await queen("kitchen").hover();
+    await settle(page);
+    const t = await menuText(page);
+    expect(t.split("The Drive order").length === 2, t);
+    expect(t.includes("She is also keeping") && t.includes("Chilli is a health rule"), t);
+  });
+  await queen("kitchen").click();
+  await settle(page);
+  await page.locator('#queenDlg button:has-text("Saying it")').click();
+  await page.click("#queenSave");
+  await settle(page);
+  await check("taking it back stops her saying it", async () => {
+    const d = await T(page, () => window.__catio.store["queens/kitchen"]);
+    expect(d.notes.every((n) => !n.pinned), JSON.stringify(d.notes));
+    expect(await page.locator("#overlay .bub.queenb").count() === 0, "still saying it");
+  });
+  await queen("kitchen").click();
+  await settle(page);
+  await page.locator('#queenDlg button:has-text("Forget")').first().click();
+  await page.click("#queenSave");
+  await settle(page);
+  await check("forgetting one leaves the rest", async () => {
+    const d = await T(page, () => window.__catio.store["queens/kitchen"]);
+    expect(d.notes.length === 1, JSON.stringify(d.notes));
+  });
+
+  // the bug this feature found: redrawing the menu under your pointer used to close it, because the
+  // button the redraw removed no longer looked like part of the menu by the time the click arrived
+  await hoverRoom(page, "kitchen");
+  const was = await menuText(page);
+  await menuButton(page, "Sound off").click();
+  await check("a menu button that redraws the menu leaves it open, on the same room", async () => {
+    expect(await page.locator("#menu").isVisible(), "the menu closed under the pointer");
+    const now = await menuText(page);
+    expect(now.includes("Kitchen"), "it reopened on another room: " + now.slice(0, 80));
+    expect(now.includes("Sound on") && was.includes("Sound off"), now.slice(0, 120));
+  });
+  await check("no page errors while working the queens", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+
+/* ---------- 5c. anyone else's copy: none of the licensed art ---------- */
+// run.sh builds .page-noart.html over a folder holding only the committed art, which is what a
+// fresh clone looks like whether or not this checkout has the packs.
+{
+  const { page, ctx, errors } = await open("", { base: NOART });
+  await check("with no licensed art the sign says so, and the queens still work", async () => {
+    const words = await page.locator("#status").textContent();
+    expect(words.includes("The cat art isn't here"), words);
+    expect(words.includes("build-art.py"), "it does not say how to fix it: " + words);
+    expect(await page.locator("#status.warn").count() === 1, "the sign is not flagging it");
+    // her crown, her menu and what she keeps still work without the packs to draw them
+    expect(await page.locator("#cats .cat.queen .crown").count() === 9, "crowns went missing");
+    await page.locator('#cats .cat[data-queen="bedroom"]').hover();
+    await settle(page);
+    expect((await menuText(page)).includes("Queen of the Bedroom"), await menuText(page));
+  });
+  await check("without the interface art the sign and menus sit on plain colour, not the meadow", async () => {
+    const bg = (sel) => page.locator(sel).evaluate((e) => getComputedStyle(e).backgroundColor);
+    expect((await bg("#hud")) !== "rgba(0, 0, 0, 0)", "the sign has nothing behind it");
+    expect((await bg("#menu")) !== "rgba(0, 0, 0, 0)", "the menu has nothing behind it");
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
+
+/* ---------- 6. rooms on the map: signs at every size, the brackets, and the keyboard ---------- */
+{
+  const { page, ctx, errors } = await open("", { viewport: { width: 1280, height: 720 } });
+  await check("on a laptop screen every room still wears its name, inside its own walls", async () => {
+    const signs = page.locator("#overlay .sign");
+    expect(await signs.count() === 9, "signs: " + await signs.count());
+    for (const k of ["garden", "kitchen", "dining", "living", "sunroom", "study", "bedroom", "bath", "hall"]) {
+      const box = await page.locator(`.sign[data-room=${k}]`).boundingBox(), room = await page.locator(`#room-${k}`).boundingBox();
+      expect(box && box.x >= room.x && box.x + box.width <= room.x + room.width + 1 && box.y >= room.y, k + " sign outside its room");
+      expect(await page.locator(`.sign[data-room=${k}] .nm`).evaluate((e) => e.scrollWidth <= e.clientWidth + 1), k + " name cut short at its default length");
+    }
+  });
+  await check("the room where a cat needs you carries a badge with its face and count, quiet rooms none", async () => {
+    expect((await page.locator(".sign[data-room=study] .badge .n").innerText()) === "1", "craft room badge");
+    expect(await page.locator(".sign[data-room=study] .badge.need .face-ico").count() === 1, "no meowing face");
+    expect(await page.locator(".sign .badge").count() === 1, "badges on quiet rooms");
+    expect(await page.locator(".sign").first().evaluate((e) => getComputedStyle(e).pointerEvents) === "none", "signs catch the pointer");
+  });
+  await hoverRoom(page, "kitchen");
+  await check("the room under the pointer, and the one its menu belongs to, light up with the white brackets", async () => {
+    const ring = await page.locator("#room-kitchen").evaluate((e) => e.classList.contains("lit") && getComputedStyle(e).borderImageSource);
+    expect(ring && ring.includes("corners.png"), "no brackets: " + ring);
+  });
+  const hud = await page.locator("#hud").boundingBox();   // rest the pointer on the sign, off the rooms
+  await page.mouse.move(hud.x + 10, hud.y + 10);
+  await page.waitForTimeout(450);
+  const active = () => page.evaluate(() => document.activeElement.id || document.activeElement.className);
+  for (let i = 0; i < 8 && !(await active()).startsWith("room-"); i++) await page.keyboard.press("Tab");
+  await check("the map is one tab stop, landing on the room that needs you, with its menu open and the keys in it", async () => {
+    expect((await active()) === "room-study", "focus: " + (await active()));
+    expect(await page.evaluate(() => [...document.querySelectorAll(".roomhit, .cabinet, #cats .cat")].filter((b) => b.tabIndex >= 0).length) === 1, "more than one map stop");
+    const t = await menuText(page);
+    expect(t.includes("Craft room") && t.includes("Esc back"), t);
+    const ring = await page.locator("#room-study").evaluate((e) => getComputedStyle(e).borderImageSource);
+    expect(ring.includes("corners.png"), "no brackets on the focused room");
+  });
+  await page.keyboard.press("Enter");
+  await check("Enter steps into the menu on Look in, with the cats needing you just above it", async () => {
+    expect((await page.evaluate(() => document.activeElement.textContent)) === "Look in", await active());
+    expect(await page.evaluate(() => { const b = document.activeElement.closest("#menu").querySelector("button"); return b.textContent.startsWith("Caramel"); }), "no cat row above");
+  });
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("ArrowUp");
+  await check("arrow keys move the ring to the room next door and open its menu", async () => {
+    expect((await active()) === "room-living", "focus: " + (await active()));
+    expect((await menuText(page)).startsWith("Living room"), await menuText(page));
+    expect((await page.locator("#room-living").getAttribute("tabindex")) === "0" && (await page.locator("#room-study").getAttribute("tabindex")) === "-1", "roving tabindex");
+  });
+  await page.keyboard.press("Enter");
+  await check("Enter steps into the room's menu", async () => expect((await page.evaluate(() => document.activeElement.textContent)) === "Look in", await active()));
+  await page.keyboard.press("Escape");
+  await check("Escape in the menu goes back to the room, menu still open", async () => {
+    expect((await active()) === "room-living" && await page.locator("#menu").isVisible(), await active());
+  });
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(700);
+  await check("Enter twice looks in; focus stays on the room, its menu open, and the move is said aloud", async () => {
+    expect(await page.locator('.roomhit.here[data-room="living"]').count() === 1, "not in the living room");
+    expect((await active()) === "room-living", "focus: " + (await active()));
+    expect((await menuText(page)).includes("Whole house"), "menu shut under the keyboard: " + (await menuText(page)));
+    expect((await page.locator("#say").textContent()).startsWith("Living room"), await page.locator("#say").textContent());
+  });
+  await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(700);
+  await check("in a room, arrows walk into the next one", async () => {
+    expect(await page.locator('.roomhit.here[data-room="sunroom"]').count() === 1, "not in the sunroom");
+    expect((await active()) === "room-sunroom", "focus: " + (await active()));
+  });
+  await page.keyboard.press("Enter");
+  for (let i = 0; i < 6 && (await page.evaluate(() => document.activeElement.textContent)) !== "Edit rooms"; i++) await page.keyboard.press("Tab");
+  await page.keyboard.press("Enter");
+  await check("every room action is reachable from the keyboard: Edit rooms opens on that room", async () => {
+    expect(await page.locator("#roomsDlg[open]").count() === 1, "editor not open");
+    expect((await page.locator("#rt-sunroom").getAttribute("aria-selected")) === "true", "not on the sunroom");
+  });
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(700);
+  await check("Escape comes back out to the whole house with the ring where you were", async () => {
+    expect(await page.locator(".roomhit.here").count() === 0, "still in a room");
+    expect((await active()) === "room-sunroom", "focus: " + (await active()));
+  });
+  const long = "The very long room for tax 2026";   // 31 typed, 30 kept
+  await hoverRoom(page, "bath");
+  await menuButton(page, "Edit rooms").click();
+  await page.fill("#rn-bath", long);
+  await page.click('#roomsDlg button[type="submit"]');
+  await page.waitForTimeout(200);
+  await check("a 30-character name is cut short on its sign, whole in the room's name and its menu", async () => {
+    const name = (await T(page, () => window.__catio.store["rooms/bath"])).name;
+    expect(name.length === 30, "saved " + name.length);
+    const box = await page.locator(".sign[data-room=bath]").boundingBox(), room = await page.locator("#room-bath").boundingBox();
+    expect(box.x + box.width <= room.x + room.width + 1, "sign spills out");
+    expect(await page.locator(".sign[data-room=bath] .nm").evaluate((e) => e.scrollWidth > e.clientWidth), "not cut short");
+    expect((await page.locator("#room-bath").getAttribute("aria-label")).startsWith(name), "full name not in the label");
+    await hoverRoom(page, "bath");
+    expect((await menuText(page)).includes(name), "menu lacks the full name");
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
+
+/* ---------- 6b. a still pointer: the camera moving under it is not pointing ---------- */
+{
+  const { page, ctx, errors } = await open();
+  await hoverRoom(page, "kitchen");
+  await menuButton(page, "Look in").click();
+  await page.waitForTimeout(800);
+  await check("looking in doesn't open the menu of whatever room slid under the resting pointer", async () => {
+    expect(await page.locator('.roomhit.here[data-room="kitchen"]').count() === 1, "not in the kitchen");
+    expect(!(await page.locator("#menu").isVisible()), "a menu opened by itself: " + (await menuText(page)).slice(0, 40));
+  });
+  const box = await page.locator('.roomhit[data-room="kitchen"]').boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
+  await page.waitForTimeout(300);
+  await check("the first real move opens the menu of the room under it", async () => {
+    expect((await menuText(page)).includes("Kitchen"), await menuText(page));
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
+
+/* ---------- 7. touch: the first tap opens the menu, the second acts ---------- */
 {
   const { page, ctx, errors } = await open("", { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   const cat = page.locator("#cats .cat.m-meow").first();
@@ -249,15 +534,33 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), "horizontal scroll");
     expect(errors.length === 0, errors.join("; "));
   });
+  await check("on a phone the rooms show badges where cats need you, not squashed names", async () => {
+    expect(await page.locator("#overlay .sign .nm").count() === 0, "names on a phone map");
+    expect((await page.locator(".sign[data-room=study] .badge .n").innerText()) === "1", "craft room badge");
+  });
+  const room = await page.locator('.roomhit[data-room="study"]').boundingBox();
+  await page.touchscreen.tap(room.x + room.width * 0.9, room.y + room.height * 0.15);
+  await settle(page);
+  await menuButton(page, "Edit rooms").tap();
+  await check("on a phone the Rooms plan fits, opens on the tapped room, and its smallest rooms can be tapped", async () => {
+    const dlg = await page.locator("#roomsDlg").boundingBox();
+    expect(dlg.x >= 0 && dlg.x + dlg.width <= 390, JSON.stringify(dlg));
+    expect((await page.locator("#rt-study").getAttribute("aria-selected")) === "true", "not on the craft room");
+    const bath = await page.locator("#rt-bath").boundingBox();
+    expect(bath.width >= 24 && bath.height >= 24, "bath tab " + JSON.stringify(bath));
+    await page.locator("#rt-bath").tap();
+    expect(await page.locator("#rn-bath").isVisible(), "bath card");
+    expect(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), "horizontal scroll");
+  });
   await ctx.close();
 }
 
-/* ---------- 7. degraded views ---------- */
+/* ---------- 8. degraded views ---------- */
 {
   const { page, ctx, errors } = await open("?mode=blocked");
-  await check("when settings block the live read, Claude's copy fills the rooms and the sign spells out the fix", async () => {
+  await check("when claude.ai blocks the live read, Claude's copy fills the rooms and the sign sends her nowhere", async () => {
     const t = await page.locator("#status").innerText();
-    expect(t.includes("Customize") && t.includes("list_sessions") && t.includes("Allow") && t.includes("Claude's copy"), t);
+    expect(t.includes("nothing for you to change") && !t.includes("Customize") && t.includes("Claude's copy"), t);
     expect(await page.locator("#cats .cat").count() >= 2, "rooms empty");
     expect(errors.length === 0, errors.join("; "));
   });
@@ -267,7 +570,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   const { page, ctx } = await open("?mode=noconn");
   await check("without the connector the sign says what to do", async () => {
     const t = await page.locator("#status").innerText();
-    expect(t.includes("isn't connected") && t.includes("Settings"), t);
+    expect(t.includes("isn't connected") && t.includes("built into claude.ai"), t);
   });
   await ctx.close();
 }
@@ -283,7 +586,7 @@ for (const [q, want, prep] of [["?mode=nodb", "isn't available", null], ["", "lo
   await ctx.close();
 }
 
-/* ---------- 8. local mode: the bundle on localhost, no runtime at all ---------- */
+/* ---------- 9. local mode: the bundle on localhost, no runtime at all ---------- */
 if (LOCAL) {
   const { page, ctx, errors } = await open("", { base: LOCAL });
   await check("on localhost the cats come from data/sessions.json and the sign says so", async () => {
@@ -308,6 +611,21 @@ if (LOCAL) {
   await page.click("#catDlg button:has-text('Yes, let this cat go')");
   await settle(page);
   await check("letting it go on localhost removes it", async () => expect(await page.locator('#cats .cat[aria-label^="Loco "]').count() === 0, "still there"));
+  await page.locator('#cats .cat[data-queen="kitchen"]').click();
+  await settle(page);
+  await page.fill("#queenAdd", "Off a USB stick, she still remembers.");
+  await page.locator('#queenDlg button:has-text("Give it to her")').click();
+  await page.locator('#queenDlg button:has-text("Say it")').first().click();
+  await page.click("#queenSave");
+  await settle(page);
+  await page.reload();
+  await page.waitForTimeout(700);
+  await check("on localhost a queen keeps what you give her, across a reload", async () => {
+    const label = await page.locator('#cats .cat[data-queen="kitchen"]').getAttribute("aria-label");
+    expect(label.includes("Off a USB stick"), label);
+    expect(await page.locator("#overlay .bub.queenb").count() === 1, "she stopped saying it after the reload");
+    expect(errors.length === 0, errors.join("; "));
+  });
   await ctx.close();
 }
 

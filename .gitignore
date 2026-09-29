@@ -1,8 +1,11 @@
-# Art whose licence forbids redistributing the files (ToffeeCraft cats, Top Down Garden Castle).
+# Art whose licence forbids redistributing the files (ToffeeCraft cats, Top Down Garden Castle, Cainos,
+# and the Sprout Lands interface).
 # It ships only inside the private artifact; rebuild it with catio/tools/build-art.py.
 catio/art/licensed/
 
 __pycache__/
 catio/test/.page.html
+catio/test/.page-noart.html
+catio/test/.noart/
 catio/data/sessions.json
 catio/dist/
