@@ -11,17 +11,19 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
 ## What's on the page
 
 - **The cabin fills the screen**, seen from above in a meadow. Each room is a space for one kind
-  of work, with its name on a sign on its back wall and a badge (the cat's face and a count) when
-  cats in it need you; on a phone, just the badge. There are no toolbars: everything opens from
-  the picture.
-- **Hover over a room** and a cream ring outlines it while its menu opens beside it: what it's
-  for, how many cats need you, the ones meowing, and Look in (zoom to that room), Files, **Adopt a
-  cat here**, and Edit rooms. Its foot has Sound, Check now, and the cats napping upstairs.
-- **With a keyboard**, Tab lands on the house once. Arrow keys move the ring from room to room (or,
-  inside a room, walk into the next one), Enter steps into the room's menu, and Escape steps back
-  out.
-- **Edit rooms** opens the cabin as a plan: pick a room to rename it, say what lives there and
-  list the repositories whose cats move in, and choose once which room new cats come in to.
+  of work, with its name on a cream sign on its back wall and a badge (the mood's cat face and a
+  count) when cats in it need you; on a phone, just the badge. There are no toolbars: everything
+  opens from the picture.
+- **Hover over a room** and white selection brackets light its corners while its menu opens
+  beside it: what it's for, how many cats need you, the ones meowing, and Look in (zoom to that
+  room), Files, **Adopt a cat here**, and Edit rooms. Its foot has Sound, Check now, and the cats
+  napping upstairs.
+- **With a keyboard**, Tab lands on the house once. Arrow keys move the brackets from room to room
+  (or, inside a room, walk into the next one), Enter steps into the room's menu, and Escape steps
+  back out.
+- **Edit rooms** opens the cabin as a plan in a wooden frame: pick a room (its brackets and a green
+  sign show which) to rename it, say what lives there and list the repositories whose cats move
+  in, and choose once which room new cats come in to (marked on the plan with an arrow).
 - **Every room has a queen**, a cat in a crown who is nobody's session and never leaves. Hover
   her for the room in one line — who needs you and why, or the thing she is keeping for you — and
   open her to give her something to keep, take it back, or have her say it out loud in her room
@@ -94,19 +96,22 @@ project looks are kept in that browser. For newer cats, ask Claude to refresh
 The folder holds the licensed art and her session list, so it is for her own use: it is never
 committed and never shared.
 
-## Made from five asset packs
+## Made from six asset packs
 
-Every piece of the picture and the interface comes from packs Charlotte chose: the frames,
-buttons, signs and wallpaper are cut from the cabin's own tile sheet, and the hotbar icons and
-mood faces are ToffeeCraft's cat UI.
+Every piece of the picture and the interface comes from packs Charlotte chose. The interface is
+Cup Nooble's Sprout Lands UI pack: its tan panels hold every menu and card, its cream buttons,
+grey fields and speech bubbles do the rest, its cat emoji show each cat's mood, its white brackets
+light up the room you point at, its switch turns the sound on, the pointer is its cat paw, and
+titles and buttons are in its pixel font (with the French accents added).
 
 | Pack | Artist | In this repo? |
 |---|---|---|
-| [Cosy Cabin](https://marie-pepo.itch.io/cosy-cabin) | Marie Pepo | Yes: `catio/art/house.png` and `catio/art/ui/` |
+| [Cosy Cabin](https://marie-pepo.itch.io/cosy-cabin) | Marie Pepo | Yes: `catio/art/house.png` |
 | [Cat Pack Mochi](https://toffeecraft.itch.io/cat-pack) and [Pochi](https://toffeecraft.itch.io/cat-retro), Cat UI | ToffeeCraft | No: the licence forbids redistribution |
 | [Top Down Garden Castle](https://heosphorus.itch.io/) | Heosphorus | No: the licence forbids distribution |
 | [Wood Garden](https://rowdy41.itch.io/wood-garden) | rowdy41 | No: it is baked into the same file as Heosphorus's pieces |
 | [Pixel Art Top Down – Basic](https://cainos.itch.io/pixel-art-top-down-basic) | Cainos | No: the licence forbids redistribution |
+| [Sprout Lands UI Pack – Basic](https://cupnooble.itch.io/) | Cup Nooble | No: the licence forbids redistribution, even modified |
 
 The uncommitted art (`catio/art/licensed/`) ships only inside the private artifact. See
 [`catio/art/CREDITS.md`](catio/art/CREDITS.md).
@@ -116,7 +121,7 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `catio/index.html`: the whole page, with no build step and no dependencies.
 - `catio/tools/cabin.py`: the floor plan, meaning rooms, doorways, glass and furniture.
 - `catio/tools/build-art.py`: draws the cabin from the plan and cuts the UI pieces, from the
-  five zips (`pip install pillow`, then see the script's docstring).
+  six zips (`pip install pillow fonttools`, then see the script's docstring).
 - `catio/tools/bundle.py`: the folder that runs on localhost.
 - `catio/tools/save-sessions.py`: trims a `list_sessions` result to the saved copy.
 - `catio/data/rooms.json`: the rooms, for the localhost copy. `sessions.json` is never committed.
