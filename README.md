@@ -88,6 +88,24 @@ project looks are kept in that browser. For newer cats, ask Claude to refresh
 The folder holds the licensed art and her session list, so it is for her own use: it is never
 committed and never shared.
 
+## Running your own
+
+`catio-plugin/` is a Claude Code plugin. Point Claude Code at it and ask it to set up your Catio:
+
+```bash
+git clone https://github.com/charredlatte/Pretty-Project-Portfolio
+claude --plugin-dir Pretty-Project-Portfolio/catio-plugin
+```
+
+The skill walks you through your rooms, your sessions, publishing the page as your own private
+artifact, and the folder that runs off a USB stick.
+
+**It cannot give you the cats.** Four of the five packs below forbid redistributing their files, so
+`catio/art/licensed/` is gitignored and a fresh clone draws the cabin and nothing else — the page
+says so on its own sign, and tells you the three steps. You buy the packs yourself and run
+`catio/tools/build-art.py` over your own zips. Only Cosy Cabin, whose licence allows it, is in this
+repository.
+
 ## Made from five asset packs
 
 Every piece of the picture and the interface comes from packs Charlotte chose: the frames,
