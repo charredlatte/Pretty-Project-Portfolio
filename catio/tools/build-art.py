@@ -8,7 +8,8 @@
     python3 catio/tools/build-art.py "Sprout Lands - UI Pack - Basic pack.zip"    # the interface alone
 
 (The zips' names don't matter, only their order.) Writes, next to catio/index.html:
-  art/house.png                  the manor's shell (floors, walls, glass, doors), from Cosy Cabin to manor.py
+  art/house.png                  the manor's ground floor shell (floors, walls, glass, doors), from Cosy Cabin to manor.py
+  art/house-upper.png            its upper floor: the library, ensuite, bedroom and the landing over the hall
   art/furniture.png              the Cosy Cabin furniture, one cell per piece in furniture.py's catalogue
   art/licensed/furniture.png     the rest of the furniture (ToffeeCraft, Wood Garden, Cainos, plants.zip)
   art/licensed/decor.png         the grounds: the catio's deck and fence, the drive, fountain, parterres and
@@ -20,7 +21,7 @@
                                  brackets, the sound switch, the mood faces, the cursors and sprout.ttf
 and rewrites the page's MANOR block (furniture.py), which needs no zips on its own.
 
-Only art/house.png and art/furniture.png are committed (Cosy Cabin allows copying, with credit). The
+Only art/house.png, art/house-upper.png and art/furniture.png are committed (Cosy Cabin allows copying, with credit). The
 other packs' licences forbid redistributing the files, so art/licensed/ is gitignored and ships only
 inside the private artifact. See CLAUDE.md.
 """
@@ -31,7 +32,6 @@ from pathlib import Path
 
 from PIL import Image
 
-import cabin
 import furniture
 import manor
 
@@ -288,7 +288,9 @@ def main():
     (OUT / "licensed").mkdir(parents=True, exist_ok=True)
     cz = zipfile.ZipFile(cabin_zip)
     # the manor's shell (Cosy Cabin only, committed) and its grounds (licensed)
-    manor.shell(member(cz, "CosyCabin_TileMap.png"), member(cz, "CosyCabin_Objects.png"), example(cabin_zip)).save(OUT / "house.png")
+    tm, objects, ex = member(cz, "CosyCabin_TileMap.png"), member(cz, "CosyCabin_Objects.png"), example(cabin_zip)
+    manor.shell(tm, objects, ex, "ground").save(OUT / "house.png")
+    manor.shell(tm, objects, ex, "upper").save(OUT / "house-upper.png")
     sheet = spring(member(zipfile.ZipFile(garden_zip), "Top down Garden Castle.png"))
     wood = zipfile.ZipFile(wood_zip)
     sz = zipfile.ZipFile(stone_zip)
