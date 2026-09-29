@@ -36,6 +36,7 @@ const T = (page, f) => page.evaluate(f);
 const toast = async (page) => (await page.locator("#toast").textContent()) || "";
 const menuText = async (page) => (await page.locator("#menu").isVisible()) ? await page.locator("#menu").innerText() : "";
 const settle = (page) => page.waitForTimeout(150);
+const rest = (page) => page.waitForTimeout(400);   // longer than the pause before another thing's menu takes over
 // point at a clear patch of a room's floor, as a person would
 async function hoverRoom(page, room) {
   const pt = await page.evaluate((room) => {
@@ -49,7 +50,8 @@ async function hoverRoom(page, room) {
   if (!pt) throw new Error("no clear floor in " + room);
   await page.mouse.move(8, 8);
   await page.mouse.move(pt.x, pt.y);
-  await settle(page);
+  await rest(page);
+  return pt;
 }
 async function hoverCat(page, label) {
   const cat = page.locator('#cats .cat[aria-label*="' + label + '"]').first();
@@ -57,7 +59,8 @@ async function hoverCat(page, label) {
   if (!b) throw new Error("no cat " + label);
   await page.mouse.move(8, 8);
   await page.mouse.move(b.x + b.width / 2, b.y + b.height * 0.75);
-  await settle(page);
+  await rest(page);
+  return { x: b.x + b.width / 2, y: b.y + b.height * 0.75 };
 }
 const menuButton = (page, name) => page.locator("#menu").getByRole("button", { name, exact: true });
 
@@ -512,6 +515,48 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect((await menuText(page)).includes("Kitchen"), await menuText(page));
     expect(errors.length === 0, errors.join("; "));
   });
+  await ctx.close();
+}
+
+/* ---------- 6d. on the way to a menu, crossing a neighbour doesn't steal it ---------- */
+{
+  const { page, ctx, errors } = await open();
+  const title = async () => (await page.locator("#menu").isVisible()) ? (await page.locator("#menu h3").first().innerText()) : "(no menu)";
+  // glide from where the pointer is to a point, as a hand does
+  const glide = async (from, to, steps = 25) => { await page.mouse.move(from.x, from.y); await page.mouse.move(to.x, to.y, { steps }); };
+  const middle = async (loc) => { const b = await loc.boundingBox(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; };
+  for (const room of ["kitchen", "dining", "bedroom"]) {
+    const from = await hoverRoom(page, room);
+    const mine = await title();
+    await glide(from, await middle(menuButton(page, "Edit rooms")));
+    await settle(page);
+    await check("moving from the " + room + " to its menu keeps its menu (" + mine + ")", async () => expect(await title() === mine, "became " + await title()));
+  }
+  {
+    const from = await hoverCat(page, "Week tab editing");
+    const mine = await title();
+    await glide(from, await middle(page.locator("#menu h3").first()));
+    await settle(page);
+    await check("moving from a cat to its menu keeps the cat's menu, not its room's", async () => expect(await title() === mine, mine + " became " + await title()));
+  }
+  {
+    const from = await hoverRoom(page, "kitchen");
+    const to = await page.evaluate(() => {   // a clear patch of floor in another room, not under the open menu
+      for (const room of ["bedroom", "bath", "hall", "dining"]) {
+        const h = document.querySelector('.roomhit[data-room="' + room + '"]'), r = h.getBoundingClientRect();
+        for (let fy = 0.9; fy > 0.3; fy -= 0.05) for (let fx = 0.2; fx < 0.9; fx += 0.05) {
+          const x = r.left + r.width * fx, y = r.top + r.height * fy;
+          if (document.elementFromPoint(x, y) === h) return { x, y, room };
+        }
+      }
+    });
+    await glide(from, to, 8);
+    await check("while the pointer is still moving, the open menu stays", async () => expect((await title()).includes("Kitchen"), await title()));
+    await rest(page);
+    await check("resting on another room brings up that room's menu", async () =>
+      expect(await page.locator('.roomhit.lit[data-room="' + to.room + '"]').count() === 1 && !(await title()).includes("Kitchen"), to.room + ": " + await title()));
+  }
+  await check("no page errors while hovering", async () => expect(errors.length === 0, errors.join(" | ")));
   await ctx.close();
 }
 

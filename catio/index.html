@@ -1009,7 +1009,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
   /* ---------- hover menus: the only chrome ---------- */
   // Pointing at a room or a cat opens its menu beside it; moving onto the menu keeps it open.
   // On a touch screen the first tap opens the menu and the second does the usual thing.
-  const MENU = { kind: null, key: null, anchor: null, at: null, hideT: 0, touch: false };
+  const MENU = { kind: null, key: null, anchor: null, at: null, hideT: 0, touch: false, switchT: 0, over: null };
   let lastXY = null;   // where the pointer last really moved, kept after the rooms have seen the move
   const moved = (e) => !lastXY || e.clientX !== lastXY[0] || e.clientY !== lastXY[1];
   document.addEventListener("pointermove", (e) => { lastXY = [e.clientX, e.clientY]; });
@@ -1017,11 +1017,33 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
   // dialog slides a room under a pointer that stayed put; the browser calls that an enter, but she
   // isn't pointing at it, and its menu would land on the room she is looking at. It opens on her
   // first real move instead.
+  //
+  // With a menu already open, crossing another room or cat on the way to that menu must not steal it: the
+  // gap between a thing and its menu is covered by its neighbours. So another thing's menu takes over only
+  // once the pointer rests on it (SWITCH ms without moving), and reaching the open menu cancels the switch.
+  const SWITCH = 240;
+  function want(kind, key, node) {
+    MENU.over = node;
+    if (!MENU.kind) { showMenu(kind, key, node); return; }
+    clearTimeout(MENU.switchT);
+    clearTimeout(MENU.hideT);   // back on its own thing, or crossing this one on the way to the menu: keep it open
+    if (MENU.kind === kind && MENU.key === key) return;
+    MENU.switchT = setTimeout(() => { if (MENU.over === node && node.isConnected) showMenu(kind, key, node); }, SWITCH);
+  }
   function hoverable(node, kind, key) {
     let waiting = false;
-    node.addEventListener("pointerenter", (e) => { if (e.pointerType !== "mouse") return; if (moved(e)) showMenu(kind, key, node); else waiting = true; });
-    node.addEventListener("pointermove", (e) => { if (waiting && e.pointerType === "mouse" && moved(e)) { waiting = false; showMenu(kind, key, node); } });
-    node.addEventListener("pointerleave", (e) => { waiting = false; if (e.pointerType === "mouse") hideSoon(); });
+    node.addEventListener("pointerenter", (e) => { if (e.pointerType !== "mouse") return; if (moved(e)) want(kind, key, node); else waiting = true; });
+    node.addEventListener("pointermove", (e) => {
+      if (e.pointerType !== "mouse" || !moved(e)) return;
+      if (waiting) { waiting = false; want(kind, key, node); }
+      else if (MENU.over === node && !(MENU.kind === kind && MENU.key === key)) want(kind, key, node);   // still moving: not resting yet
+    });
+    node.addEventListener("pointerleave", (e) => {
+      waiting = false;
+      if (e.pointerType !== "mouse") return;
+      if (MENU.over === node) { MENU.over = null; clearTimeout(MENU.switchT); }
+      hideSoon();
+    });
     node.addEventListener("pointerdown", (e) => { MENU.touch = e.pointerType !== "mouse"; });
     node.addEventListener("focus", () => { if (node.matches(":focus-visible")) showMenu(kind, key, node); });   // keyboard only
   }
@@ -1032,7 +1054,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
   }
   function hideSoon() { clearTimeout(MENU.hideT); MENU.hideT = setTimeout(hideMenu, 260); }
   function hideMenu() {
-    clearTimeout(MENU.hideT);
+    clearTimeout(MENU.hideT); clearTimeout(MENU.switchT);
     MENU.kind = MENU.key = MENU.anchor = MENU.at = null;
     $("menu").hidden = true;
     for (const b of $("hits").querySelectorAll(".lit")) b.classList.remove("lit");
@@ -2334,7 +2356,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
   render();
   checkArt();
   new ResizeObserver(() => { hideMenu(); layout(true); }).observe($("stage"));
-  $("menu").addEventListener("pointerenter", () => clearTimeout(MENU.hideT));
+  $("menu").addEventListener("pointerenter", () => { clearTimeout(MENU.hideT); clearTimeout(MENU.switchT); MENU.over = null; });
   $("menu").addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") hideSoon(); });
   // tapping or clicking the open meadow closes the menu, then zooms back out.
   // The path is taken when the event is dispatched, so a button the menu replaced while handling

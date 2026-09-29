@@ -23,7 +23,9 @@ the house is too small to use at the start.
 
 ## Critical
 
-**1. Moving the mouse to a menu opens a different menu.** Tested by moving the mouse the way a person does
+**1. Moving the mouse to a menu opens a different menu.** **Fixed** (29 September): with a menu open,
+another room or cat takes over only once the pointer rests on it for 240 ms; reaching the menu cancels the
+switch. Seven new e2e checks glide the mouse in small steps. Tested by moving the mouse the way a person does
 (25 small steps):
 - Kitchen → its menu turned into **Dining room**.
 - Dining → a queen's menu (**Philomène**).
