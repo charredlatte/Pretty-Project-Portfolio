@@ -38,6 +38,12 @@
   `cat` field for queries.
 - The e2e stub only includes agent cats with `?agents=1`, so the older checks' counts stay as they were.
 
+- The Drive connector *can* hand over the zips: an oversized result lands in a tool-results JSON file, and
+  base64-decoding its `content` field gives the zip. Checked with all nine packs, up to 2.6 MB.
+- Little Dreamyland is by **Starmixu & Utaskuas**. Its licence: modifying allowed, non-commercial only, no
+  redistribution or resale even modified, and no NFTs or AI training. Credit: "Assets from Little Dreamyland by
+  Starmixu & Utaskuas."
+
 ## From the manor build
 
 - CLAUDE.md still describes the cabin: its publish file list, "The cabin is a floor plan", and the old

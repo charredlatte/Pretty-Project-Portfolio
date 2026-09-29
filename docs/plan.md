@@ -91,5 +91,7 @@ rest of CLAUDE.md's list. `art/licensed/` now also holds `furniture.png`.
 
 - **claude.ai may refuse the page's Claude Code Remote calls.** PR #5 found that this built-in connector has
   no switch in her Connectors list. If so, posts queue, and the concierge (still to build) delivers them.
-- **The Drive connector returns files inline as base64,** so big zips must be attached in the chat instead.
+- **Big zips come through the Drive connector after all** (checked 29 September, all nine, the largest 2.6 MB).
+  `download_file_content` saves an oversized result to a tool-results JSON file, and `base64 -d` of its
+  `.content` field gives the zip.
 - **Only the Artifact's owner can reach `host:catio`,** and only in the Claude desktop app.
