@@ -1,0 +1,11 @@
+{
+  "name": "kittychat",
+  "owner": { "name": "Charlotte Badot" },
+  "plugins": [
+    {
+      "name": "kittychat-house-rules",
+      "source": "./harness",
+      "description": "The KittyChat Cafe's house rules and the catio skill."
+    }
+  ]
+}
