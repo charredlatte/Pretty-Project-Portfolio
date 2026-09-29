@@ -331,6 +331,18 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(now.includes("Kitchen"), "it reopened on another room: " + now.slice(0, 80));
     expect(now.includes("Sound on") && was.includes("Sound off"), now.slice(0, 120));
   });
+  await check("with no licensed art the sign says so, and the queens still work", async () => {
+    // this checkout has no art/licensed/, which is exactly what anyone else's copy looks like
+    const words = await page.locator("#status").textContent();
+    expect(words.includes("The cat art isn't here"), words);
+    expect(words.includes("build-art.py"), "it does not say how to fix it: " + words);
+    expect(await page.locator("#status.warn").count() === 1, "the sign is not flagging it");
+    // her crown, her menu and what she keeps are the page's own drawing, not the packs'
+    expect(await page.locator("#cats .cat.queen .crown").count() === 9, "crowns went missing");
+    await queen("bedroom").hover();
+    await settle(page);
+    expect((await menuText(page)).includes("Queen of the Bedroom"), await menuText(page));
+  });
   await check("no page errors while working the queens", async () => expect(errors.length === 0, errors.join("; ")));
   await ctx.close();
 }
@@ -412,6 +424,21 @@ if (LOCAL) {
   await page.click("#catDlg button:has-text('Yes, let this cat go')");
   await settle(page);
   await check("letting it go on localhost removes it", async () => expect(await page.locator('#cats .cat[aria-label^="Loco "]').count() === 0, "still there"));
+  await page.locator('#cats .cat[data-queen="kitchen"]').click();
+  await settle(page);
+  await page.fill("#queenAdd", "Off a USB stick, she still remembers.");
+  await page.locator('#queenDlg button:has-text("Give it to her")').click();
+  await page.locator('#queenDlg button:has-text("Say it")').first().click();
+  await page.click("#queenSave");
+  await settle(page);
+  await page.reload();
+  await page.waitForTimeout(700);
+  await check("on localhost a queen keeps what you give her, across a reload", async () => {
+    const label = await page.locator('#cats .cat[data-queen="kitchen"]').getAttribute("aria-label");
+    expect(label.includes("Off a USB stick"), label);
+    expect(await page.locator("#overlay .bub.queenb").count() === 1, "she stopped saying it after the reload");
+    expect(errors.length === 0, errors.join("; "));
+  });
   await ctx.close();
 }
 

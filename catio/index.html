@@ -333,7 +333,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     sessions: null, sessionsAt: null, live: { state: "loading" },
     liveSessions: null, liveAt: null, copy: null, from: null,   // the live feed, and Claude's saved copy for when it's blocked
     rooms: {}, tweaks: {}, adopted: [], projects: {}, queens: {},
-    focus: null, cam: null, sound: false, showOld: false, prevNeeding: null,
+    focus: null, cam: null, sound: false, showOld: false, prevNeeding: null, art: "checking",
     db: null, mcp: null, perms: null, unwatch: null,
   };
   try { S.sound = localStorage.getItem("catio.sound") === "on"; S.showOld = localStorage.getItem("catio.showOld") === "on"; } catch (e) {}
@@ -899,6 +899,16 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   }
 
   /* ---------- status line ---------- */
+  // The cat sheets are licensed, so they are never committed and never shared: a checkout, or
+  // anyone else's copy, draws the cabin and no cats at all, and used to say nothing about it.
+  // Ask the browser for one of them and, if it isn't there, tell the viewer how to put it right.
+  function checkArt() {
+    const img = new Image();
+    img.addEventListener("load", () => { S.art = "ok"; renderStatus(); });
+    img.addEventListener("error", () => { S.art = "missing"; renderStatus(); });
+    img.src = "art/licensed/pochi.png";
+  }
+
   function renderStatus() {
     const st = $("status"); st.replaceChildren();
     const L = S.live;
@@ -922,6 +932,11 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     }
     if (L.state === "local" && (!S.sessions || !S.sessions.length)) { msg.hidden = false; msg.textContent = "Only adopted chats are showing."; }
     if (L.state === "loading") { msg.hidden = false; msg.textContent = "Waking the cats…"; }
+    // Nothing to do with the sessions: the cats can be there and still have nothing to draw with.
+    if (S.art === "missing") {
+      st.classList.add("warn");
+      st.appendChild(el("span", "copy words", "The cat art isn't here: art/licensed/ is licensed and never shipped, so the cabin draws but the cats can't. Buy the packs in catio/art/CREDITS.md, drop the zips in, and run catio/tools/build-art.py."));
+    }
   }
 
   /* ---------- live data: Claude Code sessions ---------- */
@@ -1332,6 +1347,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   drawProps();
   layout(true);
   render();
+  checkArt();
   new ResizeObserver(() => { hideMenu(); layout(true); }).observe($("stage"));
   $("menu").addEventListener("pointerenter", () => clearTimeout(MENU.hideT));
   $("menu").addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") hideSoon(); });
