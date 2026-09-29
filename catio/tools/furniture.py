@@ -33,7 +33,7 @@ def piece(sheet, box, kind="decor", layer="floor", foot=None, stations=(), scale
     x, y, w, h = box
     w2, h2 = round(w * scale), round(h * scale)
     if foot is None and layer == "floor":
-        fh = max(4, round(h2 * 0.45))                 # a 3/4-view piece stands on its lower part
+        fh = max(4, round(h2 * 0.75))                 # a 3/4-view piece: all but its top quarter is in the way
         foot = (0, h2 - fh, w2, fh)
     return {"sheet": sheet, "box": list(box), "kind": kind, "layer": layer, "foot": list(foot) if foot else None,
             "stations": [list(s) for s in stations], "scale": scale, "size": [w2, h2]}
@@ -67,6 +67,11 @@ CATALOGUE = {
     "chair_back": piece("cc", (641, 282, 14, 22), "connected", foot=(0, 0, 0, 0), stations=[("work", 7, 22)]),
     "brain_chest": piece("wg:Chest/Chest-1.png", (0, 0, 22, 21), "essential"),
     "armchair_blue": piece("cc", (409, 66, 22, 30), "connected", stations=[("queen", 11, 36)]),
+    # the drawing room
+    "fireplace": piece("cc", (368, 176, 32, 42), "essential", foot=(0, 30, 32, 12)),
+    "sofa_blue_back": piece("cc", (620, 74, 40, 22), "connected", foot=(0, 0, 0, 0), stations=[("sleep", 20, 16)]),
+    "armchair_blue_l": piece("cc", (409, 66, 22, 30), "connected", stations=[("queen", 11, 36)]),
+    "armchair_blue_r": piece("cc", (481, 66, 22, 30), "decor"),
 }
 
 # the default layout, room by room: (key, x, y), native pixels, the sprite's top-left
@@ -89,6 +94,15 @@ LAYOUT = {
         ("armchair_blue", 360, 124), ("lamp_floor", 384, 122), ("cushion_green", 386, 150),
         ("brain_desk", 402, 128), ("chair_back", 420, 152),
         ("filing_cabinet", 478, 124), ("brain_chest", 454, 178),
+    ],
+    # Drawing room: the fireplace between two tall windows, a sofa facing it (a cat asleep on it), armchairs
+    # either side of the hearth rug, a writing desk in the corner, the filing cabinet by the east window
+    "living": [
+        ("fireplace", 569, 69), ("rug_red_diamond", 561, 136),
+        ("armchair_blue_r", 532, 140), ("armchair_blue_l", 614, 140),
+        ("sofa_blue_back", 565, 172), ("cushion_white", 596, 114),
+        ("writing_desk", 504, 104), ("filing_cabinet", 640, 104),
+        ("lamp_floor", 520, 168), ("plant_snake", 628, 176),
     ],
 }
 
