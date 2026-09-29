@@ -109,9 +109,9 @@ The skill walks you through your rooms, your sessions, publishing the page as yo
 artifact, and the folder that runs off a USB stick.
 
 **It cannot give you the cats, or the interface.** Five of the six packs below forbid redistributing
-their files, so `catio/art/licensed/` is gitignored and a fresh clone draws the cabin on plain
-panels and nothing else — the page says so on its own sign, and tells you the three steps. You buy the packs yourself and run
-`catio/tools/build-art.py` over your own zips. Only Cosy Cabin, whose licence allows it, is in this
+their files, so `catio/art/licensed/` is gitignored and a fresh clone draws no house and no cats:
+only the furniture, on plain panels — the page says so on its own sign, and tells you the three steps. You buy the packs yourself and run
+`catio/tools/build-art.py` over your own zips. Only Cosy Cabin's furniture, whose licence allows it, is in this
 repository.
 
 ## Made from six asset packs
@@ -124,7 +124,7 @@ titles and buttons are in its pixel font (with the French accents added).
 
 | Pack | Artist | In this repo? |
 |---|---|---|
-| [Cosy Cabin](https://marie-pepo.itch.io/cosy-cabin) | Marie Pepo | Yes: `catio/art/house.png` |
+| [Cosy Cabin](https://marie-pepo.itch.io/cosy-cabin) | Marie Pepo | Only its furniture: `catio/art/furniture.png` (the house mixes every pack) |
 | [Cat Pack Mochi](https://toffeecraft.itch.io/cat-pack) and [Pochi](https://toffeecraft.itch.io/cat-retro), Cat UI | ToffeeCraft | No: the licence forbids redistribution |
 | [Top Down Garden Castle](https://heosphorus.itch.io/) | Heosphorus | No: the licence forbids distribution |
 | [Wood Garden](https://rowdy41.itch.io/wood-garden) | rowdy41 | No: it is baked into the same file as Heosphorus's pieces |

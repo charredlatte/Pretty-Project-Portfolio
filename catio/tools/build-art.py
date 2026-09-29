@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Rebuild the catio's art from Charlotte's seven asset-pack zips.
+"""Rebuild the catio's art from Charlotte's nine asset-pack zips.
 
     pip install pillow fonttools
     python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip "Top down garden castle.zip" \
         "Wood Garden Asset Pack.zip" "Pixel Art Top Down - Basic v1.2.3.zip" \
-        "Sprout Lands - UI Pack - Basic pack.zip" plants.zip
+        "Sprout Lands - UI Pack - Basic pack.zip" plants.zip \
+        "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip"
     python3 catio/tools/build-art.py "Sprout Lands - UI Pack - Basic pack.zip"    # the interface alone
 
 (The zips' names don't matter, only their order.) Writes, next to catio/index.html:
-  art/house.png                  the manor's shell (floors, walls, glass, doors), from Cosy Cabin to manor.py
+  art/licensed/house.png         the manor's shell (floors, walls, glass, doors, the south facade and turrets),
+                                 drawn to manor.py from every pack
   art/furniture.png              the Cosy Cabin furniture, one cell per piece in furniture.py's catalogue
   art/licensed/furniture.png     the rest of the furniture (ToffeeCraft, Wood Garden, Cainos, plants.zip)
   art/licensed/decor.png         the grounds: the catio's deck and fence, the drive, fountain, parterres and
@@ -20,9 +22,9 @@
                                  brackets, the sound switch, the mood faces, the cursors and sprout.ttf
 and rewrites the page's MANOR block (furniture.py), which needs no zips on its own.
 
-Only art/house.png and art/furniture.png are committed (Cosy Cabin allows copying, with credit). The
-other packs' licences forbid redistributing the files, so art/licensed/ is gitignored and ships only
-inside the private artifact. See CLAUDE.md.
+Only art/furniture.png is committed (Cosy Cabin allows copying, with credit). The house mixes every pack,
+and the other packs' licences forbid redistributing the files, so art/licensed/ is gitignored and ships
+only inside the private artifact. See CLAUDE.md.
 """
 import io
 import sys
@@ -43,12 +45,6 @@ def member(zf, suffix):
         if n.endswith(suffix) and not n.startswith("__MACOSX"):
             return Image.open(io.BytesIO(zf.read(n))).convert("RGBA")
     raise SystemExit(f"{suffix} not found in {zf.filename}")
-
-
-def example(cabin_zip):
-    """The pack's second example cabin at native 16 px tiles (it ships drawn at 3x); used for its floorboards."""
-    ex = member(zipfile.ZipFile(cabin_zip), "CosyCabin_Example2.png")
-    return ex.resize((ex.width // 3, ex.height // 3), Image.NEAREST)
 
 
 def raw(zf, suffix):
@@ -282,20 +278,12 @@ def main():
         sprout(sys.argv[1])
         print("interface written to", OUT / "licensed" / "ui")
         return
-    if len(sys.argv) != 8:
+    if len(sys.argv) != 10:
         raise SystemExit(__doc__)
-    cabin_zip, cats_zip, garden_zip, wood_zip, stone_zip, sprout_zip, plants_zip = sys.argv[1:]
+    (cabin_zip, cats_zip, garden_zip, wood_zip, stone_zip, sprout_zip, plants_zip,
+     sprites_zip, dreamy_zip) = sys.argv[1:]
     (OUT / "licensed").mkdir(parents=True, exist_ok=True)
-    cz = zipfile.ZipFile(cabin_zip)
-    # the manor's shell (Cosy Cabin only, committed) and its grounds (licensed)
-    manor.shell(member(cz, "CosyCabin_TileMap.png"), member(cz, "CosyCabin_Objects.png"), example(cabin_zip)).save(OUT / "house.png")
-    sheet = spring(member(zipfile.ZipFile(garden_zip), "Top down Garden Castle.png"))
-    wood = zipfile.ZipFile(wood_zip)
-    sz = zipfile.ZipFile(stone_zip)
-    manor.grounds(sheet, lambda name: member(wood, name), member(sz, "Texture/TX Props.png"),
-                  member(sz, "Texture/TX Struct.png")).save(OUT / "licensed" / "decor.png")
-    # the furniture, as two atlases the page places pieces from: Cosy Cabin's (committed) and the rest
-    zips = [zipfile.ZipFile(z) for z in (cabin_zip, cats_zip, wood_zip, stone_zip, plants_zip)]
+    zips = [zipfile.ZipFile(z) for z in sys.argv[1:]]
 
     def load(end):
         for z in zips:
@@ -303,6 +291,14 @@ def main():
                 if (n == end or n.endswith("/" + end)) and not n.startswith("__MACOSX"):
                     return Image.open(io.BytesIO(z.read(n))).convert("RGBA")
         raise SystemExit(end + " not found in the zips")
+    # the manor's shell, from every pack (licensed), and its grounds
+    manor.shell(load).save(OUT / "licensed" / "house.png")
+    sheet = spring(member(zipfile.ZipFile(garden_zip), "Top down Garden Castle.png"))
+    wood = zipfile.ZipFile(wood_zip)
+    sz = zipfile.ZipFile(stone_zip)
+    manor.grounds(sheet, lambda name: member(wood, name), member(sz, "Texture/TX Props.png"),
+                  member(sz, "Texture/TX Struct.png")).save(OUT / "licensed" / "decor.png")
+    # the furniture, as two atlases the page places pieces from: Cosy Cabin's (committed) and the rest
     atl = furniture.atlases(load)
     atl["cc"].save(OUT / "furniture.png")
     atl["lic"].save(OUT / "licensed" / "furniture.png")

@@ -31,12 +31,20 @@ Last updated 29 September 2026. What she has asked for, all in one place: [`requ
 
 ## The manor: done (on `main`)
 
-- **The shell**, drawn from Cosy Cabin alone (`catio/tools/manor.py`), and committed as `art/house.png`. It has:
-  - grey stone outside walls and warm stone inside;
-  - stone flags in the Great hall;
-  - a panelled Library (the brain) behind the hall;
-  - a glass conservatory;
-  - front steps.
+- **The shell** (`catio/tools/manor.py`), retextured 29 September as a storybook Transylvanian Baroque manor
+  from every pack. It is licensed art now: `art/licensed/house.png`, never committed. It has:
+  - ochre limewash with stone quoins outside, and pale plaster with an oak beam inside;
+  - a south facade on a stone plinth: stucco pilasters, green-shuttered arched windows, and an arched front
+    door under a pediment with a stained-glass fanlight;
+  - slate-roofed turrets beside the bath and the studio;
+  - dressed stone and big flags in the Great hall;
+  - carved panelling and a gilt rail in the Library;
+  - white panels with gilt trellis in the Drawing room;
+  - stained glass in both, coloured only below the sign line;
+  - a glass conservatory on an orangery chequer;
+  - wrought-iron rails on the front steps.
+  The geometry is unchanged, so `GEOM`, the MANOR block and every station still hold. The rules from her
+  Game UI plugin that it follows are in the docstring.
 - **Every room furnished, one per commit**, in `catio/tools/furniture.py`:
   1. Great hall: a double stone staircase to the Library door.
   2. Library.
@@ -76,7 +84,7 @@ published from there. `rooms/brain` and the eight `rules/*` are seeded.
 
 ## Publishing again
 
-Files: `art/house.png`, `art/furniture.png`, `art/licensed/furniture.png`, `art/licensed/decor.png`, and the
+Files: `art/licensed/house.png`, `art/furniture.png`, `art/licensed/furniture.png`, `art/licensed/decor.png`, and the
 rest of CLAUDE.md's list. `art/licensed/` now also holds `furniture.png`.
 
 1. Re-read the live artifact.

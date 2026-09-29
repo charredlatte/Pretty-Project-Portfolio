@@ -50,6 +50,8 @@
 
 ## From the manor build
 
+- CLAUDE.md says `art/house.png` is committed and gives the six-zip build command. Since the retexture the house is
+  `art/licensed/house.png` (never committed) and `build-art.py` takes nine zips; its publish list needs the new path.
 - CLAUDE.md still describes the cabin: its publish file list, "The cabin is a floor plan", and the old
   capabilities. Claude can't edit CLAUDE.md (it's refused as self-modification). `docs/plan.md` has the new
   file list, and the MANOR block is described in `catio/tools/furniture.py`'s docstring.

@@ -316,7 +316,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     <div class="meadow" id="meadow"></div>
     <div class="world" id="world">
       <img class="house" src="art/licensed/decor.png" alt="" width="1920" height="1152">
-      <img class="house" src="art/house.png" alt="" width="1920" height="1152">
+      <img class="house" src="art/licensed/house.png" alt="" width="1920" height="1152">
       <div id="props"></div>
       <div id="hits"></div>
       <div id="cats"></div>
@@ -333,7 +333,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
   </header>
   <div class="sr" id="say" aria-live="polite"></div>
   <p class="sr" id="keyhelp">Arrow keys move between rooms. Enter opens a room's menu. Escape goes back.</p>
-  <p class="credits">Cabin by Marie Pepo · Cats by ToffeeCraft · Garden by Heosphorus and rowdy41 · Stonework by Cainos · Interface by Cup Nooble</p>
+  <p class="credits">Rooms by Marie Pepo · Cats by ToffeeCraft · Garden by Heosphorus and rowdy41 · Stonework by Cainos · Interface and shingles by Cup Nooble · Tiles from Little Dreamyland by Starmixu &amp; Utaskuas</p>
 </main>
 
 <dialog id="catDlg" aria-labelledby="catName"></dialog>
@@ -1217,7 +1217,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     // Nothing to do with the sessions: the cats can be there and still have nothing to draw with.
     if (S.art === "missing") {
       st.classList.add("warn");
-      st.appendChild(el("span", "copy words", "The cat art isn't here: art/licensed/ is licensed and never shipped, so the cabin draws but the cats can't. Buy the packs in catio/art/CREDITS.md, drop the zips in, and run catio/tools/build-art.py."));
+      st.appendChild(el("span", "copy words", "The cat art isn't here: art/licensed/ is licensed and never shipped, so neither the house nor its cats can draw. Buy the packs in catio/art/CREDITS.md, drop the zips in, and run catio/tools/build-art.py."));
     }
   }
 
@@ -1628,7 +1628,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     const h = el("h2", null, "Rooms"); h.id = "roomsTitle";
     f.append(h, el("p", "note", "Pick a room on the plan to name it and list the GitHub repositories whose cats move in."));
     const plan = el("div", "plan"), art = el("div", "plan-art"), tabs = el("div");
-    for (const src of ["art/licensed/decor.png", "art/house.png"]) { const i = el("img"); i.src = src; i.alt = ""; art.appendChild(i); }
+    for (const src of ["art/licensed/decor.png", "art/licensed/house.png"]) { const i = el("img"); i.src = src; i.alt = ""; art.appendChild(i); }
     tabs.setAttribute("role", "tablist"); tabs.setAttribute("aria-label", "Rooms on the plan");
     plan.append(art, tabs);
     f.appendChild(plan);
