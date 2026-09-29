@@ -8,7 +8,7 @@
   - `plants.zip` is used, as she asked, and treated as licensed. **Who made it**, for the credits and the
     footer?
   - `Game_UI_Pack_Pastel.zip` (12.5 MB): whose is it, and does its licence allow use in the artifact?
-  - Until then none of them go into the build.
+  - Until then Game UI Pastel stays out of the build.
 - **"download", "download (1)" and "download (2)"** in the Drive folder look like macOS `.DS_Store` files.
   Safe to delete?
 - **Should "Rename" on a session's cat rename the real session?** It doesn't: the cat's name and the
