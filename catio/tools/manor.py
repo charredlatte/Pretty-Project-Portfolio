@@ -48,12 +48,12 @@ DOORS = [
     ("v", 22, 150, 198),            # dining <-> library
     ("v", 31, 150, 198),            # library <-> drawing room
     ("v", 41, 150, 198),            # drawing room <-> conservatory
-    ("h", 13, 392, 440),            # hall -> library (the hall's back wall, under the stairs' landing)
+    ("h", 13, 408, 446),            # hall -> library, between the two flights of stairs
     ("v", 19, 280, 330),            # bedroom <-> hall
     ("v", 10, 280, 316),            # bath <-> bedroom (the ensuite)
     ("v", 34, 280, 330),            # hall <-> studio
 ]
-FRONT_DOOR = (400, 432)             # x span in the hall's south wall
+FRONT_DOOR = (411, 443)             # x span in the hall's south wall
 
 # glass: ("tall", x, y, w) floor-to-ceiling on a back wall; ("v", wall x, y0, y1) and ("h", wall y, x0, x1) strips
 WINDOWS = [
@@ -66,7 +66,7 @@ WINDOWS = [
     ("h", 13, 690, 750),                                    # conservatory south, past the studio
     ("v", 5, 240, 304),                                     # bath west
     ("h", 21, 180, 290),                                    # bedroom south
-    ("h", 24, 330, 390), ("h", 24, 442, 510),               # hall south, either side of the front door
+    ("h", 24, 330, 395), ("h", 24, 459, 524),               # hall south, either side of the front door
     ("h", 22, 580, 680),                                    # studio south
     ("v", 43, 240, 330),                                    # studio east
 ]
