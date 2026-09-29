@@ -5,5 +5,7 @@ catio/art/licensed/
 
 __pycache__/
 catio/test/.page.html
+catio/test/.page-noart.html
+catio/test/.noart/
 catio/data/sessions.json
 catio/dist/

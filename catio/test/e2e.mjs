@@ -11,6 +11,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT || "playwright");
 const url = "file://" + join(here, ".page.html");
 const LOCAL = process.env.LOCAL_URL;   // set by run.sh when it serves the local bundle
+const NOART = "file://" + join(here, ".page-noart.html");   // the same page with no licensed art, built by run.sh
 const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 let pass = 0, fail = 0;
 const results = [];
@@ -335,6 +336,31 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await ctx.close();
 }
 
+/* ---------- 5c. anyone else's copy: none of the licensed art ---------- */
+// run.sh builds .page-noart.html over a folder holding only the committed art, which is what a
+// fresh clone looks like whether or not this checkout has the packs.
+{
+  const { page, ctx, errors } = await open("", { base: NOART });
+  await check("with no licensed art the sign says so, and the queens still work", async () => {
+    const words = await page.locator("#status").textContent();
+    expect(words.includes("The cat art isn't here"), words);
+    expect(words.includes("build-art.py"), "it does not say how to fix it: " + words);
+    expect(await page.locator("#status.warn").count() === 1, "the sign is not flagging it");
+    // her crown, her menu and what she keeps still work without the packs to draw them
+    expect(await page.locator("#cats .cat.queen .crown").count() === 9, "crowns went missing");
+    await page.locator('#cats .cat[data-queen="bedroom"]').hover();
+    await settle(page);
+    expect((await menuText(page)).includes("Queen of the Bedroom"), await menuText(page));
+  });
+  await check("without the interface art the sign and menus sit on plain colour, not the meadow", async () => {
+    const bg = (sel) => page.locator(sel).evaluate((e) => getComputedStyle(e).backgroundColor);
+    expect((await bg("#hud")) !== "rgba(0, 0, 0, 0)", "the sign has nothing behind it");
+    expect((await bg("#menu")) !== "rgba(0, 0, 0, 0)", "the menu has nothing behind it");
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
+
 /* ---------- 6. touch: the first tap opens the menu, the second acts ---------- */
 {
   const { page, ctx, errors } = await open("", { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
@@ -412,6 +438,21 @@ if (LOCAL) {
   await page.click("#catDlg button:has-text('Yes, let this cat go')");
   await settle(page);
   await check("letting it go on localhost removes it", async () => expect(await page.locator('#cats .cat[aria-label^="Loco "]').count() === 0, "still there"));
+  await page.locator('#cats .cat[data-queen="kitchen"]').click();
+  await settle(page);
+  await page.fill("#queenAdd", "Off a USB stick, she still remembers.");
+  await page.locator('#queenDlg button:has-text("Give it to her")').click();
+  await page.locator('#queenDlg button:has-text("Say it")').first().click();
+  await page.click("#queenSave");
+  await settle(page);
+  await page.reload();
+  await page.waitForTimeout(700);
+  await check("on localhost a queen keeps what you give her, across a reload", async () => {
+    const label = await page.locator('#cats .cat[data-queen="kitchen"]').getAttribute("aria-label");
+    expect(label.includes("Off a USB stick"), label);
+    expect(await page.locator("#overlay .bub.queenb").count() === 1, "she stopped saying it after the reload");
+    expect(errors.length === 0, errors.join("; "));
+  });
   await ctx.close();
 }
 

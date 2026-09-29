@@ -40,19 +40,20 @@ a { color: var(--ink); }
 :focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .px { image-rendering: pixelated; background-repeat: no-repeat; }
 
-/* the Sprout Lands pieces, each a 9-slice scaled by --u */
+/* the Sprout Lands pieces, each a 9-slice scaled by --u. The plain colour under each is the piece's
+   own face: the art paints over it, and a copy without the licensed art is still readable. */
 .menu, dialog, .hud, .toast, .stage-msg {
-  border: calc(6 * var(--u)) solid transparent; border-image: url(art/licensed/ui/panel.png) 6 fill / calc(6 * var(--u)) stretch; background: none; image-rendering: pixelated; }
-.btn { font: 18px/22px var(--pixel); color: var(--ink); padding: 0 calc(2 * var(--u)); text-decoration: none; display: inline-block; background: none; white-space: nowrap;
+  border: calc(6 * var(--u)) solid transparent; border-image: url(art/licensed/ui/panel.png) 6 fill / calc(6 * var(--u)) stretch; background: var(--tan) padding-box; image-rendering: pixelated; }
+.btn { font: 18px/22px var(--pixel); color: var(--ink); padding: 0 calc(2 * var(--u)); text-decoration: none; display: inline-block; background: var(--cream) padding-box; white-space: nowrap;
   border-style: solid; border-color: transparent; border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u));
   border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u)) stretch; }
 .btn:hover { border-image-source: url(art/licensed/ui/button-hover.png); }
-.btn.green { border-image-source: url(art/licensed/ui/button-green.png); }
-.btn.pink { border-image-source: url(art/licensed/ui/button-pink.png); }
+.btn.green { border-image-source: url(art/licensed/ui/button-green.png); background-color: #C0D470; }
+.btn.pink { border-image-source: url(art/licensed/ui/button-pink.png); background-color: #EBB7AE; }
 .btn.green:hover, .btn.pink:hover { filter: brightness(1.06); }
 .btn:active { border-image: url(art/licensed/ui/button-down.png) 4 fill / calc(4 * var(--u)) stretch; translate: 0 calc(2 * var(--u)); filter: none; }
 .field input, .field select, .field textarea { border: calc(4 * var(--u)) solid transparent; border-image: url(art/licensed/ui/field.png) 4 4 5 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(5 * var(--u)) stretch;
-  background: none; padding: 1px 4px; width: 100%; min-width: 0; image-rendering: pixelated; }
+  background: #C1C8B9 padding-box; padding: 1px 4px; width: 100%; min-width: 0; image-rendering: pixelated; }
 .field select { appearance: none; -webkit-appearance: none; padding-right: calc(14 * var(--u)); border-image-slice: 4 4 5 4;   /* no fill: the arrow is a background, under the frame */
   background: url(art/licensed/ui/arrow.png) right calc(2 * var(--u)) center / calc(10 * var(--u)) calc(9 * var(--u)) no-repeat, #C1C8B9 padding-box; }
 .field input::placeholder, .field textarea::placeholder { color: #5F6A5E; }
@@ -147,10 +148,10 @@ ul.keeps .pin .dot { background-position: 0 0; }
 /* overlay: speech bubbles and room names, drawn at screen size (one art pixel a pixel) */
 .overlay { position: absolute; inset: 0; pointer-events: none; transition: opacity .15s; }
 .overlay.moving { opacity: 0; }
-.tag { position: absolute; font: 18px/18px var(--pixel); padding: 0 2px; white-space: nowrap; display: flex; gap: 5px; align-items: center; color: var(--ink);
+.tag { position: absolute; font: 18px/18px var(--pixel); padding: 0 2px; white-space: nowrap; display: flex; gap: 5px; align-items: center; color: var(--ink); background: var(--cream) padding-box;
   border-style: solid; border-color: transparent; border-width: 4px 4px 6px; border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / 4px 4px 6px stretch; image-rendering: pixelated; }
 .bub { position: absolute; pointer-events: auto; transform: translate(-50%, -100%); cursor: var(--point); color: var(--ink); padding: 0 2px 1px; font: 500 12.5px/1.3 var(--body);
-  max-width: 200px; width: max-content; text-align: left; background: none;
+  max-width: 200px; width: max-content; text-align: left; background: #DCE0D2 padding-box;
   border-style: solid; border-color: transparent; border-width: 5px 5px 6px; border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / 5px 5px 6px stretch; image-rendering: pixelated; }
 .bub::after { content: ""; position: absolute; left: 50%; bottom: -11px; width: 11px; height: 9px; margin-left: -5px; background: url(art/licensed/ui/bubble-tail.png) no-repeat; }
 .bub.below { transform: translate(-50%, 0); }
@@ -158,7 +159,7 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .bub b { display: flex; align-items: center; gap: 4px; font: 18px/22px var(--pixel); margin: 0 0 1px; font-weight: normal; }
 .bub b .face-ico { margin: -2px 0 -3px -2px; }
 .bub .t { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.bub.icon { padding: 0; border: 0; border-image: none; width: auto; }
+.bub.icon { padding: 0; border: 0; border-image: none; width: auto; background: none; }
 .bub.icon::after { display: none; }
 .bub.icon .face { display: block; }
 .stage-msg { position: absolute; left: 50%; bottom: calc(6 * var(--u) + 10px); transform: translateX(-50%); font-size: .85rem; padding: 0 6px; max-width: calc(100% - 24px); text-align: center; }
@@ -181,7 +182,7 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .sound .switch { width: 28px; height: 18px; flex: none; background: url(art/licensed/ui/toggle.png) 0 0 / 56px 18px no-repeat; }
 .sound .switch.on { background-position: -28px 0; }
 .item { position: relative; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; align-items: start; width: 100%; height: 100%; text-align: left; color: inherit;
-  background: none; padding: 0 34px 0 0; border-style: solid; border-color: transparent; border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u));
+  background: var(--cream) padding-box; padding: 0 34px 0 0; border-style: solid; border-color: transparent; border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u));
   border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u)) stretch; image-rendering: pixelated; }
 .item:hover { border-image-source: url(art/licensed/ui/button-hover.png); }
 .item > .face-ico { position: absolute; right: 0; top: 0; }
@@ -206,7 +207,7 @@ dialog::backdrop { background: rgba(18, 36, 20, .55); }
 .portrait .spr { bottom: 2px; transform: translateX(-50%) scale(1.4); }
 .portrait .spr.s-idle, .portrait .spr.s-box { transform: translateX(-50%) scale(2.4); }
 .mood { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; font-weight: 800; }
-.ask-box { display: flex; gap: 8px; align-items: center; padding: 0 4px; overflow-wrap: anywhere; font-weight: 700;
+.ask-box { display: flex; gap: 8px; align-items: center; padding: 0 4px; overflow-wrap: anywhere; font-weight: 700; background: #DCE0D2 padding-box;
   border-style: solid; border-color: transparent; border-width: calc(5 * var(--u)) calc(5 * var(--u)) calc(6 * var(--u)); border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / calc(5 * var(--u)) calc(5 * var(--u)) calc(6 * var(--u)) stretch; }
 div.ask-box:not(:has(.face-ico)) { font-weight: 600; }
 dl.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: .9rem; }
@@ -359,7 +360,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     sessions: null, sessionsAt: null, live: { state: "loading" },
     liveSessions: null, liveAt: null, copy: null, from: null,   // the live feed, and Claude's saved copy for when it's blocked
     rooms: {}, tweaks: {}, adopted: [], projects: {}, queens: {},
-    focus: null, cam: null, sound: false, showOld: false, prevNeeding: null,
+    focus: null, cam: null, sound: false, showOld: false, prevNeeding: null, art: "checking",
     db: null, mcp: null, perms: null, unwatch: null,
   };
   try { S.sound = localStorage.getItem("catio.sound") === "on"; S.showOld = localStorage.getItem("catio.showOld") === "on"; } catch (e) {}
@@ -927,6 +928,16 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   }
 
   /* ---------- status line ---------- */
+  // The cat sheets are licensed, so they are never committed and never shared: a checkout, or
+  // anyone else's copy, draws the cabin and no cats at all, and used to say nothing about it.
+  // Ask the browser for one of them and, if it isn't there, tell the viewer how to put it right.
+  function checkArt() {
+    const img = new Image();
+    img.addEventListener("load", () => { S.art = "ok"; renderStatus(); });
+    img.addEventListener("error", () => { S.art = "missing"; renderStatus(); });
+    img.src = "art/licensed/pochi.png";
+  }
+
   function renderStatus() {
     const st = $("status"); st.replaceChildren();
     const L = S.live;
@@ -950,6 +961,11 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     }
     if (L.state === "local" && (!S.sessions || !S.sessions.length)) { msg.hidden = false; msg.textContent = "Only adopted chats are showing."; }
     if (L.state === "loading") { msg.hidden = false; msg.textContent = "Waking the cats…"; }
+    // Nothing to do with the sessions: the cats can be there and still have nothing to draw with.
+    if (S.art === "missing") {
+      st.classList.add("warn");
+      st.appendChild(el("span", "copy words", "The cat art isn't here: art/licensed/ is licensed and never shipped, so the cabin draws but the cats can't. Buy the packs in catio/art/CREDITS.md, drop the zips in, and run catio/tools/build-art.py."));
+    }
   }
 
   /* ---------- live data: Claude Code sessions ---------- */
@@ -1358,6 +1374,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   drawProps();
   layout(true);
   render();
+  checkArt();
   new ResizeObserver(() => { hideMenu(); layout(true); }).observe($("stage"));
   $("menu").addEventListener("pointerenter", () => clearTimeout(MENU.hideT));
   $("menu").addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") hideSoon(); });
