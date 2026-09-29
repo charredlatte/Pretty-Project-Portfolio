@@ -14,7 +14,8 @@ Publish `catio/index.html` with:
   `meadow.png`, `emblems.png`, `mochi-idle.png`, `mochi-box.png`, `pochi.png`) and the interface
   in `art/licensed/ui/` (`panel`, `button`, `button-hover`, `button-down`, `button-green`,
   `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `bubble-tail`, `corners`,
-  `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point` `.png`, and `sprout.ttf`);
+  `toggle`, `status`, `faces`, `crown`, `stars`, `home`, `cursor`, `cursor-point` `.png`, and
+  `sprout.ttf`);
 - `capabilities`: omit it on a republish to keep what's stored. The declaration is
   `{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions"] }] }, db: {} }`.
 
@@ -66,12 +67,18 @@ placed beside it so it never covers what the pointer is on. Keyboard focus opens
 `:focus-visible`; on touch the first tap opens the menu and the second acts (`armed()`). A new
 control goes into one of these menus, not onto the screen.
 
+Hover means the pointer really moved onto the thing (`moved()`): when the camera moves or a dialog
+closes, the room that slides under a still pointer gets no menu until she moves. Without that, a
+neighbour's menu opens over the room she just looked into.
+
 The interface is Cup Nooble's Sprout Lands UI pack, cut by `build-art.py` into
 `art/licensed/ui/`. Menus, dialogs, the sign and the screen's frame are its tan panel; buttons are
 its cream square button (white on hover, pressed in when held; `green` and `pink` are recoloured
 copies); inputs are its grey pressed-in button; speech bubbles and a cat's ask are its grey bubble;
 a filing cabinet's project sits in its pressed cream well; rooms and cabinets light up with its
-white selection brackets. Each is a 9-slice `border-image`. The mood faces are its cat emoji
+white selection brackets (on a room they stay one size on screen at any zoom), and so does the
+chosen room on the Edit rooms plan, which sits in its picture frame with its house button on the
+room new cats come in to. Each is a 9-slice `border-image`. The mood faces are its cat emoji
 (`faces.png`, in `MOODS` order, then a queen's heart eyes), the sound control is its toggle, the
 sign's tick and cross are its own, a queen's crown is its crown icon gilded, what she keeps is
 starred with its stars, and the pointer is its cat paw. Keep it that way: a new control should
@@ -162,8 +169,9 @@ changes as it runs), and walks: adopting a chat, through in progress and done, t
 go; a session going blocked, working, finished, archived and failed; renaming and moving a
 cat; a filing cabinet and a project's look; renaming rooms; the room and cat menus by hover,
 keyboard and touch; the saved copy when settings block the live read; the no-connector,
-no-storage, view-only and phone cases; and the localhost bundle, served on port 8791 with its
-own `data/`. All checks must pass.
+no-storage, view-only and phone cases; a copy with none of the licensed art (`.page-noart.html`,
+as anyone else's clone is, whether or not this checkout has the packs); and the localhost bundle,
+served on port 8791 with its own `data/`. All checks must pass.
 
 Its example data is invented. Never paste her real session list into the stub or the page.
 

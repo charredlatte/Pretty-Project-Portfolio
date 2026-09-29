@@ -97,6 +97,7 @@ def sprout(sprout_zip):
     basic.crop((153, 9, 183, 39)).save(out / "frame.png")                           # picture frame, for portraits
     settings.crop((11, 20, 69, 24)).save(out / "divider.png")
     basic.crop((275, 52, 285, 61)).save(out / "arrow.png")                          # the cream arrow on a select
+    basic.crop((773, 68, 795, 92)).save(out / "home.png")                           # the house button: where new cats come in
 
     # the grey speech bubble, with its tail cut off to hang under a 9-slice body
     bub = member(z, "speech_bubble_grey.png").crop((11, 11, 53, 58))

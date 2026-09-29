@@ -59,7 +59,7 @@ a { color: var(--ink); }
 .field input::placeholder, .field textarea::placeholder { color: #5F6A5E; }
 .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--ink); outline-offset: 1px; }
 /* a divider: the pack's underline, capped at both ends */
-.rule, .roomrow + .roomrow { border-top: calc(4 * var(--u)) solid transparent; border-image: url(art/licensed/ui/divider.png) 4 1 0 1 / calc(4 * var(--u)) var(--u) 0 var(--u) stretch; }
+.rule, .bar { border-top: calc(4 * var(--u)) solid transparent; border-image: url(art/licensed/ui/divider.png) 4 1 0 1 / calc(4 * var(--u)) var(--u) 0 var(--u) stretch; }
 
 /* the mood faces: the pack's cat emoji, one 32 px cell per mood (--f follows MOODS: cry, meow, box, idle, sleep; then a queen's heart eyes) */
 .face-ico { --f: 3; display: inline-block; flex: none; width: 30px; height: 30px; image-rendering: pixelated;
@@ -79,7 +79,7 @@ a { color: var(--ink); }
 .status .dot.wait { opacity: .45; }
 
 /* the stage: the whole screen, the meadow tiled to follow the camera, the frame laid over the edge */
-.stage { position: absolute; inset: 0; overflow: hidden; touch-action: manipulation; background: #8FBF4F; }
+.stage { position: absolute; inset: 0; overflow: clip; touch-action: manipulation; background: #8FBF4F; }
 .meadow { position: absolute; inset: 0; background: url(art/licensed/meadow.png) repeat; image-rendering: pixelated; filter: var(--scene);
   transition: background-size .55s cubic-bezier(.3,.7,.2,1), background-position .55s cubic-bezier(.3,.7,.2,1); }
 .stage.instant .meadow { transition: none; }
@@ -98,10 +98,13 @@ a { color: var(--ink); }
 .stage.instant .world { transition: none; }
 .house { position: absolute; inset: 0; width: 1280px; height: 896px; max-width: none; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
 .prop { position: absolute; pointer-events: none; }
-/* rooms, cabinets and cats light up with the pack's white selection brackets */
+/* rooms, cabinets and cats light up with the pack's white selection brackets; on a room they stay one
+   size on screen at any zoom (--cs is the camera scale) */
 .roomhit, .cabinet, .cat { position: absolute; background: transparent; border: 0; padding: 0; cursor: var(--point); }
-.roomhit:hover, .roomhit.lit { background: rgba(255, 250, 225, .12); border: 18px solid transparent; border-image: url(art/licensed/ui/corners.png) 9 8 / 18px 16px stretch; }
-.roomhit.here { cursor: var(--paw); background: transparent; border: 0; }
+.roomhit { --bx: calc(8 * var(--u) / var(--cs, 1)); --by: calc(9 * var(--u) / var(--cs, 1)); }
+.roomhit:not(.here):hover, .roomhit:not(.here).lit, .roomhit:focus-visible { background: rgba(255, 250, 225, .12); outline: none;
+  border-style: solid; border-color: transparent; border-width: var(--by) var(--bx); border-image: url(art/licensed/ui/corners.png) 9 8 / var(--by) var(--bx) stretch; }
+.roomhit.here { cursor: var(--paw); background: transparent; }
 .cabinet:hover, .cabinet:focus-visible, .cat:focus-visible { outline: 0; border: 9px solid transparent; border-image: url(art/licensed/ui/corners.png) 9 8 / 9px 8px stretch; border-image-outset: 5px; }
 .cat:focus-visible { border-width: 0; }
 .spr { display: inline-block; vertical-align: bottom; filter: var(--tint, none); image-rendering: pixelated; background-repeat: no-repeat; }
@@ -154,6 +157,12 @@ ul.keeps .pin .dot { background-position: 0 0; }
   max-width: 200px; width: max-content; text-align: left; background: #DCE0D2 padding-box;
   border-style: solid; border-color: transparent; border-width: 5px 5px 6px; border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / 5px 5px 6px stretch; image-rendering: pixelated; }
 .bub::after { content: ""; position: absolute; left: 50%; bottom: -11px; width: 11px; height: 9px; margin-left: -5px; background: url(art/licensed/ui/bubble-tail.png) no-repeat; }
+/* a sign on each room's back wall: its name, cut to the room's width, and a badge when cats in it need you */
+.sign { pointer-events: none; gap: 4px; }
+.sign .nm { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.badge { flex: none; display: inline-flex; align-items: center; gap: 2px; }
+.badge .face-ico { margin: -7px -2px -8px -4px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .bub.below { transform: translate(-50%, 0); }
 .bub.below::after { bottom: auto; top: -10px; transform: scaleY(-1); }
 .bub b { display: flex; align-items: center; gap: 4px; font: 18px/22px var(--pixel); margin: 0 0 1px; font-weight: normal; }
@@ -176,6 +185,7 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .menu .mini b { font: 18px/22px var(--pixel); font-weight: normal; }
 .menu .mini:hover span:last-child { text-decoration: underline; }
 .menu .moods { display: flex; gap: 4px; flex-wrap: wrap; }
+.menu .keys { font-size: .72rem; color: var(--ink-soft); margin: 0; }
 .menu .moods .btn[aria-pressed="true"] { border-image-source: url(art/licensed/ui/button-green.png); }
 /* the sound switch: the pack's toggle, off or on */
 .sound { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; font: 18px/22px var(--pixel); color: var(--ink); }
@@ -221,9 +231,31 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; }
 .actions .spacer { flex: 1; }
 .note { font-size: .8rem; color: var(--ink-soft); margin: 0; }
-.roomrow { display: grid; gap: 6px; }
-.roomrow + .roomrow { padding-top: 10px; }
-.roomrow h3 { margin: 0; font: 18px/22px var(--pixel); }
+/* the Rooms editor: the cabin cropped to the house in the pack's picture frame, each room a tab
+   bracketed when chosen, then the chosen room's card */
+dialog.wide { width: min(600px, calc(100vw - 24px)); }
+.plan { position: relative; box-sizing: content-box; aspect-ratio: 1168 / 672; overflow: clip; background: #8FBF4F padding-box;
+  border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; image-rendering: pixelated; }
+.plan-art { position: absolute; left: -4.795%; top: -13.095%; width: 109.589%; height: 133.333%; filter: var(--scene); }
+.plan-art img { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+.rt { position: absolute; padding: 0; background: transparent; border: 9px 8px solid transparent; }
+.rt:hover { background: rgba(255, 250, 225, .16); }
+.rt[aria-selected="true"], .rt:focus-visible { border-image: url(art/licensed/ui/corners.png) 9 8 / 9px 8px stretch; outline: none; background: rgba(255, 250, 225, .2); }
+.rt .tag { left: 0; top: 0; max-width: 100%; display: block; overflow: hidden; text-overflow: ellipsis; font: 800 11px/1 var(--body); padding: 1px 2px;
+  border-width: 3px 3px 4px; border-image-width: 3px 3px 4px; }
+.rt[aria-selected="true"] .tag { border-image-source: url(art/licensed/ui/button-green.png); background-color: #C0D470; }
+.rt .door { position: absolute; right: 0; bottom: 0; width: 22px; height: 24px; background: url(art/licensed/ui/home.png) no-repeat; image-rendering: pixelated; }
+@media (max-width: 560px) {
+  .rt:not([aria-selected="true"]) .tag { display: none; }
+  .rt[aria-selected="true"] { z-index: 1; }
+  .rt[aria-selected="true"] .tag { max-width: 160%; }
+}
+.rcard { display: grid; gap: 8px; }
+.rcard[hidden] { display: none; }
+.rcard h3 { margin: 0; font: 18px/22px var(--pixel); overflow-wrap: anywhere; }
+.rcard h3 span { font: 500 .8rem var(--body); color: var(--ink-soft); }
+.kicker { margin: 0; font: 18px/22px var(--pixel); color: var(--ink-soft); }
+.dlg .blurb { margin: 0; color: var(--ink-soft); overflow-wrap: anywhere; }
 .pilelist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 /* a project in a cabinet: the pack's pressed-in button, a well in the panel */
 .proj { display: grid; gap: 8px; padding: 2px 4px;
@@ -264,6 +296,8 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     <h1>The Catio <span id="tally"></span></h1>
     <div class="status" id="status" role="status"><span class="dot"></span><span class="words">Waking the cats…</span></div>
   </header>
+  <div class="sr" id="say" aria-live="polite"></div>
+  <p class="sr" id="keyhelp">Arrow keys move between rooms. Enter opens a room's menu. Escape goes back.</p>
   <p class="credits">Cabin by Marie Pepo · Cats by ToffeeCraft · Garden by Heosphorus and rowdy41 · Stonework by Cainos · Interface by Cup Nooble</p>
 </main>
 
@@ -297,6 +331,24 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   const ORDER = ["garden", "kitchen", "dining", "living", "sunroom", "study", "bedroom", "bath", "hall"];
   const WORLD = [640, 448];   // native size of the meadow
   const WHOLE = [0, 0, ...WORLD];
+
+  // The room next door in each direction, from the boxes above: the nearest room whose centre lies
+  // within 45° of that way (distance along it plus twice the sideways offset). Arrow keys use it.
+  const NEXT = {};
+  for (const a of ORDER) {
+    const mid = (k) => { const [x, y, w, h] = GEOM[k].r; return [x + w / 2, y + h / 2]; };
+    const [ax, ay] = mid(a);
+    NEXT[a] = {};
+    for (const [d, dx, dy] of [["ArrowLeft", -1, 0], ["ArrowRight", 1, 0], ["ArrowUp", 0, -1], ["ArrowDown", 0, 1]]) {
+      let best = 0, score = Infinity;
+      for (const b of ORDER) {
+        const [bx, by] = mid(b);
+        const along = (bx - ax) * dx + (by - ay) * dy, side = Math.abs((bx - ax) * dy + (by - ay) * dx);
+        if (along > 0 && side <= along && along + 2 * side < score) { score = along + 2 * side; best = b; }
+      }
+      if (best) NEXT[a][d] = best;
+    }
+  }
 
   // Props from the Pochi sheet: [sx, sy, w, h] on the sheet, drawn with feet at native [x, y].
   const PROPS = [
@@ -360,7 +412,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     sessions: null, sessionsAt: null, live: { state: "loading" },
     liveSessions: null, liveAt: null, copy: null, from: null,   // the live feed, and Claude's saved copy for when it's blocked
     rooms: {}, tweaks: {}, adopted: [], projects: {}, queens: {},
-    focus: null, cam: null, sound: false, showOld: false, prevNeeding: null, art: "checking",
+    focus: null, cursor: null, cam: null, sound: false, showOld: false, prevNeeding: null, art: "checking",
     db: null, mcp: null, perms: null, unwatch: null,
   };
   try { S.sound = localStorage.getItem("catio.sound") === "on"; S.showOld = localStorage.getItem("catio.showOld") === "on"; } catch (e) {}
@@ -519,6 +571,15 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     return d === 1 ? "yesterday" : d + " days ago";
   }
   const clock = (t) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  // a room's cats by mood, most urgent first, in words; and the rooms where cats need you
+  const summary = (cats) => [["cry", "upset"], ["meow", "meowing"], ["box", "to review"], ["idle", "at work"], ["sleep", "asleep"]]
+    .map(([m, w]) => [cats.filter((c) => c.mood === m).length, w]).filter(([n]) => n).map(([n, w]) => n + " " + w).join(", ") || "no cats";
+  const needIn = (cats, k) => cats.filter((c) => c.roomKey === k && MOODS[c.mood].needs);
+  function badge(need) {
+    const b = el("span", "badge " + MOODS[need[0].mood].kind);
+    b.append(el("span", "face-ico"), el("span", "n", String(need.length)));
+    return b;
+  }
 
   let VIEW = { cats: [], placed: [], piles: {}, queens: {}, upstairs: 0 };
 
@@ -536,9 +597,12 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       const [x, y, w, h] = GEOM[k].r;
       const b = el("button", "roomhit");
       b.type = "button";
+      b.id = "room-" + k;
       b.dataset.room = k;
+      b.setAttribute("aria-describedby", "keyhelp");
       Object.assign(b.style, { left: x * 2 + "px", top: y * 2 + "px", width: w * 2 + "px", height: h * 2 + "px" });
       b.addEventListener("click", (e) => { e.stopPropagation(); if (armed("room", k)) return; focusRoom(k); });
+      b.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); enterMenu(k, b); } });
       hoverable(b, "room", k);
       hits.appendChild(b);
     }
@@ -547,6 +611,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       if (!box) continue;
       const b = el("button", "cabinet");
       b.type = "button";
+      b.tabIndex = -1;   // the room's menu has Files
       b.setAttribute("aria-label", "Filing cabinet in the " + GEOM[k].name);
       Object.assign(b.style, { left: box[0] * 2 + "px", top: box[1] * 2 + "px", width: box[2] * 2 + "px", height: box[3] * 2 + "px" });
       b.addEventListener("click", (e) => { e.stopPropagation(); if (armed("room", k)) return; openCabinet(k); });
@@ -586,6 +651,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     }
 
     renderStatus();
+    labelRooms();
     placeOverlay();
     if (MENU.kind) showMenu(MENU.kind, MENU.key);   // keep an open menu's numbers current
   }
@@ -595,6 +661,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const b = el("button", "cat m-" + c.mood);
     b.type = "button";
     b.dataset.id = c.id;
+    b.dataset.room = room;
     const left = spot[0] * 2 - sp.ax, top = spot[1] * 2 - sp.ay;
     Object.assign(b.style, { left: left + "px", top: top + "px", width: sp.w + "px", height: sp.h + "px", zIndex: 1000 + spot[1] * 2 });
     b.setAttribute("aria-label", c.name + " (" + c.project.name + "), " + MOODS[c.mood].label + ": " + c.title);
@@ -663,30 +730,84 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     S.cam = { s, tx, ty, W, H };
     stage.classList.toggle("instant", !!instant);
     $("world").style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+    $("world").style.setProperty("--cs", s);
     Object.assign($("meadow").style, { backgroundSize: `${224 * s}px ${64 * s}px`, backgroundPosition: `${tx}px ${ty}px` });
-    for (const b of $("hits").querySelectorAll(".roomhit")) {
-      const here = b.dataset.room === S.focus;
-      b.classList.toggle("here", here);
-      b.setAttribute("aria-label", here ? roomInfo(b.dataset.room).name : "Look in the " + roomInfo(b.dataset.room).name);
-      b.tabIndex = here ? -1 : 0;
-    }
-    if (instant) placeOverlay();
+    labelRooms();
+    if (instant || matchMedia("(prefers-reduced-motion: reduce)").matches) placeOverlay();
     else {
       const ov = $("overlay"); ov.classList.add("moving");
       clearTimeout(layout.t);
-      layout.t = setTimeout(() => { placeOverlay(); ov.classList.remove("moving"); }, 560);
+      // once the camera has moved, the signs come back and an open menu finds its room again
+      layout.t = setTimeout(() => { placeOverlay(); ov.classList.remove("moving"); if (MENU.kind) showMenu(MENU.kind, MENU.key, anchorOf(MENU.kind, MENU.key)); }, 560);
     }
   }
-  function focusRoom(k) { if (S.focus === k) return; hideMenu(); S.focus = k; layout(false); render(); }
-  function zoomOut() { if (!S.focus) return; hideMenu(); S.focus = null; layout(false); render(); }
+  // Going into a room or back out: keyboard focus follows onto the room, and the move is said aloud.
+  function go(k) {
+    const a = document.activeElement;
+    const onMap = !a || a === document.body || $("stage").contains(a), keys = !!a && a.matches(":focus-visible");
+    hideMenu(); S.focus = k;
+    if (k) S.cursor = k;
+    layout(false); render();
+    $("say").textContent = k ? roomInfo(k).name + ": " + summary(VIEW.cats.filter((c) => c.roomKey === k)) + "." : "The whole house.";
+    if (!onMap) return;
+    const r = $("room-" + (k || S.cursor || "living"));
+    r.focus({ preventScroll: true });
+    if (keys && !MENU.kind) showMenu("room", r.dataset.room, r);   // from the keyboard, the room you land in shows its menu
+  }
+  function focusRoom(k) { if (S.focus !== k) go(k); }
+  function zoomOut() { if (S.focus) go(null); }
+
+  /* ---------- keyboard: the map is one stop, arrows move between rooms ---------- */
+  // One room carries the tab stop (at first the one that needs you most); a room's cats are stops
+  // only once you're in it. Cabinets are reached through the room's Files.
+  function labelRooms() {
+    const urgent = ORDER.map((k) => needIn(VIEW.cats, k)).filter((n) => n.length).sort((a, b) => MOODS[a[0].mood].rank - MOODS[b[0].mood].rank)[0];
+    const cur = S.focus || S.cursor || (urgent ? urgent[0].roomKey : "living");
+    for (const b of $("hits").querySelectorAll(".roomhit")) {
+      const k = b.dataset.room, here = k === S.focus;
+      b.classList.toggle("here", here);
+      b.tabIndex = k === cur ? 0 : -1;
+      b.setAttribute("aria-label", roomInfo(k).name + (here ? ", where you are" : "") + ": " + summary(VIEW.cats.filter((c) => c.roomKey === k)));
+    }
+    for (const b of $("cats").children) b.tabIndex = (b.dataset.room || b.dataset.pile || b.dataset.queen) === S.focus ? 0 : -1;
+  }
+  // Arrows move the ring to the room next door (its menu opens, as keyboard focus does), or, in a
+  // room you've gone into, walk you into the next one.
+  function arrows(e) {
+    if (!/^Arrow/.test(e.key) || e.altKey || e.ctrlKey || e.metaKey || e.target.closest("#menu")) return;
+    e.preventDefault();
+    const to = NEXT[S.focus || e.target.dataset.room || e.target.dataset.pile || S.cursor || "living"][e.key];
+    if (!to) return;
+    if (S.focus) { focusRoom(to); return; }
+    S.cursor = to;
+    labelRooms();
+    $("room-" + to).focus({ preventScroll: true });
+  }
+  // Enter on a room steps into its menu, as the second tap does on a phone, onto its main action
+  // (Look in, so Enter twice looks in); the queen and the cats needing you are Shift+Tab above.
+  // Escape in the menu steps back out.
+  function enterMenu(k, node) {
+    showMenu("room", k, node);
+    const first = $("menu").querySelector(".acts .go") || $("menu").querySelector("button, a");
+    if (first) first.focus({ preventScroll: true });
+  }
 
   /* ---------- hover menus: the only chrome ---------- */
   // Pointing at a room or a cat opens its menu beside it; moving onto the menu keeps it open.
   // On a touch screen the first tap opens the menu and the second does the usual thing.
   const MENU = { kind: null, key: null, anchor: null, at: null, hideT: 0, touch: false };
+  let lastXY = null;   // where the pointer last really moved, kept after the rooms have seen the move
+  const moved = (e) => !lastXY || e.clientX !== lastXY[0] || e.clientY !== lastXY[1];
+  document.addEventListener("pointermove", (e) => { lastXY = [e.clientX, e.clientY]; });
+  // Hover opens a menu only when the pointer really moved onto the thing. A camera move or a closing
+  // dialog slides a room under a pointer that stayed put; the browser calls that an enter, but she
+  // isn't pointing at it, and its menu would land on the room she is looking at. It opens on her
+  // first real move instead.
   function hoverable(node, kind, key) {
-    node.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") showMenu(kind, key, node); });
-    node.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") hideSoon(); });
+    let waiting = false;
+    node.addEventListener("pointerenter", (e) => { if (e.pointerType !== "mouse") return; if (moved(e)) showMenu(kind, key, node); else waiting = true; });
+    node.addEventListener("pointermove", (e) => { if (waiting && e.pointerType === "mouse" && moved(e)) { waiting = false; showMenu(kind, key, node); } });
+    node.addEventListener("pointerleave", (e) => { waiting = false; if (e.pointerType === "mouse") hideSoon(); });
     node.addEventListener("pointerdown", (e) => { MENU.touch = e.pointerType !== "mouse"; });
     node.addEventListener("focus", () => { if (node.matches(":focus-visible")) showMenu(kind, key, node); });   // keyboard only
   }
@@ -774,10 +895,11 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     if (q.pinned.length) out.push(el("div", "ask-box need", q.pinned[0].text));
     const acts = el("div", "acts");
     acts.appendChild(plainBtn("Ask " + q.name, "", () => { hideMenu(); openQueen(k); }));
-    acts.appendChild(S.focus === k ? plainBtn("Whole house", "", zoomOut) : plainBtn("Look in", "green", () => focusRoom(k)));
+    const go = S.focus === k ? plainBtn("Whole house", "", zoomOut) : plainBtn("Look in", "green", () => focusRoom(k));
+    go.classList.add("go"); acts.appendChild(go);
     if (GEOM[k].cabinet) acts.appendChild(plainBtn("Files", "", () => { hideMenu(); openCabinet(k); }));
     acts.appendChild(plainBtn("Adopt a cat here", "green", () => { hideMenu(); openAdopt(k); }));
-    acts.appendChild(plainBtn("Edit rooms", "", () => { hideMenu(); openRooms(); }));
+    acts.appendChild(plainBtn("Edit rooms", "", () => { hideMenu(); openRooms(k); }));
     out.push(acts);
     const foot = el("div", "foot rule");
     const snd = el("button", "sound", S.sound ? "Sound on" : "Sound off"); snd.type = "button";
@@ -790,6 +912,8 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       foot.appendChild(plainBtn(S.showOld ? "Send them back up" : "Bring them down", "", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }));
     }
     out.push(foot);
+    // opened from the keyboard, the menu says which keys do what
+    if (document.activeElement && document.activeElement.matches("#hits :focus-visible, #menu :focus-visible")) out.push(el("p", "keys", "← ↑ → ↓ rooms · Enter menu · Esc back"));
     return out;
   }
   function pileMenu(room) {
@@ -857,20 +981,27 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const ov = $("overlay"); ov.replaceChildren();
     const cam = S.cam; if (!cam) return;
     const toScreen = (x, y) => [cam.tx + x * cam.s, cam.ty + y * cam.s];
-    // room name tags on the whole-house view, when there is room for them
-    if (!S.focus && cam.s >= 0.75) {
+    // On the whole house, a sign on each room's back wall, above where cats sit: its name where the
+    // room is wide enough on screen, and a badge when cats in it need you. On a phone, the badge alone.
+    const signs = [];
+    if (!S.focus) {
       for (const k of ORDER) {
-        const [x, y] = GEOM[k].r;
-        const [sx, sy] = toScreen(x * 2 + 6, y * 2 + 6);
-        const tag = el("div", "tag", roomInfo(k).name);
-        const n = VIEW.cats.filter((c) => c.roomKey === k && MOODS[c.mood].needs).length;
-        if (n) tag.appendChild(el("span", "n", String(n)));
-        Object.assign(tag.style, { left: sx + "px", top: sy + "px" });
-        ov.appendChild(tag);
+        const [x, y, w] = GEOM[k].r;
+        const need = needIn(VIEW.cats, k), room = (w - 5) * 2 * cam.s - 5;   // inside the left wall to the right one
+        const named = cam.s >= 0.5 && room >= 56;
+        if (!named && !need.length) continue;
+        const tag = el("div", "tag sign");
+        tag.dataset.room = k;
+        tag.setAttribute("aria-hidden", "true");
+        if (named) tag.appendChild(el("span", "nm", roomInfo(k).name));
+        if (need.length) tag.appendChild(badge(need));
+        const [sx, sy] = toScreen((x + 5) * 2, (y + 5) * 2);
+        Object.assign(tag.style, { left: sx + 3 + "px", top: sy + 3 + "px", maxWidth: Math.max(room, 40) + "px" });
+        ov.appendChild(tag); signs.push(tag);
       }
     }
     const text = !!S.focus;
-    const taken = [];
+    const taken = signs.map((t) => [t.offsetLeft, t.offsetTop, t.offsetLeft + t.offsetWidth, t.offsetTop + t.offsetHeight]);   // faces keep off the signs
     // the room's filing cabinet gets a sign when you're in the room; bubbles keep clear of it
     const cab = S.focus && GEOM[S.focus].cabinet;
     if (cab) {
@@ -884,7 +1015,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     }
     // A text bubble goes above the cat; if that is off the top or on another bubble, below it;
     // failing both, the cat just shows the little face icon.
-    function bubble(p, kind, title, body, act, hoverKind, hoverKey, aria) {
+    function bubble(p, kind, title, body, act, hoverKind, hoverKey, aria, sidestep) {
       const [sx, sy] = toScreen(p.x, p.y);
       if (sx < 0 || sx > cam.W || sy < 0 || sy > cam.H + 20) return;
       const clampX = Math.min(Math.max(sx, 104), cam.W - 104);
@@ -894,15 +1025,23 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       let mode = "icon";
       if (text && up[1] >= 0 && free(up)) mode = "up";
       else if (text && down[3] <= cam.H + 10 && free(down)) mode = "down";
+      // a face goes over the cat's head. If a sign is there, a cat's face gives way: its room's badge
+      // already shows it. A queen is in no badge, so hers steps beside her head instead.
+      let [ix, iy] = [sx, sy];
       if (mode !== "icon") taken.push(mode === "up" ? up : down);
-      else { const r = [sx - 16, sy - 36, sx + 16, sy]; if (!free(r)) return; taken.push(r); }
+      else {
+        const at = [[sx, sy], ...(sidestep ? [[sx + 30, sy + 24], [sx - 30, sy + 24]] : [])].find(([x, y]) => free([x - 16, y - 36, x + 16, y]));
+        if (!at) return;
+        [ix, iy] = at;
+        taken.push([ix - 16, iy - 36, ix + 16, iy]);
+      }
       const below = mode === "down", asText = mode !== "icon";
       const b = el("button", "bub " + kind + (asText ? "" : " icon") + (below ? " below" : ""));
       b.type = "button";
       b.setAttribute("aria-label", aria);
       if (asText) { const hd = el("b"); hd.append(el("span", "face face-ico"), document.createTextNode(title)); b.append(hd, el("span", "t", body)); }
       else b.appendChild(el("span", "face face-ico"));
-      Object.assign(b.style, { left: (asText ? clampX : sx) + "px", top: (below ? feetY : asText ? sy - 10 : sy - 4) + "px" });
+      Object.assign(b.style, { left: (asText ? clampX : ix) + "px", top: (below ? feetY : asText ? sy - 10 : iy - 4) + "px" });
       b.addEventListener("click", act);
       hoverable(b, hoverKind, hoverKey);
       ov.appendChild(b);
@@ -923,7 +1062,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       const q = p.queen;
       bubble(p, "queenb", q.name, q.pinned[0].text,
         () => { if (!armed("queen", k)) { hideMenu(); openQueen(k); } }, "queen", k,
-        q.name + ", queen of the " + roomInfo(k).name + ", is keeping: " + q.pinned[0].text);
+        q.name + ", queen of the " + roomInfo(k).name + ", is keeping: " + q.pinned[0].text, true);
     }
   }
 
@@ -1232,12 +1371,18 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       const name = r.split("/").pop(), key = slug(name);
       if (!groups.has(key)) groups.set(key, { p: { key, name, repo: r.includes("/") ? r : "" }, cats: [] });
     }
-    const dlg = $("roomsDlg"); dlg.replaceChildren();
-    const box = el("div", "dlg");
-    const h = el("h2", "long", "Filing cabinet · " + roomInfo(room).name); h.id = "roomsTitle";
-    box.append(h, el("p", "note", "Every project filed in this room, with all its cats: the ones about the house and the ones napping upstairs or archived."));
-    if (!groups.size) box.appendChild(el("p", "empty", "Nothing is filed here yet. A project lands in this room when its repository is listed under Rooms, or when you move one of its cats here."));
-    for (const { p, cats } of groups.values()) {
+    const dlg = $("roomsDlg"); dlg.replaceChildren(); dlg.classList.remove("wide");
+    dlg.setAttribute("aria-labelledby", "cabKick roomsTitle");
+    const box = el("div", "dlg"), r = roomInfo(room);
+    const kick = el("p", "kicker", "Filing cabinet"); kick.id = "cabKick";
+    const h = el("h2", null, r.name); h.id = "roomsTitle";
+    const hd = el("div"); hd.append(kick, h);
+    if (r.blurb) hd.appendChild(el("p", "blurb", r.blurb));
+    box.append(hd, el("p", "note", "Every project filed in this room, with all its cats, including the ones napping upstairs or archived."));
+    if (!groups.size) box.appendChild(el("p", "empty", "Nothing is filed here yet. A project lands in this room when its repository is listed under Edit rooms, or when you move one of its cats here."));
+    // the projects with cats that need you come first
+    const urgent = (g) => Math.min(9, ...g.cats.filter((c) => !c.away && MOODS[c.mood].needs).map((c) => MOODS[c.mood].rank));
+    for (const { p, cats } of [...groups.values()].sort((a, b) => urgent(a) - urgent(b))) {
       const look = lookOf(p);
       const card = el("section", "proj");
       const head = el("div", "proj-head");
@@ -1314,32 +1459,75 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     show(dlg);
   }
 
-  function openRooms() {
-    const dlg = $("roomsDlg"); dlg.replaceChildren();
+  // The Rooms editor: the cabin as a plan, each room a tab; the chosen room's card below it; then the
+  // one room new cats come in to. Saving writes every room, as before.
+  const PLAN = [56, 88, 1168, 672];   // the part of the meadow the house stands on, in scene pixels
+  function openRooms(start) {
+    const dlg = $("roomsDlg"); dlg.replaceChildren(); dlg.classList.add("wide");
+    dlg.setAttribute("aria-labelledby", "roomsTitle");
     const f = el("form", "dlg");
     const h = el("h2", null, "Rooms"); h.id = "roomsTitle";
-    f.append(h, el("p", "note", "A session's cat moves into the room that lists its GitHub repository. Cats from any other repository come in through the front door to the catch-all room. You can also move one cat at a time from its own card."));
+    f.append(h, el("p", "note", "Pick a room on the plan to name it, say what lives there, and list the GitHub repositories whose cats move in."));
+    const plan = el("div", "plan"), art = el("div", "plan-art"), tabs = el("div");
+    for (const src of ["art/house.png", "art/licensed/decor.png"]) { const i = el("img"); i.src = src; i.alt = ""; art.appendChild(i); }
+    tabs.setAttribute("role", "tablist"); tabs.setAttribute("aria-label", "Rooms on the plan");
+    plan.append(art, tabs);
+    f.appendChild(plan);
     const catchKey = catchAllRoom();
+    const door = el("span", "door"); door.setAttribute("aria-hidden", "true");
+    const ca = el("select"); ca.id = "catchAll";
+    const pct = (v, i) => ((v - (i < 2 ? PLAN[i] : 0)) / PLAN[i % 2 + 2] * 100) + "%";
+    const named = {};   // room -> its Name field
+    const tabName = (k) => $("rt-" + k).setAttribute("aria-label", (named[k].value.trim() || GEOM[k].name) + (ca.value === k ? ", where new cats come in" : ""));
+    let sel = GEOM[start] ? start : S.cursor || catchKey;
+    const pick = (k, focus) => {
+      sel = k;
+      for (const t of tabs.children) { const on = t.dataset.room === k; t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1; }
+      for (const k2 of ORDER) $("rp-" + k2).hidden = k2 !== k;
+      if (focus) $("rt-" + k).focus();
+    };
     for (const k of ORDER) {
-      const r = roomInfo(k);
-      const row = el("div", "roomrow");
-      row.appendChild(el("h3", null, GEOM[k].name));
-      const nm = el("input"); nm.id = "rn-" + k; nm.value = r.name; nm.maxLength = 30;
-      const bl = el("input"); bl.id = "rb-" + k; bl.value = r.blurb; bl.maxLength = 80; bl.placeholder = "What lives here";
+      const r = roomInfo(k), [x, y, w, hh] = GEOM[k].r;
+      const t = el("button", "rt"); t.type = "button"; t.id = "rt-" + k; t.dataset.room = k;
+      t.setAttribute("role", "tab"); t.setAttribute("aria-controls", "rp-" + k);
+      Object.assign(t.style, { left: pct(x * 2, 0), top: pct(y * 2, 1), width: pct(w * 2, 2), height: pct(hh * 2, 3) });
+      const sign = el("span", "tag", r.name);
+      t.appendChild(sign);
+      if (k === catchKey) t.appendChild(door);
+      t.addEventListener("click", () => pick(k));
+      tabs.appendChild(t);
+
+      const p = el("section", "rcard"); p.id = "rp-" + k;
+      p.setAttribute("role", "tabpanel"); p.setAttribute("aria-labelledby", "rt-" + k);
+      const title = el("h3", null, r.name);
+      if (r.name !== GEOM[k].name) title.append(" ", el("span", null, "· the " + GEOM[k].name.toLowerCase() + " on the plan"));
+      const here = VIEW.cats.filter((c) => c.roomKey === k);
+      p.append(title, el("p", "note", here.length ? "Here now: " + summary(here) + "." : "No cats in here right now."));
+      const nm = el("input"); nm.id = "rn-" + k; nm.value = r.name; nm.maxLength = 30; nm.placeholder = GEOM[k].name; named[k] = nm;
+      const bl = el("input"); bl.id = "rb-" + k; bl.value = r.blurb; bl.maxLength = 80; bl.placeholder = "Weekly meals, the shop, legal questions…";
       const rp = el("input"); rp.id = "rr-" + k; rp.value = r.repos.join(", "); rp.placeholder = "owner/repo, another-repo";
-      const rr = el("div", "row"); rr.append(field("Name", nm), field("What lives here", bl));
-      const ca = el("label", "field"); ca.style.gridAutoFlow = "column"; ca.style.justifyContent = "start"; ca.style.alignItems = "center";
-      const radio = el("input"); radio.type = "radio"; radio.name = "catchAll"; radio.value = k; radio.id = "rc-" + k; radio.checked = k === catchKey; radio.style.width = "auto";
-      ca.append(radio, el("span", null, "New cats come in here"));
-      row.append(rr, field("Repositories", rp), ca);
-      f.appendChild(row);
+      const row = el("div", "row"); row.append(field("Name", nm), field("What lives here", bl));
+      p.append(row, field("Repositories, separated by commas", rp));
+      f.appendChild(p);
+      const o = el("option", null, r.name); o.value = k; ca.appendChild(o);
+      // the plan, the card and the front-door choice follow the name as she types it
+      nm.addEventListener("input", () => { const v = nm.value.trim() || GEOM[k].name; sign.textContent = v; o.textContent = v; title.firstChild.textContent = v; tabName(k); });
     }
+    ca.value = catchKey;
+    ca.addEventListener("change", () => { $("rt-" + ca.value).appendChild(door); ORDER.forEach(tabName); });
+    tabs.addEventListener("keydown", (e) => {
+      const to = e.key === "Home" ? ORDER[0] : e.key === "End" ? ORDER[ORDER.length - 1] : NEXT[sel][e.key];
+      if (/^Arrow|^Home$|^End$/.test(e.key)) e.preventDefault();
+      if (to) pick(to, true);
+    });
+    f.append(el("div", "bar"), field("New cats come in to", ca),
+      el("p", "note", "Cats from a repository no room lists come in through the front door to this room. You can also move one cat at a time from its own card."));
     const acts = el("div", "actions"); acts.append(el("span", "spacer"), closeBtn(dlg, "Cancel"));
     const sv = el("button", "btn green", "Save rooms"); sv.type = "submit"; acts.appendChild(sv);
     f.appendChild(acts);
     f.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const chosen = (f.querySelector("input[name=catchAll]:checked") || {}).value || "living";
+      const chosen = GEOM[ca.value] ? ca.value : "living";
       const ok = await save(async (db) => {
         for (const k of ORDER) {
           const repos = $("rr-" + k).value.split(",").map((x) => x.trim()).filter(Boolean);
@@ -1349,7 +1537,10 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       if (ok) dlg.close();
     });
     dlg.appendChild(f);
+    ORDER.forEach(tabName);
+    pick(sel);
     show(dlg);
+    if (GEOM[start]) $("rn-" + start).focus();
   }
 
   /* ---------- sound ---------- */
@@ -1395,6 +1586,17 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     if (MENU.kind) hideMenu(); else zoomOut();
   });
   setInterval(render, 60000); // keep "3 min ago" honest
+  $("stage").addEventListener("keydown", arrows);
+  $("menu").addEventListener("keydown", (e) => {   // Escape in a room's menu goes back to the room, menu still open
+    if (e.key !== "Escape" || MENU.kind !== "room") return;
+    e.stopPropagation();
+    $("room-" + MENU.key).focus({ preventScroll: true });
+  });
+  // a dialog opened from a menu can't hand focus back to it once the menu has shut: give it to the room
+  for (const d of document.querySelectorAll("dialog")) d.addEventListener("close", () => {
+    const a = document.activeElement;
+    if (!a || a === document.body || d.contains(a)) $("room-" + (S.focus || S.cursor || "living")).focus({ preventScroll: true });
+  });
 
   // In claude.ai the artifact runtime serves db and mcp. Opened from a folder on localhost there is
   // no runtime: keep rooms, looks and adopted cats in this browser, and read the cats from

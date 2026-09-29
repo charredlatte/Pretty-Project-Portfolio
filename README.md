@@ -11,10 +11,17 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
 ## What's on the page
 
 - **The cabin fills the screen**, seen from above in a meadow. Each room is a space for one kind
-  of work. There are no toolbars: everything opens from the picture.
-- **Hover over a room** for its menu: what it's for, how many cats need you, the ones meowing,
-  and Look in (zoom to that room), Files, **Adopt a cat here**, and Edit rooms. Its foot has
-  Sound, Check now, and the cats napping upstairs.
+  of work, with its name on a sign on its back wall and a badge (the cat's face and a count) when
+  cats in it need you; on a phone, just the badge. There are no toolbars: everything opens from
+  the picture.
+- **Hover over a room** and white brackets mark its corners while its menu opens beside it: what it's
+  for, how many cats need you, the ones meowing, and Look in (zoom to that room), Files, **Adopt a
+  cat here**, and Edit rooms. Its foot has Sound, Check now, and the cats napping upstairs.
+- **With a keyboard**, Tab lands on the house once. Arrow keys move the brackets from room to room (or,
+  inside a room, walk into the next one), Enter steps into the room's menu, and Escape steps back
+  out.
+- **Edit rooms** opens the cabin as a plan: pick a room to rename it, say what lives there and
+  list the repositories whose cats move in, and choose once which room new cats come in to.
 - **Every room has a queen**, a cat in a crown who is nobody's session and never leaves. Hover
   her for the room in one line — who needs you and why, or the thing she is keeping for you — and
   open her to give her something to keep, take it back, or have her say it out loud in her room
@@ -26,8 +33,8 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
 - **The sign** in the top corner counts the cats that need you, are at work and are asleep. It
   only speaks up when something is wrong, and then it says how to fix it.
 - **Filing cabinets** in the kitchen, dining room, living room, craft room and bedroom, and a
-  chest on the catio deck. Each holds the projects filed in that room with all their cats,
-  including the ones archived or napping upstairs.
+  chest on the catio deck. Each holds the projects filed in that room with all their cats, the
+  ones needing you first, including the ones archived or napping upstairs.
 
 Cats wear their project: every cat of one project has the same coat and carries the same
 emblem (a tin of cat food for the grocery app, a coin for the shop, books for legal matters, a
