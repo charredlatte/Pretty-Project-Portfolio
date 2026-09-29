@@ -261,6 +261,110 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await ctx.close();
 }
 
+/* ---------- 5b. the queens: one per room, keeping what matters in it ---------- */
+{
+  const { page, ctx, errors } = await open();
+  const queen = (room) => page.locator('#cats .cat[data-queen="' + room + '"]');
+
+  await check("every room has a queen, and she is nobody's session", async () => {
+    const n = await page.locator("#cats .cat.queen").count();
+    expect(n === 9, "queens drawn: " + n);
+    const crowns = await page.locator("#cats .cat.queen .crown").count();
+    expect(crowns === 9, "crowns: " + crowns);
+  });
+  await check("she is never counted among the cats that need you", async () => {
+    const before = await page.locator("#tally").textContent();
+    // the sign counts working cats only: a queen sitting up must not add to it
+    const needing = await page.locator("#cats .cat:not(.queen).m-meow, #cats .cat:not(.queen).m-cry, #cats .cat:not(.queen).m-box").count();
+    const said = (before.match(/(\d+) need you/) || [])[1];
+    expect(String(needing) === String(said || 0), "sign says " + said + ", cats needing you: " + needing);
+  });
+  await queen("kitchen").hover();
+  await settle(page);
+  await check("hovering her gives the room in one line", async () => {
+    const t = await menuText(page);
+    expect(t.includes("Queen of the Kitchen"), t);
+    expect(/needs you|need you in here|All quiet|Nothing in this room/.test(t), t);
+  });
+  await queen("kitchen").click();
+  await settle(page);
+  await check("her card opens with nothing kept yet", async () => {
+    const t = await page.locator("#queenDlg").innerText();
+    expect(t.includes("She is keeping nothing for this room yet."), t.slice(0, 200));
+  });
+  await page.fill("#queenAdd", "The Drive order goes in on Sunday.");
+  await page.locator('#queenDlg button:has-text("Give it to her")').click();
+  await page.fill("#queenAdd", "Chilli is a health rule, never a taste.");
+  await page.locator('#queenDlg button:has-text("Give it to her")').click();
+  await page.locator('#queenDlg button:has-text("Say it")').last().click();
+  await page.fill("#queenRename", "Mémé");
+  await page.click("#queenSave");
+  await settle(page);
+  await check("what you give her is written as one document for that room", async () => {
+    const d = await T(page, () => window.__catio.store["queens/kitchen"]);
+    expect(d && d.name === "Mémé", JSON.stringify(d));
+    expect(d.notes.length === 2, "notes: " + JSON.stringify(d.notes));
+    const said = d.notes.filter((n) => n.pinned);
+    expect(said.length === 1 && said[0].text.startsWith("The Drive order"), JSON.stringify(said));
+  });
+  await check("she takes her new name and sits up to say it", async () => {
+    const label = await queen("kitchen").getAttribute("aria-label");
+    expect(label.startsWith("Mémé, queen of the Kitchen"), label);
+    expect((await queen("kitchen").getAttribute("class")).includes("m-meow"), await queen("kitchen").getAttribute("class"));
+  });
+  await page.evaluate(() => document.querySelector('.roomhit[data-room="kitchen"]').click());
+  await page.waitForTimeout(800);
+  await check("in her room she says it out loud, and it opens her card", async () => {
+    const bub = page.locator("#overlay .bub.queenb");
+    expect(await bub.count() === 1, "bubbles: " + (await bub.count()));
+    expect((await bub.innerText()).includes("The Drive order"), await bub.innerText());
+    await bub.click();
+    await settle(page);
+    expect(await page.locator("#queenDlg").isVisible(), "her card did not open");
+  });
+  await check("the one she is saying is not listed twice in her menu", async () => {
+    await page.keyboard.press("Escape");
+    await queen("kitchen").hover();
+    await settle(page);
+    const t = await menuText(page);
+    expect(t.split("The Drive order").length === 2, t);
+    expect(t.includes("She is also keeping") && t.includes("Chilli is a health rule"), t);
+  });
+  await queen("kitchen").click();
+  await settle(page);
+  await page.locator('#queenDlg button:has-text("Saying it")').click();
+  await page.click("#queenSave");
+  await settle(page);
+  await check("taking it back stops her saying it", async () => {
+    const d = await T(page, () => window.__catio.store["queens/kitchen"]);
+    expect(d.notes.every((n) => !n.pinned), JSON.stringify(d.notes));
+    expect(await page.locator("#overlay .bub.queenb").count() === 0, "still saying it");
+  });
+  await queen("kitchen").click();
+  await settle(page);
+  await page.locator('#queenDlg button:has-text("Forget")').first().click();
+  await page.click("#queenSave");
+  await settle(page);
+  await check("forgetting one leaves the rest", async () => {
+    const d = await T(page, () => window.__catio.store["queens/kitchen"]);
+    expect(d.notes.length === 1, JSON.stringify(d.notes));
+  });
+
+  // the bug this feature found: redrawing the menu under your pointer used to close it, because the
+  // button the redraw removed no longer looked like part of the menu by the time the click arrived
+  await hoverRoom(page, "kitchen");
+  const was = await menuText(page);
+  await menuButton(page, "Sound off").click();
+  await check("a menu button that redraws the menu leaves it open, on the same room", async () => {
+    expect(await page.locator("#menu").isVisible(), "the menu closed under the pointer");
+    const now = await menuText(page);
+    expect(now.includes("Kitchen"), "it reopened on another room: " + now.slice(0, 80));
+    expect(now.includes("Sound on") && was.includes("Sound off"), now.slice(0, 120));
+  });
+  await check("no page errors while working the queens", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+
 /* ---------- 6. rooms on the map: signs at every size, the ring, and the keyboard ---------- */
 {
   const { page, ctx, errors } = await open("", { viewport: { width: 1280, height: 720 } });
@@ -298,7 +402,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(ring.includes("ring.png"), "no ring on the focused room");
   });
   await page.keyboard.press("Enter");
-  await check("Enter steps into the menu on its first action, with the cats needing you just above it", async () => {
+  await check("Enter steps into the menu on Look in, with the cats needing you just above it", async () => {
     expect((await page.evaluate(() => document.activeElement.textContent)) === "Look in", await active());
     expect(await page.evaluate(() => { const b = document.activeElement.closest("#menu").querySelector("button"); return b.textContent.startsWith("Caramel"); }), "no cat row above");
   });
@@ -361,6 +465,26 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect((await page.locator("#room-bath").getAttribute("aria-label")).startsWith(name), "full name not in the label");
     await hoverRoom(page, "bath");
     expect((await menuText(page)).includes(name), "menu lacks the full name");
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
+
+/* ---------- 6b. a still pointer: the camera moving under it is not pointing ---------- */
+{
+  const { page, ctx, errors } = await open();
+  await hoverRoom(page, "kitchen");
+  await menuButton(page, "Look in").click();
+  await page.waitForTimeout(800);
+  await check("looking in doesn't open the menu of whatever room slid under the resting pointer", async () => {
+    expect(await page.locator('.roomhit.here[data-room="kitchen"]').count() === 1, "not in the kitchen");
+    expect(!(await page.locator("#menu").isVisible()), "a menu opened by itself: " + (await menuText(page)).slice(0, 40));
+  });
+  const box = await page.locator('.roomhit[data-room="kitchen"]').boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
+  await page.waitForTimeout(300);
+  await check("the first real move opens the menu of the room under it", async () => {
+    expect((await menuText(page)).includes("Kitchen"), await menuText(page));
     expect(errors.length === 0, errors.join("; "));
   });
   await ctx.close();

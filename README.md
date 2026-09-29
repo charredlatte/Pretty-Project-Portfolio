@@ -22,6 +22,11 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
   out.
 - **Edit rooms** opens the cabin as a plan: pick a room to rename it, say what lives there and
   list the repositories whose cats move in, and choose once which room new cats come in to.
+- **Every room has a queen**, a cat in a crown who is nobody's session and never leaves. Hover
+  her for the room in one line — who needs you and why, or the thing she is keeping for you — and
+  open her to give her something to keep, take it back, or have her say it out loud in her room
+  until you take it. She is never counted among the cats that need you; she is the one who tells
+  you about them.
 - **Hover over a cat** for its menu: what it needs, its project, room and branch, and a link to
   open the session or chat. Click it for the full card, to rename it or move it to another room.
   On a phone, the first tap opens the menu and the second opens the card.
@@ -55,8 +60,9 @@ has a small garden square: a fountain with a praying statue, a bench and a signp
 - **Claude Code sessions** come live from the built-in *Claude Code Remote* connector
   (`list_sessions`), called as Charlotte from inside the page and checked every minute. A
   session's state decides its mood; its GitHub repository decides its room.
-- **Rooms, renames, moves and adopted chats** live in the artifact's own database, so they
-  follow her between phone and PC. Nothing she does on the page is written back to this repo.
+- **Rooms, renames, moves, adopted chats and what each queen keeps** live in the artifact's own
+  database, so they follow her between phone and PC. Nothing she does on the page is written back
+  to this repo.
 - **When the live read is blocked**, the page shows the copy of her sessions Claude last saved,
   with the time it was saved. Claude Code Remote is built into claude.ai, so it is not in her
   Connectors list and has no per-tool switch she can flip; the copy is refreshed by Claude.

@@ -61,6 +61,10 @@ placed beside it so it never covers what the pointer is on. Keyboard focus opens
 `:focus-visible`; on touch the first tap opens the menu and the second acts (`armed()`). A new
 control goes into one of these menus, not onto the screen.
 
+Hover means the pointer really moved onto the thing (`moved()`): when the camera moves or a dialog
+closes, the room that slides under a still pointer gets no menu until she moves. Without that, a
+neighbour's menu opens over the room she just looked into.
+
 Frames, menus, buttons, chips, slots and dividers are 9-slice `border-image`s cut from the
 Cosy Cabin tile sheet (`art/ui/`). The mood faces and paw come from ToffeeCraft's cat UI sheet.
 Keep it that way: a new control should reuse one of these pieces rather than a CSS border or
@@ -76,14 +80,24 @@ The artifact database, written by the page and seeded with `ArtifactData`:
 | `sessions` | the Claude Code session id | `name`, `room`: her rename or move of one session's cat |
 | `cats` | generated id | an adopted chat: `title`, `link`, `project`, `room`, `mood` (`needs` / `busy` / `done`), `note`, `name` |
 | `projects` | the project's slug (repo name, or an adopted chat's project) | `name`, `emblem`, `coat`: the look every cat of that project shares, set from a filing cabinet |
+| `queens` | the room key | the room's queen: `name`, `notes[]` of `{text, pinned, at}`. A pinned note is one she says out loud in her room |
 | `snapshot` | `sessions` | `{at, savedBy, sessions[]}`: Claude's saved copy of `list_sessions`, shown when the live read is blocked. Written only by Claude, with `ArtifactData` |
 
 Room **geometry** (where each room is on the art and where its cats sit) is code, in `GEOM` in
 the page, because it is tied to the picture. Room **names and which projects live where** are
 data. Don't hardcode those.
 
+**Every room has a queen** — one cat who is not a session, never leaves, and keeps what matters
+in that room. She sits on `GEOM[room].queen`, the seat held back from `spots` for her, so adding
+one to a room means taking a seat out of `spots`, not inventing a coordinate. She is deliberately
+outside `allCats()`: she is never in `VIEW.cats`, never in a pile, never in the filing cabinets
+and never counted by the sign, because she is not work to be done. What she keeps is hers alone;
+a note she is *saying* (`pinned`) becomes her line in the menus and a bubble in her room. Keep her
+out of the counts if you touch this — a queen that inflates "3 need you" makes the sign a liar.
+
 Adopted chats can hold anything she types, including legal matters. They live only in the
-artifact database, never in this repo. The adopt form says so.
+artifact database, never in this repo. The adopt form says so. The same goes for what a queen
+keeps: her card carries the same warning.
 
 ## Live sessions
 
