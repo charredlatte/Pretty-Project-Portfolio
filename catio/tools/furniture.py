@@ -50,7 +50,7 @@ CATALOGUE = {
     "door_mat": piece("cc", (1009, 245, 30, 10), "essential", "rug", stations=[("needs", 9, 8), ("needs", 22, 8)]),
     "rug_red_diamond": piece("cc", (1008, 81, 48, 30), "connected", "rug", stations=[("fail", 24, 18)]),
     "rug_blue_diamond": piece("cc", (1008, 49, 48, 30), "connected", "rug", stations=[("fail", 24, 18)]),
-    "filing_cabinet": piece("cc", (608, 628, 16, 27), "essential", stations=[("review", -8, 34)]),
+    "filing_cabinet": piece("cc", (608, 628, 16, 27), "essential", stations=[("review", 8, 36)]),
     "writing_desk": piece("cc", (304, 507, 32, 32), "connected", stations=[("work", 16, 42)]),
     "armchair_pink": piece("cc", (12, 66, 24, 30), "connected", stations=[("queen", 12, 36)]),
     "lamp_floor": piece("cc", (897, 50, 13, 30)),
@@ -88,6 +88,15 @@ CATALOGUE = {
     "bowl_food": piece("pochi", (9, 207, 43, 37), scale=0.5),
     "bowl_water": piece("tc", (395, 335, 43, 37), scale=0.5),
     "food_bag": piece("pochi", (216, 267, 33, 62), scale=0.5),
+    # the dining room
+    "dining_table": piece("cc", (7, 272, 50, 32), "decor", foot=(0, 6, 50, 26)),
+    "chair_front_decor": piece("cc", (609, 276, 14, 28), foot=(0, 0, 0, 0)),
+    "chair_back_work": piece("cc", (641, 282, 14, 22), "connected", foot=(0, 0, 0, 0), stations=[("work", 7, 22)]),
+    "chair_right": piece("cc", (624, 277, 14, 27), foot=(0, 0, 0, 0)),
+    "chair_left_queen": piece("cc", (658, 277, 14, 27), "connected", foot=(0, 0, 0, 0), stations=[("queen", 7, 30)]),
+    "sideboard": piece("cc", (16, 501, 32, 27), foot=(0, 10, 32, 17)),
+    "runner_yellow": piece("cc", (1009, 145, 30, 15), "connected", "rug", stations=[("fail", 15, 10)]),
+    "sunflower": piece("cc", (33, 871, 14, 40)),
 }
 
 # the default layout, room by room: (key, x, y), native pixels, the sprite's top-left
@@ -130,6 +139,16 @@ LAYOUT = {
         ("bowl_food", 90, 170), ("bowl_water", 90, 186), ("food_bag", 114, 172),
         ("runner_blue", 150, 184), ("cushion_orange", 190, 150),
     ],
+    # Dining room: a long table under the window light with chairs all round (cats at it are working on the
+    # business plans), a sideboard and a sunflower, the filing cabinet, a runner, a cushion
+    "dining": [
+        ("filing_cabinet", 232, 89), ("sideboard", 314, 89), ("sunflower", 336, 84),
+        ("dining_table", 264, 128),
+        ("chair_front_decor", 271, 110), ("chair_front_decor", 293, 110),
+        ("chair_right", 248, 131), ("chair_left_queen", 316, 131),
+        ("chair_back_work", 271, 154), ("chair_back_work", 293, 154),
+        ("runner_yellow", 252, 184), ("cushion_green", 300, 186),
+    ],
 }
 
 
@@ -166,10 +185,21 @@ def footprints(only=None):
     return out
 
 
+def floor_of(room):
+    """A room's open floor, in native pixels: inside its walls and below its back wall."""
+    import manor
+    X0, Y0, X1, Y1 = manor.box_px(manor.ROOMS[room][0])
+    return X0 + 5, Y0 + 5 + manor.FACE, X1 - 5, Y1 - 5
+
+
 def check(only=None):
-    """Stations that sit on some piece's footprint: each is a cat standing in furniture."""
+    """Stations a cat couldn't stand on: in furniture, or off its room's floor."""
     bad = []
     for s, sx, sy, room, key in stations(only):
+        if s != "upstairs":
+            x0, y0, x1, y1 = floor_of(room)
+            if not (x0 + 4 <= sx < x1 - 4 and y0 <= sy < y1 - 2):
+                bad.append((s, sx, sy, key, "off the floor of", room))
         if s == "upstairs":
             continue                                  # cats sit on the stairs on purpose
         for fx, fy, fw, fh, k, r in footprints(only):
