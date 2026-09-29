@@ -64,7 +64,6 @@ Today these are drawn in code (`catio/tools/manor.py`). They work, but hand-draw
 | Arched window with painted shutters, open and closed | about 18 × 16 |
 | Baroque double door with a pediment and a stained-glass fanlight | about 36 × 32 |
 | Stone plinth and corner quoins | 16 × 7, and 5 × 5 blocks |
-| Round turret with a slate cone roof and finial (3/4 view) | about 30 × 60 |
 | Wrought-iron stair rail with scrolls | 2 × 16 |
 | Window box of red geraniums | 16 × 6 |
 
@@ -91,20 +90,26 @@ Today these are drawn in code (`catio/tools/manor.py`). They work, but hand-draw
 - **Catio:** a cat flap. Today it's a dark rectangle.
 
 **Outdoors:**
-- Spruce and fir trees, since the photos' forest is conifers and the packs' trees are round.
-- Cobblestone paving, after photos 1 and 4.
-- A stone balustrade (photo 4).
-- Iron lanterns on posts.
+- ~~Spruce and fir trees~~: done from Little Dreamyland's spruces (29 September); a forest now edges the grounds.
+- ~~Lanterns on posts~~: done from Little Dreamyland's lamp posts, along the drive and at the cafe.
+- Cobblestone paving, after photos 1 and 4. No pack has it.
+- A stone balustrade (photo 4). No pack has it.
 
 ### The cafe (KittyChat Cafe)
 
-Nothing in the packs says "cafe" yet, for when the house is also a cafe:
-- a counter;
-- an espresso machine;
-- cups and cakes;
-- a chalkboard menu of the house rules.
+**Built (29 September):** a terrace on the lawn west of the drive, from the packs:
+- Cosy Cabin cabinets as the counter;
+- Little Dreamyland's notice board as the house-rules board;
+- barrels, planters and a lamp;
+- two Cosy Cabin tables with checked cloths, with chairs.
 
-## 3. Sound: nothing yet
+**Still missing:**
+- an espresso machine;
+- cups and cakes on the counter;
+- a real chalkboard (the notice board stands in).
+- If cats are ever to sit there, it would also need to become a place in the page, not only decor.
+
+## 3. Sound: nothing yet (Charlotte is finding some)
 
 The meow is made in code (a filtered tone). Real sounds would be better:
 - a short meow;

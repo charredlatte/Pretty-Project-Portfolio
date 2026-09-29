@@ -36,7 +36,6 @@ Last updated 29 September 2026. What she has asked for, all in one place: [`requ
   - ochre limewash with stone quoins outside, and pale plaster with an oak beam inside;
   - a south facade on a stone plinth: stucco pilasters, green-shuttered arched windows, and an arched front
     door under a pediment with a stained-glass fanlight;
-  - slate-roofed turrets beside the bath and the studio;
   - dressed stone and big flags in the Great hall;
   - carved panelling and a gilt rail in the Library;
   - white panels with gilt trellis in the Drawing room;

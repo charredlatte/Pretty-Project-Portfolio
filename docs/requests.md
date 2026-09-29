@@ -75,6 +75,10 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 - **Renovation mode:** drag furniture around, and add or remove the non-essential pieces.
 - **A cat's position** shows its state, not a mood face.
 - **Cats walk** (29 September): an archived cat walks away upstairs, and cats can walk around.
+- **Livelier grounds** (29 September): more variety from the packs she has, a spruce forest like the photos.
+- **The KittyChat Cafe** as a terrace in the garden (29 September).
+- **A UI/UX audit with her Game UI plugin** (29 September): `litterbox/ui-audit.md`. She picks what to fix.
+- **Sounds:** she is finding some herself.
 - **How to work:** build the manor a room at a time; compress chats; leftovers go in the litterbox.
 
 ## The manor's look
@@ -85,7 +89,7 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
   - stone plinths and quoins;
   - green painted shutters;
   - arched doors;
-  - turrets.
+  - **no turrets** (29 September).
 - **Every pack mixed freely**, for personal use. Licences are sorted out later.
   - That includes Sprout Lands Sprites and Little Dreamyland.
 - **`house.png` becomes licensed art.** A clone without the zips shows no house.

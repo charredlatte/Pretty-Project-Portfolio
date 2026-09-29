@@ -10,8 +10,7 @@ Public rooms face north onto the garden; the great hall runs from the front door
 the family rooms and the studio sit either side of the hall.
 
 The look: ochre limewash with white stucco and stone quoins outside, a south facade on a stone plinth with
-green-shuttered arched windows, an arched front door under a pediment with a stained-glass fanlight, and two
-slate-roofed turrets. Inside: dressed stone in the great hall, carved panelling with a gilt rail in the
+green-shuttered arched windows, and an arched front door under a pediment with a stained-glass fanlight. Inside: dressed stone in the great hall, carved panelling with a gilt rail in the
 library, white panels with gilt trellis pilasters in the drawing room, stained glass in both. The details
 after Peles and Sinaia (Charlotte's photos) are drawn here in one palette; the textures come from the packs.
 
@@ -20,7 +19,7 @@ and signs on it. Floors are softened (quiet()); a sign's corner of each back wal
 is coloured only in a window's lower two-thirds; rooms differ by pattern, not only colour; nothing moves.
 
 Geometry is fixed: ROOMS, DOORS, WINDOWS' positions, CAT_FLAP, the 5 px walls and FACE are what the page's
-GEOM and the furniture stations are built on. The facade and turrets are drawn outside every room box.
+GEOM and the furniture stations are built on. The facade is drawn outside every room box.
 
 This module is the shell only. Furniture is placed as pieces by the page (see furniture.py and
 docs/renovation-mode.md). The shell mixes licensed packs, so house.png lives in art/licensed/.
@@ -46,7 +45,6 @@ STONE = [(170, 164, 150), (138, 132, 120), (104, 98, 90)]
 OAK = [(120, 82, 56), (90, 58, 40), (63, 42, 32)]
 GILT = [(236, 210, 142), (212, 176, 96), (158, 122, 62)]
 SHUTTER = [(132, 164, 118), (100, 132, 94), (74, 100, 72)]
-SLATE = [(150, 160, 172), (112, 122, 138), (78, 86, 102), (54, 58, 72)]
 IRON = (44, 38, 44)
 LEAD = (60, 56, 64)
 PANE = [(196, 214, 222), (158, 184, 200), (126, 152, 172)]
@@ -99,7 +97,6 @@ WINDOWS = [
 ]
 STAINED_STRIPS = {(24, 330), (24, 459)}
 CAT_FLAP = (752, 176, 192)          # x of the conservatory's east wall, y span
-TURRETS = [(53, 79, "bath"), (694, 720, "study")]   # drum x span, beside the room's south-west/south-east corner
 
 
 def box_px(box):
@@ -157,21 +154,9 @@ def hue(tex, h, sat=1.0, val=1.0):
     return out
 
 
-def slate(tex):
-    """Map a texture's brightness onto the slate ramp (the Sprout Lands shingles become a slate roof)."""
-    out = tex.copy()
-    o = out.load()
-    for y in range(tex.height):
-        for x in range(tex.width):
-            r, g, b, a = o[x, y]
-            v = (0.3 * r + 0.59 * g + 0.11 * b) / 255
-            o[x, y] = SLATE[min(3, max(0, int((1 - v) * 5) - 1))] + (a,)
-    return out
-
-
 def textures(load):
-    """Floors and back walls, from Cosy Cabin (boards, papers, tiles), Cainos (stone), Little Dreamyland (glazed
-    wall tiles) and Sprout Lands Sprites (shingles)."""
+    """Floors and back walls, from Cosy Cabin (boards, papers, tiles), Cainos (stone) and Little Dreamyland (glazed
+    wall tiles)."""
     tm = load("CosyCabin_TileMap.png")
     ex = load("CosyCabin_Example2.png")
     ex = ex.resize((ex.width // 3, ex.height // 3), Image.NEAREST)     # the example ships drawn at 3x
@@ -208,8 +193,7 @@ def textures(load):
         "rail": tm.crop((0, 68, 16, 80)),
         "glazed": load("Tileset/House_Tileset.png").crop((480, 128, 496, 144)),   # Little Dreamyland's wall tile
     })
-    shingles = slate(load("Tilesets/Wooden_House_Roof_Tilset.png").crop((48, 32, 112, 64)))
-    return t, walls, shingles
+    return t, walls
 
 
 def soften(tex, t=0.22):
@@ -329,11 +313,11 @@ def stained(w, h=FACE, seed=0):
 
 
 def shell(load):
-    """The whole house: floors, back walls, walls, doorways, glass, the south facade, the turrets and steps.
+    """The whole house: floors, back walls, walls, doorways, glass, the south facade and the front steps.
     load(path end) opens a sheet from Charlotte's packs."""
     img = Image.new("RGBA", SIZE, (0, 0, 0, 0))
     px = img.load()
-    tex, walls, shingles = textures(load)
+    tex, walls = textures(load)
     floor_at = {}
 
     def fill(x, y, name):
@@ -451,7 +435,6 @@ def shell(load):
             px[fx + i, y] = (65, 9, 9, 255) if y in (fy0, fy1 - 1) else (88, 26, 17, 255)
 
     facade(img, walls)
-    turrets(img, shingles)
     steps(img, tex)
     # the house casts a soft shadow to the south-east, so it sits on the ground
     alpha = img.getchannel("A").point(lambda a: 255 if a else 0)
@@ -574,51 +557,6 @@ def front_door(img):
                 px[x, y] = col + (255,)
 
 
-def turrets(img, shingles):
-    """Round Baroque turrets beside the house's south-west and south-east corners, outside every room: an ochre
-    drum as tall as the facade, and a slate cone roof with a gilt finial, seen from the south."""
-    px = img.load()
-    for x0, x1, room in TURRETS:
-        y0 = box_px(ROOMS[room][0])[3]                         # the drum stands on the room's facade line
-        w, cx = x1 - x0, (x0 + x1 - 1) / 2
-        for x in range(x0, x1):
-            t = (x - x0) / (w - 1)
-            for v in range(FACADE):
-                y = y0 + v
-                if x in (x0, x1 - 1):
-                    col = INK
-                elif v >= 25:
-                    col = STONE[0] if t < 0.3 else STONE[1] if t < 0.75 else STONE[2]
-                    col = INK if v == FACADE - 1 else col
-                elif v in (23, 24) or v < 2:
-                    col = STUCCO[0] if t < 0.3 else STUCCO[1] if t < 0.75 else STUCCO[2]
-                else:
-                    col = OCHRE[0] if t < 0.3 else OCHRE[1] if t < 0.75 else OCHRE[2]
-                    dx = abs(x - cx)
-                    if 9 <= v <= 18 and dx <= 2.5 - (v == 9) * 1.5:
-                        col = IRON if (v % 3 == 0 or dx < 0.6) else PANE[2]      # a slit window with an iron grille
-                px[x, y] = col + (255,)
-        # the cone: base a little wider than the drum, its eave curving down at the front
-        r, h = w / 2 + 2, 30
-        for x in range(x0 - 2, x1 + 2):
-            dx = (x - cx) / r
-            if abs(dx) > 1:
-                continue
-            eave = y0 + round(3 * (1 - dx * dx) ** 0.5)
-            for y in range(y0 - h, eave + 1):
-                if abs(x - cx) > r * (y - (y0 - h)) / h:
-                    continue
-                edge = abs(x - cx) > r * (y - (y0 - h)) / h - 1.2 or y == eave
-                s = shingles.getpixel((x % shingles.width, y % shingles.height))[:3]
-                s = mix(s, SLATE[0], 0.3) if x < cx - r / 3 else mix(s, SLATE[3], 0.25) if x > cx + r / 3 else s
-                px[x, y] = (INK if edge else s) + (255,)
-        fxc = round(cx)
-        for y in range(y0 - h - 6, y0 - h + 1):                # the finial
-            px[fxc, y] = (GILT[0] if y < y0 - h - 3 else GILT[2]) + (255,)
-        for x in (fxc - 1, fxc + 1):
-            px[x, y0 - h - 4] = GILT[1] + (255,)
-
-
 def steps(img, tex):
     """Two stone treads down from the front door, at the foot of the facade, with wrought-iron scroll rails."""
     px = img.load()
@@ -642,17 +580,46 @@ def steps(img, tex):
         px[rx, hy - 7] = GILT[1] + (255,)
 
 
-def grounds(sheet, wood, props, struct):
-    """Outdoors, from the licensed packs (never committed): the catio's deck and fence, the drive, the
-    fountain beside it, a parterre, the arch gate, a pond, trees, bushes and rocks.
+def grounds(sheet, wood, props, struct, more):
+    """Outdoors, from the licensed packs (never committed): the catio's deck and fence, the drive with its
+    lamps and flower boxes, the fountain beside it, the KittyChat Cafe's terrace, the arch gate, a pond, a
+    well, a spruce forest round the edges like the woods behind Peles, and flowers, grass and mushrooms
+    scattered on the lawn.
     sheet: Heosphorus's garden (already greened by build-art's spring()); wood(name): a Wood Garden piece;
-    props, struct: Cainos's sheets (drawn on a 32 px grid, so they read large: garden stonework only)."""
+    props, struct: Cainos's sheets (drawn on a 32 px grid, so they read large: garden stonework only);
+    more: "nature", "exterior" and "floor" from Little Dreamyland, "biome" from Sprout Lands Sprites, "plant"
+    (Cainos's, greened) and "cosy" (Cosy Cabin's objects, for the cafe's tables, chairs and counter)."""
+    import random
+    from PIL import ImageDraw
     g = Image.new("RGBA", SIZE, (0, 0, 0, 0))
-    crop = lambda x, y, w, h: sheet.crop((x, y, x + w, y + h))
-    stone = lambda x, y, w, h: props.crop((x, y, x + w, y + h))
-    stamp = lambda im, x, y: g.alpha_composite(im, (x, y))
+    busy = Image.new("1", SIZE, 0)                     # where nothing more may go
+    rnd = random.Random(29)                            # the same grounds on every build
+    cut = lambda im, x, y, w, h: im.crop((x, y, x + w, y + h))
+    crop = lambda x, y, w, h: cut(sheet, x, y, w, h)
+    stone = lambda x, y, w, h: cut(props, x, y, w, h)
+    nat, ext, cosy = (lambda *b: cut(more["nature"], *b)), (lambda *b: cut(more["exterior"], *b)), (lambda *b: cut(more["cosy"], *b))
+
+    def block(x0, y0, x1, y1):
+        ImageDraw.Draw(busy).rectangle([x0, y0, x1, y1], fill=1)
+
+    def stamp(im, x, y, keep=True):
+        g.alpha_composite(im, (x, y))
+        if keep:
+            block(x - 2, y - 2, x + im.width + 1, y + im.height + 1)
+
+    def free(x, y, w, h):
+        return 0 <= x and x + w <= SIZE[0] and 0 <= y and y + h <= SIZE[1] and not busy.crop((x, y, x + w, y + h)).getbbox()
+
     cx = (FRONT_DOOR[0] + FRONT_DOOR[1]) // 2          # the drive's axis
     hy = ROOMS["hall"][0][3] * T + 5 + FACADE + 10      # the foot of the front steps, below the facade
+    ay = SIZE[1] - 64                                   # the arch gate
+    # the house, its facade and shadow, the catio, the drive and the gate stay clear
+    for box, _, _ in ROOMS.values():
+        X0, Y0, X1, Y1 = box_px(box)
+        block(X0 - 4, Y0 - 4, X1 + 6, Y1 + FACADE + 8)
+    block(CATIO[0] * T - 8, CATIO[1] * T - 20, CATIO[2] * T + 8, CATIO[3] * T + 10)
+    block(cx - 24, hy - 14, cx + 24, ay)
+    block(cx - 64, ay - 4, cx + 64, SIZE[1])
 
     # the catio: decking against the conservatory and studio, fenced, with a rose-arch gate to the garden
     X0, Y0, X1, Y1 = CATIO[0] * T + 8, CATIO[1] * T + 16, CATIO[2] * T, CATIO[3] * T
@@ -671,10 +638,8 @@ def grounds(sheet, wood, props, struct):
     for x in range(gx + 42, X1 - 24, 28):
         stamp(wood("White fence/White-fence-2.png"), x, Y1 - 8)
     stamp(wood("White fence/White-fence-5.png"), X1 - 4, Y1 - 31)
-    stamp(crop(113, 293, 81, 121), X1 - 16, Y0 - 58)                                          # a shade tree over the fence
 
-    # the drive: stepping stones straight from the front steps to the arch gate
-    ay = SIZE[1] - 64
+    # the drive: stepping stones straight from the front steps to the arch gate, lamps along it
     for i, y in enumerate(range(hy + 4, ay - 8, 16)):
         for dx in (-17, 2):
             stamp(crop(64 + 16 * ((i + (dx > 0)) % 4), 49, 15, 15), cx + dx, y)
@@ -685,22 +650,104 @@ def grounds(sheet, wood, props, struct):
     stamp(stone(165, 348, 21, 32), cx + 40, ay + 32)
     stamp(stone(453, 118, 22, 37), FRONT_DOOR[0] - 38, hy - 10)          # lanterns by the front steps
     stamp(stone(453, 118, 22, 37), FRONT_DOOR[1] + 16, hy - 10)
+    for y in (hy + 34,):                                                 # lamp posts along the stones
+        stamp(ext(227, 17, 10, 31), cx - 32, y)
+        stamp(ext(227, 17, 10, 31), cx + 22, y)
 
-    # west of the drive a stone-edged parterre; east of it the fountain with its praying statue, and a bench
-    stamp(crop(150, 6, 102, 86), cx - 200, hy + 24)
+    # east of the drive: the fountain with its praying statue, and a bench facing it
     fx, fy = cx + 96, hy + 20
-    stamp(stone(353, 269, 94, 72), fx, fy)                               # the round fountain
-    stamp(stone(445, 21, 37, 72), fx + 29, fy - 22)                      # the praying statue in it
-    stamp(stone(292, 19, 56, 41), fx + 104, fy + 20)                     # a stone bench facing it
+    stamp(stone(353, 269, 94, 72), fx, fy)
+    stamp(stone(445, 21, 37, 72), fx + 29, fy - 22)
+    stamp(stone(292, 19, 56, 41), fx + 104, fy + 20)
     stamp(stone(99, 160, 27, 32), CATIO[0] * T + 24, CATIO[3] * T + 14)  # a signpost to the catio
 
-    # the edges: a pond, trees, bushes and rocks
+    # west of the drive: the KittyChat Cafe, a paved terrace with a counter, a board of house rules, and
+    # two little tables with checked cloths
+    tx0, ty0, tx1, ty1 = cx - 222, hy + 30, cx - 66, hy + 128        # clear of the gate's vase
+    slab = more["ground"]
+    for x in range(tx0, tx1):
+        for y in range(ty0, ty1):
+            if x in (tx0, tx1 - 1) or y in (ty0, ty1 - 1):
+                c = (98, 92, 84, 255)
+            elif (x - tx0) % 24 == 0 or (y - ty0) % 24 == 0:
+                c = (128, 122, 110, 255)
+            else:
+                c = slab.getpixel((x % 32, y % 32))
+            g.putpixel((x, y), c)
+    block(tx0 - 2, ty0 - 30, tx1 + 2, ty1 + 2)
+    for i, key in enumerate(((416, 628), (384, 628), (416, 628), (448, 628))):   # the counter: four cabinets
+        stamp(cosy(*key, 16, 27), tx0 + 10 + 16 * i, ty0 - 12)
+    stamp(ext(356, 26, 26, 20), tx0 + 84, ty0 - 4)                        # the house-rules board
+    stamp(ext(305, 61, 15, 19), tx0 + 116, ty0 - 6)                       # barrels
+    stamp(ext(321, 61, 15, 19), tx0 + 132, ty0 - 4)
+    stamp(ext(227, 17, 10, 31), tx0 - 6, ty0 - 20)                        # a lamp at the corner
+    for tabx, taby, cloth in ((tx0 + 22, ty0 + 44, (518, 272)), (tx0 + 102, ty0 + 38, (438, 272))):
+        stamp(cosy(641, 346, 14, 22), tabx + 11, taby - 14)              # a chair behind
+        stamp(cosy(*cloth, 36, 32), tabx, taby)                         # the table and its checked cloth
+        stamp(cosy(624, 341, 14, 27), tabx - 12, taby + 4)              # chairs either side
+        stamp(cosy(658, 341, 14, 27), tabx + 34, taby + 4)
+    for x in (tx0 + 4, tx0 + 64, tx0 + 140):                             # planters along the front
+        stamp(ext(17 + 16 * (x % 3), 74, 14, 12), x, ty1 - 6)
+
+    # a pond with lily pads, a well and its barrels, bushes and rocks
     stamp(crop(64, 84, 64, 56), 18, SIZE[1] - 110)
-    stamp(crop(19, 295, 93, 125), -40, 150)                              # big tree, west
-    stamp(crop(204, 291, 72, 138), SIZE[0] - 84, SIZE[1] - 190)          # blossom tree, south-east
+    stamp(nat(224, 112, 16, 15), 32, SIZE[1] - 96, keep=False)
+    stamp(nat(241, 114, 14, 13), 52, SIZE[1] - 84, keep=False)
+    stamp(ext(166, 17, 21, 29), 186, 392)
+    stamp(ext(305, 61, 15, 19), 210, 404)
     for x, y, b in [(96, 404, (49, 424, 34, 30)), (150, 418, (16, 427, 26, 23)), (640, 400, (49, 424, 34, 30)),
                     (700, 414, (16, 427, 26, 23)), (18, 36, (49, 424, 34, 30)), (900, 40, (16, 427, 26, 23))]:
         stamp(crop(*b), x, y)
     for x, y, b in [(126, 520, (99, 251, 24, 23)), (760, 530, (41, 258, 23, 16)), (60, 20, (71, 252, 22, 22))]:
         stamp(crop(*b), x, y)
+    stamp(nat(227, 20, 24, 24), 88, SIZE[1] - 64)                         # mossy rocks by the pond
+    stamp(nat(273, 22, 11, 8), 120, SIZE[1] - 40)
+
+    # the trees: a spruce forest round the edges, as behind Peles, with the old round trees among them.
+    # Drawn last, back to front, so nearer trunks stand in front of farther ones.
+    trees = [(crop(113, 293, 81, 121), X1 - 16, Y0 - 58), (crop(19, 295, 93, 125), -40, 150),
+             (crop(204, 291, 72, 138), SIZE[0] - 84, SIZE[1] - 190)]
+    kinds = [nat(53, 32, 22, 32)] * 5 + [nat(104, 67, 47, 41)] * 3 + [nat(17, 27, 30, 36)] * 2
+    def forest(xs, ys, n):
+        for _ in range(n):
+            im = rnd.choice(kinds)
+            x, y = rnd.randint(*xs) - im.width // 2, rnd.randint(*ys) - im.height
+            if not busy.crop((x + im.width // 3, y + im.height - 6, x + im.width * 2 // 3, y + im.height)).getbbox():
+                trees.append((im, x, y))
+    forest((-10, 970), (18, 58), 70)          # north, behind the house
+    forest((-10, 70), (60, 440), 26)          # west
+    forest((905, 975), (70, 380), 16)         # east, beyond the catio
+    for im, x, y in trees:                    # their trunks keep the scatter off
+        block(x + 2, y + im.height // 3, x + im.width - 2, y + im.height)
+    for b in ((20, 108, 24, 19), (57, 115, 15, 14), (51, 145, 26, 14), (101, 150, 22, 20)):   # stumps and logs
+        for _ in range(12):
+            x, y = rnd.choice([(rnd.randint(0, 70), rnd.randint(60, 440)), (rnd.randint(40, 900), rnd.randint(44, 60))])
+            if free(x, y, b[2], b[3]):
+                stamp(nat(*b), x, y)
+                break
+
+    # the lawn: flowers, grass tufts, pebbles, fallen leaves and a few mushrooms, scattered where nothing is
+    floor, biome, plant = more["floor"], more["biome"], more["plant"]
+    bits = ([cut(floor, x, y, 16, 16) for x, y in ((16, 16), (32, 16), (16, 32), (32, 32), (16, 48), (32, 48))] * 2 +
+            [cut(floor, x, y, 16, 16) for x, y in ((96, 16), (112, 16), (128, 16), (96, 32), (128, 32))] +
+            [cut(plant, *b) for b in ((8, 394, 17, 9), (41, 394, 16, 10), (73, 394, 15, 10), (102, 394, 15, 11),
+                                     (9, 426, 12, 10), (43, 427, 13, 9), (74, 427, 13, 9), (41, 458, 12, 10))] * 2 +
+            [cut(biome, *b) for b in ((82, 2, 13, 12), (100, 4, 10, 10), (115, 3, 7, 7), (129, 7, 7, 7), (136, 3, 7, 7),
+                                      (52, 36, 8, 10), (67, 36, 10, 10), (83, 50, 11, 11))])
+    placed = 0
+    for _ in range(4000):
+        if placed >= 110:
+            break
+        im = rnd.choice(bits)
+        bb = im.getbbox()
+        if not bb:
+            continue
+        x, y = rnd.randint(0, SIZE[0] - im.width), rnd.randint(40, SIZE[1] - im.height)
+        if free(x + bb[0], y + bb[1], bb[2] - bb[0], bb[3] - bb[1]):
+            stamp(im, x, y)
+            placed += 1
+
+    for im, x, y in sorted(trees, key=lambda t: t[2] + t[0].height):
+        dx, dy = max(0, -x), max(0, -y)                              # a tree hanging off the edge is cut there
+        g.alpha_composite(im.crop((dx, dy, im.width, im.height)), (x + dx, y + dy))
     return g

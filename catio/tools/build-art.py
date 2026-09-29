@@ -9,12 +9,12 @@
     python3 catio/tools/build-art.py "Sprout Lands - UI Pack - Basic pack.zip"    # the interface alone
 
 (The zips' names don't matter, only their order.) Writes, next to catio/index.html:
-  art/licensed/house.png         the manor's shell (floors, walls, glass, doors, the south facade and turrets),
+  art/licensed/house.png         the manor's shell (floors, walls, glass, doors, the south facade),
                                  drawn to manor.py from every pack
   art/furniture.png              the Cosy Cabin furniture, one cell per piece in furniture.py's catalogue
   art/licensed/furniture.png     the rest of the furniture (ToffeeCraft, Wood Garden, Cainos, plants.zip)
-  art/licensed/decor.png         the grounds: the catio's deck and fence, the drive, fountain, parterres and
-                                 arch gate, trees (Top Down Garden Castle, Wood Garden, Cainos; manor.grounds)
+  art/licensed/decor.png         the grounds: the catio's deck and fence, the drive, fountain, the cafe terrace,
+                                 arch gate, spruce forest and lawn (every pack but the cats; manor.grounds)
   art/licensed/meadow.png        a grass tile from Top Down Garden Castle, repeated under the manor
   art/licensed/mochi-idle.png, mochi-box.png, pochi.png   the ToffeeCraft cats, unchanged
   art/licensed/ui/               the interface, cut from Sprout Lands: panels, buttons, fields, bubbles,
@@ -272,8 +272,13 @@ def main():
     sheet = spring(member(zipfile.ZipFile(garden_zip), "Top down Garden Castle.png"))
     wood = zipfile.ZipFile(wood_zip)
     sz = zipfile.ZipFile(stone_zip)
+    dreamy = "Little Dreamyland - Free Pack/Tileset/"
+    more = {"nature": load(dreamy + "Nature_Tileset.png"), "exterior": load(dreamy + "Exterior_Tileset.png"),
+            "floor": load(dreamy + "Tileset_Floor_Detail.png"), "biome": load("Objects/Basic_Grass_Biom_things.png"),
+            "plant": spring(load("Texture/TX Plant.png")), "cosy": load("CosyCabin_Objects.png"),
+            "ground": load("Texture/TX Tileset Stone Ground.png").crop((128, 0, 160, 32))}
     manor.grounds(sheet, lambda name: member(wood, name), member(sz, "Texture/TX Props.png"),
-                  member(sz, "Texture/TX Struct.png")).save(OUT / "licensed" / "decor.png")
+                  member(sz, "Texture/TX Struct.png"), more).save(OUT / "licensed" / "decor.png")
     # the furniture, as two atlases the page places pieces from: Cosy Cabin's (committed) and the rest
     atl = furniture.atlases(load)
     atl["cc"].save(OUT / "furniture.png")
