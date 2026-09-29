@@ -36,7 +36,8 @@ def main():
     branch = git("branch", "--show-current", cwd=cwd)
     if not branch or branch == default_branch(cwd):
         return
-    dirty = bool(git("status", "--porcelain", "--untracked-files=normal", cwd=cwd))
+    # graphify's map (graphify-out/) is a local build, not work to ship
+    dirty = any("graphify-out/" not in l for l in (git("status", "--porcelain", "--untracked-files=normal", cwd=cwd) or "").splitlines())
     upstream = git("rev-parse", "--abbrev-ref", "@{u}", cwd=cwd)
     ahead = git("rev-list", "--count", (upstream or "origin/" + default_branch(cwd)) + "..HEAD", cwd=cwd)
     unpushed = bool(ahead and ahead != "0")
