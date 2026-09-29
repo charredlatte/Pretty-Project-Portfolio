@@ -29,52 +29,48 @@ Last updated 29 September 2026.
    are known: non-commercial, credit needed, no redistribution.
 4. **The UX spec for renovation mode** from the rooms-redesign session.
 
-## Next: the manor, one room at a time
+## The manor: done (on `main`)
 
-Every room is its own small step. Each step:
-
-1. Plan the room in `cabin.py`: floor, wallpaper, glass, doorways.
-2. Place its furniture as pieces (with a kind: `essential`, `connected` or `decor`) and its **stations**.
-3. Render the room alone, look at it, and adjust.
-4. Commit.
-
-A room is only done when it reads right at 1x and 2x, and no station sits on a footprint.
-
-- **A. Inventory: done.** Every pack is unpacked and has numbered contact sheets. Cosy Cabin alone has
-  stone walls, stone facings, panelling and stone floors, so the shell can be committed. ToffeeCraft's
-  `Furnitures.png` (cat beds, posts, bowls) supplies the stations.
-- **B. The shell: done** (`catio/tools/manor.py`, `shell()`): a stone shell (Cainos walls) around a
-  Cosy Cabin interior.
-  - The existing room keys stay the same, so her renames, moves and filing carry over.
-  - One room is new: `brain`, the Library.
-  - The rest become the Great hall (`hall`), Kitchen, Dining room, Drawing room (`living`), Conservatory
-    (`sunroom`), Studio (`study`), Bedroom, Bathroom, and the Walled catio (`garden`).
-- **C. Rooms, one per step, in this order:**
-  1. Great hall: the front door, the grand stairs (where cats nap upstairs), the house rules on the wall.
-  2. Library, the brain: bookcases, the big desk, the drop tray.
+- **The shell**, drawn from Cosy Cabin alone (`catio/tools/manor.py`), and committed as `art/house.png`. It has:
+  - grey stone outside walls and warm stone inside;
+  - stone flags in the Great hall;
+  - a panelled Library (the brain) behind the hall;
+  - a glass conservatory;
+  - front steps.
+- **Every room furnished, one per commit**, in `catio/tools/furniture.py`:
+  1. Great hall: a double stone staircase to the Library door.
+  2. Library.
   3. Drawing room.
   4. Kitchen.
   5. Dining room.
-  6. Conservatory.
+  6. Conservatory: plants from plants.zip.
   7. Studio.
   8. Bedroom.
   9. Bathroom.
-  10. Walled catio.
-  11. Grounds: the drive, the parterre, the fountain, the gate.
-- **D. Wire it into the page.**
-  - `WORLD` and `GEOM` (room boxes only) come from the plan.
-  - Furniture becomes sprites drawn from atlases, in the cats' z-space.
-  - **Stations**: a cat's place shows its state:
-    - working at a desk or table;
-    - needs you at the door mat;
-    - to review by its filing cabinet;
-    - failed on the rug;
-    - asleep in a basket or on the sofa;
-    - archived up the stairs.
-  - Queen seats and cabinets come from the layout.
-- **E. Renovation mode**, after the UX spec, following `docs/renovation-mode.md`.
+  10. The catio.
+
+  Each piece has a kind (`essential`, `connected` or `decor`), a layer, a footprint, and **stations**.
+  `check()` proves that no station is in furniture or off the floor.
+- **The grounds** (`manor.grounds()`, licensed): the drive round a fountain, parterres, the arch gate, the
+  pond and trees.
+- **The page** draws it from a generated `MANOR` block (`python3 catio/tools/furniture.py`):
+  - furniture as atlas cells in the cats' z-space;
+  - cats at their state's station, else the nearest free floor;
+  - the Library in the room order.
+
+  e2e: 97 passed.
+
+## Next
+
+- **Renovation mode**, following `docs/renovation-mode.md` and the rooms-redesign session's UX spec. Layouts
+  per room go in `layouts/<room>`, and the default comes from `MANOR.layout`.
+- **Upstairs:** cats napping upstairs could sit on the stairs' `upstairs` stations instead of being
+  hidden. The older e2e checks expect them hidden, so this is a decision for Charlotte.
 
 ## Then: publish
+
+Files: `art/house.png`, `art/furniture.png`, `art/licensed/furniture.png`, `art/licensed/decor.png`, and the
+rest of CLAUDE.md's list. `art/licensed/` now also holds `furniture.png`.
 
 1. Re-read the live artifact.
 2. Republish to `artifacts.json`'s URL with the full capabilities listed in CLAUDE.md.

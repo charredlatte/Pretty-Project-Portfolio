@@ -3,12 +3,12 @@
 ## Questions waiting on Charlotte
 
 - **Licences:**
-  - `plants.zip`, `Furnitures.png`, `FreeSprites.png` and `free.png` came with no licence file. Who made
-    them, and what does the licence say?
+  - `Furnitures.png`, `FreeSprites.png`, `free.png`, `Idle.png` and `Box3.png` turned out to be ToffeeCraft's,
+    from inside CatMegaFree: settled.
+  - `plants.zip` is used, as she asked, and treated as licensed. **Who made it**, for the credits and the
+    footer?
   - `Game_UI_Pack_Pastel.zip` (12.5 MB): whose is it, and does its licence allow use in the artifact?
   - Until then none of them go into the build.
-- **`Idle.png` and `Box3.png`** in Drive look like ToffeeCraft's Mochi. Are they the same as the ones in
-  CatMegaFree?
 - **"download", "download (1)" and "download (2)"** in the Drive folder look like macOS `.DS_Store` files.
   Safe to delete?
 - **Should "Rename" on a session's cat rename the real session?** It doesn't: the cat's name and the
@@ -37,3 +37,14 @@
 - `ArtifactData` `where` on a nested field (`target.id`) may not be supported. Brain documents keep a flat
   `cat` field for queries.
 - The e2e stub only includes agent cats with `?agents=1`, so the older checks' counts stay as they were.
+
+## From the manor build
+
+- CLAUDE.md still describes the cabin: its publish file list, "The cabin is a floor plan", and the old
+  capabilities. Claude can't edit CLAUDE.md (it's refused as self-modification). `docs/plan.md` has the new
+  file list, and the MANOR block is described in `catio/tools/furniture.py`'s docstring.
+- `catio/tools/cabin.py` is no longer used by the build. It stays for now as the old plan; delete it when
+  nothing needs it.
+- The rooms keep her own names from the database ("Living room", "Sunroom", "Craft room", "Hall"). The manor's
+  defaults ("Drawing room", "Conservatory", "Studio", "Great hall") only show when a room has no saved name.
+  She may want to rename them in Edit rooms.
