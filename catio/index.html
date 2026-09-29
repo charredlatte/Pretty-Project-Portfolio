@@ -302,6 +302,17 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
 .rules .lock { font: 800 .72rem var(--body); color: var(--ink-soft); }
 .manage { display: flex; flex-wrap: wrap; gap: 6px; }
 .audit { font-size: .8rem; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+/* a project's map: graphify's graph in the pack's picture frame, with its key below */
+.gmap[open] { display: grid; gap: 6px; }
+.gart { background: #F4E6C8 padding-box; border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; image-rendering: pixelated; }
+.gart svg { display: block; width: 100%; height: auto; }
+.gart line { stroke: var(--ink-soft); stroke-opacity: .35; stroke-width: 1; }
+ul.gkey { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: .82rem; overflow-wrap: anywhere; }
+ul.gkey li { display: flex; flex-wrap: wrap; gap: 0 4px; align-items: baseline; }
+ul.gkey .sw { flex: none; width: 8px; height: 8px; align-self: center; }
+ul.gkey .what { color: var(--ink-soft); font-size: .78rem; }
+ul.gkey li > div.what { flex-basis: 100%; }
+.item.ask { display: block; height: auto; font: 500 .82rem/1.35 var(--body); text-align: left; white-space: normal; width: 100%; }
 
 .toast { position: fixed; z-index: 40; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); font-size: .9rem; font-weight: 700; padding: 0 6px; max-width: calc(100vw - 32px); }
 
@@ -463,7 +474,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     sessions: null, sessionsAt: null, live: { state: "loading" },
     liveSessions: null, liveAt: null, copy: null, from: null,   // the live feed, and Claude's saved copy for when it's blocked
     rooms: {}, tweaks: {}, adopted: [], projects: {}, queens: {},
-    brain: [], notes: [], rules: {}, audits: {}, outbox: [], agents: [],   // the harness: dropped files, conversations, house rules, audits, queued posts, other agents
+    brain: [], notes: [], rules: {}, audits: {}, graphs: {}, outbox: [], agents: [],   // the harness: dropped files, conversations, house rules, audits, project maps, queued posts, other agents
     assets: null, sample: null, host: null,
     focus: null, cursor: null, cam: null, sound: false, showOld: false, prevNeeding: null, art: "checking",
     db: null, mcp: null, perms: null, unwatch: null,
@@ -1308,6 +1319,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     list("outbox", (v) => { S.outbox = v; });
     list("rules", (v) => { S.rules = Object.fromEntries(v.map((r) => [r.id, r])); });
     list("audits", (v) => { S.audits = Object.fromEntries(v.map((a) => [a.id, a])); });
+    list("graphs", (v) => { S.graphs = Object.fromEntries(v.map((g) => [g.id, g])); });
   }
   async function save(fn, ok) {
     if (!S.db) { toast("Saving isn't available in this view."); return false; }
@@ -1555,6 +1567,8 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
       card.appendChild(head);
       const au = S.audits[slug(p.name)];
       if (au && au.summary) { const d = el("details"); d.append(el("summary", null, "Latest audit, " + ago(au.at)), el("p", "audit", au.summary)); card.appendChild(d); }
+      const gm = S.graphs[slug(p.name)];
+      if (gm && gm.map) card.appendChild(projectMap(gm, cats.find((c) => !c.away && c.kind === "session")));
       if (cats.length) {
         const ul = el("ul", "pilelist");
         for (const c of cats) {
@@ -1585,6 +1599,58 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     box.appendChild(acts);
     dlg.appendChild(box);
     show(dlg);
+  }
+
+  // A project's map, from graphify (the catio skill's graph_doc.py saves it as graphs/<repo>): its ideas as
+  // dots coloured by neighbourhood, the hubs, the surprising links, and questions a cat can answer from it.
+  const HUES = ["#5E8F34", "#C0587A", "#3F7FA6", "#D08A2E", "#7B5EA7", "#2E8C7F", "#A6503A", "#8C7B2E"];
+  const hue = (i) => HUES[i] || "#9A8878";
+  function projectMap(gm, cat) {
+    const d = el("details", "gmap");
+    d.appendChild(el("summary", null, "Project map, " + ago(gm.at)));
+    d.appendChild(el("p", "note", gm.nodes + " ideas, " + gm.edges + " links, " + gm.communities + " neighbourhoods" + (gm.commit ? ", at " + gm.commit.slice(0, 7) : "") + "."));
+    const NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 300 160"); svg.setAttribute("role", "img"); svg.setAttribute("shape-rendering", "crispEdges");
+    svg.setAttribute("aria-label", "Map of the " + gm.map.n.length + " most connected ideas in " + gm.repo);
+    const n = gm.map.n, l = gm.map.l || [], big = Math.max(1, ...n.map((x) => x.d));
+    for (let i = 0; i + 1 < l.length; i += 2) {   // links come as a flat list of node pairs
+      const a = n[l[i]], b = n[l[i + 1]];
+      if (!a || !b) continue;
+      const ln = document.createElementNS(NS, "line");
+      ln.setAttribute("x1", a.x); ln.setAttribute("y1", a.y); ln.setAttribute("x2", b.x); ln.setAttribute("y2", b.y);
+      svg.appendChild(ln);
+    }
+    for (const { t: label, g, d: deg, x, y } of n) {
+      const s = 3 + 2 * Math.round(3 * deg / big), r = document.createElementNS(NS, "rect");
+      r.setAttribute("x", x - s / 2); r.setAttribute("y", y - s / 2); r.setAttribute("width", s); r.setAttribute("height", s); r.setAttribute("fill", hue(g));
+      const t = document.createElementNS(NS, "title"); t.textContent = label + " (" + deg + " links)"; r.appendChild(t);
+      svg.appendChild(r);
+    }
+    const art = el("div", "gart"); art.appendChild(svg);
+    d.appendChild(art);
+    const keyList = (title, rows) => { if (!rows.length) return; d.appendChild(el("p", "kicker", title)); const ul = el("ul", "gkey"); rows.forEach((r) => ul.appendChild(r)); d.appendChild(ul); };
+    keyList("Neighbourhoods", (gm.groups || []).map((g, i) => { const li = el("li"); const sw = el("span", "sw"); sw.style.background = hue(i); li.append(sw, el("span", null, g.name + " · " + g.size)); return li; }));
+    keyList("Hubs", (gm.gods || []).map((g) => { const li = el("li"); li.append(el("b", null, g.label), el("span", "what", " " + g.degree + " links" + (g.file ? " · " + g.file : ""))); return li; }));
+    keyList("Surprises", (gm.surprises || []).map((x) => { const li = el("li"); li.append(el("b", null, x.a), document.createTextNode(" " + x.rel + " "), el("b", null, x.b), el("div", "what", x.where + (x.how === "INFERRED" ? " · inferred" : ""))); return li; }));
+    keyList(cat ? "Ask " + cat.name : "Questions it can answer", (gm.questions || []).map((q) => {
+      const li = el("li");
+      if (!cat) { li.textContent = q; return li; }
+      const b = el("button", "item ask", q); b.type = "button";
+      b.addEventListener("click", () => askMap(cat, q, b));
+      li.appendChild(b); return li;
+    }));
+    return d;
+  }
+  async function askMap(c, q, b) {
+    const text = "Ask the project map: " + q, id = gid();
+    b.disabled = true;
+    await save(async (db) => {
+      await db.doc("notes/" + id).set({ cat: c.id, text, author: "charlotte", at: Date.now() });
+      const via = await tell(c, "[Catio] Charlotte says: " + text, { kind: "message", note: id, say: text });
+      await db.doc("notes/" + id).update({ via });
+      toast(saidAs[via]);
+    });
+    b.disabled = false;
   }
 
   function openAdopt(room) {

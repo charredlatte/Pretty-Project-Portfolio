@@ -193,7 +193,24 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     await hoverRoom(page, "study");
     expect(await menuButton(page, "Whole house").count() === 1, "no way back");
   });
+  // an invented project map, as the catio skill's graph_doc.py saves it
+  await T(page, () => window.__catio.put("graphs/montfortoise-shopify", { repo: "example/montfortoise-shopify", at: Date.now() - 60e3, commit: "abc1234def", nodes: 120, edges: 210, communities: 6,
+    gods: [{ label: "CartDrawer", degree: 14, file: "src/cart.js" }], groups: [{ name: "Checkout", size: 40 }, { name: "Theme", size: 30 }],
+    surprises: [{ a: "Shipping notes", rel: "references", b: "CartDrawer", how: "INFERRED", where: "docs/shipping.md → src/cart.js" }],
+    questions: ["Why does CartDrawer connect Checkout to Theme?"],
+    map: { n: [{ t: "CartDrawer", g: 0, d: 14, x: 150, y: 80 }, { t: "Theme", g: 1, d: 6, x: 60, y: 40 }, { t: "Loose end", g: -1, d: 1, x: 250, y: 130 }], l: [0, 1, 0, 2] } }));
   await menuButton(page, "Files").click();
+  await check("a project with a graphify map shows it in its cabinet, and a cat there can be asked its questions", async () => {
+    const card = page.locator("#roomsDlg .proj", { hasText: "montfortoise-shopify" });
+    await card.locator("summary", { hasText: "Project map" }).click();
+    expect(await card.locator(".gart svg rect").count() === 3 && await card.locator(".gart svg line").count() === 2, "map not drawn");
+    const t = await card.locator(".gmap").innerText();
+    expect(t.includes("120 ideas") && t.includes("CartDrawer") && t.includes("Shipping notes") && t.includes("Checkout"), t);
+    await card.locator("button.ask").first().click();
+    await page.waitForTimeout(300);
+    const fired = (await T(page, () => window.__catio.tools)).filter((x) => x[1] === "fire_trigger").pop();   // tools() is defined further down
+    expect(fired && fired[2].text === "[Catio] Charlotte says: Ask the project map: Why does CartDrawer connect Checkout to Theme?", JSON.stringify(fired));
+  });
   await check("the craft room's cabinet lists its projects and branches, archived sessions included", async () => {
     const t = await page.locator("#roomsDlg").innerText();
     expect(t.includes("Filing cabinet") && t.includes("montfortoise-shopify") && t.includes("Intermarche-grocery-shopping-app") && t.includes("claude/test"), t.slice(0, 300));
@@ -718,7 +735,7 @@ async function dropFiles(page, sel, files) {
   await check("writing to a cat posts it into the session and keeps it in the conversation", async () => {
     const fired = (await tools(page, "fire_trigger")).pop();
     expect(fired[2].text === "[Catio] Charlotte says: Is the French text ready?", fired[2].text);
-    const n = Object.entries(await T(page, () => window.__catio.store)).find(([p]) => p.startsWith("notes/"));
+    const n = Object.entries(await T(page, () => window.__catio.store)).find(([p, d]) => p.startsWith("notes/") && d.text === "Is the French text ready?");
     expect(n && n[1].author === "charlotte" && n[1].cat === "session_blocked1" && n[1].via === "pushed", JSON.stringify(n));
   });
   await T(page, () => window.__catio.put("notes/r1", { cat: "session_blocked1", author: "session", text: "Yes: it's in the PR.", at: Date.now() }));

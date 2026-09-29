@@ -9,3 +9,6 @@ catio/test/.page-noart.html
 catio/test/.noart/
 catio/data/sessions.json
 catio/dist/
+
+# graphify's map of the repo: a local build (graphify update .)
+graphify-out/

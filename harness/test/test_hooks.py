@@ -113,6 +113,44 @@ class Ship(unittest.TestCase):
         self.g("push", "-u", "origin", "feature")
         self.assertIsNone(self.stop())
 
+    def test_graphify_map_is_not_work_to_ship(self):
+        self.g("checkout", "-b", "feature"); self.g("push", "-u", "origin", "feature")
+        Path(self.work, "graphify-out").mkdir(); Path(self.work, "graphify-out", "graph.json").write_text("{}")
+        self.assertIsNone(self.stop())
+
+
+class GraphFirst(unittest.TestCase):
+    def test_quiet_without_a_map_and_when_switched_off(self):
+        tmp = tempfile.mkdtemp()
+        r = run("graph_first.py", {"hook_event_name": "PreToolUse", "tool_name": "Grep", "tool_input": {"pattern": "x"}, "cwd": tmp}, cwd=tmp)
+        self.assertEqual((r.returncode, r.stdout), (0, ""))
+        Path(tmp, ".claude").mkdir(); Path(tmp, ".claude", "catio-rules.json").write_text(json.dumps({"graph_first": False}))
+        Path(tmp, "graphify-out").mkdir(); Path(tmp, "graphify-out", "graph.json").write_text('{"nodes": [], "links": []}')
+        r = run("graph_first.py", {"hook_event_name": "PreToolUse", "tool_name": "Read", "tool_input": {}, "cwd": tmp}, cwd=tmp)
+        self.assertEqual((r.returncode, r.stdout), (0, ""))
+
+
+class GraphDoc(unittest.TestCase):
+    def test_digests_a_graph_for_the_catio(self):
+        out = Path(tempfile.mkdtemp(), "graphify-out"); out.mkdir()
+        nodes = [{"id": f"n{i}", "label": f"thing{i}()", "community": i % 2, "community_name": ["Core", "Edges"][i % 2], "source_file": "a.py"} for i in range(6)]
+        links = [{"source": "n0", "target": f"n{i}"} for i in range(1, 6)] + [{"source": "n1", "target": "n2"}]
+        (out / "graph.json").write_text(json.dumps({"nodes": nodes, "links": links, "built_at_commit": "abc123"}))
+        (out / "GRAPH_REPORT.md").write_text("## God Nodes (x)\n1. `thing0()` - 5 edges\n\n## Surprising Connections\n"
+                                             "- `thing1()` --calls--> `thing2()`  [INFERRED]\n  a.py → b.py\n\n## Suggested Questions\n- **Why thing0?**\n  _because_\n")
+        r = subprocess.run([sys.executable, str(HOOKS.parent / "skills" / "catio" / "graph_doc.py"), str(out), "--by", "session_1"], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        key = r.stdout.splitlines()[0]
+        doc = json.loads((out / "catio-graph.json").read_text())
+        self.assertTrue(key.startswith("graphs/"))
+        self.assertEqual((doc["nodes"], doc["edges"], doc["communities"], doc["by"]), (6, 6, 2, "session_1"))
+        self.assertEqual(doc["gods"][0], {"label": "thing0()", "degree": 5, "file": "a.py"})
+        self.assertEqual(doc["surprises"][0]["b"], "thing2()")
+        self.assertEqual(doc["questions"], ["Why thing0?"])
+        self.assertEqual(len(doc["map"]["l"]), 12)
+        for n in doc["map"]["n"]:   # no arrays inside arrays, and every dot on the 300 x 160 map
+            self.assertTrue(0 <= n["x"] <= 300 and 0 <= n["y"] <= 160, n)
+
 
 class SessionStart(unittest.TestCase):
     def test_prints_the_rules(self):
@@ -139,6 +177,8 @@ class Plugin(unittest.TestCase):
                     script = h["command"].split("/hooks/")[1].strip('"')
                     self.assertTrue((HOOKS / script).exists(), script)
         self.assertTrue((root / "skills" / "catio" / "SKILL.md").read_text().startswith("---\nname: catio\n"))
+        self.assertTrue((root / "skills" / "graphify" / "SKILL.md").read_text().startswith("---\nname: graphify\n"))
+        self.assertTrue((root / "skills" / "graphify" / "LICENSE").exists())
 
 
 if __name__ == "__main__":
