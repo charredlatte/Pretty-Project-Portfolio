@@ -115,6 +115,11 @@ CATALOGUE = {
     "tin_buttons": piece("pochi", (103, 343, 18, 18), layer="top", scale=0.5),
     "supply_chest": piece("wg:Chest/Chest-3.png", (0, 0, 21, 26)),
     "chair_right_queen": piece("cc", (624, 277, 14, 27), "connected", foot=(0, 0, 0, 0), stations=[("queen", 7, 30)]),
+    # the bedroom
+    "bed": piece("cc", (176, 416, 32, 47), "connected", foot=(0, 8, 32, 39), stations=[("sleep", 16, 34)]),
+    "nightstand": piece("cc", (176, 520, 16, 22), foot=(0, 8, 16, 14)),
+    "dresser": piece("cc", (16, 501, 32, 27), foot=(0, 10, 32, 17)),
+    "foot_chest": piece("wg:Chest/Chest-1.png", (0, 0, 22, 21)),
 }
 
 # the default layout, room by room: (key, x, y), native pixels, the sprite's top-left
@@ -183,6 +188,13 @@ LAYOUT = {
         ("worktable", 590, 272), ("yarn_red", 598, 282), ("yarn_blue", 612, 284), ("tin_buttons", 628, 281),
         ("chair_right_queen", 572, 290), ("supply_chest", 662, 318),
         ("cushion_blue", 572, 326), ("runner_yellow", 600, 334),
+    ],
+    # Bedroom (legal questions, kept quiet): the bed against the vine paper (a cat asleep on it), nightstands,
+    # a dresser, a chest at the bed's foot, a reading chair for the queen, the filing cabinet, a rug
+    "bedroom": [
+        ("dresser", 170, 226), ("nightstand", 198, 232), ("bed", 216, 222), ("nightstand", 250, 232),
+        ("filing_cabinet", 280, 226), ("foot_chest", 221, 272),
+        ("rug_blue_diamond", 204, 296), ("armchair_pink", 262, 290), ("plant_snake", 186, 305),
     ],
 }
 
