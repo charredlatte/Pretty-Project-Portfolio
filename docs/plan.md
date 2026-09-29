@@ -75,7 +75,7 @@ Last updated 29 September 2026. What she has asked for, all in one place: [`requ
 - **Walking cats: done.** Cats walk between spots through the doorways (`MANOR.doors`), up the hall stairs
   when they go upstairs and down when they return, in by the front door when new, and working cats wander.
   The free ToffeeCraft sheets have no walk cycle, so a walker is the sitting Mochi hopping. The paid Mochi
-  pack has no walk either; the paid Pochi pack's Run would replace it (see `docs/assets-wishlist.md`). Emblems are gone: coats alone tell projects apart.
+  pack has no walk either; the paid Pochi pack's Run would replace it (see `litterbox/assets-wishlist.md`). Emblems are gone: coats alone tell projects apart.
 
 ## Published
 
