@@ -102,7 +102,7 @@ object to `snapshot/sessions` with `ArtifactData` (`set`, pinned with `if_versio
 keeps only what the page reads, and accepts the result as the tool returns it
 (wrapped in `ccr`).
 
-A Routine, "Refresh the catio", does this every two hours from 09:59 to 21:59 Paris time. It fires
+A Routine, "Refresh the catio", does this every two hours from 07:59 to 19:59 Paris time. It fires
 into the Claude Code session it was created from, not a fresh one: a fresh routine session has
 neither `list_sessions` nor `ArtifactData`, so it can't refresh anything (tried September 2026).
 
