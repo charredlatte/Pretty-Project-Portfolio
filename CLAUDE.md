@@ -14,8 +14,7 @@ Publish `catio/index.html` with:
   `meadow.png`, `emblems.png`, `mochi-idle.png`, `mochi-box.png`, `pochi.png`) and the interface
   in `art/licensed/ui/` (`panel`, `button`, `button-hover`, `button-down`, `button-green`,
   `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `bubble-tail`, `corners`,
-  `toggle`, `status`, `faces`, `crown`, `stars`, `home`, `cursor`, `cursor-point` `.png`, and
-  `sprout.ttf`);
+  `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point` `.png`, and `sprout.ttf`);
 - `capabilities`: omit it on a republish to keep what's stored. The declaration is
   `{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions"] }] }, db: {} }`.
 
@@ -77,8 +76,8 @@ its cream square button (white on hover, pressed in when held; `green` and `pink
 copies); inputs are its grey pressed-in button; speech bubbles and a cat's ask are its grey bubble;
 a filing cabinet's project sits in its pressed cream well; rooms and cabinets light up with its
 white selection brackets (on a room they stay one size on screen at any zoom), and so does the
-chosen room on the Edit rooms plan, which sits in its picture frame with its house button on the
-room new cats come in to. Each is a 9-slice `border-image`. The mood faces are its cat emoji
+chosen room on the Edit rooms plan, which sits in its picture frame with its arrow, on its white
+button, pointing into the room new cats come in to. Each is a 9-slice `border-image`. The mood faces are its cat emoji
 (`faces.png`, in `MOODS` order, then a queen's heart eyes), the sound control is its toggle, the
 sign's tick and cross are its own, a queen's crown is its crown icon gilded, what she keeps is
 starred with its stars, and the pointer is its cat paw. Keep it that way: a new control should

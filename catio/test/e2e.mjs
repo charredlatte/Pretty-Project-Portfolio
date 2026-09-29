@@ -391,7 +391,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await ctx.close();
 }
 
-/* ---------- 6. rooms on the map: signs at every size, the ring, and the keyboard ---------- */
+/* ---------- 6. rooms on the map: signs at every size, the brackets, and the keyboard ---------- */
 {
   const { page, ctx, errors } = await open("", { viewport: { width: 1280, height: 720 } });
   await check("on a laptop screen every room still wears its name, inside its own walls", async () => {
@@ -410,9 +410,9 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(await page.locator(".sign").first().evaluate((e) => getComputedStyle(e).pointerEvents) === "none", "signs catch the pointer");
   });
   await hoverRoom(page, "kitchen");
-  await check("the room under the pointer, and the one its menu belongs to, wear the white brackets", async () => {
+  await check("the room under the pointer, and the one its menu belongs to, light up with the white brackets", async () => {
     const ring = await page.locator("#room-kitchen").evaluate((e) => e.classList.contains("lit") && getComputedStyle(e).borderImageSource);
-    expect(ring && ring.includes("corners.png"), "no ring: " + ring);
+    expect(ring && ring.includes("corners.png"), "no brackets: " + ring);
   });
   const hud = await page.locator("#hud").boundingBox();   // rest the pointer on the sign, off the rooms
   await page.mouse.move(hud.x + 10, hud.y + 10);
@@ -425,7 +425,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     const t = await menuText(page);
     expect(t.includes("Craft room") && t.includes("Esc back"), t);
     const ring = await page.locator("#room-study").evaluate((e) => getComputedStyle(e).borderImageSource);
-    expect(ring.includes("corners.png"), "no ring on the focused room");
+    expect(ring.includes("corners.png"), "no brackets on the focused room");
   });
   await page.keyboard.press("Enter");
   await check("Enter steps into the menu on Look in, with the cats needing you just above it", async () => {

@@ -11,17 +11,19 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
 ## What's on the page
 
 - **The cabin fills the screen**, seen from above in a meadow. Each room is a space for one kind
-  of work, with its name on a sign on its back wall and a badge (the cat's face and a count) when
-  cats in it need you; on a phone, just the badge. There are no toolbars: everything opens from
-  the picture.
-- **Hover over a room** and white brackets mark its corners while its menu opens beside it: what it's
-  for, how many cats need you, the ones meowing, and Look in (zoom to that room), Files, **Adopt a
-  cat here**, and Edit rooms. Its foot has Sound, Check now, and the cats napping upstairs.
-- **With a keyboard**, Tab lands on the house once. Arrow keys move the brackets from room to room (or,
-  inside a room, walk into the next one), Enter steps into the room's menu, and Escape steps back
-  out.
-- **Edit rooms** opens the cabin as a plan: pick a room to rename it, say what lives there and
-  list the repositories whose cats move in, and choose once which room new cats come in to.
+  of work, with its name on a cream sign on its back wall and a badge (the mood's cat face and a
+  count) when cats in it need you; on a phone, just the badge. There are no toolbars: everything
+  opens from the picture.
+- **Hover over a room** and white selection brackets light its corners while its menu opens
+  beside it: what it's for, how many cats need you, the ones meowing, and Look in (zoom to that
+  room), Files, **Adopt a cat here**, and Edit rooms. Its foot has Sound, Check now, and the cats
+  napping upstairs.
+- **With a keyboard**, Tab lands on the house once. Arrow keys move the brackets from room to room
+  (or, inside a room, walk into the next one), Enter steps into the room's menu, and Escape steps
+  back out.
+- **Edit rooms** opens the cabin as a plan in a wooden frame: pick a room (its brackets and a green
+  sign show which) to rename it, say what lives there and list the repositories whose cats move
+  in, and choose once which room new cats come in to (marked on the plan with an arrow).
 - **Every room has a queen**, a cat in a crown who is nobody's session and never leaves. Hover
   her for the room in one line — who needs you and why, or the thing she is keeping for you — and
   open her to give her something to keep, take it back, or have her say it out loud in her room

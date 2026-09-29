@@ -91,20 +91,22 @@ a { color: var(--ink); }
 .hud h1 span { font: 800 .78rem var(--body); color: var(--ink-soft); }
 .hud .status:not(.warn) .words { display: none; }
 .hud:hover .status .words, .hud:focus-within .status .words { display: inline; }
-.credits { position: fixed; z-index: 31; right: calc(6 * var(--u) + 8px); bottom: calc(6 * var(--u) + 4px + env(safe-area-inset-bottom, 0px)); margin: 0; font-size: .66rem; color: #FFF8EA; opacity: .9;
+.credits { position: fixed; z-index: 19; right: calc(6 * var(--u) + 8px); bottom: calc(6 * var(--u) + 4px + env(safe-area-inset-bottom, 0px)); margin: 0; font-size: .66rem; color: #FFF8EA; opacity: .9;
   text-shadow: 0 1px 0 #2C4A18, 1px 0 0 #2C4A18, -1px 0 0 #2C4A18, 0 -1px 0 #2C4A18; max-width: calc(100vw - 12 * var(--u) - 16px); text-align: right; }
 .world { position: absolute; left: 0; top: 0; width: 1280px; height: 896px; transform-origin: 0 0; transition: transform .55s cubic-bezier(.3,.7,.2,1);
   background: url(art/licensed/meadow.png) 0 0 / 224px 64px repeat; image-rendering: pixelated; filter: var(--scene); }
 .stage.instant .world { transition: none; }
 .house { position: absolute; inset: 0; width: 1280px; height: 896px; max-width: none; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
 .prop { position: absolute; pointer-events: none; }
-/* rooms, cabinets and cats light up with the pack's white selection brackets; on a room they stay one
-   size on screen at any zoom (--cs is the camera scale) */
+/* rooms, cabinets and cats light up with the pack's white selection brackets: a room under the pointer,
+   with keyboard focus, or whose menu is open. A room's brackets keep one size on screen at any zoom
+   (--cs is the camera scale). */
 .roomhit, .cabinet, .cat { position: absolute; background: transparent; border: 0; padding: 0; cursor: var(--point); }
-.roomhit { --bx: calc(8 * var(--u) / var(--cs, 1)); --by: calc(9 * var(--u) / var(--cs, 1)); }
-.roomhit:not(.here):hover, .roomhit:not(.here).lit, .roomhit:focus-visible { background: rgba(255, 250, 225, .12); outline: none;
-  border-style: solid; border-color: transparent; border-width: var(--by) var(--bx); border-image: url(art/licensed/ui/corners.png) 9 8 / var(--by) var(--bx) stretch; }
-.roomhit.here { cursor: var(--paw); background: transparent; }
+.roomhit { --by: calc(var(--u) * 9 / var(--cs, 1)); --bx: calc(var(--u) * 8 / var(--cs, 1)); }
+.roomhit:hover, .roomhit.lit, .roomhit:focus-visible { background: rgba(255, 250, 225, .12); outline: 0; border: 0 solid transparent;
+  border-image: url(art/licensed/ui/corners.png) 9 8 / var(--by) var(--bx) stretch; }
+.roomhit.here { cursor: var(--paw); background: transparent; border: 0; }
+.roomhit.here:focus-visible { border-style: solid; }
 .cabinet:hover, .cabinet:focus-visible, .cat:focus-visible { outline: 0; border: 9px solid transparent; border-image: url(art/licensed/ui/corners.png) 9 8 / 9px 8px stretch; border-image-outset: 5px; }
 .cat:focus-visible { border-width: 0; }
 .spr { display: inline-block; vertical-align: bottom; filter: var(--tint, none); image-rendering: pixelated; background-repeat: no-repeat; }
@@ -153,16 +155,17 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .overlay.moving { opacity: 0; }
 .tag { position: absolute; font: 18px/18px var(--pixel); padding: 0 2px; white-space: nowrap; display: flex; gap: 5px; align-items: center; color: var(--ink); background: var(--cream) padding-box;
   border-style: solid; border-color: transparent; border-width: 4px 4px 6px; border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / 4px 4px 6px stretch; image-rendering: pixelated; }
+/* a sign on each room's back wall: its name, cut to the room's width, and a badge (the mood's face and a
+   count) when cats in it need you */
+.sign { pointer-events: none; gap: 2px; }
+.sign .nm { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.badge { flex: none; display: inline-flex; align-items: center; gap: 0; }
+.badge .face-ico { margin: -7px -2px -7px 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .bub { position: absolute; pointer-events: auto; transform: translate(-50%, -100%); cursor: var(--point); color: var(--ink); padding: 0 2px 1px; font: 500 12.5px/1.3 var(--body);
   max-width: 200px; width: max-content; text-align: left; background: #DCE0D2 padding-box;
   border-style: solid; border-color: transparent; border-width: 5px 5px 6px; border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / 5px 5px 6px stretch; image-rendering: pixelated; }
 .bub::after { content: ""; position: absolute; left: 50%; bottom: -11px; width: 11px; height: 9px; margin-left: -5px; background: url(art/licensed/ui/bubble-tail.png) no-repeat; }
-/* a sign on each room's back wall: its name, cut to the room's width, and a badge when cats in it need you */
-.sign { pointer-events: none; gap: 4px; }
-.sign .nm { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.badge { flex: none; display: inline-flex; align-items: center; gap: 2px; }
-.badge .face-ico { margin: -7px -2px -8px -4px; }
-.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .bub.below { transform: translate(-50%, 0); }
 .bub.below::after { bottom: auto; top: -10px; transform: scaleY(-1); }
 .bub b { display: flex; align-items: center; gap: 4px; font: 18px/22px var(--pixel); margin: 0 0 1px; font-weight: normal; }
@@ -185,7 +188,7 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .menu .mini b { font: 18px/22px var(--pixel); font-weight: normal; }
 .menu .mini:hover span:last-child { text-decoration: underline; }
 .menu .moods { display: flex; gap: 4px; flex-wrap: wrap; }
-.menu .keys { font-size: .72rem; color: var(--ink-soft); margin: 0; }
+.menu .keys { margin: 0; font-size: .75rem; color: var(--ink-soft); }
 .menu .moods .btn[aria-pressed="true"] { border-image-source: url(art/licensed/ui/button-green.png); }
 /* the sound switch: the pack's toggle, off or on */
 .sound { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; font: 18px/22px var(--pixel); color: var(--ink); }
@@ -231,25 +234,25 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; }
 .actions .spacer { flex: 1; }
 .note { font-size: .8rem; color: var(--ink-soft); margin: 0; }
-/* the Rooms editor: the cabin cropped to the house in the pack's picture frame, each room a tab
-   bracketed when chosen, then the chosen room's card */
+/* the Rooms editor: the cabin cropped to the house in the pack's frame, each room a tab (brackets and a green
+   sign when chosen, the arrow on the room new cats come in to), then the chosen room's card */
 dialog.wide { width: min(600px, calc(100vw - 24px)); }
 .plan { position: relative; box-sizing: content-box; aspect-ratio: 1168 / 672; overflow: clip; background: #8FBF4F padding-box;
   border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; image-rendering: pixelated; }
 .plan-art { position: absolute; left: -4.795%; top: -13.095%; width: 109.589%; height: 133.333%; filter: var(--scene); }
 .plan-art img { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
-.rt { position: absolute; padding: 0; background: transparent; border: 9px 8px solid transparent; }
+.rt { position: absolute; padding: 0; background: transparent; border: 0 solid transparent; }
 .rt:hover { background: rgba(255, 250, 225, .16); }
-.rt[aria-selected="true"], .rt:focus-visible { border-image: url(art/licensed/ui/corners.png) 9 8 / 9px 8px stretch; outline: none; background: rgba(255, 250, 225, .2); }
-.rt .tag { left: 0; top: 0; max-width: 100%; display: block; overflow: hidden; text-overflow: ellipsis; font: 800 11px/1 var(--body); padding: 1px 2px;
-  border-width: 3px 3px 4px; border-image-width: 3px 3px 4px; }
-.rt[aria-selected="true"] .tag { border-image-source: url(art/licensed/ui/button-green.png); background-color: #C0D470; }
-.rt .door { position: absolute; right: 0; bottom: 0; width: 22px; height: 24px; background: url(art/licensed/ui/home.png) no-repeat; image-rendering: pixelated; }
-@media (max-width: 560px) {
-  .rt:not([aria-selected="true"]) .tag { display: none; }
-  .rt[aria-selected="true"] { z-index: 1; }
-  .rt[aria-selected="true"] .tag { max-width: 160%; }
-}
+.rt[aria-selected="true"], .rt:focus-visible { outline: 0; background: rgba(255, 250, 225, .2);
+  border-image: url(art/licensed/ui/corners.png) 9 8 / calc(9 * var(--u)) calc(8 * var(--u)) stretch; }
+.rt .tag { left: calc(8 * var(--u)); top: calc(9 * var(--u)); max-width: calc(100% - 16 * var(--u)); display: block; overflow: hidden; text-overflow: ellipsis; }
+.rt:not([aria-selected="true"]):not(:hover):not(:focus-visible) .tag { display: none; }
+.rt[aria-selected="true"] { z-index: 1; }
+.rt[aria-selected="true"] .tag { border-image-source: url(art/licensed/ui/button-green.png); max-width: none; }
+/* the front door: the pack's arrow on its white button, pointing in */
+.rt .door { position: absolute; right: calc(8 * var(--u)); bottom: calc(9 * var(--u)); width: 32px; height: 30px; image-rendering: pixelated;
+  border-style: solid; border-color: transparent; border-width: 4px 4px 6px; border-image: url(art/licensed/ui/button-hover.png) 4 4 6 4 fill / 4px 4px 6px stretch; }
+.rt .door::after { content: ""; position: absolute; inset: 0; background: url(art/licensed/ui/arrow.png) center / 20px 18px no-repeat; }
 .rcard { display: grid; gap: 8px; }
 .rcard[hidden] { display: none; }
 .rcard h3 { margin: 0; font: 18px/22px var(--pixel); overflow-wrap: anywhere; }
@@ -1375,7 +1378,7 @@ dialog.wide { width: min(600px, calc(100vw - 24px)); }
     dlg.setAttribute("aria-labelledby", "cabKick roomsTitle");
     const box = el("div", "dlg"), r = roomInfo(room);
     const kick = el("p", "kicker", "Filing cabinet"); kick.id = "cabKick";
-    const h = el("h2", null, r.name); h.id = "roomsTitle";
+    const h = el("h2", r.name.length > 16 ? "long" : null, r.name); h.id = "roomsTitle";   // 36px while it fits, 18px when long
     const hd = el("div"); hd.append(kick, h);
     if (r.blurb) hd.appendChild(el("p", "blurb", r.blurb));
     box.append(hd, el("p", "note", "Every project filed in this room, with all its cats, including the ones napping upstairs or archived."));
@@ -1467,7 +1470,7 @@ dialog.wide { width: min(600px, calc(100vw - 24px)); }
     dlg.setAttribute("aria-labelledby", "roomsTitle");
     const f = el("form", "dlg");
     const h = el("h2", null, "Rooms"); h.id = "roomsTitle";
-    f.append(h, el("p", "note", "Pick a room on the plan to name it, say what lives there, and list the GitHub repositories whose cats move in."));
+    f.append(h, el("p", "note", "Pick a room on the plan to name it and list the GitHub repositories whose cats move in."));
     const plan = el("div", "plan"), art = el("div", "plan-art"), tabs = el("div");
     for (const src of ["art/house.png", "art/licensed/decor.png"]) { const i = el("img"); i.src = src; i.alt = ""; art.appendChild(i); }
     tabs.setAttribute("role", "tablist"); tabs.setAttribute("aria-label", "Rooms on the plan");
@@ -1520,8 +1523,8 @@ dialog.wide { width: min(600px, calc(100vw - 24px)); }
       if (/^Arrow|^Home$|^End$/.test(e.key)) e.preventDefault();
       if (to) pick(to, true);
     });
-    f.append(el("div", "bar"), field("New cats come in to", ca),
-      el("p", "note", "Cats from a repository no room lists come in through the front door to this room. You can also move one cat at a time from its own card."));
+    f.append(el("div", "rule"), field("New cats come in to", ca),
+      el("p", "note", "Cats from a repository no room lists come in here, through the front door."));
     const acts = el("div", "actions"); acts.append(el("span", "spacer"), closeBtn(dlg, "Cancel"));
     const sv = el("button", "btn green", "Save rooms"); sv.type = "submit"; acts.appendChild(sv);
     f.appendChild(acts);
