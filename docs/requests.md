@@ -34,7 +34,8 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 - **One private artifact.** Cats follow their session's state: meowing, upset, to review, working or asleep.
 - **Chats:** claude.ai chats are adopted by hand.
 - **Cats:** they can be renamed and moved between rooms.
-- **A project's look** (coat and emblem) is set from its filing cabinet.
+- **A project's look** is its cats' coat, set from its filing cabinet. No emblems: the fur colours are enough
+  (29 September).
 - **The house fills the screen**, with no toolbars. Everything opens from hover menus, two taps on a phone,
   or the keyboard.
 - **Rooms by use** (she can rename and reassign them):
@@ -72,6 +73,7 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 - **Privacy:** private matters stay out of git. They're fine in the Catio's own storage.
 - **Renovation mode:** drag furniture around, and add or remove the non-essential pieces.
 - **A cat's position** shows its state, not a mood face.
+- **Cats walk** (29 September): an archived cat walks away upstairs, and cats can walk around.
 - **How to work:** build the manor a room at a time; compress chats; leftovers go in the litterbox.
 
 ## The manor's look

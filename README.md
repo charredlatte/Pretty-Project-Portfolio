@@ -38,9 +38,14 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
   chest on the catio deck. Each holds the projects filed in that room with all their cats, the
   ones needing you first, including the ones archived or napping upstairs.
 
-Cats wear their project: every cat of one project has the same coat and carries the same
-emblem (a tin of cat food for the grocery app, a coin for the shop, books for legal matters, a
-star for the portfolio, a plant, or yarn). The look can be changed from the project's cabinet.
+Cats wear their project: every cat of one project has the same coat, which can be changed from the
+project's cabinet.
+
+Cats walk. When a cat's state changes it trots to that state's spot; moved to another room, it goes
+there through the doorways; archived or asleep for a week, it walks to the great hall and up the
+stairs, and it comes back down them when it returns. New cats come in by the front door, and working
+cats get up now and then to wander a few steps from their spot. With reduced motion switched on in
+your system settings, the cats simply appear where they belong.
 
 The cabin is a real floor plan, laid out the way small cabins usually are:
 

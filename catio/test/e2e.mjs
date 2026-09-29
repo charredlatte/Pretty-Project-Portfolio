@@ -23,7 +23,8 @@ process.on("uncaughtException", (e) => { console.log(results.join("\n")); consol
 process.on("unhandledRejection", (e) => { console.log(results.join("\n")); console.log("CRASH " + String(e.message).split("\n")[0]); process.exit(2); });
 const expect = (cond, msg) => { if (!cond) throw new Error(msg); };
 async function open(q = "", opts = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, ...opts });
+  // reduced motion unless a test asks for it: the cats stay put, so clicks land on still cats (6c walks them)
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce", ...opts });
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -112,8 +113,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     const cat = page.locator('#cats .cat[aria-label^="Mimi "]');
     expect(await cat.count() === 1, "cat not in scene");
     expect((await cat.getAttribute("class")).includes("m-meow"), "not meowing");
-    const e = await cat.locator(".emb").evaluate((x) => getComputedStyle(x).getPropertyValue("--e").trim());
-    expect(e === "2", "lease should carry books, got " + e);
+    expect(await page.locator(".emb").count() === 0, "cats carry no emblems: their coats tell projects apart");
     expect((await page.locator("#tally").innerText()).includes("2 need you"), await page.locator("#tally").innerText());
   });
   await hoverCat(page, "Mimi");
@@ -161,6 +161,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await settle(page);
   await check("when it is archived it goes upstairs", async () => {
     expect(await page.locator('#cats .cat[aria-label*="Shop about page"]').count() === 0, "still in the house");
+    expect(await page.locator("#walkers .walker").count() === 0, "walked, with reduced motion");
     await hoverRoom(page, "living");
     expect((await menuText(page)).includes("2 napping upstairs"), await menuText(page));
   });
@@ -198,16 +199,15 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     const t = await page.locator("#roomsDlg").innerText();
     expect(t.includes("Filing cabinet") && t.includes("montfortoise-shopify") && t.includes("Intermarche-grocery-shopping-app") && t.includes("claude/test"), t.slice(0, 300));
   });
-  await page.selectOption("#em-montfortoise-shopify", "3");
   await page.selectOption("#coat-montfortoise-shopify", "5");
   await page.locator("#roomsDlg .proj", { hasText: "montfortoise-shopify" }).locator("button:has-text('Save look')").click();
   await settle(page);
   await check("saving a look restyles every cat of that project", async () => {
     const d = await T(page, () => window.__catio.store["projects/montfortoise-shopify"]);
-    expect(d && d.emblem === 3 && d.coat === 5, JSON.stringify(d));
+    expect(d && d.coat === 5 && !("emblem" in d), JSON.stringify(d));
     await page.keyboard.press("Escape");
-    const e = await page.locator('#cats .cat[aria-label*="Shop about page"] .emb').evaluate((x) => getComputedStyle(x).getPropertyValue("--e").trim());
-    expect(e === "3", "emblem " + e);
+    const t = await page.locator('#cats .cat[aria-label*="Shop about page"] .spr').evaluate((x) => x.style.getPropertyValue("--tint"));
+    expect(t.includes("brightness(.62)"), "coat " + t);
   });
   await hoverRoom(page, "study");
   await menuButton(page, "Whole house").click();
@@ -512,6 +512,67 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect((await menuText(page)).includes("Kitchen"), await menuText(page));
     expect(errors.length === 0, errors.join("; "));
   });
+  await ctx.close();
+}
+
+/* ---------- 6c. cats walk: up the stairs when archived, down them when back, through doorways, and about ---------- */
+{
+  const { page, ctx, errors } = await open("", { reducedMotion: "no-preference" });
+  const cat = (id) => page.locator('#cats .cat[data-id="session_' + id + '"]');
+  const settled = (id, cls) => page.waitForFunction(([id, cls]) => {
+    const b = document.querySelector('#cats .cat[data-id="session_' + id + '"]');
+    return b && !b.classList.contains("walking") && !b._walk && (!cls || b.classList.contains(cls));
+  }, [id, cls], { timeout: 25000 });
+  await check("while the page opens, cats are simply in their places", async () =>
+    expect(await page.locator("#cats .cat.walking, #walkers .walker").count() === 0, "someone is walking on load"));
+  await page.waitForTimeout(4200);
+  await T(page, () => window.__catio.setBucket("blocked1", "COMPLETED", "ARCHIVED", {}));
+  await settle(page);
+  await check("an archived cat walks off towards the great hall's stairs", async () => {
+    expect(await cat("blocked1").count() === 0, "still in its room");
+    const w = page.locator('#walkers .walker[data-leaving="session_blocked1"]');
+    expect(await w.count() === 1, "nobody walking upstairs");
+    const a = await w.boundingBox(), hall = await page.locator('.roomhit[data-room="hall"]').boundingBox();
+    await page.waitForTimeout(700);
+    const b = await w.boundingBox();
+    expect(a && b && Math.hypot(b.x - a.x, b.y - a.y) > 4, "not moving: " + JSON.stringify([a, b]));
+    expect(Math.abs(b.x - (hall.x + hall.width / 2)) < Math.abs(a.x - (hall.x + hall.width / 2)) + 1, "not heading for the hall");
+  });
+  await check("it climbs the stairs and is gone", async () =>
+    page.locator('#walkers .walker[data-leaving="session_blocked1"]').waitFor({ state: "detached", timeout: 25000 }));
+  await T(page, () => window.__catio.setBucket("blocked1", "BLOCKED", "IDLE", { status_category: "need_input", needs_action: "one more look" }));
+  await settle(page);
+  await check("brought back, it comes down the stairs and walks to its room, then meows", async () => {
+    expect((await cat("blocked1").getAttribute("class")).includes("walking"), "not walking back: " + await cat("blocked1").getAttribute("class"));
+    await settled("blocked1", "m-meow");
+    expect(await cat("blocked1").getAttribute("data-room") === "study", "not in the craft room");
+  });
+  {
+    const b = await cat("blocked1").boundingBox();
+    const to = await page.evaluate(() => {   // a patch of the hall's floor with nothing else on it
+      const r = document.querySelector('.roomhit[data-room="hall"]').getBoundingClientRect();
+      for (let fy = 0.9; fy > 0.3; fy -= 0.05) for (let fx = 0.2; fx < 0.8; fx += 0.05) {
+        const x = r.left + r.width * fx, y = r.top + r.height * fy, h = document.elementFromPoint(x, y);
+        if (h && h.dataset.room === "hall" && h.classList.contains("roomhit")) return { x, y };
+      }
+    });
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height * 0.7);
+    await page.mouse.down();
+    await page.mouse.move(b.x + 40, b.y + 40, { steps: 3 });
+    await page.mouse.move(to.x, to.y, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(250);
+  }
+  await check("moved to the great hall, it walks there through the doorway", async () => {
+    expect(await cat("blocked1").getAttribute("data-room") === "hall", "not moved");
+    expect((await cat("blocked1").getAttribute("class")).includes("walking"), "it jumped");
+    await settled("blocked1", "m-meow");
+  });
+  await check("a working cat wanders from its station now and then, and comes back", async () => {
+    await page.waitForFunction(() => { const b = document.querySelector('#cats .cat[data-id="session_work1"]'); return b && b.classList.contains("walking"); }, null, { timeout: 15000 });
+    await settled("work1", "m-idle");
+  });
+  await check("no page errors while walking", async () => expect(errors.length === 0, errors.join(" | ")));
   await ctx.close();
 }
 

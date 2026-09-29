@@ -302,8 +302,35 @@ def page_data():
     pieces = {k: {"atlas": plan[k][0], "at": plan[k][1:], "size": c["size"], "kind": c["kind"], "layer": c["layer"],
                   "foot": c["foot"], "stations": c["stations"]} for k, c in CATALOGUE.items()}
     return {"world": list(manor.SIZE), "face": manor.FACE, "rooms": rooms, "floors": {k: list(floor_of(k)) for k in rooms},
+            "doors": doors(),
             "atlases": {a: list(sz) for a, sz in sizes.items()}, "pieces": pieces,
             "layout": {room: [list(p) for p in items] for room, items in LAYOUT.items()}}
+
+
+def doors():
+    """How cats get from room to room: [room a, room b, a point on a's floor, a point on b's floor] for each
+    doorway, the cat flap into the catio, and the front door (room b null: the way out, on the door mat)."""
+    import manor
+    T = manor.T
+
+    def room_at(x, y):
+        for k, (box, _, _) in manor.ROOMS.items():
+            X0, Y0, X1, Y1 = manor.box_px(box)
+            if X0 + 5 <= x < X1 - 5 and Y0 + 5 <= y < Y1 - 5:
+                return k
+        return "garden" if manor.in_catio(x, y) else None
+
+    out = []
+    for kind, w, a, b in manor.DOORS:
+        m = (a + b) // 2
+        p, q = ([w * T - 8, m], [w * T + 12, m]) if kind == "v" else ([m, w * T - 8], [m, w * T + 5 + manor.FACE + 7])
+        out.append([room_at(*p), room_at(*q), p, q])
+    fx, f0, f1 = manor.CAT_FLAP
+    out.append(["sunroom", "garden", [fx - 8, (f0 + f1) // 2], [fx + 16, (f0 + f1) // 2]])
+    hy = manor.ROOMS["hall"][0][3] * T
+    out.append(["hall", None, [sum(manor.FRONT_DOOR) // 2, hy - 6], [sum(manor.FRONT_DOOR) // 2, hy + 20]])
+    assert all(d[0] for d in out) and all(d[1] or d[1] is None for d in out[:-1]), out
+    return out
 
 
 def write_page(page):

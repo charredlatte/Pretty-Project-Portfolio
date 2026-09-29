@@ -72,8 +72,10 @@ Last updated 29 September 2026. What she has asked for, all in one place: [`requ
 
 - **Renovation mode**, following `docs/renovation-mode.md` and the rooms-redesign session's UX spec. Layouts
   per room go in `layouts/<room>`, and the default comes from `MANOR.layout`.
-- **Upstairs:** cats napping upstairs could sit on the stairs' `upstairs` stations instead of being
-  hidden. The older e2e checks expect them hidden, so this is a decision for Charlotte.
+- **Walking cats: done.** Cats walk between spots through the doorways (`MANOR.doors`), up the hall stairs
+  when they go upstairs and down when they return, in by the front door when new, and working cats wander.
+  The free ToffeeCraft sheets have no walk cycle, so a walker is the sitting Mochi hopping; the paid Cat
+  Pack's walk cycle would replace it. Emblems are gone: coats alone tell projects apart.
 
 ## Published
 

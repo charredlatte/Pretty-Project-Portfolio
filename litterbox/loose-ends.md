@@ -52,6 +52,9 @@
 
 - CLAUDE.md says `art/house.png` is committed and gives the six-zip build command. Since the retexture the house is
   `art/licensed/house.png` (never committed) and `build-art.py` takes nine zips; its publish list needs the new path.
+- CLAUDE.md's publish list still names `emblems.png`, and its `projects` row still has `emblem`. Emblems are gone
+  (29 September): the page no longer uses them, `build-art.py` no longer makes them, and the next publish drops
+  `art/licensed/emblems.png`.
 - CLAUDE.md still describes the cabin: its publish file list, "The cabin is a floor plan", and the old
   capabilities. Claude can't edit CLAUDE.md (it's refused as self-modification). `docs/plan.md` has the new
   file list, and the MANOR block is described in `catio/tools/furniture.py`'s docstring.
