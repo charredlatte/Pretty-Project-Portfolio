@@ -3,95 +3,116 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:ital,wght@0,500;0,700;0,800;1,500&display=swap">
 <style>
-/* Layout: the catio is the whole screen, framed by the cabin's wooden trim. Nothing else shows until
-   you hover a room or a cat; then one paper menu opens beside it. A small sign in the corner says
-   whether the cats are live, and spells out any fix. Every frame, plaque and icon is cut from
-   Charlotte's asset packs and drawn at whole-pixel scale; dark mode turns the meadow to night. */
+/* Layout: the catio is the whole screen, in a Sprout Lands frame. Nothing else shows until you hover
+   a room or a cat; then one menu panel opens beside it. A small sign in the corner says whether the
+   cats are live, and spells out any fix. Every panel, button, field, bubble, face and pointer is cut
+   from Cup Nooble's Sprout Lands UI pack (art/licensed/ui/) and drawn at whole-pixel scale; titles
+   and buttons use its pixel font. Dark mode turns the meadow to night. */
+@font-face { font-family: "Sprout"; src: url(art/licensed/ui/sprout.ttf) format("truetype"); font-display: swap; }
 :root {
-  --ink: #50140D;          /* the cabin palette's dark walnut */
-  --ink-soft: #823820;
-  --paper: #EACBB3;        /* the wallpaper colour inside every frame */
-  --on-grass: #FFF4E6;
-  --leaf: #2D531F;
+  --ink: #3F2A20;          /* dark cocoa: the Sprout panels' outline, deepened for reading */
+  --ink-soft: #654535;
+  --tan: #DCB98A;          /* the panel's face */
+  --cream: #E8CFA6;
+  --pixel: "Sprout", "Fredoka", ui-rounded, system-ui, sans-serif;   /* 18px draws the pack's font one pixel to a pixel */
+  --display: "Fredoka", "Nunito", ui-rounded, system-ui, sans-serif;
+  --body: "Nunito", ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
   --night: rgba(8, 20, 34, 0);
   --scene: none;
-  --display: "Fredoka", "Nunito", ui-rounded, system-ui, sans-serif;       /* rounded and bubbly, every letter distinct */
-  --body: "Nunito", ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
   --u: 2px;                /* one art pixel on screen */
+  --paw: url(art/licensed/ui/cursor.png) 9 5, default;
+  --point: url(art/licensed/ui/cursor-point.png) 9 3, pointer;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) { --night: rgba(8, 20, 34, .62); --scene: brightness(.7) saturate(.85) hue-rotate(-12deg); }
 }
 :root[data-theme="dark"] { --night: rgba(8, 20, 34, .62); --scene: brightness(.7) saturate(.85) hue-rotate(-12deg); }
+@media (max-width: 560px) { :root { --u: 1px; } }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-body { margin: 0; overflow: hidden; color: var(--ink); font: 500 0.95rem/1.5 var(--body); background: #5E8F34; image-rendering: pixelated; }
+body { margin: 0; overflow: hidden; color: var(--ink); font: 500 0.95rem/1.5 var(--body); background: #5E8F34; image-rendering: pixelated; cursor: var(--paw); }
 .screen { position: fixed; inset: 0; }
 button, input, select, textarea { font: inherit; color: inherit; }
+button, a, select, summary, label:has(input[type="radio"]) { cursor: var(--point); }
 a { color: var(--ink); }
 :focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .px { image-rendering: pixelated; background-repeat: no-repeat; }
-/* cells of ToffeeCraft's cat UI sheet: --x/--y is the cell in art pixels, --k the scale */
-.ui { --k: 1; image-rendering: pixelated; background: url(art/licensed/cat-ui.png) no-repeat;
-  background-size: calc(256px * var(--k)) calc(128px * var(--k)); background-position: calc(var(--x) * -1px * var(--k)) calc(var(--y) * -1px * var(--k)); }
 
-/* the one frame: the wooden trim from the cabin sheet, 9-sliced, paper inside */
-.panel { border: calc(16 * var(--u)) solid transparent; border-image: url(art/ui/frame-fill.png) 16 fill / calc(16 * var(--u)) round; }
-@media (max-width: 560px) { :root { --u: 1px; } }
+/* the Sprout Lands pieces, each a 9-slice scaled by --u */
+.menu, dialog, .hud, .toast, .stage-msg {
+  border: calc(6 * var(--u)) solid transparent; border-image: url(art/licensed/ui/panel.png) 6 fill / calc(6 * var(--u)) stretch; background: none; image-rendering: pixelated; }
+.btn { font: 18px/22px var(--pixel); color: var(--ink); padding: 0 calc(2 * var(--u)); text-decoration: none; display: inline-block; background: none; white-space: nowrap;
+  border-style: solid; border-color: transparent; border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u));
+  border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u)) stretch; }
+.btn:hover { border-image-source: url(art/licensed/ui/button-hover.png); }
+.btn.green { border-image-source: url(art/licensed/ui/button-green.png); }
+.btn.pink { border-image-source: url(art/licensed/ui/button-pink.png); }
+.btn.green:hover, .btn.pink:hover { filter: brightness(1.06); }
+.btn:active { border-image: url(art/licensed/ui/button-down.png) 4 fill / calc(4 * var(--u)) stretch; translate: 0 calc(2 * var(--u)); filter: none; }
+.field input, .field select, .field textarea { border: calc(4 * var(--u)) solid transparent; border-image: url(art/licensed/ui/field.png) 4 4 5 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(5 * var(--u)) stretch;
+  background: none; padding: 1px 4px; width: 100%; min-width: 0; image-rendering: pixelated; }
+.field select { appearance: none; -webkit-appearance: none; padding-right: calc(14 * var(--u)); border-image-slice: 4 4 5 4;   /* no fill: the arrow is a background, under the frame */
+  background: url(art/licensed/ui/arrow.png) right calc(2 * var(--u)) center / calc(10 * var(--u)) calc(9 * var(--u)) no-repeat, #C1C8B9 padding-box; }
+.field input::placeholder, .field textarea::placeholder { color: #5F6A5E; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--ink); outline-offset: 1px; }
+/* a divider: the pack's underline, capped at both ends */
+.rule, .roomrow + .roomrow { border-top: calc(4 * var(--u)) solid transparent; border-image: url(art/licensed/ui/divider.png) 4 1 0 1 / calc(4 * var(--u)) var(--u) 0 var(--u) stretch; }
 
-.face-ico { display: inline-block; width: calc(21px * var(--k)); height: calc(18px * var(--k)); flex: none; --x: 5; --y: 39; }
-.need > .face-ico, .need .face { --x: 37; --y: 39; }
-.fail > .face-ico, .fail .face { --x: 37; --y: 71; }
-.gift > .face-ico, .gift .face { --x: 5; --y: 71; }
+/* the mood faces: the pack's cat emoji, one 32 px cell per mood (--f follows MOODS: cry, meow, box, idle, sleep) */
+.face-ico { --f: 3; display: inline-block; flex: none; width: 30px; height: 30px; image-rendering: pixelated;
+  background: url(art/licensed/ui/faces.png) calc(var(--f) * -32px - 1px) -1px / 160px 32px no-repeat; }
+.fail > .face-ico, .fail .face { --f: 0; }
+.need > .face-ico, .need .face { --f: 1; }
+.gift > .face-ico, .gift .face { --f: 2; }
+.sleep > .face-ico, .sleep .face { --f: 4; }
+
+/* the sign: the live tick, or the warning cross */
 .status { font-size: .8rem; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; }
 .status.warn { color: var(--ink); font-weight: 700; }
-.status .dot { width: 8px; height: 8px; background: #4F8A3A; display: inline-block; }
-.status.warn .dot { background: #C2412A; }
+.status .words { flex: 1 1 200px; min-width: 0; }
+.status .dot { width: 12px; height: 12px; flex: none; align-self: flex-start; margin-top: 4px; display: inline-block; background: url(art/licensed/ui/status.png) 0 0 / 24px 12px no-repeat; }
+.status.warn .dot { background-position: -12px 0; }
+.status .dot.wait { opacity: .45; }
 
-/* wooden plaques: buttons, chips */
-.plaque { border: 0 solid transparent; border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(7 * var(--u));
-  border-image: url(art/ui/plaque-wood.png) 4 4 7 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(7 * var(--u)) repeat;
-  color: #FFF4E6; text-shadow: 0 1px 0 #5A2410, 1px 0 0 #5A2410, -1px 0 0 #5A2410, 0 -1px 0 #5A2410; cursor: pointer; background: none; }
-.plaque:active { translate: 0 var(--u); }
-.plaque.green { border-image-source: url(art/ui/plaque-green.png); color: #1F3A14; text-shadow: 0 1px 0 #CFE3A6; }
-.plaque.pink { border-image-source: url(art/ui/plaque-pink.png); color: #5A1C12; text-shadow: 0 1px 0 #FBE2D8; }
-
-/* the stage: the whole screen, the meadow tiled to follow the camera, the trim laid over the edge */
+/* the stage: the whole screen, the meadow tiled to follow the camera, the frame laid over the edge */
 .stage { position: absolute; inset: 0; overflow: hidden; touch-action: manipulation; background: #8FBF4F; }
 .meadow { position: absolute; inset: 0; background: url(art/licensed/meadow.png) repeat; image-rendering: pixelated; filter: var(--scene);
   transition: background-size .55s cubic-bezier(.3,.7,.2,1), background-position .55s cubic-bezier(.3,.7,.2,1); }
 .stage.instant .meadow { transition: none; }
-.trim { position: fixed; inset: 0; pointer-events: none; z-index: 30; border: calc(16 * var(--u)) solid transparent; border-image: url(art/ui/frame.png) 16 / calc(16 * var(--u)) round; }
-.hud { position: fixed; z-index: 31; top: calc(16 * var(--u) + 8px + env(safe-area-inset-top, 0px)); left: calc(16 * var(--u) + 8px); max-width: min(520px, calc(100vw - 32 * var(--u) - 16px));
-  border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; padding: 0 6px; display: grid; gap: 0; image-rendering: pixelated; }
-.hud h1 { margin: 0; font: 600 1.15rem/1.2 var(--display); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
-.hud h1 span { font: 700 .78rem var(--body); color: var(--ink-soft); }
+.trim { position: fixed; inset: 0; pointer-events: none; z-index: 30; border: calc(6 * var(--u)) solid transparent; border-image: url(art/licensed/ui/panel.png) 6 / calc(6 * var(--u)) stretch; }
+.hud { position: fixed; z-index: 31; top: calc(6 * var(--u) + 8px + env(safe-area-inset-top, 0px)); left: calc(6 * var(--u) + 8px); max-width: min(520px, calc(100vw - 12 * var(--u) - 16px));
+  padding: 0 calc(2 * var(--u)); display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; }
+.hud .status.warn, .hud:hover .status, .hud:focus-within .status { flex-basis: 100%; }
+.hud h1 { margin: 0; font: 18px/22px var(--pixel); display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.hud h1 span { font: 800 .78rem var(--body); color: var(--ink-soft); }
 .hud .status:not(.warn) .words { display: none; }
 .hud:hover .status .words, .hud:focus-within .status .words { display: inline; }
-.credits { position: fixed; z-index: 31; right: calc(16 * var(--u) + 6px); bottom: calc(16 * var(--u) + 4px + env(safe-area-inset-bottom, 0px)); margin: 0; font-size: .66rem; color: #FFF4E6; opacity: .85;
-  text-shadow: 0 1px 0 #2C4A18, 1px 0 0 #2C4A18, -1px 0 0 #2C4A18, 0 -1px 0 #2C4A18; max-width: calc(100vw - 32 * var(--u) - 12px); text-align: right; }
+.credits { position: fixed; z-index: 31; right: calc(6 * var(--u) + 8px); bottom: calc(6 * var(--u) + 4px + env(safe-area-inset-bottom, 0px)); margin: 0; font-size: .66rem; color: #FFF8EA; opacity: .9;
+  text-shadow: 0 1px 0 #2C4A18, 1px 0 0 #2C4A18, -1px 0 0 #2C4A18, 0 -1px 0 #2C4A18; max-width: calc(100vw - 12 * var(--u) - 16px); text-align: right; }
 .world { position: absolute; left: 0; top: 0; width: 1280px; height: 896px; transform-origin: 0 0; transition: transform .55s cubic-bezier(.3,.7,.2,1);
   background: url(art/licensed/meadow.png) 0 0 / 224px 64px repeat; image-rendering: pixelated; filter: var(--scene); }
 .stage.instant .world { transition: none; }
 .house { position: absolute; inset: 0; width: 1280px; height: 896px; max-width: none; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
 .prop { position: absolute; pointer-events: none; }
-.roomhit { position: absolute; background: transparent; border: 0; padding: 0; cursor: zoom-in; }
-.roomhit:hover, .roomhit.lit { background: rgba(255, 245, 200, .14); }
-.roomhit.here { cursor: default; background: transparent; }
-.cat { position: absolute; background: transparent; border: 0; padding: 0; cursor: pointer; }
+/* rooms, cabinets and cats light up with the pack's white selection brackets */
+.roomhit, .cabinet, .cat { position: absolute; background: transparent; border: 0; padding: 0; cursor: var(--point); }
+.roomhit:hover, .roomhit.lit { background: rgba(255, 250, 225, .12); border: 18px solid transparent; border-image: url(art/licensed/ui/corners.png) 9 8 / 18px 16px stretch; }
+.roomhit.here { cursor: var(--paw); background: transparent; border: 0; }
+.cabinet:hover, .cabinet:focus-visible, .cat:focus-visible { outline: 0; border: 9px solid transparent; border-image: url(art/licensed/ui/corners.png) 9 8 / 9px 8px stretch; border-image-outset: 5px; }
+.cat:focus-visible { border-width: 0; }
 .spr { display: inline-block; vertical-align: bottom; filter: var(--tint, none); image-rendering: pixelated; background-repeat: no-repeat; }
 .cat .spr { display: block; }
-.cat:focus-visible { outline: 2px solid #FFF4E6; outline-offset: 1px; }
 .emb { position: absolute; width: 20px; height: 24px; pointer-events: none; image-rendering: pixelated;
   background: url(art/licensed/emblems.png) calc(var(--e) * -20px) 0 / 120px 24px no-repeat; }
 .emb.corner { left: auto; top: auto; right: 0; bottom: 0; }
 .emb.big { transform: scale(2); transform-origin: 100% 100%; right: 6px; bottom: 4px; }
-.cabinet { position: absolute; background: transparent; border: 0; padding: 0; cursor: pointer; }
-.cabinet:hover, .cabinet:focus-visible { outline: 2px solid #FFF4E6; outline-offset: 1px; }
-.tag.files { pointer-events: auto; cursor: pointer; transform: translate(-50%, -100%); }
-.pile-n { position: absolute; right: -4px; top: 6px; background: #FFF4E6; color: #50140D; font: 700 11px/1 var(--body); padding: 2px 4px; box-shadow: 0 0 0 1px #50140D; }
+.tag.files { pointer-events: auto; cursor: var(--point); transform: translate(-50%, -100%); }
+/* a count: the pack's white button at one pixel a pixel */
+.pile-n, .tag .n { font: 800 11px/1 var(--body); color: var(--ink); padding: 0 1px;
+  border-style: solid; border-color: transparent; border-width: 3px 3px 5px; border-image: url(art/licensed/ui/button-hover.png) 4 4 6 4 fill / 3px 3px 5px stretch; }
+.pile-n { position: absolute; right: -6px; top: 4px; }
 
 /* sprite sheets: one step() animation per mood */
 .s-idle  { width: 32px; height: 32px; background-image: url(art/licensed/mochi-idle.png); animation: a-idle 1.25s steps(10) infinite; }
@@ -107,97 +128,99 @@ a { color: var(--ink); }
 .cat.m-meow { animation: hop 1s steps(2) infinite; }
 @keyframes hop { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
 
-/* overlay: bubbles and room names, drawn at screen size */
+/* overlay: speech bubbles and room names, drawn at screen size (one art pixel a pixel) */
 .overlay { position: absolute; inset: 0; pointer-events: none; transition: opacity .15s; }
 .overlay.moving { opacity: 0; }
-.tag { position: absolute; font: 500 12px/1 var(--display); padding: 0 3px; white-space: nowrap; display: flex; gap: 5px; align-items: center;
-  border: 3px solid transparent; border-width: 3px 3px 5px; border-image: url(art/ui/plaque-dark.png) 4 4 7 4 fill / 3px 3px 5px; color: #FFF4E6; image-rendering: pixelated; }
-.tag .n { font: 700 11px/1 var(--body); background: #FFF4E6; color: #50140D; padding: 1px 4px; }
-.bub { position: absolute; pointer-events: auto; transform: translate(-50%, -100%); cursor: pointer; color: #50140D; padding: 0 3px; font: 400 12.5px/1.3 var(--body);
-  max-width: 194px; width: max-content; text-align: left; border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; image-rendering: pixelated; }
-.bub::after { content: ""; position: absolute; left: 50%; bottom: -12px; margin-left: -6px; border: 6px solid transparent; border-top-color: #B06B43; border-bottom: 0; }
+.tag { position: absolute; font: 18px/18px var(--pixel); padding: 0 2px; white-space: nowrap; display: flex; gap: 5px; align-items: center; color: var(--ink);
+  border-style: solid; border-color: transparent; border-width: 4px 4px 6px; border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / 4px 4px 6px stretch; image-rendering: pixelated; }
+.bub { position: absolute; pointer-events: auto; transform: translate(-50%, -100%); cursor: var(--point); color: var(--ink); padding: 0 2px 1px; font: 500 12.5px/1.3 var(--body);
+  max-width: 200px; width: max-content; text-align: left; background: none;
+  border-style: solid; border-color: transparent; border-width: 5px 5px 6px; border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / 5px 5px 6px stretch; image-rendering: pixelated; }
+.bub::after { content: ""; position: absolute; left: 50%; bottom: -11px; width: 11px; height: 9px; margin-left: -5px; background: url(art/licensed/ui/bubble-tail.png) no-repeat; }
 .bub.below { transform: translate(-50%, 0); }
-.bub.below::after { bottom: auto; top: -12px; border: 6px solid transparent; border-bottom-color: #B06B43; border-top: 0; }
-.bub b { display: flex; align-items: center; gap: 4px; font: 600 11px/1.2 var(--display); letter-spacing: .02em; text-transform: uppercase; margin: 2px 0; }
+.bub.below::after { bottom: auto; top: -10px; transform: scaleY(-1); }
+.bub b { display: flex; align-items: center; gap: 4px; font: 18px/22px var(--pixel); margin: 0 0 1px; font-weight: normal; }
+.bub b .face-ico { margin: -2px 0 -3px -2px; }
 .bub .t { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .bub.icon { padding: 0; border: 0; border-image: none; width: auto; }
 .bub.icon::after { display: none; }
-.bub.icon .face { display: block; --k: 2; }
-.bub.icon.small .face { --k: 1; }
-.stage-msg { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: .85rem; padding: 2px 8px; max-width: calc(100% - 24px); text-align: center;
-  border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; image-rendering: pixelated; }
+.bub.icon .face { display: block; }
+.stage-msg { position: absolute; left: 50%; bottom: calc(6 * var(--u) + 10px); transform: translateX(-50%); font-size: .85rem; padding: 0 6px; max-width: calc(100% - 24px); text-align: center; }
 
-/* the hover menu: paper in the trim, beside the room or cat you're pointing at */
-.menu { position: absolute; z-index: 20; width: min(300px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow: auto; display: grid; gap: 8px; color: var(--ink);
-  border: 16px solid transparent; border-image: url(art/ui/frame-fill.png) 16 fill / 16px round; image-rendering: pixelated; }
-.menu h3 { margin: 0; font: 600 1.15rem/1.15 var(--display); display: flex; gap: 6px; align-items: center; overflow-wrap: anywhere; }
+/* the hover menu: a panel beside the room or cat you're pointing at */
+.menu { position: absolute; z-index: 20; width: min(310px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow: auto; display: grid; gap: 8px; color: var(--ink); padding: 2px calc(2 * var(--u)) calc(2 * var(--u)); }
+.menu h3 { margin: 0; font: 18px/22px var(--pixel); display: flex; gap: 6px; align-items: center; overflow-wrap: anywhere; }
 .menu h3 .emb { position: static; flex: none; }
 .menu .sub { margin: -4px 0 0; font-size: .8rem; color: var(--ink-soft); overflow-wrap: anywhere; }
 .menu .acts { display: flex; flex-wrap: wrap; gap: 6px; }
-.menu .acts .btn { font-size: .82rem; }
-.menu .foot { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: .75rem; color: var(--ink-soft); border-top: 2px dashed #D7A98A; padding-top: 6px; }
-.menu .foot .btn { font-size: .75rem; }
-.menu ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.menu .mini { display: flex; gap: 6px; align-items: flex-start; width: 100%; text-align: left; background: none; border: 0; padding: 2px 0; cursor: pointer; font-size: .82rem; }
-.menu .mini b { font-family: var(--display); font-weight: 600; }
-.menu .mini:hover b { text-decoration: underline; }
+.menu .foot { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: .78rem; color: var(--ink-soft); padding-top: 6px; }
+.menu ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.menu .mini { display: flex; gap: 6px; align-items: center; width: 100%; text-align: left; background: none; border: 0; padding: 0; font-size: .82rem; }
+.menu .mini b { font: 18px/22px var(--pixel); font-weight: normal; }
+.menu .mini:hover span:last-child { text-decoration: underline; }
 .menu .moods { display: flex; gap: 4px; flex-wrap: wrap; }
-.menu .moods .btn[aria-pressed="true"] { border-image-source: url(art/ui/plaque-green.png); color: #1F3A14; text-shadow: 0 1px 0 #CFE3A6; }
-.item { position: relative; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; align-items: start; width: 100%; height: 100%; text-align: left; cursor: pointer;
-  border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; background: none; padding: 4px 30px 4px 2px; image-rendering: pixelated; }
-.item:hover { border-image-source: url(art/ui/ring.png); background: #F3DDC8; background-clip: padding-box; }
-.item > .face-ico { position: absolute; right: 2px; top: 2px; }
+.menu .moods .btn[aria-pressed="true"] { border-image-source: url(art/licensed/ui/button-green.png); }
+/* the sound switch: the pack's toggle, off or on */
+.sound { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; font: 18px/22px var(--pixel); color: var(--ink); }
+.sound .switch { width: 28px; height: 18px; flex: none; background: url(art/licensed/ui/toggle.png) 0 0 / 56px 18px no-repeat; }
+.sound .switch.on { background-position: -28px 0; }
+.item { position: relative; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; align-items: start; width: 100%; height: 100%; text-align: left; color: inherit;
+  background: none; padding: 0 34px 0 0; border-style: solid; border-color: transparent; border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u));
+  border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u)) stretch; image-rendering: pixelated; }
+.item:hover { border-image-source: url(art/licensed/ui/button-hover.png); }
+.item > .face-ico { position: absolute; right: 0; top: 0; }
 .item .thumb { width: 48px; height: 48px; position: relative; overflow: hidden; background: url(art/licensed/meadow.png) 0 0 / 112px 32px; }
 .thumb .spr, .portrait .spr { position: absolute; left: 50%; bottom: 0; transform-origin: 50% 100%; }
 .item .thumb .spr { transform: translateX(-50%) scale(.72); }
 .item .thumb .spr.s-idle, .item .thumb .spr.s-box { transform: translateX(-50%) scale(1.4); }
-.item .who { font: 600 .95rem/1.2 var(--display); }
-.item .who span { font: 400 .78rem var(--body); color: var(--ink-soft); }
+.item .who { font: 18px/22px var(--pixel); }
 .item .what { font-size: .8rem; color: var(--ink-soft); overflow-wrap: anywhere; }
 .item .ask { margin-top: 3px; overflow-wrap: anywhere; }
 .empty { font-size: .9rem; color: var(--ink-soft); margin: 0; }
 
-/* dialogs: paper in the trim */
-dialog { padding: 0; width: min(480px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); color: var(--ink); background: none; overflow: auto;
-  border: calc(16 * var(--u)) solid transparent; border-image: url(art/ui/frame-fill.png) 16 fill / calc(16 * var(--u)) round; image-rendering: pixelated; }
+/* dialogs: a panel over the dimmed cabin */
+dialog { padding: calc(2 * var(--u)) calc(4 * var(--u)); width: min(500px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); color: var(--ink); overflow: auto; }
 dialog::backdrop { background: rgba(18, 36, 20, .55); }
-.dlg { padding: 4px; display: grid; gap: 12px; }
-.dlg h2 { font: 600 1.5rem/1.1 var(--display); margin: 0; text-wrap: balance; }
+.dlg { padding: 4px 2px; display: grid; gap: 12px; }
+.dlg h2 { font: 36px/44px var(--pixel); margin: 0; text-wrap: balance; overflow-wrap: anywhere; }
+.dlg h2.long { font-size: 18px; line-height: 24px; }
 .dlg .head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: end; }
-.portrait { width: 112px; height: 96px; position: relative; overflow: hidden; background: url(art/licensed/meadow.png) 0 0 / 224px 64px; border: 5px solid transparent; border-image: url(art/ui/slot.png) 5 / 5px; }
+.portrait { width: calc(112px + 14 * var(--u)); height: calc(96px + 14 * var(--u)); position: relative; overflow: hidden; background: url(art/licensed/meadow.png) 0 0 / 224px 64px padding-box;
+  border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; }
 .portrait .spr { bottom: 2px; transform: translateX(-50%) scale(1.4); }
 .portrait .spr.s-idle, .portrait .spr.s-box { transform: translateX(-50%) scale(2.4); }
-.mood { display: inline-flex; align-items: center; gap: 4px; font-size: .82rem; font-weight: 700; padding: 0 6px 0 2px; border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; }
-.ask-box { display: flex; gap: 8px; align-items: flex-start; padding: 2px 6px; overflow-wrap: anywhere; border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; font-weight: 700; }
+.mood { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; font-weight: 800; }
+.ask-box { display: flex; gap: 8px; align-items: center; padding: 0 4px; overflow-wrap: anywhere; font-weight: 700;
+  border-style: solid; border-color: transparent; border-width: calc(5 * var(--u)) calc(5 * var(--u)) calc(6 * var(--u)); border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / calc(5 * var(--u)) calc(5 * var(--u)) calc(6 * var(--u)) stretch; }
+div.ask-box:not(:has(.face-ico)) { font-weight: 600; }
 dl.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: .9rem; }
-dl.facts dt { color: var(--ink-soft); }
+dl.facts dt { color: var(--ink-soft); font-weight: 700; }
 dl.facts dd { margin: 0; overflow-wrap: anywhere; }
-.field { display: grid; gap: 4px; font-size: .85rem; }
-.field > span { font-weight: 700; }
-.field input, .field select, .field textarea { border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; background: none; padding: 3px 5px; width: 100%; min-width: 0; image-rendering: pixelated; }
-.field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--ink); outline-offset: 1px; }
-.field input[type="radio"] { border: 0; border-image: none; }
+.field { display: grid; gap: 2px; font-size: .9rem; }
+.field > span { font: 18px/22px var(--pixel); }
+.field input[type="radio"] { border: 0; border-image: none; width: auto; accent-color: #93B259; }
 .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
 .row > .field { flex: 1 1 160px; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; }
 .actions .spacer { flex: 1; }
-.btn { font: 700 .9rem/1.5 var(--body); padding: 0 8px; text-decoration: none; display: inline-block; }
 .note { font-size: .8rem; color: var(--ink-soft); margin: 0; }
 .roomrow { display: grid; gap: 6px; }
-.roomrow h3 { margin: 0; font: 500 1rem var(--display); }
+.roomrow + .roomrow { padding-top: 10px; }
+.roomrow h3 { margin: 0; font: 18px/22px var(--pixel); }
 .pilelist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.proj { display: grid; gap: 8px; padding: 4px; border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; image-rendering: pixelated; }
+/* a project in a cabinet: the pack's pressed-in button, a well in the panel */
+.proj { display: grid; gap: 8px; padding: 2px 4px;
+  border-style: solid; border-color: transparent; border-width: calc(4 * var(--u)); border-image: url(art/licensed/ui/button-down.png) 4 fill / calc(4 * var(--u)) stretch; image-rendering: pixelated; }
 .proj-head { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; align-items: center; }
-.proj-head h3 { margin: 0; font: 600 1.05rem/1.2 var(--display); overflow-wrap: anywhere; }
+.proj-head h3 { margin: 0; font: 18px/22px var(--pixel); overflow-wrap: anywhere; }
 .proj-pic { width: 56px; height: 48px; position: relative; overflow: hidden; background: url(art/licensed/meadow.png) 0 0 / 112px 32px; }
 .proj-pic .spr { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%) scale(1.3); transform-origin: 50% 100%; }
-.item.file { padding-right: 6px; text-decoration: none; color: inherit; }
+.item.file { padding-right: 4px; text-decoration: none; }
 .item .branch { font: 600 .75rem/1.3 ui-monospace, "Cascadia Mono", monospace; }
 .status .copy { color: var(--ink-soft); font-weight: 500; flex-basis: 100%; }
-.status .btn { font-size: .75rem; }
+.status .btn { font-size: 18px; }
 
-.toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); font-size: .9rem; padding: 2px 8px; max-width: calc(100vw - 32px);
-  border: 5px solid transparent; border-image: url(art/ui/ring-fill.png) 5 fill / 5px; image-rendering: pixelated; }
+.toast { position: fixed; z-index: 40; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); font-size: .9rem; font-weight: 700; padding: 0 6px; max-width: calc(100vw - 32px); }
 
 @media (prefers-reduced-motion: reduce) {
   .spr, .cat.m-meow { animation: none !important; }
@@ -224,7 +247,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     <h1>The Catio <span id="tally"></span></h1>
     <div class="status" id="status" role="status"><span class="dot"></span><span class="words">Waking the cats…</span></div>
   </header>
-  <p class="credits">Cabin by Marie Pepo · Cats by ToffeeCraft · Garden by Heosphorus and rowdy41 · Stonework by Cainos</p>
+  <p class="credits">Cabin by Marie Pepo · Cats by ToffeeCraft · Garden by Heosphorus and rowdy41 · Stonework by Cainos · Interface by Cup Nooble</p>
 </main>
 
 <dialog id="catDlg" aria-labelledby="catName"></dialog>
@@ -551,7 +574,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   function layout(instant) {
     const stage = $("stage");
     const W = stage.clientWidth, H = stage.clientHeight;
-    const m = 16 * (innerWidth <= 560 ? 1 : 2) + 6;   // keep the house clear of the trim
+    const m = 6 * (innerWidth <= 560 ? 1 : 2) + 8;   // keep the house clear of the frame
     let r = WHOLE;
     if (S.focus) { const [x, y, w, h] = GEOM[S.focus].r; const p = 6; r = [x - p, y - p, w + 2 * p, h + 2 * p]; }
     const rw = r[2] * 2, rh = r[3] * 2;
@@ -636,10 +659,10 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     top = Math.max(g, Math.min(H - mh - g, top));
     Object.assign(menu.style, { left: left + "px", top: top + "px" });
   }
-  function plainBtn(label, cls, run) { const b = el("button", "btn plaque" + (cls ? " " + cls : ""), label); b.type = "button"; b.addEventListener("click", run); return b; }
+  function plainBtn(label, cls, run) { const b = el("button", "btn" + (cls ? " " + cls : ""), label); b.type = "button"; b.addEventListener("click", run); return b; }
   function catRow(c) {
     const b = el("button", "mini " + MOODS[c.mood].kind); b.type = "button";
-    b.appendChild(el("span", "ui face-ico"));
+    b.appendChild(el("span", "face-ico"));
     const t = el("span"); t.append(el("b", null, c.name), document.createTextNode(" · " + (c.ask || c.doing || c.title)));
     b.appendChild(t);
     b.addEventListener("click", () => { hideMenu(); openCat(c.id); });
@@ -661,8 +684,11 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     acts.appendChild(plainBtn("Adopt a cat here", "green", () => { hideMenu(); openAdopt(k); }));
     acts.appendChild(plainBtn("Edit rooms", "", () => { hideMenu(); openRooms(); }));
     out.push(acts);
-    const foot = el("div", "foot");
-    foot.appendChild(plainBtn(S.sound ? "Sound on" : "Sound off", S.sound ? "green" : "", () => { S.sound = !S.sound; try { localStorage.setItem("catio.sound", S.sound ? "on" : "off"); } catch (e) {} if (S.sound) meow(); showMenu("room", k); }));
+    const foot = el("div", "foot rule");
+    const snd = el("button", "sound", S.sound ? "Sound on" : "Sound off"); snd.type = "button";
+    snd.prepend(el("span", "switch" + (S.sound ? " on" : "")));
+    snd.addEventListener("click", () => { S.sound = !S.sound; try { localStorage.setItem("catio.sound", S.sound ? "on" : "off"); } catch (e) {} if (S.sound) meow(); showMenu("room", k); });
+    foot.appendChild(snd);
     if (S.mcp) foot.appendChild(plainBtn("Check now", "", () => watch(true)));
     if (VIEW.upstairs || S.showOld) {
       foot.appendChild(el("span", null, VIEW.upstairs ? VIEW.upstairs + " napping upstairs" : ""));
@@ -682,12 +708,12 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     if (!c) return null;
     const m = MOODS[c.mood], out = [];
     const h = el("h3"); h.append(emblem(c.emblem), document.createTextNode(c.name)); out.push(h);
-    const mood = el("span", "mood " + m.kind); mood.append(el("span", "ui face-ico"), document.createTextNode(m.label)); out.push(mood);
+    const mood = el("span", "mood " + m.kind); mood.append(el("span", "face-ico"), document.createTextNode(m.label)); out.push(mood);
     out.push(el("p", "sub", c.project.name + " · " + roomInfo(c.roomKey).name + " · " + ago(c.updated)));
     if (c.branch) out.push(el("p", "sub branch-line", c.branch));
     out.push(el("div", c.ask ? "ask-box " + m.kind : "sub", c.ask || c.doing || c.title));
     const acts = el("div", "acts");
-    if (c.link) { const a = el("a", "btn plaque green", c.kind === "chat" ? "Open chat" : "Open session"); a.href = c.link; a.target = "_blank"; a.rel = "noopener"; acts.appendChild(a); }
+    if (c.link) { const a = el("a", "btn green", c.kind === "chat" ? "Open chat" : "Open session"); a.href = c.link; a.target = "_blank"; a.rel = "noopener"; acts.appendChild(a); }
     acts.appendChild(plainBtn("Details", "", () => { hideMenu(); openCat(c.id); }));
     out.push(acts);
     if (c.kind === "chat") {
@@ -719,7 +745,6 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       }
     }
     const text = !!S.focus;
-    const small = cam.s < 0.8;   // on a phone's whole-house view the face icons drop to one art pixel per pixel
     const taken = [];
     // the room's filing cabinet gets a sign when you're in the room; bubbles keep clear of it
     const cab = S.focus && GEOM[S.focus].cabinet;
@@ -740,22 +765,22 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       if (sx < 0 || sx > cam.W || sy < 0 || sy > cam.H + 20) continue;
       // A text bubble goes above the cat; if that is off the top or on another bubble, below it;
       // failing both, the cat just shows the little face icon.
-      const clampX = Math.min(Math.max(sx, 100), cam.W - 100);
-      const feetY = toScreen(p.x, p.feet)[1] + 10;
-      const up = [clampX - 97, sy - 84, clampX + 97, sy], down = [clampX - 97, feetY, clampX + 97, feetY + 84];
+      const clampX = Math.min(Math.max(sx, 104), cam.W - 104);
+      const feetY = toScreen(p.x, p.feet)[1] + 14;
+      const up = [clampX - 101, sy - 96, clampX + 101, sy], down = [clampX - 101, feetY - 6, clampX + 101, feetY + 90];
       const free = (r) => !taken.some((t) => r[0] < t[2] && t[0] < r[2] && r[1] < t[3] && t[1] < r[3]);
       let mode = "icon";
       if (text && up[1] >= 0 && free(up)) mode = "up";
       else if (text && down[3] <= cam.H + 10 && free(down)) mode = "down";
       if (mode !== "icon") taken.push(mode === "up" ? up : down);
-      else { const h = small ? 20 : 40; const r = [sx - h / 2, sy - h, sx + h / 2, sy]; if (!free(r)) continue; taken.push(r); }
+      else { const r = [sx - 16, sy - 36, sx + 16, sy]; if (!free(r)) continue; taken.push(r); }
       const below = mode === "down", asText = mode !== "icon";
-      const b = el("button", "bub " + m.kind + (asText ? "" : " icon") + (below ? " below" : "") + (!asText && small ? " small" : ""));
+      const b = el("button", "bub " + m.kind + (asText ? "" : " icon") + (below ? " below" : ""));
       b.type = "button";
       b.setAttribute("aria-label", p.cat.name + ": " + m.short + ". " + p.cat.ask);
-      if (asText) { b.append(el("b", null, p.cat.name + " · " + m.short), el("span", "t", p.cat.ask)); }
-      else b.appendChild(el("span", "ui face face-ico"));
-      Object.assign(b.style, { left: (asText ? clampX : sx) + "px", top: (below ? feetY : sy - 4) + "px" });
+      if (asText) { const hd = el("b"); hd.append(el("span", "face face-ico"), document.createTextNode(p.cat.name)); b.append(hd, el("span", "t", p.cat.ask)); }
+      else b.appendChild(el("span", "face face-ico"));
+      Object.assign(b.style, { left: (asText ? clampX : sx) + "px", top: (below ? feetY : asText ? sy - 10 : sy - 4) + "px" });
       b.addEventListener("click", () => { if (!armed("cat", p.cat.id)) catClicked(p.cat, p.room); });
       hoverable(b, "cat", p.cat.id);
       ov.appendChild(b);
@@ -767,7 +792,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const st = $("status"); st.replaceChildren();
     const L = S.live;
     st.classList.toggle("warn", L.state !== "ok" && L.state !== "loading" && L.state !== "local");
-    st.appendChild(el("span", "dot"));
+    st.appendChild(el("span", "dot" + (L.state === "loading" ? " wait" : "")));
     const msg = $("stageMsg");
     msg.hidden = true;
     if (L.state === "loading") st.appendChild(el("span", "words", "Waking the cats… (the first visit asks to read your Claude Code sessions)"));
@@ -780,7 +805,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
         : "On this computer, with no saved sessions yet. Put Claude's data/sessions.json next to the page."));
     } else {
       st.appendChild(el("span", "words", L.message));
-      if (L.action) { const b = el("button", "btn plaque", L.action.label); b.type = "button"; b.addEventListener("click", L.action.run); st.appendChild(b); }
+      if (L.action) { const b = el("button", "btn", L.action.label); b.type = "button"; b.addEventListener("click", L.action.run); st.appendChild(b); }
       if (S.from === "copy") st.appendChild(el("span", "copy words", "Meanwhile these are Claude's copy of your " + S.sessions.length + " sessions, saved " + new Date(S.sessionsAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) + "."));
       if (!S.sessions || !S.sessions.length) { msg.hidden = false; msg.textContent = L.state === "stale" ? "Couldn't reach your sessions just now." : "Only adopted chats are showing."; }
     }
@@ -880,7 +905,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     for (const k of ORDER) { const o = el("option", null, roomInfo(k).name); o.value = k; if (k === value) o.selected = true; s.appendChild(o); }
     return s;
   }
-  function closeBtn(dlg, label) { const b = el("button", "btn plaque", label || "Close"); b.type = "button"; b.addEventListener("click", () => dlg.close()); return b; }
+  function closeBtn(dlg, label) { const b = el("button", "btn", label || "Close"); b.type = "button"; b.addEventListener("click", () => dlg.close()); return b; }
   function show(dlg) { if (!dlg.open) dlg.showModal(); }
 
   function openCat(id) {
@@ -893,12 +918,12 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const por = el("div", "portrait"); por.append(sprite(c.mood, c.coat), emblem(c.emblem, "corner big"));
     const hd = el("div");
     const h = el("h2", null, c.name); h.id = "catName";
-    const mood = el("span", "mood " + m.kind); mood.append(el("span", "ui face-ico"), document.createTextNode(m.label));
+    const mood = el("span", "mood " + m.kind); mood.append(el("span", "face-ico"), document.createTextNode(m.label));
     hd.append(h, mood);
     head.append(por, hd);
     box.appendChild(head);
     box.appendChild(el("div", null, c.title));
-    if (c.ask) { const a = el("div", "ask-box " + m.kind); a.append(el("span", "ui face-ico"), el("span", null, c.ask)); box.appendChild(a); }
+    if (c.ask) { const a = el("div", "ask-box " + m.kind); a.append(el("span", "face-ico"), el("span", null, c.ask)); box.appendChild(a); }
     const dl = el("dl", "facts");
     const row = (k, v) => { if (!v) return; dl.append(el("dt", null, k), el("dd", null, v)); };
     if (c.mood === "idle" && c.doing) row("Doing", c.doing);
@@ -916,13 +941,13 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       r.append(field("Name", nm), field("Lives in", roomSelect("catRoom", c.roomKey)));
       box.appendChild(r);
       const acts = el("div", "actions");
-      const sv = el("button", "btn plaque green", "Save"); sv.type = "button";
+      const sv = el("button", "btn green", "Save"); sv.type = "button";
       sv.addEventListener("click", async () => {
         const room = $("catRoom").value, name = nm.value.trim();
         const ok = await save((db) => db.doc("sessions/" + c.id).set({ name, room, updatedAt: Date.now() }), "Saved.");
         if (ok) dlg.close();
       });
-      const open = el("a", "btn plaque green", "Open session"); open.href = c.link; open.target = "_blank"; open.rel = "noopener";
+      const open = el("a", "btn green", "Open session"); open.href = c.link; open.target = "_blank"; open.rel = "noopener";
       acts.append(closeBtn(dlg), el("span", "spacer"), sv, open);
       box.appendChild(acts);
     } else {
@@ -952,16 +977,16 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     const acts = el("div", "actions");
     const dlg = c ? $("catDlg") : $("adoptDlg");
     if (c) {
-      const go = el("button", "btn plaque pink", "Let go"); go.type = "button";
+      const go = el("button", "btn pink", "Let go"); go.type = "button";
       go.addEventListener("click", async () => {
         if (go.dataset.sure !== "1") { go.dataset.sure = "1"; go.textContent = "Yes, let this cat go"; return; }
         if (await save((db) => db.doc("cats/" + c.docId).delete(), "Let go.")) dlg.close();
       });
       acts.appendChild(go);
-      if (d.link) { const o = el("a", "btn plaque", "Open chat"); o.href = d.link; o.target = "_blank"; o.rel = "noopener"; acts.appendChild(o); }
+      if (d.link) { const o = el("a", "btn", "Open chat"); o.href = d.link; o.target = "_blank"; o.rel = "noopener"; acts.appendChild(o); }
     }
     acts.append(el("span", "spacer"), closeBtn(dlg, "Cancel"));
-    const sub = el("button", "btn plaque green", c ? "Save" : "Adopt"); sub.type = "submit"; acts.appendChild(sub);
+    const sub = el("button", "btn green", c ? "Save" : "Adopt"); sub.type = "submit"; acts.appendChild(sub);
     f.appendChild(acts);
     f.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -988,7 +1013,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
     }
     const dlg = $("roomsDlg"); dlg.replaceChildren();
     const box = el("div", "dlg");
-    const h = el("h2", null, "Filing cabinet · " + roomInfo(room).name); h.id = "roomsTitle";
+    const h = el("h2", "long", "Filing cabinet · " + roomInfo(room).name); h.id = "roomsTitle";
     box.append(h, el("p", "note", "Every project filed in this room, with all its cats: the ones about the house and the ones napping upstairs or archived."));
     if (!groups.size) box.appendChild(el("p", "empty", "Nothing is filed here yet. A project lands in this room when its repository is listed under Rooms, or when you move one of its cats here."));
     for (const { p, cats } of groups.values()) {
@@ -1025,7 +1050,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       EMBLEMS.forEach((e, i) => { const o = el("option", null, e.name); o.value = i; if (i === look.emblem) o.selected = true; em.appendChild(o); });
       const coat = el("select"); coat.id = "coat-" + p.key;
       COATS.forEach((e, i) => { const o = el("option", null, e.name); o.value = i; if (i === look.coat) o.selected = true; coat.appendChild(o); });
-      const sv = el("button", "btn plaque green", "Save look"); sv.type = "button";
+      const sv = el("button", "btn green", "Save look"); sv.type = "button";
       sv.addEventListener("click", () => save((db) => db.doc("projects/" + p.key).set({ name: p.name, emblem: Number(em.value), coat: Number(coat.value) }), "Saved. Every " + p.name + " cat now looks like this."));
       r.append(field("Emblem", em), field("Coat", coat), sv);
       card.appendChild(r);
@@ -1051,7 +1076,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
   function openPile(pile, room) {
     const dlg = $("catDlg"); dlg.replaceChildren();
     const box = el("div", "dlg");
-    const h = el("h2", null, pile.length + " cats curled up in the " + roomInfo(room).name); h.id = "catName";
+    const h = el("h2", "long", pile.length + " cats curled up in the " + roomInfo(room).name); h.id = "catName";
     const ul = el("ul", "pilelist");
     for (const c of pile) {
       const li = el("li");
@@ -1089,7 +1114,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
       f.appendChild(row);
     }
     const acts = el("div", "actions"); acts.append(el("span", "spacer"), closeBtn(dlg, "Cancel"));
-    const sv = el("button", "btn plaque green", "Save rooms"); sv.type = "submit"; acts.appendChild(sv);
+    const sv = el("button", "btn green", "Save rooms"); sv.type = "submit"; acts.appendChild(sv);
     f.appendChild(acts);
     f.addEventListener("submit", async (e) => {
       e.preventDefault();

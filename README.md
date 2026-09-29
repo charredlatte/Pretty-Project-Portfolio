@@ -82,19 +82,22 @@ project looks are kept in that browser. For newer cats, ask Claude to refresh
 The folder holds the licensed art and her session list, so it is for her own use: it is never
 committed and never shared.
 
-## Made from five asset packs
+## Made from six asset packs
 
-Every piece of the picture and the interface comes from packs Charlotte chose: the frames,
-buttons, signs and wallpaper are cut from the cabin's own tile sheet, and the hotbar icons and
-mood faces are ToffeeCraft's cat UI.
+Every piece of the picture and the interface comes from packs Charlotte chose. The interface is
+Cup Nooble's Sprout Lands UI pack: its tan panels hold every menu and card, its cream buttons,
+grey fields and speech bubbles do the rest, its cat emoji show each cat's mood, its white brackets
+light up the room you point at, its switch turns the sound on, the pointer is its cat paw, and
+titles and buttons are in its pixel font (with the French accents added).
 
 | Pack | Artist | In this repo? |
 |---|---|---|
-| [Cosy Cabin](https://marie-pepo.itch.io/cosy-cabin) | Marie Pepo | Yes: `catio/art/house.png` and `catio/art/ui/` |
+| [Cosy Cabin](https://marie-pepo.itch.io/cosy-cabin) | Marie Pepo | Yes: `catio/art/house.png` |
 | [Cat Pack Mochi](https://toffeecraft.itch.io/cat-pack) and [Pochi](https://toffeecraft.itch.io/cat-retro), Cat UI | ToffeeCraft | No: the licence forbids redistribution |
 | [Top Down Garden Castle](https://heosphorus.itch.io/) | Heosphorus | No: the licence forbids distribution |
 | [Wood Garden](https://rowdy41.itch.io/wood-garden) | rowdy41 | No: it is baked into the same file as Heosphorus's pieces |
 | [Pixel Art Top Down – Basic](https://cainos.itch.io/pixel-art-top-down-basic) | Cainos | No: the licence forbids redistribution |
+| [Sprout Lands UI Pack – Basic](https://cupnooble.itch.io/) | Cup Nooble | No: the licence forbids redistribution, even modified |
 
 The uncommitted art (`catio/art/licensed/`) ships only inside the private artifact. See
 [`catio/art/CREDITS.md`](catio/art/CREDITS.md).
@@ -104,7 +107,7 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `catio/index.html`: the whole page, with no build step and no dependencies.
 - `catio/tools/cabin.py`: the floor plan, meaning rooms, doorways, glass and furniture.
 - `catio/tools/build-art.py`: draws the cabin from the plan and cuts the UI pieces, from the
-  five zips (`pip install pillow`, then see the script's docstring).
+  six zips (`pip install pillow fonttools`, then see the script's docstring).
 - `catio/tools/bundle.py`: the folder that runs on localhost.
 - `catio/tools/save-sessions.py`: trims a `list_sessions` result to the saved copy.
 - `catio/data/rooms.json`: the rooms, for the localhost copy. `sessions.json` is never committed.

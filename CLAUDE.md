@@ -10,9 +10,11 @@ her rooms, renames and adopted chats belongs to that artifact.
 
 Publish `catio/index.html` with:
 
-- `files`: every file the page references: `art/house.png`, `art/ui/*.png` (frames, plaques,
-  wallpaper, rail, bar, slot, door) and `art/licensed/*.png` (`decor.png`, `meadow.png`,
-  `emblems.png`, `mochi-idle.png`, `mochi-box.png`, `pochi.png`, `cat-ui.png`);
+- `files`: every file the page references: `art/house.png`, `art/licensed/*.png` (`decor.png`,
+  `meadow.png`, `emblems.png`, `mochi-idle.png`, `mochi-box.png`, `pochi.png`) and the interface
+  in `art/licensed/ui/` (`panel`, `button`, `button-hover`, `button-down`, `button-green`,
+  `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `bubble-tail`, `corners`,
+  `toggle`, `status`, `faces`, `cursor`, `cursor-point` `.png`, and `sprout.ttf`);
 - `capabilities`: omit it on a republish to keep what's stored. The declaration is
   `{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions"] }] }, db: {} }`.
 
@@ -21,14 +23,15 @@ Publish `catio/index.html` with:
 `art/licensed/` is not in git (licences below). In a fresh session, get it back one of two ways:
 
 1. `Artifact` read with `path: "art/licensed/<file>"` on the published URL, for each file; or
-2. ask Charlotte for the five zips and run
-   `python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip Top_down_garden_castle.zip Wood_Garden_Asset_Pack.zip "Pixel_Art_Top_Down_-_Basic_v1.2.3.zip"`
-   (needs `pip install pillow`).
+2. ask Charlotte for the six zips and run
+   `python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip Top_down_garden_castle.zip Wood_Garden_Asset_Pack.zip "Pixel_Art_Top_Down_-_Basic_v1.2.3.zip" "Sprout_Lands_-_UI_Pack_-_Basic_pack.zip"`
+   (needs `pip install pillow fonttools`). Given only the Sprout Lands zip, it rebuilds just the
+   interface.
 
 ## Licences: what may be committed
 
-- **Cosy Cabin** (Marie Pepo): copying and modifying allowed, with credit. `art/house.png` and
-  `art/ui/` (every frame, plaque and wallpaper on the page) are committed.
+- **Cosy Cabin** (Marie Pepo): copying and modifying allowed, with credit. `art/house.png` is
+  committed.
 - **ToffeeCraft cats** (free version): personal use only, **no redistribution**. Never commit.
 - **Top Down Garden Castle** (Heosphorus): **no distribution, even modified**. Never commit.
 - **Wood Garden** (rowdy41): no resale. It is baked into `decor.png` with Heosphorus's
@@ -36,8 +39,10 @@ Publish `catio/index.html` with:
 - **Pixel Art Top Down – Basic** (Cainos): free for any project, **no redistribution**. Its
   stonework is also in `decor.png`. It is drawn on a 32 px grid, twice the cabin's, so its
   pieces read large: use it for garden stonework, not indoor furniture.
+- **Sprout Lands UI Pack – Basic** (Cup Nooble): modifying allowed, **no redistribution or resale,
+  even modified**, non-commercial use only. The whole interface (`art/licensed/ui/`). Never commit.
 
-The footer credits all five. Keep it.
+The footer credits all six. Keep it.
 
 ## The cabin is a floor plan
 
@@ -61,10 +66,22 @@ placed beside it so it never covers what the pointer is on. Keyboard focus opens
 `:focus-visible`; on touch the first tap opens the menu and the second acts (`armed()`). A new
 control goes into one of these menus, not onto the screen.
 
-Frames, menus, buttons, chips, slots and dividers are 9-slice `border-image`s cut from the
-Cosy Cabin tile sheet (`art/ui/`). The mood faces and paw come from ToffeeCraft's cat UI sheet.
-Keep it that way: a new control should reuse one of these pieces rather than a CSS border or
-gradient. `--u` is one art pixel on screen (2px, or 1px on phones).
+The interface is Cup Nooble's Sprout Lands UI pack, cut by `build-art.py` into
+`art/licensed/ui/`. Menus, dialogs, the sign and the screen's frame are its tan panel; buttons are
+its cream square button (white on hover, pressed in when held; `green` and `pink` are recoloured
+copies); inputs are its grey pressed-in button; speech bubbles and a cat's ask are its grey bubble;
+a filing cabinet's project sits in its pressed cream well; rooms and cabinets light up with its
+white selection brackets. Each is a 9-slice `border-image`. The mood faces are its cat emoji
+(`faces.png`, in `MOODS` order), the sound control is its toggle, the sign's tick and cross are
+its own, and the pointer is its cat paw. Keep it that way: a new control should reuse one of these
+pieces rather than a CSS border or gradient. `--u` is one art pixel on screen (2px, or 1px on
+phones); the scene's overlay (room tags, bubbles) is drawn at one art pixel a pixel.
+
+Titles, labels, buttons and names use the pack's pixel font (`--pixel`, `sprout.ttf`) at **18px**,
+where one font pixel is one screen pixel (36px for a cat's name on its card); anything else blurs.
+It has capitals only (small letters draw as capitals), so body text stays in Nunito.
+`build-art.py` adds the accents French names need (à â ä ç é è ê ë î ï ô ö ù û ü ÿ, a middle
+dot, an ellipsis, curly quotes); other symbols fall back to Fredoka.
 
 ## Data
 
