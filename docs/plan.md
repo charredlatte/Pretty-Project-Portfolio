@@ -40,9 +40,10 @@ Every room is its own small step. Each step:
 
 A room is only done when it reads right at 1x and 2x, and no station sits on a footprint.
 
-- **A. Inventory.** Unpack the zips into the scratchpad and make contact sheets of every object sheet, with
-  coordinates. This is the vocabulary for everything else.
-- **B. The shell.** Draw the manor's outline and room boxes: a stone shell (Cainos walls) around a
+- **A. Inventory: done.** Every pack is unpacked and has numbered contact sheets. Cosy Cabin alone has
+  stone walls, stone facings, panelling and stone floors, so the shell can be committed. ToffeeCraft's
+  `Furnitures.png` (cat beds, posts, bowls) supplies the stations.
+- **B. The shell: done** (`catio/tools/manor.py`, `shell()`): a stone shell (Cainos walls) around a
   Cosy Cabin interior.
   - The existing room keys stay the same, so her renames, moves and filing carry over.
   - One room is new: `brain`, the Library.
