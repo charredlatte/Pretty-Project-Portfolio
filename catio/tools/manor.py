@@ -57,9 +57,10 @@ FRONT_DOOR = (411, 443)             # x span in the hall's south wall
 
 # glass: ("tall", x, y, w) floor-to-ceiling on a back wall; ("v", wall x, y0, y1) and ("h", wall y, x0, x1) strips
 WINDOWS = [
-    ("tall", 100, 85, 40),                                  # kitchen, over the sink run
-    ("tall", 250, 85, 60),                                  # dining room
-    ("tall", 530, 85, 40), ("tall", 600, 85, 40),           # drawing room, either side of the fireplace
+    ("tall", 100, 69, 40),                                  # kitchen, over the sink run
+    ("tall", 250, 69, 60),                                  # dining room
+    ("tall", 410, 69, 30),                                  # library, between the bookcases
+    ("tall", 530, 69, 40), ("tall", 600, 69, 40),           # drawing room, either side of the fireplace
     ("tall", 668, 101, 76),                                 # conservatory
     ("v", 5, 112, 176),                                     # kitchen west
     ("v", 47, 104, 172), ("v", 47, 196, 206),               # conservatory east, broken by the cat flap

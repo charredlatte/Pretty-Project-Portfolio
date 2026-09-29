@@ -20,6 +20,7 @@ is licensed and ships only inside the private artifact.
 """
 from PIL import Image
 
+WG = "Wood_Garden_Asset_Pack/Wood Garden Asset Pack/"   # rowdy41: one piece per file; a sheet named "wg:<file>"
 SHEETS = {
     "cc": "CosyCabin/CosyCabin_Objects.png",
     "tc": "CatMegaFree/CatMegaFree/CatRoomFree/Furnitures.png",
@@ -58,6 +59,14 @@ CATALOGUE = {
     "cushion_green": piece("cc", (1025, 314, 14, 14), "connected", "rug", stations=[("sleep", 7, 10)]),
     "cushion_orange": piece("cc", (1009, 346, 14, 14), "connected", "rug", stations=[("sleep", 7, 10)]),
     "cushion_white": piece("cc", (1025, 346, 14, 14), "connected", "rug", stations=[("sleep", 7, 10)]),
+    # the library, the brain
+    "bookcase_dark_books": piece("wg:Bookshelf/Dark-wooden-bookshelf-2.png", (0, 0, 52, 58), foot=(0, 34, 52, 24)),
+    "bookcase_red_books": piece("wg:Bookshelf/Red-wooden-bookshelf-2.png", (0, 0, 52, 58), foot=(0, 34, 52, 24)),
+    "bookcase_filled": piece("cc", (657, 406, 46, 52), foot=(0, 30, 46, 22)),
+    "brain_desk": piece("cc", (7, 272, 50, 32), "essential", foot=(0, 6, 50, 26)),
+    "chair_back": piece("cc", (641, 282, 14, 22), "connected", foot=(0, 0, 0, 0), stations=[("work", 7, 22)]),
+    "brain_chest": piece("wg:Chest/Chest-1.png", (0, 0, 22, 21), "essential"),
+    "armchair_blue": piece("cc", (409, 66, 22, 30), "connected", stations=[("queen", 11, 36)]),
 }
 
 # the default layout, room by room: (key, x, y), native pixels, the sprite's top-left
@@ -72,13 +81,23 @@ LAYOUT = {
         ("filing_cabinet", 524, 316), ("cushion_blue", 470, 344), ("cushion_orange", 494, 356),
         ("plant_pampas", 312, 340), ("plant_snake", 530, 350),
     ],
+    # Library, the brain: book-filled shelves either side of a tall window; the brain's desk in the middle
+    # (a cat at it is working), its chest where dropped files land, a reading chair for the queen, a rug
+    "brain": [
+        ("bookcase_dark_books", 357, 64), ("bookcase_dark_books", 442, 64),
+        ("rug_blue_diamond", 364, 168),
+        ("armchair_blue", 360, 124), ("lamp_floor", 384, 122), ("cushion_green", 386, 150),
+        ("brain_desk", 402, 128), ("chair_back", 420, 152),
+        ("filing_cabinet", 478, 124), ("brain_chest", 454, 178),
+    ],
 }
 
 
 def sprite(key, packs, cache={}):
     c = CATALOGUE[key]
     if c["sheet"] not in cache:
-        cache[c["sheet"]] = Image.open(packs + SHEETS[c["sheet"]]).convert("RGBA")
+        path = WG + c["sheet"][3:] if c["sheet"].startswith("wg:") else SHEETS[c["sheet"]]
+        cache[c["sheet"]] = Image.open(packs + path).convert("RGBA")
     x, y, w, h = c["box"]
     im = cache[c["sheet"]].crop((x, y, x + w, y + h))
     if c["scale"] != 1:
