@@ -6,7 +6,8 @@
   const iso = (ago) => new Date(now - ago).toISOString();
   const src = (repo) => ({ sources: [{ git_repository: { url: "https://github.com/charredlatte/" + repo } }], outcomes: [{ git_repository: { git_info: { repo: "charredlatte/" + repo, branches: ["claude/test"] } } }] });
   const session = (id, title, repo, bucket, status, ago, pts) => ({ id: "session_" + id, title, session_status: "SESSION_STATUS_" + status, status_bucket: "SESSION_STATUS_BUCKET_" + bucket,
-    updated_at: iso(ago), created_at: iso(ago + H), origin: "android", session_context: src(repo), post_turn_summary: pts || {} });
+    updated_at: iso(ago), created_at: iso(ago + H), origin: "android", session_context: Object.assign(src(repo), { model: "claude-opus-5-5" }), post_turn_summary: pts || {},
+    environment_id: "env_test", configured_model: "claude-opus-5-5" });
 
   const T = window.__catio = { writes: [], store: {}, handler: null, calls: 0, readOnly: false, session, now };
   const clone = (v) => JSON.parse(JSON.stringify(v));
@@ -65,6 +66,7 @@
     return q;
   };
   const db = Object.freeze({ doc: docRef, collection: collRef });
+  T.put = (path, d) => { T.store[path] = clone(d); notify(path); };   // someone else wrote it: a session's reply, Claude's seed
 
   T.sessions = [
     session("blocked1", "Shop about page", "montfortoise-shopify", "BLOCKED", "IDLE", 2 * H, { status_category: "need_input", needs_action: "review the French text" }),
@@ -79,7 +81,7 @@
     s.status_bucket = "SESSION_STATUS_BUCKET_" + bucket; s.session_status = "SESSION_STATUS_" + status; s.post_turn_summary = pts || {}; s.updated_at = new Date().toISOString();
     T.push();
   };
-  const mcp = Object.freeze({
+  const mcp = ({
     watchTool(server, tool, input, handler, opts) {
       T.calls++; T.watchArgs = { server, tool, input, opts }; T.handler = handler;
       const mode = params.get("mode");
@@ -88,6 +90,36 @@
     },
     invalidate: async () => {},
   });
+  // Write tools: every call is recorded in T.tools. ?writes=refused refuses them all the way claude.ai
+  // does when a page may not use them; ?host=none has no Catio server on this device.
+  T.tools = []; T.triggers = 0; T.goneTriggers = new Set();
+  T.agents = params.get("agents") !== "1" ? [] : [{ id: "codex-shop", name: "Codex", provider: "openai", model: "gpt-5", mood: "needs", ask: "Which colour for the buttons?", title: "Shop theme", repo: "charredlatte/montfortoise-shopify", updated: now - 60e3, wakes: true }];
+  const answer = (payload) => Promise.resolve({ content: [{ type: "text", text: JSON.stringify(payload) }], payload });
+  const ccr = {
+    create_trigger: (i) => ({ trigger: { id: "trig_" + (++T.triggers), name: i.name } }),
+    fire_trigger: (i) => { if (T.goneTriggers.has(i.trigger_id)) throw { code: "tool_error", message: "trigger not found" }; return { ok: true }; },
+    delete_trigger: () => ({ ok: true }), create_session: () => ({ id: "session_new1", status: "starting" }),
+    set_session_title: () => ({ ok: true }), archive_session: () => ({ ok: true }), unarchive_session: () => ({ ok: true }), interrupt_session: () => ({ ok: true }),
+  };
+  mcp.callTool = async (server, tool, input) => {
+    T.tools.push([server, tool, clone(input || {})]);
+    if (server === "host:catio") {
+      if (params.get("host") === "none") throw { code: "server_not_connected", message: "no host" };
+      if (tool === "list_agents") return answer({ agents: clone(T.agents) });
+      return answer({ id: "x" + T.tools.length, ok: true, woke: true });
+    }
+    if (params.get("writes") === "refused") throw { code: "approval_required", message: "ask every time" };
+    if (!ccr[tool]) throw { code: "bad_request", message: "not in the manifest: " + tool };
+    return answer(ccr[tool](input || {}));
+  };
+  // assets: kept in memory; sample: answers with T.sampleAnswer, recording each prompt
+  T.uploads = []; T.assetsDeleted = [];
+  const assets = { upload: async (blob) => { const id = "a" + (T.uploads.length + 1) + "0123456789abcdef0123456789abcd".slice(0, 30); T.uploads.push({ id, name: blob.name, size: blob.size, type: blob.type }); return { id, url: "/_blob/" + id, sizeBytes: blob.size, contentType: blob.type }; },
+    delete: async (id) => { T.assetsDeleted.push(id); return { deleted: true }; }, list: async () => ({ assets: [], usage: {} }) };
+  T.prompts = []; T.sampleAnswer = { cat: null, reason: "nothing fits" };
+  const sample = async (input) => { T.prompts.push(input); return { text: JSON.stringify(T.sampleAnswer), truncated: false }; };
+  sample.json = async (input) => { T.prompts.push(input); return clone(T.sampleAnswer); };
   const nodb = params.get("mode") === "nodb";
-  window.claude = { use: async (n) => (n === "mcp" ? mcp : n === "db" ? (nodb ? null : db) : n === "permissions" ? { request: async () => ({}), state: async () => "granted" } : null) };
+  window.claude = { use: async (n) => (n === "mcp" ? mcp : n === "db" ? (nodb ? null : db) : n === "assets" ? (nodb ? null : assets) : n === "sample" ? sample
+    : n === "permissions" ? { request: async () => ({}), state: async () => "granted" } : null) };
 })();

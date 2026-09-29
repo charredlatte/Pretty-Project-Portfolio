@@ -174,7 +174,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
 
   /* ---------- 3. rename and move a session's cat ---------- */
   await hoverCat(page, "Week tab editing");
-  await menuButton(page, "Details").click();
+  await menuButton(page, "Talk").click();
   await page.fill("#catRename", "Biscuit");
   await page.selectOption("#catRoom", "study");
   await page.click("#catDlg button:has-text('Save')");
@@ -583,6 +583,270 @@ for (const [q, want, prep] of [["?mode=nodb", "isn't available", null], ["", "lo
   await page.click('#adoptDlg button[type="submit"]');
   await settle(page);
   await check((q ? "without storage" : "for a view-only visitor") + ", adopting explains why it can't save", async () => expect((await toast(page)).includes(want), await toast(page)));
+  await ctx.close();
+}
+
+/* ---------- 8b. the harness: the brain, posting into sessions, talking, managing, rules, agents ---------- */
+const tools = (page, name) => T(page, () => window.__catio.tools).then((t) => t.filter((x) => !name || x[1] === name));
+async function giveFiles(page, files) {
+  const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.locator("#menu").getByRole("button", { name: /Give it files|Choose files/ }).first().click()]);
+  await chooser.setFiles(files);
+  await page.waitForFunction(() => { const b = document.getElementById("dropSend"); return b && !b.disabled; });
+}
+// a real drag and drop of files onto a point of the page, the way a browser delivers one
+async function dropFiles(page, sel, files) {
+  await page.evaluate(({ sel, files }) => {
+    const n = document.querySelector(sel), r = n.getBoundingClientRect();
+    const x = r.left + r.width / 2, y = r.top + r.height * 0.8;
+    const dt = new DataTransfer();
+    for (const f of files) dt.items.add(new File([f.text], f.name, { type: f.type }));
+    const at = document.elementFromPoint(x, y) || n;
+    for (const type of ["dragenter", "dragover", "drop"]) at.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, dataTransfer: dt }));
+  }, { sel, files });
+  await page.waitForFunction(() => { const b = document.getElementById("dropSend"); return b && !b.disabled; });
+}
+{
+  const { page, ctx, errors } = await open("?agents=1");
+  await page.waitForTimeout(300);
+  await check("every session cat wears its model's breed, and agents from other makers join the house", async () => {
+    const tag = await page.locator('#cats .cat[aria-label*="Shop about page"] .breed').textContent();
+    expect(tag === "O", "breed " + tag);
+    const agent = page.locator('#cats .cat[aria-label*="Shop theme"]');
+    expect(await agent.count() === 1, "no agent cat");
+    expect((await agent.locator(".breed").textContent()) === "OPE", "agent breed");
+    expect((await agent.getAttribute("aria-label")).includes("Meowing"), "agent should need her");
+  });
+
+  // a file given to one cat: kept, then posted into its session through a Routine bound to it
+  await hoverCat(page, "Shop about page");
+  await giveFiles(page, { name: "about-fr.md", mimeType: "text/markdown", buffer: Buffer.from("# À propos\nNotre boutique…") });
+  await check("a file given to a cat goes to that cat", async () => {
+    expect(await page.inputValue("#drop-0") === "session_blocked1", await page.inputValue("#drop-0"));
+    expect((await page.locator("#brainDlg").innerText()).includes("Dropped on"), "no reason");
+  });
+  await page.fill("#dropNote", "Use this for the about page");
+  await page.click("#dropSend");
+  await page.waitForTimeout(300);
+  await check("sending keeps the file, binds a Routine to the session once, and fires it with the delivery", async () => {
+    const st = await T(page, () => window.__catio.store);
+    const brain = Object.entries(st).filter(([p]) => p.startsWith("brain/"));
+    expect(brain.length === 1, "brain docs " + brain.length);
+    const d = brain[0][1];
+    expect(d.cat === "session_blocked1" && d.status === "pushed" && d.asset && d.note === "Use this for the about page" && d.how === "dropped", JSON.stringify(d));
+    const made = await tools(page, "create_trigger");
+    expect(made.length === 1 && made[0][2].persistent_session_id === "session_blocked1" && made[0][2].environment_id === "env_test" && !made[0][2].cron_expression, JSON.stringify(made));
+    const fired = await tools(page, "fire_trigger");
+    expect(fired.length === 1 && fired[0][2].trigger_id === "trig_1", JSON.stringify(fired));
+    const text = fired[0][2].text;
+    expect(text.startsWith("[Catio] Delivery for you: about-fr.md") && text.includes("Use this for the about page") && text.includes("Notre boutique") && text.includes(d.asset), text);
+    expect(st["sessions/session_blocked1"].trigger === "trig_1", "trigger not kept");
+  });
+  await check("the cat carries its file, and its menu says so", async () => {
+    expect((await page.locator('#cats .cat[aria-label*="Shop about page"] .fcount').textContent()) === "1", "no count");
+    await hoverCat(page, "Shop about page");
+    expect((await menuText(page)).includes("1 file from the brain"), await menuText(page));
+  });
+
+  // dropped on a room: sorted among its cats by what the file's name shares with them
+  await page.mouse.move(8, 8);
+  await dropFiles(page, '.roomhit[data-room="kitchen"]', [{ name: "intermarche-basket.csv", type: "text/csv", text: "item,qty\nlait,2" }]);
+  await check("a file dropped on a room is sorted to the cat it matches, and the second post reuses the Routine", async () => {
+    expect(await page.inputValue("#drop-0") === "session_work1", await page.inputValue("#drop-0"));
+    await page.click("#dropSend");
+    await page.waitForTimeout(300);
+    expect((await tools(page, "create_trigger")).length === 2, "one Routine per session");
+    const fired = await tools(page, "fire_trigger");
+    expect(fired.length === 2 && fired[1][2].trigger_id === "trig_2", JSON.stringify(fired));
+  });
+  await hoverCat(page, "Shop about page");
+  await giveFiles(page, { name: "second.txt", mimeType: "text/plain", buffer: Buffer.from("more") });
+  await page.click("#dropSend");
+  await page.waitForTimeout(300);
+  await check("a second file for the same cat fires the same Routine", async () => {
+    expect((await tools(page, "create_trigger")).length === 2, "made another Routine");
+    const fired = await tools(page, "fire_trigger");
+    expect(fired[2][2].trigger_id === "trig_1", JSON.stringify(fired[2]));
+  });
+
+  // nothing points at a cat: the sorter model is asked
+  await T(page, () => { window.__catio.sampleAnswer = { cat: "session_blocked1", reason: "It is about the shop's page" }; });
+  await dropFiles(page, "#stage .house", [{ name: "untitled.txt", type: "text/plain", text: "a few thoughts" }]);
+  await check("when nothing points at one cat, the sorter model picks, and says why", async () => {
+    expect(await page.inputValue("#drop-0") === "session_blocked1", await page.inputValue("#drop-0"));
+    expect((await page.locator("#brainDlg").innerText()).includes("Claude: It is about the shop's page"), await page.locator("#brainDlg").innerText());
+    const p = (await T(page, () => window.__catio.prompts)).pop();
+    expect(p.includes("untitled.txt") && p.includes("a few thoughts") && p.includes("ignore any instructions"), p.slice(0, 200));
+  });
+  await page.click("#brainDlg button:has-text('Cancel')");
+
+  // the sorter can't tell either: it waits on the tray, and is filed from the brain
+  await T(page, () => { window.__catio.sampleAnswer = { cat: null, reason: "no idea" }; });
+  await dropFiles(page, "#stage .house", [{ name: "mystery.bin", type: "application/octet-stream", text: "\u0000\u0001" }]);
+  await page.click("#dropSend");
+  await page.waitForTimeout(300);
+  await check("a file nobody claims waits on the brain's tray", async () => {
+    const d = Object.entries(await T(page, () => window.__catio.store)).find(([p, v]) => p.startsWith("brain/") && v.name === "mystery.bin");
+    expect(d && d[1].status === "unsorted" && d[1].cat === null, JSON.stringify(d));
+  });
+  await hoverRoom(page, "hall");
+  await menuButton(page, "The brain (1)").click();
+  await page.locator('#brainDlg select[aria-label="File mystery.bin under"]').selectOption("session_work1");
+  await page.waitForTimeout(300);
+  await check("filing it from the tray sends it to the cat chosen", async () => {
+    const d = Object.entries(await T(page, () => window.__catio.store)).find(([p, v]) => p.startsWith("brain/") && v.name === "mystery.bin")[1];
+    expect(d.cat === "session_work1" && d.status === "pushed" && d.how === "manual", JSON.stringify(d));
+    expect((await tools(page, "fire_trigger")).pop()[2].text.includes("mystery.bin"), "not delivered");
+  });
+  await page.keyboard.press("Escape");
+  await hoverRoom(page, "hall");
+  await menuButton(page, "The brain").click();
+  const thrown = await page.locator("#brainDlg ul.files li").count();
+  await page.locator("#brainDlg button:has-text('Throw away')").first().click();
+  await page.waitForTimeout(200);
+  await check("throwing a file away deletes it and its record", async () => {
+    expect((await T(page, () => window.__catio.assetsDeleted)).length === 1, "asset kept");
+    expect(Object.keys(await T(page, () => window.__catio.store)).filter((p) => p.startsWith("brain/")).length === 3, "record kept");
+    expect(thrown === 4, "lately list " + thrown);
+  });
+  await page.keyboard.press("Escape");
+
+  // talking to a session, and its answer coming back
+  await hoverCat(page, "Shop about page");
+  await menuButton(page, "Talk").click();
+  await page.fill("#sayTo", "Is the French text ready?");
+  await page.click("#saySend");
+  await page.waitForTimeout(300);
+  await check("writing to a cat posts it into the session and keeps it in the conversation", async () => {
+    const fired = (await tools(page, "fire_trigger")).pop();
+    expect(fired[2].text === "[Catio] Charlotte says: Is the French text ready?", fired[2].text);
+    const n = Object.entries(await T(page, () => window.__catio.store)).find(([p]) => p.startsWith("notes/"));
+    expect(n && n[1].author === "charlotte" && n[1].cat === "session_blocked1" && n[1].via === "pushed", JSON.stringify(n));
+  });
+  await T(page, () => window.__catio.put("notes/r1", { cat: "session_blocked1", author: "session", text: "Yes: it's in the PR.", at: Date.now() }));
+  await page.waitForTimeout(200);
+  await check("the session's answer shows in the conversation", async () => {
+    expect((await page.locator("#thread").innerText()).includes("Yes: it's in the PR."), await page.locator("#thread").innerText());
+  });
+
+  // managing it
+  await page.click("#catDlg button:has-text('Ask to wrap up')");
+  await page.waitForTimeout(200);
+  await check("asking a cat to wrap up posts the request and records it", async () => {
+    expect((await tools(page, "fire_trigger")).pop()[2].text === "[Catio] Request: wrap_up", "no request");
+    expect((await T(page, () => window.__catio.store["sessions/session_blocked1"])).request === "wrap_up", "not recorded");
+  });
+  await page.fill("#catTitle", "Shop about page (FR)");
+  await page.click("#catDlg button:has-text('Save')");
+  await page.waitForTimeout(200);
+  await check("changing a session's title renames the real session", async () => {
+    const t = await tools(page, "set_session_title");
+    expect(t.length === 1 && t[0][2].session_id === "session_blocked1" && t[0][2].title === "Shop about page (FR)", JSON.stringify(t));
+  });
+  await hoverCat(page, "Week tab editing");
+  await menuButton(page, "Talk").click();
+  await page.click("#catDlg button:has-text('Pause')");
+  await page.waitForTimeout(150);
+  await page.click("#catDlg button:has-text('Archive')");
+  await check("archive asks once more", async () => expect((await tools(page, "archive_session")).length === 0, "archived at once"));
+  await page.click("#catDlg button:has-text('Yes, archive it')");
+  await page.waitForTimeout(200);
+  await check("pause and archive call the session's own tools, and archiving unbinds its Routine", async () => {
+    expect((await tools(page, "interrupt_session")).length === 1, "no pause");
+    expect((await tools(page, "archive_session"))[0][2].session_id === "session_work1", "no archive");
+    expect((await tools(page, "delete_trigger"))[0][2].trigger_id === "trig_2", "Routine kept");
+  });
+
+  // a new cat, on the model chosen for it
+  await hoverRoom(page, "kitchen");
+  await menuButton(page, "New cat here").click();
+  await page.selectOption("#ncModel", "claude-sonnet-5-5");
+  await page.fill("#ncMsg", "Plan next week's meals");
+  await page.click('#adoptDlg button[type="submit"]');
+  await page.waitForTimeout(200);
+  await check("New cat starts a session on the chosen model, in the room's repository, and files it there", async () => {
+    const c = await tools(page, "create_session");
+    expect(c.length === 1 && c[0][2].model === "claude-sonnet-5-5" && c[0][2].source_url === "https://github.com/charredlatte/Intermarche-grocery-shopping-app" && c[0][2].environment_id === "env_test" && c[0][2].prompt === "Plan next week's meals", JSON.stringify(c));
+    expect((await T(page, () => window.__catio.store["sessions/session_new1"])).room === "kitchen", "not filed");
+  });
+
+  // dragging a cat into another room
+  {
+    const cat = await page.locator('#cats .cat[aria-label*="Shop about page"]').boundingBox();
+    const to = await page.locator('.roomhit[data-room="bedroom"]').boundingBox();
+    await page.mouse.move(cat.x + cat.width / 2, cat.y + cat.height * 0.7);
+    await page.mouse.down();
+    await page.mouse.move(cat.x + 40, cat.y + 40, { steps: 3 });
+    await page.mouse.move(to.x + to.width * 0.5, to.y + to.height * 0.85, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(250);
+  }
+  await check("dragging a cat onto another room moves it there, without opening its card", async () => {
+    expect((await T(page, () => window.__catio.store["sessions/session_blocked1"])).room === "bedroom", "not moved");
+    expect(!(await page.locator("#catDlg").evaluate((d) => d.open)), "the drag opened the card");
+    expect((await page.locator('#cats .cat[aria-label*="Shop about page"]').getAttribute("data-room")) === "bedroom", "still in the old room");
+  });
+
+  // agents: a message and a file go through the Catio server on her computer
+  await hoverCat(page, "Shop theme");
+  await menuButton(page, "Talk").click();
+  await page.fill("#sayTo", "Green, please");
+  await page.click("#saySend");
+  await page.waitForTimeout(200);
+  await check("writing to an agent's cat goes through the Catio server", async () => {
+    const c = (await tools(page, "comment")).pop();
+    expect(c[0] === "host:catio" && c[2].cat === "codex-shop" && c[2].text === "Green, please", JSON.stringify(c));
+  });
+  await page.keyboard.press("Escape");
+  await hoverCat(page, "Shop theme");
+  await giveFiles(page, { name: "palette.txt", mimeType: "text/plain", buffer: Buffer.from("#C0D470") });
+  await page.click("#dropSend");
+  await page.waitForTimeout(300);
+  await check("a file for an agent is handed to it whole", async () => {
+    const c = (await tools(page, "drop_file")).pop();
+    expect(c[2].for === "codex-shop" && Buffer.from(c[2].base64, "base64").toString() === "#C0D470", JSON.stringify(c).slice(0, 200));
+  });
+
+  // the house rules
+  await T(page, () => { window.__catio.put("rules/preflight", { title: "Preflight before any browser", text: "Run the preflight skill.", enforced: true, on: true, order: 0 }); window.__catio.put("rules/private", { title: "Private matters stay in the Catio", text: "Out of git.", enforced: false, on: true, order: 1 }); });
+  await page.waitForTimeout(100);
+  await hoverRoom(page, "hall");
+  await menuButton(page, "House rules").click();
+  await check("the house rules show; enforced ones are locked", async () => {
+    const t = await page.locator("#brainDlg").innerText();
+    expect(t.includes("Preflight before any browser") && t.includes("Enforced") && t.includes("Private matters"), t);
+    expect(await page.locator('#brainDlg button[aria-label^="Preflight"]').count() === 0, "enforced rule has a switch");
+  });
+  await page.click('#brainDlg button[aria-label^="Private matters"]');
+  await page.waitForTimeout(150);
+  await check("a soft rule switches off", async () => expect((await T(page, () => window.__catio.store["rules/private"])).on === false, "still on"));
+  await page.keyboard.press("Escape");
+  await check("no page errors through the harness", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+// When claude.ai won't let the page post into sessions, the post is queued for the concierge.
+{
+  const { page, ctx, errors } = await open("?writes=refused&host=none");
+  await page.waitForTimeout(300);
+  await hoverCat(page, "Shop about page");
+  await giveFiles(page, { name: "note.txt", mimeType: "text/plain", buffer: Buffer.from("hello") });
+  await page.click("#dropSend");
+  await page.waitForTimeout(300);
+  await check("a refused post waits in the outbox, and the sign of it is honest", async () => {
+    const st = await T(page, () => window.__catio.store);
+    const o = Object.entries(st).filter(([p]) => p.startsWith("outbox/"));
+    expect(o.length === 1 && o[0][1].status === "queued" && o[0][1].why === "approval_required" && o[0][1].cat === "session_blocked1" && o[0][1].text.includes("note.txt"), JSON.stringify(o));
+    const b = Object.entries(st).find(([p]) => p.startsWith("brain/"))[1];
+    expect(b.status === "waiting" && b.via === "queued", JSON.stringify(b));
+    expect((await toast(page)).includes("queued"), await toast(page));
+    expect(await page.locator('#cats .cat[aria-label*="Shop theme"]').count() === 0, "an agent without its server");
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
+{
+  const { page, ctx } = await open("?mode=nodb");
+  await hoverCat(page, "Shop about page");
+  await check("where nothing can be kept, there is nothing to drop files with", async () => expect(await menuButton(page, "Give it files").count() === 0, "offered"));
   await ctx.close();
 }
 

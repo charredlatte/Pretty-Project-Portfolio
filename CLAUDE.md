@@ -120,10 +120,41 @@ Adopted chats can hold anything she types, including legal matters. They live on
 artifact database, never in this repo. The adopt form says so. The same goes for what a queen
 keeps: her card carries the same warning.
 
+## The harness (KittyChat)
+
+`harness/` is the harness behind the page (see `harness/README.md`): the `kittychat-house-rules`
+plugin (hooks: preflight before any browser, a read-only ponytail audit to open a session, a nudge to
+ship unpushed work; the `catio` skill) and `harness/mcp/catio_mcp.py`, the Catio MCP server other
+agents join through. The rules are `harness/rules.json`; Claude seeds them into the `rules` collection.
+
+The page now **writes** through Claude Code Remote, always on an explicit action:
+
+- **The brain**: files dropped on a cat, a room or the house go to `assets.upload` and a `brain/<id>`
+  document (`name, type, size, asset, url, cat, kind, project, room, how, reason, note, status`
+  `unsorted | waiting | pushed | picked`). `route()` sorts: the cat dropped on, a session/chat link in
+  the file, a keyword score, then the sorter (`sample.json` in claude.ai; an OpenAI-compatible endpoint
+  on localhost, `localStorage` `catio.sorter`), else the tray.
+- **Posting into a session**: `create_trigger` (poke-only, `persistent_session_id`, kept in
+  `sessions/<id>.trigger`) then `fire_trigger` with the text. `[Catio] Delivery…`, `[Catio] Charlotte
+  says: …`, `[Catio] Request: wrap_up`. Refused calls go to `outbox/<id>` (`status: queued`, `why`)
+  for the concierge to deliver; the session's own catch-up (catio skill) also finds them.
+- **Talking**: `notes/<id>` `{cat, text, author: charlotte|session|agent, at, via}`; replies show live.
+- **Managing**: `set_session_title`, `interrupt_session`, `archive_session` (+ `delete_trigger`),
+  `unarchive_session`, `create_session` (New cat, model from `rooms/<k>.model`).
+- **Agents**: `host:catio` `list_agents`, `comment`, `drop_file`, `manage` (on localhost, `/api/*` when
+  served by `catio_mcp.py --serve`). Breeds: the model's letter on each cat.
+- `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet.
+
+Capabilities for the next publish (full set, replacing the stored one):
+`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","create_trigger","fire_trigger","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "host:catio", tools: ["list_agents","drop_file","comment","comments","manage"] }] }, db: {}, assets: {}, sample: {} }`
+
+Still to do: the refurbished-manor art (needs the CosyCabin, Garden Castle, Wood Garden and
+CatMegaFree zips), furniture as sprites with a renovation mode, and cats placed by state at stations.
+
 ## Live sessions
 
-The page calls `list_sessions` (limit 50) through the `mcp` capability as the viewer. It never
-calls a write tool. Don't add `mine: true`: a page has no calling session, and that flag can
+The page calls `list_sessions` (limit 50) through the `mcp` capability as the viewer. Its write
+tools are the harness's, above, and only ever run on her click or drop. Don't add `mine: true`: a page has no calling session, and that flag can
 error without one. Every connector error code has its own message in `problem()`.
 
 claude.ai can refuse the page's read (`approval_required`: the tool asks before every call,
