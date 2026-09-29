@@ -71,7 +71,7 @@ GREEN = {"E8CFA6": "C0D470", "F3E5C2": "DDE8A6", "C49A6C": "93B259", "AA7959": "
 PINK = {"E8CFA6": "EBB7AE", "F3E5C2": "F7D8CF", "C49A6C": "C98583", "AA7959": "9B5670", "90625D": "7C4459"}
 
 # Cells of faces.png, in the page's MOODS order: which of the pack's cat emoji each mood wears.
-FACES = [("cry", 1, 6), ("meow", 2, 5), ("box", 0, 5), ("idle", 1, 5), ("sleep", 2, 6)]   # (mood, column, row)
+FACES = [("cry", 1, 6), ("meow", 2, 5), ("box", 0, 5), ("idle", 1, 5), ("sleep", 2, 6), ("keep", 3, 5)]   # (mood, column, row); keep: a queen's heart eyes
 
 
 def sprout(sprout_zip):
@@ -130,6 +130,24 @@ def sprout(sprout_zip):
     for i, (_, col, row) in enumerate(FACES):
         faces.alpha_composite(emoji.crop((col * 32, row * 32, col * 32 + 32, row * 32 + 32)), (i * 32, 0))
     faces.save(out / "faces.png")
+
+    # the queens' crown: the pack's crown icon, gilded and outlined like its star
+    gold = recolor(member(z, "All Icons.png").crop((82, 19, 94, 30)), {"FBFBF6": "EAE178"})
+    crown = Image.new("RGBA", (14, 13))
+    crown.alpha_composite(gold, (1, 1))
+    px = crown.load()
+    ring = [(x, y) for y in range(13) for x in range(14) if not px[x, y][3] and any(
+        0 <= x + dx < 14 and 0 <= y + dy < 13 and px[x + dx, y + dy][3] and px[x + dx, y + dy][:3] == (0xEA, 0xE1, 0x78)
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))]
+    for xy in ring:
+        px[xy] = (0x79, 0x5E, 0x53, 255)
+    crown.save(out / "crown.png")
+    # the stars by what a queen keeps: gold when she says it, brown otherwise
+    special = member(z, "Special Icons.png")
+    stars = Image.new("RGBA", (20, 8))
+    stars.alpha_composite(special.crop((3, 4, 13, 12)), (0, 0))
+    stars.alpha_composite(special.crop((35, 4, 45, 12)), (10, 0))
+    stars.save(out / "stars.png")
 
     # the cat-paw pointers, doubled to the page's scale
     for suffix, name in [("Catpaw Mouse icon.png", "cursor.png"), ("Catpaw pointing Mouse icon.png", "cursor-point.png")]:
