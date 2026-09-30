@@ -92,3 +92,6 @@ Loose ends from the merge:
   that session would overwrite this one with the one-floor house. Publish from this branch only.
 - A cat's walk used to start before its element was in the page and gave up on the first step, so a cat
   brought back from the attic stayed "walking" for ever. Fixed; the test for it is in 6d.
+- `harness/skills/graphify/NOTICE` says the MIT licence for graphify's older parts is kept in `LICENSE-MIT`,
+  but that file wasn't copied in with the skill; only the Apache `LICENSE` was. Copy upstream's
+  `LICENSE-MIT` next to it.
