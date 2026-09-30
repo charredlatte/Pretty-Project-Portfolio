@@ -275,7 +275,10 @@ match the Sprout tans, greens and pinks closely.
 **Getting it into a session.** The zip was attached on 30 September. Chat uploads last only as long as their
 session, so a later session needs it attached again, since the Drive connector can't hand over 12.5 MB. Then:
 - `build-art.py` takes it as one more zip (the interface alone can be rebuilt from Sprout Lands and it);
-- it cuts only the pieces above into one atlas, `art/licensed/pastel/pastel.png`, with `@2x` beside it;
+- it cuts only the pieces the page uses into `art/licensed/pastel/`: `panel`, `panel-dark`, `frame`,
+  `button`, `button-hover`, `button-down` and an `icons` strip. They're separate files because a 9-slice
+  `border-image` can't be cut out of an atlas. Each is drawn at twice its size on screen, and resized and
+  recoloured, never the pack's own files;
 - `bundle.py` and the publish `files` list pick them up;
 - `run.sh`'s no-art copy leaves them out, and every Pastel surface keeps a plain colour underneath, as the
   Sprout pieces do.
@@ -296,7 +299,7 @@ It forbids:
 
 So:
 - never commit it (it lives under `art/licensed/`, which is gitignored);
-- publish only the one cut atlas, never the pack's own PNG or SVG files;
+- publish only those cut pieces, never the pack's own PNG or SVG files;
 - keep it to the private artifact and her own localhost copy.
 
 **Rules updated.** CLAUDE.md now has the second pack's rule, its licence, and a `layouts` row with the
@@ -308,7 +311,15 @@ change them when the manor branch is merged.
 Each iteration ends with the e2e test green, screenshots at 1440×900 and 390×844 in light and dark, and one
 commit. Only then does the next start.
 
-**1. The map panel and the minimap**
+**1. The map panel and the minimap**: built 30 September. e2e: 143 passed. Where it differs from the plan
+above:
+- the zoom buttons sit in the header row beside House and the fold, and the floor tabs sit under the minimap;
+- the minimap shows the manor and catio (`MM.box`), not the whole grounds, so the rooms read larger;
+- the view frame is the Pastel panel's border, recoloured in the page's ink so it shows on the amber rooms;
+- on a phone the panel sits bottom right (the sign fills the top), and starts folded;
+- the House menu opens to the left of the panel;
+- `M` works now; the shortcuts switch that can turn it off comes with iteration 2.
+
 - Cut the Game UI Pastel pieces listed above with `build-art.py` (attach the zip again if this is a new
   session), and add "Game UI Pack created by SC_siosio" to the footer.
 - Merge the House button, the floor switch and the zoom buttons into the panel, and draw the minimap.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rebuild the catio's art from Charlotte's nine asset-pack zips.
+"""Rebuild the catio's art from Charlotte's nine asset-pack zips (ten, with Game UI Pastel).
 
     pip install pillow fonttools
     python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip "Top down garden castle.zip" \
@@ -7,6 +7,8 @@
         "Sprout Lands - UI Pack - Basic pack.zip" plants.zip \
         "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip"
     python3 catio/tools/build-art.py "Sprout Lands - UI Pack - Basic pack.zip"    # the interface alone
+    python3 catio/tools/build-art.py Game_UI_Pack_Pastel.zip                      # the map panel alone
+(add Game_UI_Pack_Pastel.zip as a tenth zip to the full build to cut the map panel as well)
 
 (The zips' names don't matter, only their order.) Writes, next to catio/index.html:
   art/licensed/house.png         the manor's ground floor (floors, walls, glass, doors, the south facade),
@@ -21,6 +23,8 @@
   art/licensed/mochi-idle.png, mochi-box.png, pochi.png   the ToffeeCraft cats, unchanged
   art/licensed/ui/               the interface, cut from Sprout Lands: panels, buttons, fields, bubbles,
                                  brackets, the sound switch, the mood faces, the cursors and sprout.ttf
+  art/licensed/pastel/           the map panel, cut from Game UI Pastel: its panel (light and dark), the
+                                 minimap's view frame, amber buttons in three states, and five icons
 and rewrites the page's MANOR block (furniture.py), which needs no zips on its own.
 
 Only art/furniture.png is committed (Cosy Cabin allows copying, with credit). The house mixes every pack,
@@ -250,13 +254,79 @@ def spring(im):
     return im
 
 
+PASTEL = "Game_UI_Pack_Pastel/PNG/Filled/"
+# The pack's icons and panels name their 16 colours in the reverse order of its buttons: the icon or panel
+# named "Indigo" is the buttons' Amber. This is the file name that draws amber.
+AMBER_BY_ITS_NAME = "Indigo"
+INK = (63, 42, 32)   # the page's --ink, #3F2A20
+
+
+def pastel(pastel_zip):
+    """Cut the map panel's pieces from SC_siosio's Game UI Pack, Pastel Edition into art/licensed/pastel/.
+
+    Its licence allows use in websites and changes, with credit, but no redistribution, no repository, and
+    nothing easy to extract: so only these few pieces ship, resized and recoloured, never the pack's own
+    files, and none of it is committed. It is smooth art, not pixel art: each piece is drawn at twice the
+    size it has on screen (the page halves it), and scaled with smoothing."""
+    z = zipfile.ZipFile(pastel_zip)
+    out = OUT / "licensed" / "pastel"
+    out.mkdir(parents=True, exist_ok=True)
+    get = lambda name: Image.open(io.BytesIO(z.read(PASTEL + name))).convert("RGBA")
+    shrink = lambda im, f: im.resize((round(im.width * f), round(im.height * f)), Image.LANCZOS)
+
+    # the panel: a 20 px amber border round a white face, 80 px corners. The page slices it at 28 px (14 on
+    # screen). Light: the face turned the page's cream. Dark: the pack's navy face, for the dark theme.
+    # The frame is the border alone, in ink, for the minimap's view.
+    for name, file, face in [("panel", "Panels/Horizontal/Light/Panel_Horizontal_Light_", (251, 243, 228)),
+                             ("panel-dark", "Panels/Horizontal/Dark/Panel_Horizontal_Dark_", None),
+                             ("frame", "Panels/Horizontal/Light/Panel_Horizontal_Light_", 0)]:
+        im = get(file + AMBER_BY_ITS_NAME + ".png")
+        if face is not None:
+            px = im.load()
+            for y in range(im.height):
+                for x in range(im.width):
+                    if px[x, y] == (255, 255, 255, 255):
+                        px[x, y] = (0, 0, 0, 0) if face == 0 else face + (255,)
+                    elif face == 0 and px[x, y][3]:
+                        px[x, y] = INK + (px[x, y][3],)   # the frame's line in ink, to show on the amber rooms
+        shrink(im, 0.3).save(out / (name + ".png"))
+
+    # the buttons, amber, in their three states: 275 px of face over a 25 px shadow, 60 px corners, cropped
+    # to the button and drawn 40 px tall on screen. The page slices them at 22 px across and 20 / 24 down.
+    for name, state in [("button", "Normal"), ("button-hover", "Hovered"), ("button-down", "Clicked")]:
+        im = get(f"Button/Rectangular/{state}/Button_Rectangle_{state}_Filled_Amber.png").crop((0, 100, 1000, 400))
+        shrink(im, 0.27).save(out / (name + ".png"))
+
+    # the icons, in one row of 36 px cells (18 on screen), recoloured the page's ink with their shadow
+    # kept a shade lighter, so they read on the amber buttons: plus, minus, up, down, question
+    icons = ["Math/Plus/Plus", "Math/Minus/Minus", "Arrows/Up/Arrow_Up", "Arrows/Down/Arrow_Down",
+             "System/Question/Question"]
+    sheet = Image.new("RGBA", (36 * len(icons), 36))
+    for i, name in enumerate(icons):
+        im = get("Icons/" + name + "_Filled_" + AMBER_BY_ITS_NAME + ".png")
+        px = im.load()
+        for y in range(im.height):
+            for x in range(im.width):
+                r, g, b, a = px[x, y]
+                if a:
+                    shade = INK if r > 200 else (140, 104, 70)   # the face, then its shadow
+                    px[x, y] = shade + (a,)
+        sheet.alpha_composite(shrink(im, 36 / 500), (36 * i, 0))
+    sheet.save(out / "icons.png")
+    return out
+
+
 def main():
-    if len(sys.argv) == 2:
-        sprout(sys.argv[1])
-        print("interface written to", OUT / "licensed" / "ui")
+    # the interface alone: Sprout Lands, Game UI Pastel, or both
+    if 2 <= len(sys.argv) <= 3:
+        for z in sys.argv[1:]:
+            done = pastel(z) if any(n.startswith("Game_UI_Pack_Pastel/") for n in zipfile.ZipFile(z).namelist()) else sprout(z)
+            print("interface written to", done or OUT / "licensed" / "ui")
         return
-    if len(sys.argv) != 10:
+    if len(sys.argv) not in (10, 11):
         raise SystemExit(__doc__)
+    if len(sys.argv) == 11:
+        pastel(sys.argv.pop())
     (cabin_zip, cats_zip, garden_zip, wood_zip, stone_zip, sprout_zip, plants_zip,
      sprites_zip, dreamy_zip) = sys.argv[1:]
     (OUT / "licensed").mkdir(parents=True, exist_ok=True)

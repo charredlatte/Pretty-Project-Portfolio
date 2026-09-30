@@ -15,7 +15,9 @@ Publish `catio/index.html` with:
   `pochi.png`) and the interface
   in `art/licensed/ui/` (`panel`, `button`, `button-hover`, `button-down`, `button-green`,
   `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `bubble-tail`, `corners`,
-  `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point` `.png`, and `sprout.ttf`);
+  `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point` `.png`, and `sprout.ttf`),
+  and the map panel in `art/licensed/pastel/` (`panel`, `panel-dark`, `frame`, `button`, `button-hover`,
+  `button-down`, `icons` `.png`);
 - `capabilities`: omit it on a republish to keep what's stored. The declaration is
   `{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions"] }] }, db: {} }`.
 
@@ -95,11 +97,21 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
 
 - **Floors**: the stair, the floor buttons and Page Up / Page Down go between them. The stair's sign and
   the floor button badge the other floor's cats that need her. The tally counts both floors.
-- **Controls**: Charlotte lifted the old "no toolbar" rule (September 2026). Two sets of controls now sit
-  on screen, and nothing else should:
-  - the corner cluster (`#controls`: floor switch, zoom in and out, whole house);
-  - the House button (`#houseBtn`, top right), whose menu holds what belongs to the whole house: the
-    brain, house rules, Edit rooms, sound, Check now and the attic.
+- **Controls**: Charlotte lifted the old "no toolbar" rule (September 2026). One panel sits on screen
+  besides the sign, and nothing else should: the map panel (`#controls`, top right; bottom right on a
+  phone), in Game UI Pastel. It holds:
+  - the House button (`#houseBtn`), whose menu holds what belongs to the whole house: the brain,
+    house rules, Edit rooms, sound, Check now and the attic;
+  - zoom out, zoom in and whole house;
+  - the fold (`#mapFold`, or M), remembered in `localStorage` as `catio.minimap`, folded at first on a
+    phone;
+  - the minimap (`#minimap`): the floor's rooms as a plan (`MM.box`, the manor and catio), the other
+    floor faint, a pip where a cat needs her, the camera's view framed. Click goes there, drag pans,
+    double-click looks in, the wheel zooms;
+  - the floor tabs.
+
+  Menus open clear of the panel (`showMenu`). The plan for the rest (the Sims-style camera and Build) is
+  `docs/camera-and-minimap.md`.
 - **Room controls**: a control for one room or cat goes in its menu.
 - **The camera is free**: drag to pan (left, right or middle button, or Space), wheel or pinch to zoom,
   + / − / 0 and Shift+arrows. `S.focus` is the room that fills the view, and bubbles speak there.

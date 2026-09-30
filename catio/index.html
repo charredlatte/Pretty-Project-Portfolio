@@ -4,12 +4,13 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:ital,wght@0,500;0,700;0,800;1,500&display=swap">
 <style>
 /* Layout: the catio is the whole screen, in a Sprout Lands frame: a manor on two floors, one shown at a
-   time. Drag to move around it, wheel or pinch to zoom; the controls in the bottom corner change floor and
-   zoom, and the House button (top right) holds what belongs to the whole house. Hovering a room or a cat
+   time. Drag to move around it, wheel or pinch to zoom. The map panel (top right) holds the House button
+   (what belongs to the whole house), zoom, the floors and a minimap that folds away. Hovering a room or a cat
    lights it and names it; clicking opens its menu beside it. A small sign in the top corner says whether
    the cats are live, and spells out any fix. Every panel, button, field, bubble, face and pointer is cut
    from Cup Nooble's Sprout Lands UI pack (art/licensed/ui/) and drawn at whole-pixel scale; titles and
-   buttons use its pixel font. Dark mode turns the meadow to night. */
+   buttons use its pixel font. The map panel alone is SC_siosio's Game UI Pastel (art/licensed/pastel/).
+   Dark mode turns the meadow to night. */
 @font-face { font-family: "Sprout"; src: url(art/licensed/ui/sprout.ttf) format("truetype"); font-display: swap; }
 :root {
   --ink: #3F2A20;          /* dark cocoa: the Sprout panels' outline, deepened for reading */
@@ -94,29 +95,54 @@ a { color: var(--ink); }
 .hud h1 span { font: 800 .78rem var(--body); color: var(--ink-soft); }
 .hud .status:not(.warn) .words { display: none; }
 .hud:hover .status .words, .hud:focus-within .status .words { display: inline; }
-.credits { position: fixed; z-index: 19; left: calc(6 * var(--u) + 8px); bottom: calc(6 * var(--u) + 4px + env(safe-area-inset-bottom, 0px)); margin: 0; font-size: .66rem; color: #FFF8EA; opacity: .9;
-  text-shadow: 0 1px 0 #2C4A18, 1px 0 0 #2C4A18, -1px 0 0 #2C4A18, 0 -1px 0 #2C4A18; max-width: calc(100vw - 12 * var(--u) - 190px); }
-/* the House button, top right: everything that belongs to the whole house rather than one room */
-.housebtn { position: fixed; z-index: 31; top: calc(6 * var(--u) + 8px + env(safe-area-inset-top, 0px)); right: calc(6 * var(--u) + 8px); }
-.housebtn[aria-expanded="true"], .fl[aria-checked="true"] { border-image-source: url(art/licensed/ui/button-down.png); border-image-slice: 4 fill; translate: 0 calc(2 * var(--u)); background-color: #CDB793; }
-/* the controls, bottom right, where map and game controls live: the floor switch, then zoom */
-.controls { position: fixed; z-index: 31; right: calc(6 * var(--u) + 8px); bottom: calc(6 * var(--u) + 8px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 6px; justify-items: stretch;
-  padding: 2px calc(2 * var(--u)) calc(2 * var(--u)); border: calc(6 * var(--u)) solid transparent; border-image: url(art/licensed/ui/panel.png) 6 fill / calc(6 * var(--u)) stretch; background: var(--tan) padding-box; image-rendering: pixelated; }
-.controls .floors { display: grid; gap: 4px; }
-.controls .zooms { display: flex; gap: 4px; justify-content: space-between; }
-.fl { display: flex; align-items: center; gap: 6px; text-align: left; min-height: 36px; }
-.fl .ar { width: 20px; height: 18px; flex: none; background: url(art/licensed/ui/arrow.png) center / 20px 18px no-repeat; image-rendering: pixelated; }
-.fl .ar.up { transform: scaleY(-1); }
-.fl .w { flex: 1; }
-.fl .badge { margin-left: 2px; }
-.btn.sq { width: 44px; height: 40px; padding: 0; display: grid; place-items: center; }
-.btn.sq svg { width: 14px; height: 14px; fill: currentColor; shape-rendering: crispEdges; }
-.btn.sq:disabled { opacity: .5; cursor: default; }
+.credits { position: fixed; z-index: 19; right: calc(6 * var(--u) + 8px); text-align: right; bottom: calc(6 * var(--u) + 4px + env(safe-area-inset-bottom, 0px)); margin: 0; font-size: .66rem; color: #FFF8EA; opacity: .9;
+  text-shadow: 0 1px 0 #2C4A18, 1px 0 0 #2C4A18, -1px 0 0 #2C4A18, 0 -1px 0 #2C4A18; max-width: calc(100vw - 12 * var(--u) - 16px); }
+/* the map panel, top right (bottom right on a phone): House, zoom and the fold on top, the minimap, then the
+   floors. It is SC_siosio's Game UI Pastel (art/licensed/pastel/), not Sprout Lands: what works the camera
+   comes from that pack, what talks about the cats stays Sprout. Pastel art is smooth, drawn at twice its
+   screen size, so it is scaled with smoothing, never pixelated. Each piece has its own face colour under it,
+   so a copy without the licensed art is still a panel of buttons. */
+.mappanel { position: fixed; z-index: 31; top: calc(6 * var(--u) + 8px + env(safe-area-inset-top, 0px)); right: calc(6 * var(--u) + 8px);
+  display: grid; gap: 6px; padding: 4px; border: 6px solid transparent; border-radius: 12px; background: #FBF3E4;
+  border-image: url(art/licensed/pastel/panel.png) 28 fill / 14px stretch; image-rendering: auto; }
+.mp-row { display: flex; gap: 4px; align-items: center; }
+.mp-row .grow { flex: 1; }
+.floors { display: flex; gap: 4px; }
+.floors .pbtn { flex: 1; }
+.pbtn { font: 18px/18px var(--pixel); color: var(--ink); height: 40px; padding: 0 2px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;
+  border-style: solid; border-color: transparent; border-width: 10px 11px 12px; border-radius: 8px; background: #F3D08A;
+  border-image: url(art/licensed/pastel/button.png) 20 22 24 fill / 10px 11px 12px stretch; image-rendering: auto; }
+.pbtn:hover { border-image-source: url(art/licensed/pastel/button-hover.png); background-color: #F7DCAB; }
+.pbtn:active, .pbtn[aria-checked="true"], .pbtn[aria-expanded="true"]:not(.fold) { border-image-source: url(art/licensed/pastel/button-down.png); background-color: #E3BC6F; }
+.pbtn:disabled { opacity: .5; cursor: default; }
+.pbtn.sq { width: 40px; padding: 0; }
+.pbtn .ico { --i: 0; width: 18px; height: 18px; flex: none; background: url(art/licensed/pastel/icons.png) calc(var(--i) * -18px) 0 / 90px 18px no-repeat; }
+.pbtn svg { width: 14px; height: 14px; fill: currentColor; shape-rendering: crispEdges; }
+/* a floor with cats that need you: a pink pip and how many (red if one is upset) */
+.pip { display: inline-grid; place-items: center; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; font: 800 11px/1 var(--body); color: var(--ink);
+  background: #F0B5CA; box-shadow: inset 0 -2px 0 rgba(105, 85, 34, .35); }
+.pip.fail { background: #E79A95; }
+/* the minimap: the floor as a plan of rooms, the other floor faint underneath, the camera's view framed */
+.minimap { position: relative; width: 250px; height: 132px; border-radius: 6px; overflow: hidden; background: #DCE6A0; touch-action: none; cursor: var(--point); }
+.mappanel.folded .minimap { display: none; }
+.mm-room { position: absolute; background: #F3D08A; box-shadow: inset 0 0 0 1px rgba(105, 85, 34, .45); pointer-events: none; }
+.mm-room.faint { background: rgba(243, 208, 138, .35); box-shadow: none; }
+.mm-room.landing { background: #F7DCAB; }
+.mm-room.hot { background: #F7DCAB; box-shadow: inset 0 0 0 1px rgba(105, 85, 34, .8); }
+.mm-room.here { background: #B8D799; }
+.mm-room .pip { position: absolute; right: 2px; top: 2px; min-width: 8px; height: 8px; padding: 0; }
+.mm-stairs { position: absolute; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(105, 85, 34, .45) 0 1px, transparent 1px 3px); }
+.mm-view { position: absolute; pointer-events: none; border: 2px solid #3F2A20; border-radius: 6px; border-image: url(art/licensed/pastel/frame.png) 28 / 6px stretch;
+  transition: left .55s cubic-bezier(.3,.7,.2,1), top .55s cubic-bezier(.3,.7,.2,1), width .55s cubic-bezier(.3,.7,.2,1), height .55s cubic-bezier(.3,.7,.2,1); }
+.minimap.instant .mm-view { transition: none; }
 @media (max-width: 560px) {
-  .fl .w { font-size: 0; } .fl { min-height: 44px; min-width: 44px; justify-content: center; }
-  .controls .zooms { flex-direction: column; }
+  .mappanel { top: auto; bottom: calc(6 * var(--u) + 8px + env(safe-area-inset-bottom, 0px)); }
+  .pbtn { height: 44px; } .pbtn.sq { width: 44px; }
   .credits { display: none; }
 }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mappanel { border-image-source: url(art/licensed/pastel/panel-dark.png); background-color: #1E2937; } }
+:root[data-theme="dark"] .mappanel { border-image-source: url(art/licensed/pastel/panel-dark.png); background-color: #1E2937; }
+@media (prefers-reduced-motion: reduce) { .mm-view { transition: none; } }
 .world { position: absolute; left: 0; top: 0; width: 1920px; height: 1152px; transform-origin: 0 0; transition: transform .55s cubic-bezier(.3,.7,.2,1);
   background: url(art/licensed/meadow.png) 0 0 / 224px 64px repeat; image-rendering: pixelated; filter: var(--scene); }
 .stage.instant .world { transition: none; }
@@ -300,7 +326,8 @@ dialog.wide { width: min(600px, calc(100vw - 24px)); }
 .plan-art img { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
 .plan[data-floor="ground"] .plan-art .upper { display: none; }
 .planfloors { display: flex; gap: 6px; }
-.planfloors .fl { min-height: 0; }
+.planfloors .fl { display: flex; align-items: center; gap: 6px; }
+.planfloors .fl[aria-checked="true"] { border-image-source: url(art/licensed/ui/button-down.png); border-image-slice: 4 fill; translate: 0 calc(2 * var(--u)); background-color: #CDB793; }
 .rt { position: absolute; padding: 0; background: transparent; border: 0 solid transparent; }
 .rt:hover { background: rgba(255, 250, 225, .16); }
 .rt[aria-selected="true"], .rt:focus-visible { outline: 0; background: rgba(255, 250, 225, .2);
@@ -404,21 +431,23 @@ ul.gkey li > div.what { flex-basis: 100%; }
     <h1>The Catio <span id="tally"></span></h1>
     <div class="status" id="status" role="status"><span class="dot"></span><span class="words">Waking the cats…</span></div>
   </header>
-  <button class="btn housebtn" id="houseBtn" type="button" aria-haspopup="true" aria-expanded="false">House</button>
-  <div class="controls" id="controls" role="group" aria-label="Floors and zoom">
+  <nav class="mappanel" id="controls" aria-label="Map">
+    <div class="mp-row">
+      <button class="pbtn grow" id="houseBtn" type="button" aria-haspopup="true" aria-expanded="false">House</button>
+      <button class="pbtn sq" id="zoomOut" type="button" aria-label="Zoom out" title="Zoom out (−)"><span class="ico" style="--i: 1" aria-hidden="true"></span></button>
+      <button class="pbtn sq" id="zoomIn" type="button" aria-label="Zoom in" title="Zoom in (+)"><span class="ico" style="--i: 0" aria-hidden="true"></span></button>
+      <button class="pbtn sq" id="zoomAll" type="button" aria-label="Whole house" title="Whole house (0)"><svg viewBox="0 0 9 8" aria-hidden="true"><path d="M4 0h1v1h1v1h1v1h1v1H7v4H5V5H4v3H2V4H1V3h1V2h1V1h1z"/></svg></button>
+      <button class="pbtn sq fold" id="mapFold" type="button" aria-controls="minimap" aria-expanded="true" aria-label="Fold the map" title="Fold the map (M)"><span class="ico" style="--i: 2" aria-hidden="true"></span></button>
+    </div>
+    <div class="minimap" id="minimap" aria-hidden="true"><div id="mmRooms"></div><div class="mm-view" id="mmView"></div></div>
     <div class="floors" role="radiogroup" aria-label="Floor">
-      <button class="btn fl" id="floor-upper" type="button" role="radio" data-floor="upper" aria-checked="false"><span class="ar up" aria-hidden="true"></span><span class="w">Upstairs</span></button>
-      <button class="btn fl" id="floor-ground" type="button" role="radio" data-floor="ground" aria-checked="true"><span class="ar" aria-hidden="true"></span><span class="w">Ground</span></button>
+      <button class="pbtn fl" id="floor-ground" type="button" role="radio" data-floor="ground" aria-checked="true"><span class="w">Ground</span></button>
+      <button class="pbtn fl" id="floor-upper" type="button" role="radio" data-floor="upper" aria-checked="false"><span class="w">Upstairs</span></button>
     </div>
-    <div class="zooms">
-      <button class="btn sq" id="zoomIn" type="button" aria-label="Zoom in" title="Zoom in (+)"><svg viewBox="0 0 7 7" aria-hidden="true"><path d="M3 0h1v3h3v1H4v3H3V4H0V3h3z"/></svg></button>
-      <button class="btn sq" id="zoomOut" type="button" aria-label="Zoom out" title="Zoom out (−)"><svg viewBox="0 0 7 7" aria-hidden="true"><path d="M0 3h7v1H0z"/></svg></button>
-      <button class="btn sq" id="zoomAll" type="button" aria-label="Whole house" title="Whole house (0)"><svg viewBox="0 0 9 8" aria-hidden="true"><path d="M4 0h1v1h1v1h1v1h1v1H7v4H5V5H4v3H2V4H1V3h1V2h1V1h1z"/></svg></button>
-    </div>
-  </div>
+  </nav>
   <div class="sr" id="say" aria-live="polite"></div>
   <p class="sr" id="keyhelp">Arrow keys move between rooms. Enter opens a room's menu. Page Up and Page Down change floor. Plus and minus zoom, and Shift with the arrows moves the view. Escape goes back.</p>
-  <p class="credits">Rooms by Marie Pepo · Cats by ToffeeCraft · Garden by Heosphorus and rowdy41 · Stonework by Cainos · Interface and flowers by Cup Nooble · Forest and tiles from Little Dreamyland by Starmixu &amp; Utaskuas</p>
+  <p class="credits">Rooms by Marie Pepo · Cats by ToffeeCraft · Garden by Heosphorus and rowdy41 · Stonework by Cainos · Interface and flowers by Cup Nooble · Forest and tiles from Little Dreamyland by Starmixu &amp; Utaskuas · Game UI Pack created by SC_siosio</p>
 </main>
 
 <dialog id="catDlg" aria-labelledby="catName"></dialog>
@@ -1082,6 +1111,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const [lo, hi] = limits();
     $("zoomIn").disabled = c.s >= hi - 1e-3;
     $("zoomOut").disabled = c.s <= lo + 1e-3;
+    drawView(animate);
     labelRooms();
     clearTimeout(setCam.t);
     const ov = $("overlay");
@@ -1167,16 +1197,90 @@ ul.gkey li > div.what { flex-basis: 100%; }
     $("say").textContent = FLOORS[f] + ": " + (need.length ? need.length + (need.length === 1 ? " cat needs" : " cats need") + " you, in the " + roomInfo(need[0].roomKey).name + "." : "all quiet.");
     if (onMap) $("room-" + curRoom()).focus({ preventScroll: true });
   }
-  // the floor switch carries a badge when cats on the other floor need you
+  // the floor switch carries a pip when cats on the other floor need you
+  const pip = (need) => { const b = el("span", "badge pip" + (need.some((c) => c.mood === "cry") ? " fail" : ""), String(need.length)); b.setAttribute("aria-hidden", "true"); return b; };
   function drawControls() {
-    for (const b of document.querySelectorAll(".fl")) {
+    for (const b of document.querySelectorAll("#controls .fl")) {
       const f = b.dataset.floor, need = needOn(f);
       b.setAttribute("aria-checked", String(f === S.floor));
       const old = b.querySelector(".badge"); if (old) old.remove();
-      if (need.length && f !== S.floor) b.appendChild(badge(need.sort((x, y) => MOODS[x.mood].rank - MOODS[y.mood].rank)));
+      if (need.length && f !== S.floor) b.appendChild(pip(need));
       b.setAttribute("aria-label", FLOORS[f] + (need.length ? ", " + need.length + " need you" : ""));
     }
+    drawMap();
   }
+
+  /* ---------- the minimap ---------- */
+  // The floor you're on as a plan of rooms, the other floor faint underneath, a pip where a cat needs you,
+  // and the camera's view framed. Click to go there, drag to pan, double-click a room to look in, wheel to
+  // zoom. Folded or open is remembered in this browser; it starts folded on a phone.
+  // It shows the manor and the catio (MM.box, native px), not the whole grounds, so the rooms read larger.
+  const MM = { box: [80, 32, 848, 448], hot: null, drag: null };
+  MM.k = 250 / MM.box[2];
+  S.mapOpen = innerWidth > 560;
+  try { const v = localStorage.getItem("catio.minimap"); if (v) S.mapOpen = v === "open"; } catch (e) {}
+  function drawMap() {
+    const box = $("mmRooms"), k = MM.k;
+    box.replaceChildren();
+    if (!S.mapOpen) { foldPip(); return; }
+    const [bx, by] = MM.box;
+    const put = (cls, [x, y, w, h]) => { const d = el("div", cls); Object.assign(d.style, { left: (x - bx) * k + "px", top: (y - by) * k + "px", width: w * k + "px", height: h * k + "px" }); box.appendChild(d); return d; };
+    for (const f of [other(S.floor), S.floor]) {
+      const faint = f !== S.floor ? " faint" : "";
+      if (f === "upper") put("mm-room landing" + faint, MANOR.landing);
+      for (const r of ORDER) {
+        if (levelOf(r) !== f) continue;
+        const d = put("mm-room" + faint + (!faint && r === S.focus ? " here" : "") + (!faint && r === MM.hot ? " hot" : ""), GEOM[r].r);
+        d.dataset.room = r;
+        const need = !faint && needIn(VIEW.cats, r);
+        if (need && need.length) d.appendChild(pip(need)).textContent = "";
+      }
+    }
+    put("mm-stairs", MANOR.stairs);
+    drawView(false);
+  }
+  function mmHot(k) {
+    MM.hot = k;
+    for (const d of $("mmRooms").querySelectorAll(".mm-room[data-room]")) d.classList.toggle("hot", d.dataset.room === k && !d.classList.contains("faint"));
+  }
+  // the part of the grounds on screen, in native px
+  const viewBox = () => { const c = S.cam; return [-c.tx / (2 * c.s), -c.ty / (2 * c.s), c.W / (2 * c.s), c.H / (2 * c.s)]; };
+  function drawView(animate) {
+    if (!S.cam) return;
+    if (!S.mapOpen) { foldPip(); return; }
+    const [x, y, w, h] = viewBox(), k = MM.k, [bx, by, bw, bh] = MM.box;
+    const x0 = Math.max(bx, x) - bx, y0 = Math.max(by, y) - by, x1 = Math.min(bx + bw, x + w) - bx, y1 = Math.min(by + bh, y + h) - by;
+    $("minimap").classList.toggle("instant", !animate || reduced());
+    Object.assign($("mmView").style, { left: x0 * k + "px", top: y0 * k + "px", width: Math.max(6, (x1 - x0) * k) + "px", height: Math.max(6, (y1 - y0) * k) + "px" });
+  }
+  // folded, the fold button carries a pip when a cat that needs you on this floor is off screen
+  function foldPip() {
+    const b = $("mapFold"), old = b.querySelector(".badge"); if (old) old.remove();
+    if (S.mapOpen || !S.cam) return;
+    const [x, y, w, h] = viewBox();
+    const off = VIEW.placed.filter((p) => MOODS[p.cat.mood].needs && levelOf(p.room) === S.floor && (p.x / 2 < x || p.x / 2 > x + w || p.feet / 2 < y || p.feet / 2 > y + h));
+    if (off.length) b.appendChild(pip(off.map((p) => p.cat)));
+    b.setAttribute("aria-label", "Unfold the map" + (off.length ? ", " + off.length + " off screen need you" : ""));
+  }
+  function setMapOpen(open, remember) {
+    S.mapOpen = open;
+    if (remember) { try { localStorage.setItem("catio.minimap", open ? "open" : "folded"); } catch (e) {} }
+    $("controls").classList.toggle("folded", !open);
+    const f = $("mapFold");
+    f.setAttribute("aria-expanded", String(open));
+    f.setAttribute("aria-label", open ? "Fold the map" : "Unfold the map");
+    f.title = (open ? "Fold" : "Unfold") + " the map (M)";
+    f.querySelector(".ico").style.setProperty("--i", open ? 2 : 3);
+    drawMap();
+  }
+  // put a point of the grounds (native px) in the middle of the screen
+  function centerOn(wx, wy, animate) {
+    const c = S.cam;
+    setCam({ s: c.s, tx: c.W / 2 - wx * 2 * c.s, ty: c.H / 2 - wy * 2 * c.s }, animate);
+    settleSoon(animate && !reduced() ? 580 : 0);
+  }
+  const mapPt = (e) => { const r = $("minimap").getBoundingClientRect(); return [MM.box[0] + (e.clientX - r.left) / MM.k, MM.box[1] + (e.clientY - r.top) / MM.k]; };
+  const roomAt = ([x, y]) => ORDER.find((k) => { const [rx, ry, rw, rh] = GEOM[k].r; return levelOf(k) === S.floor && x >= rx && x < rx + rw && y >= ry && y < ry + rh; }) || null;
 
   /* ---------- keyboard: the map is one stop, arrows move between rooms ---------- */
   // One room carries the tab stop (at first the one that needs you most); a room's cats are stops
@@ -1255,8 +1359,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const y = Math.max(t.offsetHeight + 8, a.top - st.top + (kind === "room" ? Math.min(a.height / 2, 60) : -4));
     Object.assign(t.style, { left: x + "px", top: y + "px" });
     tipFor = node;
+    mmHot(kind === "room" ? key : null);
   }
-  function hideTip(node) { if (node && node !== tipFor) return; $("tip").hidden = true; tipFor = null; }
+  function hideTip(node) { if (node && node !== tipFor) return; $("tip").hidden = true; tipFor = null; if (MM.hot) mmHot(null); }
   // a click closes the menu a click opened; one that keyboard focus opened stays, now pinned by the click
   function toggleMenu(kind, key, node) {
     hideTip();
@@ -1301,7 +1406,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     // Redrawing the menu you are already using (a changed count, a button you just pressed) leaves it
     // where it is: moving it because it grew a line slides it out from under the pointer.
     if (same && MENU.at && !node) { left = MENU.at[0]; top = MENU.at[1]; }
-    else if (kind === "house") { left = W - mw - g; top = ay + ah + 8; }
+    else if (kind === "house") { const p = $("controls").getBoundingClientRect(); left = p.left - st.left - mw - g; top = p.top - st.top; }
     else {
       // beside it on the right, else on the left; on a narrow screen below it, else above it, so the
       // cat itself stays tappable; a room that fills the screen gets the menu in its corner
@@ -1315,6 +1420,14 @@ ul.gkey li > div.what { flex-basis: 100%; }
     }
     left = Math.max(g, Math.min(Math.max(g, W - mw - g), left));
     top = Math.max(g, Math.min(Math.max(g, H - mh - g), top));
+    // never under the map panel: to its left if there's room, else below it or above it
+    const p = $("controls").getBoundingClientRect(), P = [p.left - st.left - g, p.top - st.top - g, p.right - st.left + g, p.bottom - st.top + g];
+    const under = (l, t) => l < P[2] && l + mw > P[0] && t < P[3] && t + mh > P[1];
+    if (under(left, top)) {
+      if (P[0] - mw >= g) left = P[0] - mw;
+      else if (P[3] + mh <= H - g) top = P[3];
+      else if (P[1] - mh >= g) top = P[1] - mh;
+    }
     MENU.at = [left, top];
     Object.assign(menu.style, { left: left + "px", top: top + "px" });
   }
@@ -2770,8 +2883,46 @@ ul.gkey li > div.what { flex-basis: 100%; }
   $("zoomIn").addEventListener("click", () => zoomStep(1.5));
   $("zoomOut").addEventListener("click", () => zoomStep(1 / 1.5));
   $("zoomAll").addEventListener("click", zoomOut);
-  for (const b of document.querySelectorAll(".controls .fl")) b.addEventListener("click", () => setFloor(b.dataset.floor));
+  for (const b of document.querySelectorAll("#controls .fl")) b.addEventListener("click", () => setFloor(b.dataset.floor));
   $("houseBtn").addEventListener("click", (e) => { e.stopPropagation(); hideTip(); toggleMenu("house", "house", $("houseBtn")); });
+  $("mapFold").addEventListener("click", () => setMapOpen(!S.mapOpen, true));
+  // the minimap: a click glides there, a drag pans live (holding the view where you grabbed it), a
+  // double-click looks in, the wheel zooms about that spot
+  const mm = $("minimap");
+  mm.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault(); hideMenu(); hideTip();
+    const pt = mapPt(e), [x, y, w, h] = viewBox();
+    const inView = pt[0] >= x && pt[0] <= x + w && pt[1] >= y && pt[1] <= y + h;
+    MM.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, on: false, off: inView ? [x + w / 2 - pt[0], y + h / 2 - pt[1]] : [0, 0] };
+    try { mm.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  mm.addEventListener("pointermove", (e) => {
+    const d = MM.drag;
+    if (!d) { const k = roomAt(mapPt(e)); if (k !== MM.hot) { mmHot(k); mm.title = k ? roomInfo(k).name : ""; } return; }
+    if (e.pointerId !== d.id) return;
+    if (!d.on && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 3) return;
+    d.on = true;
+    const pt = mapPt(e);
+    centerOn(pt[0] + d.off[0], pt[1] + d.off[1], false);
+  });
+  const mmUp = (e) => {
+    const d = MM.drag; if (!d || e.pointerId !== d.id) return;
+    MM.drag = null;
+    if (!d.on && e.type === "pointerup") { const pt = mapPt(e); centerOn(pt[0], pt[1], true); }
+  };
+  mm.addEventListener("pointerup", mmUp);
+  mm.addEventListener("pointercancel", mmUp);
+  mm.addEventListener("pointerleave", () => { if (!MM.drag) { mmHot(null); mm.title = ""; } });
+  mm.addEventListener("dblclick", (e) => { const k = roomAt(mapPt(e)); if (k) go(k); });
+  mm.addEventListener("wheel", (e) => {
+    e.preventDefault(); hideMenu(); hideTip();
+    const [wx, wy] = mapPt(e), c = S.cam;
+    const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+    const px = Math.max(0, Math.min(c.W, c.tx + wx * 2 * c.s)), py = Math.max(0, Math.min(c.H, c.ty + wy * 2 * c.s));
+    zoomAt(Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0022)), px, py, false);
+    settleSoon(180);
+  }, { passive: false });
   // a click anywhere outside the open menu (and outside what opened it) closes it
   document.addEventListener("click", (e) => {
     if (!MENU.kind || document.querySelector("dialog[open]")) return;
@@ -2782,6 +2933,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
 
   /* ---------- start ---------- */
   drawProps();
+  setMapOpen(S.mapOpen, false);
   layout(true);
   render();
   checkArt();
@@ -2807,6 +2959,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     else if (e.key === "+" || e.key === "=") { e.preventDefault(); zoomStep(1.5); }
     else if (e.key === "-" || e.key === "_") { e.preventDefault(); zoomStep(1 / 1.5); }
     else if (e.key === "0") { e.preventDefault(); zoomOut(); }
+    else if (e.key === "m" || e.key === "M") { e.preventDefault(); setMapOpen(!S.mapOpen, true); }
   });
   setInterval(render, 60000); // keep "3 min ago" honest
   $("stage").addEventListener("keydown", arrows);

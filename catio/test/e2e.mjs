@@ -467,6 +467,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     const bg = (sel) => page.locator(sel).evaluate((e) => getComputedStyle(e).backgroundColor);
     expect((await bg("#hud")) !== "rgba(0, 0, 0, 0)", "the sign has nothing behind it");
     expect((await bg("#controls")) !== "rgba(0, 0, 0, 0)", "the controls have nothing behind them");
+    expect((await bg("#zoomIn")) !== "rgba(0, 0, 0, 0)", "the panel's buttons have nothing behind them");
     expect((await bg("#menu")) !== "rgba(0, 0, 0, 0)", "the menu has nothing behind it");
     expect(errors.length === 0, errors.join("; "));
   });
@@ -815,10 +816,124 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await ctx.close();
 }
 
+/* ---------- 6e. the map panel and the minimap (Game UI Pastel) ---------- */
+{
+  const { page, ctx, errors } = await open();
+  const BOX = [80, 32, 848, 448], K = 250 / BOX[2];   // the page's MM.box: the minimap shows the manor and catio
+  const rect = (sel) => page.locator(sel).evaluate((e) => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
+  // where the camera's view should be framed on the minimap, from the camera itself
+  async function viewMatches() {
+    const c = await cam(page), W = 1440, H = 900;
+    const x = -c.tx / (2 * c.s), y = -c.ty / (2 * c.s), w = W / (2 * c.s), h = H / (2 * c.s);
+    const want = { x: (Math.max(BOX[0], x) - BOX[0]) * K, y: (Math.max(BOX[1], y) - BOX[1]) * K,
+      w: (Math.min(BOX[0] + BOX[2], x + w) - Math.max(BOX[0], x)) * K, h: (Math.min(BOX[1] + BOX[3], y + h) - Math.max(BOX[1], y)) * K };
+    const got = await page.locator("#mmView").evaluate((e) => ({ x: e.offsetLeft, y: e.offsetTop, w: e.offsetWidth, h: e.offsetHeight }));
+    const ok = ["x", "y"].every((k) => Math.abs(got[k] - want[k]) < 2) && ["w", "h"].every((k) => Math.abs(got[k] - Math.max(6, want[k])) < 2);
+    expect(ok, JSON.stringify({ want, got }));
+  }
+  // the middle of the view, in native pixels
+  const middle = async () => { const c = await cam(page); return [(720 - c.tx) / (2 * c.s), (450 - c.ty) / (2 * c.s)]; };
+  // a point of the grounds (native px) on the minimap, on screen
+  const onMap = async (x, y) => { const m = await rect("#minimap"); return { x: m.x + (x - BOX[0]) * K, y: m.y + (y - BOX[1]) * K }; };
+
+  await check("one panel in the top right holds House, zoom, the fold, the minimap and the floors", async () => {
+    for (const id of ["houseBtn", "zoomIn", "zoomOut", "zoomAll", "mapFold", "minimap", "floor-ground", "floor-upper"])
+      expect(await page.locator("#controls #" + id).count() === 1, id + " is not in the panel");
+    const p = await rect("#controls");
+    expect(p.x + p.w > 1400 && p.y < 40, "not top right: " + JSON.stringify(p));
+    expect(await page.locator("#minimap").isVisible(), "the minimap is folded on a laptop");
+  });
+  await check("the footer credits the map panel's pack", async () =>
+    expect((await page.locator(".credits").textContent()).includes("Game UI Pack created by SC_siosio"), "no credit"));
+  await check("the minimap draws this floor's rooms, and a pip where a cat needs you", async () => {
+    expect(await page.locator('#mmRooms .mm-room[data-room="kitchen"]:not(.faint)').count() === 1, "no kitchen");
+    expect(await page.locator('#mmRooms .mm-room[data-room="brain"].faint').count() === 1, "the floor above isn't faint underneath");
+    expect(await page.locator("#mmRooms .pip").count() >= 1, "no pips");
+  });
+  await check("the view on the minimap matches the camera on the whole house", viewMatches);
+  await page.mouse.move(1200, 820); await page.mouse.down(); await page.mouse.move(1100, 760, { steps: 6 }); await page.mouse.up();
+  await settle(page);
+  await check("… after a drag on the house", viewMatches);
+  await page.mouse.move(700, 400);
+  for (let i = 0; i < 4; i++) { await page.mouse.wheel(0, -300); await page.waitForTimeout(50); }
+  await page.waitForTimeout(300);
+  await check("… after a wheel zoom", viewMatches);
+  await page.click("#zoomAll"); await page.waitForTimeout(700);
+  await openRoom(page, "kitchen");
+  await menuButton(page, "Look in").click();
+  await page.waitForTimeout(300);
+  await check("… after Look in, and the room you're in is green on the minimap", async () => {
+    await viewMatches();
+    expect(await page.locator('#mmRooms .mm-room.here[data-room="kitchen"]').count() === 1, "the kitchen isn't marked");
+  });
+  await closeMenu(page);
+  const catio = await onMap(800, 300);
+  await page.mouse.click(catio.x, catio.y);
+  await page.waitForTimeout(400);
+  await check("a click on the minimap takes the camera there", async () => {
+    const [x, y] = await middle();
+    expect(Math.hypot(x - 800, y - 300) < 30, "the middle is at " + [x, y]);
+    await viewMatches();
+  });
+  const before = await middle(), at = await onMap(before[0], before[1]);
+  await page.mouse.move(at.x, at.y); await page.mouse.down(); await page.mouse.move(at.x - 30, at.y, { steps: 6 }); await page.mouse.up();
+  await settle(page);
+  await check("dragging the view on the minimap pans the house with it", async () => {
+    const [x] = await middle();
+    expect(Math.abs(before[0] - x - 30 / K) < 12, JSON.stringify([before, x]));
+  });
+  const k = await onMap(394, 130);
+  await page.mouse.dblclick(k.x, k.y);
+  await page.waitForTimeout(400);
+  await check("a double-click on a room on the minimap looks in", async () =>
+    expect(await page.locator('.roomhit.here[data-room="kitchen"]').count() === 1, "not in the kitchen"));
+  await page.click("#zoomAll");
+  await page.waitForTimeout(300);
+  // a room at the right of the house opens its menu clear of the panel; so does House
+  const clear = async () => {
+    const m = await rect("#menu"), p = await rect("#controls");
+    return !(m.x < p.x + p.w && m.x + m.w > p.x && m.y < p.y + p.h && m.y + m.h > p.y);
+  };
+  await openRoom(page, "living");
+  await check("a room menu on the right opens clear of the panel", async () => expect(await clear(), "the menu is under the panel"));
+  await closeMenu(page);
+  await openHouse(page);
+  await check("the House menu opens beside the panel, not over the minimap", async () => expect(await clear(), "the House menu is over the panel"));
+  await closeMenu(page);
+  await page.click("#floor-upper");
+  await settle(page);
+  await check("upstairs, the minimap shows the upstairs rooms and the landing", async () => {
+    expect(await page.locator('#mmRooms .mm-room[data-room="brain"]:not(.faint)').count() === 1, "no library");
+    expect(await page.locator("#mmRooms .mm-room.landing:not(.faint)").count() === 1, "no landing");
+  });
+  await page.click("#floor-ground");
+  await page.click("#mapFold");
+  await check("the fold button folds the map away and says so", async () => {
+    expect(!(await page.locator("#minimap").isVisible()), "still showing");
+    expect((await page.locator("#mapFold").getAttribute("aria-expanded")) === "false", "aria-expanded");
+  });
+  await page.reload(); await page.waitForTimeout(600);
+  await check("folded stays folded after a reload", async () => expect(!(await page.locator("#minimap").isVisible()), "open again"));
+  await page.locator("#stage").click({ position: { x: 60, y: 800 } });
+  await page.keyboard.press("m");
+  await check("M unfolds it, and that is remembered too", async () => {
+    expect(await page.locator("#minimap").isVisible(), "M did nothing");
+    await page.reload(); await page.waitForTimeout(600);
+    expect(await page.locator("#minimap").isVisible(), "folded again after a reload");
+  });
+  await check("no page errors with the map panel", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+
 /* ---------- 7. touch: a tap opens the menu, and its buttons act ---------- */
 {
   const { page, ctx, errors } = await open("", { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   const cat = page.locator("#cats .cat.m-meow").first();
+  await check("on a phone the map panel starts folded, at the bottom", async () => {
+    expect(!(await page.locator("#minimap").isVisible()), "the minimap is open");
+    const r = await page.locator("#controls").boundingBox();
+    expect(r.y + r.height > 780, "not at the bottom: " + JSON.stringify(r));
+  });
   await cat.tap();
   await settle(page);
   await check("on a phone, tapping a cat opens its menu instead of the full card", async () => {

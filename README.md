@@ -27,8 +27,14 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
   or an adopted chat) and Edit room. A cat's shows what it needs, its project, room and branch,
   **Open session** (or chat), and Talk for the full card, to rename it or move it. Double-click a
   room to look in, or a cat for its card.
-- **The House button**, top right, holds what belongs to the whole house: the brain, the house
-  rules, Edit rooms, the sound, Check now, and the cats napping in the attic.
+- **The map panel**, top right (bottom right on a phone), is the one control on screen:
+  - **House** holds what belongs to the whole house: the brain, the house rules, Edit rooms, the
+    sound, Check now, and the cats napping in the attic;
+  - zoom out, zoom in and the whole house;
+  - the floor tabs;
+  - a **minimap** of the floor you're on, with the part you're looking at framed. Click it to go
+    somewhere, drag the frame to move around, double-click a room to look in. It folds away with
+    its arrow (or M) and remembers.
 - **With a keyboard**, Tab lands on the house once. Arrow keys move the brackets from room to room
   on the floor you're on (or, inside a room, walk into the next one). Enter steps into the room's
   menu and Escape steps back out. Page Up / Page Down change floor, + / − / 0 zoom, and Shift with
