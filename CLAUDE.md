@@ -15,9 +15,9 @@ Publish `catio/index.html` with:
   `pochi.png`) and the interface
   in `art/licensed/ui/` (`panel`, `button`, `button-hover`, `button-down`, `button-green`,
   `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `bubble-tail`, `corners`,
-  `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point` `.png`, and `sprout.ttf`),
-  and the map panel in `art/licensed/pastel/` (`panel`, `panel-dark`, `frame`, `button`, `button-hover`,
-  `button-down`, `icons` `.png`);
+  `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point`, `pointer`, `logo`, `pastel` `.png`,
+  and `sprout.ttf`), and the map panel in `art/licensed/pastel/` (`panel`, `panel-dark`, `frame`, `button`,
+  `button-hover`, `button-down`, `icons` `.png`);
 - `capabilities`: omit it on a republish to keep what's stored. The declaration is
   `{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions"] }] }, db: {} }`.
 
@@ -26,8 +26,8 @@ Publish `catio/index.html` with:
 `art/licensed/` is not in git (licences below). In a fresh session, get it back one of two ways:
 
 1. `Artifact` read with `path: "art/licensed/<file>"` on the published URL, for each file; or
-2. get the nine zips from her Drive folder "KittyChat Cafe Assets" (or ask her for them) and run
-   `python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip "Top down garden castle.zip" "Wood Garden Asset Pack.zip" "Pixel Art Top Down - Basic v1.2.3.zip" "Sprout Lands - UI Pack - Basic pack.zip" plants.zip "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip"`
+2. get the ten zips from her Drive folder "KittyChat Cafe Assets" (or ask her for them) and run
+   `python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip "Top down garden castle.zip" "Wood Garden Asset Pack.zip" "Pixel Art Top Down - Basic v1.2.3.zip" "Sprout Lands - UI Pack - Basic pack.zip" plants.zip "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip" Game_UI_Pack_Pastel.zip`
    (needs `pip install pillow fonttools`; the order matters, not the names). Given only the Sprout Lands zip, it rebuilds just the
    interface.
 
@@ -48,10 +48,12 @@ Publish `catio/index.html` with:
 - **Little Dreamyland** (Starmixu & Utaskuas): changes allowed, non-commercial only, **no
   redistribution or resale, even modified**, no AI training. Glazed tiles and the forest. Never commit.
 - **plants.zip**: no licence came with it, so it is treated as licensed. Never commit.
-- **Game UI Pack – Pastel Edition** (SC_siosio): use in websites and modifying allowed, **no
-  redistribution, no uploading to a repository, and the files must not be easy to extract**. Ship only
-  the pieces the page uses, cut and combined by `build-art.py` into `art/licensed/pastel/`, never the
-  pack's own PNG or SVG files. Never commit. The footer must say "Game UI Pack created by SC_siosio".
+- **Game UI Pack – Pastel Edition** (SC_siosio): personal and commercial use, credit required ("Game UI Pack
+  created by SC_siosio", word for word), **no redistribution, even modified, no uploading to a repository**,
+  and its files must not be easily extractable. Ship only the pieces `build-art.py` cuts from it, resized and
+  recoloured, never its own 500 px PNGs or SVGs: the pixelated icons (`ui/pastel.png`) and the map panel's
+  smooth pieces (`art/licensed/pastel/`). 12.5 MB, so Drive can't hand it over: ask her to attach it in the
+  chat. Never commit.
 
 `catio/art/CREDITS.md` says which pack drew what. The footer credits them all. Keep it.
 
@@ -95,36 +97,44 @@ The stair is in the same place on both floors, so changing floor never moves the
 The manor fills the screen and is the page, **one floor at a time**. The ground floor stays faded under
 the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZUP`.
 
-- **Floors**: the stair, the floor buttons and Page Up / Page Down go between them. The stair's sign and
-  the floor button badge the other floor's cats that need her. The tally counts both floors.
-- **Controls**: Charlotte lifted the old "no toolbar" rule (September 2026). One panel sits on screen
-  besides the sign, and nothing else should: the map panel (`#controls`, top right; bottom right on a
-  phone), in Game UI Pastel. It holds:
-  - the House button (`#houseBtn`), whose menu holds what belongs to the whole house: the brain,
-    house rules, Edit rooms, sound, Check now and the attic;
-  - zoom out, zoom in and whole house;
-  - the fold (`#mapFold`, or M), remembered in `localStorage` as `catio.minimap`, folded at first on a
-    phone;
-  - the minimap (`#minimap`): the floor's rooms as a plan (`MM.box`, the manor and catio), the other
-    floor faint, a pip where a cat needs her, the camera's view framed. Click goes there, drag pans,
-    double-click looks in, the wheel zooms;
-  - the floor tabs.
-
-  Menus open clear of the panel (`showMenu`). The plan for the rest (the Sims-style camera and Build) is
-  `docs/camera-and-minimap.md`.
+- **The page is the KittyChat Cafe** (September 2026: "the harness and UI SaaS that I am making here is
+  called the KittyChat Cafe"). The Catio is the page's old name and the code's; the catio is still the
+  fenced deck outside.
+- **No signs on the map** (she hates them): no room names, badges or stair sign on the art. A room is
+  named on hover (`#tip`); a cat that needs her shows its face over its head; the other floor's button
+  carries its badge; the brand carries the house's.
+- **Floors**: the stair, the floor buttons and Page Up / Page Down go between them. The tally counts both
+  floors.
+- **Controls**: two things sit on screen, and nothing else should:
+  - the brand (`#houseBtn`, top left: ToffeeCraft's cat-face bubble, the name and a badge when cats need
+    her), which is the House button: its menu holds what belongs to the whole house (whether the cats are
+    live, the brain, house rules, Edit rooms, the attic, Check now and sound);
+  - the map panel (`#controls`, top right; bottom right on a phone), in Game UI Pastel, drawn smooth:
+    zoom out, zoom in, whole house and the fold (`#mapFold`, or M, remembered in `localStorage` as
+    `catio.minimap`, folded at first on a phone); the minimap (`#minimap`: the floor's rooms as a plan
+    over `MM.box`, the manor and catio, the other floor faint, a pip where a cat needs her, the camera's
+    view framed; click goes there, drag pans, double-click looks in, the wheel zooms); and the floor
+    tabs, with a pip when the other floor needs her. Menus open clear of it (`showMenu`). The plan for
+    the rest (the Sims-style camera and Build) is `docs/camera-and-minimap.md`.
+- **The status sign** under the brand shows only when something is wrong. When Claude's saved copy fills
+  in for a blocked live read, it is one line ("Saved copy · 17:02") and the why shows on hover or focus.
+- **Breeds and file counts** on cats show only inside a room (`.stage.inroom`).
 - **Room controls**: a control for one room or cat goes in its menu.
 - **The camera is free**: drag to pan (left, right or middle button, or Space), wheel or pinch to zoom,
   + / − / 0 and Shift+arrows. `S.focus` is the room that fills the view, and bubbles speak there.
 - **Hover names a thing** in a line (`#tip`). **A click opens its menu** beside it, pinned until a click
   elsewhere or Escape (`toggleMenu`); a tap does the same. Keyboard focus opens a menu only when
   `:focus-visible`, and a click never closes a menu keyboard focus opened.
-- **Every menu has the same order**:
-  - a header (a caption, the name, count chips);
-  - what matters now;
-  - one green `.primary` action;
-  - the rest as a two-column grid, or one column when the labels are long.
+- **Every menu has the same shape, as short as it can be** ("make the menus less bloated and minimize
+  noise", September 2026):
+  - the name, with a badge when cats need her, and one line under it (no captions, no chips);
+  - what matters now, if anything does: the cats that need her (three at most), a queen's said note, a
+    cat's ask;
+  - the actions as a list (`mi()` in `list()`), the first the default (`.primary`), the pack's triangle
+    (`pointer.png`) beside the one under the pointer or focus.
 
-  Keep to that: a new action is a grid button, not a second primary.
+  Keep to that: a new action is a list item, and only if it earns its place. A card (dialog) puts what she
+  came for first and folds the rest (a cat's facts, management, name and title under Manage).
 - Hover means the pointer really moved onto the thing (`moved()`). When the camera moves or a dialog
   closes, the room that slides under a still pointer isn't named until she moves.
 - **Cats walk** when their place changes: through the doorways to a new room, up the stair to nap in the
@@ -144,7 +154,11 @@ button, pointing into the room new cats come in to. Each is a 9-slice `border-im
 (`faces.png`, in `MOODS` order, then a queen's heart eyes), the sound control is its toggle, the
 sign's tick and cross are its own, a queen's crown is its crown icon gilded, what she keeps is
 starred with its stars, and the pointer is its cat paw. Keep it that way: a new control should
-reuse one of these pieces rather than a CSS border or gradient. `--u` is one art pixel on screen
+reuse one of these pieces rather than a CSS border or gradient. The controls' icons are SC_siosio's Game UI
+Pack (Pastel Edition), pixelated (`pastel.png`: up, down, plus, minus, Sprout Lands' house recoloured to match,
+pause, play, check, lock, unlock; also on a cat's Manage buttons and enforced house rules), the menus'
+cursor is its cream triangle (`pointer.png`), and the logo is ToffeeCraft's Cat UI cat-face bubble
+(`logo.png`). `--u` is one art pixel on screen
 (2px, or 1px on phones); the scene's overlay (room tags, bubbles) is drawn at one art pixel a
 pixel.
 

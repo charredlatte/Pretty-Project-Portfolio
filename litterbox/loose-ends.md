@@ -7,8 +7,10 @@
     from inside CatMegaFree: settled.
   - `plants.zip` is used, as she asked, and treated as licensed. **Who made it**, for the credits and the
     footer?
-  - ~~`Game_UI_Pack_Pastel.zip`~~: settled 30 September. SC_siosio's; allowed on websites with credit. It dresses
-    the map panel and Build mode (`docs/camera-and-minimap.md`).
+  - ~~`Game_UI_Pack_Pastel.zip`~~: settled (30 September). It is SC_siosio's Game UI Pack – Pastel Edition;
+    its LICENSE.txt allows personal and commercial use with the credit "Game UI Pack created by SC_siosio",
+    and forbids redistribution. Used pixelated in `pastel.png`, and smooth in the map panel
+    (`docs/camera-and-minimap.md`).
 - **"download", "download (1)" and "download (2)"** in the Drive folder look like macOS `.DS_Store` files.
   Safe to delete?
 - **Her MCPmarket plugin zip** (`mcpmarket-plugin-me-claude.zip`, the Game UI / UX skill) has her live API

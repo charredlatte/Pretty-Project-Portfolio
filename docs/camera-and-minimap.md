@@ -319,6 +319,9 @@ above:
 - on a phone the panel sits bottom right (the sign fills the top), and starts folded;
 - the House menu opens to the left of the panel;
 - `M` works now; the shortcuts switch that can turn it off comes with iteration 2.
+- merged with version 13 (the KittyChat Cafe) before publishing: House is the brand, top left, as that version
+  made it, so the panel holds zoom, the fold, the minimap and the floors. Version 13's pixelated Pastel icons stay
+  everywhere else (a cat's actions, the house rules' lock); the panel keeps its smooth pieces.
 
 - Cut the Game UI Pastel pieces listed above with `build-art.py` (attach the zip again if this is a new
   session), and add "Game UI Pack created by SC_siosio" to the footer.

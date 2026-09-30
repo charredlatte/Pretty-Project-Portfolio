@@ -143,7 +143,7 @@ These aren't art to get, but they're open questions on what you already have:
   - `plants.zip`: who made it? It's credited as unknown.
   - ~~`Game_UI_Pack_Pastel.zip`~~: settled on 30 September. It is SC_siosio's Game UI Pack, Pastel Edition: use
     on websites allowed, with credit ("Game UI Pack created by SC_siosio"); no redistribution, no repositories,
-    and nothing easy to extract. See CLAUDE.md.
+    and nothing easy to extract. Now in use: pixelated icons, and the smooth map panel. See CLAUDE.md.
 - **If the Catio ever becomes commercial** (sold, or used for the shop), several free versions don't
   allow it:
   - ToffeeCraft free: personal use only.
