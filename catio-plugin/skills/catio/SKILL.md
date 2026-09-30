@@ -21,7 +21,7 @@ database, so they follow the person between phone and computer.
 
 **The cats are not in the repository and cannot be, and nor is the interface.** Five of the six
 art packs the page is built from forbid redistributing their files, so `catio/art/licensed/` is
-gitignored. A fresh clone draws the cabin, its menus on plain colour, and no cats at all.
+gitignored. A fresh clone draws only the furniture, its menus on plain colour: no house and no cats.
 
 Tell the person this before anything else, because it decides whether the rest is worth their time.
 The page says it too — the sign reads *"The cat art isn't here"* with the three steps — but hearing
@@ -31,7 +31,7 @@ What they need, from `catio/art/CREDITS.md`:
 
 | Pack | Artist | Gives |
 |---|---|---|
-| [Cosy Cabin](https://marie-pepo.itch.io/cosy-cabin) | Marie Pepo | the cabin (**already committed** — this one allows it) |
+| [Cosy Cabin](https://marie-pepo.itch.io/cosy-cabin) | Marie Pepo | the furniture (**already committed** — this one allows it) and, with the others, the house |
 | [Cat Pack Mochi](https://toffeecraft.itch.io/cat-pack) + [Pochi](https://toffeecraft.itch.io/cat-retro), Cat UI | ToffeeCraft | every cat and the bowls |
 | [Top Down Garden Castle](https://heosphorus.itch.io/) | Heosphorus | the meadow, pond, rocks and trees |
 | [Wood Garden](https://rowdy41.itch.io/wood-garden) | rowdy41 | the catio decking, fence and gate |

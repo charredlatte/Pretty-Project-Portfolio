@@ -5,7 +5,7 @@
     {
       "name": "kittychat-house-rules",
       "source": "./harness",
-      "description": "The KittyChat Cafe's house rules and the catio skill."
+      "description": "The KittyChat Cafe's house rules, the catio skill and graphify."
     }
   ]
 }

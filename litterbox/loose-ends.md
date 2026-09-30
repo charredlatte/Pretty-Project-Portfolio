@@ -11,6 +11,10 @@
   - Until then Game UI Pastel stays out of the build.
 - **"download", "download (1)" and "download (2)"** in the Drive folder look like macOS `.DS_Store` files.
   Safe to delete?
+- **Her MCPmarket plugin zip** (`mcpmarket-plugin-me-claude.zip`, the Game UI / UX skill) has her live API
+  token in `.mcp.json`. It must never be committed. Since it has been passed around, she may want to rotate
+  it at mcpmarket.com. Its hooks sync with and report skill use to mcpmarket.com, so it wasn't installed here:
+  its `ui` skill was only read.
 - **Should "Rename" on a session's cat rename the real session?** It doesn't: the cat's name and the
   session's title are two different fields on the card.
 - **Should a filing cabinet ever leave its room** in renovation mode?
@@ -38,11 +42,41 @@
   `cat` field for queries.
 - The e2e stub only includes agent cats with `?agents=1`, so the older checks' counts stay as they were.
 
+- The Drive connector *can* hand over the zips: an oversized result lands in a tool-results JSON file, and
+  base64-decoding its `content` field gives the zip. Checked with all nine packs, up to 2.6 MB.
+- Little Dreamyland is by **Starmixu & Utaskuas**. Its licence: modifying allowed, non-commercial only, no
+  redistribution or resale even modified, and no NFTs or AI training. Credit: "Assets from Little Dreamyland by
+  Starmixu & Utaskuas."
+
 ## From the manor build
 
+- CLAUDE.md says `art/house.png` is committed and gives the six-zip build command. Since the retexture the house is
+  `art/licensed/house.png` (never committed) and `build-art.py` takes nine zips; its publish list needs the new path.
+- CLAUDE.md's publish list still names `emblems.png`, and its `projects` row still has `emblem`. Emblems are gone
+  (29 September): the page no longer uses them, `build-art.py` no longer makes them, and the next publish drops
+  `art/licensed/emblems.png`.
 - CLAUDE.md still describes the cabin: its publish file list, "The cabin is a floor plan", and the old
   capabilities. Claude can't edit CLAUDE.md (it's refused as self-modification). `docs/plan.md` has the new
   file list, and the MANOR block is described in `catio/tools/furniture.py`'s docstring.
 - The rooms keep her own names from the database. With the two-floor manor, the names that no longer fit
   ("Dining room", "Living room", "Sunroom", "Hall", "Bathroom") are renamed at publish, with only `name`
   changed, to Café, Cat lounge, Terrace, Entrance hall and Ensuite. She can rename them back in Edit rooms.
+
+## Merging version 11 into the two-floor manor (in progress, 30 September)
+
+Version 11 (branch `claude/amazing-bohr-1sfkqi`: Baroque retexture, walking cats, project maps, livened
+grounds) is merged into `ccr-bfc398ff-3gh5wb`. Her choice: keep both, in the Storybook Baroque look, on the
+two-floor grid; fold the outdoor KittyChat Cafe into the indoor café and terrace. The plan is the "Merge
+with the live version 11" section of this session's plan; each step is pushed as it lands:
+
+- [x] 1. Merge commit: conflicts resolved to this branch's side (page, tests, manor, furniture, build-art,
+  README, docs/plan.md). Their harness, docs and litterbox came in as they were.
+- [ ] 2. manor.py: the Baroque look on the grid (ochre and quoins, plaster and oak inside, stained glass,
+  facade and pediment door on the ground floor), and their grounds (forest, lamps, fountain, well, scatter).
+- [ ] 3. build-art.py: nine zips; both floors go to art/licensed/ (no longer committed).
+- [ ] 4. furniture.py: doors() for both floors, the stair's upstairs stations.
+- [ ] 5. index.html: walking cats (with floors), project maps, emblems gone, credits.
+- [ ] 6. Tests: their map check and walking section, adapted.
+- [ ] 7. Docs.
+- [ ] 8. Verify, screenshots.
+- [ ] 9. Publish (read the artifact first; it was version 11).

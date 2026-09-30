@@ -17,7 +17,7 @@ drag-and-drop furniture. The UX spec from that session comes first; these are th
 
 ## Taking the furniture out of the pictures
 
-- `house.png` becomes the shell only: floors, walls, wallpaper, doorways and glass.
+- `house.png` (now `art/licensed/house.png`) becomes the shell only: floors, walls, wallpaper, doorways and glass.
 - `decor.png` becomes the outdoors only.
 - Furniture becomes sprite atlases split by licence. The Cosy Cabin atlas can be committed; the others ship
   only in the artifact under `art/licensed/`.
