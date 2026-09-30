@@ -146,32 +146,33 @@ LAYOUT = {
     # Café: tables where people sit, beside the counter; business plans round the big one (cats at its south chairs
     # are working, the queen at its east end), a two-top by the window, a sideboard, the filing cabinet
     "dining": [
-        ("filing_cabinet", 108, 72), ("sideboard", 230, 72), ("sunflower", 266, 66),
-        ("dining_table", 150, 120),
-        ("chair_front_decor", 157, 102), ("chair_front_decor", 179, 102),
-        ("chair_right", 134, 123), ("chair_left_queen", 202, 123),
-        ("chair_back_work", 157, 146), ("chair_back_work", 179, 146),
-        ("writing_desk", 240, 130), ("chair_front_decor", 249, 114),
-        ("runner_yellow", 120, 186), ("cushion_green", 270, 190),
+        ("filing_cabinet", 106, 72), ("sideboard", 226, 72), ("sunflower", 256, 66),
+        ("dining_table", 140, 120),
+        ("chair_front_decor", 147, 102), ("chair_front_decor", 169, 102),
+        ("chair_right", 124, 123), ("chair_left_queen", 192, 123),
+        ("chair_back_work", 147, 146), ("chair_back_work", 169, 146),
+        ("writing_desk", 226, 130), ("chair_front_decor", 235, 114),
+        ("runner_yellow", 112, 186), ("cushion_green", 240, 190),
     ],
-    # Kitchen and counter: the run under the window (fridge, drawers, the sink, the hob, a pantry), the counter
-    # facing the hall where you order (cats at it are working), the cats' bowls and food bag, a runner, a cushion
+    # Kitchen and counter, straight ahead from the front door behind the stair: the run under the window (fridge,
+    # drawers, the sink, the hob, a pantry), the counter facing the hall where you order (cats at it are working),
+    # the cats' bowls and food bag, a runner, a cushion
     "kitchen": [
-        ("fridge", 316, 58), ("counter_drawers", 332, 73), ("counter", 348, 73), ("counter_door", 364, 73),
-        ("hob", 380, 73), ("counter", 396, 73), ("pantry", 414, 56), ("filing_cabinet", 436, 73),
-        ("sink", 350, 75),
-        ("island", 360, 140), ("island", 376, 140), ("island", 392, 140), ("chair_front", 340, 136),
-        ("bowl_food", 430, 150), ("bowl_water", 430, 172), ("food_bag", 412, 150),
-        ("runner_blue", 322, 184), ("cushion_orange", 440, 192),
+        ("fridge", 330, 58), ("counter_drawers", 346, 73), ("counter", 362, 73), ("counter_door", 378, 73),
+        ("hob", 394, 73), ("counter", 410, 73), ("pantry", 428, 56), ("filing_cabinet", 450, 73),
+        ("sink", 364, 75),
+        ("island", 370, 140), ("island", 386, 140), ("island", 402, 140), ("chair_front", 340, 136),
+        ("bowl_food", 470, 150), ("bowl_water", 470, 172), ("food_bag", 452, 150),
+        ("runner_blue", 290, 184), ("cushion_orange", 300, 110),
     ],
     # Cat lounge, where new cats come in: the fireplace between two tall windows, armchairs either side of the
     # hearth rug, a sofa facing it (a cat asleep on it), a cat tree to climb (working), cushions
     "living": [
-        ("fireplace", 562, 53), ("rug_red_diamond", 554, 120),
-        ("armchair_blue_r", 522, 122), ("armchair_blue_l", 612, 122),
-        ("sofa_blue_back", 558, 156), ("cat_tree", 640, 100),
-        ("filing_cabinet", 474, 73), ("plant_pampas", 650, 56),
-        ("cushion_white", 500, 180), ("cushion_blue", 600, 186),
+        ("fireplace", 586, 53), ("rug_red_diamond", 578, 120),
+        ("armchair_blue_r", 540, 124), ("armchair_blue_l", 616, 124),
+        ("sofa_blue_back", 582, 156), ("cat_tree", 646, 112),
+        ("filing_cabinet", 522, 73),
+        ("cushion_white", 524, 180), ("cushion_blue", 560, 190),
     ],
     # Craft room, the shop: shelves of supplies and books against the old brick, the big worktable with yarn and a
     # tin of buttons (working), a sewing desk (working too), the supply chest, and a cushion in the bay window
@@ -184,17 +185,17 @@ LAYOUT = {
     # Entrance hall: the stair up the middle to the landing, the front door's mat (cats who need you wait there),
     # a writing desk and the queen's chair to the west, the filing cabinet and cat beds to the east
     "hall": [
-        ("stairs", 362, 213), ("door_mat", 379, 388), ("rug_red_diamond", 370, 320),
-        ("lamp_floor", 345, 258), ("lamp_floor", 432, 258), ("plant_pampas", 285, 250), ("plant_snake", 284, 366),
-        ("writing_desk", 290, 350), ("armchair_pink", 330, 352),
-        ("filing_cabinet", 490, 350), ("cushion_blue", 450, 320), ("cushion_orange", 455, 360),
+        ("stairs", 362, 213), ("door_mat", 379, 372), ("rug_red_diamond", 370, 310),
+        ("lamp_floor", 345, 258), ("lamp_floor", 432, 258), ("plant_pampas", 284, 250), ("plant_snake", 284, 350),
+        ("writing_desk", 300, 330), ("armchair_pink", 336, 334),
+        ("filing_cabinet", 480, 334), ("cushion_blue", 450, 300), ("cushion_orange", 455, 345),
     ],
     # Terrace, the café's glass verrière: a table in the light and a chair for the queen, a two-top, the scratching
     # post, plants all round; the cat flap to the catio stays clear
     "sunroom": [
-        ("palm", 522, 216), ("monstera", 650, 214), ("scratching_post", 650, 244),
-        ("garden_table", 560, 260), ("garden_chair", 604, 280),
-        ("writing_desk", 620, 336), ("fiddle_fig", 664, 340), ("fern", 530, 300),
+        ("palm", 522, 232), ("monstera", 650, 230), ("scratching_post", 650, 258),
+        ("garden_table", 560, 262), ("garden_chair", 604, 282),
+        ("writing_desk", 620, 336), ("fiddle_fig", 664, 338), ("fern", 530, 300),
         ("runner_green", 560, 350), ("cushion_white", 525, 362),
     ],
     # Catio, outdoors at the bottom right: the chest (its filing cabinet), a cat tree (working), a table and chair
@@ -205,33 +206,34 @@ LAYOUT = {
         ("garden_table", 760, 330), ("garden_chair", 805, 350),
         ("cushion_orange", 860, 400), ("fern", 880, 420),
     ],
-    # Library, the brain, upstairs: bookcases along the back wall either side of a tall window, the brain's desk
-    # (a cat at it is working), its chest where dropped files land, a reading chair for the queen, a rug
+    # Library, the brain, upstairs over the café: bookcases either side of a tall window, the brain's desk (a cat at
+    # it is working), its chest where dropped files land, a reading chair for the queen, a rug
     "brain": [
-        ("bookcase_dark_books", 102, 48), ("bookcase_dark_books", 214, 48), ("bookcase_red_books", 266, 48),
-        ("armchair_blue", 120, 120), ("lamp_floor", 146, 114),
-        ("brain_desk", 170, 120), ("chair_back", 188, 146), ("brain_chest", 240, 150),
-        ("filing_cabinet", 290, 120), ("rug_blue_diamond", 130, 170), ("cushion_green", 262, 186),
+        ("bookcase_dark_books", 102, 48), ("bookcase_red_books", 214, 48),
+        ("armchair_blue", 110, 120), ("lamp_floor", 136, 114),
+        ("brain_desk", 160, 120), ("chair_back", 178, 146), ("brain_chest", 224, 150),
+        ("filing_cabinet", 250, 120), ("rug_blue_diamond", 120, 170), ("cushion_green", 236, 186),
     ],
-    # Ensuite: the toilet, a basin under its mirror, a shower with its mat (the queen stands on it), a towel, a
-    # plant, a cushion; the door to the bedroom stays clear
+    # Ensuite, partitioned off the bedroom: a basin under its mirror, a shower with its mat (the queen stands on
+    # it), the toilet, a plant, a cushion; the door from the bedroom stays clear
     "bath": [
-        ("mirror_small", 382, 56), ("basin", 381, 76), ("shower", 400, 56), ("towel", 330, 62),
-        ("bath_mat", 398, 96), ("toilet", 330, 80),
-        ("plant_bath", 330, 170), ("cushion_white", 360, 186),
+        ("mirror_small", 648, 56), ("basin", 647, 76), ("shower", 670, 56),
+        ("bath_mat", 668, 96), ("toilet", 668, 130),
+        ("plant_bath", 618, 180), ("cushion_white", 640, 186),
     ],
-    # Bedroom (legal questions, kept quiet): the bed between the windows (a cat asleep on it), nightstands, a
-    # dresser, the filing cabinet, a chest at the bed's foot, a desk to work at, a reading chair for the queen
+    # Bedroom (legal questions, kept quiet), over the cat lounge: the bed between nightstands under the window (a cat
+    # asleep on it), the filing cabinet, a rug, a reading chair for the queen; the doors to the landing and the
+    # ensuite stay clear
     "bedroom": [
-        ("nightstand", 542, 72), ("bed", 560, 62), ("nightstand", 594, 72), ("dresser", 440, 66),
-        ("filing_cabinet", 476, 66), ("foot_chest", 565, 112), ("writing_desk", 470, 130),
-        ("rug_blue_diamond", 552, 140), ("armchair_pink", 640, 120), ("plant_snake", 668, 170),
-        ("cushion_orange", 440, 170),
+        ("nightstand", 542, 72), ("bed", 560, 62), ("nightstand", 592, 72),
+        ("filing_cabinet", 522, 66), ("rug_blue_diamond", 540, 150), ("armchair_pink", 580, 168),
+        ("cushion_orange", 524, 184),
     ],
-    # the landing: plants, a lamp and a rug round the stairwell (the attic ladder is drawn in the shell)
+    # the landing, open over the kitchen and the hall: plants by its windows, a lamp and a rug by the stairwell (the
+    # attic ladder is drawn in the shell)
     "landing": [
-        ("plant_pampas", 285, 220), ("plant_snake", 500, 222), ("lamp_floor", 300, 360),
-        ("rug_red_diamond", 370, 330),
+        ("plant_pampas", 285, 88), ("plant_snake", 495, 95), ("lamp_floor", 300, 300),
+        ("rug_red_diamond", 370, 320), ("runner_blue", 380, 150),
     ],
 }
 
@@ -353,7 +355,8 @@ def floor_of(room):
     if room == "garden":
         x0, y0, x1, y1 = manor.CATIO
         return x0 * manor.T + 8, y0 * manor.T + 16, x1 * manor.T - 4, y1 * manor.T - 8
-    box, wall = (manor.LANDING, None) if room == "landing" else (manor.ROOMS[room][1], manor.ROOMS[room][3])
+    level = "upper" if room == "landing" else manor.ROOMS[room][0]
+    box, _, wall = manor.boxes(level)[room]
     X0, Y0, X1, Y1 = manor.box_px(box)
     return X0 + 5, Y0 + 5 + (manor.FACE if wall else 0), X1 - 5, Y1 - 5
 

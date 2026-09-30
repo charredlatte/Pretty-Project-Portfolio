@@ -1,19 +1,26 @@
-"""The manor's floor plans: two floors of a refurbished stone house, drawn from Cosy Cabin alone (committable).
+"""The manor's floor plans: two floors of a refurbished house, drawn from Cosy Cabin alone (committable).
 
-Layout, in 16 px tiles (the page's MANOR block carries these numbers; see furniture.py):
+Both floors stand on one grid, in 16 px tiles (the page's MANOR block carries these numbers; see furniture.py):
 
-    ground (the cat café)   café | kitchen & counter | cat lounge
-                            craft room (bay window) | entrance hall (the stair) | terrace (glazed)   catio, outdoors
-    upper (her quarters)    library (the brain) | ensuite | bedroom
-                                          landing (over the hall)
+    columns  x = 6 | 17 | 32 | 43        rows  y = 3 | 13 | 24
 
-It runs from public to private, the way houses and game levels both do. The front door opens into the hall, with
-the counter straight ahead (where you order), the café to the left and the cat lounge to the right. The craft room
-is the Montfortoise shop, so its bay window is its shop window on the drive, at the bottom left. The terrace is the
-café's glass verrière, and the catio is fenced against it at the bottom right, reached by the cat flap. The one
-stair rises from the middle of the hall to the landing, in the same place on both floors, so going up never moves
-the camera. Upstairs covers the back range and the landing. The craft room and the terrace are single-storey
-wings, and the page shows the ground floor faded under them.
+    ground (the cat café)   café         | kitchen & counter | cat lounge
+                            craft room   | entrance hall     | terrace (glazed)     catio, outdoors
+                            (bay window)   (the stair, the front door)
+    upper (her quarters)    library      | landing           | bedroom | ensuite
+                                           (over the hall)
+
+Every upstairs wall stands on a ground-floor wall, except the ensuite's, a light partition inside the bedroom's
+bay. It runs from public to private, the way houses and game levels both do. The front door opens into the hall,
+with the counter straight ahead (where you order) behind the stair, the shop's craft room on one side and the
+terrace on the other. The craft room's bay window is its shop window on the drive, at the bottom left; the catio is
+fenced against the terrace at the bottom right, reached by the cat flap. The one stair rises from the middle of the
+hall to an open landing over the kitchen, in the same place on both floors, so going up never moves the camera.
+The craft room and the terrace are single-storey wings, and the page shows the ground floor faded under them.
+
+The walls are the pack's own: its dark wood wall, a 5 px profile outlined on both edges, capped where a doorway
+opens in it. Every room has a back wall (paper, panelling or stone above a rail), so a doorway in a back wall is a
+clean cut through it.
 
 This module is the shell only: floors, back walls, walls, doorways and glass. Furniture is placed as pieces by
 the page (furniture.py).
@@ -24,27 +31,26 @@ T = 16
 FACE = 32                       # a back wall, ceiling to floor
 SIZE = (60 * T, 36 * T)         # the whole grounds, native pixels
 
-# walls: 5 px bands, outer to inner. Outside walls are the pack's grey stone, inside ones its warm stone.
-STONE_OUT = [(65, 9, 9), (121, 101, 98), (152, 134, 129), (165, 149, 143), (121, 101, 98)]
-STONE_IN = [(65, 9, 9), (102, 63, 57), (134, 98, 86), (151, 115, 100), (102, 63, 57)]
-MORTAR_OUT, MORTAR_IN = (105, 86, 83), (88, 52, 46)
+# a wall, edge to edge: Cosy Cabin's dark wood wall tile, outline, face, face, shade, outline
+WALL = [(65, 9, 9), (100, 38, 22), (100, 38, 22), (88, 26, 17), (65, 9, 9)]
+EDGE = WALL[0]
 GLASS = [(65, 9, 9), (116, 141, 172), (142, 177, 204), (130, 165, 190), (65, 9, 9)]
 WOOD = [(65, 9, 9), (107, 46, 26), (151, 75, 42), (188, 91, 48)]        # the balustrade and the attic ladder
 SASH = (946, 354, 28, 18)       # Cosy Cabin's cream sash window, on the objects sheet
 
-# key: floor, tile box (x0, y0, x1, y1), floor, back wall (None: floor to the top, as in a glass room)
+# key: floor, tile box (x0, y0, x1, y1), floor, back wall
 ROOMS = {
-    "dining":  ("ground", (6, 3, 19, 13), "wood", "paper32"),          # the café: pale boards, blue stripes
-    "kitchen": ("ground", (19, 3, 29, 13), "pink", "paper16"),         # the counter: terracotta tiles, poppy paper
-    "living":  ("ground", (29, 3, 43, 13), "wood", "paper64"),         # the cat lounge: boards, damask
+    "dining":  ("ground", (6, 3, 17, 13), "wood", "paper32"),          # the café: pale boards, blue stripes
+    "kitchen": ("ground", (17, 3, 32, 13), "pink", "paper16"),         # the counter: terracotta tiles, poppy paper
+    "living":  ("ground", (32, 3, 43, 13), "wood", "paper64"),         # the cat lounge: boards, damask
     "study":   ("ground", (6, 13, 17, 24), "wood", "stone_brown"),     # the craft room: the old brick, bay window
-    "hall":    ("ground", (17, 13, 32, 25), "stone", "stone_white"),   # stone flags, the old white stone left bare
-    "sunroom": ("ground", (32, 13, 43, 24), "sand", None),             # the terrace: sandstone under glass
-    "brain":   ("upper", (6, 3, 20, 13), "dark", "panel_dark"),        # the library: dark boards, panelled
-    "bath":    ("upper", (20, 3, 26, 13), "blue", "paper0"),           # the ensuite
-    "bedroom": ("upper", (26, 3, 43, 13), "wood", "paper48"),          # vines
+    "hall":    ("ground", (17, 13, 32, 24), "stone", "stone_white"),   # stone flags, the old white stone left bare
+    "sunroom": ("ground", (32, 13, 43, 24), "sand", "stone_white"),    # the terrace: sandstone, glass on two sides
+    "brain":   ("upper", (6, 3, 17, 13), "dark", "panel_dark"),        # the library: dark boards, panelled
+    "bedroom": ("upper", (32, 3, 38, 13), "wood", "paper48"),          # vines
+    "bath":    ("upper", (38, 3, 43, 13), "blue", "paper0"),           # the ensuite, partitioned off the bedroom
 }
-LANDING = (17, 13, 32, 25)      # upstairs over the hall: not a room, just the way between them
+LANDING = (17, 3, 32, 24)       # upstairs over the kitchen and the hall: not a room, the way between them
 BAY = (9, 24, 14, 26)           # the craft room's canted bay, merged into it
 CHAMFER = 12                    # the bay's corners, cut at 45 degrees
 CATIO = (43, 11, 57, 29)        # outdoors: decking fenced against the terrace, reached by the cat flap
@@ -54,40 +60,40 @@ FRONT_DOOR = (378, 410)         # x span in the hall's south wall
 # doorways: ("v", wall tile x, y from, y to) through a side wall; ("h", wall tile y, x from, x to) through a back wall
 DOORS = {
     "ground": [
-        ("v", 19, 120, 172),    # café <-> counter (the servery)
-        ("v", 29, 120, 172),    # counter <-> cat lounge
+        ("v", 17, 120, 172),    # café <-> kitchen (the servery)
+        ("v", 32, 120, 172),    # kitchen <-> cat lounge
         ("h", 13, 150, 196),    # café -> craft room
-        ("h", 13, 318, 350),    # hall -> counter, west of the stair
-        ("h", 13, 474, 508),    # hall -> cat lounge, east of it
+        ("h", 13, 296, 336),    # hall -> kitchen, west of the stair
+        ("h", 13, 452, 492),    # hall -> kitchen, east of it
         ("h", 13, 560, 640),    # cat lounge -> terrace, wide open
         ("v", 17, 290, 340),    # craft room <-> hall (the shop's door)
         ("v", 32, 290, 340),    # hall <-> terrace
     ],
     "upper": [
-        ("h", 13, 282, 316),    # landing -> library
-        ("h", 13, 446, 500),    # landing -> bedroom
-        ("v", 26, 120, 168),    # bedroom <-> ensuite
+        ("v", 17, 120, 172),    # landing <-> library
+        ("v", 32, 120, 172),    # landing <-> bedroom
+        ("v", 38, 120, 168),    # bedroom <-> ensuite
     ],
 }
 # glass: ("tall", x, y, w) floor-to-ceiling on a back wall; ("v", wall x, y0, y1) and ("h", wall y, x0, x1) strips
 WINDOWS = {
     "ground": [
-        ("tall", 150, 53, 60),                                  # café
-        ("tall", 360, 53, 40),                                  # the counter, over the sink
-        ("tall", 500, 53, 40), ("tall", 616, 53, 40),           # cat lounge, either side of the fireplace
+        ("tall", 156, 53, 60),                                  # café
+        ("tall", 374, 53, 40),                                  # the counter, over the sink
+        ("tall", 526, 53, 36), ("tall", 642, 53, 36),           # cat lounge, either side of the fireplace
         ("v", 6, 96, 176),                                      # café west
         ("v", 6, 250, 360),                                     # craft room west
-        ("h", 25, 300, 364), ("h", 25, 424, 488),               # hall south, either side of the front door
+        ("h", 24, 300, 364), ("h", 24, 424, 488),               # hall south, either side of the front door
         ("h", 24, 530, 680),                                    # terrace south
-        ("v", 43, 214, 290), ("v", 43, 336, 384),               # terrace east, broken by the cat flap
+        ("v", 43, 214, 290), ("v", 43, 336, 380),               # terrace east, broken by the cat flap
         ("v", 43, 90, 190),                                     # cat lounge east, over the catio
     ],
     "upper": [
         ("tall", 158, 53, 52), ("v", 6, 96, 190),               # library, between the bookcases
-        ("tall", 344, 53, 30),                                  # ensuite
-        ("tall", 500, 53, 40), ("tall", 620, 53, 40),           # bedroom
-        ("v", 43, 90, 190),                                     # bedroom east, over the catio
-        ("h", 25, 300, 364), ("h", 25, 424, 488),               # landing, over the front door
+        ("tall", 316, 53, 40), ("tall", 434, 53, 40),           # the landing's back wall
+        ("tall", 556, 53, 34),                                  # bedroom
+        ("tall", 618, 53, 24), ("v", 43, 90, 190),              # ensuite, and its window over the catio
+        ("h", 24, 300, 364), ("h", 24, 424, 488),               # landing, over the front door
     ],
 }
 CAT_FLAP = (688, 312, 328)      # x of the terrace's east wall, y span
@@ -102,7 +108,7 @@ def boxes(floor):
     """Every walled box on a floor: its rooms, and upstairs the landing."""
     out = {k: (box, fl, wall) for k, (f, box, fl, wall) in ROOMS.items() if f == floor}
     if floor == "upper":
-        out["landing"] = (LANDING, "wood", None)
+        out["landing"] = (LANDING, "wood", "panel_light")
     return out
 
 
@@ -181,14 +187,6 @@ def shell(tm, objects, ex, floor="ground"):
         t = tex[name]
         px[x, y] = t.getpixel((x % t.width, y % t.height))
 
-    def inside(x, y):
-        """Is this native pixel inside some box on this floor (walls included), or in the bay?"""
-        for box, _, _ in rooms.values():
-            X0, Y0, X1, Y1 = box_px(box)
-            if X0 <= x < X1 and Y0 <= y < Y1:
-                return True
-        return bool(bay) and in_poly(x, y, bay)
-
     # floors, and each room's back wall: paper (20 px) over a rail (12 px), or panelling/stone the full height
     for name, (box, fl, wall) in rooms.items():
         X0, Y0, X1, Y1 = box_px(box)
@@ -204,20 +202,14 @@ def shell(tm, objects, ex, floor="ground"):
                 else:
                     fill(x, y, fl)
                     floor_at[(x // T, y // T)] = fl
-    # walls: a mitred 5 px band round each box, grey stone where the other side is outdoors
+    # walls: the pack's 5 px wood wall round each box, mitred at the corners; neighbours share theirs
     for box, _, _ in rooms.values():
         X0, Y0, X1, Y1 = box_px(box)
         for x in range(X0, X1):
             for y in range(Y0, Y1):
                 d = min(x - X0, X1 - 1 - x, y - Y0, Y1 - 1 - y)
-                if d >= 5:
-                    continue
-                side = [(x - X0, (-6, 0)), (X1 - 1 - x, (6, 0)), (y - Y0, (0, -6)), (Y1 - 1 - y, (0, 6))]
-                _, (dx, dy) = min(side, key=lambda s: s[0])
-                out = not inside(x + dx, y + dy)
-                band, mortar = (STONE_OUT, MORTAR_OUT) if out else (STONE_IN, MORTAR_IN)
-                along = y if dx else x
-                px[x, y] = mortar if 1 <= d <= 3 and along % 9 == 0 else band[d]
+                if d < 5:
+                    px[x, y] = WALL[d]
 
     # the bay: the craft room's floor runs out into it through the south wall; glass on its three faces
     if bay:
@@ -246,23 +238,22 @@ def shell(tm, objects, ex, floor="ground"):
                     return f
         return "wood"
 
+    # doorways: the floor runs through the wall, and the wall's cut ends are capped with its outline. Through a
+    # back wall the cut goes down the room's wall face too, edged the same way: a doorway, not a corridor.
     for kind, w, a, b in DOORS[floor]:
         if kind == "v":
             for x in range(w * T, w * T + 5):
                 for y in range(a, b):
                     fill(x, y, floor_near(x, y))
+                px[x, a - 1] = px[x, b] = EDGE
         else:
             y0 = w * T
             fl = floor_near((a + b) // 2, y0 + FACE + 8)
-            below = [wl for bx, _, wl in rooms.values() if box_px(bx)[0] <= a < box_px(bx)[2] and box_px(bx)[1] <= y0 + 8 < box_px(bx)[3]]
-            deep = 5 + (FACE if below and below[0] else 0)          # through the back wall below, if it has one
             for x in range(a, b):
-                for y in range(y0, y0 + deep):
+                for y in range(y0, y0 + 5 + FACE):
                     fill(x, y, fl)
-            for y in range(y0, y0 + deep):
-                for i in range(5):
-                    px[a - 5 + i, y] = STONE_IN[4 - i]
-                    px[b + i, y] = STONE_IN[i]
+            for y in range(y0, y0 + 5 + FACE):
+                px[a - 1, y] = px[b, y] = EDGE
     for kind, *a in WINDOWS[floor]:
         if kind == "tall":
             x, y, w = a
