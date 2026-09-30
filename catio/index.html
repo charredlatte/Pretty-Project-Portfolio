@@ -150,10 +150,6 @@ a { color: var(--ink); }
 .cat:focus-visible { border-width: 0; }
 .spr { display: inline-block; vertical-align: bottom; filter: var(--tint, none); image-rendering: pixelated; background-repeat: no-repeat; }
 .cat .spr { display: block; }
-.emb { position: absolute; width: 20px; height: 24px; pointer-events: none; image-rendering: pixelated;
-  background: url(art/licensed/emblems.png) calc(var(--e) * -20px) 0 / 120px 24px no-repeat; }
-.emb.corner { left: auto; top: auto; right: 0; bottom: 0; }
-.emb.big { transform: scale(2); transform-origin: 100% 100%; right: 6px; bottom: 4px; }
 .tag.files { pointer-events: auto; cursor: var(--point); transform: translate(-50%, -100%); }
 /* a count: the pack's white button at one pixel a pixel */
 .pile-n, .tag .n { font: 800 11px/1 var(--body); color: var(--ink); padding: 0 1px;
@@ -221,7 +217,6 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .menu { position: absolute; z-index: 20; width: min(288px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow: auto; display: grid; gap: 10px; color: var(--ink); padding: 4px calc(3 * var(--u)) calc(3 * var(--u)); }
 .menu .mh { display: grid; gap: 4px; }
 .menu h3 { margin: 0; font: 18px/22px var(--pixel); display: flex; gap: 6px; align-items: center; overflow-wrap: anywhere; }
-.menu h3 .emb { position: static; flex: none; }
 .menu .cap { margin: 0; font: 800 .74rem/1.2 var(--body); color: var(--ink-soft); letter-spacing: .02em; }
 .menu .sub { margin: 0; font-size: .8rem; color: var(--ink-soft); overflow-wrap: anywhere; }
 .menu .rule { margin: 0; }
@@ -359,6 +354,17 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
 .rules .t { font-size: .85rem; color: var(--ink-soft); grid-column: 1; }
 .rules .lock { font: 800 .72rem var(--body); color: var(--ink-soft); }
 .manage { display: flex; flex-wrap: wrap; gap: 6px; }
+/* a project's map: graphify's graph in the pack's picture frame, with its key below */
+.gmap[open] { display: grid; gap: 6px; }
+.gart { background: #F4E6C8 padding-box; border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; image-rendering: pixelated; }
+.gart svg { display: block; width: 100%; height: auto; }
+.gart line { stroke: var(--ink-soft); stroke-opacity: .35; stroke-width: 1; }
+ul.gkey { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: .82rem; overflow-wrap: anywhere; }
+ul.gkey li { display: flex; flex-wrap: wrap; gap: 0 4px; align-items: baseline; }
+ul.gkey .sw { flex: none; width: 8px; height: 8px; align-self: center; }
+ul.gkey .what { color: var(--ink-soft); font-size: .78rem; }
+ul.gkey li > div.what { flex-basis: 100%; }
+.item.ask { display: block; height: auto; font: 500 .82rem/1.35 var(--body); text-align: left; white-space: normal; width: 100%; }
 .audit { font-size: .8rem; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
 
 .toast { position: fixed; z-index: 40; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); font-size: .9rem; font-weight: 700; padding: 0 6px; max-width: calc(100vw - 32px); }
@@ -374,9 +380,9 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     <div class="meadow" id="meadow"></div>
     <div class="world" id="world" data-floor="ground">
       <img class="house ground" src="art/licensed/decor.png" alt="" width="1920" height="1152">
-      <img class="house ground" src="art/house.png" alt="" width="1920" height="1152">
+      <img class="house ground" src="art/licensed/house.png" alt="" width="1920" height="1152">
       <div class="dim upper" aria-hidden="true"></div>
-      <img class="house upper" src="art/house-upper.png" alt="" width="1920" height="1152">
+      <img class="house upper" src="art/licensed/house-upper.png" alt="" width="1920" height="1152">
       <div id="props"></div>
       <div id="hits"></div>
       <div id="cats"></div>
@@ -406,7 +412,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
   </div>
   <div class="sr" id="say" aria-live="polite"></div>
   <p class="sr" id="keyhelp">Arrow keys move between rooms. Enter opens a room's menu. Page Up and Page Down change floor. Plus and minus zoom, and Shift with the arrows moves the view. Escape goes back.</p>
-  <p class="credits">Cabin by Marie Pepo · Cats by ToffeeCraft · Garden by Heosphorus and rowdy41 · Stonework by Cainos · Interface by Cup Nooble</p>
+  <p class="credits">Rooms by Marie Pepo · Cats by ToffeeCraft · Garden by Heosphorus and rowdy41 · Stonework by Cainos · Interface and flowers by Cup Nooble · Forest, tiles and cafe props from Little Dreamyland by Starmixu &amp; Utaskuas</p>
 </main>
 
 <dialog id="catDlg" aria-labelledby="catName"></dialog>
@@ -520,20 +526,11 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
   const NOTE_MAX = 160;     // one line she can hold in her head
   const NOTES_MAX = 12;     // more than this and nothing is important any more
 
-  // A project's look: every cat of one project wears the same coat and carries the same emblem.
+  // A project's look: every cat of one project wears the same coat.
   const COATS = [
     { name: "Cream", f: "none" }, { name: "Ginger", f: "hue-rotate(-18deg) saturate(1.3)" }, { name: "Silver", f: "grayscale(1) brightness(1.05)" },
     { name: "Honey", f: "sepia(.5) saturate(1.4)" }, { name: "Blue-grey", f: "hue-rotate(180deg) saturate(.45) brightness(1.02)" },
     { name: "Shadow", f: "brightness(.62) saturate(.5)" }, { name: "Marmalade", f: "hue-rotate(20deg) saturate(1.7)" }, { name: "Smoke", f: "grayscale(.6) brightness(.8)" },
-  ];
-  // cells of art/licensed/emblems.png, in order; the first whose words match a project's name is its default
-  const EMBLEMS = [
-    { name: "Tin of cat food", words: /grocer|intermarch|meal|food|course|recipe|kitchen|cook/i },
-    { name: "Coin", words: /shop|store|montfort|business|sales|price|money|plan|invoice|budget/i },
-    { name: "Books", words: /law|legal|lease|contract|tenan|tax|admin|insurance|visa|research/i },
-    { name: "Star", words: /portfolio|design|art|catio|pretty|brand/i },
-    { name: "Potted plant", words: /garden|home|house|plant|health/i },
-    { name: "Yarn", words: null },
   ];
 
   const $ = (id) => document.getElementById(id);
@@ -545,7 +542,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     sessions: null, sessionsAt: null, live: { state: "loading" },
     liveSessions: null, liveAt: null, copy: null, from: null,   // the live feed, and Claude's saved copy for when it's blocked
     rooms: {}, tweaks: {}, adopted: [], projects: {}, queens: {},
-    brain: [], notes: [], rules: {}, audits: {}, outbox: [], agents: [],   // the harness: dropped files, conversations, house rules, audits, queued posts, other agents
+    brain: [], notes: [], rules: {}, audits: {}, graphs: {}, outbox: [], agents: [],   // the harness: dropped files, conversations, house rules, audits, project maps, queued posts, other agents
     assets: null, sample: null, host: null,
     focus: null, cursor: null, cam: null, sound: false, showOld: false, prevNeeding: null, art: "checking",
     db: null, mcp: null, perms: null, unwatch: null,
@@ -629,9 +626,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
   }
   function lookOf(p) {
     const d = S.projects[p.key] || {};
-    let emblem = EMBLEMS[d.emblem] ? d.emblem : EMBLEMS.findIndex((e) => e.words && e.words.test(p.name + " " + p.repo));
-    if (emblem < 0) emblem = EMBLEMS.length - 1;
-    return { emblem, coat: COATS[d.coat] ? d.coat : hash(p.key) % COATS.length };
+    return { coat: COATS[d.coat] ? d.coat : hash(p.key) % COATS.length };
   }
 
   // The queen of a room. Not a session and not adopted: she is always there, she is never counted
@@ -697,7 +692,6 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
       c.project = projectOf(c);
       const look = lookOf(c.project);
       c.coat = COATS[look.coat].f;
-      c.emblem = look.emblem;
       c.roomKey = roomFor(c);
     }
     cats.sort((a, b) => MOODS[a.mood].rank - MOODS[b.mood].rank || b.updated - a.updated);
@@ -709,12 +703,6 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     const s = el("span", "spr px " + SPR[mood].cls);
     if (coat && coat !== "none") s.style.setProperty("--tint", coat);
     return s;
-  }
-  function emblem(i, cls) {
-    const e = el("span", "emb " + (cls || ""));
-    e.style.setProperty("--e", i);
-    e.title = EMBLEMS[i].name;
-    return e;
   }
   function ago(t) {
     if (!t) return "";
@@ -857,7 +845,6 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     Object.assign(b.style, { left: left + "px", top: top + "px", width: sp.w + "px", height: sp.h + "px", zIndex: zOf(room) + 1000 + spot[1] * 2 });
     b.setAttribute("aria-label", c.name + " (" + c.project.name + "), " + MOODS[c.mood].label + ": " + c.title + (waitingFor(c.id) ? ". " + waitingFor(c.id) + " files waiting" : ""));
     b.appendChild(sprite(c.mood, c.coat));
-    const em = emblem(c.emblem); em.style.left = sp.ax + 6 + "px"; em.style.top = sp.ay - 24 + "px"; b.appendChild(em);
     const br = breedOf(c);
     if (br) { const t = el("span", "breed", br.tag); t.title = br.name; t.style.left = sp.ax - 22 + "px"; t.style.top = sp.ay - 26 + "px"; b.appendChild(t); }
     const nf = waitingFor(c.id);
@@ -902,7 +889,6 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     Object.assign(b.style, { left: spot[0] * 2 - sp.ax + "px", top: spot[1] * 2 - sp.ay + "px", width: sp.w + "px", height: sp.h + "px", zIndex: zOf(room) + 1000 + spot[1] * 2 });
     b.setAttribute("aria-label", pile.length + " cats curled up together in " + roomInfo(room).name);
     b.appendChild(sprite(top.mood, top.coat));
-    const em = emblem(top.emblem); em.style.left = sp.ax + 6 + "px"; em.style.top = sp.ay - 24 + "px"; b.appendChild(em);
     b.appendChild(el("span", "pile-n", "+" + (pile.length - 1)));
     VIEW.piles[room] = pile;
     b.addEventListener("click", (e) => { e.stopPropagation(); toggleMenu("pile", room, b); });
@@ -1312,7 +1298,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     const c = VIEW.cats.find((x) => x.id === id);
     if (!c) return null;
     const m = MOODS[c.mood];
-    const h = el("h3"); h.append(emblem(c.emblem), document.createTextNode(c.name));
+    const h = el("h3", null, c.name);
     const mood = el("span", "chip " + m.kind); mood.append(el("span", "face-ico"), el("span", null, m.label));
     const tags = el("div", "chips"); tags.appendChild(mood);
     const br = breedOf(c);
@@ -1484,7 +1470,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     // Nothing to do with the sessions: the cats can be there and still have nothing to draw with.
     if (S.art === "missing") {
       st.classList.add("warn");
-      st.appendChild(el("span", "copy words", "The cat art isn't here: art/licensed/ is licensed and never shipped, so the cabin draws but the cats can't. Buy the packs in catio/art/CREDITS.md, drop the zips in, and run catio/tools/build-art.py."));
+      st.appendChild(el("span", "copy words", "The cat art isn't here: art/licensed/ is licensed and never shipped, so neither the house nor its cats can draw. Buy the packs in catio/art/CREDITS.md, drop the zips in, and run catio/tools/build-art.py."));
     }
   }
 
@@ -1575,6 +1561,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     list("outbox", (v) => { S.outbox = v; });
     list("rules", (v) => { S.rules = Object.fromEntries(v.map((r) => [r.id, r])); });
     list("audits", (v) => { S.audits = Object.fromEntries(v.map((a) => [a.id, a])); });
+    list("graphs", (v) => { S.graphs = Object.fromEntries(v.map((g) => [g.id, g])); });
   }
   async function save(fn, ok) {
     if (!S.db) { toast("Saving isn't available in this view."); return false; }
@@ -1599,7 +1586,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     const m = MOODS[c.mood];
     const box = el("div", "dlg");
     const head = el("div", "head");
-    const por = el("div", "portrait"); por.append(sprite(c.mood, c.coat), emblem(c.emblem, "corner big"));
+    const por = el("div", "portrait"); por.append(sprite(c.mood, c.coat));
     const hd = el("div");
     const h = el("h2", null, c.name); h.id = "catName";
     const mood = el("span", "mood " + m.kind); mood.append(el("span", "face-ico"), document.createTextNode(m.label));
@@ -1810,7 +1797,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
       const look = lookOf(p);
       const card = el("section", "proj");
       const head = el("div", "proj-head");
-      const pic = el("span", "proj-pic"); pic.append(sprite("idle", COATS[look.coat].f), emblem(look.emblem, "corner"));
+      const pic = el("span", "proj-pic"); pic.append(sprite("idle", COATS[look.coat].f));
       const t = el("div");
       t.appendChild(el("h3", null, p.name));
       const n = (m) => cats.filter((c) => !c.away && c.mood === m).length;
@@ -1822,6 +1809,8 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
       card.appendChild(head);
       const au = S.audits[slug(p.name)];
       if (au && au.summary) { const d = el("details"); d.append(el("summary", null, "Latest audit, " + ago(au.at)), el("p", "audit", au.summary)); card.appendChild(d); }
+      const gm = S.graphs[slug(p.name)];
+      if (gm && gm.map) card.appendChild(projectMap(gm, cats.find((c) => !c.away && c.kind === "session")));
       if (cats.length) {
         const ul = el("ul", "pilelist");
         for (const c of cats) {
@@ -1838,13 +1827,11 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
         card.appendChild(ul);
       }
       const r = el("div", "row");
-      const em = el("select"); em.id = "em-" + p.key;
-      EMBLEMS.forEach((e, i) => { const o = el("option", null, e.name); o.value = i; if (i === look.emblem) o.selected = true; em.appendChild(o); });
       const coat = el("select"); coat.id = "coat-" + p.key;
       COATS.forEach((e, i) => { const o = el("option", null, e.name); o.value = i; if (i === look.coat) o.selected = true; coat.appendChild(o); });
       const sv = el("button", "btn green", "Save look"); sv.type = "button";
-      sv.addEventListener("click", () => save((db) => db.doc("projects/" + p.key).set({ name: p.name, emblem: Number(em.value), coat: Number(coat.value) }), "Saved. Every " + p.name + " cat now looks like this."));
-      r.append(field("Emblem", em), field("Coat", coat), sv);
+      sv.addEventListener("click", () => save((db) => db.doc("projects/" + p.key).set({ name: p.name, coat: Number(coat.value) }), "Saved. Every " + p.name + " cat now looks like this."));
+      r.append(field("Coat", coat), sv);
       card.appendChild(r);
       box.appendChild(card);
     }
@@ -1852,6 +1839,58 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     box.appendChild(acts);
     dlg.appendChild(box);
     show(dlg);
+  }
+
+  // A project's map, from graphify (the catio skill's graph_doc.py saves it as graphs/<repo>): its ideas as
+  // dots coloured by neighbourhood, the hubs, the surprising links, and questions a cat can answer from it.
+  const HUES = ["#5E8F34", "#C0587A", "#3F7FA6", "#D08A2E", "#7B5EA7", "#2E8C7F", "#A6503A", "#8C7B2E"];
+  const hue = (i) => HUES[i] || "#9A8878";
+  function projectMap(gm, cat) {
+    const d = el("details", "gmap");
+    d.appendChild(el("summary", null, "Project map, " + ago(gm.at)));
+    d.appendChild(el("p", "note", gm.nodes + " ideas, " + gm.edges + " links, " + gm.communities + " neighbourhoods" + (gm.commit ? ", at " + gm.commit.slice(0, 7) : "") + "."));
+    const NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 300 160"); svg.setAttribute("role", "img"); svg.setAttribute("shape-rendering", "crispEdges");
+    svg.setAttribute("aria-label", "Map of the " + gm.map.n.length + " most connected ideas in " + gm.repo);
+    const n = gm.map.n, l = gm.map.l || [], big = Math.max(1, ...n.map((x) => x.d));
+    for (let i = 0; i + 1 < l.length; i += 2) {   // links come as a flat list of node pairs
+      const a = n[l[i]], b = n[l[i + 1]];
+      if (!a || !b) continue;
+      const ln = document.createElementNS(NS, "line");
+      ln.setAttribute("x1", a.x); ln.setAttribute("y1", a.y); ln.setAttribute("x2", b.x); ln.setAttribute("y2", b.y);
+      svg.appendChild(ln);
+    }
+    for (const { t: label, g, d: deg, x, y } of n) {
+      const s = 3 + 2 * Math.round(3 * deg / big), r = document.createElementNS(NS, "rect");
+      r.setAttribute("x", x - s / 2); r.setAttribute("y", y - s / 2); r.setAttribute("width", s); r.setAttribute("height", s); r.setAttribute("fill", hue(g));
+      const t = document.createElementNS(NS, "title"); t.textContent = label + " (" + deg + " links)"; r.appendChild(t);
+      svg.appendChild(r);
+    }
+    const art = el("div", "gart"); art.appendChild(svg);
+    d.appendChild(art);
+    const keyList = (title, rows) => { if (!rows.length) return; d.appendChild(el("p", "kicker", title)); const ul = el("ul", "gkey"); rows.forEach((r) => ul.appendChild(r)); d.appendChild(ul); };
+    keyList("Neighbourhoods", (gm.groups || []).map((g, i) => { const li = el("li"); const sw = el("span", "sw"); sw.style.background = hue(i); li.append(sw, el("span", null, g.name + " · " + g.size)); return li; }));
+    keyList("Hubs", (gm.gods || []).map((g) => { const li = el("li"); li.append(el("b", null, g.label), el("span", "what", " " + g.degree + " links" + (g.file ? " · " + g.file : ""))); return li; }));
+    keyList("Surprises", (gm.surprises || []).map((x) => { const li = el("li"); li.append(el("b", null, x.a), document.createTextNode(" " + x.rel + " "), el("b", null, x.b), el("div", "what", x.where + (x.how === "INFERRED" ? " · inferred" : ""))); return li; }));
+    keyList(cat ? "Ask " + cat.name : "Questions it can answer", (gm.questions || []).map((q) => {
+      const li = el("li");
+      if (!cat) { li.textContent = q; return li; }
+      const b = el("button", "item ask", q); b.type = "button";
+      b.addEventListener("click", () => askMap(cat, q, b));
+      li.appendChild(b); return li;
+    }));
+    return d;
+  }
+  async function askMap(c, q, b) {
+    const text = "Ask the project map: " + q, id = gid();
+    b.disabled = true;
+    await save(async (db) => {
+      await db.doc("notes/" + id).set({ cat: c.id, text, author: "charlotte", at: Date.now() });
+      const via = await tell(c, "[Catio] Charlotte says: " + text, { kind: "message", note: id, say: text });
+      await db.doc("notes/" + id).update({ via });
+      toast(saidAs[via]);
+    });
+    b.disabled = false;
   }
 
   function openAdopt(room) {
@@ -1897,7 +1936,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
     const plan = el("div", "plan"), art = el("div", "plan-art"), tabs = el("div");
     plan.style.aspectRatio = PLAN[2] + " / " + PLAN[3];
     Object.assign(art.style, { left: -PLAN[0] / PLAN[2] * 100 + "%", top: -PLAN[1] / PLAN[3] * 100 + "%", width: 1920 / PLAN[2] * 100 + "%", height: 1152 / PLAN[3] * 100 + "%" });
-    for (const [src, cls] of [["art/licensed/decor.png", "ground"], ["art/house.png", "ground"], ["art/house-upper.png", "upper"]]) { const i = el("img", cls); i.src = src; i.alt = ""; art.appendChild(i); }
+    for (const [src, cls] of [["art/licensed/decor.png", "ground"], ["art/licensed/house.png", "ground"], ["art/licensed/house-upper.png", "upper"]]) { const i = el("img", cls); i.src = src; i.alt = ""; art.appendChild(i); }
     art.insertBefore(el("div", "dim upper"), art.lastChild);   // upstairs, the ground floor fades under it
     tabs.setAttribute("role", "tablist"); tabs.setAttribute("aria-label", "Rooms on the plan");
     plan.append(art, tabs);
