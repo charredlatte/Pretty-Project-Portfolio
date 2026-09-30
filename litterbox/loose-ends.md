@@ -75,7 +75,7 @@ with the live version 11" section of this session's plan; each step is pushed as
   facade and pediment door on the ground floor), and their grounds (forest, lamps, fountain, well, scatter).
 - [x] 3. build-art.py: nine zips; both floors go to art/licensed/ (no longer committed).
 - [x] 4. furniture.py: doors() for both floors, the stair's upstairs stations.
-- [ ] 5. index.html: walking cats (with floors), project maps, emblems gone, credits.
+- [x] 5. index.html: walking cats (with floors), project maps, emblems gone, credits.
 - [ ] 6. Tests: their map check and walking section, adapted.
 - [ ] 7. Docs.
 - [ ] 8. Verify, screenshots.

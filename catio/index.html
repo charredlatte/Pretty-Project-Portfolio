@@ -125,7 +125,7 @@ a { color: var(--ink); }
 .world[data-floor="ground"] [data-floor="upper"], .world[data-floor="ground"] .upper { display: none; }
 .dim { position: absolute; inset: 0; z-index: 3850; background: rgba(22, 34, 20, .5); pointer-events: none; }
 .stage[data-floor="upper"] .meadow::after { content: ""; position: absolute; inset: 0; background: rgba(22, 34, 20, .5); }
-.world[data-floor="upper"] .cat[data-floor="ground"], .world[data-floor="upper"] .roomhit[data-floor="ground"], .world[data-floor="upper"] .cabinet[data-floor="ground"] { display: none; }
+.world[data-floor="upper"] .walker[data-floor="ground"], .world[data-floor="upper"] .cat[data-floor="ground"], .world[data-floor="upper"] .roomhit[data-floor="ground"], .world[data-floor="upper"] .cabinet[data-floor="ground"] { display: none; }
 .house.upper { z-index: 3900; }
 /* the stair: the way between the floors, lit like a room */
 .stairs { position: absolute; z-index: 4990; background: transparent; border: 0; padding: 0; cursor: var(--point); }
@@ -182,6 +182,11 @@ ul.keeps .pin .dot { background-position: 0 0; }
 @keyframes a-cry   { from { background-position: 0 0; } to { background-position: -256px 0; } }
 @keyframes a-meow  { from { background-position: 0 -64px; } to { background-position: -128px -64px; } }
 @keyframes a-sleep { from { background-position: 0 -128px; } to { background-position: -256px -128px; } }
+/* a cat on the move: the sitting Mochi, hopping along, turned the way it goes (the sheet's tail points right) */
+.cat.walking .spr, .walker .spr { animation: a-idle 1.25s steps(10) infinite, step .32s steps(2) infinite; }
+.flip .spr { transform: scaleX(-1); }
+@keyframes step { 0%, 100% { translate: 0 0; } 50% { translate: 0 -2px; } }
+.walker { position: absolute; pointer-events: none; }
 .cat.m-meow { animation: hop 1s steps(2) infinite; }
 @keyframes hop { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
 
@@ -386,6 +391,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       <div id="props"></div>
       <div id="hits"></div>
       <div id="cats"></div>
+      <div id="walkers"></div>
     </div>
     <div class="overlay" id="overlay"></div>
     <div class="tag tip" id="tip" hidden></div>
@@ -677,11 +683,12 @@ ul.gkey li > div.what { flex-basis: 100%; }
   function allCats(everything) {
     const cats = [];
     let attic = 0;
+    const away = new Set();
     const cutoff = Date.now() - STALE_DAYS * 864e5;
     for (const s of S.sessions || []) {
       const c = catFromSession(s);
       c.away = c.archived || (c.mood === "sleep" && c.updated < cutoff && !S.showOld);
-      if (c.away && !everything) { attic++; continue; }
+      if (c.away && !everything) { attic++; away.add(c.id); continue; }
       cats.push(c);
     }
     for (const d of S.adopted) cats.push(catFromAdopted(d));
@@ -695,7 +702,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       c.roomKey = roomFor(c);
     }
     cats.sort((a, b) => MOODS[a.mood].rank - MOODS[b.mood].rank || b.updated - a.updated);
-    return { cats, attic };
+    return { cats, attic, away };
   }
 
   /* ---------- drawing ---------- */
@@ -785,8 +792,10 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
 
   function render() {
-    const { cats, attic } = allCats();
+    const { cats, attic, away } = allCats();
     VIEW.cats = cats;
+    snapshot();
+    SEEN.clear();
 
     const count = (m) => cats.filter((c) => c.mood === m).length;
     const needing = cats.filter((c) => MOODS[c.mood].needs);
@@ -827,6 +836,13 @@ ul.gkey li > div.what { flex-basis: 100%; }
       if (pile.length) placePile(layer, pile, taken[taken.length - 1] || mid, k);
       placeQueen(layer, k, here);
     }
+    // a cat that was in the house and is now napping in the attic walks off to it; one that was let go just goes
+    for (const [id, w] of WHERE) {
+      if (SEEN.has(id)) continue;
+      WHERE.delete(id);
+      if (away.has(id) && AWAY && !calm()) toAttic(id, w);
+    }
+    if (S.sessions) AWAY = away;
 
     renderStatus();
     drawControls();
@@ -835,20 +851,30 @@ ul.gkey li > div.what { flex-basis: 100%; }
     if (MENU.kind) showMenu(MENU.kind, MENU.key);   // keep an open menu's numbers current
   }
 
-  function placeCat(layer, c, spot, room) {
-    const sp = SPR[c.mood];
-    const b = el("button", "cat m-" + c.mood);
-    b.type = "button";
-    b.dataset.id = c.id;
-    b.dataset.room = room; b.dataset.floor = levelOf(room);
-    const left = spot[0] * 2 - sp.ax, top = spot[1] * 2 - sp.ay;
-    Object.assign(b.style, { left: left + "px", top: top + "px", width: sp.w + "px", height: sp.h + "px", zIndex: zOf(room) + 1000 + spot[1] * 2 });
-    b.setAttribute("aria-label", c.name + " (" + c.project.name + "), " + MOODS[c.mood].label + ": " + c.title + (waitingFor(c.id) ? ". " + waitingFor(c.id) + " files waiting" : ""));
-    b.appendChild(sprite(c.mood, c.coat));
+  // A cat's look at a spot: its sprite for a mood, anchored by the feet, with its breed and file count.
+  function dress(b, c, mood, spot, room) {
+    const sp = SPR[mood];
+    b.className = "cat m-" + mood;
+    Object.assign(b.style, { left: spot[0] * 2 - sp.ax + "px", top: spot[1] * 2 - sp.ay + "px", width: sp.w + "px", height: sp.h + "px", zIndex: zOf(room) + 1000 + spot[1] * 2 });
+    b.replaceChildren(sprite(mood, c.coat));
     const br = breedOf(c);
     if (br) { const t = el("span", "breed", br.tag); t.title = br.name; t.style.left = sp.ax - 22 + "px"; t.style.top = sp.ay - 26 + "px"; b.appendChild(t); }
     const nf = waitingFor(c.id);
     if (nf) { const t = el("span", "fcount", String(nf)); t.title = nf + (nf === 1 ? " file" : " files") + " from the brain"; t.style.left = sp.ax + 8 + "px"; t.style.top = sp.ay - 4 + "px"; b.appendChild(t); }
+  }
+  function placeCat(layer, c, spot, room) {
+    const sp = SPR[c.mood];
+    const b = el("button");
+    b.type = "button";
+    b.dataset.id = c.id;
+    b.dataset.room = room; b.dataset.floor = levelOf(room);
+    const top = spot[1] * 2 - sp.ay;
+    b.setAttribute("aria-label", c.name + " (" + c.project.name + "), " + MOODS[c.mood].label + ": " + c.title + (waitingFor(c.id) ? ". " + waitingFor(c.id) + " files waiting" : ""));
+    const legs = calm() ? null : journey(c.id, spot, room);
+    dress(b, c, legs ? "idle" : c.mood, spot, room);
+    if (legs) walk(b, spot, legs.from, legs.legs).then((ok) => { if (ok) dress(b, c, c.mood, spot, room); });
+    WHERE.set(c.id, { x: spot[0], y: spot[1], room });
+    SEEN.add(c.id);
     b.addEventListener("click", (e) => { e.stopPropagation(); toggleMenu("cat", c.id, b); });
     b.addEventListener("dblclick", (e) => { e.stopPropagation(); catClicked(c, room); });
     hoverable(b, "cat", c.id);
@@ -891,6 +917,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     b.appendChild(sprite(top.mood, top.coat));
     b.appendChild(el("span", "pile-n", "+" + (pile.length - 1)));
     VIEW.piles[room] = pile;
+    for (const c of pile) { WHERE.set(c.id, { x: spot[0], y: spot[1], room }); SEEN.add(c.id); }
     b.addEventListener("click", (e) => { e.stopPropagation(); toggleMenu("pile", room, b); });
     b.addEventListener("dblclick", (e) => { e.stopPropagation(); hideMenu(); openPile(pile, room); });
     hoverable(b, "pile", room);
@@ -899,6 +926,128 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
 
   function catClicked(c) { hideMenu(); openCat(c.id); }
+
+  /* ---------- walking ---------- */
+  // Cats walk when their place changes: to a new state's station, through the doorways to a new room, up the
+  // stair when they go to nap in the attic (or to the landing's ladder, upstairs), down it when they come back,
+  // and in by the front door when they are new. A journey that changes floor starts at the stair on the floor
+  // they're going to, since only one floor shows at a time. Working cats wander a little near their station now and
+  // then. The free cat sheets have no walk cycle, so a walking cat is the sitting Mochi, hopping, turned the way it
+  // goes. With reduced motion, and for a moment after the page opens, cats are simply in their places.
+  const WHERE = new Map();   // cat id -> { x, y, room }: where it is, in native pixels
+  const SEEN = new Set();    // cats placed by the current render
+  let AWAY = null;           // who was napping in the attic at the last render with sessions
+  const SPEED = 60;          // native pixels a second
+  const ON_STAIRS = 2999;    // a cat on the stair is drawn on it, not behind
+  const WAKE = Date.now() + 4000;
+  const calm = () => Date.now() < WAKE || matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const STAIR = MANOR.doors.find((d) => d[0] === "hall" && d[1] === "landing");   // [hall, landing, foot, head]
+  const LADDER = (() => { const [x, y, w, h] = MANOR.landing; return [x + w - 24, y + h - 12]; })();   // at the foot of the attic ladder
+  // the doorways from one room to another, breadth first: a list of [point, room it's in]
+  function wayTo(a, ra, b, rb) {
+    const prev = { [ra]: null }, q = [ra];
+    while (q.length && !(rb in prev)) {
+      const r = q.shift();
+      for (const [x, y, px, py] of MANOR.doors) {
+        if (!x || !y) continue;
+        const [to, p1, p2] = x === r ? [y, px, py] : y === r ? [x, py, px] : [];
+        if (to && !(to in prev)) { prev[to] = [r, p1, p2]; q.push(to); }
+      }
+    }
+    const legs = [];
+    if (rb in prev) for (let r = rb; prev[r]; r = prev[r][0]) legs.unshift([prev[r][1], prev[r][0]], [prev[r][2], r]);
+    return [...legs, [b, rb]];
+  }
+  // the stair's steps, from its foot to the top
+  function flight() {
+    return layoutOf("hall").flatMap((q) => q.p.stations.filter((st) => st[0] === "upstairs").map(([, dx, dy]) => [q.x + dx, q.y + dy])).sort((u, v) => v[1] - u[1]);
+  }
+  // how a cat reaches its spot on its floor: from where it was, from the stair when it changed floor, down from the
+  // attic, or in by the front door; null to just be there
+  function journey(id, spot, room) {
+    const was = WHERE.get(id), up = levelOf(room) === "upper";
+    const fromStair = () => STAIR && (up ? { from: STAIR[3], legs: wayTo(STAIR[3], "landing", spot, room) } : { from: STAIR[2], legs: wayTo(STAIR[2], "hall", spot, room) });
+    if (was) {
+      if (Math.hypot(was.x - spot[0], was.y - spot[1]) < 1 && was.room === room) return null;
+      if (levelOf(was.room) !== levelOf(room)) return fromStair();
+      return { from: [was.x, was.y], legs: wayTo([was.x, was.y], was.room, spot, room) };
+    }
+    if (!AWAY) return null;
+    if (AWAY.has(id)) {
+      if (up) return { from: LADDER, legs: wayTo(LADDER, "landing", spot, room) };
+      const f = flight(); if (!f.length) return null;
+      const down = f.slice().reverse();
+      return { from: down[0], legs: [...down.slice(1).map((p) => [p, "hall", ON_STAIRS]), ...wayTo(f[0], "hall", spot, room)] };
+    }
+    if (up) return fromStair();
+    const door = MANOR.doors.find((d) => !d[1]);
+    return door ? { from: door[3], legs: [[door[2], "hall"], ...wayTo(door[2], "hall", spot, room)] } : null;
+  }
+  // Walk an element along its legs. Its left and top stay at `spot`; each leg is a translate from there.
+  async function walk(b, spot, from, legs) {
+    const off = (p) => (p[0] - spot[0]) * 2 + "px " + (p[1] - spot[1]) * 2 + "px";
+    let at = from;
+    b.classList.add("walking");
+    for (const [p, room, z] of legs) {
+      const d = Math.hypot(p[0] - at[0], p[1] - at[1]);
+      if (d < 0.5) { at = p; continue; }
+      if (!b.isConnected) return false;
+      if (Math.abs(p[0] - at[0]) > 0.5) b.classList.toggle("flip", p[0] > at[0]);
+      b.style.zIndex = z || zOf(room) + 1000 + Math.round(Math.max(at[1], p[1])) * 2;
+      const a = b.animate([{ translate: off(at) }, { translate: off(p) }], { duration: d / SPEED * 1000, easing: "linear", fill: "forwards" });
+      if (b._walk) b._walk.a.cancel();
+      b._walk = { a, from: at, to: p, room };
+      try { await a.finished; } catch (e) { return false; }
+      at = p;
+    }
+    if (!b.isConnected) return false;
+    b.classList.remove("walking");
+    const last = legs.length ? legs[legs.length - 1][1] : null;
+    if (Math.hypot(at[0] - spot[0], at[1] - spot[1]) < 0.5 && b._walk) { b._walk.a.cancel(); b._walk = null; b.style.zIndex = zOf(last) + 1000 + spot[1] * 2; }
+    return true;
+  }
+  // before a redraw: where each walking cat really is, so its new element carries on from there
+  function snapshot() {
+    for (const b of $("cats").querySelectorAll(".cat[data-id]")) {
+      const w = b._walk;
+      if (!w) continue;
+      const t = w.a.playState === "running" ? Math.min(1, (w.a.currentTime || 0) / w.a.effect.getTiming().duration) : 1;
+      WHERE.set(b.dataset.id, { x: w.from[0] + (w.to[0] - w.from[0]) * t, y: w.from[1] + (w.to[1] - w.from[1]) * t, room: w.room });
+      w.a.cancel();
+    }
+  }
+  // a cat gone to nap in the attic: a copy of it walks to the stair and climbs it, or upstairs to the landing's
+  // ladder, and is gone
+  function toAttic(id, w) {
+    const c = allCats(true).cats.find((x) => x.id === id);
+    if (!c) return;
+    const up = levelOf(w.room) === "upper", f = up ? [] : flight();
+    if (!up && !f.length) return;
+    const end = up ? LADDER : f[f.length - 1], sp = SPR.idle;
+    const d = el("div", "walker");
+    d.setAttribute("aria-hidden", "true");
+    d.dataset.leaving = id; d.dataset.floor = up ? "upper" : "ground";
+    Object.assign(d.style, { left: end[0] * 2 - sp.ax + "px", top: end[1] * 2 - sp.ay + "px", width: sp.w + "px", height: sp.h + "px" });
+    d.appendChild(sprite("idle", c.coat));
+    $("walkers").appendChild(d);
+    const legs = up ? wayTo([w.x, w.y], w.room, LADDER, "landing") : [...wayTo([w.x, w.y], w.room, f[0], "hall"), ...f.slice(1).map((p) => [p, "hall", ON_STAIRS])];
+    walk(d, end, [w.x, w.y], legs)
+      .then(() => d.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" }).finished)
+      .finally(() => d.remove());
+  }
+  // now and then a working cat gets up, wanders a few steps from its station, and comes back
+  setInterval(() => {
+    if (calm() || dragCat || pan || document.hidden) return;
+    const busy = [...$("cats").querySelectorAll(".cat.m-idle[data-id]:not(.walking)")].filter((b) => !b._walk && !(MENU.kind === "cat" && MENU.key === b.dataset.id) && b.dataset.floor === S.floor);
+    const b = busy[Math.floor(Math.random() * busy.length)];
+    const home = b && WHERE.get(b.dataset.id);
+    if (!home) return;
+    const spot = [home.x, home.y];
+    const near = freeFloor(home.room).filter(([x, y]) => { const d = Math.hypot(x - spot[0], y - spot[1]); return d > 10 && d < 44; });
+    const p = near[Math.floor(Math.random() * near.length)];
+    if (!p) return;
+    walk(b, spot, spot, [[p, home.room]]).then((ok) => { if (ok) setTimeout(() => { if (b.isConnected) walk(b, spot, p, [[spot, home.room]]); }, 2500 + Math.random() * 3000); });
+  }, 6000);
 
   /* ---------- camera ---------- */
   // The camera is free: drag the house around, wheel or pinch to zoom, anywhere between the whole grounds
