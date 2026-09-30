@@ -17,6 +17,9 @@
 
 ## Ideas not built yet
 
+- **Routines are paused (2026-09-30), at Charlotte's request: not enough usage to run them daily.** "Refresh
+  the catio" and "Catio: hourly audit and queens pass" are both disabled. Refresh `snapshot/sessions` by hand
+  when she asks. Don't re-enable either or add new scheduled ones.
 - **The concierge.** A small session plus an hourly Routine that reads `outbox/` with `ArtifactData` and
   delivers each post with `create_trigger`/`fire_trigger`. It's needed only if claude.ai refuses the page's
   own calls. Hourly is the Routine minimum, so this is slower than a direct push.
@@ -37,6 +40,14 @@
 - `ArtifactData` `where` on a nested field (`target.id`) may not be supported. Brain documents keep a flat
   `cat` field for queries.
 - The e2e stub only includes agent cats with `?agents=1`, so the older checks' counts stay as they were.
+- **Posting into a session through a bound Routine doesn't reach it** (tried 2026-09-30): `create_trigger` with
+  `persistent_session_id` set to an existing session, then `fire_trigger`, started a *new* session titled
+  "⚡ <routine name>" with no repo, and the target session never saw the text. `postToSession()` and the
+  concierge idea both rest on this, so posts stay queued in `outbox/` until another way is found. Deleting the
+  Routine deletes the stray session with it.
+- Review-ready cats never go upstairs: `STALE_DAYS` only moves sleeping ones. Month-old Remote Control
+  sessions keep the sign's "need you" count high.
+- The warm-start placeholder session (`__warming__`, tag `cowork-warm-start`) shows up as a cat to review.
 
 ## From the manor build
 
