@@ -63,8 +63,8 @@ picture. At about 200 px wide the pixel art shrinks to mush. Room boxes read at 
 thing the minimap is for.
 
 - The panel, its frame and its icon buttons come from Game UI Pastel (see "The two UI packs" below).
-- Each room is a box from `GEOM[k].r`. It takes one of three flat fills, from Game UI Pastel's palette (or
-  Sprout Lands' button faces, if the Pastel pack has no piece to take the colours from):
+- Each room is a box from `GEOM[k].r`. It takes one of three flat fills, from the Pastel square buttons'
+  faces:
   - a plain fill for an ordinary room;
   - a lighter one for the room under the pointer, on the map or in the house;
   - the green one for the room you're in (`S.focus`).
@@ -75,9 +75,8 @@ thing the minimap is for.
 - The stair is marked (`MANOR.stairs`), and so is the landing upstairs (`MANOR.landing`), so the floors line up
   in your head. Upstairs is only the Library, the bedroom and the bathroom, so the upper plan is mostly
   landing and faded ground floor. That's honest, and fine.
-- **The camera's view** is a rectangle drawn with Game UI Pastel's selection outline. If the pack has none, it
-  uses Sprout Lands' white brackets (`corners.png`), the ones that light up a room. It stays the same size on
-  screen at any zoom.
+- **The camera's view** is a rounded rectangle: the Pastel panel's border with no fill. It stays the same
+  thickness on screen at any zoom.
 - The map covers `WORLD`, the whole grounds, so the view rectangle is always inside it. The manor fills most of
   it.
 
@@ -213,49 +212,96 @@ constraints still apply.
 ## The two UI packs
 
 Charlotte decided on 30 September that `Game_UI_Pack_Pastel.zip`, from her Drive folder "KittyChat Cafe
-Assets", goes in alongside Sprout Lands. Nobody has opened it yet, so its sheets are unknown. The first job of
-iteration 1 is to list them and fill in the table below.
+Assets", goes in alongside Sprout Lands. She attached it that day, and this section records what is in it.
+
+**What it is.** *Game UI Pack — Pastel Edition*, by **SC_siosio**, from itch.io. It holds:
+- about 1,300 pieces, each as a PNG and an SVG;
+- square, rectangular and circular buttons in Normal, Hovered and Clicked states;
+- panels (square, rectangular, horizontal and vertical), each in Light (white face) and Dark (navy face);
+- icons: arrows, reload, plus, minus, times, divide, equals, play, pause, skip, volume, a music note, check,
+  star, heart, dollar, settings, options, slider, question, exclamation, lock, unlock and prohibited;
+- ribbons and a round slider knob;
+- 16 pastel colours.
+
+It is smooth vector art, drawn at 500 to 1000 px, with rounded corners and a darker shadow at the bottom
+edge. It is not pixel art.
+
+Quirks found on opening it:
+- **The icons' and panels' colour names run backwards against the buttons'.** The icon or panel named
+  "Indigo" is amber, "Red" is pink, "Apple Green" is cyan, and so on: name *n* of the 16 has the colour of
+  button 17 − *n*. `build-art.py` must pick by that reversed name, and say so in a comment.
+- The Outline panel folders are empty, and so is `Icons/System/Interrogation`. Use the Filled panels and the
+  `Question` icon.
+- There is no house, map or grid icon, and no selection outline.
 
 **Who does what.** Each surface is drawn from one pack only, never a mix of both inside one panel:
 
-| Sprout Lands UI (unchanged) | Game UI Pastel (new) |
+| Sprout Lands UI (unchanged) | Game UI Pastel |
 |---|---|
-| Room, cat and queen menus; dialogs; speech bubbles; the sign; the room brackets; the mood faces; the crown and stars; the paw pointer; the pixel font | The map panel: its frame, header and fold button; the icon buttons (zoom in, zoom out, whole house, floor up and down); the minimap's fills; in Build: the Live / Build switch, the catalogue bar and its tabs, the cabinet's "Looks like…" panel, undo and redo; key caps for the `?` list, if it has them |
+| Room, cat and queen menus; dialogs; speech bubbles; the sign; the room brackets; the mood faces; the crown and stars; the paw pointer; the pixel font | The map panel and the camera's controls; in Build: the switch, the catalogue bar, the cabinet's "Looks like…" panel, undo and redo |
 
 The split follows the kind of thing:
 - what talks about the cats and rooms stays Sprout Lands;
 - what works the camera, and what builds the house, comes from Game UI Pastel.
 
-The switches inside the House menu stay Sprout Lands' toggle, because the House menu is a Sprout menu.
+The switches inside the House menu stay Sprout Lands' toggle, because the House menu is a Sprout menu. Its
+labels keep the pixel font, which is lettering, not a panel.
 
-**Scale.** Check whether the Pastel pack is pixel art:
-- **If it is,** it's drawn like Sprout Lands, at whole multiples (`--u`) with `image-rendering: pixelated`.
-- **If it's smooth, higher-resolution art,** it's scaled down to fit, with ordinary smoothing, never
-  pixelated.
+**The pieces, role by role:**
 
-Either way, check it next to the tan panels in light and dark before committing. If a role in the table has no
-fitting piece in the zip, that role falls back to Sprout Lands, and the table records it.
+| Role | Game UI Pastel piece |
+|---|---|
+| The map panel | Horizontal panel as a 9-slice: **Light** in the light theme and **Dark** in the dark one, which matches the page's own themes. Its white face is recoloured to the page's cream, which the licence allows. Its border is the amber one (the file named `Indigo`) |
+| The view rectangle on the minimap | The same panel's border with no fill: a rounded outline in the pack's own line. This replaces the Sprout brackets the first draft suggested |
+| Minimap rooms | Flat fills from the square buttons' faces: Amber for a room, Amber Hovered for the room under the pointer, Apple Green for the room you're in |
+| The pips on the minimap | Pink for a room where a cat needs Charlotte, Red for one where a cat is upset |
+| Zoom in and zoom out | Square buttons, Amber, in Normal, Hovered and Clicked, with the `Plus` and `Minus` icons |
+| Whole house | The same button, with the page's own small house glyph (the pack has no house icon) |
+| Floor tabs | Rectangle buttons, Amber, with Clicked for the floor you're on, labelled "Ground" and "Upstairs" in the pixel font. The pink `Arrow_Down` / `Arrow_Up` pip shows when a cat on that floor needs Charlotte |
+| Fold and unfold | A small circle button with `Arrow_Up` or `Arrow_Down` |
+| House | A Rectangle button, Amber, labelled "House". It opens the House menu, which is still Sprout Lands |
+| The `?` key list | The `Question` icon on a circle button |
+| Live / Build switch | A Rectangle button as the track and the round slider knob (Light) sliding across it. The knob goes to the left for Live and to the right for Build |
+| Build's title | A Ribbon, Apple Green, saying "Build" at the top centre while Build is on |
+| The catalogue bar | A Horizontal panel along the bottom. Its tabs are Rectangle buttons, one colour per kind of room |
+| Undo and redo | Circle buttons with `Reload`: as drawn for redo, mirrored for undo |
+| A filing cabinet that can't leave its room | The `Lock` icon on the piece while it's dragged outside |
 
-**Getting it into a session.** At 12.5 MB, the Drive connector can't hand it over, because it returns files
-inline. Charlotte attaches it in the chat of the session that builds iteration 1. Then:
+**Scale.** The pack is smooth art, so it's scaled down with ordinary smoothing, never `pixelated`.
+`build-art.py` renders each piece at exactly the size the page uses, at 1× and 2× for sharp screens, so the
+browser never shrinks a 500 px image. At those sizes the pieces are small, and the reverse-named colours
+match the Sprout tans, greens and pinks closely.
+
+**Getting it into a session.** The zip was attached on 30 September. Chat uploads last only as long as their
+session, so a later session needs it attached again, since the Drive connector can't hand over 12.5 MB. Then:
 - `build-art.py` takes it as one more zip (the interface alone can be rebuilt from Sprout Lands and it);
-- it cuts the pieces into `art/licensed/pastel/`;
+- it cuts only the pieces above into one atlas, `art/licensed/pastel/pastel.png`, with `@2x` beside it;
 - `bundle.py` and the publish `files` list pick them up;
 - `run.sh`'s no-art copy leaves them out, and every Pastel surface keeps a plain colour underneath, as the
   Sprout pieces do.
 
-**Licence.** Charlotte chose to use it. Its maker and terms are still unknown, so it's treated like the other
-licensed packs:
-- the session that opens it reads any licence or readme file inside;
-- it records the maker and the terms in `catio/art/CREDITS.md` and the footer credits;
-- it keeps the files under `art/licensed/`, which is gitignored and ships only in the private artifact.
+**Licence.** It's in `LICENSE.txt` in the zip, and it's recorded in CLAUDE.md and `catio/art/CREDITS.md`.
 
-If those terms rule out a web page, stop and tell Charlotte before building on it.
+It allows:
+- use in websites, personal or commercial;
+- resizing, recolouring and combining the pieces.
 
-**Rules to update.** CLAUDE.md says a new control reuses a Sprout Lands piece. It needs a line for the second
-pack, following the split above. Claude's edits to CLAUDE.md have been refused before, as self-modification, so
-that line goes to Charlotte. `litterbox/loose-ends.md` and `docs/plan.md` still say the pack stays out: change
-them when the manor branch is merged.
+It requires:
+- the credit **"Game UI Pack created by SC_siosio"**, readable, in the footer.
+
+It forbids:
+- redistributing the files, modified or not;
+- uploading them to a repository;
+- leaving the original or modified files easy to extract from the finished work.
+
+So:
+- never commit it (it lives under `art/licensed/`, which is gitignored);
+- publish only the one cut atlas, never the pack's own PNG or SVG files;
+- keep it to the private artifact and her own localhost copy.
+
+**Rules updated.** CLAUDE.md now has the second pack's rule, its licence, and a `layouts` row with the
+cabinet's look (30 September). `litterbox/loose-ends.md` and `docs/plan.md` still say the pack stays out:
+change them when the manor branch is merged.
 
 ## Iterations
 
@@ -263,8 +309,8 @@ Each iteration ends with the e2e test green, screenshots at 1440×900 and 390×8
 commit. Only then does the next start.
 
 **1. The map panel and the minimap**
-- Open Game UI Pastel (attached in the chat), record its maker and terms, fill in the table above, and cut its
-  pieces with `build-art.py`.
+- Cut the Game UI Pastel pieces listed above with `build-art.py` (attach the zip again if this is a new
+  session), and add "Game UI Pack created by SC_siosio" to the footer.
 - Merge the House button, the floor switch and the zoom buttons into the panel, and draw the minimap.
 - Add click-to-jump, drag-the-view, double-click to look in, fold, and `M`.
 - Keep menus clear of the panel.
@@ -275,6 +321,7 @@ commit. Only then does the next start.
   - the phone starts folded;
   - a room menu on the right never opens under the panel;
   - the no-art copy still draws the panel and its buttons on plain colour;
+  - the footer credits SC_siosio;
   - the whole house's actions (the brain, house rules, Edit rooms, sound, the attic) are still reachable
     from House in the panel.
 
@@ -299,8 +346,7 @@ commit. Only then does the next start.
 - It needs `layouts/<room>` in the database, the stub, `localRuntime()` and `data/`, as
   `docs/renovation-mode.md` lists. Each layout document holds the room's pieces, plus
   `cabinet: {look, x, y}`: the piece key it looks like and where it stands. A room with no layout document
-  uses `MANOR.layout` and the default look. Add `cabinet` to the data table in CLAUDE.md (that line goes to
-  Charlotte, as above).
+  uses `MANOR.layout` and the default look. CLAUDE.md's data table already has the `layouts` row.
 - *Checks:*
   - a pointer drag moves a piece and saves one document on drop;
   - a filing cabinet dragged into the next room goes back to where it was, and nothing is saved;

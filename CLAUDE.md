@@ -41,8 +41,12 @@ Publish `catio/index.html` with:
   pieces read large: use it for garden stonework, not indoor furniture.
 - **Sprout Lands UI Pack – Basic** (Cup Nooble): modifying allowed, **no redistribution or resale,
   even modified**, non-commercial use only. The whole interface (`art/licensed/ui/`). Never commit.
+- **Game UI Pack – Pastel Edition** (SC_siosio): use in websites and modifying allowed, **no
+  redistribution, no uploading to a repository, and the files must not be easy to extract**. Ship only
+  the pieces the page uses, cut and combined by `build-art.py` into `art/licensed/pastel/`, never the
+  pack's own PNG or SVG files. Never commit. The footer must say "Game UI Pack created by SC_siosio".
 
-The footer credits all six. Keep it.
+The footer credits all of them. Keep it.
 
 ## The cabin is a floor plan
 
@@ -85,6 +89,13 @@ reuse one of these pieces rather than a CSS border or gradient. `--u` is one art
 (2px, or 1px on phones); the scene's overlay (room tags, bubbles) is drawn at one art pixel a
 pixel.
 
+**The second pack.** SC_siosio's Game UI Pack, Pastel Edition (Charlotte's choice, 30 September 2026) dresses
+what works the camera and what builds the house: the map panel and minimap, its icon buttons (zoom, whole
+house, floors, fold), and Build's tools (the Live / Build switch, the catalogue bar, a filing cabinet's
+"Looks like…" panel, undo and redo). Everything that talks about cats and rooms stays Sprout Lands. Draw each
+panel from one pack, never both. The Pastel art is smooth, not pixel art: scale it down with ordinary
+smoothing, never `pixelated`. See `docs/camera-and-minimap.md`.
+
 Titles, labels, buttons and names use the pack's pixel font (`--pixel`, `sprout.ttf`) at **18px**,
 where one font pixel is one screen pixel (36px for a cat's name on its card); anything else blurs.
 It has capitals only (small letters draw as capitals), so body text stays in Nunito.
@@ -102,6 +113,7 @@ The artifact database, written by the page and seeded with `ArtifactData`:
 | `cats` | generated id | an adopted chat: `title`, `link`, `project`, `room`, `mood` (`needs` / `busy` / `done`), `note`, `name` |
 | `projects` | the project's slug (repo name, or an adopted chat's project) | `name`, `emblem`, `coat`: the look every cat of that project shares, set from a filing cabinet |
 | `queens` | the room key | the room's queen: `name`, `notes[]` of `{text, pinned, at}`. A pinned note is one she says out loud in her room |
+| `layouts` | the room key | *(planned: Build mode, `docs/camera-and-minimap.md`)* the room's furniture, and `cabinet: {look, x, y}`: the piece its filing cabinet looks like (her choice per room) and where it stands. The cabinet never leaves its room and keeps its Files and review spot whatever it looks like. No document: `MANOR.layout` and the default look |
 | `snapshot` | `sessions` | `{at, savedBy, sessions[]}`: Claude's saved copy of `list_sessions`, shown when the live read is blocked. Written only by Claude, with `ArtifactData` |
 
 Room **geometry** (where each room is on the art and where its cats sit) is code, in `GEOM` in

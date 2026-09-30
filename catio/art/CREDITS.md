@@ -9,6 +9,7 @@
 | [Pixel Art Top Down – Basic](https://cainos.itch.io/pixel-art-top-down-basic) | Cainos | The great hall's double stone staircase (`licensed/furniture.png`); the arch gate and its doors, the lanterns, the fountain and its statue, the bench, signpost and vases (`licensed/decor.png`) | No. Free for any project, credit appreciated; redistribution not allowed. |
 | plants.zip | (to be credited: no licence file came with it) | The conservatory's palm, fig, ivy and fern (`licensed/furniture.png`) | No: treated as licensed until its terms are known. |
 | [Sprout Lands UI Pack – Basic](https://cupnooble.itch.io/) | Cup Nooble | The whole interface (`licensed/ui/`): every panel, button, field and speech bubble, the room brackets, the sound switch, the sign's tick and cross, the mood faces (its cat emoji), the cat-paw pointer, and the pixel font, with French accents added | No. Changes allowed; no redistribution or resale, even modified; non-commercial use only. |
+| Game UI Pack – Pastel Edition (itch.io) | SC_siosio | Planned (`docs/camera-and-minimap.md`): the map panel, the minimap, the camera's buttons and Build mode's tools (`licensed/pastel/`, one cut atlas) | No. Use in websites and changes allowed; credit required ("Game UI Pack created by SC_siosio"); no redistribution, no uploading to a repository, and the files must not be easy to extract. |
 
 `art/licensed/` is gitignored and is published only as files of the private artifact.
 Rebuild it from Charlotte's seven zips with `catio/tools/build-art.py`.
