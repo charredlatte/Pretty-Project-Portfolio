@@ -1,7 +1,7 @@
 # Pretty-Project-Portfolio
 
 **The Catio** is one page where every Claude project Charlotte has on the go lives as a cat in a
-little pixel-art cabin with a fenced catio. Each Claude Code session is a cat that plays while it
+little pixel-art manor with a fenced catio. Each Claude Code session is a cat that plays while it
 works, sleeps when it's done, and **meows**, with a speech bubble saying what it needs, when it's
 waiting on her. Chats on claude.ai, like business plans and legal questions, can't be read by any
 connector, so she adopts those as cats by hand.
@@ -10,52 +10,66 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
 
 ## What's on the page
 
-- **The cabin fills the screen**, seen from above in a meadow. Each room is a space for one kind
-  of work, with its name on a cream sign on its back wall and a badge (the mood's cat face and a
-  count) when cats in it need you; on a phone, just the badge. There are no toolbars: everything
-  opens from the picture.
-- **Hover over a room** and white selection brackets light its corners while its menu opens
-  beside it: what it's for, how many cats need you, the ones meowing, and Look in (zoom to that
-  room), Files, **Adopt a cat here**, and Edit rooms. Its foot has Sound, Check now, and the cats
-  napping upstairs.
+- **The manor fills the screen**, seen from above in a meadow, **one floor at a time**. Downstairs
+  is the cat café; upstairs are her own rooms, with the ground floor faded underneath. Each room is
+  a space for one kind of work, with its name on a cream sign on its back wall and a badge (the
+  mood's cat face and a count) when cats in it need you; on a phone, just the badge.
+- **The stair** in the entrance hall goes up and down, and so do the floor buttons in the bottom
+  corner and Page Up / Page Down. The stair's sign and the floor button carry a badge when cats on
+  the other floor need you, so nothing hides upstairs.
+- **Moving around**: drag the house to pan it (with the left, right or middle button), and use the
+  wheel or a pinch to zoom around the pointer. The corner buttons zoom in, out and back to the whole
+  house. Zoom in until one room fills the screen and you're in that room: its cats' bubbles say what
+  they need.
+- **Hover over a room or a cat** and it lights up and says its name. **Click it** for its menu,
+  beside it, until you click elsewhere or press Escape. On a phone a tap does the same. A room's menu
+  shows who needs you, its queen, **Look in** (zoom to it), Files, Add files, Add a cat (a new session
+  or an adopted chat) and Edit room. A cat's shows what it needs, its project, room and branch,
+  **Open session** (or chat), and Talk for the full card, to rename it or move it. Double-click a
+  room to look in, or a cat for its card.
+- **The House button**, top right, holds what belongs to the whole house: the brain, the house
+  rules, Edit rooms, the sound, Check now, and the cats napping in the attic.
 - **With a keyboard**, Tab lands on the house once. Arrow keys move the brackets from room to room
-  (or, inside a room, walk into the next one), Enter steps into the room's menu, and Escape steps
-  back out.
-- **Edit rooms** opens the cabin as a plan in a wooden frame: pick a room (its brackets and a green
-  sign show which) to rename it, say what lives there and list the repositories whose cats move
-  in, and choose once which room new cats come in to (marked on the plan with an arrow).
-- **Every room has a queen**, a cat in a crown who is nobody's session and never leaves. Hover
-  her for the room in one line — who needs you and why, or the thing she is keeping for you — and
-  open her to give her something to keep, take it back, or have her say it out loud in her room
-  until you take it. She is never counted among the cats that need you; she is the one who tells
-  you about them.
-- **Hover over a cat** for its menu: what it needs, its project, room and branch, and a link to
-  open the session or chat. Click it for the full card, to rename it or move it to another room.
-  On a phone, the first tap opens the menu and the second opens the card.
-- **The sign** in the top corner counts the cats that need you, are at work and are asleep. It
-  only speaks up when something is wrong, and then it says how to fix it.
-- **Filing cabinets** in the kitchen, dining room, living room, craft room and bedroom, and a
-  chest on the catio deck. Each holds the projects filed in that room with all their cats, the
-  ones needing you first, including the ones archived or napping upstairs.
+  on the floor you're on (or, inside a room, walk into the next one). Enter steps into the room's
+  menu and Escape steps back out. Page Up / Page Down change floor, + / − / 0 zoom, and Shift with
+  the arrows moves the view.
+- **Edit rooms** opens the manor as a plan in a wooden frame, a floor at a time. Pick a room (its
+  brackets and a green sign show which) to rename it, say what lives there and list the repositories
+  whose cats move in. Choose once which room new cats come in to; it's marked on the plan with an
+  arrow.
+- **Every room has a queen**, a cat in a crown who is nobody's session and never leaves.
+  - Click her for the room in one line: who needs you and why, or the thing she is keeping for you.
+  - Open her to give her something to keep, take it back, or have her say it out loud in her room
+    until you take it.
+  - She is never counted among the cats that need you; she is the one who tells you about them.
+- **The sign** in the top corner counts the cats that need you, are at work and are asleep, on both
+  floors. It only speaks up when something is wrong, and then it says how to fix it.
+- **Filing cabinets** stand in every room but the terrace and the ensuite, and the catio deck has a chest. Each holds
+  the projects filed in that room with all their cats, the ones needing you first, including the ones
+  archived or napping in the attic.
 
 Cats wear their project: every cat of one project has the same coat and carries the same
 emblem (a tin of cat food for the grocery app, a coin for the shop, books for legal matters, a
 star for the portfolio, a plant, or yarn). The look can be changed from the project's cabinet.
 
-The cabin is a real floor plan, laid out the way small cabins usually are:
+The manor is a real two-storey plan. Both floors stand on one grid, so every upstairs wall stands on a
+downstairs wall. It runs from public to private: the café downstairs, her own rooms upstairs.
 
-| Room | Who lives there (her rooms can be renamed and reassigned) |
-|---|---|
-| Kitchen and dining room | one open-plan run. The grocery app lives in the kitchen, business plans at the table |
-| Living room | floor-to-ceiling glass either side of a stone fireplace. New cats arrive here |
-| Sunroom | glass on three sides, with a cat flap into the catio. TikTok saves |
-| Catio | fenced decking against the sunroom, with a shade tree, flower shelves to climb, a table and bench, and a rose-arch gate. This portfolio lives here |
-| Craft room | the Montfortoise shop: a craft table with yarn and tins, shelves of supplies, a sewing desk and glass on two walls |
-| Bedroom and ensuite | legal questions, and a spare |
-| Hall | the front door, between two stone lanterns, and the stepping stones out to the catio. Snail mail |
+| Floor | Room | Who lives there (her rooms can be renamed and reassigned) |
+|---|---|---|
+| Ground | Café | tables, and business plans round the big one |
+| Ground | Kitchen | the counter, straight ahead from the front door behind the stair. The grocery app |
+| Ground | Cat lounge | a fireplace between tall windows, and a cat tree. New cats arrive here |
+| Ground | Craft room | the Montfortoise shop, bottom left. Its bay window is its shop window on the drive |
+| Ground | Entrance hall | the front door, and the stair up the middle. Snail mail |
+| Ground | Terrace | the café's glass verrière, with the cat flap out to the catio. TikTok saves |
+| Outdoors | Catio | fenced decking at the bottom right, with a cat tree, a shade tree and a rose-arch gate. This portfolio lives here |
+| Upstairs | Library | over the café: the brain, where dropped files are sorted |
+| Upstairs | Bedroom and ensuite | over the cat lounge. Legal questions, kept quiet, and a spare |
+| Upstairs | Landing | open over the kitchen and the hall, round the stairwell. The attic ladder is here |
 
-Outside, a stone archway with its wooden doors open marks the way in, and the south-east meadow
-has a small garden square: a fountain with a praying statue, a bench and a signpost to the catio.
+Outside, the drive runs from the front steps round a fountain with a praying statue to a stone
+archway with its wooden doors open. Parterres, a bench and a signpost to the catio stand either side.
 
 ## How it knows what the cats are doing
 
@@ -77,7 +91,7 @@ has a small garden square: a fountain with a praying statue, a bench and a signp
 | Working | working or running | Mochi, tail swishing |
 | Asleep | finished or idle | Pochi curled up |
 
-Sleeping sessions older than a week and archived sessions nap upstairs, out of sight. Turn on
+Sleeping sessions older than a week and archived sessions nap in the attic, out of sight. Turn on
 Sound and a cat that starts meowing makes a small meow.
 
 ## On her own computer
@@ -109,7 +123,7 @@ The skill walks you through your rooms, your sessions, publishing the page as yo
 artifact, and the folder that runs off a USB stick.
 
 **It cannot give you the cats, or the interface.** Five of the six packs below forbid redistributing
-their files, so `catio/art/licensed/` is gitignored and a fresh clone draws the cabin on plain
+their files, so `catio/art/licensed/` is gitignored and a fresh clone draws the manor on plain
 panels and nothing else — the page says so on its own sign, and tells you the three steps. You buy the packs yourself and run
 `catio/tools/build-art.py` over your own zips. Only Cosy Cabin, whose licence allows it, is in this
 repository.
@@ -124,7 +138,7 @@ titles and buttons are in its pixel font (with the French accents added).
 
 | Pack | Artist | In this repo? |
 |---|---|---|
-| [Cosy Cabin](https://marie-pepo.itch.io/cosy-cabin) | Marie Pepo | Yes: `catio/art/house.png` |
+| [Cosy Cabin](https://marie-pepo.itch.io/cosy-cabin) | Marie Pepo | Yes: `catio/art/house.png`, `house-upper.png` and `furniture.png` |
 | [Cat Pack Mochi](https://toffeecraft.itch.io/cat-pack) and [Pochi](https://toffeecraft.itch.io/cat-retro), Cat UI | ToffeeCraft | No: the licence forbids redistribution |
 | [Top Down Garden Castle](https://heosphorus.itch.io/) | Heosphorus | No: the licence forbids distribution |
 | [Wood Garden](https://rowdy41.itch.io/wood-garden) | rowdy41 | No: it is baked into the same file as Heosphorus's pieces |
@@ -137,9 +151,13 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 ## Files
 
 - `catio/index.html`: the whole page, with no build step and no dependencies.
-- `catio/tools/cabin.py`: the floor plan, meaning rooms, doorways, glass and furniture.
-- `catio/tools/build-art.py`: draws the cabin from the plan and cuts the UI pieces, from the
-  six zips (`pip install pillow fonttools`, then see the script's docstring).
+- `catio/tools/manor.py`: the two floor plans, meaning rooms on one grid, walls, doorways and glass,
+  and the grounds.
+- `catio/tools/furniture.py`: the furniture catalogue, where each piece stands, and where cats go;
+  it writes the page's MANOR block.
+- `catio/tools/build-art.py`: draws both floors from the plan, the furniture atlases and the grounds,
+  and cuts the UI pieces, from the seven zips (`pip install pillow fonttools`, then see the script's
+  docstring).
 - `catio/tools/bundle.py`: the folder that runs on localhost.
 - `catio/tools/save-sessions.py`: trims a `list_sessions` result to the saved copy.
 - `catio/data/rooms.json`: the rooms, for the localhost copy. `sessions.json` is never committed.

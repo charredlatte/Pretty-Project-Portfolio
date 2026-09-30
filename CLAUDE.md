@@ -10,8 +10,9 @@ her rooms, renames and adopted chats belongs to that artifact.
 
 Publish `catio/index.html` with:
 
-- `files`: every file the page references: `art/house.png`, `art/licensed/*.png` (`decor.png`,
-  `meadow.png`, `emblems.png`, `mochi-idle.png`, `mochi-box.png`, `pochi.png`) and the interface
+- `files`: every file the page references: `art/house.png`, `art/house-upper.png`, `art/furniture.png`,
+  `art/licensed/*.png` (`decor.png`, `furniture.png`, `meadow.png`, `emblems.png`, `mochi-idle.png`,
+  `mochi-box.png`, `pochi.png`) and the interface
   in `art/licensed/ui/` (`panel`, `button`, `button-hover`, `button-down`, `button-green`,
   `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `bubble-tail`, `corners`,
   `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point` `.png`, and `sprout.ttf`);
@@ -44,31 +45,62 @@ Publish `catio/index.html` with:
 
 The footer credits all six. Keep it.
 
-## The cabin is a floor plan
+## The manor is a floor plan, on two floors
 
-`catio/tools/cabin.py` is the plan: rooms as tile boxes with their floors and wallpapers,
-doorways, glass (floor-to-ceiling on back walls, strips on outside walls), and furniture as
-`(sprite, x, y)`. `house()` draws it from Cosy Cabin alone (committed as `art/house.png`);
-`decor()` adds the catio, the garden and indoor pieces from the other packs (`decor.png`).
-The page's `GEOM` (room boxes, cat spots and filing-cabinet boxes) and `WORLD` must match the plan. Change both
-together, then re-render and check that no cat stands on furniture.
+`catio/tools/manor.py` is the plan. It holds rooms as tile boxes with their floor (`ground` or `upper`),
+floor texture and back wall; the landing; the craft room's bay; doorways; glass; the stair; and the
+grounds. `shell(floor)` draws each floor from Cosy Cabin alone, committed as `art/house.png` and
+`art/house-upper.png`. `grounds()` draws the catio, the drive and the garden from the other packs
+(`decor.png`). `catio/tools/furniture.py` places every piece of furniture and its stations, and writes
+the page's `MANOR` block. The page's `GEOM` comes from that block, so change the plan and the furniture
+together, re-run `build-art.py` (or `furniture.py`), and check that `furniture.check()` is empty and no cat
+stands on furniture.
 
-The layout follows ordinary small-cabin planning: kitchen, dining and living as one open run
-facing the light; the sunroom off the living room; bedroom, ensuite and craft room behind; the
-bathroom backing onto the kitchen's plumbing; the catio fenced against the sunroom's outside
-wall, reached by a cat flap, with shade, shelves to climb and seats for people.
+**Both floors stand on one grid** (columns 6, 17, 32, 43; rows 3, 13, 24): every upstairs wall stands on a
+ground-floor wall, except the ensuite's light partition inside the bedroom's bay. Keep it that way. A wall
+off the grid is what made the first draft's walls "not make any sense". Walls are the pack's own dark wood
+wall (`WALL`), and doorways are clean cuts capped with its outline. Every room has a back wall, so a
+doorway never meets a bare edge.
+
+The layout runs from public to private, the way houses and game levels both do:
+
+- **Downstairs is the cat café.** Café, kitchen and counter, and cat lounge sit across the back. The craft
+  room (the shop, its bay window its shop window on the drive, bottom left), the entrance hall (the stair
+  and the front door) and the glazed terrace sit across the front. The catio is fenced at the bottom right,
+  reached by the terrace's cat flap.
+- **Upstairs are her own rooms,** over the back of the house: the library over the café, an open landing
+  over the kitchen and hall (the stairwell and the attic ladder), and the bedroom and ensuite over the
+  lounge. The craft room and the terrace are single-storey wings.
+
+The stair is in the same place on both floors, so changing floor never moves the camera.
 
 ## The UI is made of the packs
 
-The cabin fills the screen and is the page. There is no toolbar or side list: every control
-lives in a menu that opens on **hover** over a room (`roomMenu`) or a cat (`catMenu`, `pileMenu`),
-placed beside it so it never covers what the pointer is on. Keyboard focus opens a menu only when
-`:focus-visible`; on touch the first tap opens the menu and the second acts (`armed()`). A new
-control goes into one of these menus, not onto the screen.
+The manor fills the screen and is the page, **one floor at a time**. The ground floor stays faded under
+the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZUP`.
 
-Hover means the pointer really moved onto the thing (`moved()`): when the camera moves or a dialog
-closes, the room that slides under a still pointer gets no menu until she moves. Without that, a
-neighbour's menu opens over the room she just looked into.
+- **Floors**: the stair, the floor buttons and Page Up / Page Down go between them. The stair's sign and
+  the floor button badge the other floor's cats that need her. The tally counts both floors.
+- **Controls**: Charlotte lifted the old "no toolbar" rule (September 2026). Two sets of controls now sit
+  on screen, and nothing else should:
+  - the corner cluster (`#controls`: floor switch, zoom in and out, whole house);
+  - the House button (`#houseBtn`, top right), whose menu holds what belongs to the whole house: the
+    brain, house rules, Edit rooms, sound, Check now and the attic.
+- **Room controls**: a control for one room or cat goes in its menu.
+- **The camera is free**: drag to pan (left, right or middle button, or Space), wheel or pinch to zoom,
+  + / − / 0 and Shift+arrows. `S.focus` is the room that fills the view, and bubbles speak there.
+- **Hover names a thing** in a line (`#tip`). **A click opens its menu** beside it, pinned until a click
+  elsewhere or Escape (`toggleMenu`); a tap does the same. Keyboard focus opens a menu only when
+  `:focus-visible`, and a click never closes a menu keyboard focus opened.
+- **Every menu has the same order**:
+  - a header (a caption, the name, count chips);
+  - what matters now;
+  - one green `.primary` action;
+  - the rest as a two-column grid, or one column when the labels are long.
+
+  Keep to that: a new action is a grid button, not a second primary.
+- Hover means the pointer really moved onto the thing (`moved()`). When the camera moves or a dialog
+  closes, the room that slides under a still pointer isn't named until she moves.
 
 The interface is Cup Nooble's Sprout Lands UI pack, cut by `build-art.py` into
 `art/licensed/ui/`. Menus, dialogs, the sign and the screen's frame are its tan panel; buttons are

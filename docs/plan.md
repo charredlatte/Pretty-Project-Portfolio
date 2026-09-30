@@ -4,7 +4,7 @@ Issue #3: "An AI harness that presents itself as a cat cafe." The Catio (`catio/
 artifact) becomes the harness. Every Claude Code session and every other agent is a cat in a refurbished
 manor. Files dropped on the page go to the right cat, and cats can be talked to and managed.
 
-Last updated 29 September 2026.
+Last updated 30 September 2026.
 
 ## Done (on `main`)
 
@@ -60,12 +60,35 @@ Last updated 29 September 2026.
 
   e2e: 97 passed.
 
+## The manor, two floors (30 September)
+
+Charlotte asked for the copied cabin layout to be scrapped: a manor on two levels, the terrace and cat café on
+the ground floor, her own rooms upstairs, the catio at the bottom right, and the Shopify craft room at the
+bottom left with a bay window. Then: "the walls don't make any sense", and "it's hideous right now" (the menus).
+
+- **One grid for both floors** (`catio/tools/manor.py`): columns 6, 17, 32, 43; rows 3, 13, 24. Every
+  upstairs wall stands on a ground-floor wall, except the ensuite's partition inside the bedroom's bay.
+  - Ground: café, kitchen and counter, cat lounge; craft room (with a canted bay), entrance hall (the
+    stair, the front door), glazed terrace; the catio outside.
+  - Upstairs (her choice, "over the back"): library over the café, an open landing over the kitchen and
+    hall with the stairwell and the attic ladder, and the bedroom over the lounge with the ensuite. The
+    craft room and the terrace are single-storey wings.
+  - Walls are Cosy Cabin's own dark wood wall, and doorways are clean capped cuts. `art/house-upper.png`
+    is new and committed. `cabin.py` is gone.
+- **One floor at a time** on the page. The stair, the floor buttons and Page Up / Page Down switch floors
+  without moving the camera. The stair's sign and the floor button carry a badge when the other floor needs
+  her. Old and archived cats nap in the attic (hidden, as before).
+- **A free camera**: drag to pan (left, right or middle button), wheel or pinch to zoom, + / − / 0,
+  Shift+arrows. Zoomed into one room, you're in it and bubbles speak. A controls cluster sits bottom right.
+- **Menus**: hover names, a click opens and pins. Each menu has a header with chips, what matters, one
+  primary action, and a grid of the rest. House-wide things moved to a House menu, top right. CLAUDE.md's
+  "no toolbar" and "hover opens a menu" rules are lifted at her request.
+- Rooms' default names follow the house: Café, Cat lounge, Terrace, Entrance hall, Ensuite. e2e: 115 passed.
+
 ## Next
 
 - **Renovation mode**, following `docs/renovation-mode.md` and the rooms-redesign session's UX spec. Layouts
   per room go in `layouts/<room>`, and the default comes from `MANOR.layout`.
-- **Upstairs:** cats napping upstairs could sit on the stairs' `upstairs` stations instead of being
-  hidden. The older e2e checks expect them hidden, so this is a decision for Charlotte.
 
 ## Published
 
@@ -76,8 +99,8 @@ published from there. `rooms/brain` and the eight `rules/*` are seeded.
 
 ## Publishing again
 
-Files: `art/house.png`, `art/furniture.png`, `art/licensed/furniture.png`, `art/licensed/decor.png`, and the
-rest of CLAUDE.md's list. `art/licensed/` now also holds `furniture.png`.
+Files: `art/house.png`, `art/house-upper.png`, `art/furniture.png`, `art/licensed/furniture.png`,
+`art/licensed/decor.png`, and the rest of CLAUDE.md's list. `art/licensed/` now also holds `furniture.png`.
 
 1. Re-read the live artifact.
 2. Republish to `artifacts.json`'s URL with the full capabilities listed in CLAUDE.md.

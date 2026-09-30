@@ -43,8 +43,6 @@
 - CLAUDE.md still describes the cabin: its publish file list, "The cabin is a floor plan", and the old
   capabilities. Claude can't edit CLAUDE.md (it's refused as self-modification). `docs/plan.md` has the new
   file list, and the MANOR block is described in `catio/tools/furniture.py`'s docstring.
-- `catio/tools/cabin.py` is no longer used by the build. It stays for now as the old plan; delete it when
-  nothing needs it.
-- The rooms keep her own names from the database ("Living room", "Sunroom", "Craft room", "Hall"). The manor's
-  defaults ("Drawing room", "Conservatory", "Studio", "Great hall") only show when a room has no saved name.
-  She may want to rename them in Edit rooms.
+- The rooms keep her own names from the database. With the two-floor manor, the names that no longer fit
+  ("Dining room", "Living room", "Sunroom", "Hall", "Bathroom") are renamed at publish, with only `name`
+  changed, to Café, Cat lounge, Terrace, Entrance hall and Ensuite. She can rename them back in Edit rooms.
