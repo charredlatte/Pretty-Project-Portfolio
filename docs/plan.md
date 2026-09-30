@@ -121,6 +121,13 @@ Versions 9 (the Baroque manor), 10 (project maps, with `graphs/pretty-project-po
 29 September from `claude/amazing-bohr-1sfkqi`, each checked afterwards: the ten `rooms` intact, and a probe
 cat created, updated and deleted. That branch is merged here now.
 
+Version 12 went live on 30 September 2026 from `ccr-bfc398ff-3gh5wb`: the two-floor manor merged with
+versions 9 to 11 (the Baroque look on the grid, project maps, walking cats up the stair and to the attic
+ladder, the forest). The live page was version 11, read in full before publishing. New file:
+`art/licensed/house-upper.png`. The capabilities were carried over unchanged. e2e 125 passed. Checked
+after publishing: the ten `rooms` intact; `dining`, `living`, `sunroom`, `hall` and `bath` renamed (name
+only) to Café, Cat lounge, Terrace, Entrance hall and Ensuite; a probe cat created, updated and deleted.
+
 ## Publishing again
 
 Files: `art/furniture.png`, `art/licensed/house.png`, `art/licensed/house-upper.png`,

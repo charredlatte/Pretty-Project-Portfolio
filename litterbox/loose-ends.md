@@ -59,10 +59,11 @@
   capabilities. Claude can't edit CLAUDE.md (it's refused as self-modification). `docs/plan.md` has the new
   file list, and the MANOR block is described in `catio/tools/furniture.py`'s docstring.
 - The rooms keep her own names from the database. With the two-floor manor, the names that no longer fit
-  ("Dining room", "Living room", "Sunroom", "Hall", "Bathroom") are renamed at publish, with only `name`
-  changed, to Café, Cat lounge, Terrace, Entrance hall and Ensuite. She can rename them back in Edit rooms.
+  ("Dining room", "Living room", "Sunroom", "Hall", "Bathroom") were renamed at the version 12 publish, with
+  only `name` changed, to Café, Cat lounge, Terrace, Entrance hall and Ensuite. She can rename them back in
+  Edit rooms. `catio/data/rooms.json` already has the new names.
 
-## Merging version 11 into the two-floor manor (in progress, 30 September)
+## Merging version 11 into the two-floor manor (done, 30 September)
 
 Version 11 (branch `claude/amazing-bohr-1sfkqi`: Baroque retexture, walking cats, project maps, livened
 grounds) is merged into `ccr-bfc398ff-3gh5wb`. Her choice: keep both, in the Storybook Baroque look, on the
@@ -79,7 +80,7 @@ with the live version 11" section of this session's plan; each step is pushed as
 - [x] 6. Tests: their map check and walking section, adapted.
 - [x] 7. Docs.
 - [x] 8. Verify, screenshots.
-- [ ] 9. Publish (read the artifact first; it was version 11).
+- [x] 9. Published as version 12 on 30 September; rooms renamed; probe cat created, updated, deleted.
 
 Loose ends from the merge:
 
