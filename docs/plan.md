@@ -104,6 +104,32 @@ one-floor house. Her choice: merge and keep both, in the Baroque look, on the tw
 - **Not carried over:** the outdoor KittyChat Cafe terrace (the café is indoors now, with the glazed terrace;
   a parterre stands before the bay instead), and version 11's hover-steal delay (a click opens a menu now).
 
+## Version 13: the KittyChat Cafe, quieter (30 September)
+
+Charlotte: "Take everything about the UI and make it better… make the menus less bloated and minimize noise.
+Redesign the UI using the licensed packs too", and "I hate the signs on every room and the large The Catio
+name when really the harness and UI SaaS that I am making here is called the KittyChat Cafe."
+
+- **The name**: the page is the KittyChat Cafe. The brand, top left, is ToffeeCraft's Cat UI cat-face bubble
+  and the name on the pack's cream button; it is the House button and carries the badge. The big title panel
+  and the separate House button are gone.
+- **No signs on the map**: no room names, badges, stair sign or Files tag. Rooms are named on hover; a cat that
+  needs her shows its face; the other floor's button carries its badge. Breeds and file counts show only
+  inside a room.
+- **Controls**: the pack's square buttons with its icons (new `icons.png`: its white icons in its outline
+  brown), no panel and no words.
+- **Menus**: a name and one line, what matters now, then a list of actions with the pack's cream triangle
+  (new `pointer.png`) as the cursor. Captions, chips and the green primary grid are gone; the House menu
+  opens with whether the cats are live.
+- **Cards**: a cat's card leads with the conversation, and folds its facts, management, name and title
+  under Manage. A queen's notes save as they change (the UI audit's data-loss finding). Shorter explainers.
+- **The status sign** only shows when something is wrong, and when Claude's saved copy stands in it is one
+  line ("Saved copy · 17:02") with the why on hover or focus.
+- `build-art.py` cuts `icons.png`, `pointer.png` and `logo.png` (the logo from CatMegaFree, so the full
+  nine-zip build writes it). e2e: 125 passed, updated for the quiet map and the folded card.
+- Published as version 13 from `claude/great-gauss-pgs8nq`, after reading version 12 in full. Capabilities
+  carried over. Checked after: the ten `rooms` intact; a probe cat created, updated and deleted.
+
 ## Next
 
 - **Renovation mode**, following `docs/renovation-mode.md` and the rooms-redesign session's UX spec. Layouts
