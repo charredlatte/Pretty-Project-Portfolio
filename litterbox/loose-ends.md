@@ -73,7 +73,7 @@ with the live version 11" section of this session's plan; each step is pushed as
   README, docs/plan.md). Their harness, docs and litterbox came in as they were.
 - [x] 2. manor.py: the Baroque look on the grid (ochre and quoins, plaster and oak inside, stained glass,
   facade and pediment door on the ground floor), and their grounds (forest, lamps, fountain, well, scatter).
-- [ ] 3. build-art.py: nine zips; both floors go to art/licensed/ (no longer committed).
+- [x] 3. build-art.py: nine zips; both floors go to art/licensed/ (no longer committed).
 - [ ] 4. furniture.py: doors() for both floors, the stair's upstairs stations.
 - [ ] 5. index.html: walking cats (with floors), project maps, emblems gone, credits.
 - [ ] 6. Tests: their map check and walking section, adapted.
