@@ -8,6 +8,8 @@ catio/test/.page.html
 catio/test/.page-noart.html
 catio/test/.noart/
 catio/data/sessions.json
+# Her session titles, sifts and anything else private: kept on disk, never committed.
+catio/data/private/
 catio/dist/
 
 # graphify's map of the repo: a local build (graphify update .)
