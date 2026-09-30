@@ -4,6 +4,7 @@
 // Run it with catio/test/run.sh. The page runs inside the same skeleton the Artifact tool publishes,
 // against runtime-stub.js (an in-memory db with live snapshots and a sessions feed the test changes);
 // local mode runs the bundle from tools/bundle.py on a real localhost server with no runtime at all.
+import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,7 +25,8 @@ process.on("uncaughtException", (e) => { console.log(results.join("\n")); consol
 process.on("unhandledRejection", (e) => { console.log(results.join("\n")); console.log("CRASH " + String(e.message).split("\n")[0]); process.exit(2); });
 const expect = (cond, msg) => { if (!cond) throw new Error(msg); };
 async function open(q = "", opts = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, ...opts });
+  // reduced motion unless a test asks for it: the cats stay put, so clicks land on still cats (6d walks them)
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce", ...opts });
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -170,13 +172,11 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     for (const [k, v] of Object.entries({ title: "Lease renewal", link: "https://claude.ai/chat/abc", project: "Flat lease", room: "bedroom", mood: "needs", note: "Send the signed form", name: "Mimi" }))
       expect(d[k] === v, k + " = " + d[k]);
   });
-  await check("the new cat meows in the bedroom, wearing its project", async () => {
+  await check("the new cat meows in the bedroom", async () => {
     expect((await toast(page)).includes("Adopted"), await toast(page));
     const cat = page.locator('#cats .cat[aria-label^="Mimi "]');
     expect(await cat.count() === 1, "cat not in scene");
     expect((await cat.getAttribute("class")).includes("m-meow"), "not meowing");
-    const e = await cat.locator(".emb").evaluate((x) => getComputedStyle(x).getPropertyValue("--e").trim());
-    expect(e === "2", "lease should carry books, got " + e);
     expect((await page.locator("#tally").innerText()).includes("2 need you"), await page.locator("#tally").innerText());
   });
   await openCat(page, "Mimi");
@@ -256,21 +256,37 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     await openRoom(page, "study");
     expect(await menuButton(page, "Whole house").count() === 1, "no way back");
   });
+  // an invented project map, as the catio skill's graph_doc.py saves it
+  await T(page, () => window.__catio.put("graphs/montfortoise-shopify", { repo: "example/montfortoise-shopify", at: Date.now() - 60e3, commit: "abc1234def", nodes: 120, edges: 210, communities: 6,
+    gods: [{ label: "CartDrawer", degree: 14, file: "src/cart.js" }], groups: [{ name: "Checkout", size: 40 }, { name: "Theme", size: 30 }],
+    surprises: [{ a: "Shipping notes", rel: "references", b: "CartDrawer", how: "INFERRED", where: "docs/shipping.md → src/cart.js" }],
+    questions: ["Why does CartDrawer connect Checkout to Theme?"],
+    map: { n: [{ t: "CartDrawer", g: 0, d: 14, x: 150, y: 80 }, { t: "Theme", g: 1, d: 6, x: 60, y: 40 }, { t: "Loose end", g: -1, d: 1, x: 250, y: 130 }], l: [0, 1, 0, 2] } }));
   await menuButton(page, "Files").click();
+  await check("a project with a graphify map shows it in its cabinet, and a cat there can be asked its questions", async () => {
+    const card = page.locator("#roomsDlg .proj", { hasText: "montfortoise-shopify" });
+    await card.locator("summary", { hasText: "Project map" }).click();
+    expect(await card.locator(".gart svg rect").count() === 3 && await card.locator(".gart svg line").count() === 2, "map not drawn");
+    const t = await card.locator(".gmap").innerText();
+    expect(t.includes("120 ideas") && t.includes("CartDrawer") && t.includes("Shipping notes") && t.includes("Checkout"), t);
+    await card.locator("button.ask").first().click();
+    await page.waitForTimeout(300);
+    const fired = (await T(page, () => window.__catio.tools)).filter((x) => x[1] === "fire_trigger").pop();
+    expect(fired && fired[2].text === "[Catio] Charlotte says: Ask the project map: Why does CartDrawer connect Checkout to Theme?", JSON.stringify(fired));
+  });
   await check("the craft room's cabinet lists its projects and branches, archived sessions included", async () => {
     const t = await page.locator("#roomsDlg").innerText();
     expect(t.includes("Filing cabinet") && t.includes("montfortoise-shopify") && t.includes("Intermarche-grocery-shopping-app") && t.includes("claude/test"), t.slice(0, 300));
   });
-  await page.selectOption("#em-montfortoise-shopify", "3");
   await page.selectOption("#coat-montfortoise-shopify", "5");
   await page.locator("#roomsDlg .proj", { hasText: "montfortoise-shopify" }).locator("button:has-text('Save look')").click();
   await settle(page);
   await check("saving a look restyles every cat of that project", async () => {
     const d = await T(page, () => window.__catio.store["projects/montfortoise-shopify"]);
-    expect(d && d.emblem === 3 && d.coat === 5, JSON.stringify(d));
+    expect(d && d.coat === 5 && !("emblem" in d), JSON.stringify(d));
     await page.keyboard.press("Escape");
-    const e = await page.locator('#cats .cat[aria-label*="Shop about page"] .emb').evaluate((x) => getComputedStyle(x).getPropertyValue("--e").trim());
-    expect(e === "3", "emblem " + e);
+    const t = await page.locator('#cats .cat[aria-label*="Shop about page"] .spr').evaluate((x) => x.style.getPropertyValue("--tint"));
+    expect(t.includes("brightness(.62)"), "coat " + t);
   });
   await openRoom(page, "study");
   await menuButton(page, "Whole house").click();
@@ -437,7 +453,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   const { page, ctx, errors } = await open("", { base: NOART });
   await check("with no licensed art the sign says so, and the queens still work", async () => {
     const words = await page.locator("#status").textContent();
-    expect(words.includes("The cat art isn't here"), words);
+    expect(words.includes("The cat art isn't here") && words.includes("neither the house nor its cats can draw"), words);
     expect(words.includes("build-art.py"), "it does not say how to fix it: " + words);
     expect(await page.locator("#status.warn").count() === 1, "the sign is not flagging it");
     // her crown, her menu and what she keeps still work without the packs to draw them
@@ -713,6 +729,89 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect((await page.locator("#houseBtn").getAttribute("aria-expanded")) === "true", "button not pressed");
   });
   await check("no page errors going up, down and around", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+
+/* ---------- 6d. cats walk: up the stair when archived, down it when back, through doorways, and about ---------- */
+// Version 11's hover-steal checks (a menu following a resting pointer) are gone: a click opens a menu now.
+{
+  const { page, ctx, errors } = await open("", { reducedMotion: "no-preference" });
+  const cat = (id) => page.locator('#cats .cat[data-id="session_' + id + '"]');
+  const settled = (id, cls) => page.waitForFunction(([id, cls]) => {
+    const b = document.querySelector('#cats .cat[data-id="session_' + id + '"]');
+    return b && !b.classList.contains("walking") && !b._walk && (!cls || b.classList.contains(cls));
+  }, [id, cls], { timeout: 25000 });
+  // a point of the world (native pixels) on screen
+  const onScreen = async (x, y) => { const c = await cam(page); return { x: c.tx + c.s * x * 2, y: c.ty + c.s * y * 2 }; };
+  const mid = (b) => ({ x: b.x + b.width / 2, y: b.y + b.height / 2 });
+  await check("while the page opens, cats are simply in their places", async () =>
+    expect(await page.locator("#cats .cat.walking, #walkers .walker").count() === 0, "someone is walking on load"));
+  await page.waitForTimeout(4200);
+  await T(page, () => window.__catio.setBucket("blocked1", "COMPLETED", "ARCHIVED", {}));
+  await settle(page);
+  await check("an archived cat walks off towards the hall's stair", async () => {
+    expect(await cat("blocked1").count() === 0, "still in its room");
+    const w = page.locator('#walkers .walker[data-leaving="session_blocked1"]');
+    expect(await w.count() === 1 && (await w.getAttribute("data-floor")) === "ground", "nobody walking to the stair");
+    const stair = mid(await page.locator("#stairs").boundingBox());
+    const a = mid(await w.boundingBox());
+    await page.waitForTimeout(700);
+    const b = mid(await w.boundingBox());
+    expect(Math.hypot(b.x - a.x, b.y - a.y) > 4, "not moving: " + JSON.stringify([a, b]));
+    expect(Math.hypot(b.x - stair.x, b.y - stair.y) < Math.hypot(a.x - stair.x, a.y - stair.y), "not heading for the stair");
+  });
+  await check("it climbs the stair and is gone", async () =>
+    page.locator('#walkers .walker[data-leaving="session_blocked1"]').waitFor({ state: "detached", timeout: 25000 }));
+  await T(page, () => window.__catio.setBucket("blocked1", "BLOCKED", "IDLE", { status_category: "need_input", needs_action: "one more look" }));
+  await settle(page);
+  await check("brought back, it comes down the stair and walks to its room, then meows", async () => {
+    expect((await cat("blocked1").getAttribute("class")).includes("walking"), "not walking back: " + await cat("blocked1").getAttribute("class"));
+    await settled("blocked1", "m-meow");
+    expect(await cat("blocked1").getAttribute("data-room") === "study", "not in the craft room");
+  });
+  {
+    const b = await catPoint(page, "Shop about page");
+    const to = await roomPoint(page, "hall");
+    await page.mouse.move(b.x, b.y);
+    await page.mouse.down();
+    await page.mouse.move(b.x + 40, b.y + 40, { steps: 3 });
+    await page.mouse.move(to.x, to.y, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(250);
+  }
+  await check("moved to the entrance hall, it walks there through the doorway", async () => {
+    expect(await cat("blocked1").getAttribute("data-room") === "hall", "not moved");
+    expect((await cat("blocked1").getAttribute("class")).includes("walking"), "it jumped");
+    await settled("blocked1", "m-meow");
+  });
+  await closeMenu(page);
+  await check("a working cat wanders from its station now and then, and comes back", async () => {
+    await page.waitForFunction(() => { const b = document.querySelector('#cats .cat[data-id="session_work1"]'); return b && b.classList.contains("walking"); }, null, { timeout: 15000 });
+    await settled("work1", "m-idle");
+  });
+  await T(page, () => window.__catio.put("sessions/session_work1", { room: "bedroom" }));
+  await settle(page);
+  await check("moved upstairs, a cat comes up the stair into its new room", async () => {
+    expect(await cat("work1").getAttribute("data-room") === "bedroom" && (await cat("work1").getAttribute("data-floor")) === "upper", "not in the bedroom");
+    await settled("work1", "m-idle");
+  });
+  await toFloor(page, "upper");
+  await T(page, () => window.__catio.setBucket("work1", "COMPLETED", "ARCHIVED", {}));
+  await settle(page);
+  await check("archived upstairs, it walks to the landing's attic ladder and is gone", async () => {
+    const w = page.locator('#walkers .walker[data-leaving="session_work1"]');
+    expect(await w.count() === 1 && (await w.getAttribute("data-floor")) === "upper", "nobody walking to the ladder");
+    // the foot of the attic ladder, where the page puts it: the landing's bottom right corner
+    const [x, y, lw, lh] = JSON.parse(readFileSync(join(here, "..", "index.html"), "utf8").match(/"landing":(\[[\d,]+\])/)[1]);
+    const lad = await onScreen(x + lw - 24, y + lh - 12);
+    const a = mid(await w.boundingBox());
+    await page.waitForTimeout(700);
+    const b = mid(await w.boundingBox());
+    expect(Math.hypot(b.x - a.x, b.y - a.y) > 4, "not moving");
+    expect(Math.hypot(b.x - lad.x, b.y - lad.y) < Math.hypot(a.x - lad.x, a.y - lad.y), "not heading for the ladder");
+    await w.waitFor({ state: "detached", timeout: 25000 });
+  });
+  await check("no page errors while walking", async () => expect(errors.length === 0, errors.join(" | ")));
   await ctx.close();
 }
 

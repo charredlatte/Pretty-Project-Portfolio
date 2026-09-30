@@ -76,7 +76,18 @@ with the live version 11" section of this session's plan; each step is pushed as
 - [x] 3. build-art.py: nine zips; both floors go to art/licensed/ (no longer committed).
 - [x] 4. furniture.py: doors() for both floors, the stair's upstairs stations.
 - [x] 5. index.html: walking cats (with floors), project maps, emblems gone, credits.
-- [ ] 6. Tests: their map check and walking section, adapted.
+- [x] 6. Tests: their map check and walking section, adapted.
 - [ ] 7. Docs.
 - [ ] 8. Verify, screenshots.
 - [ ] 9. Publish (read the artifact first; it was version 11).
+
+Loose ends from the merge:
+
+- Version 11's hover-steal checks (its test section 6d: a menu following a resting pointer to the next
+  room) are dropped. Menus open on a click now, so there is nothing to steal; the walking checks are 6d.
+- The outdoor KittyChat Cafe terrace is gone from the grounds: the café is indoors now, with the glazed
+  terrace beside the lounge. A parterre stands before the bay instead.
+- The parallel session that made version 11 still exists. Its branch is merged here, so a publish from
+  that session would overwrite this one with the one-floor house. Publish from this branch only.
+- A cat's walk used to start before its element was in the page and gave up on the first step, so a cat
+  brought back from the attic stayed "walking" for ever. Fixed; the test for it is in 6d.

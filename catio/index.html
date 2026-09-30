@@ -872,14 +872,14 @@ ul.gkey li > div.what { flex-basis: 100%; }
     b.setAttribute("aria-label", c.name + " (" + c.project.name + "), " + MOODS[c.mood].label + ": " + c.title + (waitingFor(c.id) ? ". " + waitingFor(c.id) + " files waiting" : ""));
     const legs = calm() ? null : journey(c.id, spot, room);
     dress(b, c, legs ? "idle" : c.mood, spot, room);
-    if (legs) walk(b, spot, legs.from, legs.legs).then((ok) => { if (ok) dress(b, c, c.mood, spot, room); });
     WHERE.set(c.id, { x: spot[0], y: spot[1], room });
     SEEN.add(c.id);
     b.addEventListener("click", (e) => { e.stopPropagation(); toggleMenu("cat", c.id, b); });
     b.addEventListener("dblclick", (e) => { e.stopPropagation(); catClicked(c, room); });
     hoverable(b, "cat", c.id);
     draggable(b, c);
-    layer.appendChild(b);
+    layer.appendChild(b);   // before it walks: a walk stops when its cat has left the page
+    if (legs) walk(b, spot, legs.from, legs.legs).then((ok) => { if (ok) dress(b, c, c.mood, spot, room); });
     VIEW.placed.push({ cat: c, x: spot[0] * 2, y: top + (c.mood === "idle" || c.mood === "box" ? 4 : 16), feet: spot[1] * 2, room });
   }
   function placeQueen(layer, k, here) {
