@@ -25,9 +25,16 @@ Last updated 30 September 2026.
 2. **Point CLAUDE.md at `docs/`.** Its harness section should link `docs/renovation-mode.md` and this plan.
    CLAUDE.md edits are refused as self-modification, so the links wait for her.
 3. **Licences for the new packs** before any of them go in the build: `plants.zip`, `Furnitures.png`,
-   `FreeSprites.png`, `free.png`, and `Game_UI_Pack_Pastel.zip`. Sprout Lands Sprites and Little Dreamyland
-   are known: non-commercial, credit needed, no redistribution.
+   `FreeSprites.png` and `free.png`. Sprout Lands Sprites and Little Dreamyland are known: non-commercial,
+   credit needed, no redistribution. `Game_UI_Pack_Pastel.zip` is settled (30 September): SC_siosio's,
+   allowed on websites with credit.
 4. **The UX spec for renovation mode** from the rooms-redesign session.
+
+## Next: the map panel, the minimap and a Sims-style camera
+
+Planned 30 September, with Charlotte's decisions, in `docs/camera-and-minimap.md`. It has three iterations: the
+map panel and minimap, the camera, and Build mode. What the art still lacks is in
+`litterbox/assets-wishlist.md`.
 
 ## The manor: done (on `main`)
 
