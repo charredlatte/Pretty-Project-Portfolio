@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Rebuild the catio's art from Charlotte's nine asset-pack zips.
+"""Rebuild the catio's art from Charlotte's ten asset-pack zips.
 
     pip install pillow fonttools
     python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip "Top down garden castle.zip" \
         "Wood Garden Asset Pack.zip" "Pixel Art Top Down - Basic v1.2.3.zip" \
         "Sprout Lands - UI Pack - Basic pack.zip" plants.zip \
-        "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip"
-    python3 catio/tools/build-art.py "Sprout Lands - UI Pack - Basic pack.zip"    # the interface alone
+        "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip" Game_UI_Pack_Pastel.zip
+    python3 catio/tools/build-art.py "Sprout Lands - UI Pack - Basic pack.zip" [Game_UI_Pack_Pastel.zip]   # the interface alone
 
 (The zips' names don't matter, only their order.) Writes, next to catio/index.html:
   art/licensed/house.png         the manor's ground floor (floors, walls, glass, doors, the south facade),
@@ -20,8 +20,9 @@
   art/licensed/meadow.png        a grass tile from Top Down Garden Castle, repeated under the manor
   art/licensed/mochi-idle.png, mochi-box.png, pochi.png   the ToffeeCraft cats, unchanged
   art/licensed/ui/               the interface, cut from Sprout Lands: panels, buttons, fields, bubbles,
-                                 brackets, the sound switch, the mood faces, the icons, the cursors and
-                                 sprout.ttf; and the logo, ToffeeCraft's cat-face bubble
+                                 brackets, the sound switch, the mood faces, the cursors and
+                                 sprout.ttf; the logo, ToffeeCraft's cat-face bubble; and pastel.png, icons
+                                 pixelated from SC_siosio's Game UI Pack – Pastel Edition
 and rewrites the page's MANOR block (furniture.py), which needs no zips on its own.
 
 Only art/furniture.png is committed (Cosy Cabin allows copying, with credit). The house mixes every pack,
@@ -76,8 +77,45 @@ PINK = {"E8CFA6": "EBB7AE", "F3E5C2": "F7D8CF", "C49A6C": "C98583", "AA7959": "9
 FACES = [("cry", 1, 6), ("meow", 2, 5), ("box", 0, 5), ("idle", 1, 5), ("sleep", 2, 6), ("keep", 3, 5)]   # (mood, column, row); keep: a queen's heart eyes
 
 
-# the controls' icons, by name: (column, row) in the pack's white icons sheet
-ICONS = {"plus": (0, 2), "minus": (1, 2), "house": (2, 2), "chat": (1, 0), "gear": (3, 0), "check": (3, 2), "cross": (4, 2)}
+# Game UI Pack – Pastel Edition (SC_siosio): its smooth 500 px icons, pixelated onto the page's grid. Each is
+# (folder under PNG/Filled/Icons, the file's colour name, the box it is fitted into). The pack's colour names
+# don't match its files ("Yellow" is blue, "Teal" green, "Orange" purple, "Amber" lavender), so
+# these are picked by eye. In PASTEL order; "house" is Sprout Lands' house, recoloured to match.
+PASTEL = {"up": ("Arrows/Up", "Yellow", 18), "down": ("Arrows/Down", "Yellow", 18), "plus": ("Math/Plus", "Yellow", 14),
+          "minus": ("Math/Minus", "Yellow", 14), "house": None, "pause": ("Media/Pause", "Yellow", 14),
+          "play": ("Media/Play", "Teal", 14), "check": ("Status/Check", "Teal", 16),
+          "lock": ("System/Lock", "Orange", 16), "unlock": ("System/Unlock", "Teal", 16)}
+
+
+def pixelate(im, size, colors=5):
+    """Shrink a smooth icon into a size x size pixel box: box-filtered, hard-edged, a few flat colours."""
+    im = im.convert("RGBA")
+    im = im.crop(im.getbbox())
+    k = size / max(im.size)
+    im = im.resize((max(1, round(im.width * k)), max(1, round(im.height * k))), Image.BOX)
+    alpha = im.split()[3].point(lambda v: 255 if v >= 110 else 0)
+    flat = im.convert("RGB").quantize(colors=colors, method=Image.Quantize.MEDIANCUT).convert("RGBA")
+    flat.putalpha(alpha)
+    return flat
+
+
+def pastel(pastel_zip, sprout_zip):
+    """The pastel icons, 20 px cells in PASTEL order, into art/licensed/ui/pastel.png. The pack forbids
+    redistributing its files, modified or not, so like the rest of art/licensed/ this is never committed."""
+    z = zipfile.ZipFile(pastel_zip)
+    out = Image.new("RGBA", (20 * len(PASTEL), 20))
+    for i, (name, spec) in enumerate(PASTEL.items()):
+        if spec is None:   # Sprout Lands' house, in the arrows' blue with their darker underside
+            glyph = member(zipfile.ZipFile(sprout_zip), "white icons.png").crop((32, 32, 48, 48))
+            icon = Image.new("RGBA", (16, 17))
+            icon.alpha_composite(recolor(glyph, {"FBFBF6": "5E7FA8"}), (0, 1))
+            icon.alpha_composite(recolor(glyph, {"FBFBF6": "93B4E0"}), (0, 0))
+        else:
+            folder, colour, size = spec
+            n = next(n for n in z.namelist() if f"PNG/Filled/Icons/{folder}/" in n and n.endswith(f"_Filled_{colour}.png"))
+            icon = pixelate(Image.open(io.BytesIO(z.read(n))), size)
+        out.alpha_composite(icon, (i * 20 + (20 - icon.width) // 2, (20 - icon.height) // 2))
+    out.save(OUT / "licensed" / "ui" / "pastel.png")
 
 
 def cat_ui(cats_zip):
@@ -111,12 +149,6 @@ def sprout(sprout_zip):
     settings.crop((11, 20, 69, 24)).save(out / "divider.png")
     basic.crop((275, 52, 285, 61)).save(out / "arrow.png")                          # the cream arrow on a select
     basic.crop((277, 2, 284, 14)).save(out / "pointer.png")                         # the menu cursor, beside the item
-    # the controls' icons: the pack's white icons in its dark outline brown, one 16 px cell each, in ICONS order
-    white = member(z, "white icons.png")
-    icons = Image.new("RGBA", (16 * len(ICONS), 16))
-    for i, (col, row) in enumerate(ICONS.values()):
-        icons.alpha_composite(recolor(white.crop((col * 16, row * 16, col * 16 + 16, row * 16 + 16)), {"FBFBF6": "795E53"}), (i * 16, 0))
-    icons.save(out / "icons.png")
 
     # the grey speech bubble, with its tail cut off to hang under a 9-slice body
     bub = member(z, "speech_bubble_grey.png").crop((11, 11, 53, 58))
@@ -270,14 +302,16 @@ def spring(im):
 
 
 def main():
-    if len(sys.argv) == 2:
+    if len(sys.argv) in (2, 3):
         sprout(sys.argv[1])
+        if len(sys.argv) == 3:
+            pastel(sys.argv[2], sys.argv[1])
         print("interface written to", OUT / "licensed" / "ui")
         return
-    if len(sys.argv) != 10:
+    if len(sys.argv) != 11:
         raise SystemExit(__doc__)
     (cabin_zip, cats_zip, garden_zip, wood_zip, stone_zip, sprout_zip, plants_zip,
-     sprites_zip, dreamy_zip) = sys.argv[1:]
+     sprites_zip, dreamy_zip, pastel_zip) = sys.argv[1:]
     (OUT / "licensed").mkdir(parents=True, exist_ok=True)
     zips = [zipfile.ZipFile(z) for z in sys.argv[1:]]
 
@@ -310,6 +344,7 @@ def main():
                          ("PochiFree/FreeSprites.png", "pochi.png")]:
         member(cats, suffix).save(OUT / "licensed" / name)
     sprout(sprout_zip)
+    pastel(pastel_zip, sprout_zip)
     cat_ui(cats_zip)
     furniture.write_page(OUT.parent / "index.html")
     print("art written to", OUT, "and the page's MANOR block updated")

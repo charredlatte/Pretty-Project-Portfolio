@@ -25,7 +25,7 @@ Last updated 30 September 2026.
 2. **Point CLAUDE.md at `docs/`.** Its harness section should link `docs/renovation-mode.md` and this plan.
    CLAUDE.md edits are refused as self-modification, so the links wait for her.
 3. **Licences for the new packs** before any of them go in the build: `plants.zip`, `Furnitures.png`,
-   `FreeSprites.png`, `free.png`, and `Game_UI_Pack_Pastel.zip`. Sprout Lands Sprites and Little Dreamyland
+   `FreeSprites.png`, `free.png`, and `Game_UI_Pack_Pastel.zip` (the last settled 30 September: SC_siosio's, credit required). Sprout Lands Sprites and Little Dreamyland
    are known: non-commercial, credit needed, no redistribution.
 4. **The UX spec for renovation mode** from the rooms-redesign session.
 
@@ -129,6 +129,16 @@ name when really the harness and UI SaaS that I am making here is called the Kit
   nine-zip build writes it). e2e: 125 passed, updated for the quiet map and the folded card.
 - Published as version 13 from `claude/great-gauss-pgs8nq`, after reading version 12 in full. Capabilities
   carried over. Checked after: the ten `rooms` intact; a probe cat created, updated and deleted.
+
+## Version 14: the Game UI Pastel pack (30 September)
+
+"Use the Game UI Pastel pack anyway." Its licence was inside the zip after all: SC_siosio's Game UI Pack – Pastel
+Edition, personal and commercial use, the credit "Game UI Pack created by SC_siosio" required, no redistribution
+even modified. It is smooth 500 px art, so `build-art.py` pixelates the icons it needs onto the page's grid
+(`pastel.png`) instead of mixing two styles: the corner controls (floor arrows, zoom, and Sprout Lands' house
+recoloured to match, replacing version 13's `icons.png`), a cat's Pause, Resume, Wrap up, Archive and Unarchive,
+and the lock on enforced house rules. The footer carries the credit. The zip is 12.5 MB, over the Drive
+connector's limit, so she attached it in the chat. e2e 125 passed.
 
 ## Next
 

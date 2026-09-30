@@ -15,7 +15,7 @@ Publish `catio/index.html` with:
   `pochi.png`) and the interface
   in `art/licensed/ui/` (`panel`, `button`, `button-hover`, `button-down`, `button-green`,
   `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `bubble-tail`, `corners`,
-  `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point`, `icons`, `pointer`, `logo` `.png`,
+  `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point`, `pointer`, `logo`, `pastel` `.png`,
   and `sprout.ttf`);
 - `capabilities`: omit it on a republish to keep what's stored. The declaration is
   `{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions"] }] }, db: {} }`.
@@ -25,8 +25,8 @@ Publish `catio/index.html` with:
 `art/licensed/` is not in git (licences below). In a fresh session, get it back one of two ways:
 
 1. `Artifact` read with `path: "art/licensed/<file>"` on the published URL, for each file; or
-2. get the nine zips from her Drive folder "KittyChat Cafe Assets" (or ask her for them) and run
-   `python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip "Top down garden castle.zip" "Wood Garden Asset Pack.zip" "Pixel Art Top Down - Basic v1.2.3.zip" "Sprout Lands - UI Pack - Basic pack.zip" plants.zip "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip"`
+2. get the ten zips from her Drive folder "KittyChat Cafe Assets" (or ask her for them) and run
+   `python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip "Top down garden castle.zip" "Wood Garden Asset Pack.zip" "Pixel Art Top Down - Basic v1.2.3.zip" "Sprout Lands - UI Pack - Basic pack.zip" plants.zip "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip" Game_UI_Pack_Pastel.zip`
    (needs `pip install pillow fonttools`; the order matters, not the names). Given only the Sprout Lands zip, it rebuilds just the
    interface.
 
@@ -47,6 +47,10 @@ Publish `catio/index.html` with:
 - **Little Dreamyland** (Starmixu & Utaskuas): changes allowed, non-commercial only, **no
   redistribution or resale, even modified**, no AI training. Glazed tiles and the forest. Never commit.
 - **plants.zip**: no licence came with it, so it is treated as licensed. Never commit.
+- **Game UI Pack – Pastel Edition** (SC_siosio): personal and commercial use, credit required ("Game UI Pack
+  created by SC_siosio", word for word), **no redistribution, even modified**, and its files must not be easily
+  extractable: use only small pixelated pieces cut by `build-art.py` (`pastel.png`), never its 500 px PNGs
+  or SVGs. 12.5 MB, so Drive can't hand it over: ask her to attach it in the chat. Never commit.
 
 `catio/art/CREDITS.md` says which pack drew what. The footer credits them all. Keep it.
 
@@ -142,8 +146,9 @@ button, pointing into the room new cats come in to. Each is a 9-slice `border-im
 (`faces.png`, in `MOODS` order, then a queen's heart eyes), the sound control is its toggle, the
 sign's tick and cross are its own, a queen's crown is its crown icon gilded, what she keeps is
 starred with its stars, and the pointer is its cat paw. Keep it that way: a new control should
-reuse one of these pieces rather than a CSS border or gradient. The controls' icons are its white icons
-recoloured to its outline brown (`icons.png`: plus, minus, house, chat, gear, check, cross), the menus'
+reuse one of these pieces rather than a CSS border or gradient. The controls' icons are SC_siosio's Game UI
+Pack (Pastel Edition), pixelated (`pastel.png`: up, down, plus, minus, Sprout Lands' house recoloured to match,
+pause, play, check, lock, unlock; also on a cat's Manage buttons and enforced house rules), the menus'
 cursor is its cream triangle (`pointer.png`), and the logo is ToffeeCraft's Cat UI cat-face bubble
 (`logo.png`). `--u` is one art pixel on screen
 (2px, or 1px on phones); the scene's overlay (room tags, bubbles) is drawn at one art pixel a

@@ -126,7 +126,7 @@ These aren't art to get, but they're open questions on what you already have:
 
 - **Unknown makers or terms:**
   - `plants.zip`: who made it? It's credited as unknown.
-  - `Game_UI_Pack_Pastel.zip`: whose is it, and what are its terms? Until you know, it stays out.
+  - `Game_UI_Pack_Pastel.zip`: settled. SC_siosio's, credit required, no redistribution; now in use.
 - **If the Catio ever becomes commercial** (sold, or used for the shop), several free versions don't
   allow it:
   - ToffeeCraft free: personal use only.

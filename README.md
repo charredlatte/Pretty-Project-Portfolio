@@ -144,10 +144,11 @@ repository.
 Every piece of the picture and the interface comes from packs Charlotte chose. The interface is
 Cup Nooble's Sprout Lands UI pack: its tan panels hold every menu and card, its cream buttons,
 grey fields and speech bubbles do the rest, its cat emoji show each cat's mood, its white brackets
-light up the room you point at, its switch turns the sound on, its icons sit on the zoom buttons,
+light up the room you point at, its switch turns the sound on,
 its little triangle points at the menu item you're on, the pointer is its cat paw, and titles and
 buttons are in its pixel font (with the French accents added). The logo is the cat-face speech
-bubble from ToffeeCraft's Cat UI.
+bubble from ToffeeCraft's Cat UI. The corner controls and a cat's Pause, Wrap up and Archive buttons carry
+icons from SC_siosio's Game UI Pack (Pastel Edition), pixelated to match.
 
 | Pack | Artist | In this repo? |
 |---|---|---|
@@ -157,6 +158,7 @@ bubble from ToffeeCraft's Cat UI.
 | [Wood Garden](https://rowdy41.itch.io/wood-garden) | rowdy41 | No: it is baked into the same file as Heosphorus's pieces |
 | [Pixel Art Top Down – Basic](https://cainos.itch.io/pixel-art-top-down-basic) | Cainos | No: the licence forbids redistribution |
 | [Sprout Lands UI Pack – Basic](https://cupnooble.itch.io/) | Cup Nooble | No: the licence forbids redistribution, even modified |
+| Game UI Pack – Pastel Edition | SC_siosio | No: the licence forbids redistribution, even modified |
 | [Sprout Lands Sprites – Basic](https://cupnooble.itch.io/) | Cup Nooble | No: the same terms |
 | [Little Dreamyland](https://starmixu.itch.io/little-dreamyland-asset-pack) | Starmixu & Utaskuas | No: the licence forbids redistribution, even modified |
 | plants.zip | (no licence came with it) | No: treated as licensed |

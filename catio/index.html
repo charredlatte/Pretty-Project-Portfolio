@@ -116,15 +116,18 @@ a { color: var(--ink); }
 .controls .floors, .controls .zooms { display: flex; gap: 4px; }
 .fl[aria-checked="true"] { border-image-source: url(art/licensed/ui/button-down.png); border-image-slice: 4 fill; translate: 0 calc(2 * var(--u)); background-color: #CDB793; }
 .fl { position: relative; }
-.fl .ar { width: 20px; height: 18px; flex: none; background: url(art/licensed/ui/arrow.png) center / 20px 18px no-repeat; image-rendering: pixelated; }
-.fl .ar.up { transform: scaleY(-1); }
 .fl .badge { position: absolute; right: -12px; top: -16px; }
 .btn.sq { width: 40px; height: 40px; padding: 0; display: grid; place-items: center; }
 .btn.sq:disabled { cursor: default; background-color: #D9C3A0; }
 .btn.sq:disabled > * { opacity: .35; }
-/* the pack's icons, in its dark outline brown: plus, minus, house, chat, gear, check, cross */
-.ico { --i: 0; display: inline-block; flex: none; width: 16px; height: 16px; image-rendering: pixelated; background: url(art/licensed/ui/icons.png) calc(var(--i) * -16px) 0 / 112px 16px no-repeat; }
-.i-minus { --i: 1; } .i-house { --i: 2; } .i-chat { --i: 3; } .i-gear { --i: 4; } .i-check { --i: 5; } .i-cross { --i: 6; }
+/* icons from SC_siosio's Game UI Pack (Pastel Edition), pixelated onto the page's grid by build-art.py: one
+   20 px cell each, in PASTEL order (up, down, plus, minus, house, pause, play, check, lock, unlock) */
+.pi { --i: 0; display: inline-block; flex: none; width: 20px; height: 20px; vertical-align: middle; image-rendering: pixelated;
+  background: url(art/licensed/ui/pastel.png) calc(var(--i) * -20px) 0 / 200px 20px no-repeat; }
+.p-down { --i: 1; } .p-plus { --i: 2; } .p-minus { --i: 3; } .p-house { --i: 4; } .p-pause { --i: 5; } .p-play { --i: 6; }
+.p-check { --i: 7; } .p-lock { --i: 8; } .p-unlock { --i: 9; }
+.btn .pi { margin: -2px 4px -2px -2px; }
+.btn.sq .pi { margin: 0; }
 @media (max-width: 560px) {
   .controls { flex-direction: column; align-items: end; gap: 8px; }
   .controls .floors, .controls .zooms { flex-direction: column; }
@@ -377,7 +380,7 @@ ul.thread li.me { margin-left: 24px; }
 ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-soft); }
 .rules li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: start; }
 .rules .t { font-size: .85rem; color: var(--ink-soft); grid-column: 1; }
-.rules .lock { font: 800 .72rem var(--body); color: var(--ink-soft); }
+.rules .lock { font: 800 .72rem var(--body); color: var(--ink-soft); display: inline-flex; align-items: center; gap: 2px; }
 .manage { display: flex; flex-wrap: wrap; gap: 6px; }
 /* a project's map: graphify's graph in the pack's picture frame, with its key below */
 .gmap[open] { display: grid; gap: 6px; }
@@ -426,18 +429,18 @@ ul.gkey li > div.what { flex-basis: 100%; }
   </header>
   <div class="controls" id="controls" role="group" aria-label="Floors and zoom">
     <div class="floors" role="radiogroup" aria-label="Floor">
-      <button class="btn sq fl" id="floor-upper" type="button" role="radio" data-floor="upper" aria-checked="false" title="Upstairs (Page Up)"><span class="ar up" aria-hidden="true"></span></button>
-      <button class="btn sq fl" id="floor-ground" type="button" role="radio" data-floor="ground" aria-checked="true" title="Ground floor (Page Down)"><span class="ar" aria-hidden="true"></span></button>
+      <button class="btn sq fl" id="floor-upper" type="button" role="radio" data-floor="upper" aria-checked="false" title="Upstairs (Page Up)"><span class="pi" aria-hidden="true"></span></button>
+      <button class="btn sq fl" id="floor-ground" type="button" role="radio" data-floor="ground" aria-checked="true" title="Ground floor (Page Down)"><span class="pi p-down" aria-hidden="true"></span></button>
     </div>
     <div class="zooms">
-      <button class="btn sq" id="zoomIn" type="button" aria-label="Zoom in" title="Zoom in (+)"><span class="ico i-plus" aria-hidden="true"></span></button>
-      <button class="btn sq" id="zoomOut" type="button" aria-label="Zoom out" title="Zoom out (−)"><span class="ico i-minus" aria-hidden="true"></span></button>
-      <button class="btn sq" id="zoomAll" type="button" aria-label="Whole house" title="Whole house (0)"><span class="ico i-house" aria-hidden="true"></span></button>
+      <button class="btn sq" id="zoomIn" type="button" aria-label="Zoom in" title="Zoom in (+)"><span class="pi p-plus" aria-hidden="true"></span></button>
+      <button class="btn sq" id="zoomOut" type="button" aria-label="Zoom out" title="Zoom out (−)"><span class="pi p-minus" aria-hidden="true"></span></button>
+      <button class="btn sq" id="zoomAll" type="button" aria-label="Whole house" title="Whole house (0)"><span class="pi p-house" aria-hidden="true"></span></button>
     </div>
   </div>
   <div class="sr" id="say" aria-live="polite"></div>
   <p class="sr" id="keyhelp">Arrow keys move between rooms. Enter opens a room's menu. Page Up and Page Down change floor. Plus and minus zoom, and Shift with the arrows moves the view. Escape goes back.</p>
-  <p class="credits">Rooms by Marie Pepo · Cats by ToffeeCraft · Garden by Heosphorus and rowdy41 · Stonework by Cainos · Interface and flowers by Cup Nooble · Forest and tiles from Little Dreamyland by Starmixu &amp; Utaskuas</p>
+  <p class="credits">Rooms by Marie Pepo · Cats by ToffeeCraft · Garden by Heosphorus and rowdy41 · Stonework by Cainos · Interface and flowers by Cup Nooble · Forest and tiles from Little Dreamyland by Starmixu &amp; Utaskuas · Game UI Pack created by SC_siosio</p>
 </main>
 
 <dialog id="catDlg" aria-labelledby="catName"></dialog>
@@ -2507,13 +2510,14 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
   function managing(c, dlg) {
     const bar = el("div", "manage");
-    const act = (label, cls, run, sure) => {
+    const act = (label, cls, run, sure, icon) => {
       const b = plainBtn(label, "tiny " + cls, async () => {
         if (sure && b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = sure; return; }
         b.disabled = true;
         await save(run);
         b.disabled = false;
       });
+      if (icon) b.prepend(el("span", "pi p-" + icon));
       bar.appendChild(b);
     };
     const request = (action, done) => async (db) => {
@@ -2526,15 +2530,15 @@ ul.gkey li > div.what { flex-basis: 100%; }
       catch (e) { if (REFUSED.has(e.code) || !S.mcp) { await queue(c, { kind: "manage", action }, e.code || "no_mcp"); toast(saidAs.queued); } else throw e; }
     };
     if (c.kind === "session") {
-      if (c.mood === "idle") act("Pause", "", direct("interrupt_session", "pause", c.name + " stops at the next safe point."));
-      act("Ask to wrap up", "", request("wrap_up", c.name + " will finish, ship and summarise."));
-      if (c.archived) act("Unarchive", "", direct("unarchive_session", "unarchive", c.name + " is back."));
-      else act("Archive", "pink", async () => { await direct("archive_session", "archive", c.name + " is archived.")(); const t = (S.tweaks[c.id] || {}).trigger; if (t && S.mcp) call("delete_trigger", { trigger_id: t }).catch(() => {}); dlg.close(); }, "Yes, archive it");
+      if (c.mood === "idle") act("Pause", "", direct("interrupt_session", "pause", c.name + " stops at the next safe point."), null, "pause");
+      act("Ask to wrap up", "", request("wrap_up", c.name + " will finish, ship and summarise."), null, "check");
+      if (c.archived) act("Unarchive", "", direct("unarchive_session", "unarchive", c.name + " is back."), null, "unlock");
+      else act("Archive", "pink", async () => { await direct("archive_session", "archive", c.name + " is archived.")(); const t = (S.tweaks[c.id] || {}).trigger; if (t && S.mcp) call("delete_trigger", { trigger_id: t }).catch(() => {}); dlg.close(); }, "Yes, archive it", "lock");
     } else if (c.kind === "agent") {
-      act("Pause", "", request("pause", c.name + " was asked to pause."));
-      act("Resume", "", request("resume", c.name + " was asked to carry on."));
-      act("Ask to wrap up", "", request("wrap_up", c.name + " will finish and summarise."));
-      act("Archive", "pink", async () => { await hostCall("manage", { cat: c.agentId, action: "archive" }); toast(c.name + " is archived."); dlg.close(); }, "Yes, archive it");
+      act("Pause", "", request("pause", c.name + " was asked to pause."), null, "pause");
+      act("Resume", "", request("resume", c.name + " was asked to carry on."), null, "play");
+      act("Ask to wrap up", "", request("wrap_up", c.name + " will finish and summarise."), null, "check");
+      act("Archive", "pink", async () => { await hostCall("manage", { cat: c.agentId, action: "archive" }); toast(c.name + " is archived."); dlg.close(); }, "Yes, archive it", "lock");
     }
     return bar;
   }
@@ -2549,7 +2553,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     for (const r of rules) {
       const li = el("li");
       li.appendChild(el("b", null, r.title));
-      if (r.enforced) li.appendChild(el("span", "lock", r.on === false ? "Off in rules.json" : "Enforced"));
+      if (r.enforced) { const lk = el("span", "lock", r.on === false ? "Off in rules.json" : "Enforced"); if (r.on !== false) lk.prepend(el("span", "pi p-lock")); li.appendChild(lk); }
       else {
         const sw = el("button", "sound", r.on === false ? "Off" : "On"); sw.type = "button"; sw.setAttribute("aria-pressed", String(r.on !== false)); sw.setAttribute("aria-label", r.title + ": " + (r.on === false ? "off" : "on"));
         sw.prepend(el("span", "switch" + (r.on === false ? "" : " on")));
