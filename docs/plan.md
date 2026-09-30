@@ -31,7 +31,8 @@ Last updated 30 September 2026.
 
 ## The manor: done (on `main`)
 
-- **The shell**, drawn from Cosy Cabin alone (`catio/tools/manor.py`), and committed as `art/house.png`. It has:
+- **The shell**, drawn from Cosy Cabin alone (`catio/tools/manor.py`), and committed as `art/house.png`
+  (superseded: see the two floors and the merge below). It had:
   - grey stone outside walls and warm stone inside;
   - stone flags in the Great hall;
   - a panelled Library (the brain) behind the hall;
@@ -73,8 +74,7 @@ bottom left with a bay window. Then: "the walls don't make any sense", and "it's
   - Upstairs (her choice, "over the back"): library over the café, an open landing over the kitchen and
     hall with the stairwell and the attic ladder, and the bedroom over the lounge with the ensuite. The
     craft room and the terrace are single-storey wings.
-  - Walls are Cosy Cabin's own dark wood wall, and doorways are clean capped cuts. `art/house-upper.png`
-    is new and committed. `cabin.py` is gone.
+  - Doorways are clean cuts. `art/house-upper.png` is new. `cabin.py` is gone.
 - **One floor at a time** on the page. The stair, the floor buttons and Page Up / Page Down switch floors
   without moving the camera. The stair's sign and the floor button carry a badge when the other floor needs
   her. Old and archived cats nap in the attic (hidden, as before).
@@ -84,6 +84,25 @@ bottom left with a bay window. Then: "the walls don't make any sense", and "it's
   primary action, and a grid of the rest. House-wide things moved to a House menu, top right. CLAUDE.md's
   "no toolbar" and "hover opens a menu" rules are lifted at her request.
 - Rooms' default names follow the house: Café, Cat lounge, Terrace, Entrance hall, Ensuite. e2e: 115 passed.
+
+## Versions 9 to 11 merged into the two floors (30 September)
+
+Versions 9 to 11 went live from a parallel session's branch (`claude/amazing-bohr-1sfkqi`), on the old
+one-floor house. Her choice: merge and keep both, in the Baroque look, on the two-floor grid.
+
+- **Version 9, the storybook Transylvanian Baroque manor**, redrawn on the grid. Ochre limewash with stucco
+  quoins outside; plaster either side of an oak beam inside; carved oak lintels over back-wall doorways; a south
+  facade with a pediment front door and steps on the ground floor only; stained glass in the library, the
+  lounge and the hall's south strips. It mixes every pack, so both floors are licensed art now
+  (`art/licensed/house.png`, `house-upper.png`), never committed. `build-art.py` takes nine zips.
+- **Version 10, project maps**: each filing cabinet shows the project's graphify map from `graphs/<repo>`,
+  and its questions ask a cat.
+- **Version 11, walking cats and livened grounds.** Cats walk through the doorways (`MANOR.doors`, with the
+  landing as a node upstairs), up the hall's stair to the attic and down it again, to the landing's ladder
+  when they're upstairs, and in by the front door. The spruce forest, lamp posts along the drive, the
+  fountain, the well and the pond came across. Emblems are gone: coats alone tell projects apart.
+- **Not carried over:** the outdoor KittyChat Cafe terrace (the café is indoors now, with the glazed terrace;
+  a parterre stands before the bay instead), and version 11's hover-steal delay (a click opens a menu now).
 
 ## Next
 
@@ -97,10 +116,16 @@ panel, breeds and cats placed by state. The capabilities are Claude Code Remote 
 `sample`. `host:catio` can only be declared from the Claude desktop app, so agent cats won't show until it's
 published from there. `rooms/brain` and the eight `rules/*` are seeded.
 
+Versions 9 (the Baroque manor), 10 (project maps, with `graphs/pretty-project-portfolio` and
+`rules/graph_first` seeded) and 11 (walking cats, the forest, coats without emblems) went live on
+29 September from `claude/amazing-bohr-1sfkqi`, each checked afterwards: the ten `rooms` intact, and a probe
+cat created, updated and deleted. That branch is merged here now.
+
 ## Publishing again
 
-Files: `art/house.png`, `art/house-upper.png`, `art/furniture.png`, `art/licensed/furniture.png`,
-`art/licensed/decor.png`, and the rest of CLAUDE.md's list. `art/licensed/` now also holds `furniture.png`.
+Files: `art/furniture.png`, `art/licensed/house.png`, `art/licensed/house-upper.png`,
+`art/licensed/furniture.png`, `art/licensed/decor.png`, and the rest of CLAUDE.md's list. No `emblems.png`,
+and no `art/house.png`.
 
 1. Re-read the live artifact.
 2. Republish to `artifacts.json`'s URL with the full capabilities listed in CLAUDE.md.

@@ -46,14 +46,20 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
   floors. It only speaks up when something is wrong, and then it says how to fix it.
 - **Filing cabinets** stand in every room but the terrace and the ensuite, and the catio deck has a chest. Each holds
   the projects filed in that room with all their cats, the ones needing you first, including the ones
-  archived or napping in the attic.
+  archived or napping in the attic. A project with a map (from graphify, made by the catio skill)
+  shows it there: its main ideas and how they connect, and questions a cat of it can be asked.
+- **Cats walk.** When a cat changes room it walks there through the doorways. When it goes to nap in the
+  attic it climbs the stair (or, upstairs, the landing's ladder), and it comes back down when it wakes.
+  New cats come in by the front door, and working cats get up for a little wander now and then.
 
-Cats wear their project: every cat of one project has the same coat and carries the same
-emblem (a tin of cat food for the grocery app, a coin for the shop, books for legal matters, a
-star for the portfolio, a plant, or yarn). The look can be changed from the project's cabinet.
+Cats wear their project: every cat of one project has the same coat. The look can be changed from the
+project's cabinet.
 
-The manor is a real two-storey plan. Both floors stand on one grid, so every upstairs wall stands on a
-downstairs wall. It runs from public to private: the café downstairs, her own rooms upstairs.
+The manor is a real two-storey plan, drawn in a storybook Transylvanian Baroque: ochre limewash with
+stucco corners outside, plaster and oak inside, stained glass, and a pediment over the front door. It
+stands among spruce woods, with lamp posts along the drive, a fountain, a well and a pond. Both floors
+stand on one grid, so every upstairs wall stands on a downstairs wall. It runs from public to private: the
+café downstairs, her own rooms upstairs.
 
 | Floor | Room | Who lives there (her rooms can be renamed and reassigned) |
 |---|---|---|
@@ -128,7 +134,7 @@ panels and nothing else — the page says so on its own sign, and tells you the 
 `catio/tools/build-art.py` over your own zips. Only Cosy Cabin, whose licence allows it, is in this
 repository.
 
-## Made from six asset packs
+## Made from nine asset packs
 
 Every piece of the picture and the interface comes from packs Charlotte chose. The interface is
 Cup Nooble's Sprout Lands UI pack: its tan panels hold every menu and card, its cream buttons,
@@ -138,12 +144,15 @@ titles and buttons are in its pixel font (with the French accents added).
 
 | Pack | Artist | In this repo? |
 |---|---|---|
-| [Cosy Cabin](https://marie-pepo.itch.io/cosy-cabin) | Marie Pepo | Yes: `catio/art/house.png`, `house-upper.png` and `furniture.png` |
+| [Cosy Cabin](https://marie-pepo.itch.io/cosy-cabin) | Marie Pepo | Yes: `catio/art/furniture.png`. The house mixes every pack, so it is not |
 | [Cat Pack Mochi](https://toffeecraft.itch.io/cat-pack) and [Pochi](https://toffeecraft.itch.io/cat-retro), Cat UI | ToffeeCraft | No: the licence forbids redistribution |
 | [Top Down Garden Castle](https://heosphorus.itch.io/) | Heosphorus | No: the licence forbids distribution |
 | [Wood Garden](https://rowdy41.itch.io/wood-garden) | rowdy41 | No: it is baked into the same file as Heosphorus's pieces |
 | [Pixel Art Top Down – Basic](https://cainos.itch.io/pixel-art-top-down-basic) | Cainos | No: the licence forbids redistribution |
 | [Sprout Lands UI Pack – Basic](https://cupnooble.itch.io/) | Cup Nooble | No: the licence forbids redistribution, even modified |
+| [Sprout Lands Sprites – Basic](https://cupnooble.itch.io/) | Cup Nooble | No: the same terms |
+| [Little Dreamyland](https://starmixu.itch.io/little-dreamyland-asset-pack) | Starmixu & Utaskuas | No: the licence forbids redistribution, even modified |
+| plants.zip | (no licence came with it) | No: treated as licensed |
 
 The uncommitted art (`catio/art/licensed/`) ships only inside the private artifact. See
 [`catio/art/CREDITS.md`](catio/art/CREDITS.md).
@@ -156,7 +165,7 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `catio/tools/furniture.py`: the furniture catalogue, where each piece stands, and where cats go;
   it writes the page's MANOR block.
 - `catio/tools/build-art.py`: draws both floors from the plan, the furniture atlases and the grounds,
-  and cuts the UI pieces, from the seven zips (`pip install pillow fonttools`, then see the script's
+  and cuts the UI pieces, from the nine zips (`pip install pillow fonttools`, then see the script's
   docstring).
 - `catio/tools/bundle.py`: the folder that runs on localhost.
 - `catio/tools/save-sessions.py`: trims a `list_sessions` result to the saved copy.
