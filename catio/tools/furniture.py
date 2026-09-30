@@ -14,7 +14,8 @@ layer      rug (under everything), wall (on the back wall band), floor (sorted b
 footprint  the part of the sprite that stands on the floor, as (dx, dy, w, h) inside the box; no cat
            stands on it. Rugs and wall pieces have none.
 stations   where a cat goes to show its state: (state, dx, dy), the point under its feet, relative to the
-           piece's top-left. States: needs, review, work, fail, sleep; queen for the room's queen.
+           piece's top-left. States: needs, review, work, fail, sleep; queen for the room's queen; upstairs for
+           the steps of the stair, foot to top, which cats climb on their way to the attic.
 
 Sheets are named by the end of their path, which finds them both in Charlotte's zips and in an unpacked
 copy. "cc" is Cosy Cabin (committable: art/furniture.png); every other sheet is licensed and goes into
@@ -52,7 +53,8 @@ def piece(sheet, box, kind="decor", layer="floor", foot=None, stations=(), scale
 
 CATALOGUE = {
     # the great hall
-    "stairs": piece("cainos", (32, 40, 64, 80), "essential", foot=(0, 0, 64, 80)),
+    "stairs": piece("cainos", (32, 40, 64, 80), "essential", foot=(0, 0, 64, 80),
+                    stations=[("upstairs", 32, 78), ("upstairs", 32, 54), ("upstairs", 32, 30), ("upstairs", 32, 6)]),
     "door_mat": piece("cc", (1009, 245, 30, 10), "essential", "rug", stations=[("needs", 9, 8), ("needs", 22, 8)]),
     "rug_red_diamond": piece("cc", (1008, 81, 48, 30), "connected", "rug", stations=[("fail", 24, 18)]),
     "rug_blue_diamond": piece("cc", (1008, 49, 48, 30), "connected", "rug", stations=[("fail", 24, 18)]),
@@ -311,9 +313,39 @@ def page_data():
                   "foot": c["foot"], "stations": c["stations"]} for k, c in CATALOGUE.items()}
     return {"world": list(manor.SIZE), "face": manor.FACE, "rooms": rooms, "level": level,
             "landing": [lx0, ly0, lx1 - lx0, ly1 - ly0], "stairs": list(manor.STAIRS),
-            "floors": {k: list(floor_of(k)) for k in rooms},
+            "floors": {k: list(floor_of(k)) for k in rooms}, "doors": doors(),
             "atlases": {a: list(sz) for a, sz in sizes.items()}, "pieces": pieces,
             "layout": {room: [list(p) for p in items] for room, items in LAYOUT.items()}}
+
+
+def doors():
+    """How cats get from room to room: [room a, room b, a point on a's floor, a point on b's floor] for each
+    doorway on both floors ("landing" is the upstairs landing), the stair (the hall's foot of it to the landing's
+    head), the cat flap into the catio, and last the front door (room b null: the way out, on the door mat)."""
+    import manor
+    T = manor.T
+
+    def room_at(x, y, floor):
+        for k, (box, _, _) in manor.boxes(floor).items():
+            X0, Y0, X1, Y1 = manor.box_px(box)
+            if X0 + 5 <= x < X1 - 5 and Y0 + 5 <= y < Y1 - 5:
+                return k
+        return "garden" if floor == "ground" and manor.in_catio(x, y) else None
+
+    out = []
+    for floor, ds in manor.DOORS.items():
+        for kind, w, a, b in ds:
+            m = (a + b) // 2
+            p, q = ([w * T - 8, m], [w * T + 12, m]) if kind == "v" else ([m, w * T - 8], [m, w * T + 5 + manor.FACE + 7])
+            out.append([room_at(*p, floor), room_at(*q, floor), p, q])
+    sx, sy, sw, sh = manor.STAIRS
+    out.append(["hall", "landing", [sx + sw // 2, sy + sh + 6], [sx + sw // 2, sy - 8]])
+    fx, f0, f1 = manor.CAT_FLAP
+    out.append(["sunroom", "garden", [fx - 8, (f0 + f1) // 2], [fx + 16, (f0 + f1) // 2]])
+    hy = manor.ROOMS["hall"][1][3] * T
+    out.append(["hall", None, [sum(manor.FRONT_DOOR) // 2, hy - 6], [sum(manor.FRONT_DOOR) // 2, hy + 20]])
+    assert all(d[0] and d[1] for d in out[:-1]), out
+    return out
 
 
 def write_page(page):
@@ -366,6 +398,8 @@ def check(only=None):
     import manor
     bad = []
     for s, sx, sy, room, key in stations(only):
+        if s == "upstairs":
+            continue                                  # cats sit on the stair's steps on purpose
         x0, y0, x1, y1 = floor_of(room)
         on = x0 + 4 <= sx < x1 - 4 and y0 <= sy < y1 - 2
         if room == "study" and manor.in_poly(sx, sy + 6, manor.bay_poly()):
