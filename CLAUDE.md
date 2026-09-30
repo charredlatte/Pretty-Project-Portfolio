@@ -50,7 +50,9 @@ Publish `catio/index.html` with:
 - **Game UI Pack – Pastel Edition** (SC_siosio): personal and commercial use, credit required ("Game UI Pack
   created by SC_siosio", word for word), **no redistribution, even modified**, and its files must not be easily
   extractable: use only small pixelated pieces cut by `build-art.py` (`pastel.png`), never its 500 px PNGs
-  or SVGs. 12.5 MB, so Drive can't hand it over: ask her to attach it in the chat. Never commit.
+  or SVGs. The full zip is 12.5 MB, over the Drive connector's 10 MB limit; `Game_UI_Pack_Pastel_icons.zip`
+  in the Drive folder (3.3 MB: the licence, the readme and `PNG/Filled/Icons`) is all `build-art.py` needs.
+  A republish needs neither: read `art/licensed/ui/pastel.png` back from the artifact. Never commit.
 
 `catio/art/CREDITS.md` says which pack drew what. The footer credits them all. Keep it.
 
