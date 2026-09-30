@@ -154,6 +154,11 @@ connector's limit, so she attached it in the chat. e2e 125 passed.
 
 ## Published
 
+**Version 15** went live on 30 September 2026 (21:58 UTC). It is version 13/14's KittyChat Cafe with iteration 1's map
+panel and minimap in place of the corner row (`docs/camera-and-minimap.md`), and the seven cut pieces in
+`art/licensed/pastel/`. The stored capabilities carried over. Checked after publishing: 41 files, the 10 `rooms`, and
+a probe in `cats` created, updated and deleted.
+
 Version 8 went live on 29 September 2026, with the manor, the brain, posting into sessions, the house rules
 panel, breeds and cats placed by state. The capabilities are Claude Code Remote (9 tools), `db`, `assets` and
 `sample`. `host:catio` can only be declared from the Claude desktop app, so agent cats won't show until it's
