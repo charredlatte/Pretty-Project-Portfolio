@@ -17,19 +17,19 @@
   "catchAll": false
  },
  "dining": {
-  "name": "Dining room",
+  "name": "Café",
   "blurb": "Business plans, round the table",
   "repos": [],
   "catchAll": false
  },
  "living": {
-  "name": "Living room",
+  "name": "Cat lounge",
   "blurb": "New cats come in here",
   "repos": [],
   "catchAll": true
  },
  "sunroom": {
-  "name": "Sunroom",
+  "name": "Terrace",
   "blurb": "TikTok saves, in the light",
   "repos": [
    "tiktok-saves"
@@ -51,13 +51,13 @@
   "catchAll": false
  },
  "bath": {
-  "name": "Bathroom",
+  "name": "Ensuite",
   "blurb": "Spare",
   "repos": [],
   "catchAll": false
  },
  "hall": {
-  "name": "Hall",
+  "name": "Entrance hall",
   "blurb": "Snail mail, by the front door",
   "repos": [
    "Snail-Mail-Trail"

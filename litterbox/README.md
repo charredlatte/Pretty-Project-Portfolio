@@ -7,3 +7,6 @@ read by the page or the harness. Move what's worth keeping into `docs/`, and thr
 |---|---|
 | `2026-09-29-harness-chat.md` | The session that built the harness, compressed: what was asked, decided, built and left open |
 | `loose-ends.md` | Questions waiting on her, ideas not built, facts learned the hard way |
+| `assets-wishlist.md` | The art and sound still missing: what to buy, what to draw, and at what sizes |
+
+Her requests, compiled, are in [`docs/requests.md`](../docs/requests.md).
