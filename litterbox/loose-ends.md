@@ -71,7 +71,7 @@ with the live version 11" section of this session's plan; each step is pushed as
 
 - [x] 1. Merge commit: conflicts resolved to this branch's side (page, tests, manor, furniture, build-art,
   README, docs/plan.md). Their harness, docs and litterbox came in as they were.
-- [ ] 2. manor.py: the Baroque look on the grid (ochre and quoins, plaster and oak inside, stained glass,
+- [x] 2. manor.py: the Baroque look on the grid (ochre and quoins, plaster and oak inside, stained glass,
   facade and pediment door on the ground floor), and their grounds (forest, lamps, fountain, well, scatter).
 - [ ] 3. build-art.py: nine zips; both floors go to art/licensed/ (no longer committed).
 - [ ] 4. furniture.py: doors() for both floors, the stair's upstairs stations.
