@@ -1,6 +1,6 @@
 # Pretty-Project-Portfolio
 
-**The Catio** is one page where every Claude project Charlotte has on the go lives as a cat in a
+**The KittyChat Cafe** (the Catio page) is one page where every Claude project Charlotte has on the go lives as a cat in a
 little pixel-art manor with a fenced catio. Each Claude Code session is a cat that plays while it
 works, sleeps when it's done, and **meows**, with a speech bubble saying what it needs, when it's
 waiting on her. Chats on claude.ai, like business plans and legal questions, can't be read by any
@@ -12,23 +12,27 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
 
 - **The manor fills the screen**, seen from above in a meadow, **one floor at a time**. Downstairs
   is the cat café; upstairs are her own rooms, with the ground floor faded underneath. Each room is
-  a space for one kind of work, with its name on a cream sign on its back wall and a badge (the
-  mood's cat face and a count) when cats in it need you; on a phone, just the badge.
-- **The stair** in the entrance hall goes up and down, and so do the floor buttons in the bottom
-  corner and Page Up / Page Down. The stair's sign and the floor button carry a badge when cats on
-  the other floor need you, so nothing hides upstairs.
+  a space for one kind of work. There are no signs on the map: a room says its name when you point
+  at it, and a cat that needs you shows its face over its head.
+- **The stair** in the entrance hall goes up and down, and so do the arrow buttons in the bottom
+  corner and Page Up / Page Down. The other floor's button carries a badge when cats there need you,
+  so nothing hides upstairs.
 - **Moving around**: drag the house to pan it (with the left, right or middle button), and use the
   wheel or a pinch to zoom around the pointer. The corner buttons zoom in, out and back to the whole
   house. Zoom in until one room fills the screen and you're in that room: its cats' bubbles say what
   they need.
 - **Hover over a room or a cat** and it lights up and says its name. **Click it** for its menu,
-  beside it, until you click elsewhere or press Escape. On a phone a tap does the same. A room's menu
-  shows who needs you, its queen, **Look in** (zoom to it), Files, Add files, Add a cat (a new session
-  or an adopted chat) and Edit room. A cat's shows what it needs, its project, room and branch,
-  **Open session** (or chat), and Talk for the full card, to rename it or move it. Double-click a
-  room to look in, or a cat for its card.
-- **The House button**, top right, holds what belongs to the whole house: the brain, the house
-  rules, Edit rooms, the sound, Check now, and the cats napping in the attic.
+  beside it, until you click elsewhere or press Escape. On a phone a tap does the same. Every menu is
+  short: the name and one line, who needs you (and the queen, when she has something to say), then a
+  list of actions with the pack's little triangle pointing at the one you're on. A room's are **Look
+  in**, Files, Add files, Add a cat and Edit room; a cat's are **Open session**, Talk, Add files and
+  Look in. Talk opens the cat's card: its conversation first, and everything else (the facts,
+  pausing, archiving, its name, room and title) folded under Manage. Double-click a room to look in,
+  or a cat for its card.
+- **The brand**, top left (ToffeeCraft's cat-face bubble and the name), is the House button. It
+  carries a badge when cats need you, and its menu holds what belongs to the whole house: whether
+  the cats are live, the brain, the house rules, Edit rooms, the cats napping in the attic, Check now
+  and the sound.
 - **With a keyboard**, Tab lands on the house once. Arrow keys move the brackets from room to room
   on the floor you're on (or, inside a room, walk into the next one). Enter steps into the room's
   menu and Escape steps back out. Page Up / Page Down change floor, + / − / 0 zoom, and Shift with
@@ -42,8 +46,9 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
   - Open her to give her something to keep, take it back, or have her say it out loud in her room
     until you take it.
   - She is never counted among the cats that need you; she is the one who tells you about them.
-- **The sign** in the top corner counts the cats that need you, are at work and are asleep, on both
-  floors. It only speaks up when something is wrong, and then it says how to fix it.
+- **The sign** under the brand only shows when something is wrong, and then it says how to fix it.
+  When Claude's saved copy is standing in for the live sessions it is one line, "Saved copy" and
+  the time; point at it for why.
 - **Filing cabinets** stand in every room but the terrace and the ensuite, and the catio deck has a chest. Each holds
   the projects filed in that room with all their cats, the ones needing you first, including the ones
   archived or napping in the attic. A project with a map (from graphify, made by the catio skill)
@@ -139,8 +144,10 @@ repository.
 Every piece of the picture and the interface comes from packs Charlotte chose. The interface is
 Cup Nooble's Sprout Lands UI pack: its tan panels hold every menu and card, its cream buttons,
 grey fields and speech bubbles do the rest, its cat emoji show each cat's mood, its white brackets
-light up the room you point at, its switch turns the sound on, the pointer is its cat paw, and
-titles and buttons are in its pixel font (with the French accents added).
+light up the room you point at, its switch turns the sound on, its icons sit on the zoom buttons,
+its little triangle points at the menu item you're on, the pointer is its cat paw, and titles and
+buttons are in its pixel font (with the French accents added). The logo is the cat-face speech
+bubble from ToffeeCraft's Cat UI.
 
 | Pack | Artist | In this repo? |
 |---|---|---|

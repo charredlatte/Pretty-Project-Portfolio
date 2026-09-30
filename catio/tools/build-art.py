@@ -20,7 +20,8 @@
   art/licensed/meadow.png        a grass tile from Top Down Garden Castle, repeated under the manor
   art/licensed/mochi-idle.png, mochi-box.png, pochi.png   the ToffeeCraft cats, unchanged
   art/licensed/ui/               the interface, cut from Sprout Lands: panels, buttons, fields, bubbles,
-                                 brackets, the sound switch, the mood faces, the cursors and sprout.ttf
+                                 brackets, the sound switch, the mood faces, the icons, the cursors and
+                                 sprout.ttf; and the logo, ToffeeCraft's cat-face bubble
 and rewrites the page's MANOR block (furniture.py), which needs no zips on its own.
 
 Only art/furniture.png is committed (Cosy Cabin allows copying, with credit). The house mixes every pack,
@@ -75,6 +76,17 @@ PINK = {"E8CFA6": "EBB7AE", "F3E5C2": "F7D8CF", "C49A6C": "C98583", "AA7959": "9
 FACES = [("cry", 1, 6), ("meow", 2, 5), ("box", 0, 5), ("idle", 1, 5), ("sleep", 2, 6), ("keep", 3, 5)]   # (mood, column, row); keep: a queen's heart eyes
 
 
+# the controls' icons, by name: (column, row) in the pack's white icons sheet
+ICONS = {"plus": (0, 2), "minus": (1, 2), "house": (2, 2), "chat": (1, 0), "gear": (3, 0), "check": (3, 2), "cross": (4, 2)}
+
+
+def cat_ui(cats_zip):
+    """The KittyChat Cafe's logo: ToffeeCraft's cat-face speech bubble, from its free Cat UI."""
+    out = OUT / "licensed" / "ui"
+    out.mkdir(parents=True, exist_ok=True)
+    member(zipfile.ZipFile(cats_zip), "CatUIFree/free.png").crop((37, 39, 58, 57)).save(out / "logo.png")
+
+
 def sprout(sprout_zip):
     """Cut the page's interface from Cup Nooble's Sprout Lands UI pack into art/licensed/ui/.
 
@@ -98,6 +110,13 @@ def sprout(sprout_zip):
     basic.crop((153, 9, 183, 39)).save(out / "frame.png")                           # picture frame, for portraits
     settings.crop((11, 20, 69, 24)).save(out / "divider.png")
     basic.crop((275, 52, 285, 61)).save(out / "arrow.png")                          # the cream arrow on a select
+    basic.crop((277, 2, 284, 14)).save(out / "pointer.png")                         # the menu cursor, beside the item
+    # the controls' icons: the pack's white icons in its dark outline brown, one 16 px cell each, in ICONS order
+    white = member(z, "white icons.png")
+    icons = Image.new("RGBA", (16 * len(ICONS), 16))
+    for i, (col, row) in enumerate(ICONS.values()):
+        icons.alpha_composite(recolor(white.crop((col * 16, row * 16, col * 16 + 16, row * 16 + 16)), {"FBFBF6": "795E53"}), (i * 16, 0))
+    icons.save(out / "icons.png")
 
     # the grey speech bubble, with its tail cut off to hang under a 9-slice body
     bub = member(z, "speech_bubble_grey.png").crop((11, 11, 53, 58))
@@ -291,6 +310,7 @@ def main():
                          ("PochiFree/FreeSprites.png", "pochi.png")]:
         member(cats, suffix).save(OUT / "licensed" / name)
     sprout(sprout_zip)
+    cat_ui(cats_zip)
     furniture.write_page(OUT.parent / "index.html")
     print("art written to", OUT, "and the page's MANOR block updated")
 

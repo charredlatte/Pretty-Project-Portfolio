@@ -15,7 +15,8 @@ Publish `catio/index.html` with:
   `pochi.png`) and the interface
   in `art/licensed/ui/` (`panel`, `button`, `button-hover`, `button-down`, `button-green`,
   `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `bubble-tail`, `corners`,
-  `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point` `.png`, and `sprout.ttf`);
+  `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point`, `icons`, `pointer`, `logo` `.png`,
+  and `sprout.ttf`);
 - `capabilities`: omit it on a republish to keep what's stored. The declaration is
   `{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions"] }] }, db: {} }`.
 
@@ -89,26 +90,39 @@ The stair is in the same place on both floors, so changing floor never moves the
 The manor fills the screen and is the page, **one floor at a time**. The ground floor stays faded under
 the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZUP`.
 
-- **Floors**: the stair, the floor buttons and Page Up / Page Down go between them. The stair's sign and
-  the floor button badge the other floor's cats that need her. The tally counts both floors.
-- **Controls**: Charlotte lifted the old "no toolbar" rule (September 2026). Two sets of controls now sit
-  on screen, and nothing else should:
-  - the corner cluster (`#controls`: floor switch, zoom in and out, whole house);
-  - the House button (`#houseBtn`, top right), whose menu holds what belongs to the whole house: the
-    brain, house rules, Edit rooms, sound, Check now and the attic.
+- **The page is the KittyChat Cafe** (September 2026: "the harness and UI SaaS that I am making here is
+  called the KittyChat Cafe"). The Catio is the page's old name and the code's; the catio is still the
+  fenced deck outside.
+- **No signs on the map** (she hates them): no room names, badges or stair sign on the art. A room is
+  named on hover (`#tip`); a cat that needs her shows its face over its head; the other floor's button
+  carries its badge; the brand carries the house's.
+- **Floors**: the stair, the floor buttons and Page Up / Page Down go between them. The tally counts both
+  floors.
+- **Controls**: two sets sit on screen, and nothing else should:
+  - the brand (`#houseBtn`, top left: ToffeeCraft's cat-face bubble, the name and a badge when cats need
+    her), which is the House button: its menu holds what belongs to the whole house (whether the cats are
+    live, the brain, house rules, Edit rooms, the attic, Check now and sound);
+  - the corner row (`#controls`: the floor arrows, zoom in and out, whole house), the pack's square
+    buttons with its icons, no panel and no words.
+- **The status sign** under the brand shows only when something is wrong. When Claude's saved copy fills
+  in for a blocked live read, it is one line ("Saved copy · 17:02") and the why shows on hover or focus.
+- **Breeds and file counts** on cats show only inside a room (`.stage.inroom`).
 - **Room controls**: a control for one room or cat goes in its menu.
 - **The camera is free**: drag to pan (left, right or middle button, or Space), wheel or pinch to zoom,
   + / − / 0 and Shift+arrows. `S.focus` is the room that fills the view, and bubbles speak there.
 - **Hover names a thing** in a line (`#tip`). **A click opens its menu** beside it, pinned until a click
   elsewhere or Escape (`toggleMenu`); a tap does the same. Keyboard focus opens a menu only when
   `:focus-visible`, and a click never closes a menu keyboard focus opened.
-- **Every menu has the same order**:
-  - a header (a caption, the name, count chips);
-  - what matters now;
-  - one green `.primary` action;
-  - the rest as a two-column grid, or one column when the labels are long.
+- **Every menu has the same shape, as short as it can be** ("make the menus less bloated and minimize
+  noise", September 2026):
+  - the name, with a badge when cats need her, and one line under it (no captions, no chips);
+  - what matters now, if anything does: the cats that need her (three at most), a queen's said note, a
+    cat's ask;
+  - the actions as a list (`mi()` in `list()`), the first the default (`.primary`), the pack's triangle
+    (`pointer.png`) beside the one under the pointer or focus.
 
-  Keep to that: a new action is a grid button, not a second primary.
+  Keep to that: a new action is a list item, and only if it earns its place. A card (dialog) puts what she
+  came for first and folds the rest (a cat's facts, management, name and title under Manage).
 - Hover means the pointer really moved onto the thing (`moved()`). When the camera moves or a dialog
   closes, the room that slides under a still pointer isn't named until she moves.
 - **Cats walk** when their place changes: through the doorways to a new room, up the stair to nap in the
@@ -128,7 +142,10 @@ button, pointing into the room new cats come in to. Each is a 9-slice `border-im
 (`faces.png`, in `MOODS` order, then a queen's heart eyes), the sound control is its toggle, the
 sign's tick and cross are its own, a queen's crown is its crown icon gilded, what she keeps is
 starred with its stars, and the pointer is its cat paw. Keep it that way: a new control should
-reuse one of these pieces rather than a CSS border or gradient. `--u` is one art pixel on screen
+reuse one of these pieces rather than a CSS border or gradient. The controls' icons are its white icons
+recoloured to its outline brown (`icons.png`: plus, minus, house, chat, gear, check, cross), the menus'
+cursor is its cream triangle (`pointer.png`), and the logo is ToffeeCraft's Cat UI cat-face bubble
+(`logo.png`). `--u` is one art pixel on screen
 (2px, or 1px on phones); the scene's overlay (room tags, bubbles) is drawn at one art pixel a
 pixel.
 
