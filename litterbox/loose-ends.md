@@ -78,7 +78,7 @@ with the live version 11" section of this session's plan; each step is pushed as
 - [x] 5. index.html: walking cats (with floors), project maps, emblems gone, credits.
 - [x] 6. Tests: their map check and walking section, adapted.
 - [x] 7. Docs.
-- [ ] 8. Verify, screenshots.
+- [x] 8. Verify, screenshots.
 - [ ] 9. Publish (read the artifact first; it was version 11).
 
 Loose ends from the merge:
