@@ -89,6 +89,8 @@ Today these are drawn in code (`catio/tools/manor.py`). They work, but hand-draw
 - **Kitchen:** a copper pan rack.
 - **Everywhere:** carved chairs.
 - **Catio:** a cat flap. Today it's a dark rectangle.
+- **A litter box** (from `litterbox/missing-assets.md`): a house full of cats has none, and no pack we have
+  draws one. A top-down sprite on the 16 px grid, about 16 × 12, for the catio or the bathroom.
 
 **Outdoors:**
 - ~~Spruce and fir trees~~: done from Little Dreamyland's spruces (29 September); a forest now edges the grounds.

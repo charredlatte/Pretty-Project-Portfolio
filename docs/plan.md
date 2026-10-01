@@ -9,36 +9,39 @@ version, is in `docs/history.md`. What she has asked for is in `docs/requests.md
 
 ## Where it stands
 
-- **Live:** version 15, published 30 September from `claude/dreamy-goldberg-iu6w6l`. That is the KittyChat
-  Cafe:
+- **Live:** version 16, published 30 September from `claude/dreamy-goldberg-iu6w6l`. That is the KittyChat
+  Café:
   - the brand is the House button;
   - quiet maps and short menus;
   - Game UI Pastel pixel icons;
   - the map panel and minimap.
-- **Tests:** e2e 143 passed; harness 18 passed; `furniture.check()` empty.
-- **`main`** is at version 12. Versions 13 to 16 are on `claude/dreamy-goldberg-iu6w6l`, which has every
-  branch merged.
+- **Tests:** e2e 154 passed; harness 18 passed; `furniture.check()` empty.
+- **`main`** is at version 12. Versions 13 to 16 and phase 0 are on `claude/dreamy-goldberg-iu6w6l`, which
+  has every branch merged.
+- **Phase 0** is done on the branch except what waits on her: the `send_message` trial, deleting the old
+  branches, and publishing it (until then, the live page still makes stray sessions when it posts).
 
 ## The roadmap, in order
 
 Each phase ends with the e2e test green, screenshots at 1440×900 and 390×844 in light and dark, a commit, and
 (when she says so) a publish by the checklist below.
 
-### Phase 0: make what's there honest (from the audit)
+### Phase 0: make what's there honest (from the audit). Done on the branch, not yet published
 
 The page shouldn't say "Sent." when nothing arrived, or "3 need you" when they don't. This comes before
 anything new.
 
 1. **Posting into sessions** (audit finding 1). Today it creates stray sessions and never delivers.
-   - Stop binding Routines. Every post goes to `outbox/` with `why: "no_route"`, and the toast says it's
-     waiting.
+   - Done: Routines are no longer bound. Every post goes to `outbox/` with `why: "no_route"`, and the
+     toast says it's waiting.
    - Declare Claude Code Remote's `send_message` and, with her OK, try it once on a test session. If it
      posts into the session, `postToSession()` uses it, and the outbox is only for refusals.
-   - Rewrite the e2e check that expects a Routine.
-2. **Honest counts** (finding 2).
+   - Done: the e2e checks expect the outbox.
+2. **Honest counts** (finding 2). Done.
    - Review-ready cats older than `STALE_DAYS` nap in the attic.
    - Sessions tagged `cowork-warm-start` are not cats.
-3. **The UI audit's leftovers** (finding 3).
+3. **The UI audit's leftovers** (finding 3). Done, except the small Nunito text, which waits for phase 4's
+   look at the bubbles.
    - Errors and "queued" messages stay until dismissed (`role="alert"`).
    - The sorter times out after about 8 s, Send turns on as soon as the keyword guesses are in, and skipped
      files are named.
@@ -46,7 +49,7 @@ anything new.
    - A "Still cats" switch in the House menu.
    - Darker placeholders.
    - The credits line also at the foot of the House menu, so phones show it (finding 6).
-4. **Housekeeping** (findings 4, 5, 10).
+4. **Housekeeping** (findings 4, 5, 10). Done, except deleting the old branches.
    - A pull request from this branch to `main`. Then, with her OK, delete the 14 old branches, so none can
      publish over the live page again.
    - Bring `catio-plugin/` and the README up to the manor (ten zips, no `cabin.py`).
