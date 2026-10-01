@@ -38,6 +38,18 @@ Then **answer on the cat**: `ArtifactData` `set` a new document in `notes` (doc 
 letters>`) with `{cat: "<your session id>", author: "session", text: "<your answer, under 1500 characters>", at: <ms>}`.
 Keep it to what she needs to read on her phone.
 
+### From the gateway
+
+When `CATIO_URL` and `CATIO_TOKEN` are set, this plugin's `report.py` hook keeps your cat live on the Catio's
+gateway (`harness/gateway/`), and when a turn ends it hands in what she sent there, as a `[Catio]` turn that ends
+with the two commands to use. Handle it as above, except:
+
+- answer with `python3 "${CLAUDE_PLUGIN_ROOT}/hooks/report.py" say "<your answer>"`, not `ArtifactData`;
+- fetch a delivered file with `python3 "${CLAUDE_PLUGIN_ROOT}/hooks/report.py" pick <file id>`, which prints where
+  it saved it.
+
+There is nothing to mark: the gateway hands each note, request and file over once.
+
 ## Catch-up (start of a session, or "check the brain")
 
 1. `ArtifactData` `query` `brain` with `where: [["cat", "==", "<your session id>"]]`, and a second

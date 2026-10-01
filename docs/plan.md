@@ -21,6 +21,9 @@ version, is in `docs/history.md`. What she has asked for is in `docs/requests.md
   merged in, waiting for PR #9.
 - **Phase 0** is done and live. The old branches are deleted (1 October). The `send_message` trial answered: a
   page can't post into a session (below).
+- **The gateway** (`harness/gateway/`, phase 5) is built and tested on `claude/eloquent-thompson-e9b2uh`: a
+  Cloudflare Worker every session reports to, with no server or domain of her own. It waits on her five setup steps,
+  then on the page reading it. Gateway tests: 9 passed; harness: 33 passed.
 
 ## The roadmap, in order
 
@@ -134,7 +137,21 @@ Each pack's licence is checked before it goes in, and credited in the footer and
   the session's own catch-up: the catio skill reads `outbox/` for its own session id when the session next
   runs, with the house-rules plugin (on since 1 October). A concierge Routine is the fallback, and the
   Routines are paused at her request.
-- **Agent cats in claude.ai** need `host:catio` declared, which only the Claude desktop app can do.
+- **The gateway** (`harness/gateway/README.md`): the always-on hub OpenClaw has, as a Cloudflare Worker on the
+  free plan. Built 1 October:
+  - the Worker: MCP at `/mcp` with the Catio server's tools, a password sign-in for claude.ai (OAuth, Claude's
+    connectors only), and the agents' key for everything else, which can't write as her;
+  - `hooks/report.py` in the house-rules plugin: every session reports itself, and its Stop hook hands in her
+    notes, requests and files when its turn ends. It does nothing until `CATIO_URL` and `CATIO_TOKEN` are set.
+
+  Next, once she has set it up: the page declares the `Catio` connector (`list_agents`, `comment`, `comments`,
+  `manage`, `drop_file`) beside `host:catio`, reads its cats next to the sessions, and matches a gateway cat
+  (`via: claude-code`, `session`) to the session it is, so no session shows twice. Compare the ids after their
+  prefix, in case one is `cse_…` and the other `session_…`. Messages to a gateway cat go to the gateway rather
+  than the outbox. Later, if she wants them: agents the gateway runs itself (the rest of OpenClaw), which would
+  need a machine, and a Telegram channel.
+- **Agent cats in claude.ai** need `host:catio` declared, which only the Claude desktop app can do. Agents that
+  report to the gateway instead show up anywhere, through the `Catio` connector.
 - **List `catio-plugin/` in the marketplace** next to `kittychat-house-rules`.
 
 ## Waiting on Charlotte
@@ -147,6 +164,10 @@ Each pack's licence is checked before it goes in, and credited in the footer and
 6. Whether "Rename" should also rename the real session.
 7. Whether cats napping in the attic should sit on the stairs instead.
 8. Whether to delete the `download` files (`.DS_Store`) in the Drive folder.
+9. Set up the gateway: the five steps in `harness/gateway/README.md` (Cloudflare import, two secrets, the two
+   variables and the allowed domain in each Claude environment, the `Catio` connector set to Always allow).
+10. Whether to delete `claude/catio-gateway-plan`, the first draft of the gateway, which needed a server and a
+    domain: `harness/gateway/` replaces it.
 
 ## Publishing
 

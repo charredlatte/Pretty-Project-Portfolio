@@ -94,7 +94,7 @@ def report_status(args):
     with LOCK:
         s = load()
         a = s["agents"].setdefault(args["agent"], {"id": args["agent"], "since": now()})
-        for k in ("name", "model", "provider", "title", "project", "repo", "ask", "link", "session", "cwd", "room"):
+        for k in ("name", "model", "provider", "title", "project", "repo", "branch", "ask", "link", "session", "via", "cwd", "room"):
             if k in args:
                 a[k] = str(args[k])[:500]
         if "mood" in args:
@@ -122,16 +122,31 @@ def list_agents(args):
 
 
 def inbox(args):
+    """With mark, only what hasn't been handed over yet, and now it has (as the gateway's session hooks use it).
+    Handing over keeps its own place (handedNotes), apart from what an answer counts as read (seenNotes)."""
     need(args, "agent")
-    s = load()
-    a = s["agents"].get(args["agent"], {})
-    seen = a.get("seenNotes", 0)
-    return {
-        "files": [{k: f[k] for k in ("id", "name", "type", "size", "note", "at")} for f in s["files"]
-                  if f["for"] == args["agent"] and f["status"] == "waiting"],
-        "notes": [n for n in s["notes"] if n["cat"] == args["agent"] and n["author"] == "charlotte" and n["at"] > seen],
-        "request": a.get("request"),
-    }
+    with LOCK:
+        s = load()
+        a = s["agents"].get(args["agent"])
+        mark = args.get("mark") is True and a is not None
+        files = [f for f in s["files"] if f["for"] == args["agent"] and f["status"] == "waiting" and not (mark and f.get("handed"))]
+        a_ = a or {}
+        since = a_.get("handedNotes", a_.get("seenNotes", 0)) if mark else a_.get("seenNotes", 0)
+        notes = [n for n in s["notes"] if n["cat"] == args["agent"] and n["author"] == "charlotte" and n["at"] > since]
+        request = (a or {}).get("request")
+        if mark:
+            if request and request.get("handed"):
+                request = None
+            for f in files:
+                f["handed"] = now()
+            if notes:
+                a["handedNotes"] = notes[-1]["at"]
+                a["seenNotes"] = max(a.get("seenNotes", 0), a["handedNotes"])
+            if request:
+                a["request"] = dict(request, handed=now())
+            if files or notes or request:
+                store(s)
+    return {"files": [{k: f[k] for k in ("id", "name", "type", "size", "note", "at")} for f in files], "notes": notes, "request": request}
 
 
 def pick_up(args):
@@ -229,12 +244,14 @@ TOOLS = {
                       "Call it when you start, when you need her, and when you finish. Returns what's waiting for you.",
                       {"agent": dict(S, description="Your stable id, e.g. codex-montfortoise"), "name": S, "model": dict(S, description="e.g. gpt-5, gemini-2.5-pro"),
                        "provider": dict(S, description="openai, google, anthropic, local..."), "title": S, "project": S, "repo": dict(S, description="owner/repo"),
-                       "mood": {"type": "string", "enum": list(MOODS)}, "ask": dict(S, description="What you need from her, when mood is needs"),
-                       "link": S, "session": dict(S, description="Your own session id, for the wake command"), "cwd": S,
+                       "branch": S, "mood": {"type": "string", "enum": list(MOODS)}, "ask": dict(S, description="What you need from her, when mood is needs"),
+                       "link": S, "session": dict(S, description="Your own session id, for the wake command"),
+                       "via": dict(S, description="What you run in, e.g. claude-code"), "cwd": S,
                        "wake": {"type": ["array", "null"], "items": S, "description": "Command that wakes you with a message; placeholders {message} {session} {agent}"}},
                       ["agent"]),
     "list_agents": (list_agents, "Every agent cat in the Catio.", {"archived": {"type": "boolean"}}, []),
-    "inbox": (inbox, "Files, notes from Charlotte, and any request (pause, resume, wrap_up) waiting for an agent.", {"agent": S}, ["agent"]),
+    "inbox": (inbox, "Files, notes from Charlotte, and any request (pause, resume, wrap_up) waiting for an agent. With mark, only "
+              "what hasn't been handed over yet, and it counts as handed over.", {"agent": S, "mark": {"type": "boolean"}}, ["agent"]),
     "pick_up": (pick_up, "Take a file from your inbox: returns it as base64 and marks it picked up.", {"id": S, "agent": S}, ["id"]),
     "drop_file": (drop_file, "Give a file to an agent's cat (and wake it, if it can be woken).",
                   {"name": S, "type": S, "base64": S, "for": dict(S, description="The agent id"), "note": S}, ["name", "base64", "for"]),

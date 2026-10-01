@@ -78,7 +78,9 @@ follow:
 - **A server of our own wouldn't change that.** A server in the middle (on Cloudflare, say, added as her
   connector) could take the page's message, but it still couldn't wake the session: it would have to call
   Claude's service as her, and there is no way for it to. It would only hold the message until the session
-  looks, which the Catio's database already does, and sessions read it directly (`ArtifactData`).
+  looks, which the Catio's database already does, and sessions read it directly (`ArtifactData`). What the
+  gateway below changes is when a session looks, and the other direction: see
+  [The gateway](#the-gateway-live-cats-without-asking-claudeai).
 
 The Catio MCP server (`mcp/catio_mcp.py`) is a server, but for the other direction: it runs on her
 computer, so agents there (Codex, Gemini CLI, Cursor) can join as cats and be woken by a command. A Claude
@@ -88,6 +90,22 @@ What has been tried: a Routine bound to the session (`create_trigger` with `pers
 `fire_trigger`) started a stray new session instead (30 September); `send_message` from the page is refused
 (1 October). If claude.ai ever allows `send_message` for pages, the page already calls it and the outbox
 empties itself.
+
+## The gateway: live cats without asking claude.ai
+
+[`gateway/`](gateway/README.md) is the Catio's always-on hub, a Cloudflare Worker on the free plan with the
+same tools as the Catio MCP server below. It changes two things:
+
+- **Cats are live without `list_sessions`.** `hooks/report.py` reports every session to it from Claude Code's
+  own hooks: busy when a prompt comes in, needs her at a question, review when a turn ends, done at the end.
+  This is plain code with nothing for the model to remember, and it does nothing until `CATIO_URL` and
+  `CATIO_TOKEN` are set. The page reads the gateway through a connector she adds herself, which can be set to
+  Always allow, unlike Claude Code Remote.
+- **A running session gets her message when its turn ends,** not at its next start. The Stop hook hands in her
+  notes, requests and files once each. An idle session still waits for its next turn: nothing can wake it.
+
+Agents anywhere can join it too, over MCP with the agents' key. Setting it up is five steps, in
+`gateway/README.md`.
 
 ## Other agents and models: the Catio MCP server
 
@@ -151,4 +169,5 @@ inside a repo for its always-on rule.
 
 ```bash
 python3 -m unittest discover harness/test
+cd harness/gateway && npm install && npm test   # the gateway in workerd, with the real hook
 ```
