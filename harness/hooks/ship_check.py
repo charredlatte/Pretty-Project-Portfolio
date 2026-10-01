@@ -13,7 +13,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from common import enforced, hook_input
+from common import enforced, hook_input, merges
 
 
 def git(*args, cwd=None):
@@ -67,12 +67,16 @@ def main():
         return
     top = git("rev-parse", "--show-toplevel", cwd=cwd)
     what = "; ".join(w if r == top else f"{Path(r).name}'s {w}" for r, w in found)
+    merging = [Path(r).name for r, _ in found if merges(r)]
+    merge = (f" {', '.join(merging)} {'merges' if len(merging) == 1 else 'merge'} its own pull requests: merge the "
+             "pull request once its checks pass. Never push to the "
+             "default branch, no force-push, and no merge anywhere else." if merging else
+             " Never the default branch, no force-push, no merge.")
     print(json.dumps({
         "decision": "block",
         "reason": f"House rule (KittyChat, semi-automatic shipping): {what}. If the change is done and "
                   "the repo's checks pass, commit it and push it now, and open a pull request if the work is a complete "
-                  "unit and none is open. Never the default branch, no force-push, no merge. If it isn't ready, say in one "
-                  "line why not and stop.",
+                  "unit and none is open." + merge + " If it isn't ready, say in one line why not and stop.",
     }))
 
 

@@ -11,16 +11,25 @@ def rules():
     return json.loads((ROOT / "rules.json").read_text(encoding="utf-8"))
 
 
+def local(cwd=None):
+    """The repo's own switches, .claude/catio-rules.json, or {}."""
+    try:
+        return json.loads((Path(cwd or os.getcwd()) / ".claude" / "catio-rules.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
 def enforced(rule_id, cwd=None):
     """Is this enforced rule on, here? rules.json says so, unless the repo's .claude/catio-rules.json switches it off."""
     rule = next((r for r in rules()["rules"] if r["id"] == rule_id), None)
     if not rule or not rule.get("on", True):
         return False
-    local = Path(cwd or os.getcwd()) / ".claude" / "catio-rules.json"
-    try:
-        return json.loads(local.read_text(encoding="utf-8")).get(rule_id, True) is not False
-    except (OSError, ValueError):
-        return True
+    return local(cwd).get(rule_id, True) is not False
+
+
+def merges(cwd=None):
+    """Does this repo merge its own pull requests? Only when its .claude/catio-rules.json says {"merge": true}."""
+    return local(cwd).get("merge") is True
 
 
 def hook_input():
