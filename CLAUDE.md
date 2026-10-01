@@ -261,6 +261,11 @@ object to `snapshot/sessions` with `ArtifactData` (`set`, pinned with `if_versio
 keeps only what the page reads, and accepts the result as the tool returns it
 (wrapped in `ccr`).
 
+`python3 catio/tools/digest.py [cats/*.json]` compiles that copy, and adopted chats exported from `cats`,
+into `catio/data/digest.md` and `digest.json`: per project, what needs her, what to review, and what to tidy
+(stale asks, empty reviews, untitled sessions, reruns, duplicates, misfiled repos). Both are gitignored: never
+commit them.
+
 A Routine, "Refresh the catio", does this every two hours from 07:59 to 19:59 Paris time. It fires
 into the Claude Code session it was created from, not a fresh one: a fresh routine session has
 neither `list_sessions` nor `ArtifactData`, so it can't refresh anything (tried September 2026).
