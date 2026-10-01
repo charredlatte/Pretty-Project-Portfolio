@@ -48,6 +48,11 @@ Keep it to what she needs to read on her phone.
 3. `get` `sessions/<your session id>`: if it has a `request` (`pause`, `wrap_up`) that you haven't
    answered, act on it, then `update` it with `{request: {"__delete__": true}, requestDoneAt: <ms>}`.
 4. `list` `rules`: a soft rule with `on: false` is switched off for now.
+5. `query` `outbox` with `where: [["cat", "==", "<your session id>"], ["status", "==", "queued"]]`. These are
+   the posts the page couldn't push into this session; steps 1 to 3 have already handled what they carry (a
+   delivery is its `brain` document, a message its note, a request `sessions/<id>.request`). `update` each
+   one you've handled with `{status: "delivered", deliveredAt: <ms>, deliveredBy: "<your session id>"}` and
+   its `if_version`. Leave `kind: "manage"` and `kind: "new"` ones to Charlotte.
 
 If `ArtifactData` isn't available (a terminal session outside claude.ai), use the `catio` MCP server
 instead when it's configured: `inbox`, `pick_up`, `comments`, `comment`.

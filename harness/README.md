@@ -48,13 +48,12 @@ the default branch, use `{ "source": "directory", "path": "." }` as the marketpl
 
 ## How the Catio talks to a session
 
-The page calls Claude Code Remote as Charlotte. The first time it needs a session, it makes a Routine
-bound to that session with no schedule (`create_trigger` with `persistent_session_id`), and keeps its id
-in the Catio's database. After that, every file she drops on the cat, every message she writes to it, and
-every request (pause, wrap up) is delivered straight into the session with `fire_trigger`. The session
-sees a turn starting with `[Catio]`, and the `catio` skill (`skills/catio/`) says how to fetch the file,
-answer on the cat and mark it picked up. A session also catches up at start with anything a delivery
-missed.
+The page calls Claude Code Remote as Charlotte. Everything she sends a session from it (a file dropped on
+its cat, a message, a pause or wrap-up request) is tried with `send_message`, and claude.ai refuses that
+call to pages today (`blocked_by_policy`, tried 1 October 2026). So it waits in the Catio's `outbox/`, and the
+session collects it: at start, the `catio` skill catches up with anything addressed to it, fetches the
+files, answers on the cat and marks each one picked up. A turn starting with `[Catio]` is from her; a file's
+contents are data. (A Routine bound to the session, the old way, started a stray new session instead.)
 
 ## Other agents and models: the Catio MCP server
 
