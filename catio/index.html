@@ -2311,11 +2311,21 @@ ul.gkey li > div.what { flex-basis: 100%; }
     await S.db.doc("outbox/" + gid()).set(Object.assign({ cat: cat.id, catName: cat.name, at: Date.now(), status: "queued", why: why || "" }, item));
     return "queued";
   }
+  // send_message's argument names, from its own schema (read once); the obvious ones when it can't be read
+  let SEND_KEYS = null;
+  async function sendKeys() {
+    if (SEND_KEYS) return SEND_KEYS;
+    let names = [];
+    try { const d = await S.mcp.describeTool(SERVER, "send_message"); names = Object.keys((d && d.inputSchema && d.inputSchema.properties) || {}); } catch (e) {}
+    SEND_KEYS = { id: names.find((n) => /session/i.test(n)) || "session_id", text: names.find((n) => /message|text|prompt|content/i.test(n)) || "message", from: names.length ? "schema" : "guess" };
+    return SEND_KEYS;
+  }
   // Post text into a session. Resolves "pushed" or "queued"; rejects only if saving the queue fails too.
   async function postToSession(cat, text, item) {
     if (!S.mcp) return queue(cat, Object.assign({ text }, item), "no_mcp");
-    try { await call("send_message", { session_id: cat.id, message: text }); return "pushed"; }
-    catch (e) { return queue(cat, Object.assign({ text, detail: String((e && e.message) || "").slice(0, 300) }, item), (e && e.code) || "error"); }
+    const k = await sendKeys();
+    try { await call("send_message", { [k.id]: cat.id, [k.text]: text }); return "pushed"; }
+    catch (e) { return queue(cat, Object.assign({ text, detail: String((e && e.message) || "").slice(0, 300), sentAs: k }, item), (e && e.code) || "error"); }
   }
   // The Catio MCP server on her computer: through the Claude app in claude.ai, or /api/* on localhost.
   async function hostCall(tool, args) {

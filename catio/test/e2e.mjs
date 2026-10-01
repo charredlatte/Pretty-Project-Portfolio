@@ -1318,7 +1318,21 @@ async function dropFiles(page, sel, files) {
   await ctx.close();
 }
 {
-  const { page, ctx, errors } = await open("?send=error");
+  const { page, ctx } = await open("?send=ok&sendschema=text");
+  await page.waitForTimeout(300);
+  await openCat(page, "Shop about page");
+  await menuButton(page, "Talk").click();
+  await page.fill("#sayTo", "Hi");
+  await page.click("#saySend");
+  await page.waitForTimeout(300);
+  await check("send_message's argument names come from its schema", async () => {
+    const sm = await tools(page, "send_message");
+    expect(sm.length === 1 && sm[0][2].text === "[Catio] Charlotte says: Hi" && !("message" in sm[0][2]), JSON.stringify(sm));
+  });
+  await ctx.close();
+}
+{
+  const { page, ctx, errors } = await open("?send=error&sendschema=none");
   await page.waitForTimeout(300);
   await openCat(page, "Shop about page");
   await menuButton(page, "Talk").click();
@@ -1327,7 +1341,7 @@ async function dropFiles(page, sel, files) {
   await page.waitForTimeout(300);
   await check("when send_message fails, the message waits in the outbox with the error, and says so", async () => {
     const q = await outbox(page);
-    expect(q.length === 1 && q[0].why === "tool_error" && q[0].detail === "session is archived" && q[0].text === "[Catio] Charlotte says: Are you there?", JSON.stringify(q));
+    expect(q.length === 1 && q[0].why === "tool_error" && q[0].detail === "session is archived" && q[0].sentAs.from === "guess" && q[0].sentAs.text === "message" && q[0].text === "[Catio] Charlotte says: Are you there?", JSON.stringify(q));
     expect((await toast(page)).includes("outbox"), await toast(page));
     expect(errors.length === 0, errors.join("; "));
   });

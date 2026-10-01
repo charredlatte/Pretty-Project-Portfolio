@@ -35,8 +35,8 @@ anything new.
    - Done: Routines are no longer bound. Every post goes to `outbox/` with `why: "no_route"`, and the
      toast says it's waiting.
    - On trial (her OK, 1 October): `postToSession()` calls `send_message`, and a post it can't make waits in
-     the outbox with the error. Declared in version 18, with `create_trigger` and `fire_trigger` dropped.
-     Declare Claude Code Remote's `send_message` and, with her OK, try it once on a test session. If it
+     the outbox with the error. Declared in version 18, with `create_trigger` and `fire_trigger` dropped. Its
+     argument names come from its own schema (`describeTool`), since this session can't read it. If it
      posts into the session, `postToSession()` uses it, and the outbox is only for refusals.
    - Done: the e2e checks expect the outbox.
 2. **Honest counts** (finding 2). Done.

@@ -223,7 +223,8 @@ The page now **writes** through Claude Code Remote, always on an explicit action
   `unsorted | waiting | pushed | picked`). `route()` sorts: the cat dropped on, a session/chat link in
   the file, a keyword score, then the sorter (`sample.json` in claude.ai; an OpenAI-compatible endpoint
   on localhost, `localStorage` `catio.sorter`), else the tray.
-- **Posting into a session**: Claude Code Remote's `send_message` (`{session_id, message}`), on trial from
+- **Posting into a session**: Claude Code Remote's `send_message` (argument names read from its schema with
+  `describeTool`, else `session_id` and `message`), on trial from
   version 18. Every `[Catio] Delivery…`, `[Catio] Charlotte says: …` and `[Catio] Request: wrap_up` that it
   can't post goes to `outbox/<id>` (`status: queued`, `why`: the error code, `detail`: its message), and the
   page says it is waiting; the session's own catch-up (catio skill) finds them. Never bind a Routine

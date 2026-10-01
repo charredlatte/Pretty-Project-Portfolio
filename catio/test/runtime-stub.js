@@ -104,6 +104,12 @@
     send_message: () => { const v = params.get("send"); if (v === "ok") return { ok: true }; throw v === "error" ? { code: "tool_error", message: "session is archived" } : { code: "not_in_manifest", message: "send_message isn't declared" }; },
     set_session_title: () => ({ ok: true }), archive_session: () => ({ ok: true }), unarchive_session: () => ({ ok: true }), interrupt_session: () => ({ ok: true }),
   };
+  // send_message's schema: ?sendschema=text names its message "text"; ?sendschema=none has none to read
+  mcp.describeTool = async (server, tool) => {
+    const v = params.get("sendschema");
+    if (v === "none" || tool !== "send_message") throw { code: "not_found", message: "no schema" };
+    return { name: tool, inputSchema: { type: "object", properties: { session_id: { type: "string" }, [v === "text" ? "text" : "message"]: { type: "string" } } } };
+  };
   mcp.callTool = async (server, tool, input) => {
     T.tools.push([server, tool, clone(input || {})]);
     if (server === "host:catio") {
