@@ -5,17 +5,19 @@
 
 It holds the page as a complete HTML document, all the art (licensed art included: this copy is for
 Charlotte's own use, never for sharing or committing), data/rooms.json, and data/sessions.json if
-Claude has saved one. Run it with VS Code's Live Server, `python -m http.server`, or `php -S localhost:8000`.
+Claude has saved one, and the Catio MCP server (harness/mcp/catio_mcp.py with its rules.json) so agents
+that aren't Claude Code sessions can join as cats. Run it with VS Code's Live Server, `python -m http.server`, or `php -S localhost:8000`.
 """
 import shutil
 import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+HARNESS = ROOT.parent / "harness"
 DIST = ROOT / "dist"
 OUT = DIST / "catio-local"
 
-HOWTO = """THE CATIO, ON YOUR OWN COMPUTER
+HOWTO = """THE KITTYCHAT CAFÉ, ON YOUR OWN COMPUTER
 
 1. Copy this folder onto your USB stick (or anywhere).
 2. Open the folder in VS Code (File > Open Folder).
@@ -26,7 +28,13 @@ HOWTO = """THE CATIO, ON YOUR OWN COMPUTER
    (Opening index.html by double-clicking won't load the cats: browsers block reading the data
    folder from a file:// page. It needs one of the servers above.)
 
-What you'll see: the cabin, with a cat for every Claude Code session in data/sessions.json, the
+To let other agents in too (Codex, Gemini CLI, Cursor, any MCP client), serve the folder with the
+Catio's own server instead, which needs only Python:
+   python3 harness/mcp/catio_mcp.py --serve . --port 8791   then open http://localhost:8791
+Agents join it as an MCP server: python3 harness/mcp/catio_mcp.py (over stdio). It keeps its
+state in a .catio folder in your home folder, and its house rules in harness/rules.json.
+
+What you'll see: the manor, with a cat for every Claude Code session in data/sessions.json, the
 copy Claude saved. Adopted cats, room names and project looks are saved in this browser.
 To get newer cats, ask Claude to refresh data/sessions.json and copy the new file into data/.
 
@@ -51,6 +59,9 @@ def main():
     for name in ("rooms.json", "sessions.json"):
         if (ROOT / "data" / name).exists():
             shutil.copy(ROOT / "data" / name, OUT / "data" / name)
+    (OUT / "harness" / "mcp").mkdir(parents=True)
+    shutil.copy(HARNESS / "mcp" / "catio_mcp.py", OUT / "harness" / "mcp" / "catio_mcp.py")
+    shutil.copy(HARNESS / "rules.json", OUT / "harness" / "rules.json")  # where catio_mcp.py looks for it
     (OUT / "HOW-TO-RUN.txt").write_text(HOWTO, encoding="utf-8")
     zpath = DIST / "catio-local.zip"
     with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:

@@ -113,6 +113,8 @@ async function addCat(page, kind) {
 const cam = (page) => page.evaluate(() => { const m = new DOMMatrix(getComputedStyle(document.getElementById("world")).transform); return { s: m.a, tx: m.e, ty: m.f }; });
 // a cat's card keeps its facts, its management and its name folded under Manage
 const manage = async (page) => { if (!(await page.locator("#catMore").evaluate((d) => d.open))) await page.click("#catMore summary"); };
+// what waits in the outbox, oldest first: what send_message couldn't post (by default the stub refuses it)
+const outbox = async (page) => Object.entries(await page.evaluate(() => window.__catio.store)).filter(([p]) => p.startsWith("outbox/")).map(([, v]) => v).sort((a, b) => a.at - b.at);
 const menuButton = (page, name) => page.locator("#menu").getByRole("button", { name, exact: true });
 
 /* ---------- 1. the screen, and adoption to resolution for an adopted chat ---------- */
@@ -274,8 +276,8 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(t.includes("120 ideas") && t.includes("CartDrawer") && t.includes("Shipping notes") && t.includes("Checkout"), t);
     await card.locator("button.ask").first().click();
     await page.waitForTimeout(300);
-    const fired = (await T(page, () => window.__catio.tools)).filter((x) => x[1] === "fire_trigger").pop();
-    expect(fired && fired[2].text === "[Catio] Charlotte says: Ask the project map: Why does CartDrawer connect Checkout to Theme?", JSON.stringify(fired));
+    const q = (await outbox(page)).pop();
+    expect(q && q.text === "[Catio] Charlotte says: Ask the project map: Why does CartDrawer connect Checkout to Theme?" && q.why === "not_in_manifest", JSON.stringify(q));
   });
   await check("the craft room's cabinet lists its projects and branches, archived sessions included", async () => {
     const t = await page.locator("#roomsDlg").innerText();
@@ -808,6 +810,32 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await ctx.close();
 }
 
+/* ---------- 6f. honest counts: what the brand's badge counts ---------- */
+{
+  const { page, ctx, errors } = await open();
+  const needCount = () => page.evaluate(() => (document.querySelector("#tally .badge .n") || {}).textContent || "0");
+  const before = Number(await needCount());
+  await T(page, () => {
+    const C = window.__catio, D = 864e5;
+    // a review nobody has opened in ten days, and claude.ai's warm-start placeholder
+    const old = C.session("oldreview", "Old review", "tiktok-saves", "REVIEW_READY", "IDLE", 10 * D);
+    const warm = Object.assign(C.session("warm", "__warming__", "tiktok-saves", "REVIEW_READY", "IDLE", 0), { tags: ["cowork-warm-start"] });
+    C.sessions.push(old, warm);
+    C.push();
+  });
+  await settle(page);
+  await check("a review nobody has opened for a week naps in the attic, and isn't counted as needing her", async () => {
+    expect(await page.locator('#cats .cat[aria-label*="Old review"]').count() === 0, "still in a room");
+    expect(Number(await needCount()) === before, "the badge went from " + before + " to " + (await needCount()));
+    await openHouse(page);
+    expect((await menuText(page)).includes("2 napping in the attic"), await menuText(page));
+  });
+  await check("claude.ai's warm-start placeholder is nobody's cat", async () =>
+    expect(await page.locator('#cats .cat[aria-label*="__warming__"]').count() === 0 && !(await page.evaluate(() => document.body.innerText.includes("__warming__"))), "it shows"));
+  await check("no page errors with the honest counts", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+
 /* ---------- 6e. the map panel and the minimap (Game UI Pastel) ---------- */
 {
   const { page, ctx, errors } = await open();
@@ -1025,7 +1053,7 @@ async function dropFiles(page, sel, files) {
     expect((await agent.getAttribute("aria-label")).includes("Meowing"), "agent should need her");
   });
 
-  // a file given to one cat: kept, then posted into its session through a Routine bound to it
+  // a file given to one cat: kept, and its delivery waits in the outbox (no Routine: one starts a stray session)
   await openCat(page, "Shop about page");
   await giveFiles(page, { name: "about-fr.md", mimeType: "text/markdown", buffer: Buffer.from("# À propos\nNotre boutique…") });
   await check("a file given to a cat goes to that cat", async () => {
@@ -1035,19 +1063,20 @@ async function dropFiles(page, sel, files) {
   await page.fill("#dropNote", "Use this for the about page");
   await page.click("#dropSend");
   await page.waitForTimeout(300);
-  await check("sending keeps the file, binds a Routine to the session once, and fires it with the delivery", async () => {
+  await check("sending keeps the file, and its delivery waits in the outbox, with no Routine made", async () => {
     const st = await T(page, () => window.__catio.store);
     const brain = Object.entries(st).filter(([p]) => p.startsWith("brain/"));
     expect(brain.length === 1, "brain docs " + brain.length);
     const d = brain[0][1];
-    expect(d.cat === "session_blocked1" && d.status === "pushed" && d.asset && d.note === "Use this for the about page" && d.how === "dropped", JSON.stringify(d));
-    const made = await tools(page, "create_trigger");
-    expect(made.length === 1 && made[0][2].persistent_session_id === "session_blocked1" && made[0][2].environment_id === "env_test" && !made[0][2].cron_expression, JSON.stringify(made));
-    const fired = await tools(page, "fire_trigger");
-    expect(fired.length === 1 && fired[0][2].trigger_id === "trig_1", JSON.stringify(fired));
-    const text = fired[0][2].text;
-    expect(text.startsWith("[Catio] Delivery for you: about-fr.md") && text.includes("Use this for the about page") && text.includes("Notre boutique") && text.includes(d.asset), text);
-    expect(st["sessions/session_blocked1"].trigger === "trig_1", "trigger not kept");
+    expect(d.cat === "session_blocked1" && d.status === "waiting" && d.via === "queued" && d.asset && d.note === "Use this for the about page" && d.how === "dropped", JSON.stringify(d));
+    expect((await tools(page, "create_trigger")).length === 0 && (await tools(page, "fire_trigger")).length === 0, "a Routine was used");
+    const q = await outbox(page);
+    expect(q.length === 1 && q[0].cat === "session_blocked1" && q[0].why === "not_in_manifest" && q[0].detail && q[0].kind === "delivery", JSON.stringify(q));
+    const sm = await tools(page, "send_message");
+    expect(sm.length === 1 && sm[0][2].session_id === "session_blocked1" && sm[0][2].message === q[0].text, JSON.stringify(sm));
+    expect(q[0].text.startsWith("[Catio] Delivery for you: about-fr.md") && q[0].text.includes("Use this for the about page") && q[0].text.includes("Notre boutique") && q[0].text.includes(d.asset), q[0].text);
+    expect(!(st["sessions/session_blocked1"] || {}).trigger, "a trigger was kept");
+    expect((await toast(page)).includes("outbox"), await toast(page));
   });
   await check("the cat carries its file, and its menu says so", async () => {
     expect((await page.locator('#cats .cat[aria-label*="Shop about page"] .fcount').textContent()) === "1", "no count");
@@ -1059,22 +1088,21 @@ async function dropFiles(page, sel, files) {
   await closeMenu(page);
   await page.mouse.move(8, 8);
   await dropFiles(page, '.roomhit[data-room="kitchen"]', [{ name: "intermarche-basket.csv", type: "text/csv", text: "item,qty\nlait,2" }]);
-  await check("a file dropped on a room is sorted to the cat it matches, and the second post reuses the Routine", async () => {
+  await check("a file dropped on a room is sorted to the cat it matches, and waits in the outbox for it", async () => {
     expect(await page.inputValue("#drop-0") === "session_work1", await page.inputValue("#drop-0"));
     await page.click("#dropSend");
     await page.waitForTimeout(300);
-    expect((await tools(page, "create_trigger")).length === 2, "one Routine per session");
-    const fired = await tools(page, "fire_trigger");
-    expect(fired.length === 2 && fired[1][2].trigger_id === "trig_2", JSON.stringify(fired));
+    const q = await outbox(page);
+    expect(q.length === 2 && q[1].cat === "session_work1" && q[1].text.includes("intermarche-basket.csv"), JSON.stringify(q));
   });
   await openCat(page, "Shop about page");
   await giveFiles(page, { name: "second.txt", mimeType: "text/plain", buffer: Buffer.from("more") });
   await page.click("#dropSend");
   await page.waitForTimeout(300);
-  await check("a second file for the same cat fires the same Routine", async () => {
-    expect((await tools(page, "create_trigger")).length === 2, "made another Routine");
-    const fired = await tools(page, "fire_trigger");
-    expect(fired[2][2].trigger_id === "trig_1", JSON.stringify(fired[2]));
+  await check("a second file for the same cat waits too, and still no Routine is made", async () => {
+    expect((await tools(page, "create_trigger")).length === 0, "made a Routine");
+    const q = await outbox(page);
+    expect(q.length === 3 && q[2].cat === "session_blocked1" && q[2].text.includes("second.txt"), JSON.stringify(q[2]));
   });
 
   // nothing points at a cat: the sorter model is asked
@@ -1103,8 +1131,8 @@ async function dropFiles(page, sel, files) {
   await page.waitForTimeout(300);
   await check("filing it from the tray sends it to the cat chosen", async () => {
     const d = Object.entries(await T(page, () => window.__catio.store)).find(([p, v]) => p.startsWith("brain/") && v.name === "mystery.bin")[1];
-    expect(d.cat === "session_work1" && d.status === "pushed" && d.how === "manual", JSON.stringify(d));
-    expect((await tools(page, "fire_trigger")).pop()[2].text.includes("mystery.bin"), "not delivered");
+    expect(d.cat === "session_work1" && d.status === "waiting" && d.how === "manual", JSON.stringify(d));
+    expect((await outbox(page)).pop().text.includes("mystery.bin"), "not queued for it");
   });
   await page.keyboard.press("Escape");
   await openHouse(page);
@@ -1125,11 +1153,12 @@ async function dropFiles(page, sel, files) {
   await page.fill("#sayTo", "Is the French text ready?");
   await page.click("#saySend");
   await page.waitForTimeout(300);
-  await check("writing to a cat posts it into the session and keeps it in the conversation", async () => {
-    const fired = (await tools(page, "fire_trigger")).pop();
-    expect(fired[2].text === "[Catio] Charlotte says: Is the French text ready?", fired[2].text);
+  await check("writing to a cat keeps it in the conversation and in the outbox, and says it hasn't arrived", async () => {
+    const q = (await outbox(page)).pop();
+    expect(q.text === "[Catio] Charlotte says: Is the French text ready?" && q.kind === "message", JSON.stringify(q));
     const n = Object.entries(await T(page, () => window.__catio.store)).find(([p]) => p.startsWith("notes/"));
-    expect(n && n[1].author === "charlotte" && n[1].cat === "session_blocked1" && n[1].via === "pushed", JSON.stringify(n));
+    expect(n && n[1].author === "charlotte" && n[1].cat === "session_blocked1" && n[1].via === "queued", JSON.stringify(n));
+    expect((await page.locator("#thread").innerText()).includes("queued"), "the conversation doesn't say it's waiting");
   });
   await T(page, () => window.__catio.put("notes/r1", { cat: "session_blocked1", author: "session", text: "Yes: it's in the PR.", at: Date.now() }));
   await page.waitForTimeout(200);
@@ -1141,8 +1170,8 @@ async function dropFiles(page, sel, files) {
   await manage(page);
   await page.click("#catDlg button:has-text('Ask to wrap up')");
   await page.waitForTimeout(200);
-  await check("asking a cat to wrap up posts the request and records it", async () => {
-    expect((await tools(page, "fire_trigger")).pop()[2].text === "[Catio] Request: wrap_up", "no request");
+  await check("asking a cat to wrap up queues the request and records it", async () => {
+    expect((await outbox(page)).pop().text === "[Catio] Request: wrap_up", "no request");
     expect((await T(page, () => window.__catio.store["sessions/session_blocked1"])).request === "wrap_up", "not recorded");
   });
   await page.fill("#catTitle", "Shop about page (FR)");
@@ -1161,10 +1190,10 @@ async function dropFiles(page, sel, files) {
   await check("archive asks once more", async () => expect((await tools(page, "archive_session")).length === 0, "archived at once"));
   await page.click("#catDlg button:has-text('Yes, archive it')");
   await page.waitForTimeout(200);
-  await check("pause and archive call the session's own tools, and archiving unbinds its Routine", async () => {
+  await check("pause and archive call the session's own tools, and no Routine was ever made", async () => {
     expect((await tools(page, "interrupt_session")).length === 1, "no pause");
     expect((await tools(page, "archive_session"))[0][2].session_id === "session_work1", "no archive");
-    expect((await tools(page, "delete_trigger"))[0][2].trigger_id === "trig_2", "Routine kept");
+    expect((await tools(page, "create_trigger")).length === 0 && (await tools(page, "fire_trigger")).length === 0, "a Routine was used");
   });
 
   // a new cat, on the model chosen for it
@@ -1237,7 +1266,7 @@ async function dropFiles(page, sel, files) {
   await check("no page errors through the harness", async () => expect(errors.length === 0, errors.join("; ")));
   await ctx.close();
 }
-// When claude.ai won't let the page post into sessions, the post is queued for the concierge.
+// When claude.ai refuses the page's other writes, posts still wait in the outbox, and the page says so.
 {
   const { page, ctx, errors } = await open("?writes=refused&host=none");
   await page.waitForTimeout(300);
@@ -1251,8 +1280,69 @@ async function dropFiles(page, sel, files) {
     expect(o.length === 1 && o[0][1].status === "queued" && o[0][1].why === "approval_required" && o[0][1].cat === "session_blocked1" && o[0][1].text.includes("note.txt"), JSON.stringify(o));
     const b = Object.entries(st).find(([p]) => p.startsWith("brain/"))[1];
     expect(b.status === "waiting" && b.via === "queued", JSON.stringify(b));
-    expect((await toast(page)).includes("queued"), await toast(page));
+    expect((await toast(page)).includes("outbox"), await toast(page));
     expect(await page.locator('#cats .cat[aria-label*="Shop theme"]').count() === 0, "an agent without its server");
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
+// When send_message works, a post goes straight into the session; when it fails, it waits with the reason.
+{
+  const { page, ctx, errors } = await open("?send=ok");
+  await page.waitForTimeout(300);
+  await openCat(page, "Shop about page");
+  await menuButton(page, "Talk").click();
+  await page.fill("#sayTo", "Hello from the café");
+  await page.click("#saySend");
+  await page.waitForTimeout(300);
+  await check("with send_message allowed, a message goes into the session and nothing waits", async () => {
+    const sm = await tools(page, "send_message");
+    expect(sm.length === 1 && sm[0][2].session_id === "session_blocked1" && sm[0][2].message === "[Catio] Charlotte says: Hello from the café", JSON.stringify(sm));
+    expect((await outbox(page)).length === 0, "queued anyway");
+    const n = Object.entries(await T(page, () => window.__catio.store)).find(([p]) => p.startsWith("notes/"));
+    expect(n && n[1].via === "pushed", JSON.stringify(n));
+    expect((await toast(page)) === "Sent.", await toast(page));
+    expect((await tools(page, "create_trigger")).length === 0, "a Routine was used");
+  });
+  await page.keyboard.press("Escape");
+  await openCat(page, "Shop about page");
+  await giveFiles(page, { name: "ready.txt", mimeType: "text/plain", buffer: Buffer.from("all set") });
+  await page.click("#dropSend");
+  await page.waitForTimeout(300);
+  await check("a file delivered with send_message is marked sent, not waiting", async () => {
+    const b = Object.entries(await T(page, () => window.__catio.store)).find(([p]) => p.startsWith("brain/"))[1];
+    expect(b.status === "pushed" && b.via === "pushed", JSON.stringify(b));
+    expect((await tools(page, "send_message")).pop()[2].message.includes("ready.txt"), "not delivered");
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
+{
+  const { page, ctx } = await open("?send=ok&sendschema=text");
+  await page.waitForTimeout(300);
+  await openCat(page, "Shop about page");
+  await menuButton(page, "Talk").click();
+  await page.fill("#sayTo", "Hi");
+  await page.click("#saySend");
+  await page.waitForTimeout(300);
+  await check("send_message's argument names come from its schema", async () => {
+    const sm = await tools(page, "send_message");
+    expect(sm.length === 1 && sm[0][2].text === "[Catio] Charlotte says: Hi" && !("message" in sm[0][2]), JSON.stringify(sm));
+  });
+  await ctx.close();
+}
+{
+  const { page, ctx, errors } = await open("?send=error&sendschema=none");
+  await page.waitForTimeout(300);
+  await openCat(page, "Shop about page");
+  await menuButton(page, "Talk").click();
+  await page.fill("#sayTo", "Are you there?");
+  await page.click("#saySend");
+  await page.waitForTimeout(300);
+  await check("when send_message fails, the message waits in the outbox with the error, and says so", async () => {
+    const q = await outbox(page);
+    expect(q.length === 1 && q[0].why === "tool_error" && q[0].detail === "session is archived" && q[0].sentAs.from === "guess" && q[0].sentAs.text === "message" && q[0].text === "[Catio] Charlotte says: Are you there?", JSON.stringify(q));
+    expect((await toast(page)).includes("outbox"), await toast(page));
     expect(errors.length === 0, errors.join("; "));
   });
   await ctx.close();
@@ -1305,6 +1395,59 @@ if (LOCAL) {
     expect(await page.locator("#overlay .bub.queenb").count() === 1, "she stopped saying it after the reload");
     expect(errors.length === 0, errors.join("; "));
   });
+  await ctx.close();
+}
+
+/* ---------- 9. the UI audit's leftovers (phase 0): alerts that stay, the sorter's time limit, Still cats ---------- */
+{
+  const { page, ctx, errors } = await open();
+  await check("speech bubbles aren't Tab stops: the map stays one stop", async () => {
+    const stops = await page.evaluate(() => [...document.querySelectorAll("#overlay .bub")].map((b) => b.tabIndex));
+    expect(stops.length > 0 && stops.every((t) => t === -1), JSON.stringify(stops));
+  });
+  await openHouse(page);
+  await check("the House menu carries the credits, so a phone shows them too", async () =>
+    expect((await menuText(page)).includes("Game UI Pack created by SC_siosio"), await menuText(page)));
+  await page.click("#stillCats");
+  await check("Still cats stops every animation, and says it's on", async () => {
+    expect(await page.evaluate(() => document.documentElement.classList.contains("still")), "no .still");
+    expect((await page.locator("#stillCats").getAttribute("aria-pressed")) === "true", "aria-pressed");
+    const running = await page.evaluate(() => getComputedStyle(document.querySelector("#cats .spr")).animationName);
+    expect(running === "none", running);
+  });
+  await page.reload(); await page.waitForTimeout(600);
+  await check("Still cats is remembered", async () => expect(await page.evaluate(() => document.documentElement.classList.contains("still")), "forgotten"));
+  // an error stays until she dismisses it, and is read out at once
+  await T(page, () => { window.__catio.readOnly = true; });
+  await openRoom(page, "kitchen");
+  await menuButton(page, "Edit room").click();
+  await page.click('#roomsDlg button[type="submit"]');
+  await page.waitForTimeout(3600);
+  await check("an error stays past the usual few seconds, as an alert, until OK", async () => {
+    expect(await page.locator("#toast").isVisible(), "gone");
+    expect((await page.locator("#toast").getAttribute("role")) === "alert", "not an alert");
+    await page.click("#toast button");
+    expect(!(await page.locator("#toast").isVisible()), "OK didn't close it");
+  });
+  await page.keyboard.press("Escape");
+  await T(page, () => { window.__catio.readOnly = false; window.__catio.sampleHang = true; });
+  await dropFiles(page, "#stage .house", [{ name: "untitled.txt", type: "text/plain", text: "a few thoughts" }]);
+  await check("a sorter that hangs doesn't hold Send: it works at once, while the sorter is asked", async () => {
+    expect(!(await page.locator("#dropSend").isDisabled()), "Send is held");
+    expect((await page.locator("#brainDlg").innerText()).includes("Asking the sorter"), await page.locator("#brainDlg").innerText());
+  });
+  await page.click("#brainDlg button:has-text('Cancel')");
+  await T(page, () => { window.__catio.sampleHang = false; });
+  await openCat(page, "Shop about page");
+  await giveFiles(page, { name: "huge.mov", mimeType: "video/quicktime", buffer: Buffer.alloc(21 * 1024 * 1024) });
+  await page.click("#dropSend");
+  await page.waitForTimeout(400);
+  await check("a file too big to keep is named in the result, which stays", async () => {
+    expect((await toast(page)).includes("huge.mov wasn't kept"), await toast(page));
+    await page.waitForTimeout(3400);
+    expect(await page.locator("#toast").isVisible(), "gone");
+  });
+  await check("no page errors with the audit's fixes", async () => expect(errors.length === 0, errors.join("; ")));
   await ctx.close();
 }
 

@@ -7,12 +7,15 @@ compressed. Read this before starting something new. Last updated 1 October 2026
 
 | Place | What's there |
 |---|---|
-| `CLAUDE.md` | The operating brief. Partly stale: it still describes the cabin (`cabin.py`, "house.png is committed"). Only she can edit it |
+| `CLAUDE.md` | The operating brief: how to work on the page, the licences, the data, publishing |
 | `README.md` | What the page is, the rooms, the packs |
 | `docs/requests.md` | This file: her requests |
 | `docs/from-the-litterbox.md` | Everything the litter box held, sorted: open questions, ideas not built (with the art and sound still missing: what to buy, what to draw, and at what sizes), facts learned, the compressed 29 September harness chat and the UI/UX audit |
-| `docs/plan.md` | The harness and manor plan: what's done, what's blocked on her, how to publish |
-| `docs/renovation-mode.md` | The traps under drag-and-drop furniture |
+| `docs/plan.md` | The roadmap: phases in order, what's waiting on her, how to publish |
+| `docs/audit-2026-10-01.md` | The project audit of 1 October: what's broken, what's stale, what to fix first |
+| `docs/history.md` | How it got here, version by version |
+| `docs/camera-and-minimap.md` | The map panel, the minimap and the Sims-style camera |
+| `docs/renovation-mode.md` | The renovation mode spec: moving, adding and removing furniture, the cabinets' looks |
 | `litterbox/` | The back burner: new notes land here, `litterbox/sort.py` piles them by project for her to check, then files each checked pile into its project's own repo and pushes it |
 | `catio/art/CREDITS.md` | Every pack, its artist and its licence |
 | `harness/README.md`, `harness/rules.json` | The KittyChat house rules and the Catio MCP server |
@@ -124,12 +127,12 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 - **"Use the Game UI Pastel pack anyway"**: its licence turned up inside the zip (SC_siosio, credit required).
   Version 14 uses its icons, pixelated, on the corner controls and a cat's Manage buttons.
 
+## Decided 30 September
+
+- The minimap is a plan of rooms; WASD and the arrows both pan; Game UI Pastel is used.
+- A filing cabinet never leaves its room, and she chooses what it looks like in each room.
+- Renovation mode stays in the plan as its own phase (1 October): `docs/renovation-mode.md`.
+
 ## Still waiting on her
 
-- Who made `plants.zip`.
-- Whether to delete the "download" files (`.DS_Store`) in the Drive folder.
-- Whether Rename should rename the real session.
-- Whether a filing cabinet can leave its room.
-- Turning the plugin on in `.claude/settings.json`.
-- Her edits to `CLAUDE.md`.
-- Whether cats napping upstairs should sit on the stairs.
+The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.

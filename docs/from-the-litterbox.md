@@ -24,7 +24,8 @@ from. Edit them freely: the sorter only adds, and never files a note that is alr
 - **Should "Rename" on a session's cat rename the real session?** It doesn't: the cat's name and the
   session's title are two different fields on the card. *— litterbox/loose-ends.md*
 
-- **Should a filing cabinet ever leave its room** in renovation mode? *— litterbox/loose-ends.md*
+- **Should a filing cabinet ever leave its room** in renovation mode? Settled 30 September: never, but she
+  picks its look in each room (`docs/renovation-mode.md`). *— litterbox/loose-ends.md*
 
 ## Ideas not built
 
@@ -142,6 +143,8 @@ Today these are drawn in code (`catio/tools/manor.py`). They work, but hand-draw
 - **Everywhere:** carved chairs. *— litterbox/assets-wishlist.md*
 
 - **Catio:** a cat flap. Today it's a dark rectangle. *— litterbox/assets-wishlist.md*
+- **A litter box:** a house full of cats has none, and no pack we have draws one. A top-down sprite on the
+  16 px grid, about 16 × 12, for the catio or the bathroom. *— litterbox/missing-assets.md*
 
 **Outdoors:** *— litterbox/assets-wishlist.md*
 

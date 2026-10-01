@@ -137,13 +137,13 @@ claude --plugin-dir Pretty-Project-Portfolio/catio-plugin
 The skill walks you through your rooms, your sessions, publishing the page as your own private
 artifact, and the folder that runs off a USB stick.
 
-**It cannot give you the cats, or the interface.** Five of the six packs below forbid redistributing
-their files, so `catio/art/licensed/` is gitignored and a fresh clone draws the manor on plain
+**It cannot give you the cats, or the interface.** Eight of the ten packs below forbid redistributing
+their files (and plants.zip came with no licence), so `catio/art/licensed/` is gitignored and a fresh clone draws the manor on plain
 panels and nothing else — the page says so on its own sign, and tells you the three steps. You buy the packs yourself and run
 `catio/tools/build-art.py` over your own zips. Only Cosy Cabin, whose licence allows it, is in this
 repository.
 
-## Made from nine asset packs
+## Made from ten asset packs
 
 Every piece of the picture and the interface comes from packs Charlotte chose. The interface is
 Cup Nooble's Sprout Lands UI pack: its tan panels hold every menu and card, its cream buttons,
@@ -178,7 +178,7 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `catio/tools/furniture.py`: the furniture catalogue, where each piece stands, and where cats go;
   it writes the page's MANOR block.
 - `catio/tools/build-art.py`: draws both floors from the plan, the furniture atlases and the grounds,
-  and cuts the UI pieces, from the nine zips (`pip install pillow fonttools`, then see the script's
+  and cuts the UI pieces, from the ten zips (`pip install pillow fonttools`, then see the script's
   docstring).
 - `catio/tools/bundle.py`: the folder that runs on localhost.
 - `catio/tools/save-sessions.py`: trims a `list_sessions` result to the saved copy.

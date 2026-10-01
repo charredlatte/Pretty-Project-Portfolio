@@ -18,8 +18,8 @@ Publish `catio/index.html` with:
   `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point`, `pointer`, `logo`, `pastel` `.png`,
   and `sprout.ttf`), and the map panel in `art/licensed/pastel/` (`panel`, `panel-dark`, `frame`, `button`,
   `button-hover`, `button-down`, `icons` `.png`);
-- `capabilities`: omit it on a republish to keep what's stored. The declaration is
-  `{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions"] }] }, db: {} }`.
+- `capabilities`: omit it on a republish to keep what's stored: Claude Code Remote's eight tools (below),
+  `db`, `assets` and `sample`. Pass it only to add a tool on purpose, and then pass the whole set.
 
 `catio/data/` is **not** published: it is for the localhost copy (below).
 
@@ -52,8 +52,11 @@ Publish `catio/index.html` with:
   created by SC_siosio", word for word), **no redistribution, even modified, no uploading to a repository**,
   and its files must not be easily extractable. Ship only the pieces `build-art.py` cuts from it, resized and
   recoloured, never its own 500 px PNGs or SVGs: the pixelated icons (`ui/pastel.png`) and the map panel's
-  smooth pieces (`art/licensed/pastel/`). 12.5 MB, so Drive can't hand it over: ask her to attach it in the
-  chat. Never commit.
+  smooth pieces (`art/licensed/pastel/`). The full zip is 12.5 MB, over the Drive connector's 10 MB limit:
+  `Game_UI_Pack_Pastel_icons.zip` in the Drive folder (3.3 MB: the licence, the readme and `PNG/Filled/Icons`)
+  is enough for the icons, but the map panel's pieces need the full zip's panels and buttons, so ask her to
+  attach it in the chat. A republish needs neither: read `art/licensed/ui/pastel.png` and
+  `art/licensed/pastel/*` back from the artifact. Never commit.
 
 `catio/art/CREDITS.md` says which pack drew what. The footer credits them all. Keep it.
 
@@ -220,10 +223,13 @@ The page now **writes** through Claude Code Remote, always on an explicit action
   `unsorted | waiting | pushed | picked`). `route()` sorts: the cat dropped on, a session/chat link in
   the file, a keyword score, then the sorter (`sample.json` in claude.ai; an OpenAI-compatible endpoint
   on localhost, `localStorage` `catio.sorter`), else the tray.
-- **Posting into a session**: `create_trigger` (poke-only, `persistent_session_id`, kept in
-  `sessions/<id>.trigger`) then `fire_trigger` with the text. `[Catio] Delivery…`, `[Catio] Charlotte
-  says: …`, `[Catio] Request: wrap_up`. Refused calls go to `outbox/<id>` (`status: queued`, `why`)
-  for the concierge to deliver; the session's own catch-up (catio skill) also finds them.
+- **Posting into a session**: Claude Code Remote's `send_message` (argument names read from its schema with
+  `describeTool`, else `session_id` and `message`), on trial from
+  version 18. Every `[Catio] Delivery…`, `[Catio] Charlotte says: …` and `[Catio] Request: wrap_up` that it
+  can't post goes to `outbox/<id>` (`status: queued`, `why`: the error code, `detail`: its message), and the
+  page says it is waiting; the session's own catch-up (catio skill) finds them. Never bind a Routine
+  (`create_trigger` with `persistent_session_id`, then `fire_trigger`): it starts a stray new session instead
+  (tried 30 September).
 - **Talking**: `notes/<id>` `{cat, text, author: charlotte|session|agent, at, via}`; replies show live.
 - **Managing**: `set_session_title`, `interrupt_session`, `archive_session` (+ `delete_trigger`),
   `unarchive_session`, `create_session` (New cat, model from `rooms/<k>.model`).
@@ -232,10 +238,12 @@ The page now **writes** through Claude Code Remote, always on an explicit action
 - `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet.
 
 Capabilities for the next publish (full set, replacing the stored one):
-`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","create_trigger","fire_trigger","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "host:catio", tools: ["list_agents","drop_file","comment","comments","manage"] }] }, db: {}, assets: {}, sample: {} }`
+`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "host:catio", tools: ["list_agents","drop_file","comment","comments","manage"] }] }, db: {}, assets: {}, sample: {} }`
 
-Still to do: the refurbished-manor art (needs the CosyCabin, Garden Castle, Wood Garden and
-CatMegaFree zips), furniture as sprites with a renovation mode, and cats placed by state at stations.
+`host:catio` can only be declared from the Claude desktop app, so the stored set has Claude Code Remote,
+`db`, `assets` and `sample` only. `delete_trigger` stays only to clean up the Routines older versions bound. Posting into a session through a bound Routine doesn't reach the session
+(it starts a new one): see `docs/audit-2026-10-01.md` and phase 0 of `docs/plan.md` before touching
+`postToSession()`. What's next, renovation mode included, is `docs/plan.md`.
 
 ## Live sessions
 
