@@ -30,6 +30,9 @@ BELONGS = [
     (r"\b(catio|kittychat|manor|harness|cats?\b)", "Pretty-Project-Portfolio"),
     (r"\b(shop(s|ify)?\b|montfortoise|packshot|product page|business plan|about page)", "montfortoise-shopify"),
     (r"\btiktok", "tiktok-saves"),
+    # LibreSprite-on-iPad and her LibreSprite fork both start "LibreSprite"; older sessions name
+    # LibreSprite-on-iPad by its first name, pixel-art-app (renamed 1 October 2026).
+    (r"\b(pixel[-\s]art[-\s]app|libresprite)", "LibreSprite"),
     (r"\b(pixel[-\s]art[-\s]app|libresprite)", "pixel-art-app"),
 ]
 ROUTINE = re.compile(r"refresh the catio", re.I)

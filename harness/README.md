@@ -34,7 +34,7 @@ default branch and force-pushing stay forbidden either way.
 ## Turning it on in a repo
 
 It is on in all seven of her repos (Pretty-Project-Portfolio, Intermarche-grocery-shopping-app,
-montfortoise-shopify, pixel-art-app, tiktok-saves, Snail-Mail-Trail and her LibreSprite fork), merged
+montfortoise-shopify, LibreSprite-on-iPad, tiktok-saves, Snail-Mail-Trail and her LibreSprite fork), merged
 1 October 2026. For a new repo, add this to its `.claude/settings.json`. It's the same in every repo:
 
 ```json
