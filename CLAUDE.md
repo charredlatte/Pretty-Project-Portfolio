@@ -223,10 +223,12 @@ The page now **writes** through Claude Code Remote, always on an explicit action
   `unsorted | waiting | pushed | picked`). `route()` sorts: the cat dropped on, a session/chat link in
   the file, a keyword score, then the sorter (`sample.json` in claude.ai; an OpenAI-compatible endpoint
   on localhost, `localStorage` `catio.sorter`), else the tray.
-- **Posting into a session**: `create_trigger` (poke-only, `persistent_session_id`, kept in
-  `sessions/<id>.trigger`) then `fire_trigger` with the text. `[Catio] Delivery…`, `[Catio] Charlotte
-  says: …`, `[Catio] Request: wrap_up`. Refused calls go to `outbox/<id>` (`status: queued`, `why`)
-  for the concierge to deliver; the session's own catch-up (catio skill) also finds them.
+- **Posting into a session**: nothing the page can call does it yet. A bound Routine (`create_trigger` with
+  `persistent_session_id`, then `fire_trigger`) starts a stray new session instead (tried 30 September), so
+  the page no longer makes one. Every `[Catio] Delivery…`, `[Catio] Charlotte says: …` and
+  `[Catio] Request: wrap_up` goes to `outbox/<id>` (`status: queued`, `why: "no_route"`), and the page says
+  it is waiting. The session's own catch-up (catio skill) finds them. Claude Code Remote's `send_message` is
+  the next thing to try (phase 0 of `docs/plan.md`).
 - **Talking**: `notes/<id>` `{cat, text, author: charlotte|session|agent, at, via}`; replies show live.
 - **Managing**: `set_session_title`, `interrupt_session`, `archive_session` (+ `delete_trigger`),
   `unarchive_session`, `create_session` (New cat, model from `rooms/<k>.model`).
