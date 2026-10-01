@@ -2,7 +2,7 @@
 """SessionStart: tell the session it lives in Charlotte's KittyChat harness, and what the house rules are."""
 from pathlib import Path
 
-from common import enforced, hook_input, rules
+from common import enforced, hook_input, merges, rules
 
 
 def main():
@@ -23,6 +23,9 @@ def main():
         if rule["enforced"] and not enforced(rule["id"], cwd):
             continue
         lines.append(f"- **{rule['title']}**{' (enforced)' if rule['enforced'] else ''}: {rule['text']}")
+        if rule["id"] == "ship" and merges(cwd):
+            lines.append("  This repo merges its own pull requests (.claude/catio-rules.json): once a pull request's "
+                         "checks pass, merge it. Still never push to the default branch or force-push.")
     if data.get("source", "startup") == "startup" and enforced("opening_audit", cwd):
         lines += ["", "Start now with the read-only pass: run the ponytail-audit skill on this repo before anything else,",
                   "then run the `catio` skill's catch-up (files, notes and requests waiting for you)."]

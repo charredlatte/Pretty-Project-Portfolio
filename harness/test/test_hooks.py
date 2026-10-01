@@ -135,6 +135,16 @@ class Ship(unittest.TestCase):
         self.assertIn("shop's branch notes has uncommitted", self.stop(cloud=True)["reason"])
         self.assertIn("shop's branch notes", self.stop(cwd=self.tmp, cloud=True)["reason"])   # cwd holds the repos
 
+    def test_a_repo_can_say_its_sessions_merge(self):
+        self.g("checkout", "-b", "feature")
+        Path(self.work, "a").write_text("2")
+        self.assertIn("no merge.", self.stop()["reason"])
+        Path(self.work, ".claude").mkdir()
+        Path(self.work, ".claude", "catio-rules.json").write_text('{"merge": true}')
+        reason = self.stop()["reason"]
+        self.assertIn("work merges its own pull requests: merge the pull request once its checks pass", reason)
+        self.assertIn("Never push to the default branch, no force-push", reason)
+
     def test_graphify_map_is_not_work_to_ship(self):
         self.g("checkout", "-b", "feature"); self.g("push", "-u", "origin", "feature")
         Path(self.work, "graphify-out").mkdir(); Path(self.work, "graphify-out", "graph.json").write_text("{}")
@@ -180,6 +190,13 @@ class SessionStart(unittest.TestCase):
         self.assertEqual(r.returncode, 0)
         for words in ("KittyChat house rules", "browser-agent-preflight", "ponytail-audit", "[Catio]", "claude.ai/artifact/"):
             self.assertIn(words, r.stdout)
+
+    def test_says_when_a_repo_merges(self):
+        tmp = tempfile.mkdtemp()
+        self.assertNotIn("merges its own pull requests", run("session_start.py", {"cwd": tmp}).stdout)
+        Path(tmp, ".claude").mkdir()
+        Path(tmp, ".claude", "catio-rules.json").write_text('{"merge": true}')
+        self.assertIn("This repo merges its own pull requests", run("session_start.py", {"cwd": tmp}).stdout)
 
     def test_resume_skips_the_audit_prompt(self):
         r = run("session_start.py", {"source": "resume", "cwd": tempfile.mkdtemp()})

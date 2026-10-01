@@ -19,7 +19,7 @@
     {
       "id": "ship",
       "title": "Semi-automatic shipping",
-      "text": "Once a change passes the repo's own checks, commit it and push it to the session's branch without asking, and open a pull request when the work is a complete unit and none is open. Never push to the default branch, force-push, merge, or delete branches, and ask first before anything else that leaves the machine (publishing, posting, sending, paying). The harness reminds you when a turn ends with work left unpushed.",
+      "text": "Once a change passes the repo's own checks, commit it and push it to the session's branch without asking, and open a pull request when the work is a complete unit and none is open. Never push to the default branch, force-push, merge (unless the repo's .claude/catio-rules.json says \"merge\": true), or delete branches, and ask first before anything else that leaves the machine (publishing, posting, sending, paying). The harness reminds you when a turn ends with work left unpushed.",
       "enforced": true,
       "on": true
     },
