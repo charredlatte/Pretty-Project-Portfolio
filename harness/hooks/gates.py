@@ -14,11 +14,13 @@ from common import block, enforced, hook_input, ran
 BROWSER_TOOL = re.compile(r"^mcp__.*(playwright|browser|chrome|puppeteer|computer)", re.I)
 BROWSER_CMD = r"playwright|chromium|google-chrome|headless|puppeteer|selenium|webdriver|catio/test/run\.sh"
 EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
-# shell commands that change the repo or leave the machine
+# shell commands that change the repo or leave the machine. Her scripts are dry runs until --write or --commit
+# (litterbox/sort.py --write files notes into every repo checked out beside this one), so those flags count too.
+WRITE_FLAG = r"\s--(write|commit)(?![\w-])"
 WRITE_CMD = re.compile(
     r"(^|[;&|(]\s*|\s)(git\s+(commit|push|merge|rebase|reset|revert|cherry-pick|am|apply|stash)\b"
     r"|sed\s+(-[a-zA-Z]*i|--in-place)|tee\s|rm\s|mv\s|cp\s|truncate\s|patch\s)"
-    r"|[^0-9&]>{1,2}\s*(?!/dev/null|&)[^\s|;&]+"
+    r"|[^0-9&]>{1,2}\s*(?!/dev/null|&)[^\s|;&]+|" + WRITE_FLAG
 )
 
 
@@ -42,7 +44,7 @@ def in_repo(path, cwd):
 
 def only_scratch(command, cwd):
     """A command whose only writes are redirects to files outside the repo."""
-    if re.search(r"(^|[;&|(]\s*|\s)(git|sed|tee|rm|mv|cp|truncate|patch)\s", command):
+    if re.search(r"(^|[;&|(]\s*|\s)(git|sed|tee|rm|mv|cp|truncate|patch)\s|" + WRITE_FLAG, command):
         return False
     targets = re.findall(r">{1,2}\s*([^\s|;&]+)", command)
     return bool(targets) and not any(in_repo(t, cwd) for t in targets)

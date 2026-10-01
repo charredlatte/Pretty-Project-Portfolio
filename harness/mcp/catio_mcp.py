@@ -23,7 +23,7 @@ import time
 import uuid
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
 HOME = Path(os.environ.get("CATIO_HOME") or Path.home() / ".catio")
 RULES = Path(os.environ.get("CATIO_RULES") or Path(__file__).resolve().parent.parent / "rules.json")
@@ -318,18 +318,20 @@ class Handler(SimpleHTTPRequestHandler):
             self.reply(400, {"error": str(e)})
 
     def do_GET(self):
-        u = urlparse(self.path)
-        if u.path.startswith("/api/"):
-            return self.api(u.path[5:], {k: v[0] for k, v in parse_qs(u.query).items()})
+        # The tools are POST only: any page she visits can make her browser GET a URL (an <img> will do)
+        if urlparse(self.path).path.startswith("/api/"):
+            return self.reply(404, {"error": "the tools are POST only"})
         return super().do_GET()
 
     def do_POST(self):
         u = urlparse(self.path)
         if not u.path.startswith("/api/"):
             return self.reply(404, {"error": "not found"})
-        # same-origin only: the page is served from here, so a browser tab elsewhere can't post
+        # same-origin only: the page is served from here, so a browser tab elsewhere can't post. And only as this
+        # computer's own name, or a site could point its own name at 127.0.0.1 (DNS rebinding) and be same-origin.
+        host = urlparse("//" + (self.headers.get("Host") or "")).hostname
         origin = self.headers.get("Origin")
-        if origin and urlparse(origin).netloc != self.headers.get("Host"):
+        if host not in ("localhost", "127.0.0.1") or origin and urlparse(origin).netloc != self.headers.get("Host"):
             return self.reply(403, {"error": "cross-origin"})
         n = int(self.headers.get("Content-Length") or 0)
         if n > MAX_FILE * 2:
