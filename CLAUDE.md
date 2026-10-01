@@ -18,8 +18,8 @@ Publish `catio/index.html` with:
   `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point`, `pointer`, `logo`, `pastel` `.png`,
   and `sprout.ttf`), and the map panel in `art/licensed/pastel/` (`panel`, `panel-dark`, `frame`, `button`,
   `button-hover`, `button-down`, `icons` `.png`);
-- `capabilities`: omit it on a republish to keep what's stored. The declaration is
-  `{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions"] }] }, db: {} }`.
+- `capabilities`: omit it on a republish to keep what's stored: Claude Code Remote's nine tools (below),
+  `db`, `assets` and `sample`. Pass it only to add a tool on purpose, and then pass the whole set.
 
 `catio/data/` is **not** published: it is for the localhost copy (below).
 
@@ -237,8 +237,10 @@ The page now **writes** through Claude Code Remote, always on an explicit action
 Capabilities for the next publish (full set, replacing the stored one):
 `{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","create_trigger","fire_trigger","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "host:catio", tools: ["list_agents","drop_file","comment","comments","manage"] }] }, db: {}, assets: {}, sample: {} }`
 
-Still to do: the refurbished-manor art (needs the CosyCabin, Garden Castle, Wood Garden and
-CatMegaFree zips), furniture as sprites with a renovation mode, and cats placed by state at stations.
+`host:catio` can only be declared from the Claude desktop app, so the stored set has Claude Code Remote,
+`db`, `assets` and `sample` only. Posting into a session through a bound Routine doesn't reach the session
+(it starts a new one): see `docs/audit-2026-10-01.md` and phase 0 of `docs/plan.md` before touching
+`postToSession()`. What's next, renovation mode included, is `docs/plan.md`.
 
 ## Live sessions
 

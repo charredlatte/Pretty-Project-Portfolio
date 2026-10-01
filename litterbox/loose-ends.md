@@ -19,7 +19,8 @@
   its `ui` skill was only read.
 - **Should "Rename" on a session's cat rename the real session?** It doesn't: the cat's name and the
   session's title are two different fields on the card.
-- **Should a filing cabinet ever leave its room** in renovation mode?
+- ~~**Should a filing cabinet ever leave its room** in renovation mode?~~ Settled 30 September: never, but she
+  picks its look in each room (`docs/renovation-mode.md`).
 
 ## Ideas not built yet
 

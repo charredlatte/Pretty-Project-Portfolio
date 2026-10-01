@@ -168,46 +168,12 @@ art is drawn from one side:
 Turned 90°, the walls would show their tops and the furniture would lie on its side. North stays up. The
 minimap is what keeps you oriented instead.
 
-## Live and Build: how the interaction changes
+## Live and Build
 
-The Sims splits play from building, and the Catio can too. This picks up `docs/renovation-mode.md`, whose
-constraints still apply.
-
-**Live** is the page as it is. The camera moves, cats and rooms open their menus, and the bubbles speak.
-
-**Build** swaps in a different set of tools. The camera works the same way; what a click does changes:
-
-- The cats step aside (faded, and clicks pass through them), and menus and bubbles are suppressed.
-- A 16 px floor grid shows from the "1 art pixel = 2 screen pixels" step upwards.
-- Hovering a piece of furniture brackets it. Dragging it moves it (`setPointerCapture`, snapped to the grid,
-  written on drop, never on every move). So in Build, panning is a drag on empty floor, a right or middle drag,
-  Space-drag, WASD or the arrows. That's why the keys matter.
-- **Each room's filing cabinet is a job, not a piece of furniture** (decided 30 September). It is where the
-  room's files live: the Files hit box, the room menu's Files, and the spot where a cat with something to
-  review waits. What it looks like is Charlotte's choice, room by room: a dresser in the bedroom, a bookcase in
-  the Library, a sideboard in the dining room, the chest on the catio.
-  - **Choosing the look.** In Build, clicking the room's cabinet opens a small Game UI Pastel panel beside it,
-    "Looks like…". It shows a row of thumbnails: every floor piece in the catalogue, the stair excepted, with
-    storage pieces first (cabinets, chests, dressers, sideboards, bookcases, desks). Picking one swaps the
-    piece in place. The keyboard reaches the same panel with Enter on the selected cabinet.
-  - **It keeps its job whatever it looks like.**
-    - The Files hit box takes the new piece's size (`GEOM[k].cabinet` is read from the layout's cabinet, no
-      longer found by the key `filing_cabinet` or `catio_chest`).
-    - The review spot moves to just in front of the new piece: its own `review` station if it has one, else
-      the free floor nearest the middle of its front edge.
-    - Its name for a screen reader stays its job: "the Bedroom's files, a dresser".
-  - **It stays in its room.**
-    - It can be moved anywhere on its own room's floor, and while it's dragged the brackets stay on its room.
-    - A drop outside the room puts it back where it was, and `#say` and a toast explain why.
-    - It can't be stored in the catalogue.
-  - **A look too big for its spot** moves to the nearest free floor in the room that takes it. If there's
-    none, the choice is refused with a toast, and the old look stays.
-  - **Defaults:** the filing cabinet indoors and the chest on the catio, as now.
-- A catalogue bar along the bottom holds the pieces from `MANOR.pieces`, grouped by room kind. Drag one in, or
-  drag one out to the bar to store it.
-- Undo and redo (`Ctrl+Z` / `Ctrl+Shift+Z`) apply to the layout changes made in this Build session.
-- The map panel stays. The minimap outlines the rooms only, and a click on a room there frames it for building.
-- Edit rooms (names, repositories, where new cats come in) moves under Build, where it belongs.
+The Sims splits play from building, and so does the KittyChat Cafe. Live is the page as it is. Build is
+**renovation mode**: moving the furniture, adding and removing the decorative pieces, and choosing each
+filing cabinet's look. Its full spec moved to **`docs/renovation-mode.md`** on 1 October 2026; it is phase 3
+of `docs/plan.md`, after the camera here.
 
 ## The two UI packs
 
@@ -354,29 +320,8 @@ above:
   - the shortcuts switch turns the letters off, and the arrows still pan;
   - reduced motion means no glide.
 
-**3. Build mode**
-- Add the Live / Build switch, the grid, moving furniture with undo, the catalogue bar, and Edit rooms moved
-  under Build.
-- It needs `layouts/<room>` in the database, the stub, `localRuntime()` and `data/`, as
-  `docs/renovation-mode.md` lists. Each layout document holds the room's pieces, plus
-  `cabinet: {look, x, y}`: the piece key it looks like and where it stands. A room with no layout document
-  uses `MANOR.layout` and the default look. CLAUDE.md's data table already has the `layouts` row.
-- *Checks:*
-  - a pointer drag moves a piece and saves one document on drop;
-  - a filing cabinet dragged into the next room goes back to where it was, and nothing is saved;
-  - a filing cabinet moved within its room keeps its Files;
-  - choosing a dresser for the Bedroom's cabinet:
-    - draws a dresser where the cabinet stood;
-    - saves `cabinet.look` in `layouts/bedroom` only;
-    - its Files still lists the Bedroom's projects;
-    - a cat with something to review waits in front of it;
-    - the Dining room keeps its own look;
-    - it's still there after a reload, on localhost too;
-  - a look too big for the spot moves to free floor, or is refused and the old look stays;
-  - a snapshot arriving mid-drag doesn't destroy the piece;
-  - undo puts it back;
-  - no cat stands on furniture after a move;
-  - a view-only visitor gets the "look but not change" toast.
+**3. Build mode**: now renovation mode, specified in `docs/renovation-mode.md` with its own four steps and
+checks.
 
 The optional edge scroll and saved views come after iteration 2, if Charlotte wants them.
 
