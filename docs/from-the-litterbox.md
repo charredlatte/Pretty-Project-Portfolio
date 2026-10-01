@@ -29,23 +29,8 @@ from. Edit them freely: the sorter only adds, and never files a note that is alr
 
 ### 1 October 2026: branches that never reached main
 
-- **`claude/friendly-shannon-ykj7u1` holds a request of hers that `main` lacks:** from 1 October she draws
-  every asset herself in Aseprite, replacing the packs, and adds new pieces (a litter box, café tables…). Its
-  `docs/drawing-plan.md` (402 lines) lists every asset and the scale; 1 of its 293 lines is on `main`. It
-  conflicts with today's `main` in `docs/requests.md` and in `litterbox/assets-wishlist.md`, which has since
-  been filed into `docs/from-the-litterbox.md`. Land it by hand: the plan as it is, her request in
-  `docs/requests.md`, and its line that the "buy first" list is now for reference only at the top of
-  *What's missing: art and sound*. *— litterbox/2026-10-01-branches-cafe.md*
-
-- **`claude/exciting-bardeen-9vehk0`** fixes the README (the floor tabs under the minimap, the shop's new name,
-  `digest.py`, `artifacts.json`, `catio-plugin/`, the three test commands). It merges cleanly but would list
-  `harness/`, `litterbox/` and `docs/` twice, since `main` added them the same day: take it without those. *— litterbox/2026-10-01-branches-cafe.md*
-
 - **`claude/catio-gateway-plan`** is the next job's plan. Before landing it, update step 1 for the server's
   localhost-only API. *— litterbox/2026-10-01-branches-cafe.md*
-
-- **Merged branches that can be deleted:** `claude/digest-moves`, `claude/kittychat-digest`,
-  `claude/openexecutive-repo-eval-lbilmm`. The house rules never delete a branch without her. *— litterbox/2026-10-01-branches-cafe.md*
 
 ## Ideas not built
 
