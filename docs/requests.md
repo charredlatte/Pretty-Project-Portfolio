@@ -10,6 +10,7 @@ compressed. Read this before starting something new. Last updated 30 September 2
 | `CLAUDE.md` | The operating brief. Partly stale: it still describes the cabin (`cabin.py`, "house.png is committed"). Only she can edit it |
 | `README.md` | What the page is, the rooms, the packs |
 | `docs/requests.md` | This file: her requests |
+| `docs/drawing-plan.md` | Every asset she will draw herself, at what size and scale, and the new pieces (litterbox, café tables…) |
 | `litterbox/assets-wishlist.md` | What art and sound is missing: what to buy, what to draw, and at what sizes |
 | `docs/plan.md` | The harness and manor plan: what's done, what's blocked on her, how to publish |
 | `docs/renovation-mode.md` | The traps under drag-and-drop furniture |
@@ -113,6 +114,12 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 - Done in version 13: see `docs/plan.md`.
 - **"Use the Game UI Pastel pack anyway"**: its licence turned up inside the zip (SC_siosio, credit required).
   Version 14 uses its icons, pixelated, on the corner controls and a cat's Manage buttons.
+
+## Her own art (1 October)
+
+- **She will draw every asset herself in Aseprite** before publishing the working project, replacing the
+  downloaded packs, and adding new pieces: a litterbox, café tables and more. The list and the scale are in
+  `docs/drawing-plan.md`.
 
 ## Still waiting on her
 

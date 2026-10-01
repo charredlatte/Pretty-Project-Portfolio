@@ -1,5 +1,8 @@
 # What's missing: art and sound for the Catio
 
+> Since 1 October Charlotte is drawing every asset herself: `docs/drawing-plan.md` is the list to work from.
+> The "buy first" section below is kept for reference only.
+
 Everything the Catio shows today, and what it would take to make it what you picture: what to buy, and what
 to draw (or commission) because no pack has it. Checked against the packs' itch.io pages on 29 September 2026,
 and brought up to date on 30 September (version 12, and the camera and minimap plan).
