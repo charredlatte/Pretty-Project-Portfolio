@@ -810,6 +810,32 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await ctx.close();
 }
 
+/* ---------- 6f. honest counts: what the brand's badge counts ---------- */
+{
+  const { page, ctx, errors } = await open();
+  const needCount = () => page.evaluate(() => (document.querySelector("#tally .badge .n") || {}).textContent || "0");
+  const before = Number(await needCount());
+  await T(page, () => {
+    const C = window.__catio, D = 864e5;
+    // a review nobody has opened in ten days, and claude.ai's warm-start placeholder
+    const old = C.session("oldreview", "Old review", "tiktok-saves", "REVIEW_READY", "IDLE", 10 * D);
+    const warm = Object.assign(C.session("warm", "__warming__", "tiktok-saves", "REVIEW_READY", "IDLE", 0), { tags: ["cowork-warm-start"] });
+    C.sessions.push(old, warm);
+    C.push();
+  });
+  await settle(page);
+  await check("a review nobody has opened for a week naps in the attic, and isn't counted as needing her", async () => {
+    expect(await page.locator('#cats .cat[aria-label*="Old review"]').count() === 0, "still in a room");
+    expect(Number(await needCount()) === before, "the badge went from " + before + " to " + (await needCount()));
+    await openHouse(page);
+    expect((await menuText(page)).includes("2 napping in the attic"), await menuText(page));
+  });
+  await check("claude.ai's warm-start placeholder is nobody's cat", async () =>
+    expect(await page.locator('#cats .cat[aria-label*="__warming__"]').count() === 0 && !(await page.evaluate(() => document.body.innerText.includes("__warming__"))), "it shows"));
+  await check("no page errors with the honest counts", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+
 /* ---------- 6e. the map panel and the minimap (Game UI Pastel) ---------- */
 {
   const { page, ctx, errors } = await open();

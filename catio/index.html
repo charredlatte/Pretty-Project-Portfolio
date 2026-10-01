@@ -501,7 +501,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   // A cat's model shows as its breed: a letter on a plaque. Agents from other makers show their maker.
   const BREEDS = [[/fable/i, "F", "Fable"], [/opus/i, "O", "Opus"], [/sonnet/i, "S", "Sonnet"], [/haiku/i, "H", "Haiku"]];
   const MODELS = [["claude-fable-5-1", "Fable 5.1"], ["claude-opus-5-5", "Opus 5.5"], ["claude-sonnet-5-5", "Sonnet 5.5"], ["claude-haiku-4-5-20251001", "Haiku 4.5"]];
-  const STALE_DAYS = 7;     // sleeping cats older than this go up to nap in the attic
+  const STALE_DAYS = 7;     // sleeping cats, and cats with something to review, older than this go up to nap in the attic
 
   // The manor, generated from tools/manor.py and tools/furniture.py: the grounds' size, each room's box, floor
   // (level) and open floor, the landing and the stair, the furniture as atlas cells (kind, layer, footprint,
@@ -630,6 +630,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
   const ORIGINS = { android: "your phone", ios: "your phone", web_claude_ai: "the web", desktop_app: "the desktop app", cli: "a terminal" };
 
+  const isWarmStart = (s) => (Array.isArray(s.tags) && s.tags.includes("cowork-warm-start")) || /__warming__/.test(s.title || "") || /__warming__/.test(s.id || "");
   function catFromSession(s) {
     const bucket = lower(s.status_bucket).replace("session_status_bucket_", "");
     const status = lower(s.session_status).replace("session_status_", "");
@@ -745,7 +746,10 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const cutoff = Date.now() - STALE_DAYS * 864e5;
     for (const s of S.sessions || []) {
       const c = catFromSession(s);
-      c.away = c.archived || (c.mood === "sleep" && c.updated < cutoff && !S.showOld);
+      if (isWarmStart(s)) continue;   // the warm-start session claude.ai keeps ready is nobody's work
+      // a review nobody has looked at in a week isn't waiting on her any more: it naps with the sleepers, so
+      // the brand's badge only counts what is really waiting
+      c.away = c.archived || ((c.mood === "sleep" || c.mood === "box") && c.updated < cutoff && !S.showOld);
       if (c.away && !everything) { attic++; away.add(c.id); continue; }
       cats.push(c);
     }
