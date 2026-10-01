@@ -18,7 +18,7 @@ Publish `catio/index.html` with:
   `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point`, `pointer`, `logo`, `pastel` `.png`,
   and `sprout.ttf`), and the map panel in `art/licensed/pastel/` (`panel`, `panel-dark`, `frame`, `button`,
   `button-hover`, `button-down`, `icons` `.png`);
-- `capabilities`: omit it on a republish to keep what's stored: Claude Code Remote's nine tools (below),
+- `capabilities`: omit it on a republish to keep what's stored: Claude Code Remote's eight tools (below),
   `db`, `assets` and `sample`. Pass it only to add a tool on purpose, and then pass the whole set.
 
 `catio/data/` is **not** published: it is for the localhost copy (below).
@@ -223,12 +223,12 @@ The page now **writes** through Claude Code Remote, always on an explicit action
   `unsorted | waiting | pushed | picked`). `route()` sorts: the cat dropped on, a session/chat link in
   the file, a keyword score, then the sorter (`sample.json` in claude.ai; an OpenAI-compatible endpoint
   on localhost, `localStorage` `catio.sorter`), else the tray.
-- **Posting into a session**: nothing the page can call does it yet. A bound Routine (`create_trigger` with
-  `persistent_session_id`, then `fire_trigger`) starts a stray new session instead (tried 30 September), so
-  the page no longer makes one. Every `[Catio] Delivery…`, `[Catio] Charlotte says: …` and
-  `[Catio] Request: wrap_up` goes to `outbox/<id>` (`status: queued`, `why: "no_route"`), and the page says
-  it is waiting. The session's own catch-up (catio skill) finds them. Claude Code Remote's `send_message` is
-  the next thing to try (phase 0 of `docs/plan.md`).
+- **Posting into a session**: Claude Code Remote's `send_message` (`{session_id, message}`), on trial from
+  version 18. Every `[Catio] Delivery…`, `[Catio] Charlotte says: …` and `[Catio] Request: wrap_up` that it
+  can't post goes to `outbox/<id>` (`status: queued`, `why`: the error code, `detail`: its message), and the
+  page says it is waiting; the session's own catch-up (catio skill) finds them. Never bind a Routine
+  (`create_trigger` with `persistent_session_id`, then `fire_trigger`): it starts a stray new session instead
+  (tried 30 September).
 - **Talking**: `notes/<id>` `{cat, text, author: charlotte|session|agent, at, via}`; replies show live.
 - **Managing**: `set_session_title`, `interrupt_session`, `archive_session` (+ `delete_trigger`),
   `unarchive_session`, `create_session` (New cat, model from `rooms/<k>.model`).
@@ -237,10 +237,10 @@ The page now **writes** through Claude Code Remote, always on an explicit action
 - `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet.
 
 Capabilities for the next publish (full set, replacing the stored one):
-`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","create_trigger","fire_trigger","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "host:catio", tools: ["list_agents","drop_file","comment","comments","manage"] }] }, db: {}, assets: {}, sample: {} }`
+`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "host:catio", tools: ["list_agents","drop_file","comment","comments","manage"] }] }, db: {}, assets: {}, sample: {} }`
 
 `host:catio` can only be declared from the Claude desktop app, so the stored set has Claude Code Remote,
-`db`, `assets` and `sample` only. Posting into a session through a bound Routine doesn't reach the session
+`db`, `assets` and `sample` only. `delete_trigger` stays only to clean up the Routines older versions bound. Posting into a session through a bound Routine doesn't reach the session
 (it starts a new one): see `docs/audit-2026-10-01.md` and phase 0 of `docs/plan.md` before touching
 `postToSession()`. What's next, renovation mode included, is `docs/plan.md`.
 

@@ -113,7 +113,7 @@ async function addCat(page, kind) {
 const cam = (page) => page.evaluate(() => { const m = new DOMMatrix(getComputedStyle(document.getElementById("world")).transform); return { s: m.a, tx: m.e, ty: m.f }; });
 // a cat's card keeps its facts, its management and its name folded under Manage
 const manage = async (page) => { if (!(await page.locator("#catMore").evaluate((d) => d.open))) await page.click("#catMore summary"); };
-// what waits in the outbox, oldest first: the page posts nothing into a session itself (docs/audit-2026-10-01.md)
+// what waits in the outbox, oldest first: what send_message couldn't post (by default the stub refuses it)
 const outbox = async (page) => Object.entries(await page.evaluate(() => window.__catio.store)).filter(([p]) => p.startsWith("outbox/")).map(([, v]) => v).sort((a, b) => a.at - b.at);
 const menuButton = (page, name) => page.locator("#menu").getByRole("button", { name, exact: true });
 
@@ -277,7 +277,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     await card.locator("button.ask").first().click();
     await page.waitForTimeout(300);
     const q = (await outbox(page)).pop();
-    expect(q && q.text === "[Catio] Charlotte says: Ask the project map: Why does CartDrawer connect Checkout to Theme?" && q.why === "no_route", JSON.stringify(q));
+    expect(q && q.text === "[Catio] Charlotte says: Ask the project map: Why does CartDrawer connect Checkout to Theme?" && q.why === "not_in_manifest", JSON.stringify(q));
   });
   await check("the craft room's cabinet lists its projects and branches, archived sessions included", async () => {
     const t = await page.locator("#roomsDlg").innerText();
@@ -1071,7 +1071,9 @@ async function dropFiles(page, sel, files) {
     expect(d.cat === "session_blocked1" && d.status === "waiting" && d.via === "queued" && d.asset && d.note === "Use this for the about page" && d.how === "dropped", JSON.stringify(d));
     expect((await tools(page, "create_trigger")).length === 0 && (await tools(page, "fire_trigger")).length === 0, "a Routine was used");
     const q = await outbox(page);
-    expect(q.length === 1 && q[0].cat === "session_blocked1" && q[0].why === "no_route" && q[0].kind === "delivery", JSON.stringify(q));
+    expect(q.length === 1 && q[0].cat === "session_blocked1" && q[0].why === "not_in_manifest" && q[0].detail && q[0].kind === "delivery", JSON.stringify(q));
+    const sm = await tools(page, "send_message");
+    expect(sm.length === 1 && sm[0][2].session_id === "session_blocked1" && sm[0][2].message === q[0].text, JSON.stringify(sm));
     expect(q[0].text.startsWith("[Catio] Delivery for you: about-fr.md") && q[0].text.includes("Use this for the about page") && q[0].text.includes("Notre boutique") && q[0].text.includes(d.asset), q[0].text);
     expect(!(st["sessions/session_blocked1"] || {}).trigger, "a trigger was kept");
     expect((await toast(page)).includes("outbox"), await toast(page));
@@ -1275,11 +1277,58 @@ async function dropFiles(page, sel, files) {
   await check("a refused post waits in the outbox, and the sign of it is honest", async () => {
     const st = await T(page, () => window.__catio.store);
     const o = Object.entries(st).filter(([p]) => p.startsWith("outbox/"));
-    expect(o.length === 1 && o[0][1].status === "queued" && o[0][1].why === "no_route" && o[0][1].cat === "session_blocked1" && o[0][1].text.includes("note.txt"), JSON.stringify(o));
+    expect(o.length === 1 && o[0][1].status === "queued" && o[0][1].why === "approval_required" && o[0][1].cat === "session_blocked1" && o[0][1].text.includes("note.txt"), JSON.stringify(o));
     const b = Object.entries(st).find(([p]) => p.startsWith("brain/"))[1];
     expect(b.status === "waiting" && b.via === "queued", JSON.stringify(b));
     expect((await toast(page)).includes("outbox"), await toast(page));
     expect(await page.locator('#cats .cat[aria-label*="Shop theme"]').count() === 0, "an agent without its server");
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
+// When send_message works, a post goes straight into the session; when it fails, it waits with the reason.
+{
+  const { page, ctx, errors } = await open("?send=ok");
+  await page.waitForTimeout(300);
+  await openCat(page, "Shop about page");
+  await menuButton(page, "Talk").click();
+  await page.fill("#sayTo", "Hello from the café");
+  await page.click("#saySend");
+  await page.waitForTimeout(300);
+  await check("with send_message allowed, a message goes into the session and nothing waits", async () => {
+    const sm = await tools(page, "send_message");
+    expect(sm.length === 1 && sm[0][2].session_id === "session_blocked1" && sm[0][2].message === "[Catio] Charlotte says: Hello from the café", JSON.stringify(sm));
+    expect((await outbox(page)).length === 0, "queued anyway");
+    const n = Object.entries(await T(page, () => window.__catio.store)).find(([p]) => p.startsWith("notes/"));
+    expect(n && n[1].via === "pushed", JSON.stringify(n));
+    expect((await toast(page)) === "Sent.", await toast(page));
+    expect((await tools(page, "create_trigger")).length === 0, "a Routine was used");
+  });
+  await page.keyboard.press("Escape");
+  await openCat(page, "Shop about page");
+  await giveFiles(page, { name: "ready.txt", mimeType: "text/plain", buffer: Buffer.from("all set") });
+  await page.click("#dropSend");
+  await page.waitForTimeout(300);
+  await check("a file delivered with send_message is marked sent, not waiting", async () => {
+    const b = Object.entries(await T(page, () => window.__catio.store)).find(([p]) => p.startsWith("brain/"))[1];
+    expect(b.status === "pushed" && b.via === "pushed", JSON.stringify(b));
+    expect((await tools(page, "send_message")).pop()[2].message.includes("ready.txt"), "not delivered");
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
+{
+  const { page, ctx, errors } = await open("?send=error");
+  await page.waitForTimeout(300);
+  await openCat(page, "Shop about page");
+  await menuButton(page, "Talk").click();
+  await page.fill("#sayTo", "Are you there?");
+  await page.click("#saySend");
+  await page.waitForTimeout(300);
+  await check("when send_message fails, the message waits in the outbox with the error, and says so", async () => {
+    const q = await outbox(page);
+    expect(q.length === 1 && q[0].why === "tool_error" && q[0].detail === "session is archived" && q[0].text === "[Catio] Charlotte says: Are you there?", JSON.stringify(q));
+    expect((await toast(page)).includes("outbox"), await toast(page));
     expect(errors.length === 0, errors.join("; "));
   });
   await ctx.close();

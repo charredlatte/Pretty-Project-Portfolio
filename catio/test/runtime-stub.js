@@ -100,6 +100,8 @@
     create_trigger: (i) => ({ trigger: { id: "trig_" + (++T.triggers), name: i.name } }),
     fire_trigger: (i) => { if (T.goneTriggers.has(i.trigger_id)) throw { code: "tool_error", message: "trigger not found" }; return { ok: true }; },
     delete_trigger: () => ({ ok: true }), create_session: () => ({ id: "session_new1", status: "starting" }),
+    // ?send=ok posts; ?send=error fails the way a tool can; by default the page may not call it
+    send_message: () => { const v = params.get("send"); if (v === "ok") return { ok: true }; throw v === "error" ? { code: "tool_error", message: "session is archived" } : { code: "not_in_manifest", message: "send_message isn't declared" }; },
     set_session_title: () => ({ ok: true }), archive_session: () => ({ ok: true }), unarchive_session: () => ({ ok: true }), interrupt_session: () => ({ ok: true }),
   };
   mcp.callTool = async (server, tool, input) => {

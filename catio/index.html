@@ -1851,7 +1851,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
     return s;
   }
   function closeBtn(dlg, label) { const b = el("button", "btn", label || "Close"); b.type = "button"; b.addEventListener("click", () => dlg.close()); return b; }
-  function show(dlg) { if (!dlg.open) dlg.showModal(); }
+  // a dialog redrawn while a note shows in it (Send redraws the card) keeps the note
+  function show(dlg) { if (!dlg.open) dlg.showModal(); if (!TOAST.hidden && !TOAST.isConnected) dlg.appendChild(TOAST); }
 
   // A cat's card: who it is and what it needs, then the conversation with it. Everything else (the facts,
   // pausing, archiving, its name, room and title) is folded under Manage until she wants it.
@@ -2297,11 +2298,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
 
   /* ---------- the harness: posting into sessions ---------- */
-  // Nothing the page can call posts into a Claude Code session yet. A Routine bound to the session
-  // (create_trigger with persistent_session_id, then fire_trigger) was tried on 30 September: it started a new,
-  // stray session and the real one never saw the text (docs/audit-2026-10-01.md). So every message, delivery and
-  // request for a session waits in outbox/, and the page says so. When a way to post is verified (Claude Code
-  // Remote's send_message is next), postToSession() calls it and the outbox is only for refusals.
+  // The page posts into a Claude Code session with Claude Code Remote's send_message. (A Routine bound to the
+  // session, tried on 30 September, started a stray new session instead: docs/audit-2026-10-01.md.) Whatever
+  // goes wrong, nothing is lost: the post waits in outbox/ with the error that stopped it, and the page says so.
   const payloadOf = (r) => { let p = r && r.payload; if (typeof p === "string") { try { p = JSON.parse(p); } catch (e) {} } return p && p.ccr ? p.ccr : p; };
   const gid = () => Date.now() + "-" + Math.random().toString(36).slice(2, 6);
   const call = (tool, input) => S.mcp.callTool(SERVER, tool, input);
@@ -2312,9 +2311,11 @@ ul.gkey li > div.what { flex-basis: 100%; }
     await S.db.doc("outbox/" + gid()).set(Object.assign({ cat: cat.id, catName: cat.name, at: Date.now(), status: "queued", why: why || "" }, item));
     return "queued";
   }
-  // Post text into a session: for now it waits in the outbox. Resolves "queued"; rejects only if saving fails.
+  // Post text into a session. Resolves "pushed" or "queued"; rejects only if saving the queue fails too.
   async function postToSession(cat, text, item) {
-    return queue(cat, Object.assign({ text }, item), "no_route");
+    if (!S.mcp) return queue(cat, Object.assign({ text }, item), "no_mcp");
+    try { await call("send_message", { session_id: cat.id, message: text }); return "pushed"; }
+    catch (e) { return queue(cat, Object.assign({ text, detail: String((e && e.message) || "").slice(0, 300) }, item), (e && e.code) || "error"); }
   }
   // The Catio MCP server on her computer: through the Claude app in claude.ai, or /api/* on localhost.
   async function hostCall(tool, args) {
@@ -2333,7 +2334,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     if (cat.kind === "agent") { await hostCall(item.kind === "request" ? "manage" : "comment", item.kind === "request" ? { cat: cat.agentId, action: item.action } : { cat: cat.agentId, text: item.say || text, author: "charlotte" }); return "pushed"; }
     return "kept";
   }
-  const saidAs = { pushed: "Sent.", queued: "Waiting in the outbox: the page can't post into a session yet, so it isn't there yet.", kept: "Kept on the card." };
+  const saidAs = { pushed: "Sent.", queued: "Waiting in the outbox: it couldn't be posted into the session, so it isn't there yet.", kept: "Kept on the card." };
 
   /* ---------- the brain: dropping files, and where they go ---------- */
   const isText = (f) => /^text\/|json|xml|csv|markdown|javascript|yaml|x-sh/.test(f.type) || /\.(md|txt|csv|json|ya?ml|html?|js|ts|py|sh|log|ics|vcf|eml)$/i.test(f.name);
@@ -2524,7 +2525,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       res = await postToSession(cat, deliveryText(doc, id, inline), { kind: "delivery", brain: id });
     } else res = "kept";
     await S.db.doc("brain/" + id).update({ status: res === "pushed" ? "pushed" : "waiting", sentAt: Date.now(), via: res });
-    return res === "pushed" ? doc.name + " went to " + cat.name + "." : res === "queued" ? doc.name + " is kept, and waits in the outbox for " + cat.name + ": the page can't post into a session yet." : doc.name + " is on " + cat.name + "'s card.";
+    return res === "pushed" ? doc.name + " went to " + cat.name + "." : res === "queued" ? doc.name + " is kept, and waits in the outbox for " + cat.name + ": it couldn't be posted into the session." : doc.name + " is on " + cat.name + "'s card.";
   }
   // File an unsorted one under a cat, from the brain's tray.
   async function fileUnder(d, cat) {

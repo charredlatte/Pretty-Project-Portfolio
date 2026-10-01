@@ -34,7 +34,9 @@ anything new.
 1. **Posting into sessions** (audit finding 1). Today it creates stray sessions and never delivers.
    - Done: Routines are no longer bound. Every post goes to `outbox/` with `why: "no_route"`, and the
      toast says it's waiting.
-   - Declare Claude Code Remote's `send_message` and, with her OK, try it once on a test session. If it
+   - On trial (her OK, 1 October): `postToSession()` calls `send_message`, and a post it can't make waits in
+     the outbox with the error. Declared in version 18, with `create_trigger` and `fire_trigger` dropped.
+     Declare Claude Code Remote's `send_message` and, with her OK, try it once on a test session. If it
      posts into the session, `postToSession()` uses it, and the outbox is only for refusals.
    - Done: the e2e checks expect the outbox.
 2. **Honest counts** (finding 2). Done.
@@ -134,8 +136,8 @@ Each pack's licence is checked before it goes in, and credited in the footer and
 
 1. Rotate the MCPmarket token in her plugin zip's `.mcp.json`.
 2. Turn the house-rules plugin on (`.claude/settings.json`, from `harness/README.md`).
-3. OK a one-message test of `send_message` on a test session (phase 0). It needs a publish that declares it.
-4. OK deleting the 14 old branches once `main` has version 15 (phase 0).
+3. Send one message from the page to the test session ("KittyChat test cat"), then say what arrived.
+4. Delete the 14 old merged branches on GitHub (OK'd 1 October; this session's git access can't delete them).
 5. Who made `plants.zip`, for the credits.
 6. Whether "Rename" should also rename the real session.
 7. Whether cats napping in the attic should sit on the stairs instead.
