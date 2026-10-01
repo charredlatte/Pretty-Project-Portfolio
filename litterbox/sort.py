@@ -1,29 +1,35 @@
 #!/usr/bin/env python3
-"""Empty the litter box: file each useful note into its own project's repo.
+"""Sift the litter box: pile its notes up by project, and file each pile, once checked, into that project's repo.
 
-    python3 litterbox/sort.py                 a dry run: what would be dropped, and filed where
-    python3 litterbox/sort.py --write         do it
+    python3 litterbox/sort.py                 a dry run: what would be dropped, piled and filed
+    python3 litterbox/sort.py --write         do it, then commit and push what it filed
     python3 litterbox/sort.py --checkout montfortoise-shopify=../shop --write
 
 Every litterbox/*.md but README.md is split into notes: a top-level bullet with everything indented under it,
 a paragraph, or a table. Then:
 
-- compress: done checklist items (`- [x]`) and items struck through (`- ~~...`) are dropped, with what is
-  indented under them, and so are blank runs;
+- compress: done checklist items (`- [x]`) and settled ones (struck through whole, or `- ~~label~~: why`) are
+  dropped, with what is indented under them, and so are blank runs. A correction (`- ~~Tuesday~~ Wednesday`) stays;
 - dedupe: a note that repeats another, or one already filed, is dropped. Case, accents, markdown and
-  punctuation don't count, and 90% alike is a repeat. Of two repeats in the box, the longer is kept;
-- sort: a note belongs to its file's frontmatter `project:`, else to the repo its words point at (digest.py's
-  BELONGS, or the repo's own name), else to the repo most of its file points at;
+  punctuation don't count; a note whose words all appear, in order, in another is a repeat, and the longer is kept;
+- pile: a note belongs to its file's frontmatter `project:`. A note in a file without one is moved to its
+  project's pile, litterbox/<project>.md, whose header is a guess, marked as one: the repo its words point at
+  (digest.py's BELONGS, or the repo's own name), else the repo most of its file points at. A note keeps the file
+  (and date) it came from. A pile waits, and new notes for that project join it, until someone checks the
+  header and deletes its "# a guess" comment. Nothing filed is guessed;
 - compile: a project's notes go to its checkout, in HOME[repo] (default docs/from-the-litterbox.md), under
   Waiting on Charlotte, Ideas not built, Facts learned or Findings (from the headings they sat under), and
   inside that under their own heading.
 
 Filed and dropped notes leave the litter box, and a file left empty is deleted (git keeps it). A note with no
 project, or whose project has no checkout beside this repo (or given with --checkout), stays where it is.
-The projects are the repos in catio/data/rooms.json, plus those BELONGS names. Standard library only.
+The projects are the repos in catio/data/rooms.json, plus those BELONGS names. With --write it then ships what it
+filed, as the house rule for semi-automatic shipping says (harness/rules.json): it commits only the files it wrote,
+in each repo, and pushes them to the branch that repo is on. Never the default branch, never a force-push, and not
+where the rule is switched off. Piling isn't shipped: a pile is still a guess.
+Standard library only.
 """
 import argparse
-import difflib
 import json
 import re
 import sys
@@ -34,9 +40,14 @@ from pathlib import Path
 
 BOX = Path(__file__).resolve().parent
 sys.path.insert(0, str(BOX.parent / "catio" / "tools"))
+sys.path.insert(0, str(BOX.parent / "harness" / "hooks"))
+from common import enforced  # noqa: E402
 from digest import BELONGS, home_of  # noqa: E402
+from ship_check import default_branch, git  # noqa: E402
 
 HOME = {"montfortoise-shopify": "admin/from-the-litterbox.md"}
+GUESSED = "# a guess by litterbox/sort.py: check it, then delete this comment to file these notes"
+GUESS = re.compile(r"^project:.*#.*\bguess", re.M | re.I)  # a header still waiting to be checked
 DEFAULT_HOME = "docs/from-the-litterbox.md"
 # A note's section, from the words of the deepest heading over it that has any of them.
 KINDS = [
@@ -46,7 +57,6 @@ KINDS = [
 ]
 FINDINGS = "Findings"
 ORDER = [k for k, _ in KINDS] + [FINDINGS]
-ALIKE = 0.9
 TITLE = """# From the litter box
 
 Notes filed here from the KittyChat Café's litter box by `litterbox/sort.py`. Each ends with the file it came
@@ -55,9 +65,10 @@ from. Edit them freely: the sorter only adds, and never files a note that is alr
 HEADING = re.compile(r"(#{1,6})\s")
 BULLET = re.compile(r"([-*+]|\d+[.)])\s")
 RULE = re.compile(r"(-{3,}|\*{3,}|_{3,})$")
-DONE = re.compile(r"\s*([-*+]|\d+[.)])\s+(\[[xX]\]|~~)")
+DONE = re.compile(r"\s*([-*+]|\d+[.)])\s+(\[[xX]\]|~~[^~]+~~(:|\W*$))")
 FRONT = re.compile(r"---\n(.*?)\n---\n", re.S)
 TAG = re.compile(r"\s*\*— litterbox/[^*]+\*\s*$")
+TAGLINE = re.compile(r"\*— litterbox/[^*]+\*$")
 
 
 @dataclass
@@ -67,6 +78,7 @@ class Note:
     src: str = ""
     date: str = ""
     project: str = ""
+    pinned: bool = False
 
     @property
     def kind(self):
@@ -86,10 +98,14 @@ class Note:
         return " › ".join(filter(None, [title, inner]))
 
     def tagged(self):
+        if TAG.search(self.lines[-1]):  # tagged when it was piled: it keeps the file it first came from
+            return "\n".join(self.lines)
         dated = self.date and self.date not in self.src
         tag = f"*— litterbox/{self.src}{', ' + self.date if dated else ''}*"
         last = self.lines[-1]
-        if last.startswith("|") or last.lstrip().startswith("```"):
+        if last.startswith("|"):  # a line right under a table would be one more row of it
+            return "\n".join(self.lines + ["", tag])
+        if last.lstrip().startswith("```"):
             return "\n".join(self.lines + [tag])
         return "\n".join(self.lines[:-1] + [f"{last} {tag}"])
 
@@ -112,6 +128,10 @@ def split(body):
             continue
         if not line:
             gap = cur is not None
+            continue
+        if cur is not None and TAGLINE.match(line.strip()):  # a note's tag, on a line of its own
+            cur += [""] * gap + [line]
+            gap = False
             continue
         indent = len(line) - len(line.lstrip())
         if RULE.match(line):
@@ -170,11 +190,9 @@ def norm(lines):
     return " ".join(re.sub(r"[^\w\s]|_", " ", text).split())
 
 
-def alike(a, b):
-    if a == b:
-        return True
-    m = difflib.SequenceMatcher(None, a, b)
-    return m.quick_ratio() >= ALIKE and m.ratio() >= ALIKE
+def within(a, b):
+    """Does note a say nothing that b doesn't: all its words, in order, inside b's? (Mochi is not Pochi.)"""
+    return a == b or bool(a) and f" {a} " in f" {b} "
 
 
 def projects(root):
@@ -205,12 +223,13 @@ def checkout(repo, root, given):
 
 
 def read_box(box, pats):
-    """{file: (frontmatter, notes)}, each note compressed, dated and pointed at a project. Also the drops."""
+    """{file: (frontmatter, notes, drops, its project:, whether that is a guess still waiting)}, each note
+    compressed, dated and pointed at a project."""
     files, dropped = {}, 0
     for path in sorted(box.glob("*.md")):
         if path.name == "README.md":
             continue
-        text = path.read_text(encoding="utf-8")
+        text = path.read_text(encoding="utf-8-sig")  # -sig: Notepad starts a file with a BOM
         m = FRONT.match(text)
         meta = dict((k.strip(), v.split("#")[0].strip()) for k, _, v in
                     (line.partition(":") for line in m.group(1).splitlines()) if v) if m else {}
@@ -222,12 +241,14 @@ def read_box(box, pats):
                 dropped += 1
                 continue
             n.src, n.date = path.name, date
+            n.pinned = bool(meta.get("project"))
             n.project = meta.get("project") or point("\n".join(n.heads + tuple(n.lines)), pats)
             notes.append(n)
         most = Counter(n.project for n in notes if n.project).most_common(1)
         for n in notes:
             n.project = n.project or (most[0][0] if most else "")
-        files[path] = (m.group(0) if m else "", notes, dropped)
+        files[path] = (m.group(0) if m else "", notes, dropped, meta.get("project", ""),
+                       bool(m and meta.get("project") and GUESS.search(m.group(1))))
         dropped = 0
     return files
 
@@ -261,14 +282,14 @@ def compose(head, secs):
 
 def file_into(dest, notes):
     """The notes not already in dest (keeping the longer of two repeats), and dest's new text."""
-    text = dest.read_text(encoding="utf-8") if dest.exists() else ""
+    text = dest.read_text(encoding="utf-8-sig") if dest.exists() else ""
     have = [norm(n.lines) for n in split(text)]
     new = []
     for n in notes:
         key = norm(n.lines)
-        if any(alike(key, h) for h in have):
+        if any(within(key, h) for h in have):
             continue
-        twin = next((i for i, (k, _) in enumerate(new) if alike(key, k)), None)
+        twin = next((i for i, (k, _) in enumerate(new) if within(key, k) or within(k, key)), None)
         if twin is None:
             new.append((key, n))
         elif len(key) > len(new[twin][0]):
@@ -292,20 +313,49 @@ def leftover(front, notes):
     return "\n\n".join(out) + "\n" if notes else ""
 
 
+def ship(repo, paths, message, say):
+    """Semi-automatic shipping: commit the files the sorter wrote in a repo, and only those, and push them to the
+    branch it is on. Never the default branch, never a force-push; what it can't do is said, for the session."""
+    name = repo.name
+    if not enforced("ship", repo):
+        return say(f"{name}: written, not committed: shipping is switched off here")
+    branch = git("branch", "--show-current", cwd=repo)
+    if branch is None:
+        return say(f"{name}: written, not committed: not a git checkout")
+    if not branch or branch == default_branch(repo):
+        return say(f"{name}: written, not committed: it is on {branch or 'no branch'}, and the sorter never commits "
+                   "to the default branch")
+    paths = [str(p) for p in paths if p.exists() or git("ls-files", "--", str(p), cwd=repo)]
+    if not paths or git("add", "-A", "--", *paths, cwd=repo) is None \
+            or not git("diff", "--cached", "--name-only", "--", *paths, cwd=repo):
+        return
+    if git("commit", "-q", "-m", message, "--", *paths, cwd=repo) is None:
+        return say(f"{name}: written, but the commit failed: commit it by hand")
+    if not git("remote", cwd=repo) or git("push", "-q", "-u", "origin", branch, cwd=repo) is None:
+        return say(f"{name}: committed on {branch}, but not pushed: push it")
+    say(f"{name}: committed and pushed to {branch}")
+
+
 def run(box=BOX, write=False, given=None, say=print):
     root, given = box.parent, given or {}
     files = read_box(box, projects(root))
-    by_repo, homes, stay = {}, {}, {}
-    for path, (_, notes, _) in files.items():
+    by_repo, homes, cos, stay, piles = {}, {}, {}, {}, {}
+    for path, (_, notes, _, _, waiting) in files.items():
         for n in notes:
+            if waiting:
+                continue
+            if n.project and not n.pinned:
+                piles.setdefault(n.project, []).append(n)
+                continue
             co = checkout(n.project, root, given) if n.project else None
             if co is None:
-                stay.setdefault(n.project or "no project", []).append(n)
+                why = ", no checkout here (use --checkout)" if n.project else ""
+                stay.setdefault((n.project or "no project", why), []).append(n)
                 continue
-            homes[n.project] = co / HOME.get(n.project, DEFAULT_HOME)
+            cos[n.project], homes[n.project] = co, co / HOME.get(n.project, DEFAULT_HOME)
             by_repo.setdefault(n.project, []).append(n)
 
-    filed = set()
+    filed, shipping, count = set(), {}, Counter()  # {checkout: [files written]}, {checkout: notes filed}
     for repo, notes in by_repo.items():
         new, text = file_into(homes[repo], notes)
         filed.update(id(n) for n in notes)
@@ -314,23 +364,56 @@ def run(box=BOX, write=False, given=None, say=print):
         if write and new:
             homes[repo].parent.mkdir(parents=True, exist_ok=True)
             homes[repo].write_text(text, encoding="utf-8")
-    for why, notes in stay.items():
-        place = "" if why == "no project" else ", no checkout here (use --checkout)"
-        say(f"staying in the box: {len(notes)} for {why}{place}, from " +
-            ", ".join(sorted({n.src for n in notes})))
-    done = sum(d for _, _, d in files.values())
+            shipping.setdefault(cos[repo], []).append(homes[repo])
+            count[cos[repo]] += len(new)
+    for (project, why), notes in stay.items():
+        say(f"staying in the box: {len(notes)} for {project}{why}, from " + ", ".join(sorted({n.src for n in notes})))
+    done = sum(f[2] for f in files.values())
     if done:
         say(f"dropped: {done} done or struck through")
 
-    for path, (front, notes, dropped) in files.items():
-        left = [n for n in notes if id(n) not in filed]
-        if len(left) == len(notes) and not dropped:
-            continue
-        say(f"{path.name}: " + ("emptied, deleted" if not left else f"{len(left)} notes left"))
-        if write and left:
-            path.write_text(leftover(front, left), encoding="utf-8")
-        elif write:
-            path.unlink()
+    # What each litter file holds after this run, [] to delete it: less what was filed, dropped or piled ...
+    plan, piled = {}, {id(n) for ns in piles.values() for n in ns}
+    for path, (front, notes, dropped, project, waiting) in files.items():
+        left = [n for n in notes if id(n) not in filed and id(n) not in piled]
+        if len(left) < len(notes) or dropped:
+            plan[path] = (front, left)
+            if project and not waiting:
+                shipping.setdefault(root, []).append(path)
+    for path, (_, left) in plan.items():
+        say(f"{path.name}: " + ("emptied, deleted" if not left else f"{len(left)} note{'s' * (len(left) != 1)} left"))
+    # ... and each project's pile: the one waiting for a check, else a new one, given a header that says it's a guess
+    for project, notes in piles.items():
+        pile = next((p for p, f in files.items() if f[4] and f[3] == project), None)
+        if pile:
+            front, kept = plan.get(pile, files[pile][:2])
+        else:
+            pile, i, front, kept = box / f"{project}.md", 2, f"---\nproject: {project}  {GUESSED}\n---\n", []
+            while plan[pile][1] if pile in plan else pile.exists():
+                pile, i = box / f"{project}-{i}.md", i + 1
+        for n in notes:
+            n.lines = n.tagged().split("\n")  # so it keeps the file it came from
+            if not (n.heads and n.heads[0].startswith("# ")):  # or it would sit under the note before's title
+                n.heads = (f"# {Path(n.src).stem}",) + n.heads
+        plan[pile] = (front, kept + notes)
+        say(f"{pile.name}: {len(notes)} note{'s' * (len(notes) != 1)} piled for {project}, a guess, from "
+            + ", ".join(sorted({n.src for n in notes})))
+    after = {**{p: f[:2] for p, f in files.items()}, **plan}
+    waiting = sorted(p.name for p, (front, notes) in after.items() if notes and GUESS.search(front))
+
+    if write:
+        for path, (front, notes) in plan.items():
+            if notes:
+                path.write_text(leftover(front, notes), encoding="utf-8")
+            elif path.exists():
+                path.unlink()
+        for co, paths in shipping.items():
+            k = count[co]
+            ship(co, paths, f"File {k} note{'s' * (k != 1)} from the KittyChat Café's litter box" if k
+                 else "Sort the KittyChat Café's litter box", say)
+    if waiting:
+        say("waiting for a check: " + ", ".join(waiting) + ". Check each one's project:, delete its \"# a guess\" "
+            "comment, and the next run files it.")
     if not write:
         say("dry run: nothing written. Add --write to do it.")
 

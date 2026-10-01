@@ -22,13 +22,15 @@ from pathlib import Path
 
 DATA = Path(__file__).resolve().parent.parent / "data"
 STALE_DAYS = 7
-# A title that names another project's subject: (pattern, the repo it belongs to).
+# A title that names another project's subject: (pattern, the repo it belongs to). litterbox/sort.py files notes by
+# these too, so no word another project uses as well: not "course" (of course), "basket" (the shop has one),
+# "shopping" (the shop is shop, shops or Shopify) or "pixel art" (the café is pixel art).
 BELONGS = [
-    (r"\b(courses?|grocer|meal|recipe|intermarch|basket|shopping list)", "Intermarche-grocery-shopping"),
+    (r"\b(courses\b|grocer|meal|recipe|intermarch|méré|drive basket|shopping list)", "Intermarche-grocery-shopping"),
     (r"\b(catio|kittychat|manor|harness|cats?\b)", "Pretty-Project-Portfolio"),
-    (r"\b(shop|montfortoise|packshot|product page|business plan|about page)", "montfortoise-shopify"),
+    (r"\b(shop(s|ify)?\b|montfortoise|packshot|product page|business plan|about page)", "montfortoise-shopify"),
     (r"\btiktok", "tiktok-saves"),
-    (r"\b(pixel art|libresprite)", "pixel-art-app"),
+    (r"\b(pixel[-\s]art[-\s]app|libresprite)", "pixel-art-app"),
 ]
 ROUTINE = re.compile(r"refresh the catio", re.I)
 UNTITLED = re.compile(r"^[a-z]+-[a-z]+-[a-z]+$")   # an auto-generated name like charpc-serene-kurzweil

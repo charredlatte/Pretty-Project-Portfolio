@@ -13,8 +13,12 @@ from pathlib import Path
 HOOKS = Path(__file__).resolve().parent.parent / "hooks"
 
 
-def run(script, data, cwd=None):
-    return subprocess.run([sys.executable, str(HOOKS / script)], input=json.dumps(data), capture_output=True, text=True, cwd=cwd)
+def run(script, data, cwd=None, cloud=False):
+    env = {k: v for k, v in os.environ.items() if k != "CLAUDE_CODE_REMOTE"}
+    if cloud:
+        env["CLAUDE_CODE_REMOTE"] = "true"
+    return subprocess.run([sys.executable, str(HOOKS / script)], input=json.dumps(data), capture_output=True, text=True,
+                          cwd=cwd, env=env)
 
 
 def transcript(tmp, skills=()):
@@ -65,6 +69,13 @@ class Gates(unittest.TestCase):
             self.assertIn("ponytail-audit", r.stderr)
             self.assertEqual(self.gate(tool, args, ["anthropic-skills:ponytail-audit"]).returncode, 0, args)
 
+    def test_scripts_that_write_wait_for_the_audit(self):
+        for command in ("python3 litterbox/sort.py --write", "npm run vendors:apply -- --commit",
+                        "python3 litterbox/sort.py --write > " + self.tmp + "/log.txt"):
+            self.assertEqual(self.gate("Bash", {"command": command}).returncode, 2, command)
+        for command in ("python3 litterbox/sort.py", "curl -s --write-out %{http_code} https://example.com"):
+            self.assertEqual(self.gate("Bash", {"command": command}).returncode, 0, command)
+
     def test_scratch_writes_are_free(self):
         repo = Path(self.tmp, "repo"); repo.mkdir()
         self.assertEqual(self.gate("Write", {"file_path": self.tmp + "/scratch/x.md"}, cwd=str(repo)).returncode, 0)
@@ -90,8 +101,9 @@ class Ship(unittest.TestCase):
         g("remote", "set-head", "origin", "main")
         self.work, self.g = work, g
 
-    def stop(self, **kw):
-        r = run("ship_check.py", {"hook_event_name": "Stop", "cwd": str(self.work), **kw}, cwd=self.work)
+    def stop(self, cwd=None, cloud=False, **kw):
+        cwd = cwd or self.work
+        r = run("ship_check.py", {"hook_event_name": "Stop", "cwd": str(cwd), **kw}, cwd=cwd, cloud=cloud)
         return json.loads(r.stdout) if r.stdout.strip() else None
 
     def test_quiet_on_the_default_branch_and_when_clean(self):
@@ -112,6 +124,16 @@ class Ship(unittest.TestCase):
         self.assertIn("aren't pushed", self.stop()["reason"])
         self.g("push", "-u", "origin", "feature")
         self.assertIsNone(self.stop())
+
+    def test_in_the_cloud_every_repo_beside_this_one_counts(self):
+        self.g("checkout", "-b", "feature"); self.g("push", "-u", "origin", "feature")
+        shop = Path(self.tmp, "shop")
+        subprocess.run(["git", "clone", str(Path(self.tmp, "origin.git")), str(shop)], check=True, capture_output=True)
+        self.g("checkout", "-b", "notes", cwd=shop)
+        Path(shop, "notes.md").write_text("filed by the sorter")
+        self.assertIsNone(self.stop())                                   # on her PC: only this repo
+        self.assertIn("shop's branch notes has uncommitted", self.stop(cloud=True)["reason"])
+        self.assertIn("shop's branch notes", self.stop(cwd=self.tmp, cloud=True)["reason"])   # cwd holds the repos
 
     def test_graphify_map_is_not_work_to_ship(self):
         self.g("checkout", "-b", "feature"); self.g("push", "-u", "origin", "feature")

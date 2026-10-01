@@ -9,17 +9,18 @@ version, is in `docs/history.md`. What she has asked for is in `docs/requests.md
 
 ## Where it stands
 
-- **Live:** version 17, published 1 October from `claude/dreamy-goldberg-iu6w6l`: phase 0 on top of the
-  KittyChat Café:
+- **Live:** version 18, published 1 October from `claude/dreamy-goldberg-iu6w6l`: phase 0 and the
+  `send_message` trial on top of the KittyChat Café:
   - the brand is the House button;
   - quiet maps and short menus;
   - Game UI Pastel pixel icons;
   - the map panel and minimap.
-- **Tests:** e2e 154 passed; harness 18 passed; `furniture.check()` empty.
-- **`main`** has version 16 (PR #7) and the digest of her sessions (`catio/tools/digest.py`, PR #8). Phase 0
-  is on `claude/dreamy-goldberg-iu6w6l`, with `main` merged in, waiting for its pull request.
-- **Phase 0** is done and live (version 17), except what waits on her: the `send_message` trial and deleting
-  the old branches.
+- **Tests:** e2e 158 passed; harness 20 passed; the litter box's sifter 12 passed; `furniture.check()` empty.
+- **`main`** has version 16 (PR #7), the digest of her sessions (PR #8), and the litter box's sifter with the
+  Catio server's POST hole closed (PRs #10 to #13). Phase 0 is on `claude/dreamy-goldberg-iu6w6l`, with `main`
+  merged in, waiting for PR #9.
+- **Phase 0** is done and live. The old branches are deleted (1 October). The `send_message` trial answered: a
+  page can't post into a session (below).
 
 ## The roadmap, in order
 
@@ -34,10 +35,11 @@ anything new.
 1. **Posting into sessions** (audit finding 1). Today it creates stray sessions and never delivers.
    - Done: Routines are no longer bound. Every post goes to `outbox/` with `why: "no_route"`, and the
      toast says it's waiting.
-   - On trial (her OK, 1 October): `postToSession()` calls `send_message`, and a post it can't make waits in
-     the outbox with the error. Declared in version 18, with `create_trigger` and `fire_trigger` dropped. Its
-     argument names come from its own schema (`describeTool`), since this session can't read it. If it
-     posts into the session, `postToSession()` uses it, and the outbox is only for refusals.
+   - Tried (her OK, 1 October, version 18): `postToSession()` calls `send_message`, declared in the page's
+     capabilities. claude.ai refused it, `blocked_by_policy` ("tool is not available on this connector or is
+     blocked by your organization"), and refused `describeTool` too. So **a page cannot post into a session**:
+     the code stays (it starts working the day the policy allows it), and the outbox is the way in. Delivering
+     the outbox is phase 5's work.
    - Done: the e2e checks expect the outbox.
 2. **Honest counts** (finding 2). Done.
    - Review-ready cats older than `STALE_DAYS` nap in the attic.
@@ -127,8 +129,11 @@ Each pack's licence is checked before it goes in, and credited in the footer and
 
 - **The house-rules plugin turned on** (her step). Then sessions write `audits/<repo>` and pick up the
   `outbox/` on catch-up.
-- **The concierge**, only if `send_message` can't be called from the page: a session plus a Routine that
-  delivers `outbox/` from Claude's side. The Routines are paused at her request, so this waits for her.
+- **Delivering the outbox.** A page can't call `send_message` (version 18's trial), and the Claude Code
+  sessions here don't have it either, so nothing can push a post into a session from outside. The way in is
+  the session's own catch-up: the catio skill reads `outbox/` for its own session id when the session next
+  runs. That needs the house-rules plugin turned on (her step). A concierge Routine is the fallback, and the
+  Routines are paused at her request.
 - **Agent cats in claude.ai** need `host:catio` declared, which only the Claude desktop app can do.
 - **List `catio-plugin/` in the marketplace** next to `kittychat-house-rules`.
 
@@ -136,8 +141,8 @@ Each pack's licence is checked before it goes in, and credited in the footer and
 
 1. Rotate the MCPmarket token in her plugin zip's `.mcp.json`.
 2. Turn the house-rules plugin on (`.claude/settings.json`, from `harness/README.md`).
-3. Send one message from the page to the test session ("KittyChat test cat"), then say what arrived.
-4. Delete the 14 old merged branches on GitHub (OK'd 1 October; this session's git access can't delete them).
+3. ~~The `send_message` trial~~: done 1 October, blocked by policy.
+4. ~~Delete the 14 old merged branches~~: done 1 October.
 5. Who made `plants.zip`, for the credits.
 6. Whether "Rename" should also rename the real session.
 7. Whether cats napping in the attic should sit on the stairs instead.

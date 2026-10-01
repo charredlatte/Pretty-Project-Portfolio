@@ -62,6 +62,7 @@ So a piece drops straight in without scaling or blur: *— litterbox/assets-wish
 | [Cat Pack – Pochi](https://toffeecraft.itch.io/cat-retro), paid | $1.80+ | **The walk.** Its *Run* animation replaces today's hopping sitter. It also has **six real coat colours** (brown, white, black, grey, orange, grey-white). Coats are now the only way to tell projects apart, so real colours beat today's colour filters. It also adds Happy, Chilling, Surprised, Sleeping and Dance for the moods. |
 | [Sprout Lands UI Pack](https://cupnooble.itch.io/sprout-lands-ui-pack), premium | $3.99+ | Emote bubbles for meowing cats, a bigger emoji set (more mood faces), and more expressions for its cat |
 | [Sprout Lands Asset Pack](https://cupnooble.itch.io/sprout-lands-asset-pack), premium | $3.99+ | Doors, windows and roofs that could replace the facade I drew in code, plus interior furniture |
+
 *— litterbox/assets-wishlist.md*
 
 **Worth knowing before you buy:** *— litterbox/assets-wishlist.md*
@@ -88,6 +89,7 @@ So a piece drops straight in without scaling or blur: *— litterbox/assets-wish
 | **Coming downstairs, from the front** | Coming back down | 4 |
 | **Working**: at a laptop, a desk or yarn | A working cat's station | 4–8, looping |
 | **Sitting on a step** | If napping cats ever sit on the stairs instead of vanishing | 2 |
+
 *— litterbox/assets-wishlist.md*
 
 The Pochi Run from section 1 covers "side". The rest match whichever cat you choose. *— litterbox/assets-wishlist.md*
@@ -107,6 +109,7 @@ Today these are drawn in code (`catio/tools/manor.py`). They work, but hand-draw
 | Stone plinth and corner quoins | 16 × 7, and 5 × 5 blocks |
 | Wrought-iron stair rail with scrolls | 2 × 16 |
 | Window box of red geraniums | 16 × 6 |
+
 *— litterbox/assets-wishlist.md*
 
 **Inside, walls and floors:** *— litterbox/assets-wishlist.md*
@@ -119,6 +122,7 @@ Today these are drawn in code (`catio/tools/manor.py`). They work, but hand-draw
 | Stained-glass window, lily or fleur | 30, 40 and 76 wide × 32 |
 | Parquet or herringbone floor (drawing room) | 16 × 16 |
 | Marble chequer (orangery) | 16 × 16 |
+
 *— litterbox/assets-wishlist.md*
 
 **Inside, furniture** (each is a piece renovation mode can move): *— litterbox/assets-wishlist.md*
@@ -176,6 +180,7 @@ each one for now: *— litterbox/assets-wishlist.md*
 | An "interrogation" icon | `Question` (its folder in the zip is empty) | — |
 | Key caps for the `?` list of keys | Plain lettering | Rounded key caps |
 | Furniture thumbnails for the catalogue and "Looks like…" | The atlas cells, drawn small | — |
+
 *— litterbox/assets-wishlist.md*
 
 "—" means what fills it is good enough. *— litterbox/assets-wishlist.md*
@@ -611,6 +616,7 @@ switch. Seven new e2e checks glide the mouse in small steps. Tested by moving th
 | Text size | Pixel font kept at 18px (good); body text 10–12.8px | Suggestion | 14px minimum for Nunito text |
 | Empty states | Clear and helpful everywhere | — | Keep |
 | Consistency with the pack | Every control uses the pack's art | — | Keep |
+
 *— litterbox/ui-audit.md*
 
 ### UI/UX audit of the Catio, with Charlotte's Game UI plugin › Recommended order

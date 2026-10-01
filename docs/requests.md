@@ -1,7 +1,7 @@
 # What Charlotte has asked for
 
 Everything she has asked for across the Catio, the manor, this repo and the KittyChat Cafe, compiled and
-compressed. Read this before starting something new. Last updated 30 September 2026.
+compressed. Read this before starting something new. Last updated 1 October 2026.
 
 ## Where the project's information lives
 
@@ -16,11 +16,11 @@ compressed. Read this before starting something new. Last updated 30 September 2
 | `docs/history.md` | How it got here, version by version |
 | `docs/camera-and-minimap.md` | The map panel, the minimap and the Sims-style camera |
 | `docs/renovation-mode.md` | The renovation mode spec: moving, adding and removing furniture, the cabinets' looks |
-| `litterbox/` | Where new notes land; `litterbox/sort.py` files them into each project's own repo |
+| `litterbox/` | The back burner: new notes land here, `litterbox/sort.py` piles them by project for her to check, then files each checked pile into its project's own repo and pushes it |
 | `catio/art/CREDITS.md` | Every pack, its artist and its licence |
 | `harness/README.md`, `harness/rules.json` | The KittyChat house rules and the Catio MCP server |
 | `artifacts.json` | The one artifact's URL |
-| GitHub | Issue #3 (the KittyChat Cafe); PRs #1, #2, #4 and #5, whose descriptions record each round |
+| GitHub | Issue #3 (the KittyChat Cafe); the merged PRs, whose descriptions record each round |
 | The artifact's database | Her private data: rooms, renames, adopted chats, queens' notes, the brain's files, notes, the outbox. Never in git |
 | Her Drive folder "KittyChat Cafe Assets" | The asset-pack zips |
 
@@ -83,6 +83,16 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 - **A UI/UX audit with her Game UI plugin** (29 September): in `docs/from-the-litterbox.md`, under Findings. She picks what to fix.
 - **Sounds:** she is finding some herself.
 - **How to work:** build the manor a room at a time; compress chats; leftovers go in the litterbox.
+
+## The litter box (1 October)
+
+- **An audit of the harness, and a first real test of the sifter** (`litterbox/sort.py`). Fix everything it
+  found, including the server's hole: any web page could wake an agent as her.
+- **Every note needs a `project:` header, and the sifter writes it**, not her.
+- **Keep guessing to a minimum before deletion.** "The litterbox is the back burner": it finds what needs
+  dealing with and lumps it together under a header. A guess waits until it's checked; nothing is filed,
+  or deleted from the box, on a guess.
+- **It semi-auto pushes** what it files, by the house rule for shipping.
 
 ## The manor's look
 

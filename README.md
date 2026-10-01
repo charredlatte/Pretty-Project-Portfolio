@@ -185,4 +185,11 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `catio/data/rooms.json`: the rooms, for the localhost copy. `sessions.json` is never committed.
 - `catio/art/`: the committed art. `licensed/` is rebuilt, not committed.
 - `catio/test/`: the end-to-end test (`sh catio/test/run.sh`).
+- `harness/`: the KittyChat harness behind the page: the house-rules plugin (its hooks and the `catio`
+  skill) and the Catio MCP server other agents join through. See [`harness/README.md`](harness/README.md).
+- `litterbox/`: the back burner. Notes dropped here are piled up by project, under a header that is a guess
+  until she checks it; checked piles are filed into each project's own repo, committed and pushed. See
+  [`litterbox/README.md`](litterbox/README.md).
+- `docs/`: her requests (`requests.md`), the plan (`plan.md`), and what the litter box filed here
+  (`from-the-litterbox.md`).
 - `CLAUDE.md`: how to change and republish the page.
