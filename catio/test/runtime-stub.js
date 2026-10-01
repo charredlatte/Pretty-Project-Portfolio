@@ -18,7 +18,7 @@
   // the same rooms the published page is seeded with
   const SEED = {
   "garden":  { "name": "Catio",       "blurb": "This page and the portfolio",        "repos": ["Pretty-Project-Portfolio"] },
-  "kitchen": { "name": "Kitchen",     "blurb": "Weekly meals and the Méré basket",   "repos": ["Intermarche-grocery-shopping-app", "intermarche-grocery-data"] },
+  "kitchen": { "name": "Kitchen",     "blurb": "Weekly meals and the Méré basket",   "repos": ["Intermarche-grocery-shopping-app"] },
   "dining":  { "name": "Café",        "blurb": "Business plans, round the table",    "repos": [] },
   "living":  { "name": "Cat lounge",  "blurb": "New cats come in here",              "repos": [], "catchAll": true },
   "sunroom": { "name": "Terrace",     "blurb": "TikTok saves, in the light",         "repos": ["tiktok-saves"] },

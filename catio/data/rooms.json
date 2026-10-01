@@ -11,8 +11,7 @@
   "name": "Kitchen",
   "blurb": "Weekly meals and the Méré basket",
   "repos": [
-   "Intermarche-grocery-shopping-app",
-   "intermarche-grocery-data"
+   "Intermarche-grocery-shopping-app"
   ],
   "catchAll": false
  },
