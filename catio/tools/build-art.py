@@ -1,28 +1,31 @@
 #!/usr/bin/env python3
-"""Rebuild the catio's art from Charlotte's seven asset-pack zips.
+"""Rebuild the catio's art from Charlotte's nine asset-pack zips.
 
     pip install pillow fonttools
     python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip "Top down garden castle.zip" \
         "Wood Garden Asset Pack.zip" "Pixel Art Top Down - Basic v1.2.3.zip" \
-        "Sprout Lands - UI Pack - Basic pack.zip" plants.zip
+        "Sprout Lands - UI Pack - Basic pack.zip" plants.zip \
+        "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip"
     python3 catio/tools/build-art.py "Sprout Lands - UI Pack - Basic pack.zip"    # the interface alone
 
 (The zips' names don't matter, only their order.) Writes, next to catio/index.html:
-  art/house.png                  the manor's shell (floors, walls, glass, doors), from Cosy Cabin to manor.py
+  art/licensed/house.png         the manor's ground floor (floors, walls, glass, doors, the south facade),
+                                 drawn to manor.py from every pack
+  art/licensed/house-upper.png   its upper floor: the library, bedroom and ensuite, and the landing over the
+                                 kitchen and hall
   art/furniture.png              the Cosy Cabin furniture, one cell per piece in furniture.py's catalogue
   art/licensed/furniture.png     the rest of the furniture (ToffeeCraft, Wood Garden, Cainos, plants.zip)
-  art/licensed/decor.png         the grounds: the catio's deck and fence, the drive, fountain, parterres and
-                                 arch gate, trees (Top Down Garden Castle, Wood Garden, Cainos; manor.grounds)
+  art/licensed/decor.png         the grounds: the catio's deck and fence, the drive, fountain, the parterre,
+                                 arch gate, spruce forest and lawn (every pack but the cats; manor.grounds)
   art/licensed/meadow.png        a grass tile from Top Down Garden Castle, repeated under the manor
-  art/licensed/emblems.png       the little things a cat carries to show its project
   art/licensed/mochi-idle.png, mochi-box.png, pochi.png   the ToffeeCraft cats, unchanged
   art/licensed/ui/               the interface, cut from Sprout Lands: panels, buttons, fields, bubbles,
                                  brackets, the sound switch, the mood faces, the cursors and sprout.ttf
 and rewrites the page's MANOR block (furniture.py), which needs no zips on its own.
 
-Only art/house.png and art/furniture.png are committed (Cosy Cabin allows copying, with credit). The
-other packs' licences forbid redistributing the files, so art/licensed/ is gitignored and ships only
-inside the private artifact. See CLAUDE.md.
+Only art/furniture.png is committed (Cosy Cabin allows copying, with credit). The house mixes every pack,
+and the other packs' licences forbid redistributing the files, so art/licensed/ is gitignored and ships
+only inside the private artifact. See CLAUDE.md.
 """
 import io
 import sys
@@ -31,7 +34,6 @@ from pathlib import Path
 
 from PIL import Image
 
-import cabin
 import furniture
 import manor
 
@@ -43,12 +45,6 @@ def member(zf, suffix):
         if n.endswith(suffix) and not n.startswith("__MACOSX"):
             return Image.open(io.BytesIO(zf.read(n))).convert("RGBA")
     raise SystemExit(f"{suffix} not found in {zf.filename}")
-
-
-def example(cabin_zip):
-    """The pack's second example cabin at native 16 px tiles (it ships drawn at 3x); used for its floorboards."""
-    ex = member(zipfile.ZipFile(cabin_zip), "CosyCabin_Example2.png")
-    return ex.resize((ex.width // 3, ex.height // 3), Image.NEAREST)
 
 
 def raw(zf, suffix):
@@ -254,48 +250,17 @@ def spring(im):
     return im
 
 
-EMBLEM = (20, 24)   # one cell of emblems.png; the page's EMBLEMS list follows this order
-
-
-def emblems(cats_zip, cabin_zip):
-    """Small pieces a cat carries to show its project: tin, coin, books, star, plant, yarn."""
-    pochi = member(zipfile.ZipFile(cats_zip), "PochiFree/FreeSprites.png")
-    catui = member(zipfile.ZipFile(cats_zip), "CatUIFree/free.png")
-    objects = member(zipfile.ZipFile(cabin_zip), "CosyCabin_Objects.png")
-    pieces = [
-        pochi.crop((103, 343, 121, 361)),     # tin of cat food: groceries, meals
-        catui.crop((160, 48, 176, 64)),       # coin button: shops, business, money
-        objects.crop((835, 81, 846, 95)),     # books: legal, admin, study
-        objects.crop((896, 241, 912, 256)),   # star: portfolio, design
-        objects.crop((834, 584, 848, 608)),   # potted plant: home, garden
-        pochi.crop((137, 410, 154, 425)),     # yarn: everything else
-    ]
-    w, h = EMBLEM
-    sheet = Image.new("RGBA", (w * len(pieces), h))
-    for i, p in enumerate(pieces):
-        sheet.alpha_composite(p, (i * w + (w - p.width) // 2, h - p.height))
-    return sheet
-
-
 def main():
     if len(sys.argv) == 2:
         sprout(sys.argv[1])
         print("interface written to", OUT / "licensed" / "ui")
         return
-    if len(sys.argv) != 8:
+    if len(sys.argv) != 10:
         raise SystemExit(__doc__)
-    cabin_zip, cats_zip, garden_zip, wood_zip, stone_zip, sprout_zip, plants_zip = sys.argv[1:]
+    (cabin_zip, cats_zip, garden_zip, wood_zip, stone_zip, sprout_zip, plants_zip,
+     sprites_zip, dreamy_zip) = sys.argv[1:]
     (OUT / "licensed").mkdir(parents=True, exist_ok=True)
-    cz = zipfile.ZipFile(cabin_zip)
-    # the manor's shell (Cosy Cabin only, committed) and its grounds (licensed)
-    manor.shell(member(cz, "CosyCabin_TileMap.png"), member(cz, "CosyCabin_Objects.png"), example(cabin_zip)).save(OUT / "house.png")
-    sheet = spring(member(zipfile.ZipFile(garden_zip), "Top down Garden Castle.png"))
-    wood = zipfile.ZipFile(wood_zip)
-    sz = zipfile.ZipFile(stone_zip)
-    manor.grounds(sheet, lambda name: member(wood, name), member(sz, "Texture/TX Props.png"),
-                  member(sz, "Texture/TX Struct.png")).save(OUT / "licensed" / "decor.png")
-    # the furniture, as two atlases the page places pieces from: Cosy Cabin's (committed) and the rest
-    zips = [zipfile.ZipFile(z) for z in (cabin_zip, cats_zip, wood_zip, stone_zip, plants_zip)]
+    zips = [zipfile.ZipFile(z) for z in sys.argv[1:]]
 
     def load(end):
         for z in zips:
@@ -303,11 +268,24 @@ def main():
                 if (n == end or n.endswith("/" + end)) and not n.startswith("__MACOSX"):
                     return Image.open(io.BytesIO(z.read(n))).convert("RGBA")
         raise SystemExit(end + " not found in the zips")
+    # the manor's shell, from every pack (licensed), and its grounds
+    manor.shell(load, "ground").save(OUT / "licensed" / "house.png")
+    manor.shell(load, "upper").save(OUT / "licensed" / "house-upper.png")
+    sheet = spring(member(zipfile.ZipFile(garden_zip), "Top down Garden Castle.png"))
+    wood = zipfile.ZipFile(wood_zip)
+    sz = zipfile.ZipFile(stone_zip)
+    dreamy = "Little Dreamyland - Free Pack/Tileset/"
+    more = {"nature": load(dreamy + "Nature_Tileset.png"), "exterior": load(dreamy + "Exterior_Tileset.png"),
+            "floor": load(dreamy + "Tileset_Floor_Detail.png"), "biome": load("Objects/Basic_Grass_Biom_things.png"),
+            "plant": spring(load("Texture/TX Plant.png")), "cosy": load("CosyCabin_Objects.png"),
+            "ground": load("Texture/TX Tileset Stone Ground.png").crop((128, 0, 160, 32))}
+    manor.grounds(sheet, lambda name: member(wood, name), member(sz, "Texture/TX Props.png"),
+                  member(sz, "Texture/TX Struct.png"), more).save(OUT / "licensed" / "decor.png")
+    # the furniture, as two atlases the page places pieces from: Cosy Cabin's (committed) and the rest
     atl = furniture.atlases(load)
     atl["cc"].save(OUT / "furniture.png")
     atl["lic"].save(OUT / "licensed" / "furniture.png")
     sheet.crop((16, 16, 128, 48)).save(OUT / "licensed" / "meadow.png")
-    emblems(cats_zip, cabin_zip).save(OUT / "licensed" / "emblems.png")
     cats = zipfile.ZipFile(cats_zip)
     for suffix, name in [("MochiFree/Idle.png", "mochi-idle.png"), ("MochiFree/Box3.png", "mochi-box.png"),
                          ("PochiFree/FreeSprites.png", "pochi.png")]:

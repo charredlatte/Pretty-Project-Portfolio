@@ -1,16 +1,45 @@
 {
   "hooks": {
     "SessionStart": [
-      { "hooks": [{ "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/session_start.py\"" }] }
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/session_start.py\""
+          }
+        ]
+      }
     ],
     "PreToolUse": [
       {
         "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit|mcp__.*",
-        "hooks": [{ "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/gates.py\"" }]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/gates.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Grep|Read|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/graph_first.py\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "Stop": [
-      { "hooks": [{ "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/ship_check.py\"" }] }
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/ship_check.py\""
+          }
+        ]
+      }
     ]
   }
 }

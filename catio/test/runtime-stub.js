@@ -19,13 +19,13 @@
   const SEED = {
   "garden":  { "name": "Catio",       "blurb": "This page and the portfolio",        "repos": ["Pretty-Project-Portfolio"] },
   "kitchen": { "name": "Kitchen",     "blurb": "Weekly meals and the Méré basket",   "repos": ["Intermarche-grocery-shopping-app", "intermarche-grocery-data"] },
-  "dining":  { "name": "Dining room", "blurb": "Business plans, round the table",    "repos": [] },
-  "living":  { "name": "Living room", "blurb": "New cats come in here",              "repos": [], "catchAll": true },
-  "sunroom": { "name": "Sunroom",     "blurb": "TikTok saves, in the light",         "repos": ["tiktok-saves"] },
+  "dining":  { "name": "Café",        "blurb": "Business plans, round the table",    "repos": [] },
+  "living":  { "name": "Cat lounge",  "blurb": "New cats come in here",              "repos": [], "catchAll": true },
+  "sunroom": { "name": "Terrace",     "blurb": "TikTok saves, in the light",         "repos": ["tiktok-saves"] },
   "study":   { "name": "Craft room",  "blurb": "The Montfortoise shop",              "repos": ["montfortoise-shopify"] },
   "bedroom": { "name": "Bedroom",     "blurb": "Legal questions, kept quiet",        "repos": [] },
-  "bath":    { "name": "Bathroom",    "blurb": "Spare",                              "repos": [] },
-  "hall":    { "name": "Hall",        "blurb": "Snail mail, by the front door",      "repos": ["Snail-Mail-Trail"] },
+  "bath":    { "name": "Ensuite",     "blurb": "Spare",                              "repos": [] },
+  "hall":    { "name": "Entrance hall", "blurb": "Snail mail, by the front door",      "repos": ["Snail-Mail-Trail"] },
   "brain":   { "name": "Library",     "blurb": "The brain",                          "repos": [] }
 };
   if (params.get("mode") !== "empty") for (const [k, v] of Object.entries(SEED)) T.store["rooms/" + k] = v;

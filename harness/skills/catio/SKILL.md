@@ -1,6 +1,6 @@
 ---
 name: catio
-description: Handle what Charlotte sends from the Catio, her KittyChat harness - a turn starting with [Catio] that delivers a file, a note, or a request (pause, wrap up) - and do the session-start catch-up of files, notes and requests waiting for this session. Also how to save the opening audit to the Catio. Use whenever a message starts with [Catio], when asked to "check the brain" or "check the Catio", and once at the start of every session.
+description: Handle what Charlotte sends from the Catio, her KittyChat harness - a turn starting with [Catio] that delivers a file, a note, or a request (pause, wrap up) - and do the session-start catch-up of files, notes and requests waiting for this session. Also how to save the opening audit and the project's graphify map to the Catio. Use whenever a message starts with [Catio], when asked to "check the brain" or "check the Catio", and once at the start of every session.
 ---
 
 # The Catio
@@ -28,7 +28,9 @@ The pushed text says which kind it is.
   2. Do what her note asks with it. No note: say in one line what the file is and how it bears on your work.
   3. Mark it picked up: `ArtifactData` `update` on `brain/<doc id>` with
      `{status: "picked", pickedAt: <ms since epoch>, pickedBy: "<your session id>"}` (read it first for `if_version`).
-- **Message**: `[Catio] Charlotte says: ...` Answer it, and act on it if it asks for something.
+- **Message**: `[Catio] Charlotte says: ...` Answer it, and act on it if it asks for something. When it starts
+  `Ask the project map:`, she clicked a question in the project's map: answer it from the graph
+  (`graphify query "<question>"`, or `path` / `explain`), reading files only to check what the graph says.
 - **Request**: `[Catio] Request: pause` means stop at the next safe point and say where you stopped;
   `wrap_up` means finish the current step, ship it under the shipping rule, and summarise.
 
@@ -56,3 +58,20 @@ The house rules open every session with the `ponytail-audit` skill, read-only. W
 summary: `ArtifactData` `set` `audits/<repo name, lowercase, a-z 0-9 and ->` with
 `{repo: "<owner/repo>", at: <ms>, by: "<your session id>", summary: "<the top findings, one line each, under 2000 characters>"}`
 (read it first and pass `if_version` if it exists). The page shows it in that project's filing cabinet.
+
+## The project map
+
+Each repo is digested through a graphify map (the `graphify` skill in this plugin; house rule "Map before you
+dig"). graphify writes `graphify-out/` in the repo: keep it out of git by adding `graphify-out/` to
+`.git/info/exclude` unless the repo already ignores it.
+
+1. Build or refresh it: `graphify update .` maps the code locally with no model; `/graphify .` (the skill)
+   adds docs, papers and images with a semantic pass. Ask it with `graphify query`, `path` and `explain`.
+2. Digest it for the Catio: `python3 "${CLAUDE_PLUGIN_ROOT}/skills/catio/graph_doc.py" --by <your session id>`.
+   The first line it prints is the document id (`graphs/<repo>`); it saves the document as
+   `graphify-out/catio-graph.json`.
+3. `ArtifactData` `set` that document id with `file_path` = that file (read it first and pass `if_version`
+   if it exists). The page shows it in the project's filing cabinet: the map, its neighbourhoods, hubs and
+   surprising links, and the questions she can ask a cat with one click.
+
+Refresh the map when a piece of work changes the code's shape, not after every edit.
