@@ -30,8 +30,8 @@ What you'll see: the cabin, with a cat for every Claude Code session in data/ses
 copy Claude saved. Adopted cats, room names and project looks are saved in this browser.
 To get newer cats, ask Claude to refresh data/sessions.json and copy the new file into data/.
 
-The art belongs to Marie Pepo, ToffeeCraft, Heosphorus, rowdy41, Cainos, Cup Nooble, and
-Starmixu & Utaskuas (Little Dreamyland). It's licensed for
+The art belongs to Marie Pepo, ToffeeCraft, Heosphorus, rowdy41, Cainos, Cup Nooble,
+Starmixu & Utaskuas (Little Dreamyland) and SC_siosio (Game UI Pack created by SC_siosio). It's licensed for
 your own use: please don't share this folder.
 """
 

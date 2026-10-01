@@ -1,7 +1,7 @@
 # What Charlotte has asked for
 
 Everything she has asked for across the Catio, the manor, this repo and the KittyChat Cafe, compiled and
-compressed. Read this before starting something new. Last updated 29 September 2026.
+compressed. Read this before starting something new. Last updated 30 September 2026.
 
 ## Where the project's information lives
 
@@ -104,10 +104,19 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
   - carved dark oak;
   - Art Nouveau.
 
+## The interface, 30 September
+
+- **"Take everything about the UI and make it better"**: less bloated menus, less noise, redesigned with the
+  licensed packs.
+- **"I hate the signs on every room and the large The Catio name."** The page is **the KittyChat Cafe**: "the
+  harness and UI SaaS that I am making here". No signs on the map; a small brand, top left.
+- Done in version 13: see `docs/plan.md`.
+- **"Use the Game UI Pastel pack anyway"**: its licence turned up inside the zip (SC_siosio, credit required).
+  Version 14 uses its icons, pixelated, on the corner controls and a cat's Manage buttons.
+
 ## Still waiting on her
 
 - Who made `plants.zip`.
-- The licence for `Game_UI_Pack_Pastel.zip`.
 - Whether to delete the "download" files (`.DS_Store`) in the Drive folder.
 - Whether Rename should rename the real session.
 - Whether a filing cabinet can leave its room.

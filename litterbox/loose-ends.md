@@ -7,8 +7,10 @@
     from inside CatMegaFree: settled.
   - `plants.zip` is used, as she asked, and treated as licensed. **Who made it**, for the credits and the
     footer?
-  - `Game_UI_Pack_Pastel.zip` (12.5 MB): whose is it, and does its licence allow use in the artifact?
-  - Until then Game UI Pastel stays out of the build.
+  - ~~`Game_UI_Pack_Pastel.zip`~~: settled (30 September). It is SC_siosio's Game UI Pack – Pastel Edition;
+    its LICENSE.txt allows personal and commercial use with the credit "Game UI Pack created by SC_siosio",
+    and forbids redistribution. Used pixelated in `pastel.png`, and smooth in the map panel
+    (`docs/camera-and-minimap.md`).
 - **"download", "download (1)" and "download (2)"** in the Drive folder look like macOS `.DS_Store` files.
   Safe to delete?
 - **Her MCPmarket plugin zip** (`mcpmarket-plugin-me-claude.zip`, the Game UI / UX skill) has her live API
@@ -21,6 +23,9 @@
 
 ## Ideas not built yet
 
+- **Routines are paused (2026-09-30), at Charlotte's request: not enough usage to run them daily.** "Refresh
+  the catio" and "Catio: hourly audit and queens pass" are both disabled. Refresh `snapshot/sessions` by hand
+  when she asks. Don't re-enable either or add new scheduled ones.
 - **The concierge.** A small session plus an hourly Routine that reads `outbox/` with `ArtifactData` and
   delivers each post with `create_trigger`/`fire_trigger`. It's needed only if claude.ai refuses the page's
   own calls. Hourly is the Routine minimum, so this is slower than a direct push.
@@ -41,6 +46,14 @@
 - `ArtifactData` `where` on a nested field (`target.id`) may not be supported. Brain documents keep a flat
   `cat` field for queries.
 - The e2e stub only includes agent cats with `?agents=1`, so the older checks' counts stay as they were.
+- **Posting into a session through a bound Routine doesn't reach it** (tried 2026-09-30): `create_trigger` with
+  `persistent_session_id` set to an existing session, then `fire_trigger`, started a *new* session titled
+  "⚡ <routine name>" with no repo, and the target session never saw the text. `postToSession()` and the
+  concierge idea both rest on this, so posts stay queued in `outbox/` until another way is found. Deleting the
+  Routine deletes the stray session with it.
+- Review-ready cats never go upstairs: `STALE_DAYS` only moves sleeping ones. Month-old Remote Control
+  sessions keep the sign's "need you" count high.
+- The warm-start placeholder session (`__warming__`, tag `cowork-warm-start`) shows up as a cat to review.
 
 - The Drive connector *can* hand over the zips: an oversized result lands in a tool-results JSON file, and
   base64-decoding its `content` field gives the zip. Checked with all nine packs, up to 2.6 MB.

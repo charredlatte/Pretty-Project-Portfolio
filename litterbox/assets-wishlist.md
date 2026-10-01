@@ -1,7 +1,8 @@
 # What's missing: art and sound for the Catio
 
 Everything the Catio shows today, and what it would take to make it what you picture: what to buy, and what
-to draw (or commission) because no pack has it. Checked against the packs' itch.io pages on 29 September 2026.
+to draw (or commission) because no pack has it. Checked against the packs' itch.io pages on 29 September 2026,
+and brought up to date on 30 September (version 12, and the camera and minimap plan).
 
 ## How to draw anything for it
 
@@ -97,17 +98,31 @@ Today these are drawn in code (`catio/tools/manor.py`). They work, but hand-draw
 
 ### The cafe (KittyChat Cafe)
 
-**Built (29 September):** a terrace on the lawn west of the drive, from the packs:
-- Cosy Cabin cabinets as the counter;
-- Little Dreamyland's notice board as the house-rules board;
-- barrels, planters and a lamp;
-- two Cosy Cabin tables with checked cloths, with chairs.
-
-**Still missing:**
+The outdoor terrace built on 29 September was not carried into version 12: the café is a room indoors now,
+on the ground floor, beside the glazed terrace. For it to read as a café it still needs:
 - an espresso machine;
 - cups and cakes on the counter;
-- a real chalkboard (the notice board stands in).
-- If cats are ever to sit there, it would also need to become a place in the page, not only decor.
+- a chalkboard.
+
+### The interface: gaps in the two UI packs
+
+Game UI Pastel dresses the map panel, the minimap, the camera's buttons and Build mode
+(`docs/camera-and-minimap.md`). Sprout Lands keeps everything else. Neither pack has these, so the plan fills
+each one for now:
+
+| Missing | Filled for now with | Worth drawing |
+|---|---|---|
+| A house icon (for "whole house") | The page's own small house glyph on a Pastel button | A house or a map pin, in Pastel's style |
+| A selection outline (the minimap's view) | A Pastel panel border with no fill | Four rounded corner brackets |
+| A grid or build icon (the Live / Build switch) | The round slider knob on a button, with no icon | A hammer or a trowel |
+| An undo icon | Pastel's `Reload`, mirrored | — |
+| A floor or stairs icon | Words: "Ground" and "Upstairs" | A little stair |
+| Outline panels | The Filled panels (the Outline panel folders in the zip are empty) | — |
+| An "interrogation" icon | `Question` (its folder in the zip is empty) | — |
+| Key caps for the `?` list of keys | Plain lettering | Rounded key caps |
+| Furniture thumbnails for the catalogue and "Looks like…" | The atlas cells, drawn small | — |
+
+"—" means what fills it is good enough.
 
 ## 3. Sound: nothing yet (Charlotte is finding some)
 
@@ -126,7 +141,9 @@ These aren't art to get, but they're open questions on what you already have:
 
 - **Unknown makers or terms:**
   - `plants.zip`: who made it? It's credited as unknown.
-  - `Game_UI_Pack_Pastel.zip`: whose is it, and what are its terms? Until you know, it stays out.
+  - ~~`Game_UI_Pack_Pastel.zip`~~: settled on 30 September. It is SC_siosio's Game UI Pack, Pastel Edition: use
+    on websites allowed, with credit ("Game UI Pack created by SC_siosio"); no redistribution, no repositories,
+    and nothing easy to extract. Now in use: pixelated icons, and the smooth map panel. See CLAUDE.md.
 - **If the Catio ever becomes commercial** (sold, or used for the shop), several free versions don't
   allow it:
   - ToffeeCraft free: personal use only.

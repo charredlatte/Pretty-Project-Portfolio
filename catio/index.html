@@ -1,15 +1,17 @@
-<title>The Catio</title>
+<title>KittyChat Café</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:ital,wght@0,500;0,700;0,800;1,500&display=swap">
 <style>
-/* Layout: the catio is the whole screen, in a Sprout Lands frame: a manor on two floors, one shown at a
-   time. Drag to move around it, wheel or pinch to zoom; the controls in the bottom corner change floor and
-   zoom, and the House button (top right) holds what belongs to the whole house. Hovering a room or a cat
-   lights it and names it; clicking opens its menu beside it. A small sign in the top corner says whether
-   the cats are live, and spells out any fix. Every panel, button, field, bubble, face and pointer is cut
-   from Cup Nooble's Sprout Lands UI pack (art/licensed/ui/) and drawn at whole-pixel scale; titles and
-   buttons use its pixel font. Dark mode turns the meadow to night. */
+/* Layout: the KittyChat Café is the whole screen, in a Sprout Lands frame: a manor on two floors, one shown
+   at a time, and nothing on the map but the art and the cats. Drag to move around it, wheel or pinch to zoom;
+   the icon buttons in the bottom corner change floor and zoom, and the brand (top left) is the House button,
+   for what belongs to the whole house. Hovering a room or a cat lights it and names it; clicking opens its
+   menu beside it: a name, one line, and a short list of actions. A sign under the brand shows only when
+   something is wrong. Every panel, button, field, bubble, icon, face and pointer is cut from Cup Nooble's
+   Sprout Lands UI pack (art/licensed/ui/), the logo from ToffeeCraft's Cat UI, all drawn at whole-pixel
+   scale; titles and buttons use the pack's pixel font. The map panel alone is SC_siosio's Game UI Pastel, drawn
+   smooth (art/licensed/pastel/). Dark mode turns the meadow to night. */
 @font-face { font-family: "Sprout"; src: url(art/licensed/ui/sprout.ttf) format("truetype"); font-display: swap; }
 :root {
   --ink: #3F2A20;          /* dark cocoa: the Sprout panels' outline, deepened for reading */
@@ -44,7 +46,7 @@ a { color: var(--ink); }
 
 /* the Sprout Lands pieces, each a 9-slice scaled by --u. The plain colour under each is the piece's
    own face: the art paints over it, and a copy without the licensed art is still readable. */
-.menu, dialog, .hud, .toast, .stage-msg {
+.menu, dialog, .toast, .stage-msg {
   border: calc(6 * var(--u)) solid transparent; border-image: url(art/licensed/ui/panel.png) 6 fill / calc(6 * var(--u)) stretch; background: var(--tan) padding-box; image-rendering: pixelated; }
 .btn { font: 18px/22px var(--pixel); color: var(--ink); padding: 0 calc(2 * var(--u)); text-decoration: none; display: inline-block; background: var(--cream) padding-box; white-space: nowrap;
   border-style: solid; border-color: transparent; border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u));
@@ -87,36 +89,87 @@ a { color: var(--ink); }
   transition: background-size .55s cubic-bezier(.3,.7,.2,1), background-position .55s cubic-bezier(.3,.7,.2,1); }
 .stage.instant .meadow { transition: none; }
 .trim { position: fixed; inset: 0; pointer-events: none; z-index: 30; border: calc(6 * var(--u)) solid transparent; border-image: url(art/licensed/ui/panel.png) 6 / calc(6 * var(--u)) stretch; }
-.hud { position: fixed; z-index: 31; top: calc(6 * var(--u) + 8px + env(safe-area-inset-top, 0px)); left: calc(6 * var(--u) + 8px); max-width: min(520px, calc(100vw - 12 * var(--u) - 16px));
-  padding: 0 calc(2 * var(--u)); display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; }
-.hud .status.warn, .hud:hover .status, .hud:focus-within .status { flex-basis: 100%; }
-.hud h1 { margin: 0; font: 18px/22px var(--pixel); display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
-.hud h1 span { font: 800 .78rem var(--body); color: var(--ink-soft); }
-.hud .status:not(.warn) .words { display: none; }
-.hud:hover .status .words, .hud:focus-within .status .words { display: inline; }
-.credits { position: fixed; z-index: 19; left: calc(6 * var(--u) + 8px); bottom: calc(6 * var(--u) + 4px + env(safe-area-inset-bottom, 0px)); margin: 0; font-size: .66rem; color: #FFF8EA; opacity: .9;
-  text-shadow: 0 1px 0 #2C4A18, 1px 0 0 #2C4A18, -1px 0 0 #2C4A18, 0 -1px 0 #2C4A18; max-width: calc(100vw - 12 * var(--u) - 190px); }
-/* the House button, top right: everything that belongs to the whole house rather than one room */
-.housebtn { position: fixed; z-index: 31; top: calc(6 * var(--u) + 8px + env(safe-area-inset-top, 0px)); right: calc(6 * var(--u) + 8px); }
-.housebtn[aria-expanded="true"], .fl[aria-checked="true"] { border-image-source: url(art/licensed/ui/button-down.png); border-image-slice: 4 fill; translate: 0 calc(2 * var(--u)); background-color: #CDB793; }
-/* the controls, bottom right, where map and game controls live: the floor switch, then zoom */
-.controls { position: fixed; z-index: 31; right: calc(6 * var(--u) + 8px); bottom: calc(6 * var(--u) + 8px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 6px; justify-items: stretch;
-  padding: 2px calc(2 * var(--u)) calc(2 * var(--u)); border: calc(6 * var(--u)) solid transparent; border-image: url(art/licensed/ui/panel.png) 6 fill / calc(6 * var(--u)) stretch; background: var(--tan) padding-box; image-rendering: pixelated; }
-.controls .floors { display: grid; gap: 4px; }
-.controls .zooms { display: flex; gap: 4px; justify-content: space-between; }
-.fl { display: flex; align-items: center; gap: 6px; text-align: left; min-height: 36px; }
-.fl .ar { width: 20px; height: 18px; flex: none; background: url(art/licensed/ui/arrow.png) center / 20px 18px no-repeat; image-rendering: pixelated; }
-.fl .ar.up { transform: scaleY(-1); }
-.fl .w { flex: 1; }
-.fl .badge { margin-left: 2px; }
-.btn.sq { width: 44px; height: 40px; padding: 0; display: grid; place-items: center; }
-.btn.sq svg { width: 14px; height: 14px; fill: currentColor; shape-rendering: crispEdges; }
-.btn.sq:disabled { opacity: .5; cursor: default; }
+/* the brand, top left: ToffeeCraft's cat-face bubble and the name on the pack's cream button. It is the House
+   button: its menu holds what belongs to the whole house. When cats need you it carries a badge; the status
+   sign under it shows only when something is wrong, and says how to fix it. */
+.hud { position: fixed; z-index: 31; top: calc(6 * var(--u) + 8px + env(safe-area-inset-top, 0px)); left: calc(6 * var(--u) + 8px); max-width: min(460px, calc(100vw - 12 * var(--u) - 16px));
+  display: grid; gap: 6px; justify-items: start; }
+.hud h1 { margin: 0; font: inherit; }
+.brand { display: inline-flex; align-items: center; gap: 6px; font: 18px/22px var(--pixel); color: var(--ink); padding: 0 calc(3 * var(--u)) 0 0; background: var(--cream) padding-box; white-space: nowrap;
+  border-style: solid; border-color: transparent; border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u));
+  border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u)) stretch; image-rendering: pixelated; }
+.brand:hover { border-image-source: url(art/licensed/ui/button-hover.png); }
+.brand[aria-expanded="true"] { border-image: url(art/licensed/ui/button-down.png) 4 fill / calc(4 * var(--u)) stretch; translate: 0 calc(2 * var(--u)); background-color: #CDB793; }
+.brand .logo { width: 21px; height: 18px; flex: none; margin: -2px 0 -2px -2px; background: url(art/licensed/ui/logo.png) no-repeat; image-rendering: pixelated; }
+@media (min-width: 561px) { .brand .logo { width: 42px; height: 36px; background-size: 42px 36px; margin: -8px 0 -10px -8px; } }
+#tally { display: inline-flex; }
+#tally:empty { display: none; }
+.hud .status:not(.warn) { display: none; }
+.hud .status { width: max-content; max-width: 100%; }
+.hud .status .words { flex: 0 1 auto; }
+.hud .status .more { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.hud .status:hover .more, .hud .status:focus-within .more { position: static; width: auto; height: auto; clip-path: none; white-space: normal; }
+.hud .status.warn { padding: 0 calc(2 * var(--u)); border: calc(6 * var(--u)) solid transparent; border-image: url(art/licensed/ui/panel.png) 6 fill / calc(6 * var(--u)) stretch; background: var(--tan) padding-box; image-rendering: pixelated; }
+.credits { position: fixed; z-index: 19; left: calc(6 * var(--u) + 8px); bottom: calc(6 * var(--u) + 4px + env(safe-area-inset-bottom, 0px)); margin: 0; font-size: .66rem; color: #FFF8EA; opacity: .75;
+  text-shadow: 0 1px 0 #2C4A18, 1px 0 0 #2C4A18, -1px 0 0 #2C4A18, 0 -1px 0 #2C4A18; max-width: calc(100vw - 12 * var(--u) - 16px); }
+.btn.sq { width: 40px; height: 40px; padding: 0; display: grid; place-items: center; }
+.btn.sq:disabled { cursor: default; background-color: #D9C3A0; }
+.btn.sq:disabled > * { opacity: .35; }
+/* icons from SC_siosio's Game UI Pack (Pastel Edition), pixelated onto the page's grid by build-art.py: one
+   20 px cell each, in PASTEL order (up, down, plus, minus, house, pause, play, check, lock, unlock) */
+.pi { --i: 0; display: inline-block; flex: none; width: 20px; height: 20px; vertical-align: middle; image-rendering: pixelated;
+  background: url(art/licensed/ui/pastel.png) calc(var(--i) * -20px) 0 / 200px 20px no-repeat; }
+.p-down { --i: 1; } .p-plus { --i: 2; } .p-minus { --i: 3; } .p-house { --i: 4; } .p-pause { --i: 5; } .p-play { --i: 6; }
+.p-check { --i: 7; } .p-lock { --i: 8; } .p-unlock { --i: 9; }
+.btn .pi { margin: -2px 4px -2px -2px; }
+.btn.sq .pi { margin: 0; }
+/* the map panel, top right (bottom right on a phone): zoom and the fold on top, the minimap, then the
+   floors. It is SC_siosio's Game UI Pastel (art/licensed/pastel/), not Sprout Lands: what works the camera
+   comes from that pack, what talks about the cats stays Sprout. Pastel art is smooth, drawn at twice its
+   screen size, so it is scaled with smoothing, never pixelated. Each piece has its own face colour under it,
+   so a copy without the licensed art is still a panel of buttons. */
+.mappanel { position: fixed; z-index: 31; top: calc(6 * var(--u) + 8px + env(safe-area-inset-top, 0px)); right: calc(6 * var(--u) + 8px);
+  display: grid; gap: 6px; padding: 4px; border: 6px solid transparent; border-radius: 12px; background: #FBF3E4;
+  border-image: url(art/licensed/pastel/panel.png) 28 fill / 14px stretch; image-rendering: auto; }
+.mp-row { display: flex; gap: 4px; align-items: center; }
+.mp-row .pbtn { flex: 1; }
+.floors { display: flex; gap: 4px; }
+.floors .pbtn { flex: 1; }
+.pbtn { font: 18px/18px var(--pixel); color: var(--ink); height: 40px; padding: 0 2px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;
+  border-style: solid; border-color: transparent; border-width: 10px 11px 12px; border-radius: 8px; background: #F3D08A;
+  border-image: url(art/licensed/pastel/button.png) 20 22 24 fill / 10px 11px 12px stretch; image-rendering: auto; }
+.pbtn:hover { border-image-source: url(art/licensed/pastel/button-hover.png); background-color: #F7DCAB; }
+.pbtn:active, .pbtn[aria-checked="true"], .pbtn[aria-expanded="true"]:not(.fold) { border-image-source: url(art/licensed/pastel/button-down.png); background-color: #E3BC6F; }
+.pbtn:disabled { opacity: .5; cursor: default; }
+.pbtn.sq { width: 40px; padding: 0; }
+.pbtn .ico { --i: 0; width: 18px; height: 18px; flex: none; background: url(art/licensed/pastel/icons.png) calc(var(--i) * -18px) 0 / 90px 18px no-repeat; }
+.pbtn svg { width: 14px; height: 14px; fill: currentColor; shape-rendering: crispEdges; }
+/* a floor with cats that need you: a pink pip and how many (red if one is upset) */
+.pip { display: inline-grid; place-items: center; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; font: 800 11px/1 var(--body); color: var(--ink);
+  background: #F0B5CA; box-shadow: inset 0 -2px 0 rgba(105, 85, 34, .35); }
+.pip.fail { background: #E79A95; }
+/* the minimap: the floor as a plan of rooms, the other floor faint underneath, the camera's view framed */
+.minimap { position: relative; width: 250px; height: 132px; border-radius: 6px; overflow: hidden; background: #DCE6A0; touch-action: none; cursor: var(--point); }
+.mappanel.folded .minimap { display: none; }
+.mm-room { position: absolute; background: #F3D08A; box-shadow: inset 0 0 0 1px rgba(105, 85, 34, .45); pointer-events: none; }
+.mm-room.faint { background: rgba(243, 208, 138, .35); box-shadow: none; }
+.mm-room.landing { background: #F7DCAB; }
+.mm-room.hot { background: #F7DCAB; box-shadow: inset 0 0 0 1px rgba(105, 85, 34, .8); }
+.mm-room.here { background: #B8D799; }
+.mm-room .pip { position: absolute; right: 2px; top: 2px; min-width: 8px; height: 8px; padding: 0; }
+.mm-stairs { position: absolute; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(105, 85, 34, .45) 0 1px, transparent 1px 3px); }
+.mm-view { position: absolute; pointer-events: none; border: 2px solid #3F2A20; border-radius: 6px; border-image: url(art/licensed/pastel/frame.png) 28 / 6px stretch;
+  transition: left .55s cubic-bezier(.3,.7,.2,1), top .55s cubic-bezier(.3,.7,.2,1), width .55s cubic-bezier(.3,.7,.2,1), height .55s cubic-bezier(.3,.7,.2,1); }
+.minimap.instant .mm-view { transition: none; }
 @media (max-width: 560px) {
-  .fl .w { font-size: 0; } .fl { min-height: 44px; min-width: 44px; justify-content: center; }
-  .controls .zooms { flex-direction: column; }
+  .btn.sq { width: 44px; height: 44px; }
+  .mappanel { top: auto; bottom: calc(6 * var(--u) + 8px + env(safe-area-inset-bottom, 0px)); }
+  .pbtn { height: 44px; } .pbtn.sq { width: 44px; }
   .credits { display: none; }
 }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mappanel { border-image-source: url(art/licensed/pastel/panel-dark.png); background-color: #1E2937; } }
+:root[data-theme="dark"] .mappanel { border-image-source: url(art/licensed/pastel/panel-dark.png); background-color: #1E2937; }
+@media (prefers-reduced-motion: reduce) { .mm-view { transition: none; } }
 .world { position: absolute; left: 0; top: 0; width: 1920px; height: 1152px; transform-origin: 0 0; transition: transform .55s cubic-bezier(.3,.7,.2,1);
   background: url(art/licensed/meadow.png) 0 0 / 224px 64px repeat; image-rendering: pixelated; filter: var(--scene); }
 .stage.instant .world { transition: none; }
@@ -150,9 +203,8 @@ a { color: var(--ink); }
 .cat:focus-visible { border-width: 0; }
 .spr { display: inline-block; vertical-align: bottom; filter: var(--tint, none); image-rendering: pixelated; background-repeat: no-repeat; }
 .cat .spr { display: block; }
-.tag.files { pointer-events: auto; cursor: var(--point); transform: translate(-50%, -100%); }
 /* a count: the pack's white button at one pixel a pixel */
-.pile-n, .tag .n { font: 800 11px/1 var(--body); color: var(--ink); padding: 0 1px;
+.pile-n, .badge .n { font: 800 11px/1 var(--body); color: var(--ink); padding: 0 1px;
   border-style: solid; border-color: transparent; border-width: 3px 3px 5px; border-image: url(art/licensed/ui/button-hover.png) 4 4 6 4 fill / 3px 3px 5px stretch; }
 .pile-n { position: absolute; right: -6px; top: 4px; }
 /* a queen's crown: the pack's crown icon, gilded */
@@ -190,15 +242,12 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .cat.m-meow { animation: hop 1s steps(2) infinite; }
 @keyframes hop { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
 
-/* overlay: speech bubbles and room names, drawn at screen size (one art pixel a pixel) */
+/* overlay: speech bubbles, drawn at screen size (one art pixel a pixel) */
 .overlay { position: absolute; inset: 0; pointer-events: none; transition: opacity .15s; }
 .overlay.moving { opacity: 0; }
 .tag { position: absolute; font: 18px/18px var(--pixel); padding: 0 2px; white-space: nowrap; display: flex; gap: 5px; align-items: center; color: var(--ink); background: var(--cream) padding-box;
   border-style: solid; border-color: transparent; border-width: 4px 4px 6px; border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / 4px 4px 6px stretch; image-rendering: pixelated; }
-/* a sign on each room's back wall: its name, cut to the room's width, and a badge (the mood's face and a
-   count) when cats in it need you */
-.sign { pointer-events: none; gap: 2px; }
-.sign .nm { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+/* a badge: the face of the most urgent cat that needs you, and how many */
 .badge { flex: none; display: inline-flex; align-items: center; gap: 0; }
 .badge .face-ico { margin: -7px -2px -7px 0; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -216,35 +265,36 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .bub.icon .face { display: block; }
 .stage-msg { position: absolute; left: 50%; bottom: calc(6 * var(--u) + 10px); transform: translateX(-50%); font-size: .85rem; padding: 0 6px; max-width: calc(100% - 24px); text-align: center; }
 
-/* a menu: the panel beside the room, cat or queen you clicked, or under the House button. Every one has
-   the same order: a header (name, where, counts as chips), what matters now, one primary action in green,
-   then the rest as a grid of equal buttons. Sections are split by the pack's divider. */
-.menu { position: absolute; z-index: 20; width: min(288px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow: auto; display: grid; gap: 10px; color: var(--ink); padding: 4px calc(3 * var(--u)) calc(3 * var(--u)); }
-.menu .mh { display: grid; gap: 4px; }
-.menu h3 { margin: 0; font: 18px/22px var(--pixel); display: flex; gap: 6px; align-items: center; overflow-wrap: anywhere; }
-.menu .cap { margin: 0; font: 800 .74rem/1.2 var(--body); color: var(--ink-soft); letter-spacing: .02em; }
-.menu .sub { margin: 0; font-size: .8rem; color: var(--ink-soft); overflow-wrap: anywhere; }
+/* a menu: the panel beside the room, cat or queen you clicked, or under the brand. Every one has the same
+   shape, as short as it can be: the name (with a badge when cats need you) and one line under it; what
+   matters now, if anything does; then the actions as a list, the first of them the default. The pack's
+   cream triangle points at the action under the pointer or the keyboard, and at the default otherwise. */
+.menu { position: absolute; z-index: 20; width: min(248px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow: auto; display: grid; gap: 6px; color: var(--ink); padding: 2px calc(2 * var(--u)) calc(2 * var(--u)); }
+.menu .mh { display: grid; gap: 0; }
+.menu .mt { display: flex; gap: 6px; align-items: center; }
+.menu h3 { margin: 0; flex: 1; min-width: 0; font: 18px/22px var(--pixel); display: flex; gap: 4px; align-items: center; overflow-wrap: anywhere; }
+.menu h3 .face-ico { margin: -4px 0 -4px -4px; }
+.menu .sub { margin: 0; font-size: .8rem; line-height: 1.35; color: var(--ink-soft); overflow-wrap: anywhere; }
+.menu .mh .sub { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .menu .rule { margin: 0; }
-.chips { display: flex; flex-wrap: wrap; gap: 4px; }
-.chip { display: inline-flex; align-items: center; gap: 0; font: 800 .8rem/18px var(--body); padding: 0 4px 0 0; background: var(--cream) padding-box; white-space: nowrap;
-  border-style: solid; border-color: transparent; border-width: 3px 3px 5px; border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / 3px 3px 5px stretch; }
-.chip .face-ico { margin: -6px 2px -7px -3px; }
-.chip.plain { padding: 0 4px; font-weight: 700; }
-.menu .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.menu .acts .btn { width: 100%; text-align: center; overflow: hidden; text-overflow: ellipsis; }
-.menu .acts .btn:only-child, .menu .acts .btn.span { grid-column: 1 / -1; }
-.menu .acts.one { grid-template-columns: 1fr; }
-.menu .primary { display: block; width: 100%; text-align: center; }
-.menu .settings { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font-size: .78rem; color: var(--ink-soft); }
+.menu .list { display: grid; margin: 0 calc(-1 * var(--u)); }
+.mi { position: relative; display: flex; align-items: center; gap: 6px; width: 100%; min-height: 28px; padding: 2px 6px 2px 18px; background: none; border: 0;
+  font: 18px/22px var(--pixel); color: var(--ink); text-align: left; text-decoration: none; white-space: nowrap; }
+.mi::before { content: ""; position: absolute; left: 5px; top: 50%; margin-top: -6px; width: 7px; height: 12px; background: url(art/licensed/ui/pointer.png) no-repeat; image-rendering: pixelated; visibility: hidden; }
+.mi:hover, .mi:focus-visible { background: rgba(255, 248, 228, .5); outline: 0; }
+.mi:hover::before, .mi:focus-visible::before, .list:not(:hover):not(:focus-within) .mi.primary::before { visibility: visible; }
+.mi .aside { margin-left: auto; padding-left: 8px; font: 800 .75rem var(--body); color: var(--ink-soft); }
+.mi.sw { padding-left: 4px; }
+.mi.sw::before { display: none; }
+@media (pointer: coarse) { .mi { min-height: 44px; } }
 .menu ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .menu .mini { display: flex; gap: 6px; align-items: center; width: 100%; text-align: left; background: none; border: 0; padding: 0; font-size: .82rem; }
+.menu .mini > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .menu .mini b { font: 18px/22px var(--pixel); font-weight: normal; }
 .menu .mini:hover span:last-child { text-decoration: underline; }
-.menu .queenrow { display: flex; gap: 6px; align-items: center; width: 100%; text-align: left; background: none; border: 0; padding: 0; font-size: .82rem; color: var(--ink-soft); }
-.menu .queenrow b { font: 18px/22px var(--pixel); font-weight: normal; color: var(--ink); }
-.menu .queenrow:hover span { text-decoration: underline; }
+.menu .says { display: flex; gap: 6px; align-items: center; text-align: left; font-size: .85rem; padding: 0 4px; cursor: var(--point); }
 .menu .moods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
-.menu .moods .btn { width: 100%; text-align: center; padding: 0; }
+.menu .moods .btn { width: 100%; text-align: center; padding: 0; overflow: hidden; text-overflow: ellipsis; }
 .menu .keys { margin: 0; font-size: .75rem; color: var(--ink-soft); }
 .menu .moods .btn[aria-pressed="true"] { border-image-source: url(art/licensed/ui/button-green.png); background-color: #C0D470; }
 /* the sound switch: the pack's toggle, off or on */
@@ -291,6 +341,14 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; }
 .actions .spacer { flex: 1; }
 .note { font-size: .8rem; color: var(--ink-soft); margin: 0; }
+/* a folded section (Manage on a card, a project's map and audit): the pack's triangle turns down when open */
+.dlg details > summary { display: flex; align-items: center; gap: 8px; width: max-content; max-width: 100%; list-style: none; font: 18px/22px var(--pixel); cursor: var(--point); }
+.dlg details > summary::-webkit-details-marker { display: none; }
+.dlg details > summary::before { content: ""; flex: none; width: 7px; height: 12px; background: url(art/licensed/ui/pointer.png) no-repeat; image-rendering: pixelated; }
+.dlg details[open] > summary::before { transform: rotate(90deg); }
+.dlg details > summary:focus-visible { outline-offset: 2px; }
+details.more > * + * { margin-top: 10px; }
+.dlg .head .note { margin-top: 2px; }
 /* the Rooms editor: the cabin cropped to the house in the pack's frame, each room a tab (brackets and a green
    sign when chosen, the arrow on the room new cats come in to), then the chosen room's card */
 dialog.wide { width: min(600px, calc(100vw - 24px)); }
@@ -300,7 +358,8 @@ dialog.wide { width: min(600px, calc(100vw - 24px)); }
 .plan-art img { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
 .plan[data-floor="ground"] .plan-art .upper { display: none; }
 .planfloors { display: flex; gap: 6px; }
-.planfloors .fl { min-height: 0; }
+.planfloors .fl { display: flex; align-items: center; gap: 6px; }
+.planfloors .fl[aria-checked="true"] { border-image-source: url(art/licensed/ui/button-down.png); border-image-slice: 4 fill; translate: 0 calc(2 * var(--u)); background-color: #CDB793; }
 .rt { position: absolute; padding: 0; background: transparent; border: 0 solid transparent; }
 .rt:hover { background: rgba(255, 250, 225, .16); }
 .rt[aria-selected="true"], .rt:focus-visible { outline: 0; background: rgba(255, 250, 225, .2);
@@ -340,6 +399,7 @@ dialog.wide { width: min(600px, calc(100vw - 24px)); }
 /* a cat's model, as a little plaque on its shoulder (F Fable, O Opus, S Sonnet, H Haiku, or the agent's maker) */
 .breed { position: absolute; font: 800 10px/1 var(--body); color: var(--ink); padding: 0 1px; pointer-events: none; white-space: nowrap;
   border-style: solid; border-color: transparent; border-width: 3px 3px 5px; border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / 3px 3px 5px stretch; background: var(--cream) padding-box; }
+.stage:not(.inroom) .breed { display: none; }
 .fcount { position: absolute; font: 800 11px/1 var(--body); color: var(--ink); padding: 0 1px; pointer-events: none;
   border-style: solid; border-color: transparent; border-width: 3px 3px 5px; border-image: url(art/licensed/ui/button-green.png) 4 4 6 4 fill / 3px 3px 5px stretch; background: #C0D470 padding-box; }
 .cat.dragging { opacity: .35; }
@@ -357,7 +417,7 @@ ul.thread li.me { margin-left: 24px; }
 ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-soft); }
 .rules li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: start; }
 .rules .t { font-size: .85rem; color: var(--ink-soft); grid-column: 1; }
-.rules .lock { font: 800 .72rem var(--body); color: var(--ink-soft); }
+.rules .lock { font: 800 .72rem var(--body); color: var(--ink-soft); display: inline-flex; align-items: center; gap: 2px; }
 .manage { display: flex; flex-wrap: wrap; gap: 6px; }
 /* a project's map: graphify's graph in the pack's picture frame, with its key below */
 .gmap[open] { display: grid; gap: 6px; }
@@ -381,7 +441,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
 </style>
 
 <main class="screen">
-  <section class="stage" id="stage" data-floor="ground" aria-label="The Catio: hover a room or a cat">
+  <section class="stage" id="stage" data-floor="ground" aria-label="KittyChat Café: point at a room or a cat">
     <div class="meadow" id="meadow"></div>
     <div class="world" id="world" data-floor="ground">
       <img class="house ground" src="art/licensed/decor.png" alt="" width="1920" height="1152">
@@ -401,24 +461,25 @@ ul.gkey li > div.what { flex-basis: 100%; }
   </section>
   <div class="trim" aria-hidden="true"></div>
   <header class="hud" id="hud">
-    <h1>The Catio <span id="tally"></span></h1>
+    <h1><button class="brand" id="houseBtn" type="button" aria-haspopup="true" aria-expanded="false"><span class="logo" aria-hidden="true"></span><span class="nm">KittyChat Café</span><span id="tally"></span></button></h1>
     <div class="status" id="status" role="status"><span class="dot"></span><span class="words">Waking the cats…</span></div>
   </header>
-  <button class="btn housebtn" id="houseBtn" type="button" aria-haspopup="true" aria-expanded="false">House</button>
-  <div class="controls" id="controls" role="group" aria-label="Floors and zoom">
+  <nav class="mappanel" id="controls" aria-label="Map">
+    <div class="mp-row">
+      <button class="pbtn sq" id="zoomOut" type="button" aria-label="Zoom out" title="Zoom out (−)"><span class="ico" style="--i: 1" aria-hidden="true"></span></button>
+      <button class="pbtn sq" id="zoomIn" type="button" aria-label="Zoom in" title="Zoom in (+)"><span class="ico" style="--i: 0" aria-hidden="true"></span></button>
+      <button class="pbtn sq" id="zoomAll" type="button" aria-label="Whole house" title="Whole house (0)"><svg viewBox="0 0 9 8" aria-hidden="true"><path d="M4 0h1v1h1v1h1v1h1v1H7v4H5V5H4v3H2V4H1V3h1V2h1V1h1z"/></svg></button>
+      <button class="pbtn sq fold" id="mapFold" type="button" aria-controls="minimap" aria-expanded="true" aria-label="Fold the map" title="Fold the map (M)"><span class="ico" style="--i: 2" aria-hidden="true"></span></button>
+    </div>
+    <div class="minimap" id="minimap" aria-hidden="true"><div id="mmRooms"></div><div class="mm-view" id="mmView"></div></div>
     <div class="floors" role="radiogroup" aria-label="Floor">
-      <button class="btn fl" id="floor-upper" type="button" role="radio" data-floor="upper" aria-checked="false"><span class="ar up" aria-hidden="true"></span><span class="w">Upstairs</span></button>
-      <button class="btn fl" id="floor-ground" type="button" role="radio" data-floor="ground" aria-checked="true"><span class="ar" aria-hidden="true"></span><span class="w">Ground</span></button>
+      <button class="pbtn fl" id="floor-ground" type="button" role="radio" data-floor="ground" aria-checked="true"><span class="w">Ground</span></button>
+      <button class="pbtn fl" id="floor-upper" type="button" role="radio" data-floor="upper" aria-checked="false"><span class="w">Upstairs</span></button>
     </div>
-    <div class="zooms">
-      <button class="btn sq" id="zoomIn" type="button" aria-label="Zoom in" title="Zoom in (+)"><svg viewBox="0 0 7 7" aria-hidden="true"><path d="M3 0h1v3h3v1H4v3H3V4H0V3h3z"/></svg></button>
-      <button class="btn sq" id="zoomOut" type="button" aria-label="Zoom out" title="Zoom out (−)"><svg viewBox="0 0 7 7" aria-hidden="true"><path d="M0 3h7v1H0z"/></svg></button>
-      <button class="btn sq" id="zoomAll" type="button" aria-label="Whole house" title="Whole house (0)"><svg viewBox="0 0 9 8" aria-hidden="true"><path d="M4 0h1v1h1v1h1v1h1v1H7v4H5V5H4v3H2V4H1V3h1V2h1V1h1z"/></svg></button>
-    </div>
-  </div>
+  </nav>
   <div class="sr" id="say" aria-live="polite"></div>
   <p class="sr" id="keyhelp">Arrow keys move between rooms. Enter opens a room's menu. Page Up and Page Down change floor. Plus and minus zoom, and Shift with the arrows moves the view. Escape goes back.</p>
-  <p class="credits">Rooms by Marie Pepo · Cats by ToffeeCraft · Garden by Heosphorus and rowdy41 · Stonework by Cainos · Interface and flowers by Cup Nooble · Forest and tiles from Little Dreamyland by Starmixu &amp; Utaskuas</p>
+  <p class="credits">Rooms by Marie Pepo · Cats by ToffeeCraft · Garden by Heosphorus and rowdy41 · Stonework by Cainos · Interface and flowers by Cup Nooble · Forest and tiles from Little Dreamyland by Starmixu &amp; Utaskuas · Game UI Pack created by SC_siosio</p>
 </main>
 
 <dialog id="catDlg" aria-labelledby="catName"></dialog>
@@ -800,8 +861,12 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const count = (m) => cats.filter((c) => c.mood === m).length;
     const needing = cats.filter((c) => MOODS[c.mood].needs);
     VIEW.attic = attic;
-    $("tally").textContent = [[needing.length, "need you"], [count("idle"), "at work"], [count("sleep"), "asleep"]].filter(([n]) => n).map(([n, w]) => n + " " + w).join(" · ");
-    document.title = (needing.length ? "(" + needing.length + ") " : "") + "The Catio";
+    // the brand's badge: the face of the most urgent cat that needs you and how many; the rest in words for screen readers
+    const tally = $("tally"); tally.replaceChildren();
+    const words = [[needing.length, "need you"], [count("idle"), "at work"], [count("sleep"), "asleep"]].filter(([n]) => n).map(([n, w]) => n + " " + w).join(" · ");
+    if (words) tally.appendChild(el("span", "sr", words + " "));
+    if (needing.length) { const b = badge(needing); b.setAttribute("aria-hidden", "true"); tally.appendChild(b); }
+    document.title = (needing.length ? "(" + needing.length + ") " : "") + "KittyChat Café";
 
     // new meows make a sound
     const ids = new Set(cats.filter((c) => c.mood === "meow" || c.mood === "cry").map((c) => c.id));
@@ -1082,6 +1147,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const [lo, hi] = limits();
     $("zoomIn").disabled = c.s >= hi - 1e-3;
     $("zoomOut").disabled = c.s <= lo + 1e-3;
+    drawView(animate);
     labelRooms();
     clearTimeout(setCam.t);
     const ov = $("overlay");
@@ -1167,22 +1233,97 @@ ul.gkey li > div.what { flex-basis: 100%; }
     $("say").textContent = FLOORS[f] + ": " + (need.length ? need.length + (need.length === 1 ? " cat needs" : " cats need") + " you, in the " + roomInfo(need[0].roomKey).name + "." : "all quiet.");
     if (onMap) $("room-" + curRoom()).focus({ preventScroll: true });
   }
-  // the floor switch carries a badge when cats on the other floor need you
+  // the floor switch carries a pip when cats on the other floor need you
+  const pip = (need) => { const b = el("span", "badge pip" + (need.some((c) => c.mood === "cry") ? " fail" : ""), String(need.length)); b.setAttribute("aria-hidden", "true"); return b; };
   function drawControls() {
-    for (const b of document.querySelectorAll(".fl")) {
+    for (const b of document.querySelectorAll("#controls .fl")) {
       const f = b.dataset.floor, need = needOn(f);
       b.setAttribute("aria-checked", String(f === S.floor));
       const old = b.querySelector(".badge"); if (old) old.remove();
-      if (need.length && f !== S.floor) b.appendChild(badge(need.sort((x, y) => MOODS[x.mood].rank - MOODS[y.mood].rank)));
+      if (need.length && f !== S.floor) b.appendChild(pip(need));
       b.setAttribute("aria-label", FLOORS[f] + (need.length ? ", " + need.length + " need you" : ""));
     }
+    drawMap();
   }
+
+  /* ---------- the minimap ---------- */
+  // The floor you're on as a plan of rooms, the other floor faint underneath, a pip where a cat needs you,
+  // and the camera's view framed. Click to go there, drag to pan, double-click a room to look in, wheel to
+  // zoom. Folded or open is remembered in this browser; it starts folded on a phone.
+  // It shows the manor and the catio (MM.box, native px), not the whole grounds, so the rooms read larger.
+  const MM = { box: [80, 32, 848, 448], hot: null, drag: null };
+  MM.k = 250 / MM.box[2];
+  S.mapOpen = innerWidth > 560;
+  try { const v = localStorage.getItem("catio.minimap"); if (v) S.mapOpen = v === "open"; } catch (e) {}
+  function drawMap() {
+    const box = $("mmRooms"), k = MM.k;
+    box.replaceChildren();
+    if (!S.mapOpen) { foldPip(); return; }
+    const [bx, by] = MM.box;
+    const put = (cls, [x, y, w, h]) => { const d = el("div", cls); Object.assign(d.style, { left: (x - bx) * k + "px", top: (y - by) * k + "px", width: w * k + "px", height: h * k + "px" }); box.appendChild(d); return d; };
+    for (const f of [other(S.floor), S.floor]) {
+      const faint = f !== S.floor ? " faint" : "";
+      if (f === "upper") put("mm-room landing" + faint, MANOR.landing);
+      for (const r of ORDER) {
+        if (levelOf(r) !== f) continue;
+        const d = put("mm-room" + faint + (!faint && r === S.focus ? " here" : "") + (!faint && r === MM.hot ? " hot" : ""), GEOM[r].r);
+        d.dataset.room = r;
+        const need = !faint && needIn(VIEW.cats, r);
+        if (need && need.length) d.appendChild(pip(need)).textContent = "";
+      }
+    }
+    put("mm-stairs", MANOR.stairs);
+    drawView(false);
+  }
+  function mmHot(k) {
+    MM.hot = k;
+    for (const d of $("mmRooms").querySelectorAll(".mm-room[data-room]")) d.classList.toggle("hot", d.dataset.room === k && !d.classList.contains("faint"));
+  }
+  // the part of the grounds on screen, in native px
+  const viewBox = () => { const c = S.cam; return [-c.tx / (2 * c.s), -c.ty / (2 * c.s), c.W / (2 * c.s), c.H / (2 * c.s)]; };
+  function drawView(animate) {
+    if (!S.cam) return;
+    if (!S.mapOpen) { foldPip(); return; }
+    const [x, y, w, h] = viewBox(), k = MM.k, [bx, by, bw, bh] = MM.box;
+    const x0 = Math.max(bx, x) - bx, y0 = Math.max(by, y) - by, x1 = Math.min(bx + bw, x + w) - bx, y1 = Math.min(by + bh, y + h) - by;
+    $("minimap").classList.toggle("instant", !animate || reduced());
+    Object.assign($("mmView").style, { left: x0 * k + "px", top: y0 * k + "px", width: Math.max(6, (x1 - x0) * k) + "px", height: Math.max(6, (y1 - y0) * k) + "px" });
+  }
+  // folded, the fold button carries a pip when a cat that needs you on this floor is off screen
+  function foldPip() {
+    const b = $("mapFold"), old = b.querySelector(".badge"); if (old) old.remove();
+    if (S.mapOpen || !S.cam) return;
+    const [x, y, w, h] = viewBox();
+    const off = VIEW.placed.filter((p) => MOODS[p.cat.mood].needs && levelOf(p.room) === S.floor && (p.x / 2 < x || p.x / 2 > x + w || p.feet / 2 < y || p.feet / 2 > y + h));
+    if (off.length) b.appendChild(pip(off.map((p) => p.cat)));
+    b.setAttribute("aria-label", "Unfold the map" + (off.length ? ", " + off.length + " off screen need you" : ""));
+  }
+  function setMapOpen(open, remember) {
+    S.mapOpen = open;
+    if (remember) { try { localStorage.setItem("catio.minimap", open ? "open" : "folded"); } catch (e) {} }
+    $("controls").classList.toggle("folded", !open);
+    const f = $("mapFold");
+    f.setAttribute("aria-expanded", String(open));
+    f.setAttribute("aria-label", open ? "Fold the map" : "Unfold the map");
+    f.title = (open ? "Fold" : "Unfold") + " the map (M)";
+    f.querySelector(".ico").style.setProperty("--i", open ? 2 : 3);
+    drawMap();
+  }
+  // put a point of the grounds (native px) in the middle of the screen
+  function centerOn(wx, wy, animate) {
+    const c = S.cam;
+    setCam({ s: c.s, tx: c.W / 2 - wx * 2 * c.s, ty: c.H / 2 - wy * 2 * c.s }, animate);
+    settleSoon(animate && !reduced() ? 580 : 0);
+  }
+  const mapPt = (e) => { const r = $("minimap").getBoundingClientRect(); return [MM.box[0] + (e.clientX - r.left) / MM.k, MM.box[1] + (e.clientY - r.top) / MM.k]; };
+  const roomAt = ([x, y]) => ORDER.find((k) => { const [rx, ry, rw, rh] = GEOM[k].r; return levelOf(k) === S.floor && x >= rx && x < rx + rw && y >= ry && y < ry + rh; }) || null;
 
   /* ---------- keyboard: the map is one stop, arrows move between rooms ---------- */
   // One room carries the tab stop (at first the one that needs you most); a room's cats are stops
   // only once you're in it. Cabinets are reached through the room's Files.
   function labelRooms() {
     const cur = S.focus || curRoom();
+    $("stage").classList.toggle("inroom", !!S.focus);   // breeds and file counts show once you're in a room
     for (const b of $("hits").querySelectorAll(".roomhit")) {
       const k = b.dataset.room, here = k === S.focus;
       b.classList.toggle("here", here);
@@ -1255,8 +1396,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const y = Math.max(t.offsetHeight + 8, a.top - st.top + (kind === "room" ? Math.min(a.height / 2, 60) : -4));
     Object.assign(t.style, { left: x + "px", top: y + "px" });
     tipFor = node;
+    mmHot(kind === "room" ? key : null);
   }
-  function hideTip(node) { if (node && node !== tipFor) return; $("tip").hidden = true; tipFor = null; }
+  function hideTip(node) { if (node && node !== tipFor) return; $("tip").hidden = true; tipFor = null; if (MM.hot) mmHot(null); }
   // a click closes the menu a click opened; one that keyboard focus opened stays, now pinned by the click
   function toggleMenu(kind, key, node) {
     hideTip();
@@ -1301,7 +1443,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     // Redrawing the menu you are already using (a changed count, a button you just pressed) leaves it
     // where it is: moving it because it grew a line slides it out from under the pointer.
     if (same && MENU.at && !node) { left = MENU.at[0]; top = MENU.at[1]; }
-    else if (kind === "house") { left = W - mw - g; top = ay + ah + 8; }
+    else if (kind === "house") { left = ax; top = $("hud").getBoundingClientRect().bottom - st.top + 8; }
     else {
       // beside it on the right, else on the left; on a narrow screen below it, else above it, so the
       // cat itself stays tappable; a room that fills the screen gets the menu in its corner
@@ -1315,14 +1457,36 @@ ul.gkey li > div.what { flex-basis: 100%; }
     }
     left = Math.max(g, Math.min(Math.max(g, W - mw - g), left));
     top = Math.max(g, Math.min(Math.max(g, H - mh - g), top));
+    // never under the map panel: to its left if there's room, else below it or above it
+    const p = $("controls").getBoundingClientRect(), P = [p.left - st.left - g, p.top - st.top - g, p.right - st.left + g, p.bottom - st.top + g];
+    const under = (l, t) => l < P[2] && l + mw > P[0] && t < P[3] && t + mh > P[1];
+    if (under(left, top)) {
+      if (P[0] - mw >= g) left = P[0] - mw;
+      else if (P[3] + mh <= H - g) top = P[3];
+      else if (P[1] - mh >= g) top = P[1] - mh;
+    }
     MENU.at = [left, top];
     Object.assign(menu.style, { left: left + "px", top: top + "px" });
   }
 
   /* ---------- the menus ---------- */
-  // Every menu has the same order: a header (name, where it is, counts as chips), what matters now, one
-  // primary action in green, then the rest as a grid of equal buttons.
+  // Every menu has the same shape, kept as short as it can be: the name (a badge when cats need you) and one
+  // line; what matters now, if anything does; then its actions as a list, the first the default (.primary).
   function plainBtn(label, cls, run) { const b = el("button", "btn" + (cls ? " " + cls : ""), label); b.type = "button"; b.addEventListener("click", run); return b; }
+  // one action in a menu's list: a button, or a link when it opens a page; an aside is a quiet note on its right
+  function mi(label, run, opt) {
+    const o = opt || {}, b = el(o.href ? "a" : "button", "mi", label);
+    if (o.href) { b.href = o.href; b.target = "_blank"; b.rel = "noopener"; } else { b.type = "button"; b.addEventListener("click", run); }
+    if (o.aside) { b.setAttribute("aria-label", label + ", " + o.aside); b.appendChild(el("span", "aside", o.aside)); }
+    return b;
+  }
+  function list(items) {
+    const d = el("div", "list");
+    for (const i of items) if (i) d.appendChild(i);
+    if (d.firstChild) d.firstChild.classList.add("primary");
+    return d;
+  }
+  const urgentFirst = (cats) => cats.filter((c) => MOODS[c.mood].needs).sort((a, b) => MOODS[a.mood].rank - MOODS[b.mood].rank);
   function catRow(c) {
     const b = el("button", "mini " + MOODS[c.mood].kind); b.type = "button";
     b.appendChild(el("span", "face-ico"));
@@ -1331,52 +1495,57 @@ ul.gkey li > div.what { flex-basis: 100%; }
     b.addEventListener("click", () => { hideMenu(); openCat(c.id); });
     return el("li", null).appendChild(b).parentNode;
   }
-  function head(title, cap, extra) {
-    const h = el("div", "mh");
-    if (cap) h.appendChild(el("p", "cap", cap));
-    h.appendChild(title);
-    for (const x of extra || []) if (x) h.appendChild(x);
+  function catRows(cats, max) {
+    const ul = el("ul");
+    cats.slice(0, max).forEach((c) => ul.appendChild(catRow(c)));
+    if (cats.length > max) ul.appendChild(el("li", "sub", "and " + (cats.length - max) + " more"));
+    return ul;
+  }
+  // the name, with a badge for the cats that need you, and one line under it
+  function head(title, sub, need) {
+    const h = el("div", "mh"), row = el("div", "mt");
+    row.appendChild(title);
+    if (need && need.length) row.appendChild(badge(need));
+    h.appendChild(row);
+    if (sub) h.appendChild(el("p", "sub", sub));
     return h;
   }
-  // a room's cats as chips: the face of the most urgent that needs you and how many, then at work, asleep
-  function chips(cats) {
-    const row = el("div", "chips");
-    const need = cats.filter((c) => MOODS[c.mood].needs).sort((a, b) => MOODS[a.mood].rank - MOODS[b.mood].rank);
-    const add = (n, kind, words) => { if (!n) return; const c = el("span", "chip " + kind); c.title = n + " " + words; c.setAttribute("aria-label", n + " " + words); c.append(el("span", "face-ico"), el("span", null, String(n))); row.appendChild(c); };
-    add(need.length, need.length ? MOODS[need[0].mood].kind : "", "need you");
-    add(cats.filter((c) => c.mood === "idle").length, "work", "at work");
-    add(cats.filter((c) => c.mood === "sleep").length, "sleep", "asleep");
-    return row.children.length ? row : null;
+  // how the cats are reaching the page, in a few words, for the House menu
+  function liveLine() {
+    const L = S.live;
+    if (L.state === "loading") return "Waking the cats…";
+    if (L.state === "ok") return "Live · checked " + clock(S.sessionsAt);
+    if (L.state === "local") return S.from === "copy" ? "On this computer · saved " + clock(S.sessionsAt) : "On this computer";
+    return S.from === "copy" ? "Claude's copy · saved " + clock(S.sessionsAt) : "Not live";
   }
   function roomMenu(k) {
-    const r = roomInfo(k), here = VIEW.cats.filter((c) => c.roomKey === k);
-    const needing = here.filter((c) => MOODS[c.mood].needs);
-    const out = [head(el("h3", null, r.name), FLOORS[levelOf(k)], [r.blurb && el("p", "sub", r.blurb), chips(here) || el("p", "sub", "No cats in here yet.")])];
-    if (needing.length) { const ul = el("ul"); needing.slice(0, 4).forEach((c) => ul.appendChild(catRow(c))); if (needing.length > 4) ul.appendChild(el("li", "sub", "and " + (needing.length - 4) + " more")); out.push(ul); }
+    const r = roomInfo(k), here = VIEW.cats.filter((c) => c.roomKey === k), needing = urgentFirst(here);
+    const out = [head(el("h3", null, r.name), r.blurb || (here.length ? summary(here) : "No cats in here yet."), needing)];
+    if (needing.length) out.push(catRows(needing, 3));
+    // the queen speaks only when she has something to say
     const q = queenOf(k);
-    const qr = el("button", "queenrow"); qr.type = "button";
-    qr.append(el("span", "crown inline"), el("b", null, q.name), el("span", null, q.notes.length ? "keeps " + q.notes.length + (q.notes.length === 1 ? " note" : " notes") : "keeps this room"));
-    qr.setAttribute("aria-label", "Ask " + q.name);
-    qr.addEventListener("click", () => { hideMenu(); openQueen(k); });
-    out.push(qr);
-    if (q.pinned.length) out.push(el("div", "ask-box need", q.pinned[0].text));
-    out.push(el("div", "rule"));
-    const go = S.focus === k ? plainBtn("Whole house", "primary", zoomOut) : plainBtn("Look in", "green primary", () => focusRoom(k));
-    out.push(go);
-    const acts = el("div", MENU.sub === "add" ? "acts one" : "acts");
-    if (MENU.sub === "add") {
-      if (S.mcp) acts.appendChild(plainBtn("New session", "", () => { hideMenu(); openNewCat(k); }));
-      acts.appendChild(plainBtn("Adopt a chat", "", () => { hideMenu(); openAdopt(k); }));
-      acts.appendChild(plainBtn("Back", "span", () => { MENU.sub = null; showMenu("room", k); }));
-    } else {
-      if (GEOM[k].cabinet) acts.appendChild(plainBtn("Files", "", () => { hideMenu(); openCabinet(k); }));
-      if (S.assets) acts.appendChild(plainBtn(k === "brain" ? "Choose files" : "Add files", "", () => { hideMenu(); pickFiles(k === "brain" ? null : { room: k }); }));
-      if (S.mcp) acts.appendChild(plainBtn("Add a cat", "", () => { MENU.sub = "add"; showMenu("room", k); }));
-      else acts.appendChild(plainBtn("Adopt a chat", "", () => { hideMenu(); openAdopt(k); }));
-      acts.appendChild(plainBtn("Edit room", "", () => { hideMenu(); openRooms(k); }));
-      if (k === "brain") { const tray = S.brain.filter((d) => d.status === "unsorted").length; acts.appendChild(plainBtn("The brain" + (tray ? " (" + tray + ")" : ""), "span", () => { hideMenu(); openBrain(); })); }
+    if (q.pinned.length) {
+      const b = el("button", "ask-box says queenb"); b.type = "button";
+      b.append(el("span", "crown inline"), el("span", null, q.pinned[0].text));
+      b.setAttribute("aria-label", q.name + " says: " + q.pinned[0].text);
+      b.addEventListener("click", () => { hideMenu(); openQueen(k); });
+      out.push(b);
     }
-    out.push(acts);
+    out.push(el("div", "rule"));
+    const look = S.focus === k ? mi("Whole house", zoomOut) : mi("Look in", () => focusRoom(k));
+    if (MENU.sub === "add") out.push(list([
+      S.mcp && mi("New session", () => { hideMenu(); openNewCat(k); }),
+      mi("Adopt a chat", () => { hideMenu(); openAdopt(k); }),
+      mi("Back", () => { MENU.sub = null; showMenu("room", k); })]));
+    else {
+      const tray = S.brain.filter((d) => d.status === "unsorted").length;
+      out.push(list([look,
+        k === "brain" && mi("The brain", () => { hideMenu(); openBrain(); }, { aside: tray ? tray + " on the tray" : "" }),
+        GEOM[k].cabinet && mi("Files", () => { hideMenu(); openCabinet(k); }),
+        S.assets && mi(k === "brain" ? "Choose files" : "Add files", () => { hideMenu(); pickFiles(k === "brain" ? null : { room: k }); }),
+        S.mcp ? mi("Add a cat", () => { MENU.sub = "add"; showMenu("room", k); }) : mi("Adopt a chat", () => { hideMenu(); openAdopt(k); }),
+        mi("Edit room", () => { hideMenu(); openRooms(k); })]));
+    }
     // opened from the keyboard, the menu says which keys do what
     if (document.activeElement && document.activeElement.matches("#hits :focus-visible, #menu :focus-visible")) out.push(el("p", "keys", "← ↑ → ↓ rooms · PgUp PgDn floors · Enter menu · Esc back"));
     return out;
@@ -1384,62 +1553,49 @@ ul.gkey li > div.what { flex-basis: 100%; }
   // the house: what belongs to all of it, not one room
   function houseMenu() {
     const all = VIEW.cats, tray = S.brain.filter((d) => d.status === "unsorted").length;
-    const out = [head(el("h3", null, "The house"), null, [el("p", "sub", summary(all) + "."), chips(all)])];
-    out.push(el("div", "rule"));
-    out.push(plainBtn("The brain" + (tray ? " (" + tray + ")" : ""), "green primary", () => { hideMenu(); openBrain(); }));
-    const acts = el("div", "acts one");
-    acts.appendChild(plainBtn("House rules", "", () => { hideMenu(); openRules(); }));
-    acts.appendChild(plainBtn("Edit rooms", "", () => { hideMenu(); openRooms(curRoom()); }));
-    out.push(acts);
-    const set = el("div", "settings");
-    const snd = el("button", "sound", S.sound ? "Sound on" : "Sound off"); snd.type = "button";
+    const sub = [liveLine(), VIEW.attic && VIEW.attic + " napping in the attic"].filter(Boolean).join(" · ");
+    // the brand above it is the title and carries the badge, so the menu starts with how the cats are reaching you
+    const out = [el("p", "sub", sub + (all.length ? ". " + summary(all).replace(/^./, (x) => x.toUpperCase()) + "." : ""))];
+    const snd = el("button", "mi sw sound", S.sound ? "Sound on" : "Sound off"); snd.type = "button";
     snd.prepend(el("span", "switch" + (S.sound ? " on" : "")));
     snd.addEventListener("click", () => { S.sound = !S.sound; try { localStorage.setItem("catio.sound", S.sound ? "on" : "off"); } catch (e) {} if (S.sound) meow(); showMenu("house", "house"); });
-    set.appendChild(snd);
-    if (S.mcp) set.appendChild(plainBtn("Check now", "tiny", () => watch(true)));
-    out.push(set);
-    if (VIEW.attic || S.showOld) {
-      const attic = el("div", "settings");
-      attic.appendChild(el("span", null, VIEW.attic ? VIEW.attic + " napping in the attic" : "The attic's cats are down in their rooms"));
-      attic.appendChild(plainBtn(S.showOld ? "Send them back up" : "Bring them down", "tiny", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }));
-      out.push(attic);
-    }
+    out.push(list([
+      mi("The brain", () => { hideMenu(); openBrain(); }, { aside: tray ? tray + " on the tray" : "" }),
+      mi("House rules", () => { hideMenu(); openRules(); }),
+      mi("Edit rooms", () => { hideMenu(); openRooms(curRoom()); }),
+      (VIEW.attic || S.showOld) && mi(S.showOld ? "Send them back up" : "Bring them down", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }),
+      S.mcp && mi("Check now", () => watch(true)),
+      snd]));
     return out;
   }
   function pileMenu(room) {
     const pile = VIEW.piles[room];
     if (!pile) return null;
-    const ul = el("ul"); pile.forEach((c) => ul.appendChild(catRow(c)));
-    return [head(el("h3", null, pile.length + " cats curled up together"), roomInfo(room).name, [chips(pile)]), ul,
-      plainBtn("See them all", "green primary", () => { hideMenu(); openPile(pile, room); })];
+    return [head(el("h3", null, pile.length + " cats curled up"), roomInfo(room).name, urgentFirst(pile)), catRows(pile, 5),
+      el("div", "rule"), list([mi("See them all", () => { hideMenu(); openPile(pile, room); })])];
   }
   function queenMenu(k) {
     const here = VIEW.cats.filter((c) => c.roomKey === k);
     const q = (VIEW.queens[k] && VIEW.queens[k].queen) || queenOf(k);
     const h = el("h3"); h.append(el("span", "crown inline"), document.createTextNode(q.name));
-    const out = [head(h, "Queen of the " + roomInfo(k).name, [el("p", "sub", "She keeps this room")])];
+    const out = [head(h, "Queen of the " + roomInfo(k).name)];
     out.push(el("div", q.pinned.length ? "ask-box need" : "sub", q.line || queenLine(q, here)));
     // the headline is already her top pinned note, so the list picks up from the next one
     const rest = q.pinned.length ? q.notes.slice(1) : q.notes;
     if (rest.length) {
-      out.push(el("p", "sub", q.pinned.length ? "She is also keeping" : "What she keeps"));
       const ul = el("ul", "keeps");
-      rest.slice(0, 5).forEach((n) => {
+      rest.slice(0, 3).forEach((n) => {
         const li = el("li", n.pinned ? "kept pin" : "kept");
         li.append(el("span", "dot"), el("span", null, n.text));
         ul.appendChild(li);
       });
-      if (rest.length > 5) ul.appendChild(el("li", "sub", "and " + (rest.length - 5) + " more"));
+      if (rest.length > 3) ul.appendChild(el("li", "sub", "and " + (rest.length - 3) + " more"));
       out.push(ul);
     }
-    const needing = here.filter((c) => MOODS[c.mood].needs);
-    if (needing.length) { const ul = el("ul"); needing.slice(0, 4).forEach((c) => ul.appendChild(catRow(c))); out.push(ul); }
-    out.push(el("div", "rule"));
-    out.push(plainBtn("What she keeps", "green primary", () => { hideMenu(); openQueen(k); }));
-    const acts = el("div", "acts");
-    acts.appendChild(S.focus === k ? plainBtn("Whole house", "", zoomOut) : plainBtn("Look in", "", () => focusRoom(k)));
-    if (GEOM[k].cabinet) acts.appendChild(plainBtn("Files", "", () => { hideMenu(); openCabinet(k); }));
-    out.push(acts);
+    out.push(el("div", "rule"), list([
+      mi("What she keeps", () => { hideMenu(); openQueen(k); }),
+      S.focus === k ? mi("Whole house", zoomOut) : mi("Look in", () => focusRoom(k)),
+      GEOM[k].cabinet && mi("Files", () => { hideMenu(); openCabinet(k); })]));
     return out;
   }
 
@@ -1447,12 +1603,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const c = VIEW.cats.find((x) => x.id === id);
     if (!c) return null;
     const m = MOODS[c.mood];
-    const h = el("h3", null, c.name);
-    const mood = el("span", "chip " + m.kind); mood.append(el("span", "face-ico"), el("span", null, m.label));
-    const tags = el("div", "chips"); tags.appendChild(mood);
-    const br = breedOf(c);
-    if (br) tags.appendChild(el("span", "chip plain", br.name));
-    const out = [head(h, c.project.name + " · " + roomInfo(c.roomKey).name, [tags, el("p", "sub", [c.branch, ago(c.updated)].filter(Boolean).join(" · "))])];
+    const h = el("h3", m.kind); h.append(el("span", "face-ico"), document.createTextNode(c.name));
+    h.firstChild.setAttribute("aria-label", m.label); h.firstChild.setAttribute("role", "img");
+    const out = [head(h, [c.project.name, roomInfo(c.roomKey).name, ago(c.updated)].filter(Boolean).join(" · "))];
     out.push(el("div", c.ask ? "ask-box " + m.kind : "sub", c.ask || c.doing || c.title));
     const nf = waitingFor(c.id), last = notesFor(c.id).pop();
     if (nf || last) out.push(el("p", "sub", [nf && nf + (nf === 1 ? " file" : " files") + " from the brain", last && (last.author === "charlotte" ? "You" : c.name) + ": " + last.text.slice(0, 60)].filter(Boolean).join(" · ")));
@@ -1467,13 +1620,11 @@ ul.gkey li > div.what { flex-basis: 100%; }
     }
     out.push(el("div", "rule"));
     const talk = c.kind === "chat" ? "Details" : "Talk";
-    if (c.link) { const a = el("a", "btn green primary", c.kind === "chat" ? "Open chat" : c.kind === "agent" ? "Open" : "Open session"); a.href = c.link; a.target = "_blank"; a.rel = "noopener"; out.push(a); }
-    else out.push(plainBtn(talk, "green primary", () => { hideMenu(); openCat(c.id); }));
-    const acts = el("div", "acts");
-    if (c.link) acts.appendChild(plainBtn(talk, "", () => { hideMenu(); openCat(c.id); }));
-    if (S.assets) acts.appendChild(plainBtn("Add files", "", () => { hideMenu(); pickFiles({ cat: c.id }); }));
-    if (S.focus !== c.roomKey) acts.appendChild(plainBtn("Look in", "", () => focusRoom(c.roomKey)));
-    if (acts.children.length) out.push(acts);
+    out.push(list([
+      c.link && mi(c.kind === "chat" ? "Open chat" : c.kind === "agent" ? "Open" : "Open session", null, { href: c.link }),
+      mi(talk, () => { hideMenu(); openCat(c.id); }),
+      S.assets && mi("Add files", () => { hideMenu(); pickFiles({ cat: c.id }); }),
+      S.focus !== c.roomKey && mi("Look in", () => focusRoom(c.roomKey))]));
     return out;
   }
 
@@ -1481,54 +1632,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const ov = $("overlay"); ov.replaceChildren();
     const cam = S.cam; if (!cam) return;
     const toScreen = (x, y) => [cam.tx + x * cam.s, cam.ty + y * cam.s];
-    // On the whole house, a sign on each room's back wall, above where cats sit: its name where the
-    // room is wide enough on screen, and a badge when cats in it need you. On a phone, the badge alone.
-    const signs = [];
-    if (!S.focus) {
-      for (const k of ORDER) {
-        if (levelOf(k) !== S.floor) continue;
-        const [x, y, w] = GEOM[k].r;
-        const need = needIn(VIEW.cats, k), room = (w - 5) * 2 * cam.s - 5;   // inside the left wall to the right one
-        const named = cam.s >= 0.5 && room >= 56;
-        if (!named && !need.length) continue;
-        const tag = el("div", "tag sign");
-        tag.dataset.room = k;
-        tag.setAttribute("aria-hidden", "true");
-        if (named) tag.appendChild(el("span", "nm", roomInfo(k).name));
-        if (need.length) tag.appendChild(badge(need));
-        const [sx, sy] = toScreen((x + 5) * 2, (y + 5) * 2);
-        Object.assign(tag.style, { left: sx + 3 + "px", top: sy + 3 + "px", maxWidth: Math.max(room, 40) + "px" });
-        ov.appendChild(tag); signs.push(tag);
-      }
-    }
-    // the stair's sign, at its foot (or at the stairwell upstairs): which way it goes, and a badge when cats
-    // on the other floor need you, so nothing urgent hides on the floor you aren't looking at
-    if (!S.focus || S.focus === "hall") {
-      const [sx, sy, sw, sh] = MANOR.stairs, f = other(S.floor), need = needOn(f);
-      if (cam.s >= 0.5 || need.length) {
-        const tag = el("div", "tag sign stairsign");
-        tag.setAttribute("aria-hidden", "true");
-        if (cam.s >= 0.5) tag.appendChild(el("span", "nm", f === "upper" ? "Upstairs" : "Downstairs"));
-        if (need.length) tag.appendChild(badge(need.sort((a, b) => MOODS[a.mood].rank - MOODS[b.mood].rank)));
-        ov.appendChild(tag);
-        const [cx, cy] = toScreen((sx + sw / 2) * 2, (sy + sh) * 2);
-        Object.assign(tag.style, { left: cx - tag.offsetWidth / 2 + "px", top: cy + 4 + "px" });
-        signs.push(tag);
-      }
-    }
+    // Nothing on the map but the cats: rooms are named on hover, the other floor's news is on its button.
     const text = !!S.focus;
-    const taken = signs.map((t) => [t.offsetLeft, t.offsetTop, t.offsetLeft + t.offsetWidth, t.offsetTop + t.offsetHeight]);   // faces keep off the signs
-    // the room's filing cabinet gets a sign when you're in the room; bubbles keep clear of it
-    const cab = S.focus && GEOM[S.focus].cabinet;
-    if (cab) {
-      const [sx, sy] = toScreen(cab[0] * 2 + cab[2], cab[1] * 2);
-      const t = el("button", "tag files", "Files");
-      t.type = "button";
-      Object.assign(t.style, { left: sx + "px", top: sy - 4 + "px" });
-      t.addEventListener("click", () => openCabinet(S.focus));
-      ov.appendChild(t);
-      taken.push([sx - 26, sy - 30, sx + 26, sy]);
-    }
+    const taken = [];   // bubbles and faces keep off each other
     // A text bubble goes above the cat; if that is off the top or on another bubble, below it;
     // failing both, the cat just shows the little face icon.
     function bubble(p, kind, title, body, act, hoverKind, hoverKey, aria, sidestep) {
@@ -1541,8 +1647,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       let mode = "icon";
       if (text && up[1] >= 0 && free(up)) mode = "up";
       else if (text && down[3] <= cam.H + 10 && free(down)) mode = "down";
-      // a face goes over the cat's head. If a sign is there, a cat's face gives way: its room's badge
-      // already shows it. A queen is in no badge, so hers steps beside her head instead.
+      // a face goes over the cat's head; a queen's steps beside her head if a cat's face is there
       let [ix, iy] = [sx, sy];
       if (mode !== "icon") taken.push(mode === "up" ? up : down);
       else {
@@ -1608,10 +1713,15 @@ ul.gkey li > div.what { flex-basis: 100%; }
       st.appendChild(el("span", "words", S.from === "copy"
         ? "On this computer: your " + S.sessions.length + " sessions as Claude saved them " + new Date(S.sessionsAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) + ". Ask Claude to refresh data/sessions.json for newer cats."
         : "On this computer, with no saved sessions yet. Put Claude's data/sessions.json next to the page."));
+    } else if (S.from === "copy" && S.sessions && S.sessions.length) {
+      // Claude's copy fills the rooms, so the page works: one line, and the why when she points at it
+      const at = new Date(S.sessionsAt), today = at.toDateString() === new Date().toDateString();
+      st.appendChild(el("span", "words", "Saved copy · " + (today ? clock(S.sessionsAt) : at.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }))));
+      if (L.action) { const b = el("button", "btn tiny", L.action.label); b.type = "button"; b.addEventListener("click", L.action.run); st.appendChild(b); }
+      st.appendChild(el("span", "copy words more", L.message + " Meanwhile these are Claude's copy of your " + S.sessions.length + " sessions."));
     } else {
       st.appendChild(el("span", "words", L.message));
       if (L.action) { const b = el("button", "btn", L.action.label); b.type = "button"; b.addEventListener("click", L.action.run); st.appendChild(b); }
-      if (S.from === "copy") st.appendChild(el("span", "copy words", "Meanwhile these are Claude's copy of your " + S.sessions.length + " sessions, saved " + new Date(S.sessionsAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) + "."));
       if (!S.sessions || !S.sessions.length) { msg.hidden = false; msg.textContent = L.state === "stale" ? "Couldn't reach your sessions just now." : "Only adopted chats are showing."; }
     }
     if (L.state === "local" && (!S.sessions || !S.sessions.length)) { msg.hidden = false; msg.textContent = "Only adopted chats are showing."; }
@@ -1728,6 +1838,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
   function closeBtn(dlg, label) { const b = el("button", "btn", label || "Close"); b.type = "button"; b.addEventListener("click", () => dlg.close()); return b; }
   function show(dlg) { if (!dlg.open) dlg.showModal(); }
 
+  // A cat's card: who it is and what it needs, then the conversation with it. Everything else (the facts,
+  // pausing, archiving, its name, room and title) is folded under Manage until she wants it.
   function openCat(id) {
     const c = VIEW.cats.find((x) => x.id === id);
     if (!c) return;
@@ -1739,73 +1851,67 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const hd = el("div");
     const h = el("h2", null, c.name); h.id = "catName";
     const mood = el("span", "mood " + m.kind); mood.append(el("span", "face-ico"), document.createTextNode(m.label));
-    hd.append(h, mood);
+    hd.append(h, mood, el("p", "note", [c.project.name, roomInfo(c.roomKey).name].join(" · ")));
     head.append(por, hd);
     box.appendChild(head);
-    box.appendChild(el("div", null, c.title));
     if (c.ask) { const a = el("div", "ask-box " + m.kind); a.append(el("span", "face-ico"), el("span", null, c.ask)); box.appendChild(a); }
-    const dl = el("dl", "facts");
-    const row = (k, v) => { if (!v) return; dl.append(el("dt", null, k), el("dd", null, v)); };
-    if (c.mood === "idle" && c.doing) row("Doing", c.doing);
-    else if (c.kind === "chat" && c.doing && c.mood !== "meow") row("Note", c.doing);
-    row("Room", roomInfo(c.roomKey).name);
-    row("Project", c.project.name + (c.repo && c.repo !== c.project.name ? " (" + c.repo + ")" : ""));
-    row("Branch", c.branch);
-    const br = breedOf(c);
-    if (br) row(c.kind === "agent" ? "Agent" : "Model", br.name);
-    row("Started on", c.origin);
-    row("Last active", c.updated ? ago(c.updated) + " (" + new Date(c.updated).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) + ")" : "");
-    box.appendChild(dl);
+    else if (c.kind !== "chat") box.appendChild(el("p", "blurb", c.doing || c.title));
 
     // what the brain has given it, and the conversation with it
     const files = filesFor(c.id);
     if (files.length) { box.appendChild(el("p", "kicker", "From the brain")); const ul = el("ul", "files"); files.slice(0, 6).forEach((d) => ul.appendChild(fileRow(d))); box.appendChild(ul); }
     if (c.kind !== "chat" && S.db) box.appendChild(conversation(c));
-    if (c.kind !== "chat") box.appendChild(managing(c, dlg));
 
-    if (c.kind === "session") {
-      const r = el("div", "row");
-      const nm = el("input"); nm.id = "catRename"; nm.value = (S.tweaks[c.id] && S.tweaks[c.id].name) || ""; nm.placeholder = c.name; nm.maxLength = 30;
-      r.append(field("Name", nm), field("Lives in", roomSelect("catRoom", c.roomKey)));
-      box.appendChild(r);
-      const ti = el("input"); ti.id = "catTitle"; ti.value = c.title; ti.maxLength = 120;
-      box.appendChild(field("The session's title", ti));
-      const acts = el("div", "actions");
-      if (S.assets) acts.appendChild(plainBtn("Give it files", "", () => { dlg.close(); pickFiles({ cat: c.id }); }));
-      const sv = el("button", "btn green", "Save"); sv.type = "button";
-      sv.addEventListener("click", async () => {
-        const room = $("catRoom").value, name = nm.value.trim(), title = ti.value.trim();
-        const ok = await save(async (db) => {
+    if (c.kind === "chat") {
+      box.appendChild(adoptForm(c));
+      dlg.appendChild(box);
+      show(dlg);
+      return;
+    }
+    const more = el("details", "more"); more.id = "catMore";
+    more.appendChild(el("summary", null, "Manage"));
+    const dl = el("dl", "facts");
+    const row = (k, v) => { if (!v) return; dl.append(el("dt", null, k), el("dd", null, v)); };
+    row("Title", c.title !== c.doing ? c.title : "");
+    if (c.repo && c.repo !== c.project.name) row("Repository", c.repo);
+    row("Branch", c.branch);
+    const br = breedOf(c);
+    if (br) row(c.kind === "agent" ? "Agent" : "Model", br.name);
+    row("Started on", c.origin);
+    row("Last active", c.updated ? ago(c.updated) + " (" + new Date(c.updated).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) + ")" : "");
+    more.append(dl, managing(c, dlg));
+    const r = el("div", "row");
+    const nm = el("input"); nm.id = "catRename"; nm.maxLength = 30; nm.placeholder = c.name;
+    nm.value = c.kind === "session" ? (S.tweaks[c.id] && S.tweaks[c.id].name) || "" : c.nameOverride;
+    r.append(field("Name", nm), field("Lives in", roomSelect("catRoom", c.roomKey)));
+    more.appendChild(r);
+    let ti = null;
+    if (c.kind === "session") { ti = el("input"); ti.id = "catTitle"; ti.value = c.title; ti.maxLength = 120; more.appendChild(field("The session's title", ti)); }
+    const sv = plainBtn("Save", "green", async () => {
+      const room = $("catRoom").value, name = nm.value.trim();
+      const ok = c.kind === "session"
+        ? await save(async (db) => {
+          const title = ti.value.trim();
           await db.doc("sessions/" + c.id).set(Object.assign({}, S.tweaks[c.id] || {}, { name, room, updatedAt: Date.now() }));
           if (title && title !== c.title) {
             try { await call("set_session_title", { session_id: c.id, title }); }
             catch (e) { if (REFUSED.has(e.code) || !S.mcp) await queue(c, { kind: "manage", action: "title", value: title }, e.code || "no_mcp"); else throw e; }
           }
-        }, "Saved.");
-        if (ok) dlg.close();
-      });
-      const open = el("a", "btn green", "Open session"); open.href = c.link; open.target = "_blank"; open.rel = "noopener";
-      acts.append(closeBtn(dlg), el("span", "spacer"), sv, open);
-      box.appendChild(acts);
-    } else if (c.kind === "agent") {
-      const r = el("div", "row");
-      const nm = el("input"); nm.id = "catRename"; nm.value = c.nameOverride; nm.placeholder = c.name; nm.maxLength = 30;
-      r.append(field("Name", nm), field("Lives in", roomSelect("catRoom", c.roomKey)));
-      box.appendChild(r);
-      const acts = el("div", "actions");
-      const sv = plainBtn("Save", "green", async () => {
-        const ok = await save(async () => {
-          if (nm.value.trim() && nm.value.trim() !== c.nameOverride) await hostCall("manage", { cat: c.agentId, action: "rename", value: nm.value.trim() });
-          if ($("catRoom").value !== c.roomKey) await hostCall("manage", { cat: c.agentId, action: "move", value: $("catRoom").value });
+        }, "Saved.")
+        : await save(async () => {
+          if (name && name !== c.nameOverride) await hostCall("manage", { cat: c.agentId, action: "rename", value: name });
+          if (room !== c.roomKey) await hostCall("manage", { cat: c.agentId, action: "move", value: room });
           await refreshAgents();
         }, "Saved.");
-        if (ok) dlg.close();
-      });
-      acts.append(closeBtn(dlg), el("span", "spacer"), sv);
-      box.appendChild(acts);
-    } else {
-      box.appendChild(adoptForm(c));
-    }
+      if (ok) dlg.close();
+    });
+    const sa = el("div", "actions"); sa.append(el("span", "spacer"), sv); more.appendChild(sa);
+    box.appendChild(more);
+
+    const acts = el("div", "actions");
+    acts.append(closeBtn(dlg), el("span", "spacer"));
+    if (c.link) { const open = el("a", "btn green", c.kind === "agent" ? "Open" : "Open session"); open.href = c.link; open.target = "_blank"; open.rel = "noopener"; acts.appendChild(open); }
+    box.appendChild(acts);
     dlg.appendChild(box);
     show(dlg);
   }
@@ -1827,17 +1933,18 @@ ul.gkey li > div.what { flex-basis: 100%; }
     head.append(por, hd);
     box.append(head, el("div", null, queenLine(q, here)));
 
-    box.appendChild(el("p", "sub", "What she keeps"));
     const list = el("ul", "keeps");
+    // what she keeps is saved as you change it, so closing the card never loses a note
+    const keep = () => save((db) => db.doc("queens/" + k).set({ name: (S.queens[k] && S.queens[k].name) || "", notes, updatedAt: Date.now() }));
     function draw() {
       list.replaceChildren();
       if (!notes.length) list.appendChild(el("li", "sub", "She is keeping nothing for this room yet."));
       notes.forEach((n, i) => {
         const li = el("li", n.pinned ? "kept pin" : "kept");
-        const pin = plainBtn(n.pinned ? "Saying it" : "Say it", "tiny" + (n.pinned ? " green" : ""), () => { n.pinned = !n.pinned; draw(); });
+        const pin = plainBtn(n.pinned ? "Saying it" : "Say it", "tiny" + (n.pinned ? " green" : ""), () => { n.pinned = !n.pinned; draw(); keep(); });
         pin.title = n.pinned ? "She says this in the room until you take it back" : "Have her say this out loud in the room";
         pin.setAttribute("aria-pressed", String(n.pinned));
-        const rm = plainBtn("Forget", "tiny pink", () => { notes.splice(i, 1); draw(); });
+        const rm = plainBtn("Forget", "tiny pink", () => { notes.splice(i, 1); draw(); keep(); });
         rm.setAttribute("aria-label", "Forget: " + n.text);
         li.append(el("span", "dot"), el("span", "t", n.text), pin, rm);
         list.appendChild(li);
@@ -1852,7 +1959,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       if (!t) return;
       if (notes.length >= NOTES_MAX) { toast("She can hold " + NOTES_MAX + " things at once. Let one go first."); return; }
       notes.unshift({ text: t.slice(0, NOTE_MAX), pinned: false, at: Date.now() });
-      add.value = ""; draw(); add.focus();
+      add.value = ""; draw(); add.focus(); keep();
     };
     add.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); give(); } });
     const row = el("div", "row");
@@ -1861,7 +1968,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
 
     const nm = el("input"); nm.id = "queenRename"; nm.value = (S.queens[k] && S.queens[k].name) || ""; nm.placeholder = q.name; nm.maxLength = 30;
     box.appendChild(field("Her name", nm));
-    box.appendChild(el("p", "note", "What you type here is saved in this page. Anyone you share the page with can read it, so keep sensitive details out of it."));
+    box.appendChild(el("p", "note", "Saved in this page: anyone you share it with can read it, so keep sensitive details out."));
 
     const acts = el("div", "actions");
     const sv = el("button", "btn green", "Save"); sv.type = "button";
@@ -1893,7 +2000,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     f.append(field("What's the chat about?", title), field("Link to the chat", link), field("Project (cats of one project look alike)", project), known);
     const r = el("div", "row"); r.append(field("Lives in", roomSelect("adRoom", d.room || (c ? c.roomKey : room || "dining"))), field("Mood", mood)); f.appendChild(r);
     f.append(field("Note", note), field("Cat's name", name));
-    f.appendChild(el("p", "note", "What you type here is saved in this page. Anyone you share the page with can read it, so keep sensitive details in the chat itself."));
+    f.appendChild(el("p", "note", "Saved in this page: anyone you share it with can read it, so keep sensitive details in the chat itself."));
     const acts = el("div", "actions");
     const dlg = c ? $("catDlg") : $("adoptDlg");
     if (c) {
@@ -1938,7 +2045,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const h = el("h2", r.name.length > 16 ? "long" : null, r.name); h.id = "roomsTitle";   // 36px while it fits, 18px when long
     const hd = el("div"); hd.append(kick, h);
     if (r.blurb) hd.appendChild(el("p", "blurb", r.blurb));
-    box.append(hd, el("p", "note", "Every project filed in this room, with all its cats, including the ones napping in the attic or archived."));
+    box.appendChild(hd);
     if (!groups.size) box.appendChild(el("p", "empty", "Nothing is filed here yet. A project lands in this room when its repository is listed under Edit rooms, or when you move one of its cats here."));
     // the projects with cats that need you come first
     const urgent = (g) => Math.min(9, ...g.cats.filter((c) => !c.away && MOODS[c.mood].needs).map((c) => MOODS[c.mood].rank));
@@ -2046,7 +2153,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const dlg = $("adoptDlg"); dlg.replaceChildren();
     const box = el("div", "dlg");
     const h = el("h2", null, "Adopt a cat"); h.id = "adoptTitle";
-    box.append(h, el("p", "note", "Your Claude Code sessions move in by themselves. Chats on claude.ai can't be read by this page, so each one you adopt becomes a cat you look after by hand: a business plan, a legal question, anything else."));
+    box.append(h, el("p", "note", "Sessions move in by themselves. A claude.ai chat can't be read by this page, so you look after the cat you adopt for it by hand."));
     box.appendChild(adoptForm(null, room));
     dlg.appendChild(box);
     show(dlg);
@@ -2360,7 +2467,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     });
     const note = el("textarea"); note.id = "dropNote"; note.rows = 2; note.maxLength = 2000; note.placeholder = "What should they do with it? (optional)";
     box.appendChild(field("A note to go with it", note));
-    box.appendChild(el("p", "note", "Files and notes are kept in the Catio, which is private to you, and sent on to the cat's session. Keep them out of git."));
+    box.appendChild(el("p", "note", "Kept in the KittyChat Café, private to you, and sent on to the cat's session. Keep them out of git."));
     const acts = el("div", "actions");
     const send = el("button", "btn green", "Send"); send.type = "button"; send.id = "dropSend"; send.disabled = true;
     acts.append(closeBtn(dlg, "Cancel"), el("span", "spacer"), send);
@@ -2447,7 +2554,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const dlg = $("brainDlg"); dlg.replaceChildren();
     const box = el("div", "dlg");
     const h = el("h2", null, "The brain"); h.id = "brainTitle";
-    box.append(h, el("p", "note", "Drag files anywhere on the house: onto a cat to give them to it, onto a room to sort them among its cats, or anywhere else for the whole house."));
+    box.append(h, el("p", "note", "Drop files on a cat, on a room, or anywhere on the house."));
     const tray = S.brain.filter((d) => d.status === "unsorted");
     box.appendChild(el("p", "kicker", "On the tray"));
     if (tray.length) { const ul = el("ul", "files"); const cats = allCats().cats; tray.forEach((d) => ul.appendChild(fileRow(d, cats))); box.appendChild(ul); }
@@ -2490,11 +2597,10 @@ ul.gkey li > div.what { flex-basis: 100%; }
   /* ---------- the harness: talking to a cat, and managing it ---------- */
   const notesFor = (id) => S.notes.filter((n) => n.cat === id).sort((a, b) => (a.at || 0) - (b.at || 0));
   function conversation(c) {
-    const wrap = el("section", "dlg"); wrap.style.padding = "0";
-    wrap.appendChild(el("p", "kicker", "Talk to " + c.name));
+    const wrap = el("section", "dlg talk"); wrap.style.padding = "0";
     const ul = el("ul", "thread"); ul.id = "thread"; ul.dataset.cat = c.id;
     drawThread(ul, c);
-    const say = el("textarea"); say.id = "sayTo"; say.rows = 2; say.maxLength = 4000; say.placeholder = c.kind === "chat" ? "A note for yourself" : "Ask, answer, or give it a nudge";
+    const say = el("textarea"); say.id = "sayTo"; say.rows = 2; say.maxLength = 4000; say.placeholder = "Write to " + c.name + ": it goes straight into the session";
     const send = plainBtn("Send", "green", async () => {
       const text = say.value.trim();
       if (!text) { say.focus(); return; }
@@ -2510,14 +2616,15 @@ ul.gkey li > div.what { flex-basis: 100%; }
       if (ok) { say.value = ""; openCat(c.id); }
     });
     send.id = "saySend";
-    const row = el("div", "row"); row.append(field("Your message", say), send);
+    say.setAttribute("aria-label", "Message to " + c.name);
+    const row = el("div", "row"); row.append(el("label", "field").appendChild(say).parentNode, send);
     wrap.append(ul, row);
     return wrap;
   }
   function drawThread(ul, c) {
     ul.replaceChildren();
     const notes = notesFor(c.id).slice(-12);
-    if (!notes.length) ul.appendChild(el("li", "me", c.kind === "chat" ? "Notes you leave here stay on the card." : "Write to " + c.name + ": it arrives in the session straight away, and the answer comes back here."));
+    ul.hidden = !notes.length;
     for (const n of notes) {
       const li = el("li", n.author === "charlotte" ? "me" : "them");
       li.append(el("span", "who", (n.author === "charlotte" ? "You" : c.name) + " · " + ago(n.at) + (n.via === "queued" ? " · queued" : "")), document.createTextNode(n.text));
@@ -2526,13 +2633,14 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
   function managing(c, dlg) {
     const bar = el("div", "manage");
-    const act = (label, cls, run, sure) => {
+    const act = (label, cls, run, sure, icon) => {
       const b = plainBtn(label, "tiny " + cls, async () => {
         if (sure && b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = sure; return; }
         b.disabled = true;
         await save(run);
         b.disabled = false;
       });
+      if (icon) b.prepend(el("span", "pi p-" + icon));
       bar.appendChild(b);
     };
     const request = (action, done) => async (db) => {
@@ -2545,15 +2653,15 @@ ul.gkey li > div.what { flex-basis: 100%; }
       catch (e) { if (REFUSED.has(e.code) || !S.mcp) { await queue(c, { kind: "manage", action }, e.code || "no_mcp"); toast(saidAs.queued); } else throw e; }
     };
     if (c.kind === "session") {
-      if (c.mood === "idle") act("Pause", "", direct("interrupt_session", "pause", c.name + " stops at the next safe point."));
-      act("Ask to wrap up", "", request("wrap_up", c.name + " will finish, ship and summarise."));
-      if (c.archived) act("Unarchive", "", direct("unarchive_session", "unarchive", c.name + " is back."));
-      else act("Archive", "pink", async () => { await direct("archive_session", "archive", c.name + " is archived.")(); const t = (S.tweaks[c.id] || {}).trigger; if (t && S.mcp) call("delete_trigger", { trigger_id: t }).catch(() => {}); dlg.close(); }, "Yes, archive it");
+      if (c.mood === "idle") act("Pause", "", direct("interrupt_session", "pause", c.name + " stops at the next safe point."), null, "pause");
+      act("Ask to wrap up", "", request("wrap_up", c.name + " will finish, ship and summarise."), null, "check");
+      if (c.archived) act("Unarchive", "", direct("unarchive_session", "unarchive", c.name + " is back."), null, "unlock");
+      else act("Archive", "pink", async () => { await direct("archive_session", "archive", c.name + " is archived.")(); const t = (S.tweaks[c.id] || {}).trigger; if (t && S.mcp) call("delete_trigger", { trigger_id: t }).catch(() => {}); dlg.close(); }, "Yes, archive it", "lock");
     } else if (c.kind === "agent") {
-      act("Pause", "", request("pause", c.name + " was asked to pause."));
-      act("Resume", "", request("resume", c.name + " was asked to carry on."));
-      act("Ask to wrap up", "", request("wrap_up", c.name + " will finish and summarise."));
-      act("Archive", "pink", async () => { await hostCall("manage", { cat: c.agentId, action: "archive" }); toast(c.name + " is archived."); dlg.close(); }, "Yes, archive it");
+      act("Pause", "", request("pause", c.name + " was asked to pause."), null, "pause");
+      act("Resume", "", request("resume", c.name + " was asked to carry on."), null, "play");
+      act("Ask to wrap up", "", request("wrap_up", c.name + " will finish and summarise."), null, "check");
+      act("Archive", "pink", async () => { await hostCall("manage", { cat: c.agentId, action: "archive" }); toast(c.name + " is archived."); dlg.close(); }, "Yes, archive it", "lock");
     }
     return bar;
   }
@@ -2561,14 +2669,14 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const dlg = $("brainDlg"); dlg.replaceChildren();
     const box = el("div", "dlg");
     const h = el("h2", null, "House rules"); h.id = "brainTitle";
-    box.append(h, el("p", "note", "Every session in the Catio follows these. The enforced ones are kept by the harness itself (its hooks), in every repo that has the plugin; ask Claude to change those. You can switch the others off here."));
+    box.append(h, el("p", "note", "Every cat in the KittyChat Café follows these. Enforced ones are the harness's own hooks: ask Claude to change them."));
     const rules = Object.entries(S.rules).map(([id, r]) => Object.assign({ id }, r)).sort((a, b) => (a.order || 0) - (b.order || 0));
-    if (!rules.length) box.appendChild(el("p", "empty", "The rules haven't been written into this Catio yet. Ask Claude to seed them from harness/rules.json."));
+    if (!rules.length) box.appendChild(el("p", "empty", "The rules haven't been written into this cafe yet. Ask Claude to seed them from harness/rules.json."));
     const ul = el("ul", "keeps rules");
     for (const r of rules) {
       const li = el("li");
       li.appendChild(el("b", null, r.title));
-      if (r.enforced) li.appendChild(el("span", "lock", r.on === false ? "Off in rules.json" : "Enforced"));
+      if (r.enforced) { const lk = el("span", "lock", r.on === false ? "Off in rules.json" : "Enforced"); if (r.on !== false) lk.prepend(el("span", "pi p-lock")); li.appendChild(lk); }
       else {
         const sw = el("button", "sound", r.on === false ? "Off" : "On"); sw.type = "button"; sw.setAttribute("aria-pressed", String(r.on !== false)); sw.setAttribute("aria-label", r.title + ": " + (r.on === false ? "off" : "on"));
         sw.prepend(el("span", "switch" + (r.on === false ? "" : " on")));
@@ -2770,8 +2878,46 @@ ul.gkey li > div.what { flex-basis: 100%; }
   $("zoomIn").addEventListener("click", () => zoomStep(1.5));
   $("zoomOut").addEventListener("click", () => zoomStep(1 / 1.5));
   $("zoomAll").addEventListener("click", zoomOut);
-  for (const b of document.querySelectorAll(".controls .fl")) b.addEventListener("click", () => setFloor(b.dataset.floor));
+  for (const b of document.querySelectorAll("#controls .fl")) b.addEventListener("click", () => setFloor(b.dataset.floor));
   $("houseBtn").addEventListener("click", (e) => { e.stopPropagation(); hideTip(); toggleMenu("house", "house", $("houseBtn")); });
+  $("mapFold").addEventListener("click", () => setMapOpen(!S.mapOpen, true));
+  // the minimap: a click glides there, a drag pans live (holding the view where you grabbed it), a
+  // double-click looks in, the wheel zooms about that spot
+  const mm = $("minimap");
+  mm.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault(); hideMenu(); hideTip();
+    const pt = mapPt(e), [x, y, w, h] = viewBox();
+    const inView = pt[0] >= x && pt[0] <= x + w && pt[1] >= y && pt[1] <= y + h;
+    MM.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, on: false, off: inView ? [x + w / 2 - pt[0], y + h / 2 - pt[1]] : [0, 0] };
+    try { mm.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  mm.addEventListener("pointermove", (e) => {
+    const d = MM.drag;
+    if (!d) { const k = roomAt(mapPt(e)); if (k !== MM.hot) { mmHot(k); mm.title = k ? roomInfo(k).name : ""; } return; }
+    if (e.pointerId !== d.id) return;
+    if (!d.on && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 3) return;
+    d.on = true;
+    const pt = mapPt(e);
+    centerOn(pt[0] + d.off[0], pt[1] + d.off[1], false);
+  });
+  const mmUp = (e) => {
+    const d = MM.drag; if (!d || e.pointerId !== d.id) return;
+    MM.drag = null;
+    if (!d.on && e.type === "pointerup") { const pt = mapPt(e); centerOn(pt[0], pt[1], true); }
+  };
+  mm.addEventListener("pointerup", mmUp);
+  mm.addEventListener("pointercancel", mmUp);
+  mm.addEventListener("pointerleave", () => { if (!MM.drag) { mmHot(null); mm.title = ""; } });
+  mm.addEventListener("dblclick", (e) => { const k = roomAt(mapPt(e)); if (k) go(k); });
+  mm.addEventListener("wheel", (e) => {
+    e.preventDefault(); hideMenu(); hideTip();
+    const [wx, wy] = mapPt(e), c = S.cam;
+    const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+    const px = Math.max(0, Math.min(c.W, c.tx + wx * 2 * c.s)), py = Math.max(0, Math.min(c.H, c.ty + wy * 2 * c.s));
+    zoomAt(Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0022)), px, py, false);
+    settleSoon(180);
+  }, { passive: false });
   // a click anywhere outside the open menu (and outside what opened it) closes it
   document.addEventListener("click", (e) => {
     if (!MENU.kind || document.querySelector("dialog[open]")) return;
@@ -2782,6 +2928,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
 
   /* ---------- start ---------- */
   drawProps();
+  setMapOpen(S.mapOpen, false);
   layout(true);
   render();
   checkArt();
@@ -2807,6 +2954,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     else if (e.key === "+" || e.key === "=") { e.preventDefault(); zoomStep(1.5); }
     else if (e.key === "-" || e.key === "_") { e.preventDefault(); zoomStep(1 / 1.5); }
     else if (e.key === "0") { e.preventDefault(); zoomOut(); }
+    else if (e.key === "m" || e.key === "M") { e.preventDefault(); setMapOpen(!S.mapOpen, true); }
   });
   setInterval(render, 60000); // keep "3 min ago" honest
   $("stage").addEventListener("keydown", arrows);

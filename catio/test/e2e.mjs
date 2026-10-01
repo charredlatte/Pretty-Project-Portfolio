@@ -111,12 +111,14 @@ async function addCat(page, kind) {
 }
 // the camera: the world's scale and offset on screen
 const cam = (page) => page.evaluate(() => { const m = new DOMMatrix(getComputedStyle(document.getElementById("world")).transform); return { s: m.a, tx: m.e, ty: m.f }; });
+// a cat's card keeps its facts, its management and its name folded under Manage
+const manage = async (page) => { if (!(await page.locator("#catMore").evaluate((d) => d.open))) await page.click("#catMore summary"); };
 const menuButton = (page, name) => page.locator("#menu").getByRole("button", { name, exact: true });
 
 /* ---------- 1. the screen, and adoption to resolution for an adopted chat ---------- */
 {
   const { page, ctx, errors } = await open();
-  await check("the catio fills the screen with nothing but the sign and the credits", async () => {
+  await check("the cafe fills the screen with nothing but the brand, the controls and the credits", async () => {
     const st = await page.locator("#stage").boundingBox();
     expect(st.width === 1440 && st.height === 900, JSON.stringify(st));
     expect(await page.locator("#menu").isHidden(), "a menu is open at rest");
@@ -238,6 +240,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   /* ---------- 3. rename and move a session's cat ---------- */
   await openCat(page, "Week tab editing");
   await menuButton(page, "Talk").click();
+  await manage(page);
   await page.fill("#catRename", "Biscuit");
   await page.selectOption("#catRoom", "study");
   await page.click("#catDlg button:has-text('Save')");
@@ -331,7 +334,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(rooms["rooms/kitchen"].repos.length === 2 && rooms["rooms/kitchen"].blurb.startsWith("Weekly meals"), "untouched rooms keep their data: " + JSON.stringify(rooms["rooms/kitchen"]));
     const front = Object.entries(rooms).filter(([, d]) => d.catchAll).map(([k]) => k);
     expect(front.join() === "rooms/kitchen", "catch-all: " + front.join());
-    expect((await page.locator(".sign[data-room=sunroom] .nm").innerText()) === "Conservatory", "sign not renamed");
+    expect((await page.locator("#room-sunroom").getAttribute("aria-label")).startsWith("Conservatory"), "room not renamed");
     await openRoom(page, "sunroom");
     expect((await menuText(page)).includes("Conservatory"), await menuText(page));
   });
@@ -409,7 +412,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await check("the one she is saying is not listed twice in her menu", async () => {
     const t = await menuText(page);
     expect(t.split("The Drive order").length === 2, t);
-    expect(t.includes("She is also keeping") && t.includes("Chilli is a health rule"), t);
+    expect(t.includes("Chilli is a health rule"), t);
   });
   await queen("kitchen").dblclick();
   await settle(page);
@@ -439,7 +442,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await check("a menu button that redraws the menu leaves it open, on the same menu", async () => {
     expect(await page.locator("#menu").isVisible(), "the menu closed under the pointer");
     const now = await menuText(page);
-    expect(now.includes("The house"), "it reopened on something else: " + now.slice(0, 80));
+    expect(now.includes("House rules"), "it reopened on something else: " + now.slice(0, 80));
     expect(now.includes("Sound on") && was.includes("Sound off"), now.slice(0, 120));
   });
   await check("no page errors while working the queens", async () => expect(errors.length === 0, errors.join("; ")));
@@ -465,34 +468,28 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   await check("without the interface art the sign and menus sit on plain colour, not the meadow", async () => {
     const bg = (sel) => page.locator(sel).evaluate((e) => getComputedStyle(e).backgroundColor);
-    expect((await bg("#hud")) !== "rgba(0, 0, 0, 0)", "the sign has nothing behind it");
-    expect((await bg("#controls")) !== "rgba(0, 0, 0, 0)", "the controls have nothing behind them");
+    expect((await bg("#houseBtn")) !== "rgba(0, 0, 0, 0)", "the brand has nothing behind it");
+    expect((await bg("#controls")) !== "rgba(0, 0, 0, 0)", "the map panel has nothing behind it");
+    expect((await bg("#zoomIn")) !== "rgba(0, 0, 0, 0)", "the panel's buttons have nothing behind them");
     expect((await bg("#menu")) !== "rgba(0, 0, 0, 0)", "the menu has nothing behind it");
     expect(errors.length === 0, errors.join("; "));
   });
   await ctx.close();
 }
 
-/* ---------- 6. rooms on the map: signs at every size, the brackets, and the keyboard ---------- */
+/* ---------- 6. rooms on the map: no signs, the brackets, and the keyboard ---------- */
 {
   const { page, ctx, errors } = await open("", { viewport: { width: 1280, height: 720 } });
-  await check("on a laptop screen every room on each floor still wears its name, inside its own walls", async () => {
-    for (const [f, rooms] of [["upper", ["brain", "bath", "bedroom"]], ["ground", ["garden", "kitchen", "dining", "living", "sunroom", "study", "hall"]]]) {
+  await check("the map is quiet: no signs on any room or the stair, on either floor", async () => {
+    for (const f of ["upper", "ground"]) {
       await toFloor(page, f);
-      const signs = page.locator("#overlay .sign[data-room]");
-      expect(await signs.count() === rooms.length, f + " signs: " + await signs.count());
-      for (const k of rooms) {
-        const box = await page.locator(`.sign[data-room=${k}]`).boundingBox(), room = await page.locator(`#room-${k}`).boundingBox();
-        expect(box && box.x >= room.x && box.x + box.width <= room.x + room.width + 1 && box.y >= room.y, k + " sign outside its room");
-        expect(await page.locator(`.sign[data-room=${k}] .nm`).evaluate((e) => e.scrollWidth <= e.clientWidth + 1), k + " name cut short at its default length");
-      }
+      expect(await page.locator("#overlay .tag").count() === 0, f + " signs: " + await page.locator("#overlay .tag").count());
     }
   });
-  await check("the room where a cat needs you carries a badge with its face and count, quiet rooms none", async () => {
-    expect((await page.locator(".sign[data-room=study] .badge .n").innerText()) === "1", "craft room badge");
-    expect(await page.locator(".sign[data-room=study] .badge.need .face-ico").count() === 1, "no meowing face");
-    expect(await page.locator(".sign .badge").count() === 1, "badges on quiet rooms");
-    expect(await page.locator(".sign").first().evaluate((e) => getComputedStyle(e).pointerEvents) === "none", "signs catch the pointer");
+  await check("the one cat that needs you shows its face over its head, and the brand counts it", async () => {
+    expect(await page.locator("#overlay .bub.need").count() === 1, "faces: " + await page.locator("#overlay .bub").count());
+    expect((await page.locator("#houseBtn .badge .n").innerText()) === "1", "brand badge");
+    expect(await page.locator("#houseBtn .badge.need .face-ico").count() === 1, "no meowing face");
   });
   await openRoom(page, "kitchen");
   await check("the room under the pointer, and the one its menu belongs to, light up with the white brackets", async () => {
@@ -569,12 +566,9 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await page.fill("#rn-bath", long);
   await page.click('#roomsDlg button[type="submit"]');
   await page.waitForTimeout(200);
-  await check("a 30-character name is cut short on its sign, whole in the room's name and its menu", async () => {
+  await check("a 30-character name is whole in the room's name and its menu", async () => {
     const name = (await T(page, () => window.__catio.store["rooms/bath"])).name;
     expect(name.length === 30, "saved " + name.length);
-    const box = await page.locator(".sign[data-room=bath]").boundingBox(), room = await page.locator("#room-bath").boundingBox();
-    expect(box.x + box.width <= room.x + room.width + 1, "sign spills out");
-    expect(await page.locator(".sign[data-room=bath] .nm").evaluate((e) => e.scrollWidth > e.clientWidth), "not cut short");
     expect((await page.locator("#room-bath").getAttribute("aria-label")).startsWith(name), "full name not in the label");
     await openRoom(page, "bath");
     expect((await menuText(page)).includes(name), "menu lacks the full name");
@@ -616,8 +610,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   // a chat upstairs that needs her, while she is downstairs
   await T(page, () => window.__catio.put("cats/up1", { title: "Lease renewal", room: "bedroom", mood: "needs", note: "Sign it", name: "Mimi", project: "Flat lease", createdAt: Date.now(), updatedAt: Date.now() }));
   await settle(page);
-  await check("a cat upstairs that needs you shows on the stair's sign and the floor switch, and the tally counts it", async () => {
-    expect(await page.locator("#overlay .stairsign .badge").count() === 1, "no badge on the stair");
+  await check("a cat upstairs that needs you shows on the floor switch, and the tally counts it", async () => {
     expect(await page.locator("#floor-upper .badge").count() === 1, "no badge on the switch");
     expect((await page.locator("#tally").innerText()).includes("2 need you"), await page.locator("#tally").innerText());
   });
@@ -629,7 +622,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(await page.locator('.roomhit[data-room="bedroom"]').isVisible(), "bedroom not showing");
     expect(await page.locator('.roomhit[data-room="kitchen"]').isHidden(), "the kitchen still answers upstairs");
     expect(await page.locator('#cats .cat[aria-label^="Mimi "]').isVisible(), "the cat upstairs isn't there");
-    expect(await page.locator("#overlay .stairsign .badge").count() === 1 && (await page.locator("#overlay .stairsign").innerText()).includes("Downstairs"), "the stair's sign");
+    expect(await page.locator("#floor-ground .badge").count() === 1, "no badge on the ground floor's switch");
     expect((await page.locator("#say").textContent()).startsWith("Upstairs"), await page.locator("#say").textContent());
   });
   await page.keyboard.press("PageDown");
@@ -815,10 +808,124 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await ctx.close();
 }
 
+/* ---------- 6e. the map panel and the minimap (Game UI Pastel) ---------- */
+{
+  const { page, ctx, errors } = await open();
+  const BOX = [80, 32, 848, 448], K = 250 / BOX[2];   // the page's MM.box: the minimap shows the manor and catio
+  const rect = (sel) => page.locator(sel).evaluate((e) => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
+  // where the camera's view should be framed on the minimap, from the camera itself
+  async function viewMatches() {
+    const c = await cam(page), W = 1440, H = 900;
+    const x = -c.tx / (2 * c.s), y = -c.ty / (2 * c.s), w = W / (2 * c.s), h = H / (2 * c.s);
+    const want = { x: (Math.max(BOX[0], x) - BOX[0]) * K, y: (Math.max(BOX[1], y) - BOX[1]) * K,
+      w: (Math.min(BOX[0] + BOX[2], x + w) - Math.max(BOX[0], x)) * K, h: (Math.min(BOX[1] + BOX[3], y + h) - Math.max(BOX[1], y)) * K };
+    const got = await page.locator("#mmView").evaluate((e) => ({ x: e.offsetLeft, y: e.offsetTop, w: e.offsetWidth, h: e.offsetHeight }));
+    const ok = ["x", "y"].every((k) => Math.abs(got[k] - want[k]) < 2) && ["w", "h"].every((k) => Math.abs(got[k] - Math.max(6, want[k])) < 2);
+    expect(ok, JSON.stringify({ want, got }));
+  }
+  // the middle of the view, in native pixels
+  const middle = async () => { const c = await cam(page); return [(720 - c.tx) / (2 * c.s), (450 - c.ty) / (2 * c.s)]; };
+  // a point of the grounds (native px) on the minimap, on screen
+  const onMap = async (x, y) => { const m = await rect("#minimap"); return { x: m.x + (x - BOX[0]) * K, y: m.y + (y - BOX[1]) * K }; };
+
+  await check("one panel in the top right holds zoom, the fold, the minimap and the floors", async () => {
+    for (const id of ["zoomIn", "zoomOut", "zoomAll", "mapFold", "minimap", "floor-ground", "floor-upper"])
+      expect(await page.locator("#controls #" + id).count() === 1, id + " is not in the panel");
+    const p = await rect("#controls");
+    expect(p.x + p.w > 1400 && p.y < 40, "not top right: " + JSON.stringify(p));
+    expect(await page.locator("#minimap").isVisible(), "the minimap is folded on a laptop");
+  });
+  await check("the footer credits the map panel's pack", async () =>
+    expect((await page.locator(".credits").textContent()).includes("Game UI Pack created by SC_siosio"), "no credit"));
+  await check("the minimap draws this floor's rooms, and a pip where a cat needs you", async () => {
+    expect(await page.locator('#mmRooms .mm-room[data-room="kitchen"]:not(.faint)').count() === 1, "no kitchen");
+    expect(await page.locator('#mmRooms .mm-room[data-room="brain"].faint').count() === 1, "the floor above isn't faint underneath");
+    expect(await page.locator("#mmRooms .pip").count() >= 1, "no pips");
+  });
+  await check("the view on the minimap matches the camera on the whole house", viewMatches);
+  await page.mouse.move(1200, 820); await page.mouse.down(); await page.mouse.move(1100, 760, { steps: 6 }); await page.mouse.up();
+  await settle(page);
+  await check("… after a drag on the house", viewMatches);
+  await page.mouse.move(700, 400);
+  for (let i = 0; i < 4; i++) { await page.mouse.wheel(0, -300); await page.waitForTimeout(50); }
+  await page.waitForTimeout(300);
+  await check("… after a wheel zoom", viewMatches);
+  await page.click("#zoomAll"); await page.waitForTimeout(700);
+  await openRoom(page, "kitchen");
+  await menuButton(page, "Look in").click();
+  await page.waitForTimeout(300);
+  await check("… after Look in, and the room you're in is green on the minimap", async () => {
+    await viewMatches();
+    expect(await page.locator('#mmRooms .mm-room.here[data-room="kitchen"]').count() === 1, "the kitchen isn't marked");
+  });
+  await closeMenu(page);
+  const catio = await onMap(800, 300);
+  await page.mouse.click(catio.x, catio.y);
+  await page.waitForTimeout(400);
+  await check("a click on the minimap takes the camera there", async () => {
+    const [x, y] = await middle();
+    expect(Math.hypot(x - 800, y - 300) < 30, "the middle is at " + [x, y]);
+    await viewMatches();
+  });
+  const before = await middle(), at = await onMap(before[0], before[1]);
+  await page.mouse.move(at.x, at.y); await page.mouse.down(); await page.mouse.move(at.x - 30, at.y, { steps: 6 }); await page.mouse.up();
+  await settle(page);
+  await check("dragging the view on the minimap pans the house with it", async () => {
+    const [x] = await middle();
+    expect(Math.abs(before[0] - x - 30 / K) < 12, JSON.stringify([before, x]));
+  });
+  const k = await onMap(394, 130);
+  await page.mouse.dblclick(k.x, k.y);
+  await page.waitForTimeout(400);
+  await check("a double-click on a room on the minimap looks in", async () =>
+    expect(await page.locator('.roomhit.here[data-room="kitchen"]').count() === 1, "not in the kitchen"));
+  await page.click("#zoomAll");
+  await page.waitForTimeout(300);
+  // a room at the right of the house opens its menu clear of the panel; so does House
+  const clear = async () => {
+    const m = await rect("#menu"), p = await rect("#controls");
+    return !(m.x < p.x + p.w && m.x + m.w > p.x && m.y < p.y + p.h && m.y + m.h > p.y);
+  };
+  await openRoom(page, "living");
+  await check("a room menu on the right opens clear of the panel", async () => expect(await clear(), "the menu is under the panel"));
+  await closeMenu(page);
+  await openHouse(page);
+  await check("the House menu (the brand) opens clear of the panel", async () => expect(await clear(), "the House menu is over the panel"));
+  await closeMenu(page);
+  await page.click("#floor-upper");
+  await settle(page);
+  await check("upstairs, the minimap shows the upstairs rooms and the landing", async () => {
+    expect(await page.locator('#mmRooms .mm-room[data-room="brain"]:not(.faint)').count() === 1, "no library");
+    expect(await page.locator("#mmRooms .mm-room.landing:not(.faint)").count() === 1, "no landing");
+  });
+  await page.click("#floor-ground");
+  await page.click("#mapFold");
+  await check("the fold button folds the map away and says so", async () => {
+    expect(!(await page.locator("#minimap").isVisible()), "still showing");
+    expect((await page.locator("#mapFold").getAttribute("aria-expanded")) === "false", "aria-expanded");
+  });
+  await page.reload(); await page.waitForTimeout(600);
+  await check("folded stays folded after a reload", async () => expect(!(await page.locator("#minimap").isVisible()), "open again"));
+  await page.locator("#stage").click({ position: { x: 60, y: 800 } });
+  await page.keyboard.press("m");
+  await check("M unfolds it, and that is remembered too", async () => {
+    expect(await page.locator("#minimap").isVisible(), "M did nothing");
+    await page.reload(); await page.waitForTimeout(600);
+    expect(await page.locator("#minimap").isVisible(), "folded again after a reload");
+  });
+  await check("no page errors with the map panel", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+
 /* ---------- 7. touch: a tap opens the menu, and its buttons act ---------- */
 {
   const { page, ctx, errors } = await open("", { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   const cat = page.locator("#cats .cat.m-meow").first();
+  await check("on a phone the map panel starts folded, at the bottom", async () => {
+    expect(!(await page.locator("#minimap").isVisible()), "the minimap is open");
+    const r = await page.locator("#controls").boundingBox();
+    expect(r.y + r.height > 780, "not at the bottom: " + JSON.stringify(r));
+  });
   await cat.tap();
   await settle(page);
   await check("on a phone, tapping a cat opens its menu instead of the full card", async () => {
@@ -833,9 +940,9 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), "horizontal scroll");
     expect(errors.length === 0, errors.join("; "));
   });
-  await check("on a phone the rooms show badges where cats need you, not squashed names", async () => {
-    expect(await page.locator("#overlay .sign .nm").count() === 0, "names on a phone map");
-    expect((await page.locator(".sign[data-room=study] .badge .n").innerText()) === "1", "craft room badge");
+  await check("on a phone the map carries no signs, and the brand's badge counts who needs you", async () => {
+    expect(await page.locator("#overlay .tag").count() === 0, "signs on a phone map");
+    expect((await page.locator("#houseBtn .badge .n").innerText()) === "1", "brand badge");
   });
   const room = await roomPoint(page, "study");   // clear floor, off the furniture's buttons
   await page.touchscreen.tap(room.x, room.y);
@@ -991,7 +1098,7 @@ async function dropFiles(page, sel, files) {
     expect(d && d[1].status === "unsorted" && d[1].cat === null, JSON.stringify(d));
   });
   await openHouse(page);
-  await menuButton(page, "The brain (1)").click();
+  await menuButton(page, "The brain, 1 on the tray").click();
   await page.locator('#brainDlg select[aria-label="File mystery.bin under"]').selectOption("session_work1");
   await page.waitForTimeout(300);
   await check("filing it from the tray sends it to the cat chosen", async () => {
@@ -1031,6 +1138,7 @@ async function dropFiles(page, sel, files) {
   });
 
   // managing it
+  await manage(page);
   await page.click("#catDlg button:has-text('Ask to wrap up')");
   await page.waitForTimeout(200);
   await check("asking a cat to wrap up posts the request and records it", async () => {
@@ -1046,6 +1154,7 @@ async function dropFiles(page, sel, files) {
   });
   await openCat(page, "Week tab editing");
   await menuButton(page, "Talk").click();
+  await manage(page);
   await page.click("#catDlg button:has-text('Pause')");
   await page.waitForTimeout(150);
   await page.click("#catDlg button:has-text('Archive')");

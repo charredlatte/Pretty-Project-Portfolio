@@ -1,4 +1,4 @@
-# The KittyChat Cafe: the plan and where it stands
+# The KittyChat Café: the plan and where it stands
 
 Issue #3: "An AI harness that presents itself as a cat cafe." The Catio (`catio/index.html`, one private
 artifact) becomes the harness. Every Claude Code session and every other agent is a cat in a refurbished
@@ -25,9 +25,16 @@ Last updated 30 September 2026.
 2. **Point CLAUDE.md at `docs/`.** Its harness section should link `docs/renovation-mode.md` and this plan.
    CLAUDE.md edits are refused as self-modification, so the links wait for her.
 3. **Licences for the new packs** before any of them go in the build: `plants.zip`, `Furnitures.png`,
-   `FreeSprites.png`, `free.png`, and `Game_UI_Pack_Pastel.zip`. Sprout Lands Sprites and Little Dreamyland
-   are known: non-commercial, credit needed, no redistribution.
+   `FreeSprites.png` and `free.png`. Sprout Lands Sprites and Little Dreamyland are known: non-commercial,
+   credit needed, no redistribution. `Game_UI_Pack_Pastel.zip` is settled (30 September): SC_siosio's,
+   allowed on websites with credit.
 4. **The UX spec for renovation mode** from the rooms-redesign session.
+
+## Next: the map panel, the minimap and a Sims-style camera
+
+Planned 30 September, with Charlotte's decisions, in `docs/camera-and-minimap.md`. It has three iterations: the
+map panel and minimap, the camera, and Build mode. What the art still lacks is in
+`litterbox/assets-wishlist.md`.
 
 ## The manor: done (on `main`)
 
@@ -104,12 +111,53 @@ one-floor house. Her choice: merge and keep both, in the Baroque look, on the tw
 - **Not carried over:** the outdoor KittyChat Cafe terrace (the café is indoors now, with the glazed terrace;
   a parterre stands before the bay instead), and version 11's hover-steal delay (a click opens a menu now).
 
+## Version 13: the KittyChat Cafe, quieter (30 September)
+
+Charlotte: "Take everything about the UI and make it better… make the menus less bloated and minimize noise.
+Redesign the UI using the licensed packs too", and "I hate the signs on every room and the large The Catio
+name when really the harness and UI SaaS that I am making here is called the KittyChat Cafe."
+
+- **The name**: the page is the KittyChat Cafe. The brand, top left, is ToffeeCraft's Cat UI cat-face bubble
+  and the name on the pack's cream button; it is the House button and carries the badge. The big title panel
+  and the separate House button are gone.
+- **No signs on the map**: no room names, badges, stair sign or Files tag. Rooms are named on hover; a cat that
+  needs her shows its face; the other floor's button carries its badge. Breeds and file counts show only
+  inside a room.
+- **Controls**: the pack's square buttons with its icons (new `icons.png`: its white icons in its outline
+  brown), no panel and no words.
+- **Menus**: a name and one line, what matters now, then a list of actions with the pack's cream triangle
+  (new `pointer.png`) as the cursor. Captions, chips and the green primary grid are gone; the House menu
+  opens with whether the cats are live.
+- **Cards**: a cat's card leads with the conversation, and folds its facts, management, name and title
+  under Manage. A queen's notes save as they change (the UI audit's data-loss finding). Shorter explainers.
+- **The status sign** only shows when something is wrong, and when Claude's saved copy stands in it is one
+  line ("Saved copy · 17:02") with the why on hover or focus.
+- `build-art.py` cuts `icons.png`, `pointer.png` and `logo.png` (the logo from CatMegaFree, so the full
+  nine-zip build writes it). e2e: 125 passed, updated for the quiet map and the folded card.
+- Published as version 13 from `claude/great-gauss-pgs8nq`, after reading version 12 in full. Capabilities
+  carried over. Checked after: the ten `rooms` intact; a probe cat created, updated and deleted.
+
+## Version 14: the Game UI Pastel pack (30 September)
+
+"Use the Game UI Pastel pack anyway." Its licence was inside the zip after all: SC_siosio's Game UI Pack – Pastel
+Edition, personal and commercial use, the credit "Game UI Pack created by SC_siosio" required, no redistribution
+even modified. It is smooth 500 px art, so `build-art.py` pixelates the icons it needs onto the page's grid
+(`pastel.png`) instead of mixing two styles: the corner controls (floor arrows, zoom, and Sprout Lands' house
+recoloured to match, replacing version 13's `icons.png`), a cat's Pause, Resume, Wrap up, Archive and Unarchive,
+and the lock on enforced house rules. The footer carries the credit. The zip is 12.5 MB, over the Drive
+connector's limit, so she attached it in the chat. e2e 125 passed.
+
 ## Next
 
 - **Renovation mode**, following `docs/renovation-mode.md` and the rooms-redesign session's UX spec. Layouts
   per room go in `layouts/<room>`, and the default comes from `MANOR.layout`.
 
 ## Published
+
+**Version 15** went live on 30 September 2026 (21:58 UTC). It is version 13/14's KittyChat Cafe with iteration 1's map
+panel and minimap in place of the corner row (`docs/camera-and-minimap.md`), and the seven cut pieces in
+`art/licensed/pastel/`. The stored capabilities carried over. Checked after publishing: 41 files, the 10 `rooms`, and
+a probe in `cats` created, updated and deleted.
 
 Version 8 went live on 29 September 2026, with the manor, the brain, posting into sessions, the house rules
 panel, breeds and cats placed by state. The capabilities are Claude Code Remote (9 tools), `db`, `assets` and

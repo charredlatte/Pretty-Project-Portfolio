@@ -9,7 +9,7 @@ The Catio (`catio/`) is the cafe you see. This folder is the harness behind it:
 
 ## The house rules
 
-They live in [`rules.json`](rules.json). The Catio page shows them all, in the Great hall and Library menus.
+They live in [`rules.json`](rules.json). The KittyChat Café page shows them all, under House rules in the brand's House menu.
 
 | Rule | How it's kept |
 |---|---|
