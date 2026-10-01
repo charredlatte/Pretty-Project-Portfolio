@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Compile the KittyChat Café's sessions and adopted chats into one short digest, sorted by what needs her.
 
-    python3 catio/tools/digest.py [cats.json ...]   ->  catio/data/digest.md  and  catio/data/digest.json
+    python3 catio/tools/digest.py [cats/*.json sessions/*.json]   ->  catio/data/digest.md  and  catio/data/digest.json
 
 Reads catio/data/sessions.json (save-sessions.py's copy) and, optionally, adopted chats exported from the
-artifact's `cats` collection (one JSON file per chat, as ArtifactData saves them). Per project it sorts every
+artifact's `cats` collection and her moves from `sessions` (one JSON file per document, as ArtifactData saves
+them); a session she moved to a room isn't flagged as misfiled. Per project it sorts every
 cat into: needs you (with its ask), working, waiting for review, done, and the attic (archived, or quiet for
 STALE_DAYS). It flags what to tidy: asks gone stale, empty "ready for review" sessions, untitled sessions,
 reruns after a usage limit, duplicate titles, and sessions that look filed under the wrong repository.
@@ -97,7 +98,7 @@ def flags(cats):
             f.append("stopped by a limit or an API error: rerun if still wanted")
         for pat, home in BELONGS:
             if re.search(pat, c["title"], re.I):
-                if c["kind"] == "session" and c["project"] != "No repository" and not any(home_of(c["project"], h) and re.search(p, c["title"], re.I) for p, h in BELONGS):
+                if c["kind"] == "session" and not c.get("moved") and c["project"] != "No repository" and not any(home_of(c["project"], h) and re.search(p, c["title"], re.I) for p, h in BELONGS):
                     f.append("filed under " + c["project"] + ", looks like " + home)
                 break
         twin = c["kind"] == "chat" and sessions.get(c["link"])
@@ -152,6 +153,11 @@ def main(chat_files):
         d = json.loads(Path(f).read_text(encoding="utf-8"))
         d = d.get("data", d) if isinstance(d, dict) else d
         d.setdefault("id", Path(f).stem)
+        if d["id"].startswith("session_"):   # a sessions/<id> document: her move of that cat, already sorted
+            for c in cats:
+                if c["id"] == d["id"] and d.get("room"):
+                    c["moved"] = d["room"]
+            continue
         cats.append(from_chat(d, now))
     flags(cats)
     at = datetime.fromtimestamp(snap.get("at", time.time() * 1000) / 1000, timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
