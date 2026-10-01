@@ -129,6 +129,15 @@ connector's limit, so she attached it in the chat. e2e 125 passed.
 
 ## What went live, version by version
 
+**Version 18** went live on 1 October 2026: the `send_message` trial. `postToSession()` calls Claude Code
+Remote's `send_message` (argument names from its schema), and what it can't post waits in `outbox/` with the
+error. The declaration was passed in full for the first time since version 8: Claude Code Remote's
+`list_sessions`, `send_message`, `delete_trigger`, `create_session`, `set_session_title`, `archive_session`,
+`unarchive_session` and `interrupt_session` (the Routine tools dropped), `db`, `assets` and `sample`. A dialog
+redrawn while its note shows now keeps the note. e2e 158 passed. Checked after publishing: a probe in `cats`
+created, updated and deleted. A test session, "KittyChat test cat", was started for the trial, and
+`snapshot/sessions` refreshed so it shows.
+
 **Version 17** went live on 1 October 2026: phase 0 of `docs/plan.md`. Posts into a session no longer bind a
 Routine (which started a stray session and never delivered): they wait in `outbox/` and the page says so. Old
 review-ready cats nap in the attic, and the warm-start session is not a cat. Errors stay until dismissed, the
