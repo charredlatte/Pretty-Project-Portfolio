@@ -261,7 +261,7 @@ object to `snapshot/sessions` with `ArtifactData` (`set`, pinned with `if_versio
 keeps only what the page reads, and accepts the result as the tool returns it
 (wrapped in `ccr`).
 
-`python3 catio/tools/digest.py [cats/*.json]` compiles that copy, and adopted chats exported from `cats`,
+`python3 catio/tools/digest.py [cats/*.json sessions/*.json]` compiles that copy, adopted chats exported from `cats` and her moves from `sessions`,
 into `catio/data/digest.md` and `digest.json`: per project, what needs her, what to review, and what to tidy
 (stale asks, empty reviews, untitled sessions, reruns, duplicates, misfiled repos). Both are gitignored: never
 commit them.

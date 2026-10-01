@@ -269,7 +269,7 @@ So:
 - keep it to the private artifact and her own localhost copy.
 
 **Rules updated.** CLAUDE.md now has the second pack's rule, its licence, and a `layouts` row with the
-cabinet's look (30 September). `litterbox/loose-ends.md` and `docs/plan.md` still say the pack stays out:
+cabinet's look (30 September). `docs/from-the-litterbox.md` (from the old loose ends) and `docs/plan.md` still say the pack stays out:
 change them when the manor branch is merged.
 
 ## Iterations

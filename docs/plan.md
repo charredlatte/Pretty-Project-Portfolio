@@ -57,7 +57,7 @@ anything new.
      - add graphify's `LICENSE-MIT`;
      - `save-sessions.py` keeps `environment_id` and the model;
      - `bundle.py` ships the Catio MCP server;
-     - put the litter box on the wishlist.
+     - put the litter box with the missing art (`docs/from-the-litterbox.md`).
 
 ### Phase 1: the map panel and minimap. Done (version 15)
 
@@ -112,7 +112,7 @@ like. The full spec is **`docs/renovation-mode.md`**. In short:
 
 ### Phase 4: art and sound
 
-From `litterbox/assets-wishlist.md`, as she buys, finds or approves:
+From `docs/from-the-litterbox.md` (Ideas not built), as she buys, finds or approves:
 - a walk cycle (ToffeeCraft's paid Pochi pack), which also brings real coat colours;
 - a litter box;
 - Baroque pieces (shutters, a balustrade, cobbles);
