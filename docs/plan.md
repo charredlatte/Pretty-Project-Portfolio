@@ -1,6 +1,6 @@
-# The KittyChat Cafe: the plan
+# The KittyChat Café: the plan
 
-Issue #3: "An AI harness that presents itself as a cat cafe." The KittyChat Cafe (`catio/index.html`, one
+Issue #3: "An AI harness that presents itself as a cat cafe." The KittyChat Café (`catio/index.html`, one
 private artifact) is the harness. Every Claude Code session and every other agent is a cat in a two-floor
 manor. Files dropped on the page go to the right cat, and cats can be talked to and managed.
 
@@ -16,7 +16,7 @@ version, is in `docs/history.md`. What she has asked for is in `docs/requests.md
   - Game UI Pastel pixel icons;
   - the map panel and minimap.
 - **Tests:** e2e 143 passed; harness 18 passed; `furniture.check()` empty.
-- **`main`** is at version 12. Versions 13 to 15 are on `claude/dreamy-goldberg-iu6w6l`, which has every
+- **`main`** is at version 12. Versions 13 to 16 are on `claude/dreamy-goldberg-iu6w6l`, which has every
   branch merged.
 
 ## The roadmap, in order

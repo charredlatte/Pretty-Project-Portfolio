@@ -1,4 +1,4 @@
-# The KittyChat Cafe: how it got here
+# The KittyChat Café: how it got here
 
 The version-by-version record that used to sit in `docs/plan.md`, moved here word for word on 1 October 2026
 so the plan can be a roadmap. Newest decisions win: where this file and `docs/plan.md` or CLAUDE.md disagree,
@@ -88,16 +88,16 @@ one-floor house. Her choice: merge and keep both, in the Baroque look, on the tw
   landing as a node upstairs), up the hall's stair to the attic and down it again, to the landing's ladder
   when they're upstairs, and in by the front door. The spruce forest, lamp posts along the drive, the
   fountain, the well and the pond came across. Emblems are gone: coats alone tell projects apart.
-- **Not carried over:** the outdoor KittyChat Cafe terrace (the café is indoors now, with the glazed terrace;
+- **Not carried over:** the outdoor KittyChat Café terrace (the café is indoors now, with the glazed terrace;
   a parterre stands before the bay instead), and version 11's hover-steal delay (a click opens a menu now).
 
-## Version 13: the KittyChat Cafe, quieter (30 September)
+## Version 13: the KittyChat Café, quieter (30 September)
 
 Charlotte: "Take everything about the UI and make it better… make the menus less bloated and minimize noise.
 Redesign the UI using the licensed packs too", and "I hate the signs on every room and the large The Catio
-name when really the harness and UI SaaS that I am making here is called the KittyChat Cafe."
+name when really the harness and UI SaaS that I am making here is called the KittyChat Café."
 
-- **The name**: the page is the KittyChat Cafe. The brand, top left, is ToffeeCraft's Cat UI cat-face bubble
+- **The name**: the page is the KittyChat Café. The brand, top left, is ToffeeCraft's Cat UI cat-face bubble
   and the name on the pack's cream button; it is the House button and carries the badge. The big title panel
   and the separate House button are gone.
 - **No signs on the map**: no room names, badges, stair sign or Files tag. Rooms are named on hover; a cat that
@@ -129,7 +129,11 @@ connector's limit, so she attached it in the chat. e2e 125 passed.
 
 ## What went live, version by version
 
-**Version 15** went live on 30 September 2026 (21:58 UTC). It is version 13/14's KittyChat Cafe with iteration 1's map
+**Version 16** went live on 1 October 2026: the page renamed KittyChat Café, with its accent (the title, the
+brand, the tab and the notes; `artifacts.json`'s key is now `kittychat-cafe`). The Drive folder keeps its name,
+"KittyChat Cafe Assets".
+
+**Version 15** went live on 30 September 2026 (21:58 UTC). It is version 13/14's KittyChat Café with iteration 1's map
 panel and minimap in place of the corner row (`docs/camera-and-minimap.md`), and the seven cut pieces in
 `art/licensed/pastel/`. The stored capabilities carried over. Checked after publishing: 41 files, the 10 `rooms`, and
 a probe in `cats` created, updated and deleted.
