@@ -34,7 +34,7 @@ Last updated 30 September 2026.
 
 Planned 30 September, with Charlotte's decisions, in `docs/camera-and-minimap.md`. It has three iterations: the
 map panel and minimap, the camera, and Build mode. What the art still lacks is in
-`litterbox/assets-wishlist.md`.
+`docs/from-the-litterbox.md`, under Ideas not built.
 
 ## The manor: done (on `main`)
 
