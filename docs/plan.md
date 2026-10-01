@@ -16,8 +16,8 @@ version, is in `docs/history.md`. What she has asked for is in `docs/requests.md
   - Game UI Pastel pixel icons;
   - the map panel and minimap.
 - **Tests:** e2e 154 passed; harness 18 passed; `furniture.check()` empty.
-- **`main`** is at version 12. Versions 13 to 16 and phase 0 are on `claude/dreamy-goldberg-iu6w6l`, which
-  has every branch merged.
+- **`main`** has version 16 (PR #7) and the digest of her sessions (`catio/tools/digest.py`, PR #8). Phase 0
+  is on `claude/dreamy-goldberg-iu6w6l`, with `main` merged in, waiting for its pull request.
 - **Phase 0** is done on the branch except what waits on her: the `send_message` trial, deleting the old
   branches, and publishing it (until then, the live page still makes stray sessions when it posts).
 
@@ -50,8 +50,8 @@ anything new.
    - Darker placeholders.
    - The credits line also at the foot of the House menu, so phones show it (finding 6).
 4. **Housekeeping** (findings 4, 5, 10). Done, except deleting the old branches.
-   - A pull request from this branch to `main`. Then, with her OK, delete the 14 old branches, so none can
-     publish over the live page again.
+   - A pull request from this branch to `main` (versions 13 to 16 went in with PR #7). Then, with her OK,
+     delete the 14 old branches, so none can publish over the live page again.
    - Bring `catio-plugin/` and the README up to the manor (ten zips, no `cabin.py`).
    - Small fixes:
      - add graphify's `LICENSE-MIT`;
