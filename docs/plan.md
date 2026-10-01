@@ -4,14 +4,15 @@ Issue #3: "An AI harness that presents itself as a cat cafe." The Catio (`catio/
 artifact) becomes the harness. Every Claude Code session and every other agent is a cat in a refurbished
 manor. Files dropped on the page go to the right cat, and cats can be talked to and managed.
 
-Last updated 30 September 2026.
+Last updated 1 October 2026.
 
 ## Done (on `main`)
 
 | Part | Where | Checked by |
 |---|---|---|
-| House-rules plugin: preflight before any browser, a read-only ponytail audit to open a session, a nudge to ship unpushed work, and the `catio` skill | `harness/` | `python3 -m unittest discover harness/test` (15) |
-| Catio MCP server for other agents and models (stdio, plus `--serve` with `/api/*` and wake commands) | `harness/mcp/catio_mcp.py` | the same tests |
+| House-rules plugin: preflight before any browser, a read-only ponytail audit to open a session, a nudge to ship unpushed work, and the `catio` skill | `harness/` | `python3 -m unittest discover harness/test` (20) |
+| Catio MCP server for other agents and models (stdio, plus `--serve` with `/api/*`, POST only from its own page, and wake commands) | `harness/mcp/catio_mcp.py` | the same tests |
+| The litter box's sifter: piles notes by project under a guessed header, files each pile once she has checked it, and ships what it files | `litterbox/sort.py` | `python3 -m unittest litterbox/test_sort.py` (12) |
 | The brain: drop on a cat, a room or the house; sorted by target, link, words, then the sorter model; the tray and "File under" | `catio/index.html` | `sh catio/test/run.sh` (97) |
 | Posting into sessions: a poke-only Routine per session (`create_trigger`), then `fire_trigger`. Refused posts wait in `outbox/` | page | e2e |
 | Talking to a cat (`notes/`, live replies) and managing it (title, pause, wrap up, archive, New cat on a chosen model) | page | e2e |

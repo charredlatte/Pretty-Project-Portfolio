@@ -1,5 +1,6 @@
 """python3 -m unittest litterbox/test_sort.py"""
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -45,6 +46,11 @@ class Box(unittest.TestCase):
     def snapshot(self):
         return {p: p.read_text() for p in Path(self.tmp.name).rglob("*.md") if ".git" not in p.parts}
 
+    def check(self, name):
+        """What she does to a pile: reads its project:, and deletes the "# a guess" comment."""
+        pile = self.box / name
+        pile.write_text(re.sub(r"  # a guess[^\n]*", "", pile.read_text()))
+
     def notes(self, repo):
         return (repo / sort.HOME.get(repo.name, sort.DEFAULT_HOME)).read_text()
 
@@ -74,37 +80,47 @@ class Box(unittest.TestCase):
         lines = ["- ~~Tuesday~~ Wednesday: call the printer.", "- ~~Lanterns~~: done.", "- ~~An old idea~~"]
         self.assertEqual(sort.compress(lines), lines[:1])
 
-    def test_a_file_without_a_project_is_given_one_and_filed_next_time(self):
+    def test_notes_without_a_project_wait_in_a_pile_until_it_is_checked(self):
         self.drop("a.md", "# A\n\n- The catio is not this.\n", project="montfortoise-shopify")
         self.drop("b.md", "---\ndate: 2026-10-01\n---\n# B\n\n- The manor's stair moved.\n\n- Plain note with no pointer.\n")
         self.drop("c.md", "# C\n\n- Nothing points anywhere.\n")
         self.run_sort()
         self.assertIn("The catio is not this.", self.notes(self.shop))   # it had its project: filed
-        self.assertFalse((self.cafe / "docs").exists())                  # a guess is only a header
-        b = (self.box / "b.md").read_text()
-        self.assertTrue(b.startswith(f"---\ndate: 2026-10-01\nproject: {CAFE}  # guessed"), b)
-        self.assertIn("- Plain note with no pointer.", b)
-        self.assertEqual((self.box / "c.md").read_text(), "# C\n\n- Nothing points anywhere.\n")
-        self.assertIn("run it again", self.said[-1])
-        self.run_sort()
-        self.assertIn("The manor's stair moved. *— litterbox/b.md, 2026-10-01*", self.notes(self.cafe))
-        self.assertIn("Plain note with no pointer.", self.notes(self.cafe))
         self.assertFalse((self.box / "b.md").exists())
-        self.assertTrue((self.box / "c.md").exists())
+        pile = (self.box / f"{CAFE}.md").read_text()
+        self.assertTrue(pile.startswith(f"---\nproject: {CAFE}  # a guess"), pile)
+        self.assertIn("# B\n\n- The manor's stair moved. *— litterbox/b.md, 2026-10-01*", pile)
+        self.assertEqual((self.box / "c.md").read_text(), "# C\n\n- Nothing points anywhere.\n")
+        self.assertIn(f"waiting for a check: {CAFE}.md", self.said[-1])
+        self.run_sort()
+        self.assertFalse((self.cafe / "docs").exists())                  # a guess is never filed
+        self.check(f"{CAFE}.md")
+        self.run_sort()
+        self.assertIn("### B\n\n- The manor's stair moved. *— litterbox/b.md, 2026-10-01*", self.notes(self.cafe))
+        self.assertIn("Plain note with no pointer.", self.notes(self.cafe))
+        self.assertEqual(sorted(p.name for p in self.box.glob("*.md")), ["c.md"])
 
-    def test_a_file_pointing_two_ways_is_split_one_file_per_project(self):
+    def test_piles_gather_a_project_s_notes_from_every_file(self):
         self.drop("a.md", "# Leftovers\n\n- Plan the meals for the week.\n\n- The catio stair needs a rail.\n\n"
                           "- The manor's attic needs a lamp.\n")
+        self.drop("b.md", "- The manor's lift is slow.\n")
         self.run_sort()
-        cafe, food = (self.box / "a.md").read_text(), (self.box / "a-Intermarche-grocery-shopping-app.md").read_text()
-        self.assertIn(f"project: {CAFE}", cafe)
+        self.assertEqual(sorted(p.name for p in self.box.glob("*.md")),
+                         ["Intermarche-grocery-shopping-app.md", f"{CAFE}.md"])
+        cafe = (self.box / f"{CAFE}.md").read_text()
+        self.assertIn("# Leftovers\n\n- The catio stair", cafe)
+        self.assertIn("# b\n\n- The manor's lift is slow. *— litterbox/b.md*", cafe)   # no title: its file's name
         self.assertNotIn("meals", cafe)
-        self.assertTrue(food.startswith("---\nproject: Intermarche-grocery-shopping-app  # guessed"))
-        self.assertIn("# Leftovers\n\n- Plan the meals for the week.", food)
+        self.drop("d.md", "- The catio needs a gate.\n")
+        self.run_sort()
+        self.assertIn("The catio needs a gate.", (self.box / f"{CAFE}.md").read_text())   # joins the waiting pile
+        self.check(f"{CAFE}.md")
+        self.check("Intermarche-grocery-shopping-app.md")
         self.run_sort()
         self.assertIn("Plan the meals", self.notes(self.food))
-        self.assertIn("attic needs a lamp", self.notes(self.cafe))
-        self.assertEqual(sorted(p.name for p in self.box.glob("*.md")), [])
+        for note in ("rail", "lamp", "lift", "gate"):
+            self.assertIn(note, self.notes(self.cafe))
+        self.assertEqual(list(self.box.glob("*.md")), [])
 
     def test_repeats_are_dropped_keeping_the_longer(self):
         self.drop("a.md", "# Catio\n\n- The **stair** sits in the hall.\n\n- the stair sits in the hall now\n", CAFE)
@@ -132,7 +148,7 @@ class Box(unittest.TestCase):
     def test_ships_what_it_files_and_nothing_else(self):
         self.drop("a.md", "- A shop note.\n", "montfortoise-shopify")
         self.drop("b.md", "- A café note.\n", CAFE)
-        self.drop("c.md", "- The catio's sign lies.\n")   # a guess: given a header, not shipped yet
+        self.drop("c.md", "- The catio's sign lies.\n")   # piled as a guess: not shipped
         shop, cafe = self.real(self.shop), self.real(self.cafe)
         (self.shop / "wip.txt").write_text("someone's work in progress")
         self.run_sort(write=False)
@@ -146,7 +162,7 @@ class Box(unittest.TestCase):
                          "File 1 note from the KittyChat Café's litter box\n")
         self.assertEqual(git("ls-tree", "--name-only", "feature", "litterbox/", cwd=cafe), "litterbox/c.md\n")
         self.assertEqual(git("status", "--porcelain", cwd=self.shop), "?? wip.txt\n")
-        self.assertEqual(git("status", "--porcelain", cwd=self.cafe), " M litterbox/c.md\n")
+        self.assertEqual(git("status", "--porcelain", cwd=self.cafe), f" D litterbox/c.md\n?? litterbox/{CAFE}.md\n")
 
     def test_never_ships_to_the_default_branch_or_where_shipping_is_off(self):
         self.drop("a.md", "- A shop note.\n", "montfortoise-shopify")
@@ -187,14 +203,16 @@ class Box(unittest.TestCase):
         before = self.snapshot()
         self.run_sort(write=False)
         self.assertEqual(self.snapshot(), before)
-        self.run_sort()   # given its project:
+        self.run_sort()   # piled
+        self.check(f"{CAFE}.md")
         self.run_sort()   # filed
         after = self.snapshot()
         self.run_sort()
         self.assertEqual(self.snapshot(), after)
         self.drop("c.md", "- the catio's sign lies\n")
         self.run_sort()
-        self.run_sort()
+        self.check(f"{CAFE}.md")
+        self.run_sort()   # already filed: dropped
         self.assertEqual(self.snapshot(), after)
 
 
