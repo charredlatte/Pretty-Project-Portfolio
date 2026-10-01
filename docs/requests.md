@@ -10,10 +10,10 @@ compressed. Read this before starting something new. Last updated 30 September 2
 | `CLAUDE.md` | The operating brief. Partly stale: it still describes the cabin (`cabin.py`, "house.png is committed"). Only she can edit it |
 | `README.md` | What the page is, the rooms, the packs |
 | `docs/requests.md` | This file: her requests |
-| `litterbox/assets-wishlist.md` | What art and sound is missing: what to buy, what to draw, and at what sizes |
+| `docs/from-the-litterbox.md` | Everything the litter box held, sorted: open questions, ideas not built (with the art and sound still missing: what to buy, what to draw, and at what sizes), facts learned, the compressed 29 September harness chat and the UI/UX audit |
 | `docs/plan.md` | The harness and manor plan: what's done, what's blocked on her, how to publish |
 | `docs/renovation-mode.md` | The traps under drag-and-drop furniture |
-| `litterbox/` | The compressed 29 September harness chat, and `loose-ends.md` (open questions, lessons) |
+| `litterbox/` | Where new notes land; `litterbox/sort.py` files them into each project's own repo |
 | `catio/art/CREDITS.md` | Every pack, its artist and its licence |
 | `harness/README.md`, `harness/rules.json` | The KittyChat house rules and the Catio MCP server |
 | `artifacts.json` | The one artifact's URL |
@@ -77,7 +77,7 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 - **Cats walk** (29 September): an archived cat walks away upstairs, and cats can walk around.
 - **Livelier grounds** (29 September): more variety from the packs she has, a spruce forest like the photos.
 - **The KittyChat Cafe** as a terrace in the garden (29 September).
-- **A UI/UX audit with her Game UI plugin** (29 September): `litterbox/ui-audit.md`. She picks what to fix.
+- **A UI/UX audit with her Game UI plugin** (29 September): in `docs/from-the-litterbox.md`, under Findings. She picks what to fix.
 - **Sounds:** she is finding some herself.
 - **How to work:** build the manor a room at a time; compress chats; leftovers go in the litterbox.
 
