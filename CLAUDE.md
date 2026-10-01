@@ -52,8 +52,11 @@ Publish `catio/index.html` with:
   created by SC_siosio", word for word), **no redistribution, even modified, no uploading to a repository**,
   and its files must not be easily extractable. Ship only the pieces `build-art.py` cuts from it, resized and
   recoloured, never its own 500 px PNGs or SVGs: the pixelated icons (`ui/pastel.png`) and the map panel's
-  smooth pieces (`art/licensed/pastel/`). 12.5 MB, so Drive can't hand it over: ask her to attach it in the
-  chat. Never commit.
+  smooth pieces (`art/licensed/pastel/`). The full zip is 12.5 MB, over the Drive connector's 10 MB limit:
+  `Game_UI_Pack_Pastel_icons.zip` in the Drive folder (3.3 MB: the licence, the readme and `PNG/Filled/Icons`)
+  is enough for the icons, but the map panel's pieces need the full zip's panels and buttons, so ask her to
+  attach it in the chat. A republish needs neither: read `art/licensed/ui/pastel.png` and
+  `art/licensed/pastel/*` back from the artifact. Never commit.
 
 `catio/art/CREDITS.md` says which pack drew what. The footer credits them all. Keep it.
 
