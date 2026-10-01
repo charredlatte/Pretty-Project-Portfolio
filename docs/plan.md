@@ -9,8 +9,8 @@ version, is in `docs/history.md`. What she has asked for is in `docs/requests.md
 
 ## Where it stands
 
-- **Live:** version 16, published 30 September from `claude/dreamy-goldberg-iu6w6l`. That is the KittyChat
-  Café:
+- **Live:** version 17, published 1 October from `claude/dreamy-goldberg-iu6w6l`: phase 0 on top of the
+  KittyChat Café:
   - the brand is the House button;
   - quiet maps and short menus;
   - Game UI Pastel pixel icons;
@@ -18,15 +18,15 @@ version, is in `docs/history.md`. What she has asked for is in `docs/requests.md
 - **Tests:** e2e 154 passed; harness 18 passed; `furniture.check()` empty.
 - **`main`** has version 16 (PR #7) and the digest of her sessions (`catio/tools/digest.py`, PR #8). Phase 0
   is on `claude/dreamy-goldberg-iu6w6l`, with `main` merged in, waiting for its pull request.
-- **Phase 0** is done on the branch except what waits on her: the `send_message` trial, deleting the old
-  branches, and publishing it (until then, the live page still makes stray sessions when it posts).
+- **Phase 0** is done and live (version 17), except what waits on her: the `send_message` trial and deleting
+  the old branches.
 
 ## The roadmap, in order
 
 Each phase ends with the e2e test green, screenshots at 1440×900 and 390×844 in light and dark, a commit, and
 (when she says so) a publish by the checklist below.
 
-### Phase 0: make what's there honest (from the audit). Done on the branch, not yet published
+### Phase 0: make what's there honest (from the audit). Done, live in version 17
 
 The page shouldn't say "Sent." when nothing arrived, or "3 need you" when they don't. This comes before
 anything new.
@@ -134,7 +134,7 @@ Each pack's licence is checked before it goes in, and credited in the footer and
 
 1. Rotate the MCPmarket token in her plugin zip's `.mcp.json`.
 2. Turn the house-rules plugin on (`.claude/settings.json`, from `harness/README.md`).
-3. OK a one-message test of `send_message` on a test session (phase 0).
+3. OK a one-message test of `send_message` on a test session (phase 0). It needs a publish that declares it.
 4. OK deleting the 14 old branches once `main` has version 15 (phase 0).
 5. Who made `plants.zip`, for the credits.
 6. Whether "Rename" should also rename the real session.

@@ -129,6 +129,14 @@ connector's limit, so she attached it in the chat. e2e 125 passed.
 
 ## What went live, version by version
 
+**Version 17** went live on 1 October 2026: phase 0 of `docs/plan.md`. Posts into a session no longer bind a
+Routine (which started a stray session and never delivered): they wait in `outbox/` and the page says so. Old
+review-ready cats nap in the attic, and the warm-start session is not a cat. Errors stay until dismissed, the
+sorter times out, there is a Still cats switch, and the credits sit at the foot of the House menu. The live
+page was version 16, read in full first; only `index.html` changed, and the stored capabilities carried over.
+e2e 154 passed. Checked after publishing: 41 files, the 10 `rooms`, and a probe in `cats` created, updated and
+deleted.
+
 **Version 16** went live on 1 October 2026: the page renamed KittyChat Café, with its accent (the title, the
 brand, the tab and the notes; `artifacts.json`'s key is now `kittychat-cafe`). The Drive folder keeps its name,
 "KittyChat Cafe Assets".
