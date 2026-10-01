@@ -1335,6 +1335,59 @@ if (LOCAL) {
   await ctx.close();
 }
 
+/* ---------- 9. the UI audit's leftovers (phase 0): alerts that stay, the sorter's time limit, Still cats ---------- */
+{
+  const { page, ctx, errors } = await open();
+  await check("speech bubbles aren't Tab stops: the map stays one stop", async () => {
+    const stops = await page.evaluate(() => [...document.querySelectorAll("#overlay .bub")].map((b) => b.tabIndex));
+    expect(stops.length > 0 && stops.every((t) => t === -1), JSON.stringify(stops));
+  });
+  await openHouse(page);
+  await check("the House menu carries the credits, so a phone shows them too", async () =>
+    expect((await menuText(page)).includes("Game UI Pack created by SC_siosio"), await menuText(page)));
+  await page.click("#stillCats");
+  await check("Still cats stops every animation, and says it's on", async () => {
+    expect(await page.evaluate(() => document.documentElement.classList.contains("still")), "no .still");
+    expect((await page.locator("#stillCats").getAttribute("aria-pressed")) === "true", "aria-pressed");
+    const running = await page.evaluate(() => getComputedStyle(document.querySelector("#cats .spr")).animationName);
+    expect(running === "none", running);
+  });
+  await page.reload(); await page.waitForTimeout(600);
+  await check("Still cats is remembered", async () => expect(await page.evaluate(() => document.documentElement.classList.contains("still")), "forgotten"));
+  // an error stays until she dismisses it, and is read out at once
+  await T(page, () => { window.__catio.readOnly = true; });
+  await openRoom(page, "kitchen");
+  await menuButton(page, "Edit room").click();
+  await page.click('#roomsDlg button[type="submit"]');
+  await page.waitForTimeout(3600);
+  await check("an error stays past the usual few seconds, as an alert, until OK", async () => {
+    expect(await page.locator("#toast").isVisible(), "gone");
+    expect((await page.locator("#toast").getAttribute("role")) === "alert", "not an alert");
+    await page.click("#toast button");
+    expect(!(await page.locator("#toast").isVisible()), "OK didn't close it");
+  });
+  await page.keyboard.press("Escape");
+  await T(page, () => { window.__catio.readOnly = false; window.__catio.sampleHang = true; });
+  await dropFiles(page, "#stage .house", [{ name: "untitled.txt", type: "text/plain", text: "a few thoughts" }]);
+  await check("a sorter that hangs doesn't hold Send: it works at once, while the sorter is asked", async () => {
+    expect(!(await page.locator("#dropSend").isDisabled()), "Send is held");
+    expect((await page.locator("#brainDlg").innerText()).includes("Asking the sorter"), await page.locator("#brainDlg").innerText());
+  });
+  await page.click("#brainDlg button:has-text('Cancel')");
+  await T(page, () => { window.__catio.sampleHang = false; });
+  await openCat(page, "Shop about page");
+  await giveFiles(page, { name: "huge.mov", mimeType: "video/quicktime", buffer: Buffer.alloc(21 * 1024 * 1024) });
+  await page.click("#dropSend");
+  await page.waitForTimeout(400);
+  await check("a file too big to keep is named in the result, which stays", async () => {
+    expect((await toast(page)).includes("huge.mov wasn't kept"), await toast(page));
+    await page.waitForTimeout(3400);
+    expect(await page.locator("#toast").isVisible(), "gone");
+  });
+  await check("no page errors with the audit's fixes", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+
 await browser.close();
 console.log(results.join("\n"));
 console.log(`\n${pass} passed, ${fail} failed`);

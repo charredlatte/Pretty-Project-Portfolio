@@ -119,7 +119,7 @@
     delete: async (id) => { T.assetsDeleted.push(id); return { deleted: true }; }, list: async () => ({ assets: [], usage: {} }) };
   T.prompts = []; T.sampleAnswer = { cat: null, reason: "nothing fits" };
   const sample = async (input) => { T.prompts.push(input); return { text: JSON.stringify(T.sampleAnswer), truncated: false }; };
-  sample.json = async (input) => { T.prompts.push(input); return clone(T.sampleAnswer); };
+  sample.json = async (input) => { T.prompts.push(input); if (T.sampleHang) return new Promise(() => {}); return clone(T.sampleAnswer); };   // sampleHang: a sorter that never answers
   const nodb = params.get("mode") === "nodb";
   window.claude = { use: async (n) => (n === "mcp" ? mcp : n === "db" ? (nodb ? null : db) : n === "assets" ? (nodb ? null : assets) : n === "sample" ? sample
     : n === "permissions" ? { request: async () => ({}), state: async () => "granted" } : null) };
