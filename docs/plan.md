@@ -127,7 +127,7 @@ Each pack's licence is checked before it goes in, and credited in the footer and
 
 ### Phase 5: the rest of the harness
 
-- **The house-rules plugin is on** in all seven of her repos (1 October). Sessions write `audits/<repo>` and,
+- **The house-rules plugin** goes into all seven of her repos through a pull request each (1 October). Sessions write `audits/<repo>` and,
   on catch-up, handle and mark delivered what waits for them in `outbox/`.
 - **Delivering the outbox.** A page can't call `send_message` (version 18's trial), and the Claude Code
   sessions here don't have it either, so nothing can push a post into a session from outside. The way in is
@@ -140,7 +140,7 @@ Each pack's licence is checked before it goes in, and credited in the footer and
 ## Waiting on Charlotte
 
 1. Rotate the MCPmarket token in her plugin zip's `.mcp.json`.
-2. ~~Turn the house-rules plugin on~~: on 1 October, in all seven of her repos (a pull request each).
+2. Merge the seven house-rules pull requests (opened 1 October, one per repo): a repo has the plugin once merged.
 3. ~~The `send_message` trial~~: done 1 October, blocked by policy.
 4. ~~Delete the 14 old merged branches~~: done 1 October.
 5. Who made `plants.zip`, for the credits.
