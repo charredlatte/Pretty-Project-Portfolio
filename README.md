@@ -14,12 +14,12 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
   is the cat café; upstairs are her own rooms, with the ground floor faded underneath. Each room is
   a space for one kind of work. There are no signs on the map: a room says its name when you point
   at it, and a cat that needs you shows its face over its head.
-- **The stair** in the entrance hall goes up and down, and so do the floor tabs on the map panel
-  and Page Up / Page Down. The other floor's button carries a badge when cats there need you,
-  so nothing hides upstairs.
+- **The stair** in the entrance hall goes up and down, and so do the floor tabs under the minimap
+  and Page Up / Page Down. The other floor's tab carries a badge when cats there need you, so nothing
+  hides upstairs.
 - **Moving around**: drag the house to pan it (with the left, right or middle button), and use the
-  wheel or a pinch to zoom around the pointer. The corner buttons zoom in, out and back to the whole
-  house. Zoom in until one room fills the screen and you're in that room: its cats' bubbles say what
+  wheel or a pinch to zoom around the pointer. The map panel's buttons zoom in, out and back to the
+  whole house. Zoom in until one room fills the screen and you're in that room: its cats' bubbles say what
   they need.
 - **Hover over a room or a cat** and it lights up and says its name. **Click it** for its menu,
   beside it, until you click elsewhere or press Escape. On a phone a tap does the same. Every menu is
@@ -75,7 +75,7 @@ café downstairs, her own rooms upstairs.
 | Ground | Café | tables, and business plans round the big one |
 | Ground | Kitchen | the counter, straight ahead from the front door behind the stair. The grocery app |
 | Ground | Cat lounge | a fireplace between tall windows, and a cat tree. New cats arrive here |
-| Ground | Craft room | the Montfortoise shop, bottom left. Its bay window is its shop window on the drive |
+| Ground | Craft room | the shop (Recollée, formerly Montfortoise), bottom left. Its bay window is its shop window on the drive |
 | Ground | Entrance hall | the front door, and the stair up the middle. Snail mail |
 | Ground | Terrace | the café's glass verrière, with the cat flap out to the catio. TikTok saves |
 | Outdoors | Catio | fenced decking at the bottom right, with a cat tree, a shade tree and a rose-arch gate. This portfolio lives here |
@@ -199,11 +199,18 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `catio/data/rooms.json`: the rooms, for the localhost copy. `sessions.json` is never committed.
 - `catio/art/`: the committed art. `licensed/` is rebuilt, not committed.
 - `catio/test/`: the end-to-end test (`sh catio/test/run.sh`).
-- `harness/`: the KittyChat harness behind the page: the house-rules plugin (its hooks and the `catio`
-  skill), on in all seven of her repos, and the Catio MCP server other agents join through. See [`harness/README.md`](harness/README.md).
-- `litterbox/`: the back burner. Notes dropped here are piled up by project, under a header that is a guess
-  until she checks it; checked piles are filed into each project's own repo, committed and pushed. See
-  [`litterbox/README.md`](litterbox/README.md).
-- `docs/`: her requests (`requests.md`), the plan (`plan.md`), and what the litter box filed here
-  (`from-the-litterbox.md`).
 - `CLAUDE.md`: how to change and republish the page.
+- `catio/tools/digest.py`: compiles the saved sessions and adopted chats into a per-project digest of
+  what needs her (`catio/data/digest.md`, never committed).
+- `artifacts.json`: the published page's one URL.
+- `harness/`: the KittyChat harness, the `kittychat-house-rules` plugin (hooks, the `catio` skill,
+  graphify), on in all seven of her repos, and the Catio MCP server for other agents. See [its README](harness/README.md).
+- `catio-plugin/`: the plugin that sets up someone else's own Catio; `.claude-plugin/marketplace.json`
+  lists the harness plugin as the `kittychat` marketplace.
+- `litterbox/`: the back burner, where loose notes land; `litterbox/sort.py` piles them up by project
+  and files a pile into that project's repo once it has been checked. See [its README](litterbox/README.md).
+- `docs/`: the plan, her requests compiled, the camera and minimap plan, renovation mode's constraints,
+  the drawing plan for her own art, and what the litter box filed here.
+
+The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harness/test` and
+`python3 -m unittest litterbox/test_sort.py`.

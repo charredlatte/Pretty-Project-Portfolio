@@ -27,9 +27,17 @@ from. Edit them freely: the sorter only adds, and never files a note that is alr
 - **Should a filing cabinet ever leave its room** in renovation mode? Settled 30 September: never, but she
   picks its look in each room (`docs/renovation-mode.md`). *— litterbox/loose-ends.md*
 
+### 1 October 2026: branches that never reached main
+
+- **`claude/catio-gateway-plan`** is the next job's plan. Before landing it, update step 1 for the server's
+  localhost-only API. *— litterbox/2026-10-01-branches-cafe.md*
+
 ## Ideas not built
 
 ### What's missing: art and sound for the Catio
+
+Since 1 October Charlotte is drawing every asset herself: `docs/drawing-plan.md` is the list to work from.
+The "buy first" section below is kept for reference only. *— litterbox/assets-wishlist.md*
 
 Everything the Catio shows today, and what it would take to make it what you picture: what to buy, and what
 to draw (or commission) because no pack has it. Checked against the packs' itch.io pages on 29 September 2026,
@@ -638,3 +646,58 @@ switch. Seven new e2e checks glide the mouse in small steps. Tested by moving th
 8. Add a "Still cats" switch, and put The brain and House rules in every room menu's footer. *— litterbox/ui-audit.md*
 
 9. Group the room menu, raise small text to 14px, add `aria-expanded` to menus, and darken placeholders. *— litterbox/ui-audit.md*
+
+### 1 October 2026: the litter box and an audit of the harness › What she asked for, in order
+
+1. An audit of how the harness (the "OpenClaw framework") works, to run a first test of the litter box sifter. *— litterbox/2026-10-01-litter-box-chat.md*
+
+2. "Fix them all": the seven problems the test found. *— litterbox/2026-10-01-litter-box-chat.md*
+
+3. Every note needs a `project:` header, "but the sifter should give it the appropriate header"; and "it should
+   semi-auto push" what it files. *— litterbox/2026-10-01-litter-box-chat.md*
+
+4. "I prefer to keep guessing to a minimum before deletion. The litterbox is the back burner, it finds things
+   that need to be dealt with and lumps them together with a header." Then: update the README to match. *— litterbox/2026-10-01-litter-box-chat.md*
+
+5. With another agent turning the house rules on in every repo: fix the grocery app's merge clash "before you
+   do anything else". *— litterbox/2026-10-01-litter-box-chat.md*
+
+6. Before the gateway: triage the branches that never reached `main`, and compress this chat. *— litterbox/2026-10-01-litter-box-chat.md*
+
+### 1 October 2026: the litter box and an audit of the harness › What was found
+
+- **The harness never ran the sifter.** `litterbox/sort.py` was a script run by hand; nothing in the plugin,
+  the `catio` skill or the server mentions it. *— litterbox/2026-10-01-litter-box-chat.md*
+
+- **The first test** (invented notes, copies of all five repos) sent notes to the wrong repo on single words
+  ("of course" to the grocery app, "basket", "pixel art"), deleted real notes (two notes one word apart, a
+  struck-through correction), lost a Notepad file's header to its BOM, left what it filed in other repos
+  uncommitted, and slipped past the audit gate, which blocked `rm` but not `sort.py --write`. *— litterbox/2026-10-01-litter-box-chat.md*
+
+- **The Catio server's localhost API** answered tool calls by GET, so any web page could wake an agent with
+  "[Catio] Charlotte says: …" (reproduced), and a site naming itself 127.0.0.1 passed the Origin check. *— litterbox/2026-10-01-litter-box-chat.md*
+
+- **The shipping rule's "never merge"** contradicted the grocery app's own rule that every session ends with
+  its pull request merged. *— litterbox/2026-10-01-litter-box-chat.md*
+
+- The café and the grocery app are public repos: a note filed there is published at the next push. *— litterbox/2026-10-01-litter-box-chat.md*
+
+### 1 October 2026: the litter box and an audit of the harness › What was built
+
+- **PR #12:** the sifter's fixes; the server answers POST only, at localhost; the audit gate counts `--write`
+  and `--commit`; in a cloud session the shipping nudge checks every repo in the container; the sifter
+  commits and pushes what it files (never the default branch). *— litterbox/2026-10-01-litter-box-chat.md*
+
+- **PR #13:** the back burner. Notes without a `project:` go on their project's pile, under a header marked as
+  a guess; a pile is filed only after she deletes the guess comment. *— litterbox/2026-10-01-litter-box-chat.md*
+
+- **PR #15**, and the grocery app's **#18:** a repo opts in to merging with `{"merge": true}` in
+  `.claude/catio-rules.json`; the grocery app does. *— litterbox/2026-10-01-litter-box-chat.md*
+
+### 1 October 2026: the litter box and an audit of the harness › Left open
+
+- **The gateway** is next. Its plan, on `claude/catio-gateway-plan`, needs one change first: the server's API
+  now answers only at localhost, so a remote endpoint needs a token and its own host. *— litterbox/2026-10-01-litter-box-chat.md*
+
+- Nothing tells a session to drop its leftovers in the box, and a session in another repo reaches the box only
+  when the café is checked out beside it. *— litterbox/2026-10-01-litter-box-chat.md*

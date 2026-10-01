@@ -16,6 +16,7 @@ compressed. Read this before starting something new. Last updated 1 October 2026
 | `docs/history.md` | How it got here, version by version |
 | `docs/camera-and-minimap.md` | The map panel, the minimap and the Sims-style camera |
 | `docs/renovation-mode.md` | The renovation mode spec: moving, adding and removing furniture, the cabinets' looks |
+| `docs/drawing-plan.md` | Every asset she will draw herself, at what size and scale, and the new pieces (litterbox, café tables…) |
 | `litterbox/` | The back burner: new notes land here, `litterbox/sort.py` piles them by project for her to check, then files each checked pile into its project's own repo and pushes it |
 | `catio/art/CREDITS.md` | Every pack, its artist and its licence |
 | `harness/README.md`, `harness/rules.json` | The KittyChat house rules and the Catio MCP server |
@@ -132,6 +133,12 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 - The minimap is a plan of rooms; WASD and the arrows both pan; Game UI Pastel is used.
 - A filing cabinet never leaves its room, and she chooses what it looks like in each room.
 - Renovation mode stays in the plan as its own phase (1 October): `docs/renovation-mode.md`.
+
+## Her own art (1 October)
+
+- **She will draw every asset herself in Aseprite** before publishing the working project, replacing the
+  downloaded packs, and adding new pieces: a litterbox, café tables and more. The list and the scale are in
+  `docs/drawing-plan.md`.
 
 ## Still waiting on her
 
