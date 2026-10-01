@@ -127,12 +127,12 @@ Each pack's licence is checked before it goes in, and credited in the footer and
 
 ### Phase 5: the rest of the harness
 
-- **The house-rules plugin turned on** (her step). Then sessions write `audits/<repo>` and pick up the
-  `outbox/` on catch-up.
+- **The house-rules plugin is on** in all seven of her repos (1 October). Sessions write `audits/<repo>` and,
+  on catch-up, handle and mark delivered what waits for them in `outbox/`.
 - **Delivering the outbox.** A page can't call `send_message` (version 18's trial), and the Claude Code
   sessions here don't have it either, so nothing can push a post into a session from outside. The way in is
   the session's own catch-up: the catio skill reads `outbox/` for its own session id when the session next
-  runs. That needs the house-rules plugin turned on (her step). A concierge Routine is the fallback, and the
+  runs, with the house-rules plugin (on since 1 October). A concierge Routine is the fallback, and the
   Routines are paused at her request.
 - **Agent cats in claude.ai** need `host:catio` declared, which only the Claude desktop app can do.
 - **List `catio-plugin/` in the marketplace** next to `kittychat-house-rules`.
@@ -140,7 +140,7 @@ Each pack's licence is checked before it goes in, and credited in the footer and
 ## Waiting on Charlotte
 
 1. Rotate the MCPmarket token in her plugin zip's `.mcp.json`.
-2. Turn the house-rules plugin on (`.claude/settings.json`, from `harness/README.md`).
+2. ~~Turn the house-rules plugin on~~: on in all seven of her repos, merged 1 October.
 3. ~~The `send_message` trial~~: done 1 October, blocked by policy.
 4. ~~Delete the 14 old merged branches~~: done 1 October.
 5. Who made `plants.zip`, for the credits.

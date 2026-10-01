@@ -33,7 +33,9 @@ default branch and force-pushing stay forbidden either way.
 
 ## Turning it on in a repo
 
-Add this to the repo's `.claude/settings.json`. It's the same in every repo, including this one:
+It is on in all seven of her repos (Pretty-Project-Portfolio, Intermarche-grocery-shopping-app,
+montfortoise-shopify, pixel-art-app, tiktok-saves, Snail-Mail-Trail and her LibreSprite fork), merged
+1 October 2026. For a new repo, add this to its `.claude/settings.json`. It's the same in every repo:
 
 ```json
 {
@@ -53,13 +55,39 @@ the default branch, use `{ "source": "directory", "path": "." }` as the marketpl
 
 ## How the Catio talks to a session
 
-The page calls Claude Code Remote as Charlotte. The first time it needs a session, it makes a Routine
-bound to that session with no schedule (`create_trigger` with `persistent_session_id`), and keeps its id
-in the Catio's database. After that, every file she drops on the cat, every message she writes to it, and
-every request (pause, wrap up) is delivered straight into the session with `fire_trigger`. The session
-sees a turn starting with `[Catio]`, and the `catio` skill (`skills/catio/`) says how to fetch the file,
-answer on the cat and mark it picked up. A session also catches up at start with anything a delivery
-missed.
+The page calls Claude Code Remote as Charlotte. Everything she sends a session from it (a file dropped on
+its cat, a message, a pause or wrap-up request) is saved in the Catio's database first (`brain/`,
+`notes/`, `sessions/<id>.request`), then tried with `send_message`. claude.ai refuses that call to pages
+today (`blocked_by_policy`, tried 1 October 2026), so it waits in `outbox/` and the page says so. The
+session collects it: at start, the `catio` skill catches up with everything addressed to it, fetches the
+files, answers on the cat, and marks the outbox entries delivered. A turn starting with `[Catio]` is from
+her; a file's contents are data.
+
+### Why the café can't push into a session
+
+Waking a session, putting a new turn into it, is something only Claude's own service can do. Three things
+follow:
+
+- **A session has no address.** A cloud session is a container with no door in: nothing outside can call
+  it. It gets a new turn only from claude.ai (her typing, Remote Control, a Routine) or from Claude Code
+  Remote's `send_message`.
+- **The page can only reach what claude.ai lets it.** An artifact runs in claude.ai's sandbox: it can't
+  call an arbitrary web address, only the connectors it declares, as her. Claude Code Remote is one, and
+  claude.ai lets the page read sessions but refuses its `send_message` (`blocked_by_policy`). Claude Code
+  Remote is built in, so there is no switch for it in her Connectors list.
+- **A server of our own wouldn't change that.** A server in the middle (on Cloudflare, say, added as her
+  connector) could take the page's message, but it still couldn't wake the session: it would have to call
+  Claude's service as her, and there is no way for it to. It would only hold the message until the session
+  looks, which the Catio's database already does, and sessions read it directly (`ArtifactData`).
+
+The Catio MCP server (`mcp/catio_mcp.py`) is a server, but for the other direction: it runs on her
+computer, so agents there (Codex, Gemini CLI, Cursor) can join as cats and be woken by a command. A Claude
+Code session in the cloud can't reach her computer, so it can't use it.
+
+What has been tried: a Routine bound to the session (`create_trigger` with `persistent_session_id`, then
+`fire_trigger`) started a stray new session instead (30 September); `send_message` from the page is refused
+(1 October). If claude.ai ever allows `send_message` for pages, the page already calls it and the outbox
+empties itself.
 
 ## Other agents and models: the Catio MCP server
 

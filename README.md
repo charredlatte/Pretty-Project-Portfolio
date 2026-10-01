@@ -14,8 +14,8 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
   is the cat café; upstairs are her own rooms, with the ground floor faded underneath. Each room is
   a space for one kind of work. There are no signs on the map: a room says its name when you point
   at it, and a cat that needs you shows its face over its head.
-- **The stair** in the entrance hall goes up and down, and so do the arrow buttons in the bottom
-  corner and Page Up / Page Down. The other floor's button carries a badge when cats there need you,
+- **The stair** in the entrance hall goes up and down, and so do the floor tabs on the map panel
+  and Page Up / Page Down. The other floor's button carries a badge when cats there need you,
   so nothing hides upstairs.
 - **Moving around**: drag the house to pan it (with the left, right or middle button), and use the
   wheel or a pinch to zoom around the pointer. The corner buttons zoom in, out and back to the whole
@@ -106,8 +106,20 @@ archway with its wooden doors open. Parterres, a bench and a signpost to the cat
 | Working | working or running | Mochi, tail swishing |
 | Asleep | finished or idle | Pochi curled up |
 
-Sleeping sessions older than a week and archived sessions nap in the attic, out of sight. Turn on
+Sleeping sessions and ones waiting for review, once they're a week old, and archived sessions nap in the
+attic, out of sight; the brand's count is only what really waits on her. Turn on
 Sound and a cat that starts meowing makes a small meow.
+
+## How what she sends reaches a session
+
+Files dropped on a cat, messages written to it, and pause or wrap-up requests are kept in the artifact's
+database the moment she sends them: the file in the brain, the message as a note, the request on the
+session. The page then tries to push them into the session with Claude Code Remote's `send_message`.
+claude.ai refuses that call to pages (tried 1 October 2026), so the page says it is **waiting in the
+outbox**, and the session collects it: sessions in her repos run the house-rules plugin, whose
+`catio` skill checks the café when the session starts, handles what's there, answers on the cat and marks
+it delivered. Why it can't simply be pushed, by a server or otherwise, is in
+[`harness/README.md`](harness/README.md#why-the-café-cant-push-into-a-session).
 
 ## On her own computer
 
@@ -116,7 +128,9 @@ The page also runs from a folder, off a USB stick, in VS Code, with no claude.ai
 complete HTML file, all the art, the rooms from `catio/data/rooms.json`, and
 `catio/data/sessions.json`, the copy of her sessions Claude saved. Serve the folder with VS
 Code's Live Server, `python -m http.server 8000` or `php -S localhost:8000`, and open
-<http://localhost:8000>. It's plain HTML: there is no PHP, and no server code of its own.
+<http://localhost:8000>. It's plain HTML: there is no PHP. The folder also carries the Catio MCP server:
+`python3 harness/mcp/catio_mcp.py --serve . --port 8791` serves the page and lets agents that aren't
+Claude Code sessions (Codex, Gemini CLI, Cursor) join as cats.
 
 On localhost the cats come from that saved copy, not live, and adopted chats, room names and
 project looks are kept in that browser. For newer cats, ask Claude to refresh
@@ -186,7 +200,7 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `catio/art/`: the committed art. `licensed/` is rebuilt, not committed.
 - `catio/test/`: the end-to-end test (`sh catio/test/run.sh`).
 - `harness/`: the KittyChat harness behind the page: the house-rules plugin (its hooks and the `catio`
-  skill) and the Catio MCP server other agents join through. See [`harness/README.md`](harness/README.md).
+  skill), on in all seven of her repos, and the Catio MCP server other agents join through. See [`harness/README.md`](harness/README.md).
 - `litterbox/`: the back burner. Notes dropped here are piled up by project, under a header that is a guess
   until she checks it; checked piles are filed into each project's own repo, committed and pushed. See
   [`litterbox/README.md`](litterbox/README.md).

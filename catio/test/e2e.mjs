@@ -333,7 +333,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(Object.keys(rooms).length === 10, "rooms saved: " + Object.keys(rooms).length);
     const g = rooms["rooms/garden"];
     expect(g.repos.join("|") === "Pretty-Project-Portfolio|charredlatte/other-site" && g.name === "Catio" && g.blurb === "The portfolio, and this page", JSON.stringify(g));
-    expect(rooms["rooms/kitchen"].repos.length === 2 && rooms["rooms/kitchen"].blurb.startsWith("Weekly meals"), "untouched rooms keep their data: " + JSON.stringify(rooms["rooms/kitchen"]));
+    expect(rooms["rooms/kitchen"].repos.join() === "Intermarche-grocery-shopping-app" && rooms["rooms/kitchen"].blurb.startsWith("Weekly meals"), "untouched rooms keep their data: " + JSON.stringify(rooms["rooms/kitchen"]));
     const front = Object.entries(rooms).filter(([, d]) => d.catchAll).map(([k]) => k);
     expect(front.join() === "rooms/kitchen", "catch-all: " + front.join());
     expect((await page.locator("#room-sunroom").getAttribute("aria-label")).startsWith("Conservatory"), "room not renamed");
