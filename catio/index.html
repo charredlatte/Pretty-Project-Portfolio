@@ -1,9 +1,9 @@
-<title>KittyChat Cafe</title>
+<title>KittyChat Café</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:ital,wght@0,500;0,700;0,800;1,500&display=swap">
 <style>
-/* Layout: the KittyChat Cafe is the whole screen, in a Sprout Lands frame: a manor on two floors, one shown
+/* Layout: the KittyChat Café is the whole screen, in a Sprout Lands frame: a manor on two floors, one shown
    at a time, and nothing on the map but the art and the cats. Drag to move around it, wheel or pinch to zoom;
    the icon buttons in the bottom corner change floor and zoom, and the brand (top left) is the House button,
    for what belongs to the whole house. Hovering a room or a cat lights it and names it; clicking opens its
@@ -441,7 +441,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
 </style>
 
 <main class="screen">
-  <section class="stage" id="stage" data-floor="ground" aria-label="KittyChat Cafe: point at a room or a cat">
+  <section class="stage" id="stage" data-floor="ground" aria-label="KittyChat Café: point at a room or a cat">
     <div class="meadow" id="meadow"></div>
     <div class="world" id="world" data-floor="ground">
       <img class="house ground" src="art/licensed/decor.png" alt="" width="1920" height="1152">
@@ -461,7 +461,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   </section>
   <div class="trim" aria-hidden="true"></div>
   <header class="hud" id="hud">
-    <h1><button class="brand" id="houseBtn" type="button" aria-haspopup="true" aria-expanded="false"><span class="logo" aria-hidden="true"></span><span class="nm">KittyChat Cafe</span><span id="tally"></span></button></h1>
+    <h1><button class="brand" id="houseBtn" type="button" aria-haspopup="true" aria-expanded="false"><span class="logo" aria-hidden="true"></span><span class="nm">KittyChat Café</span><span id="tally"></span></button></h1>
     <div class="status" id="status" role="status"><span class="dot"></span><span class="words">Waking the cats…</span></div>
   </header>
   <nav class="mappanel" id="controls" aria-label="Map">
@@ -866,7 +866,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const words = [[needing.length, "need you"], [count("idle"), "at work"], [count("sleep"), "asleep"]].filter(([n]) => n).map(([n, w]) => n + " " + w).join(" · ");
     if (words) tally.appendChild(el("span", "sr", words + " "));
     if (needing.length) { const b = badge(needing); b.setAttribute("aria-hidden", "true"); tally.appendChild(b); }
-    document.title = (needing.length ? "(" + needing.length + ") " : "") + "KittyChat Cafe";
+    document.title = (needing.length ? "(" + needing.length + ") " : "") + "KittyChat Café";
 
     // new meows make a sound
     const ids = new Set(cats.filter((c) => c.mood === "meow" || c.mood === "cry").map((c) => c.id));
@@ -2467,7 +2467,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     });
     const note = el("textarea"); note.id = "dropNote"; note.rows = 2; note.maxLength = 2000; note.placeholder = "What should they do with it? (optional)";
     box.appendChild(field("A note to go with it", note));
-    box.appendChild(el("p", "note", "Kept in the KittyChat Cafe, private to you, and sent on to the cat's session. Keep them out of git."));
+    box.appendChild(el("p", "note", "Kept in the KittyChat Café, private to you, and sent on to the cat's session. Keep them out of git."));
     const acts = el("div", "actions");
     const send = el("button", "btn green", "Send"); send.type = "button"; send.id = "dropSend"; send.disabled = true;
     acts.append(closeBtn(dlg, "Cancel"), el("span", "spacer"), send);
@@ -2669,7 +2669,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const dlg = $("brainDlg"); dlg.replaceChildren();
     const box = el("div", "dlg");
     const h = el("h2", null, "House rules"); h.id = "brainTitle";
-    box.append(h, el("p", "note", "Every cat in the KittyChat Cafe follows these. Enforced ones are the harness's own hooks: ask Claude to change them."));
+    box.append(h, el("p", "note", "Every cat in the KittyChat Café follows these. Enforced ones are the harness's own hooks: ask Claude to change them."));
     const rules = Object.entries(S.rules).map(([id, r]) => Object.assign({ id }, r)).sort((a, b) => (a.order || 0) - (b.order || 0));
     if (!rules.length) box.appendChild(el("p", "empty", "The rules haven't been written into this cafe yet. Ask Claude to seed them from harness/rules.json."));
     const ul = el("ul", "keeps rules");

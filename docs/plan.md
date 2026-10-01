@@ -1,4 +1,4 @@
-# The KittyChat Cafe: the plan and where it stands
+# The KittyChat Café: the plan and where it stands
 
 Issue #3: "An AI harness that presents itself as a cat cafe." The Catio (`catio/index.html`, one private
 artifact) becomes the harness. Every Claude Code session and every other agent is a cat in a refurbished

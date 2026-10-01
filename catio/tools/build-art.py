@@ -121,7 +121,7 @@ def pastel(pastel_zip, sprout_zip):
 
 
 def cat_ui(cats_zip):
-    """The KittyChat Cafe's logo: ToffeeCraft's cat-face speech bubble, from its free Cat UI."""
+    """The KittyChat Café's logo: ToffeeCraft's cat-face speech bubble, from its free Cat UI."""
     out = OUT / "licensed" / "ui"
     out.mkdir(parents=True, exist_ok=True)
     member(zipfile.ZipFile(cats_zip), "CatUIFree/free.png").crop((37, 39, 58, 57)).save(out / "logo.png")

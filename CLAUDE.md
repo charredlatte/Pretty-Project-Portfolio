@@ -97,7 +97,7 @@ The stair is in the same place on both floors, so changing floor never moves the
 The manor fills the screen and is the page, **one floor at a time**. The ground floor stays faded under
 the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZUP`.
 
-- **The page is the KittyChat Cafe** (September 2026: "the harness and UI SaaS that I am making here is
+- **The page is the KittyChat Café** (September 2026: "the harness and UI SaaS that I am making here is
   called the KittyChat Cafe"). The Catio is the page's old name and the code's; the catio is still the
   fenced deck outside.
 - **No signs on the map** (she hates them): no room names, badges or stair sign on the art. A room is

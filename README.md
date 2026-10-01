@@ -1,6 +1,6 @@
 # Pretty-Project-Portfolio
 
-**The KittyChat Cafe** (the Catio page) is one page where every Claude project Charlotte has on the go lives as a cat in a
+**The KittyChat Café** (the Catio page) is one page where every Claude project Charlotte has on the go lives as a cat in a
 little pixel-art manor with a fenced catio. Each Claude Code session is a cat that plays while it
 works, sleeps when it's done, and **meows**, with a speech bubble saying what it needs, when it's
 waiting on her. Chats on claude.ai, like business plans and legal questions, can't be read by any
