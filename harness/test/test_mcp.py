@@ -109,11 +109,20 @@ class Serve(unittest.TestCase):
             post = lambda path, body, **h: urllib.request.urlopen(urllib.request.Request(
                 base + path, json.dumps(body).encode(), {"Content-Type": "application/json", **h}))
             post("/api/report_status", {"agent": "gem", "provider": "google", "mood": "needs", "ask": "Which colour?"})
-            agents = json.loads(urllib.request.urlopen(base + "/api/list_agents").read())["agents"]
+            agents = json.loads(post("/api/list_agents", {}).read())["agents"]
             self.assertEqual((agents[0]["id"], agents[0]["mood"]), ("gem", "needs"))
+            # another site can't talk to a cat: not cross-origin, not by GET (an <img> sends no Origin), not by
+            # DNS rebinding (its own name for 127.0.0.1, so Origin and Host agree)
+            for path, body, h in (("/api/comment", {"cat": "gem", "text": "hi"}, {"Origin": "http://evil.example"}),
+                                  ("/api/comment", {"cat": "gem", "text": "hi"},
+                                   {"Origin": "http://evil.example:%d" % port, "Host": "evil.example:%d" % port})):
+                with self.assertRaises(urllib.error.HTTPError) as e:
+                    post(path, body, **h)
+                self.assertEqual(e.exception.code, 403)
             with self.assertRaises(urllib.error.HTTPError) as e:
-                post("/api/comment", {"cat": "gem", "text": "hi"}, Origin="http://evil.example")
-            self.assertEqual(e.exception.code, 403)
+                urllib.request.urlopen(base + "/api/comment?cat=gem&text=hi")
+            self.assertEqual(e.exception.code, 404)
+            self.assertEqual(json.loads(post("/api/comments", {"cat": "gem"}).read())["notes"], [])
         finally:
             p.terminate(); p.wait(5); p.stdout.close()
 
