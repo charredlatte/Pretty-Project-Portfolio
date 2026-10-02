@@ -21,6 +21,9 @@ sed "s#<base href=\"file://$P/\">#<base href=\"file://$N/\">#" "$T/.page.html" >
 : "${PLAYWRIGHT:=/opt/node22/lib/node_modules/playwright}"
 : "${CHROMIUM:=/opt/pw-browsers/chromium-1194/chrome-linux/chrome}"
 [ -x "$CHROMIUM" ] || unset CHROMIUM
+export PLAYWRIGHT CHROMIUM
+# sh catio/test/run.sh look [room…]: screenshots to look at instead of the test (CLAUDE.md, "Checking a change")
+if [ "$1" = look ]; then shift; exec node "$T/look.mjs" "$@"; fi
 # local mode: serve a copy of the bundle on localhost with no runtime at all, and invented sessions
 python3 "$P/tools/bundle.py" >/dev/null
 L=$(mktemp -d)
@@ -31,4 +34,4 @@ python3 -m http.server "$PORT" --bind 127.0.0.1 --directory "$L" >/dev/null 2>&1
 SERVER=$!
 trap 'kill $SERVER 2>/dev/null; rm -rf "$L"' EXIT
 sleep 1
-LOCAL_URL="http://127.0.0.1:$PORT/index.html" PLAYWRIGHT="$PLAYWRIGHT" CHROMIUM="$CHROMIUM" node "$T/e2e.mjs"
+LOCAL_URL="http://127.0.0.1:$PORT/index.html" node "$T/e2e.mjs"

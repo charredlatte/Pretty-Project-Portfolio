@@ -152,14 +152,13 @@ def sprout(sprout_zip):
     basic.crop((275, 52, 285, 61)).save(out / "arrow.png")                          # the cream arrow on a select
     basic.crop((277, 2, 284, 14)).save(out / "pointer.png")                         # the menu cursor, beside the item
 
-    # the grey speech bubble, with its tail cut off to hang under a 9-slice body
+    # the grey speech bubble's body, its tail filled in, as a 9-slice: a cat's ask and the replies in its thread
     bub = member(z, "speech_bubble_grey.png").crop((11, 11, 53, 58))
     body = bub.crop((0, 0, 42, 42))
     for y in range(38, 42):
         for x in range(9, 33):
             body.putpixel((x, y), body.getpixel((8, y)))
     body.save(out / "bubble.png")
-    bub.crop((16, 38, 27, 47)).save(out / "bubble-tail.png")
 
     # the white selection brackets, as a 9-slice with empty edges: rooms light up with them
     corners = Image.new("RGBA", (20, 20))
@@ -405,15 +404,23 @@ def main():
     atl["lic"].save(OUT / "licensed" / "furniture.png")
     sheet.crop((16, 16, 128, 48)).save(OUT / "licensed" / "meadow.png")
     cats = zipfile.ZipFile(cats_zip)
-    for suffix, name in [("MochiFree/Idle.png", "mochi-idle.png"), ("MochiFree/Box3.png", "mochi-box.png"),
-                         ("PochiFree/FreeSprites.png", "pochi.png")]:
+    for suffix, name in [("MochiFree/Idle.png", "mochi-idle.png"), ("MochiFree/Box3.png", "mochi-box.png")]:
         member(cats, suffix).save(OUT / "licensed" / name)
+    unz(member(cats, "PochiFree/FreeSprites.png")).save(OUT / "licensed" / "pochi.png")
     sprout(sprout_zip)
     pastel(pastel_zip, sprout_zip)
     map_panel(pastel_zip)
     cat_ui(cats_zip)
     furniture.write_page(OUT.parent / "index.html")
     print("art written to", OUT, "and the page's MANOR block updated")
+
+
+def unz(sheet):
+    """Pochi asleep without its "z Z": nothing is drawn over a cat (her call, 2 October 2026). In the sleep row
+    (y 128-191) every 64 px frame has the Z's in rows 0-26, and the cat itself starts at row 29."""
+    sheet = sheet.convert("RGBA")
+    sheet.paste((0, 0, 0, 0), (0, 128, sheet.width, 128 + 27))
+    return sheet
 
 
 if __name__ == "__main__":
