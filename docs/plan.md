@@ -157,6 +157,12 @@ merge to `main`.
      gateway show up anywhere, through the `Catio` connector;
    - `catio-plugin/` listed in the marketplace beside `kittychat-house-rules`.
 
+### Phase 6: onboarding. Built
+
+A café with no rooms opens a seven-step wizard (`docs/onboarding/`): name, rooms (the rest closed), repositories
+through `list_repos`, sessions, the litter box, how it works, done. The public `catio` skill asks the same
+questions. Closed rooms are dimmed, queenless and get no cats. CLAUDE.md, "Onboarding".
+
 ## Waiting on Charlotte
 
 1. **The gateway is set up** (2 October): the Worker, both secrets, `CATIO_URL` and `CATIO_TOKEN` in her
@@ -201,8 +207,8 @@ merge to `main`.
    the branch's page. If the live one is newer, merge it first; never overwrite it.
 3. Publish `catio/index.html` to `artifacts.json`'s URL with only the files that changed, and **omit
    `capabilities`** to keep the stored set:
-   - Claude Code Remote's eight tools: `list_sessions`, `send_message`, `delete_trigger`, `create_session`,
-     `set_session_title`, `archive_session`, `unarchive_session` and `interrupt_session`;
+   - Claude Code Remote's nine tools: `list_sessions`, `list_repos`, `send_message`, `delete_trigger`,
+     `create_session`, `set_session_title`, `archive_session`, `unarchive_session` and `interrupt_session`;
    - `db`, `assets` and `sample`.
 
    Pass `capabilities` only to add something on purpose (the `Catio` connector, in phase 5), and then pass

@@ -148,7 +148,9 @@ claude --plugin-dir Pretty-Project-Portfolio/catio-plugin
 ```
 
 The skill walks you through your rooms, your sessions, publishing the page as your own private
-artifact, and the folder that runs off a USB stick.
+artifact, and the folder that runs off a USB stick. The page does the same on its own: a café with no rooms
+yet opens a seven-step wizard (name it, open the rooms you need, file your repositories, see your sessions,
+the litter box, how it works), and "Set up again…" in the House menu replays it.
 
 **It cannot give you the cats, or the interface.** Eight of the ten packs below forbid redistributing
 their files (and plants.zip came with no licence), so `catio/art/licensed/` is gitignored and a fresh clone draws the manor on plain

@@ -18,7 +18,7 @@ Publish `catio/index.html` with:
   `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point`, `pointer`, `logo`, `pastel` `.png`,
   and `sprout.ttf`), and the map panel in `art/licensed/pastel/` (`panel`, `panel-dark`, `frame`, `button`,
   `button-hover`, `button-down`, `icons` `.png`);
-- `capabilities`: omit it on a republish to keep what's stored: Claude Code Remote's eight tools and the
+- `capabilities`: omit it on a republish to keep what's stored: Claude Code Remote's nine tools and the
   gateway's five (below), `db`, `assets` and `sample`. Pass it only to add a tool on purpose, and then pass the whole set.
 
 `catio/data/` is **not** published: it is for the localhost copy (below).
@@ -149,6 +149,18 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
   door when they're new. A journey that changes floor starts at the stair on the floor they're going to.
   Working cats wander a little. A cat's element must be in the page before `walk()` starts. With reduced
   motion, and for four seconds after the page opens, cats are simply in their places.
+- **Onboarding** (`openSetup()`, `#setupDlg`): a café whose database has no `rooms/*` at all opens the wizard
+  on its first snapshot that isn't from cache (Charlotte's has rooms, so she never sees it; the localhost copy
+  seeds rooms from `data/rooms.json`). Seven steps, nothing written until Done: the café's name (`house/main`),
+  how many rooms (the first N of `OPENING`, public to private: lounge, café, kitchen, craft room, terrace, catio,
+  library, bedroom, ensuite, hall; a name each; the first is where new cats come in), the repositories
+  (`list_repos`, each with a select of the open rooms), what the live read found, the litter box (the brain's
+  tray here, `litterbox/` in a clone; holding pull requests is the merging rule's doing, not a setting), how the
+  harness works with the two install lines, and the summary. "Set up again…" in the House menu replays it
+  prefilled, and keeps each room's blurb and model. **A closed room** (`rooms/<k>.closed`) is dimmed with no sign,
+  faint on the minimap, has no queen and gets no cats (`roomFor()` and `catchAllRoom()` skip it; the selects
+  list open rooms only); cats still walk through it. Its menu is its name, "Closed", Open this room and Edit
+  rooms, where each room has an Open switch and closing the front door's room moves the front door.
 
 The interface is Cup Nooble's Sprout Lands UI pack, cut by `build-art.py` into
 `art/licensed/ui/`. Menus, dialogs, the sign and the screen's frame are its tan panel; buttons are
@@ -187,7 +199,8 @@ The artifact database, written by the page and seeded with `ArtifactData`:
 
 | Collection | Document | Holds |
 |---|---|---|
-| `rooms` | one per room key (`garden` (the catio), `kitchen`, `dining`, `living`, `sunroom`, `study`, `bedroom`, `bath`, `hall`) | `name`, `blurb`, `repos[]` (repo names or `owner/repo`), `catchAll` |
+| `house` | `main` | `name`: the café's own name on the brand and the title (none: "KittyChat Café"), `onboarded`: when the wizard last opened the doors |
+| `rooms` | one per room key (`garden` (the catio), `kitchen`, `dining`, `living`, `sunroom`, `study`, `bedroom`, `bath`, `hall`, `brain`) | `name`, `blurb`, `repos[]` (repo names or `owner/repo`), `catchAll`, `model`, `closed` (no key: open) |
 | `sessions` | the Claude Code session id | `name`, `room`: her rename or move of one session's cat |
 | `cats` | generated id | an adopted chat: `title`, `link`, `project`, `room`, `mood` (`needs` / `busy` / `done`), `note`, `name` |
 | `projects` | the project's slug (repo name, or an adopted chat's project) | `name`, `coat`: the look every cat of that project shares, set from a filing cabinet |
@@ -253,7 +266,7 @@ The page now **writes** through Claude Code Remote, always on an explicit action
 - `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet.
 
 The stored capabilities (the full set, to pass whole if a tool is ever added):
-`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "CATIO", tools: ["list_agents","comment","comments","drop_file","manage"] }] }, db: {}, assets: {}, sample: {} }`
+`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","list_repos","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "CATIO", tools: ["list_agents","comment","comments","drop_file","manage"] }] }, db: {}, assets: {}, sample: {} }`
 
 `host:catio` (the same five tools) can only be declared from the Claude desktop app, so it isn't in the stored
 set. `delete_trigger` stays only to clean up the Routines older versions bound. Posting into a session through a bound Routine doesn't reach the session
@@ -339,6 +352,12 @@ proves the page does what she asked. In this order:
    she asked to change. One she didn't is a regression: fix the page, not the test.
 4. **Rewrite only those checks, from her words:** what must be true now, not which class names went away
    (`#cats .cat > :not(.spr)`, not a list of deleted classes). Then the whole suite: all checks must pass.
+
+**Never rewrite a test because it fails.** A failing check means the page is wrong, not the check. The only
+checks that change are the ones her ask contradicts, named before the suite runs (step 2), from her words.
+A check nobody planned to change that fails after a change is a regression: fix the page. Never edit a check
+to match the code, loosen a selector or a count to make it pass, or delete or skip one. The same holds for
+`furniture.check()`, the harness tests and the gateway tests.
 
 The suite loads the page in the same skeleton the Artifact tool publishes, against `runtime-stub.js`
 (an in-memory db with live snapshots and the real path rules, plus a sessions feed the test
