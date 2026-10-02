@@ -159,8 +159,8 @@ merge to `main`.
 
 1. **The gateway is set up** (2 October): the Worker, both secrets, `CATIO_URL` and `CATIO_TOKEN` in her
    environment, the setup script that installs the plugin, and the connector, signed in. A session reported
-   through the hook and showed in `list_agents`. Left for her: merge PR #26 (the hook's User-Agent: Cloudflare
-   refused Python's own), and set the connector's tools to Always allow if she hasn't.
+   through the hook and showed in `list_agents`, once PR #26 gave the hook its own User-Agent (Cloudflare refuses
+   Python's). Left for her: set the connector's tools to Always allow, if she hasn't.
 2. **Which comes first:** phase 2 (the camera) or the page reading the gateway (phase 5).
 3. **The posts waiting since 30 September**, which a session collects only when it next runs:
    - two messages to Clafoutis;
