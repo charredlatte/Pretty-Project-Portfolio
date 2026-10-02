@@ -216,9 +216,9 @@ class Merging(unittest.TestCase):
         return run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": tool, "tool_input": args,
                                 "transcript_path": self.transcript(**kw), "cwd": str(cwd or self.tmp)})
 
-    def merge(self, message=CARD, head=None, repo="cafe", **kw):
+    def merge(self, message=CARD, head=None, repo="cafe", merge_method=None, **kw):
         args = {"owner": "charredlatte", "repo": repo, "pullNumber": 7, "commit_message": message,
-                "expectedHeadSha": self.head() if head is None else head}
+                "expectedHeadSha": self.head() if head is None else head, "merge_method": merge_method}
         return self.gate("mcp__github__merge_pull_request", args, **kw)
 
     def note(self):
@@ -281,6 +281,37 @@ class Merging(unittest.TestCase):
         self.assertIn("commit or drop the uncommitted changes", self.merge().stderr)
         self.assertIsNone(self.note())
 
+    def test_moving_a_file_out_of_a_held_path_is_still_held(self):
+        Path(self.repo, "harness").mkdir(); Path(self.repo, "harness", "gate.py").write_text("x = 1\n" * 20)
+        self.g("add", "-A"); self.g("commit", "-qm", "gate"); self.g("update-ref", "refs/remotes/origin/main", "HEAD")
+        self.g("mv", "harness/gate.py", "gate.py"); self.g("commit", "-qm", "move it out")
+        self.assertIn("it changes harness", self.merge().stderr)
+
+    def test_the_guesses_are_their_own_paragraph(self):
+        for card in ("Checks: tests pass\nGuesses: none\n\nCo-Authored-By: someone <a@b>",
+                     "Guesses: none.\nChecks: tests pass"):
+            self.assertEqual(self.merge(card).returncode, 0, card)
+        r = self.merge("Checks: tests pass\nGuesses:\n- that prices round\n- that UTC is fine\n\nSigned-off-by: x")
+        self.assertIn("guesses: - that prices round - that UTC is fine. A note", r.stderr)
+
+    def test_only_a_plain_merge_and_a_typed_review_counts(self):
+        self.assertIn('merge with merge_method "merge", not squash', self.merge(merge_method="squash").stderr)
+        p = Path(self.tmp, "typed.jsonl")
+        p.write_text("\n".join(json.dumps(e) for e in (
+            {"type": "user", "timestamp": "2999-01-01T00:00:00Z", "message": {"role": "user", "content":
+             "<command-message>code-review</command-message>\n<command-name>/code-review</command-name>"}},
+            {"type": "assistant", "message": {"role": "assistant", "model": "claude-opus-5-5", "content": [
+             {"type": "tool_use", "id": "t", "name": "Skill", "input": {"skill": "ponytail-audit"}}]}},
+            {"type": "assistant", "isSidechain": True, "message": {"role": "assistant", "model": "claude-haiku-4-5", "content": []}},
+        )) + "\n")
+        args = {"owner": "charredlatte", "repo": "cafe", "pullNumber": 7, "commit_message": self.CARD, "expectedHeadSha": self.head()}
+        r = run("gates.py", {"tool_name": "mcp__github__merge_pull_request", "tool_input": args, "transcript_path": str(p), "cwd": self.tmp})
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_any_github_servers_merge_is_checked(self):
+        r = self.gate("mcp__plugin_github_github__merge_pull_request", {"owner": "charredlatte", "repo": "cafe", "pullNumber": 7})
+        self.assertIn("not ready to merge PR #7", r.stderr)
+
     def test_auto_merge_and_gh(self):
         r = self.gate("mcp__github__enable_pr_auto_merge", {"owner": "charredlatte", "repo": "cafe", "pullNumber": 7})
         self.assertIn("auto-merge can't be pinned", r.stderr)
@@ -288,6 +319,7 @@ class Merging(unittest.TestCase):
         self.assertEqual(self.gate("Bash", {"command": body}, cwd=self.repo).returncode, 0)
         self.assertEqual(self.gate("Bash", {"command": "cd cafe && " + body}).returncode, 0)
         self.assertIn("auto-merge", self.gate("Bash", {"command": body + " --auto"}, cwd=self.repo).stderr)
+        self.assertIn("not squash", self.gate("Bash", {"command": body + " --squash"}, cwd=self.repo).stderr)
         self.assertIn("not ready to merge PR #7", self.gate("Bash", {"command": "gh pr merge 7"}, cwd=self.repo).stderr)
         self.assertIn("name the pull request's number", self.gate("Bash", {"command": "gh pr merge feature"}, cwd=self.repo).stderr)
 
@@ -310,12 +342,15 @@ class Pushing(unittest.TestCase):
                                 "transcript_path": transcript(self.tmp, ["ponytail-audit"]), "cwd": str(self.work)})
 
     def test_never_the_default_branch(self):
-        for command in ("git push origin main", "git push", "git push -u origin HEAD:main", "git push origin feature:refs/heads/main"):
+        for command in ("git push origin main", "git push", "git push -u origin HEAD:main", "git push origin feature:refs/heads/main",
+                        "git -c push.default=current push origin main", "if git push origin main; then echo ok; fi",
+                        "{ git push origin main; }", 'bash -c "git push origin main"', "env GIT_TRACE=1 git push origin main"):
             r = self.push(command)
             self.assertEqual(r.returncode, 2, command)
             self.assertIn("never push to the default branch (main)", r.stderr)
         self.g("checkout", "-qb", "feature")
-        for command in ("git push -u origin feature", "git push", "git push origin HEAD 2>&1 | tail -1", "git push --tags"):
+        for command in ("git push -u origin feature", "git push", "git push origin HEAD 2>&1 | tail -1", "git push --tags",
+                        'cd "$NOWHERE" && git push origin feature', 'git commit -m "then git push" --dry-run'):
             self.assertEqual(self.push(command).returncode, 0, command)
         self.assertEqual(self.push({"owner": "o", "repo": "r", "branch": "main"}, "mcp__github__push_files").returncode, 2)
         self.assertEqual(self.push({"owner": "o", "repo": "r", "branch": "feature"}, "mcp__github__push_files").returncode, 0)
@@ -323,7 +358,7 @@ class Pushing(unittest.TestCase):
     def test_no_force_push(self):
         self.g("checkout", "-qb", "feature")
         for command in ("git push -f origin feature", "git push --force-with-lease", "git push origin +feature",
-                        "git push -uf origin feature", "git push --all origin"):
+                        "git push -uf origin feature", "git push --all origin", "git push origin 'refs/heads/*:refs/heads/*'"):
             self.assertEqual(self.push(command).returncode, 2, command)
 
     def test_only_a_merged_branch_is_deleted_and_only_where_sessions_merge(self):

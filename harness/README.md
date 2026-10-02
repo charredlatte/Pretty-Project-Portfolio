@@ -32,8 +32,8 @@ list extra browser commands, one pattern per line, in `.claude/browser-commands`
 
 A repo opts in with `{"merge": true}` in its `.claude/catio-rules.json` (the grocery app and this repo do). Its
 sessions finish a pull request themselves, the way she would: when the work is done and its checks pass, the
-session runs the `code-review` skill on it and calls `merge_pull_request` with `expectedHeadSha` (the commit it
-reviewed) and a commit message that ends with two lines:
+session runs the `code-review` skill on it and calls `merge_pull_request` as a merge commit, with
+`expectedHeadSha` (the commit it reviewed) and a commit message that ends with two lines:
 
 ```
 Checks: npm run test:page passed; CI green
@@ -49,7 +49,8 @@ It merges only when all of these hold:
 - **The audits ran.** The opening `ponytail-audit` ran, and `code-review` ran after the last commit. A fix
   pushed after the review needs another review.
 - **It merges what was reviewed.** `expectedHeadSha` is this checkout's `HEAD`, nothing is uncommitted, and
-  GitHub refuses the merge if the pull request's head has moved since.
+  GitHub refuses the merge if the pull request's head has moved since. It is a merge commit, not a squash or
+  rebase, so that very commit lands in `main` and the branch counts as merged.
 - **Nothing is a guess.** The commit message says `Guesses: none`.
 - **Nothing on the hold list changed.** `.claude/` always waits for her: it holds the switches, permissions
   and skills that steer every later session. A repo adds its own in `"hold"`. This repo holds `harness/`: the
@@ -65,7 +66,8 @@ ticks it once she has merged or closed the pull request.
 After a merge the session deletes the merged branch. The gate lets a branch be deleted only once it is merged,
 and only where sessions merge. A cloud session's git access hasn't been able to delete branches, so turn on GitHub's
 *Automatically delete head branches* (each repo's Settings → General → Pull Requests): then the merge deletes
-it. Pushing to the default branch and force-pushing stay forbidden everywhere.
+it. Pushing to the default branch and force-pushing stay forbidden everywhere. The gate reads the ordinary ways
+of running `git push` and `gh pr merge`; it is a guard rail for a session that means well, not a sandbox.
 
 In a repo that doesn't opt in, a finished pull request is hers to merge, and the session says so in those
 words: "PR #N is ready for you to merge."

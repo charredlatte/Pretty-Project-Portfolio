@@ -1,6 +1,7 @@
 """Shared bits for the KittyChat house-rule hooks: the rules, the hook input, git, and the transcript."""
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime
@@ -37,7 +38,10 @@ def merges(cwd=None):
 
 
 def git(*args, cwd=None):
-    r = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
+    try:
+        r = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
+    except OSError:  # cwd isn't there
+        return None
     return r.stdout.strip() if r.returncode == 0 else None
 
 
@@ -78,8 +82,8 @@ def hook_input():
         return {}
 
 
-def entries(data, needle):
-    """The entries of this session's transcript(s) whose line holds `needle` (a cheap filter before parsing)."""
+def entries(data, *needles):
+    """The entries of this session's transcript(s) whose line holds one of `needles` (a cheap filter before parsing)."""
     for key in ("transcript_path", "agent_transcript_path"):
         path = data.get(key)
         if not path:
@@ -87,7 +91,7 @@ def entries(data, needle):
         try:
             with open(os.path.expanduser(path), encoding="utf-8") as f:
                 for line in f:
-                    if needle in line:
+                    if any(n in line for n in needles):
                         try:
                             yield json.loads(line)
                         except ValueError:
@@ -97,16 +101,23 @@ def entries(data, needle):
 
 
 def skill_calls(data):
-    """(name, when) for every skill this session has invoked; when is seconds since the epoch, or 0."""
-    for entry in entries(data, '"Skill"'):
+    """(name, when) for every skill this session has run, by the Skill tool or typed as /name; when is seconds since
+    the epoch, or 0."""
+    for entry in entries(data, '"Skill"', "<command-name>"):
+        try:
+            when = datetime.fromisoformat(str(entry.get("timestamp")).replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            when = 0
         content = (entry.get("message") or {}).get("content")
-        for part in content if isinstance(content, list) else []:
-            if isinstance(part, dict) and part.get("type") == "tool_use" and part.get("name") == "Skill":
-                try:
-                    when = datetime.fromisoformat(str(entry.get("timestamp")).replace("Z", "+00:00")).timestamp()
-                except ValueError:
-                    when = 0
+        parts = content if isinstance(content, list) else [{"type": "text", "text": content}]
+        for part in parts:
+            if not isinstance(part, dict):
+                continue
+            if part.get("type") == "tool_use" and part.get("name") == "Skill":
                 yield str((part.get("input") or {}).get("skill", "")), when
+            elif entry.get("type") == "user" and part.get("type") == "text":
+                for name in re.findall(r"<command-name>/?([\w:.-]+)</command-name>", str(part.get("text") or "")):
+                    yield name, when
 
 
 def skills_used(data):
@@ -115,9 +126,10 @@ def skills_used(data):
 
 
 def models(data):
-    """Every model that has answered in this session, read from its transcript(s)."""
+    """Every model that has answered in this session, read from its transcript(s). A subagent's own side of the
+    conversation (a sidechain) doesn't count: it searched or read for the session, it didn't do the work."""
     return {(e.get("message") or {}).get("model") for e in entries(data, '"model"')
-            if e.get("type") == "assistant"} - {None, "<synthetic>"}
+            if e.get("type") == "assistant" and not e.get("isSidechain")} - {None, "<synthetic>"}
 
 
 def ran(data, skill):

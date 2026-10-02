@@ -10,19 +10,24 @@ merge   semi-automatic merging. A pull request merges only in a repo that opts i
         Guesswork (a guess it names, a model not on the list, a held path) is held for Charlotte: the pull request
         stays open, and a note for her review goes in the litter box.
 """
+import os
 import re
 import shlex
 import subprocess
 from datetime import date
 from pathlib import Path
 
-from common import block, checkouts, default_branch, enforced, git, local, merges, models, ran, rules, skill_calls
+from common import block, checkouts, default_branch, enforced, git, local, merges, models, rules, skill_calls
 
 REMOTE = re.compile(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?/?$")
-START = r"(?:^|[;&|(])\s*(?:\w+=\S*\s+)*"  # where a command starts: not inside another one's arguments
-PUSH = re.compile(START + r"git\s+(?:-C\s+(\S+)\s+)?push\b", re.M)
+# Where a command starts (after ; & | ( { ! or a quote, or a word like if, then, env, timeout 30), with any VAR=x
+# before it. The ordinary ways of running git; a hook is a guard rail, not a sandbox.
+START = (r"(?:^|[;&|({!\"'`]|\b(?:if|then|else|do|while|until|env|exec|command|time|nohup|sudo|timeout\s+\S+)\s)"
+         r"\s*(?:\w+=\S*\s+)*")
+PUSH = re.compile(START + r"git\s+(?:(?:-C\s+(\S+)|-c\s+\S+|--[\w-]+(?:=\S+)?)\s+)*push\b", re.M)
 GH_MERGE = re.compile(START + r"gh\s+pr\s+merge\b", re.M)
-API_WRITES = re.compile(r"^mcp__github__(push_files|create_or_update_file|delete_file)$")
+MERGE = re.compile(r"__merge_pull_request$")
+API_WRITES = re.compile(r"__(push_files|create_or_update_file|delete_file)$")
 SAY = "House rule (KittyChat): "
 
 
@@ -41,10 +46,12 @@ def words(text):
 
 
 def where(command, at, cwd, given=None):
-    """The folder a command at position `at` runs in: its -C, else the last cd before it, else cwd."""
-    cds = re.findall(r"\bcd\s+([^\s;&|)]+)", command[:at])
-    place = given or (cds[-1] if cds else "")
-    return str(Path(cwd, Path(place.strip("'\"")).expanduser())) if place else cwd
+    """The folder a command at position `at` runs in: every cd before it, in turn, then its -C. cwd when that
+    folder isn't there (a variable the hook can't see, say)."""
+    place = Path(cwd)
+    for step in re.findall(r"\bcd\s+([^\s;&|)]+)", command[:at]) + ([given] if given else []):
+        place = place / Path(os.path.expandvars(step.strip("'\""))).expanduser()
+    return str(place) if place.is_dir() else cwd
 
 
 def slug(repo):
@@ -70,6 +77,8 @@ def check_push(args, repo):
             or any(p.startswith("+") for p in pos[1:]):
         block(SAY + "no force-push. Merge the default branch into this one instead, and push that.")
     remote, specs = (pos[0] if pos else "origin"), pos[1:]
+    if any("*" in s for s in specs):
+        block(SAY + "push one branch at a time, by name (no patterns).")
     deleting = "--delete" in flags or any(re.fullmatch(r"-[a-zA-Z]*d[a-zA-Z]*", f) for f in flags)
     branch = git("branch", "--show-current", cwd=repo) or ""
     if not specs and not deleting and "--tags" not in flags:
@@ -98,7 +107,7 @@ def check_delete(repo, remote, name, default):
 
 # --- merges ---------------------------------------------------------------------------------------------------
 
-def check_merge(data, cwd, name, number, message, head):
+def check_merge(data, cwd, name, number, message, head, method=None):
     pr = f"PR #{number}"
     repo = checkout_of(name, cwd)
     if not repo:
@@ -117,22 +126,27 @@ def check_merge(data, cwd, name, number, message, head):
     elif weak:
         held.append(f"{', '.join(weak)} worked on it, and only {' or '.join(cfg.get('strong', []))} may merge")
 
+    calls = list(skill_calls(data))
     for skill in cfg.get("audits", []):
-        if not ran(data, skill):
+        if not any(skill in s for s, _ in calls):
             fix.append(f"run the {skill} skill")
     review, sha = cfg.get("review", "code-review"), git("rev-parse", "HEAD", cwd=repo)
     made = int(git("log", "-1", "--format=%ct", cwd=repo) or 0)
-    if not any(review in s and when >= made for s, when in skill_calls(data)):
+    if not any(review in s and when >= made for s, when in calls):
         fix.append(f"run the {review} skill on {pr} (it hasn't run since the last commit)")
     if not head:
         fix.append(f"pass expectedHeadSha: {sha}, the commit that was reviewed")
     elif head != sha:
         fix.append(f"expectedHeadSha is {head}, but this checkout is at {sha}: check out and review what's on {pr}")
-    if any("graphify-out/" not in l for l in (git("status", "--porcelain", cwd=repo) or "").splitlines()):
+    if method not in (None, "", "merge"):
+        fix.append(f"merge with merge_method \"merge\", not {method}: the reviewed commit itself goes into "
+                   "the default branch, and the branch can be deleted after")
+    status = git("status", "--porcelain", "--untracked-files=no", cwd=repo) or ""
+    if any("graphify-out/" not in l for l in status.splitlines()):
         fix.append("commit or drop the uncommitted changes")
 
     base = git("merge-base", f"refs/remotes/origin/{default_branch(repo)}", "HEAD", cwd=repo)
-    changed = (git("diff", "--name-only", base, "HEAD", cwd=repo) or "").splitlines() if base else None
+    changed = (git("diff", "--name-only", "--no-renames", base, "HEAD", cwd=repo) or "").splitlines() if base else None
     holds = [h.rstrip("/") for h in cfg.get("hold", []) + local(repo).get("hold", [])]
     if changed is None:
         held.append("there's no way to tell what it changes")
@@ -147,7 +161,10 @@ def check_merge(data, cwd, name, number, message, head):
         fix.append("end the merge's commit message with \"Checks: <what ran and passed>\" and \"Guesses: none\" "
                    "(or each thing you assumed rather than checked)")
     else:
-        guesses = " ".join(card[guess.end():].split())
+        lines = card[guess.end():].split("\n")  # its paragraph: up to a blank line, or another "Key:" line
+        lines = lines[:1] + next((lines[1:i] for i in range(1, len(lines))
+                                  if not lines[i].strip() or re.match(r"[A-Za-z][\w-]*:\s", lines[i])), lines[1:])
+        guesses = " ".join(" ".join(lines).split())
         if guesses.rstrip(".").lower() != "none":
             held.append("guesses: " + guesses)
 
@@ -194,6 +211,8 @@ def gh_merge(args):
             continue
         if a == "--auto":
             out["auto"] = True
+        elif a in ("--squash", "-s", "--rebase", "-r"):
+            out["method"] = "squash" if a in ("--squash", "-s") else "rebase"
         elif not a.startswith("-"):
             m = re.search(r"github\.com/([^/]+/[^/]+)/pull/(\d+)", a)
             out["number"], out["repo"] = (m.group(2), m.group(1)) if m else (a, out.get("repo"))
@@ -205,9 +224,10 @@ def check(data, tool, args, cwd, command):
     if re.search(r"enable_pr_auto_merge$", tool):
         block(SAY + "auto-merge can't be pinned to the commit that was reviewed. Merge with merge_pull_request, "
               "as the merging rule says.")
-    if tool == "mcp__github__merge_pull_request":
+    if MERGE.search(tool):
         name = f"{args.get('owner', '')}/{args.get('repo', '')}"
-        return check_merge(data, cwd, name, args.get("pullNumber"), args.get("commit_message"), args.get("expectedHeadSha"))
+        return check_merge(data, cwd, name, args.get("pullNumber"), args.get("commit_message"),
+                           args.get("expectedHeadSha"), args.get("merge_method"))
     if API_WRITES.search(tool):
         repo = checkout_of(f"{args.get('owner', '')}/{args.get('repo', '')}", cwd)
         default = default_branch(repo) if repo else "main"
@@ -227,4 +247,4 @@ def check(data, tool, args, cwd, command):
         if not str(got.get("number", "")).isdigit():
             block(SAY + "name the pull request's number, so the house rules can check the merge.")
         name = got.get("repo") or slug(git("rev-parse", "--show-toplevel", cwd=place) or place)
-        check_merge(data, place, name, got["number"], got.get("body"), got.get("head"))
+        check_merge(data, place, name, got["number"], got.get("body"), got.get("head"), got.get("method"))
