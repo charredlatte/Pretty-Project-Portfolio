@@ -9,11 +9,17 @@ for, in `docs/requests.md`; the audit behind phase 0, in `docs/audit-2026-10-01.
 
 ## Where it stands
 
-- **Live:** version 18 (1 October): the KittyChat Café, made honest.
+- **Live:** version 20 (2 October): nothing on the cats, and no cat food. It is in PR #22, not yet merged.
   - The brand is the House button; quiet maps and short menus; the Game UI Pastel map panel and minimap.
+  - What a cat needs shows when the pointer is over it; a click opens its menu.
   - Posts go to the outbox: the page tries `send_message`, claude.ai refuses it, and the page says so.
-  - Counts show only what really waits on her.
-- **`main`** has everything live, plus:
+  - Live sessions don't load: claude.ai refuses that read too. The page shows Claude's saved copy instead
+    (see "Why the café can't read live sessions yet").
+- **Open pull requests:**
+  - PR #22: versions 19 and 20;
+  - PR #25: the house rules' audit and semi-automatic merging. It is held for her, because it changes the
+    rules themselves.
+- **`main`** has version 18, plus:
   - the house rules, on in all seven repos, with the rule against Claude attribution in commits on her public
     repos and forks (PR #18);
   - the gateway, built and tested, waiting for her setup (PR #19);
@@ -41,7 +47,33 @@ for, in `docs/requests.md`; the audit behind phase 0, in `docs/audit-2026-10-01.
   - every session reports its state to the gateway, so the page needn't ask claude.ai for the list.
 - **What nothing can do: wake an idle session.** Only claude.ai can. Why is in `harness/README.md`.
 
+## Why the café can't read live sessions yet (issue #24)
+
+Checked on 2 October:
+
+1. **claude.ai refuses the page's `list_sessions`** (`approval_required` or `blocked_by_policy`). Claude Code
+   Remote is built in, so she has no switch for it.
+2. **The saved copy had stopped.** The page falls back on `snapshot/sessions`, which the "Refresh the catio"
+   Routine kept fresh. The Routine has been off since 30 September, after its last run failed, so the copy
+   was a day old. Claude refreshed it by hand on 2 October (50 sessions).
+3. **The gateway isn't set up.** Her Cloudflare account has no Workers, and claude.ai has no `Catio`
+   connector. Setting them up is the five steps in `harness/gateway/README.md`.
+4. **The gateway lists only sessions that report to it.** They report through the house-rules plugin, which
+   cloud sessions don't load yet. The two setup-script lines in `harness/README.md` fix that (PR #25).
+
+So nothing can show live cats until she does steps 3 and 4. Until then, any session can refresh the saved
+copy (CLAUDE.md, "Live sessions"), and the Routine can be turned back on, at the cost of her weekly limit.
+Before asking her, a session can check what's done: the Cloudflare connector's `workers_list` shows the
+Worker, and `ListConnectors` shows the `Catio` connector.
+
+The gateway's ponytail audit (2 October, before any more work on it) found it lean: four small cuts, about 15
+lines, in `docs/from-the-litterbox.md` under Findings. They ride along with the next change to the gateway.
+
 ## The roadmap, in order
+
+**Next: phase 5, step 2, the page reading the gateway.** Her issue #24 (2 October) chose it before phase 2,
+the camera.
+
 
 Each phase ends with:
 - the tests green;
@@ -136,14 +168,20 @@ Every session reports itself through `report.py`, and its Stop hook hands in her
 its turn ends. It does nothing until `CATIO_URL` and `CATIO_TOKEN` are set. Workers Builds deploys it on every
 merge to `main`.
 
-1. **She sets it up once** (`harness/gateway/README.md`):
+1. **She sets it up once** (`harness/gateway/README.md`). Not started on 2 October:
    - deploy the Worker from this repo;
    - two secrets;
    - `CATIO_URL` and `CATIO_TOKEN` in each Claude environment, with the Worker allowed in the network policy;
+   - the house-rules plugin's two setup-script lines in each environment (`harness/README.md`), or cloud
+     sessions never report;
    - the `Catio` connector in claude.ai, its tools set to Always allow.
-2. **The page reads the gateway.**
+2. **The page reads the gateway.** Build it on version 20 (PR #22 merged first). The page already reads other
+   agents through `host:catio` (`HOST`, `hostCall()`, `refreshAgents()`), and the gateway has the same tools,
+   so it is a second server: try `Catio`, then `host:catio`. Test it against the stub with a `Catio` server,
+   and publish once `ListConnectors` shows her connector.
    - Declare the `Catio` connector (`list_agents`, `comment`, `comments`, `manage`, `drop_file`) beside
-     `host:catio`. First check that an artifact may name a custom connector.
+     `host:catio`. A page names a connector by its display name in claude.ai, so a custom one should be
+     accepted. The first publish confirms it.
    - Show its cats next to the sessions, live.
    - Match a gateway cat (`via: claude-code`, `session`) to the session it is, so no session shows twice.
      Compare the ids after their prefix, in case one is `cse_…` and the other `session_…`.
@@ -157,12 +195,16 @@ merge to `main`.
 
 ## Waiting on Charlotte
 
-1. **Set up the gateway:** the five steps in `harness/gateway/README.md`.
-2. **Which comes first:** phase 2 (the camera) or the page reading the gateway (phase 5).
+1. **Set up the gateway:** the five steps in `harness/gateway/README.md`, and the setup-script lines in
+   `harness/README.md`. Until then, should "Refresh the catio" run again? It keeps the saved copy fresh, but it
+   spends her weekly limit.
+2. **Merge PR #22** (versions 19 and 20, live), and look at PR #25, which is held for her. Four sessions wait on
+   questions that are now settled, and can be archived (`docs/from-the-litterbox.md`, 2 October).
 3. **The posts waiting since 30 September**, which a session collects only when it next runs:
    - two messages to Clafoutis;
    - one to Matcha;
-   - Nougat's "yes";
+   - Nougat's "yes", to letting the adopted chat that duplicates a session go. Claude can delete it on her
+     word;
    - an archive request for another Nougat session, which Claude can do on her word.
 4. **Rotate the MCPmarket token** in her plugin zip's `.mcp.json`.
 5. **Small questions:**

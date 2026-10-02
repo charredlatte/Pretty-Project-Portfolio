@@ -156,6 +156,11 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
   The answer is in `harness/README.md`: nothing outside claude.ai can wake a session; the gateway makes the cats
   live and hands a running session her message at the end of its turn.
 - **"Update plan and compile"** (2 October): `docs/plan.md` rewritten to where things stand, and this file.
+- **Issue #24, "Cafe reading the gateway"** (2 October): "The kittychat cafe is still not able to read live
+  sessions. Wait for the PonyTail Audit of the gateway's current state before continuing to work on the
+  gateway. When done, compile and sift my recent sessions using the litterbox and update the plan." The audit
+  found the gateway lean. Why the café can't read live sessions is in `docs/plan.md`: the gateway isn't set up
+  yet. The sift is in `docs/from-the-litterbox.md`. It puts the page reading the gateway before the camera.
 - **No Claude co-author or session links** in commits on her public repos or forks (1 October, from another
   session; the rule is on `claude/cool-cannon-wh25u6`).
 
