@@ -267,10 +267,16 @@ subdomain>.workers.dev`) with the Catio server's tools at `/mcp`. Every session 
 `harness/hooks/report.py`, which does nothing until `CATIO_URL` and `CATIO_TOKEN` are in the environment, and
 its Stop hook hands in what she sent. Workers Builds deploys it on every merge to `main`; never deploy it by hand.
 
+- **It has accounts** (`src/registry.js`, `docs/accounts.md`): a handle, a password and a house each; an admin
+  signed in to the café creates them and resets passwords (`/api/users`, never by key), and a signed-in café
+  mints, lists and drops keys (`/api/keys`). The first account is hers, bootstrapped from the two secrets; the
+  handle `house` is kept for the first house.
 - **Two secrets, set only in Cloudflare:** `CATIO_TOKEN` (agents and hooks; also in her Claude environments) and
-  `CATIO_PASSWORD` (her sign-in, nowhere else). Never in the repo, the chat or a test.
-- **Only she speaks as herself.** OAuth (her password, through the `Catio` connector in claude.ai) may write as
-  `charlotte`, drop files and manage; the agents' key may not. Keep it that way: it is what stops a leaked key
+  `CATIO_PASSWORD` (her sign-in, nowhere else). Never in the repo, the chat or a test. They make the first account
+  once; after that they may go.
+- **Only a house's owner speaks as its owner.** OAuth (handle and password, through the `Catio` connector in
+  claude.ai) or the café's cookie may write as `charlotte` (the owner's name on the wire, shared with the page and
+  `catio_mcp.py`), drop files and manage; an agents' key may not. Keep it that way: it is what stops a leaked key
   from putting instructions in her mouth.
 - **Only Claude's connectors may register** (redirects to `claude.ai` or `claude.com`).
 - **Keep its tools in step with `catio_mcp.py`**: same names, arguments and results, so the page and agents
