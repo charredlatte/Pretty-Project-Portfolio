@@ -480,6 +480,10 @@ ul.gkey li > div.what { flex-basis: 100%; }
   "use strict";
   const SERVER = "Claude Code Remote";
   const GATEWAY = "CATIO";     // the Catio's gateway (harness/gateway): her connector in claude.ai, where every session reports
+  // Served from the gateway's own address (harness/gateway/cafe/runtime.js) instead of claude.ai: the sessions come
+  // from the gateway, and what only claude.ai can do (archive, pause, retitle, start a session, post into one that
+  // doesn't report) says so instead of pretending.
+  const VIA_GATEWAY = !!(window.claude && window.claude.catioGateway);
   const HOST = "host:catio";   // the Catio MCP server on her own computer (harness/mcp/catio_mcp.py), in the Claude app
   const PAGE = 50;          // sessions per fetch
   const MAX_FILE = 20 * 1024 * 1024;   // the artifact's asset cap
@@ -1514,6 +1518,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const L = S.live;
     if (L.state === "loading") return "Waking the cats…";
     if (L.state === "ok") return "Live · checked " + clock(S.sessionsAt);
+    if (L.state === "gateway") return "Live through your gateway" + (S.hostAt ? " · " + clock(S.hostAt) : "");
     if (L.state === "local") return S.from === "copy" ? "On this computer · saved " + clock(S.sessionsAt) : "On this computer";
     return S.from === "copy" ? "Claude's copy · saved " + clock(S.sessionsAt) : "Not live";
   }
@@ -1533,7 +1538,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     out.push(el("div", "rule"));
     const look = S.focus === k ? mi("Whole house", zoomOut) : mi("Look in", () => focusRoom(k));
     if (MENU.sub === "add") out.push(list([
-      S.mcp && mi("New session", () => { hideMenu(); openNewCat(k); }),
+      S.mcp && !VIA_GATEWAY && mi("New session", () => { hideMenu(); openNewCat(k); }),
       mi("Adopt a chat", () => { hideMenu(); openAdopt(k); }),
       mi("Back", () => { MENU.sub = null; showMenu("room", k); })]));
     else {
@@ -1552,7 +1557,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   // the house: what belongs to all of it, not one room
   function houseMenu() {
     const all = VIEW.cats, tray = S.brain.filter((d) => d.status === "unsorted").length;
-    const sub = [liveLine(), S.host === GATEWAY && S.hostAt && "Gateway live · " + clock(S.hostAt), VIEW.attic && VIEW.attic + " napping in the attic", S.hostNote].filter(Boolean).join(" · ");
+    const sub = [liveLine(), S.host === GATEWAY && S.hostAt && !VIA_GATEWAY && "Gateway live · " + clock(S.hostAt), VIEW.attic && VIEW.attic + " napping in the attic", S.hostNote].filter(Boolean).join(" · ");
     // the brand above it is the title and carries the badge, so the menu starts with how the cats are reaching you
     const out = [el("p", "sub", sub + (all.length ? ". " + summary(all).replace(/^./, (x) => x.toUpperCase()) + "." : ""))];
     const snd = el("button", "mi sw sound", S.sound ? "Sound on" : "Sound off"); snd.type = "button";
@@ -1647,11 +1652,12 @@ ul.gkey li > div.what { flex-basis: 100%; }
   function renderStatus() {
     const st = $("status"); st.replaceChildren();
     const L = S.live;
-    st.classList.toggle("warn", L.state !== "ok" && L.state !== "loading" && L.state !== "local");
+    st.classList.toggle("warn", L.state !== "ok" && L.state !== "loading" && L.state !== "local" && L.state !== "gateway");
     st.appendChild(el("span", "dot" + (L.state === "loading" ? " wait" : "")));
     const msg = $("stageMsg");
     msg.hidden = true;
     if (L.state === "loading") st.appendChild(el("span", "words", "Waking the cats… (the first visit asks to read your Claude Code sessions)"));
+    else if (L.state === "gateway") st.appendChild(el("span", "words", "Live through your gateway"));
     else if (L.state === "ok") {
       const n = (S.sessions || []).length;
       st.appendChild(el("span", "words", "Live · updated " + clock(S.sessionsAt) + " · your " + n + " most recent Claude Code sessions, checked every minute"));
@@ -1723,6 +1729,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
   function watch(fresh) {
     if (!S.mcp) return;
+    if (VIA_GATEWAY) { S.live = { state: "gateway" }; pick(); render(); return; }
     if (S.unwatch) { S.unwatch(); S.unwatch = null; }
     if (fresh && S.mcp.invalidate) S.mcp.invalidate(SERVER, "list_sessions").catch(() => {});
     S.live = { state: "loading" }; renderStatus();
@@ -1832,12 +1839,12 @@ ul.gkey li > div.what { flex-basis: 100%; }
     r.append(field("Name", nm), field("Lives in", roomSelect("catRoom", c.roomKey)));
     more.appendChild(r);
     let ti = null;
-    if (c.kind === "session") { ti = el("input"); ti.id = "catTitle"; ti.value = c.title; ti.maxLength = 120; more.appendChild(field("The session's title", ti)); }
+    if (c.kind === "session" && !VIA_GATEWAY) { ti = el("input"); ti.id = "catTitle"; ti.value = c.title; ti.maxLength = 120; more.appendChild(field("The session's title", ti)); }
     const sv = plainBtn("Save", "green", async () => {
       const room = $("catRoom").value, name = nm.value.trim();
       const ok = c.kind === "session"
         ? await save(async (db) => {
-          const title = ti.value.trim();
+          const title = ti ? ti.value.trim() : "";
           await db.doc("sessions/" + c.id).set(Object.assign({}, S.tweaks[c.id] || {}, { name, room, updatedAt: Date.now() }));
           if (title && title !== c.title) {
             try { await call("set_session_title", { session_id: c.id, title }); }
@@ -2252,6 +2259,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
   // Post text into a session. Resolves "pushed" or "queued"; rejects only if saving the queue fails too.
   async function postToSession(cat, text, item) {
+    if (VIA_GATEWAY) return "unreachable";   // nothing outside claude.ai can post into it, and nothing here would collect an outbox
     if (!S.mcp) return queue(cat, Object.assign({ text }, item), "no_mcp");
     const k = await sendKeys();
     try { await call("send_message", { [k.id]: cat.id, [k.text]: text }); return "pushed"; }
@@ -2278,7 +2286,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     if (cat.kind === "session") return postToSession(cat, text, item);
     return "kept";
   }
-  const saidAs = { pushed: "Sent.", gateway: "Sent. It reaches the session when its turn ends.", queued: "Waiting in the outbox: it couldn't be posted into the session, so it isn't there yet.", kept: "Kept on the card." };
+  const saidAs = { pushed: "Sent.", gateway: "Sent. It reaches the session when its turn ends.", unreachable: "Kept on the card: this session doesn't report to your gateway, so open it in claude.ai to tell it.", queued: "Waiting in the outbox: it couldn't be posted into the session, so it isn't there yet.", kept: "Kept on the card." };
 
   /* ---------- the brain: dropping files, and where they go ---------- */
   const isText = (f) => /^text\/|json|xml|csv|markdown|javascript|yaml|x-sh/.test(f.type) || /\.(md|txt|csv|json|ya?ml|html?|js|ts|py|sh|log|ics|vcf|eml)$/i.test(f.name);
@@ -2471,7 +2479,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const sent = res === "pushed" || res === "gateway";
     await S.db.doc("brain/" + id).update({ status: sent ? "pushed" : "waiting", sentAt: Date.now(), via: res });
     return res === "pushed" ? doc.name + " went to " + cat.name + "." : res === "gateway" ? doc.name + " is on its way to " + cat.name + ": it arrives when the session's turn ends."
-      : res === "queued" ? doc.name + " is kept, and waits in the outbox for " + cat.name + ": it couldn't be posted into the session." : doc.name + " is on " + cat.name + "'s card.";
+      : res === "queued" ? doc.name + " is kept, and waits in the outbox for " + cat.name + ": it couldn't be posted into the session."
+      : res === "unreachable" ? doc.name + " is kept in the brain: " + cat.name + " doesn't report to your gateway, so open it in claude.ai to hand it over." : doc.name + " is on " + cat.name + "'s card.";
   }
   // File an unsorted one under a cat, from the brain's tray.
   async function fileUnder(d, cat) {
@@ -2590,7 +2599,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     ul.hidden = !notes.length;
     for (const n of notes) {
       const li = el("li", n.author === "charlotte" ? "me" : "them");
-      li.append(el("span", "who", (n.author === "charlotte" ? "You" : c.name) + " · " + ago(n.at) + (n.via === "queued" ? " · queued" : "")), document.createTextNode(n.text));
+      li.append(el("span", "who", (n.author === "charlotte" ? "You" : c.name) + " · " + ago(n.at) + (n.via === "queued" ? " · queued" : n.via === "unreachable" ? " · not delivered" : "")), document.createTextNode(n.text));
       ul.appendChild(li);
     }
   }
@@ -2615,7 +2624,10 @@ ul.gkey li > div.what { flex-basis: 100%; }
       try { await call(tool, { session_id: c.id }); toast(done); }
       catch (e) { if (REFUSED.has(e.code) || !S.mcp) { await queue(c, { kind: "manage", action }, e.code || "no_mcp"); toast(saidAs.queued, "stay"); } else throw e; }
     };
-    if (c.kind === "session") {
+    if (c.kind === "session" && VIA_GATEWAY) {
+      // only claude.ai can pause or archive a session; through the gateway, a reporting one can still be asked to wrap up
+      if (c.agentId) act("Ask to wrap up", "", request("wrap_up", c.name + " will finish, ship and summarise."), null, "check");
+    } else if (c.kind === "session") {
       if (c.mood === "idle") act("Pause", "", direct("interrupt_session", "pause", c.name + " stops at the next safe point."), null, "pause");
       act("Ask to wrap up", "", request("wrap_up", c.name + " will finish, ship and summarise."), null, "check");
       if (c.archived) act("Unarchive", "", direct("unarchive_session", "unarchive", c.name + " is back."), null, "unlock");
@@ -2758,6 +2770,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       if (code === "server_not_connected" || code === "not_in_manifest" || code === "server_not_found") { S.host = null; S.agents = []; render(); }
     }
   }
+  addEventListener("catio:agents", () => refreshAgents());   // on the gateway's own address, it says when a cat changed
 
   /* ---------- sound ---------- */
   let audio = null;

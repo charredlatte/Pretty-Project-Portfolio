@@ -151,12 +151,31 @@ merge to `main`.
      next Stop; its answers there (`report.py say`) show in its conversation;
    - when CATIO asks before every call or needs signing in again, the House menu says so.
 3. **Later:**
-   - agents the gateway runs itself (the rest of OpenClaw), which would need a machine;
+   - agents the gateway runs itself: phase 6;
    - a Telegram channel;
    - agent cats through `host:catio` (only the Claude desktop app can declare it). Agents that report to the
      gateway show up anywhere, through the `Catio` connector;
    - `catio-plugin/` listed in the marketplace beside `kittychat-house-rules`.
    - accounts, one café per person: the recommendation is `docs/accounts.md`.
+
+### Phase 6: the Catio as the UI for all her sessions, in OpenClaw's shape
+
+Her ask (2 October): "I want to be able to use the catio as a UI for all of my Claude sessions", not an artifact,
+and "Open session" not sending her back into claude.ai. OpenClaw's gateway serves its Control UI from its own
+address and runs the sessions itself, so the UI is where you chat (`chat.send`, `chat.history`, `chat.abort`); a
+coding agent such as Claude Code runs on "the machine that runs the coding agent", which dials out to the gateway.
+Claude Code sessions in claude.ai stay claude.ai's: their full conversation opens only there.
+
+1. **The café on the gateway's address.** Built (this branch): sign-in, the page with `cafe/runtime.js`, her data
+   in the house with live pushes over a WebSocket, art and brain files in KV, `cafe/move-in.py` to move in.
+   Go-live: she merges, Workers Builds deploys, Claude runs `move-in.py` with the artifact's database.
+2. **Chat in the café:** the gateway keeps each runner session's conversation; she sends, watches the reply
+   stream, and can stop a run.
+3. **The runner:** a small program that starts Claude Code sessions for the café, signed in with her Claude plan
+   (`claude setup-token`), dialling out to the gateway. On her Windows PC first (her choice: free, while it's on).
+   Always-on homes, if she wants one later (prices of October 2026): Cloudflare Containers next to the gateway
+   ($5/month Workers Paid, sleeps when idle, about 7¢ a working hour at 4 GB), Hetzner CAX11 (€5.99 + €0.50 a month),
+   Oracle's Always Free ARM machine (2 cores, 12 GB since June 2026), a Raspberry Pi. Claude Code needs 4 GB.
 
 ## Waiting on Charlotte
 

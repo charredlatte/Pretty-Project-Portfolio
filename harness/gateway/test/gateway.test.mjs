@@ -108,13 +108,99 @@ async function signIn() {
 }
 
 // ---------- the tests ----------
-describe("the gateway", () => {
-	test("opens the café at its own address", async () => {
-		const r = await fetch(base + "/", { redirect: "manual" });
-		assert.equal(r.status, 302);
-		assert.match(r.headers.get("location"), /^https:\/\/claude\.ai\/artifact\//);
+// The café on the gateway's own address: hers alone, behind her password, as OpenClaw's Control UI is.
+describe("the café", () => {
+	let cookie = "";
+	const KEY = () => ({ Authorization: "Bearer " + TOKEN });
+	const api = (path, init = {}) => fetch(base + path, { ...init, headers: { Cookie: cookie, "X-Catio": "1", ...(init.headers || {}) } });
+	const put = (path, data, method = "PUT") => api("/api/db/" + path, { method, body: JSON.stringify({ data }) });
+
+	test("asks for her password before showing anything", async () => {
+		const first = await (await fetch(base + "/")).text();
+		assert.match(first, /Your Catio password/);
+		assert.doesNotMatch(first, /id="houseBtn"/);
+		for (const p of ["/api/db", "/art/licensed/pochi.png", "/files/x", "/ws"]) assert.equal((await fetch(base + p)).status, 401, p);
+		const wrong = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ password: "not-the-password-sorry" }), redirect: "manual" });
+		assert.equal(wrong.status, 401);
+		const right = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ password: PASSWORD }), redirect: "manual" });
+		assert.equal(right.status, 303);
+		const set = right.headers.get("set-cookie");
+		assert.match(set, /^__Host-catio=[0-9a-f]{64}; Path=\/; Secure; HttpOnly; SameSite=Strict/);
+		cookie = set.split(";")[0];
+		const r = await fetch(base + "/", { headers: { Cookie: cookie } });
+		assert.equal(r.headers.get("x-frame-options"), "DENY");
+		const page = await r.text();
+		assert.match(page, /<script src="\/runtime.js"><\/script><\/head><body>/);
+		assert.match(page, /id="houseBtn"/);
 	});
 
+	test("moves her data in once, with the agents' key", async () => {
+		const docs = { "rooms/kitchen": { name: "Kitchen", repos: ["groceries"] }, "cats/c1": { title: "A chat", mood: "needs" } };
+		const send = (headers) => fetch(base + "/api/import", { method: "POST", headers, body: JSON.stringify({ docs }) });
+		assert.equal((await send({})).status, 401);
+		assert.equal((await send({ Cookie: cookie })).status, 401);
+		assert.equal((await send(KEY())).status, 200);
+		assert.equal((await send(KEY())).status, 409);
+		assert.deepEqual((await (await api("/api/db")).json()).docs, docs);
+	});
+
+	test("keeps the page's documents, and tells an open café at once", async () => {
+		const heard = [];
+		const ws = new WebSocket(base.replace("http", "ws") + "/ws", { headers: { Cookie: cookie, Origin: base } });
+		ws.onmessage = (e) => heard.push(JSON.parse(e.data));
+		await new Promise((ok, no) => { ws.onopen = ok; ws.onerror = no; });
+		assert.equal((await fetch(base + "/api/db/rooms/kitchen", { method: "PUT", headers: { Cookie: cookie }, body: JSON.stringify({ data: {} }) })).status, 403);
+		assert.equal((await put("rooms/kitchen", { name: "Cuisine" })).status, 200);
+		assert.equal((await put("cats/c1", { mood: "done" }, "PATCH")).status, 200);
+		assert.equal((await put("cats/nobody", { mood: "done" }, "PATCH")).status, 404);
+		assert.equal((await put("rooms", { name: "x" })).status, 400);
+		assert.equal((await api("/api/db/cats/c1", { method: "DELETE" })).status, 200);
+		const { docs } = await (await api("/api/db")).json();
+		assert.deepEqual(docs, { "rooms/kitchen": { name: "Cuisine" } });
+		await new Promise((r) => setTimeout(r, 300));
+		assert.deepEqual(heard.filter((m) => m.type === "doc").map((m) => [m.path, m.data]),
+			[["rooms/kitchen", { name: "Cuisine" }], ["cats/c1", { title: "A chat", mood: "done" }], ["cats/c1", null]]);
+		await api("/api/tools/report_status", { method: "POST", body: JSON.stringify({ agent: "cafe-cat", mood: "busy" }) });
+		await new Promise((r) => setTimeout(r, 300));
+		assert.ok(heard.some((m) => m.type === "agents"), "a cat's change reaches the café");
+		ws.close();
+		const stranger = new WebSocket(base.replace("http", "ws") + "/ws", { headers: { Cookie: cookie, Origin: "https://elsewhere.example" } });
+		await assert.rejects(new Promise((ok, no) => { stranger.onopen = ok; stranger.onerror = no; }));
+	});
+
+	test("serves the licensed art only to her, from what the agents' key uploaded", async () => {
+		const png = Buffer.from("89504e470d0a1a0a0000", "hex");
+		const up = (path, body, headers = KEY()) => fetch(base + "/api/" + path, { method: "PUT", headers, body });
+		assert.equal((await up("art/licensed/pochi.png", png, {})).status, 401);
+		assert.equal((await up("art/licensed/evil.html", "<script>")).status, 400);
+		assert.equal((await up("art/licensed/pochi.png", png)).status, 200);
+		assert.equal((await fetch(base + "/art/licensed/pochi.png")).status, 401);
+		const r = await api("/art/licensed/pochi.png");
+		assert.equal(r.headers.get("content-type"), "image/png");
+		assert.deepEqual(Buffer.from(await r.arrayBuffer()), png);
+	});
+
+	test("keeps the brain's files, and opens them where nothing in them can run", async () => {
+		const up = await (await api("/api/files", { method: "POST", headers: { "Content-Type": "text/html", "X-Name": "notes.html" }, body: "<script>alert(1)</script>" })).json();
+		const r = await api(up.url);
+		assert.equal(await r.text(), "<script>alert(1)</script>");
+		assert.match(r.headers.get("content-security-policy"), /^sandbox/);
+		assert.match(r.headers.get("content-disposition"), /^attachment/);
+		assert.equal((await api("/api/files/" + up.id, { method: "DELETE" })).status, 200);
+		assert.equal((await api(up.url)).status, 404);
+	});
+
+	test("uses the gateway's tools as herself", async () => {
+		assert.equal((await api("/api/tools/comment", { method: "POST", body: JSON.stringify({ cat: "cafe-cat", text: "From the café" }) })).status, 200);
+		const { notes } = await (await api("/api/tools/comments", { method: "POST", body: JSON.stringify({ cat: "cafe-cat" }) })).json();
+		assert.deepEqual([notes.at(-1).author, notes.at(-1).text], ["charlotte", "From the café"]);
+		assert.equal((await api("/api/tools/no_such_tool", { method: "POST", body: "{}" })).status, 404);
+		assert.equal((await api("/api/tools/manage", { method: "POST", body: JSON.stringify({ cat: "nobody", action: "archive" }) })).status, 400);
+		assert.match(await (await fetch(base + "/runtime.js")).text(), /catioGateway: true/);
+	});
+});
+
+describe("the gateway", () => {
 	test("tells strangers to sign in, and how", async () => {
 		const r = await fetch(base + "/mcp", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
 		assert.equal(r.status, 401);

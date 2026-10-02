@@ -14,6 +14,7 @@ const LOCK_FOR = 15 * 60 * 1000;
 const ACTIONS = ["rename", "move", "archive", "unarchive", "pause", "resume", "wrap_up", "message", "done"];
 
 class Refusal extends Error {}   // bad arguments: the caller is told, nothing breaks
+const CHANGES = new Set(["report_status", "comment", "drop_file", "pick_up", "manage"]);   // tools that change what a café shows
 
 function need(args, ...keys) {
 	for (const k of keys) if (!String(args[k] ?? "").trim()) throw new Refusal(k + " is required");
@@ -155,18 +156,86 @@ export class House extends DurableObject {
 				"picked_by TEXT, base64 TEXT)",
 			"CREATE INDEX IF NOT EXISTS files_by_cat ON files (cat, status)",
 			"CREATE TABLE IF NOT EXISTS wrong_passwords (at INTEGER NOT NULL)",
+			// the café's own database, when it is served from here: one row a document, as the page keeps them
+			"CREATE TABLE IF NOT EXISTS docs (path TEXT PRIMARY KEY, data TEXT NOT NULL, at INTEGER NOT NULL)",
+			// browsers she signed in to the café, by the hash of their cookie
+			"CREATE TABLE IF NOT EXISTS logins (hash TEXT PRIMARY KEY, until INTEGER NOT NULL)",
 		]) this.sql.exec(q);
 	}
 
-	/** One tool call. `who` is "charlotte" (signed in through claude.ai) or "agent" (holds CATIO_TOKEN). */
+	/** One tool call. `who` is "charlotte" (signed in through claude.ai or the café) or "agent" (holds CATIO_TOKEN). */
 	call(name, args, who) {
 		const tool = Object.hasOwn(TOOLS, name) && TOOLS[name];
 		if (!tool) return { unknown: true };
 		try {
-			return { ok: tool(this, args && typeof args === "object" && !Array.isArray(args) ? args : {}, who === "charlotte") };
+			const ok = tool(this, args && typeof args === "object" && !Array.isArray(args) ? args : {}, who === "charlotte");
+			if (CHANGES.has(name)) this.tell({ type: "agents" });   // an open café redraws its cats now, not at its next look
+			return { ok };
 		} catch (e) {
 			if (e instanceof Refusal) return { error: e.message };
 			throw e;
+		}
+	}
+
+	// ---- the café, served from here: its documents, who is signed in, and the live line to each open café ----
+
+	docs() {
+		const out = {};
+		for (const r of this.sql.exec("SELECT path, data FROM docs").toArray()) out[r.path] = JSON.parse(r.data);
+		return out;
+	}
+
+	/** Write a document: replace it, or (merge) add fields to one that exists. False when merging into nothing. */
+	putDoc(path, data, merge = false) {
+		let next = data;
+		if (merge) {
+			const row = this.sql.exec("SELECT data FROM docs WHERE path = ?", path).toArray()[0];
+			if (!row) return false;
+			next = { ...JSON.parse(row.data), ...data };
+		}
+		this.sql.exec("INSERT INTO docs (path, data, at) VALUES (?, ?, ?) ON CONFLICT (path) DO UPDATE SET data = excluded.data, at = excluded.at",
+			path, JSON.stringify(next), Date.now());
+		this.tell({ type: "doc", path, data: next });
+		return true;
+	}
+
+	dropDoc(path) {
+		this.sql.exec("DELETE FROM docs WHERE path = ?", path);
+		this.tell({ type: "doc", path, data: null });
+	}
+
+	/** The café's data, moved from claude.ai once: refused when the café already has any. */
+	importDocs(docs) {
+		if (this.sql.exec("SELECT COUNT(*) AS n FROM docs").one().n) return false;
+		for (const [path, data] of Object.entries(docs)) this.sql.exec("INSERT INTO docs (path, data, at) VALUES (?, ?, ?)", path, JSON.stringify(data), Date.now());
+		this.tell({ type: "reload" });
+		return true;
+	}
+
+	login(hash, until) {
+		this.sql.exec("DELETE FROM logins WHERE until <= ?", Date.now());
+		this.sql.exec("INSERT INTO logins (hash, until) VALUES (?, ?)", hash, until);
+	}
+
+	loggedIn(hash) {
+		return this.sql.exec("SELECT COUNT(*) AS n FROM logins WHERE hash = ? AND until > ?", hash, Date.now()).one().n > 0;
+	}
+
+	// An open café keeps a WebSocket here, and hears every change as it happens. The Worker lets in only a
+	// signed-in browser from the café's own address.
+	fetch(request) {
+		if (request.headers.get("Upgrade") !== "websocket") return new Response("Expected a WebSocket", { status: 426 });
+		const [client, server] = Object.values(new WebSocketPair());
+		this.ctx.acceptWebSocket(server);
+		return new Response(null, { status: 101, webSocket: client });
+	}
+
+	webSocketMessage() {}   // the café only listens here: what it says goes through /api
+
+	tell(message) {
+		const text = JSON.stringify(message);
+		for (const ws of this.ctx.getWebSockets()) {
+			try { ws.send(text); } catch { /* it closed while we spoke */ }
 		}
 	}
 

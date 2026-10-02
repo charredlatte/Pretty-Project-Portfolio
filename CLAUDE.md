@@ -281,6 +281,14 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
 It is set up (2 October 2026): her connector is named `CATIO` in claude.ai, and the page reads it (phase 5 of
 `docs/plan.md`). Setting up another is the five steps in `harness/gateway/README.md`.
 
+**The café on its own address** (her choice, 2 October: "the catio as a UI for all of my Claude sessions", in
+OpenClaw's shape). The gateway's address serves the same `catio/index.html` behind her password, with
+`harness/gateway/cafe/runtime.js` as its `window.claude` (`catioGateway: true`, so the page's `VIA_GATEWAY` mode is
+honest about what only claude.ai can do). Its data lives in the gateway (`docs` in the house), apart from the
+artifact's: the two copies don't share changes. Its art is uploaded with `cafe/move-in.py` and served only to her,
+signed in: never commit it, never serve it without the sign-in. A change to the page reaches both: the artifact by a
+publish, the gateway by a merge. Check gateway mode with `?via=gateway` in the stub.
+
 ## Live sessions
 
 The page calls `list_sessions` (limit 50) through the `mcp` capability as the viewer. Its write
