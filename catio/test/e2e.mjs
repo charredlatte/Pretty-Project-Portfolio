@@ -1695,6 +1695,8 @@ if (LOCAL) {
     await nextStep();
     expect((await page.locator("#roomsN").innerText()) === "3", "open rooms: " + await page.locator("#roomsN").innerText());
     expect((await page.locator("#sn-living").inputValue()) === "Lounge", "the lounge's name");
+    const t = await page.locator("#setupDlg").innerText().then((x) => x.toUpperCase());
+    expect(t.includes("CAFÉ · NEW CATS COME IN HERE") && !t.includes("CAT LOUNGE · NEW CATS"), "the front door she flagged (the café) not kept: " + t);
   });
   await page.click("#roomsMore"); await settle(page);
   await check("+ opens the next room in the opening order, and keeps the focus on the button", async () => {
@@ -1711,6 +1713,7 @@ if (LOCAL) {
     expect(st["rooms/kitchen"].closed === false && st["rooms/kitchen"].blurb === "Weekly meals" && st["rooms/kitchen"].model === "claude-opus-5-5", JSON.stringify(st["rooms/kitchen"]));
     expect(st["rooms/study"].closed === false && st["rooms/study"].repos.includes("montfortoise-shopify"), "the craft room lost its state or its repo: " + JSON.stringify(st["rooms/study"]));
     expect(st["rooms/bath"].closed === true, "the ensuite opened");
+    expect(st["rooms/dining"].catchAll && !st["rooms/living"].catchAll, "the front door moved");
     expect(st["house/main"].name === "Mochi's Café", "name lost");
   });
   await check("no page errors through the first run", async () => expect(errors.length === 0, errors.join("; ")));
@@ -1729,11 +1732,28 @@ if (LOCAL) {
     await page.click("#ghSkip"); await settle(page);
     expect((await page.locator("#setupTitle").innerText()) === "Sessions", await page.locator("#setupTitle").innerText());
   });
+  await check("the first run's own writes don't close it early: one toast, the doors open once", async () => {
+    expect(await page.locator("#setupDlg[open]").count() === 1, "closed early");
+  });
   for (let i = 0; i < 4; i++) await nextStep();
   await page.waitForTimeout(300);
   await check("the doors still open with no repositories filed", async () => {
     const st = await T(page, () => window.__catio.store);
     expect(st["house/main"] && st["rooms/living"] && st["rooms/living"].catchAll && st["rooms/living"].repos.length === 0, JSON.stringify(st["rooms/living"]));
+  });
+  await ctx.close();
+}
+{
+  const { page, ctx } = await open("?mode=empty&repos=denied");
+  const nextStep = async () => { await page.click("#setupDlg button[type=submit]"); await settle(page); };
+  await nextStep(); await nextStep();
+  await page.click("#ghConnect");
+  await page.waitForTimeout(300);
+  await check("the page's own grant refused: its own words, nothing about GitHub, and Skip", async () => {
+    const t = await page.locator("#setupDlg").innerText();
+    expect(t.includes("list_repos") && t.includes("Edit rooms") && !t.includes("Claude GitHub App"), t);
+    await page.click("#ghSkip"); await settle(page);
+    expect((await page.locator("#setupTitle").innerText()) === "Sessions", "not on Sessions");
   });
   await ctx.close();
 }

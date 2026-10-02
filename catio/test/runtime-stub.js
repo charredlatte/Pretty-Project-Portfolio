@@ -111,8 +111,12 @@
     // ?send=ok posts; ?send=error fails the way a tool can; by default the page may not call it
     send_message: () => { const v = params.get("send"); if (v === "ok") return { ok: true }; throw v === "error" ? { code: "tool_error", message: "session is archived" } : { code: "not_in_manifest", message: "send_message isn't declared" }; },
     set_session_title: () => ({ ok: true }), archive_session: () => ({ ok: true }), unarchive_session: () => ({ ok: true }), interrupt_session: () => ({ ok: true }),
-    // the repositories GitHub lists for the viewer (invented); ?repos=none: GitHub isn't connected
-    list_repos: () => { if (params.get("repos") === "none") throw { code: "not_in_manifest", message: "list_repos isn't declared" }; return { repos: [{ full_name: "charredlatte/my-portfolio" }, { full_name: "charredlatte/recipes" }] }; },
+    // the repositories GitHub lists for the viewer (invented); ?repos=none: GitHub isn't connected; ?repos=denied: the page's own grant is missing
+    list_repos: () => {
+      if (params.get("repos") === "none") throw { code: "tool_error", message: "GitHub isn't connected for this account" };
+      if (params.get("repos") === "denied") throw { code: "not_in_manifest", message: "list_repos isn't declared" };
+      return { repos: [{ full_name: "charredlatte/my-portfolio" }, { full_name: "charredlatte/recipes" }] };
+    },
   };
   // send_message's schema: ?sendschema=text names its message "text"; ?sendschema=none has none to read
   mcp.describeTool = async (server, tool) => {

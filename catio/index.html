@@ -1798,7 +1798,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     db.collection("rooms").onSnapshot((snap) => {
       const r = {}; for (const d of snap.docs) r[d.id] = d.data(); S.rooms = r; render();
       if (first && !(snap.metadata && snap.metadata.fromCache)) { first = false; if (!snap.docs.length) openSetup(false); }
-      else if (snap.docs.length && $("setupDlg").open && !$("setupDlg").dataset.again) { $("setupDlg").close(); toast("The rooms are here: the café is set up."); }
+      else if (snap.docs.length && $("setupDlg").open && !$("setupDlg").dataset.again && !$("setupDlg").dataset.saving) { $("setupDlg").close(); toast("The rooms are here: the café is set up."); }
     }, fail);
     db.doc("house/main").onSnapshot((d) => { S.house = d.exists ? d.data() : {}; render(); }, fail);
     db.collection("sessions").onSnapshot((snap) => { const t = {}; for (const d of snap.docs) t[d.id] = d.data(); S.tweaks = t; render(); }, fail);
@@ -2320,6 +2320,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
     for (const k of ORDER) A.names[k] = again && S.rooms[k] && S.rooms[k].name && S.rooms[k].name !== GEOM[k].name ? S.rooms[k].name : "";
     if (again) for (const k of ORDER) for (const r of roomInfo(k).repos) A.repos[r] = k;
     const open = () => OPENING.filter((k) => A.open.includes(k));
+    A.door = again ? catchAllRoom() : null;   // the front door she flagged stays while its room is open
+    const door = () => (A.door && A.open.includes(A.door) ? A.door : open()[0]);
     const nameOf = (k) => A.names[k].trim() || GEOM[k].name;
     const sessions = () => (S.liveSessions || []).filter((s) => !isWarmStart(s)).length;
     let step = 0, timer = null;
@@ -2348,10 +2350,10 @@ ul.gkey li > div.what { flex-basis: 100%; }
         const grid = el("div", "roomgrid");
         for (const k of OPENING) { const b = el("span", "btn", GEOM[k].name); b.setAttribute("aria-pressed", String(open().includes(k))); b.dataset.room = k; grid.appendChild(b); }
         sec.append(ctr, grid);
-        open().forEach((k, i) => {
+        open().forEach((k) => {
           const nm = el("input"); nm.id = "sn-" + k; nm.value = A.names[k]; nm.maxLength = 30; nm.placeholder = GEOM[k].name;
           nm.addEventListener("input", () => { A.names[k] = nm.value; });
-          sec.appendChild(field(GEOM[k].name + (i ? "" : " · new cats come in here"), nm));
+          sec.appendChild(field(GEOM[k].name + (k === door() ? " · new cats come in here" : ""), nm));
         });
         return sec;
       },
@@ -2368,16 +2370,21 @@ ul.gkey li > div.what { flex-basis: 100%; }
           sec.appendChild(b);
         } else if (A.ghErr) {
           const code = A.ghErr.code || "error";
-          sec.appendChild(el("p", "note", ["server_not_connected", "server_not_found", "selection_required", "needs_reauth", "approval_required", "blocked_by_policy"].includes(code)
-            ? problem(A.ghErr).message : "The page can't ask Claude Code Remote for your repositories here (" + code + ")."));
-          sec.appendChild(el("p", "note", "Connect GitHub in claude.ai and install the Claude GitHub App on your repositories, then check again."));
+          // the page's own grant is missing: no GitHub setting can fix that, so say what can
+          if (["not_in_manifest", "consent_required", "not_granted", "capability_disabled", "capability_removed"].includes(code))
+            sec.appendChild(el("p", "note", "This page isn't allowed to ask for your repositories yet (" + code + "): it needs list_repos among its capabilities. Skip for now and file them under Edit rooms, or republish the page with it."));
+          else {
+            sec.appendChild(el("p", "note", ["server_not_connected", "server_not_found", "selection_required", "needs_reauth", "approval_required", "blocked_by_policy"].includes(code)
+              ? problem(A.ghErr).message : "Claude Code Remote couldn't list your repositories (" + code + ")."));
+            sec.appendChild(el("p", "note", "Connect GitHub in claude.ai and install the Claude GitHub App on your repositories, then check again."));
+          }
           const row = el("div", "row");
           const again2 = el("button", "btn", "Check again"); again2.type = "button"; again2.id = "ghRetry"; again2.addEventListener("click", askGitHub);
           const skip = el("button", "btn", "Skip for now"); skip.type = "button"; skip.id = "ghSkip"; skip.addEventListener("click", () => goStep(3));
           row.append(again2, skip); sec.appendChild(row);
         } else if (!A.gh.length) sec.appendChild(el("p", "note", "GitHub lists no repositories for you yet. Rooms can be pointed at them later, under Edit rooms."));
         else {
-          const fallback = open()[0];
+          const fallback = door();
           A.gh.forEach((name, i) => {
             const row = el("div", "repo");
             const sel = el("select"); sel.id = "sr-" + i; sel.setAttribute("aria-label", "Room for " + name);
@@ -2439,7 +2446,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       () => {
         const sec = el("div", "dlg");
         const ul = el("ul", "sum");
-        const repos = Object.keys(A.repos).filter((r) => open().includes(A.repos[r])).length;
+        const repos = Object.keys(A.repos).filter((r) => GEOM[A.repos[r]]).length;
         for (const t of [A.name.trim() || "KittyChat Café", A.open.length + (A.open.length === 1 ? " room open" : " rooms open"),
           repos + (repos === 1 ? " repository filed" : " repositories filed"), S.mcp && S.live.state === "ok" ? sessions() + (sessions() === 1 ? " cat at the door" : " cats at the door") : null].filter(Boolean)) ul.appendChild(el("li", null, t));
         sec.appendChild(ul);
@@ -2474,16 +2481,18 @@ ul.gkey li > div.what { flex-basis: 100%; }
     f.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (step < STEPS.length - 1) { goStep(step + 1); return; }
-      const rooms = open(), byRoom = {};
-      for (const [r, k] of Object.entries(A.repos)) (byRoom[GEOM[k] ? k : rooms[0]] = byRoom[GEOM[k] ? k : rooms[0]] || []).push(r);
+      const rooms = open(), byRoom = {}, front = door();
+      for (const [r, k] of Object.entries(A.repos)) (byRoom[GEOM[k] ? k : front] = byRoom[GEOM[k] ? k : front] || []).push(r);
+      dlg.dataset.saving = "1";   // the rooms snapshot these writes fire is not someone else setting the café up
       const ok = await save(async (db) => {
         await db.doc("house/main").set({ name: A.name.trim() || "KittyChat Café", onboarded: Date.now() });
         for (const k of ORDER) {
-          const d = { name: nameOf(k), repos: byRoom[k] || [], catchAll: k === rooms[0], closed: !rooms.includes(k) };
+          const d = { name: nameOf(k), repos: byRoom[k] || [], catchAll: k === front, closed: !rooms.includes(k) };
           if (S.rooms[k]) await db.doc("rooms/" + k).update(d);
           else await db.doc("rooms/" + k).set(Object.assign({ blurb: "", model: "claude-opus-5-5" }, d));
         }
       }, "The doors are open.");
+      delete dlg.dataset.saving;
       if (ok) dlg.close();
     });
     dlg.addEventListener("close", () => clearTimeout(timer), { once: true });
