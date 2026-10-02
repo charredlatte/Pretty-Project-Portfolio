@@ -7,9 +7,8 @@ import PAGE from "../../../catio/index.html";
 import RUNTIME from "../cafe/runtime.js";
 import { esc, page } from "./signin.js";
 import { randomToken, sha256 } from "./secret.js";
-import { registry } from "./registry.js";
+import { bootProblem, hasAccount, registry } from "./registry.js";
 import { fileKeys } from "./houses.js";
-import { bootProblem } from "./registry.js";
 
 const COOKIE = "__Host-catio";
 const STAY = 30 * 24 * 3600 * 1000;   // a signed-in browser stays signed in a month
@@ -67,11 +66,11 @@ ${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}
 </form>`, status);
 }
 
-const NO_ACCOUNT = () => "The gateway has no account yet: add CATIO_PASSWORD in Cloudflare, and it becomes the first one." + (bootProblem() ? " " + bootProblem() : "");
+const NO_ACCOUNT = () => { const why = bootProblem(); return "The gateway has no account yet: add CATIO_PASSWORD in Cloudflare, and it becomes the first one." + (why ? " " + why : ""); };
 
 async function login(request, env) {
+	if (!(await hasAccount(env))) return signInPage(NO_ACCOUNT(), 503);
 	const reg = await registry(env);
-	if (await reg.empty()) return signInPage(NO_ACCOUNT(), 503);
 	const form = await request.formData();
 	const user = await reg.checkPassword(String(form.get("user") || ""), String(form.get("password") || ""));
 	if (user && user.locked) return signInPage("Too many wrong passwords. Try again in a quarter of an hour.", 429);
@@ -126,7 +125,7 @@ export async function cafe(request, env) {
 	const cafePaths = path === "/" || path === "/ws" || path.startsWith("/api/") || path.startsWith("/art/") || path.startsWith("/files/");
 	if (!cafePaths) return null;
 	const user = await signedIn(request, env);
-	if (!user && path === "/") return (await (await registry(env)).empty()) ? signInPage(NO_ACCOUNT(), 503) : signInPage();
+	if (!user && path === "/") return (await hasAccount(env)) ? signInPage() : signInPage(NO_ACCOUNT(), 503);
 	if (!user) return refuse(401, "signed_out", "Sign in to the café first.");
 
 	if (path === "/") return new Response(CAFE, { headers: PAGE_HEADERS });
@@ -171,7 +170,7 @@ export async function cafe(request, env) {
 		if (body.byteLength > MAX_FILE) return refuse(413, "too_big", "Files are 20 MB at most.");
 		const id = Date.now().toString(36) + "-" + crypto.randomUUID().slice(0, 8);
 		const type = (request.headers.get("Content-Type") || "application/octet-stream").slice(0, 200);
-		const name = decodeURIComponent(request.headers.get("X-Name") || "file").slice(0, 200);
+		const name = (tryDecode(request.headers.get("X-Name") || "file") ?? "file").slice(0, 200);
 		await env.FILES.put(fileKeys(user.house, id)[0], body, { metadata: { type, name, size: body.byteLength } });
 		return json({ id, url: "/files/" + id, sizeBytes: body.byteLength, contentType: type });
 	}
@@ -234,10 +233,10 @@ async function withKey(path, method, request, env, by) {
 		const { password } = await bodyOf(request);
 		const r = await (await registry(env)).setPassword(id, password);
 		if (r.error) return refuse(400, "bad_request", r.error);
-		let revoked = 0;
+		let revoked = 0;   // under the handle as the registry spells it: grants were made under that one
 		for (let cursor; ;) {
-			const page = await env.OAUTH_PROVIDER.listUserGrants(id, cursor ? { cursor } : undefined);
-			for (const g of page.items) { await env.OAUTH_PROVIDER.revokeGrant(g.id, id); revoked++; }
+			const page = await env.OAUTH_PROVIDER.listUserGrants(r.id, cursor ? { cursor } : undefined);
+			for (const g of page.items) { await env.OAUTH_PROVIDER.revokeGrant(g.id, r.id); revoked++; }
 			if (!page.cursor) break;
 			cursor = page.cursor;
 		}

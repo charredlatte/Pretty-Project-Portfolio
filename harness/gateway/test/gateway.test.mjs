@@ -26,10 +26,11 @@ const freePort = () => new Promise((done) => {
 
 let base, wrangler, state, log = "", herCookie = "";
 
-before(async () => {
+// wrangler dev on a fresh state; again on the same state, at the end, as a deploy would start a new isolate
+async function start() {
 	const [port, inspector] = [await freePort(), await freePort()];
 	base = `http://127.0.0.1:${port}`;
-	state = mkdtempSync(join(tmpdir(), "catio-gateway-"));
+	log = "";
 	wrangler = spawn(process.execPath, [join(HERE, "node_modules/wrangler/bin/wrangler.js"), "dev", "--ip", "127.0.0.1",
 		"--port", String(port), "--inspector-port", String(inspector), "--persist-to", state,
 		"--var", "CATIO_TOKEN:" + TOKEN, "--var", "CATIO_PASSWORD:" + PASSWORD], {
@@ -44,10 +45,16 @@ before(async () => {
 		await new Promise((r) => setTimeout(r, 500));
 	}
 	throw new Error("wrangler dev didn't start:\n" + log);
+}
+const stop = () => { try { process.kill(-wrangler.pid, "SIGTERM"); } catch { /* already gone */ } };
+
+before(async () => {
+	state = mkdtempSync(join(tmpdir(), "catio-gateway-"));
+	await start();
 });
 
 after(() => {
-	try { process.kill(-wrangler.pid, "SIGTERM"); } catch { /* already gone */ }
+	stop();
 	rmSync(state, { recursive: true, force: true });
 });
 
@@ -272,6 +279,7 @@ describe("accounts", () => {
 		const up = await (await as(theirs, "/api/files", { method: "POST", headers: { "Content-Type": "text/plain", "X-Name": "mine.txt" }, body: "theirs" })).json();
 		assert.equal((await as(theirs, up.url)).status, 200);
 		assert.equal((await as(herCookie, up.url)).status, 404);
+		assert.equal((await as(herCookie, "/files/tester:" + up.id)).status, 404, "the first house's old key can't be aimed at another house");
 		assert.equal((await as(herCookie, "/api/files/" + up.id, { method: "DELETE" })).status, 200);
 		assert.equal((await as(theirs, up.url)).status, 200, "another user's delete does nothing");
 	});
@@ -280,6 +288,7 @@ describe("accounts", () => {
 		assert.equal((await as(theirs, "/api/keys/nope", { method: "DELETE" })).status, 404);
 		assert.equal((await as(theirs, "/api/keys/%E0%A4%A", { method: "DELETE" })).status, 404, "a broken escape is no key, not a crash");
 		assert.equal((await as(theirs, "/api/db/%E0%A4%A", { method: "DELETE" })).status, 400);
+		assert.equal((await as(theirs, "/api/files", { method: "POST", headers: { "Content-Type": "text/plain", "X-Name": "%E0%A4%A" }, body: "x" })).status, 200, "a broken name is just \"file\"");
 		assert.equal((await as(theirs, "/api/keys/laptop", { method: "DELETE" })).status, 200);
 		assert.equal((await fetch(base + "/mcp", { method: "POST", headers: KEY(key), body: "{}" })).status, 401, "a dropped key is dead");
 		assert.equal((await (await as(theirs, "/api/keys")).json()).keys.length, 1);
@@ -290,9 +299,9 @@ describe("accounts", () => {
 		// a connector tester let in dies with the reset too
 		const { access_token: theirConnector } = await signIn({ user: "tester", password: TESTER });
 		assert.ok((await tool(theirConnector, "list_agents")).agents);
-		const done = await reset(TOKEN, "tester", NEW);
+		const done = await reset(TOKEN, "Tester", NEW);   // as an admin might type it: the grants are under "tester"
 		assert.equal(done.status, 200);
-		assert.ok((await done.json()).revoked >= 1);
+		assert.ok((await done.json()).revoked >= 1, "the connector's grant is found under the handle as spelt in the registry");
 		assert.equal((await fetch(base + "/mcp", { method: "POST", headers: KEY(theirConnector), body: "{}" })).status, 401, "the grant is revoked");
 		assert.equal((await as(theirs, "/api/db")).status, 401, "a reset signs every browser out");
 		assert.equal((await login("tester", TESTER)).status, 401);
@@ -542,8 +551,14 @@ describe("the bootstrap key", () => {
 		assert.equal((await api("/api/keys/bootstrap", { method: "DELETE" })).status, 200);
 		const mcp = () => fetch(base + "/mcp", { method: "POST", headers: { Authorization: "Bearer " + TOKEN }, body: "{}" });
 		assert.equal((await mcp()).status, 401);
-		// the next requests find the registry full: nothing is bootstrapped again, the key does not come back
+		// a new isolate (here: wrangler again on the same state) finds the registry full: nothing is bootstrapped
+		// again, so the key does not come back, and nothing says "no account yet"
+		stop();
+		await new Promise((r) => setTimeout(r, 500));
+		await start();
 		assert.equal((await fetch(base + "/")).status, 200);
 		assert.equal((await mcp()).status, 401);
+		const asHer = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "charlotte", password: PASSWORD }), redirect: "manual" });
+		assert.equal(asHer.status, 429, "the lock from the gateway suite is in the registry, not in the isolate");
 	});
 });

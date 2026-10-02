@@ -23,6 +23,12 @@ export async function registry(env) {
 	return r;
 }
 
+/** Whether the registry has an account: once true it stays true, so this costs nothing after the first time. */
+export async function hasAccount(env) {
+	if (!booted) await registry(env);
+	return booted;
+}
+
 /** Why there is no account yet, for the sign-in pages: what the bootstrap found wrong with the secrets. */
 export const bootProblem = () => problem;
 
@@ -36,6 +42,8 @@ export class Registry extends DurableObject {
 		for (const q of [
 			"CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, hash TEXT NOT NULL, salt TEXT NOT NULL, house TEXT NOT NULL, admin INTEGER NOT NULL, created INTEGER NOT NULL)",
 			"CREATE TABLE IF NOT EXISTS keys (hash TEXT PRIMARY KEY, user TEXT NOT NULL, name TEXT NOT NULL, created INTEGER NOT NULL)",
+			// names are unique per user; a twin from before that rule gets its row number on the end rather than break the index
+			"UPDATE keys SET name = name || '-' || rowid WHERE rowid NOT IN (SELECT MIN(rowid) FROM keys GROUP BY user, name)",
 			"CREATE UNIQUE INDEX IF NOT EXISTS keys_by_name ON keys (user, name)",
 			"CREATE TABLE IF NOT EXISTS logins (hash TEXT PRIMARY KEY, user TEXT NOT NULL, until INTEGER NOT NULL)",
 			"CREATE TABLE IF NOT EXISTS wrong (user TEXT NOT NULL, at INTEGER NOT NULL)",
@@ -77,7 +85,7 @@ export class Registry extends DurableObject {
 		return { user: this.user(id) };
 	}
 
-	/** A new password for an account (an admin's reset). */
+	/** A new password for an account (an admin's reset): `{ok, id}` with the handle as the registry spells it. */
 	async setPassword(id, password) {
 		id = String(id || "").trim().toLowerCase();
 		if (!this.user(id)) return { error: "No such account." };
@@ -86,7 +94,7 @@ export class Registry extends DurableObject {
 		this.sql.exec("UPDATE users SET hash = ?, salt = ? WHERE id = ?", hash, salt, id);
 		this.sql.exec("DELETE FROM logins WHERE user = ?", id);   // every browser signs in again
 		this.sql.exec("DELETE FROM wrong WHERE user = ?", id);    // and a locked-out user is let back in
-		return { ok: true };
+		return { ok: true, id };
 	}
 
 	user(id) {
@@ -114,13 +122,14 @@ export class Registry extends DurableObject {
 		return this.sql.exec("SELECT COUNT(*) AS n FROM wrong WHERE user = ? AND at > ?", id, Date.now() - LOCK_FOR).one().n >= LOCK_AFTER;
 	}
 
-	/** True when the key is kept; false when the user already has one by that name. */
+	/** True when the key is kept; false when the user already has one by that name. Anything else is thrown. */
 	addKey(user, hash, name) {
 		try {
 			this.sql.exec("INSERT INTO keys (hash, user, name, created) VALUES (?, ?, ?, ?)", hash, user, keyName(name), Date.now());
 			return true;
-		} catch {
-			return false;
+		} catch (e) {
+			if (/keys\.user, keys\.name/.test(String(e && e.message))) return false;
+			throw e;
 		}
 	}
 

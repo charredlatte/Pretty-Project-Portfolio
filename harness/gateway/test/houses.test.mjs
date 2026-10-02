@@ -11,6 +11,8 @@ test("a grant made before accounts still opens the first house as its owner", ()
 });
 
 test("a file kept before accounts is still the first house's, and nobody else's", () => {
-	assert.deepEqual(fileKeys(FIRST_HOUSE, "abc"), ["file:house:abc", "file:abc"]);
-	assert.deepEqual(fileKeys("tester", "abc"), ["file:tester:abc"]);
+	assert.deepEqual(fileKeys(FIRST_HOUSE, "mfz1k2-0a1b2c3d"), ["file:house:mfz1k2-0a1b2c3d", "file:mfz1k2-0a1b2c3d"]);
+	assert.deepEqual(fileKeys("tester", "mfz1k2-0a1b2c3d"), ["file:tester:mfz1k2-0a1b2c3d"]);
+	assert.deepEqual(fileKeys(FIRST_HOUSE, "tester:abc"), [], "a colon can't reach another house's file through the old key");
+	assert.deepEqual(fileKeys(FIRST_HOUSE, "../x"), []);
 });

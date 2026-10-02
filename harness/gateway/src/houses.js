@@ -8,5 +8,7 @@ export function whose(props) {
 	return { house: p.house || FIRST_HOUSE, owner: p.owner ?? p.user === "charlotte" };
 }
 
+const FILE_ID = /^[a-z0-9]+-[0-9a-f]{8}$/;   // as the café mints them; anything else (a colon, say) names no file
+
 /** The KV keys a house's brain file may be under: its own, and, for the first house, the one from before accounts. */
-export const fileKeys = (house, id) => [`file:${house}:${id}`, ...(house === FIRST_HOUSE ? [`file:${id}`] : [])];
+export const fileKeys = (house, id) => !FILE_ID.test(id) ? [] : [`file:${house}:${id}`, ...(house === FIRST_HOUSE ? [`file:${id}`] : [])];
