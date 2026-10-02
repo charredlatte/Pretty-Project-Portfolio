@@ -14,18 +14,18 @@ for, in `docs/requests.md`; the audit behind phase 0, in `docs/audit-2026-10-01.
   - Posts go to the outbox: the page tries `send_message`, claude.ai refuses it, and the page says so.
   - Counts show only what really waits on her.
 - **`main`** has everything live, plus:
-  - the house rules, on in all seven repos;
+  - the house rules, on in all seven repos, with the rule against Claude attribution in commits on her public
+    repos and forks (PR #18);
+  - the gateway, built and tested, waiting for her setup (PR #19);
   - the litter box's sifter;
   - the digest of her sessions;
   - the drawing plan.
 - **Tests:**
   - e2e: 158 passed;
-  - harness: 20 passed;
+  - harness: 34 passed;
+  - the gateway in workerd, with the real hook: 9 passed;
   - the sifter: 12 passed;
   - `furniture.check()` empty.
-- **Built, not merged:**
-  - the gateway (`claude/eloquent-thompson-e9b2uh`);
-  - the no-attribution rule for public repos (`claude/cool-cannon-wh25u6`).
 
 ## How what she sends reaches a session
 
@@ -125,54 +125,61 @@ Each piece drops in where its pack's piece was. As the packs go, so do their lic
 
 ### Phase 5: the gateway, and the rest of the harness
 
-The gateway is built on `claude/eloquent-thompson-e9b2uh` (`harness/gateway/`, with `harness/hooks/report.py`):
-- a Cloudflare Worker on the free plan;
+The gateway is built and merged (PR #19, 2 October): `harness/gateway/`, with `harness/hooks/report.py`. It is
+OpenClaw's always-on hub, as:
+- a Cloudflare Worker on the free plan, needing no server or domain of her own;
 - the Catio server's tools at `/mcp`;
-- her sign-in by password, through claude.ai's connector;
+- her sign-in by password, through claude.ai's connector (OAuth, Claude's connectors only);
 - an agents' key for the hooks, which can't write as her.
 
-Its tests pass: the gateway in workerd, 9; the harness, 33.
+Every session reports itself through `report.py`, and its Stop hook hands in her notes, requests and files when
+its turn ends. It does nothing until `CATIO_URL` and `CATIO_TOKEN` are set. Workers Builds deploys it on every
+merge to `main`.
 
-1. **Review and merge** the branch. It replaces `claude/catio-gateway-plan`, whose plan it builds.
-2. **She sets it up once** (`harness/gateway/README.md`):
+1. **She sets it up once** (`harness/gateway/README.md`):
    - deploy the Worker from this repo;
    - two secrets;
    - `CATIO_URL` and `CATIO_TOKEN` in each Claude environment, with the Worker allowed in the network policy;
    - the `Catio` connector in claude.ai, its tools set to Always allow.
-3. **The page reads the gateway.**
-   - Declare the `Catio` connector in the page's capabilities. First check that an artifact may name a custom
-     connector.
-   - Show the gateway's cats next to the sessions, live.
-   - Send through it, so a running session gets the message at its next Stop.
-4. **Later:**
-   - agent cats in claude.ai through `host:catio` (only the Claude desktop app can declare it);
+2. **The page reads the gateway.**
+   - Declare the `Catio` connector (`list_agents`, `comment`, `comments`, `manage`, `drop_file`) beside
+     `host:catio`. First check that an artifact may name a custom connector.
+   - Show its cats next to the sessions, live.
+   - Match a gateway cat (`via: claude-code`, `session`) to the session it is, so no session shows twice.
+     Compare the ids after their prefix, in case one is `cse_…` and the other `session_…`.
+   - Send to a gateway cat through the gateway, not the outbox, so a running session gets it at its next Stop.
+3. **Later:**
+   - agents the gateway runs itself (the rest of OpenClaw), which would need a machine;
+   - a Telegram channel;
+   - agent cats through `host:catio` (only the Claude desktop app can declare it). Agents that report to the
+     gateway show up anywhere, through the `Catio` connector;
    - `catio-plugin/` listed in the marketplace beside `kittychat-house-rules`.
 
 ## Waiting on Charlotte
 
-1. **Merge, or say no to, the two built branches:**
-   - the gateway (`claude/eloquent-thompson-e9b2uh`);
-   - the no-attribution rule for public repos (`claude/cool-cannon-wh25u6`).
-2. **Set up the gateway** once it is merged: the five steps above.
-3. **Which comes first:** phase 2 (the camera) or phase 5 (the gateway).
-4. **The posts waiting since 30 September**, which a session collects only when it next runs:
+1. **Set up the gateway:** the five steps in `harness/gateway/README.md`.
+2. **Which comes first:** phase 2 (the camera) or the page reading the gateway (phase 5).
+3. **The posts waiting since 30 September**, which a session collects only when it next runs:
    - two messages to Clafoutis;
    - one to Matcha;
    - Nougat's "yes";
    - an archive request for another Nougat session, which Claude can do on her word.
-5. **Rotate the MCPmarket token** in her plugin zip's `.mcp.json`.
-6. **Small questions:**
+4. **Rotate the MCPmarket token** in her plugin zip's `.mcp.json`.
+5. **Small questions:**
    - who made `plants.zip`;
    - whether Rename should rename the real session;
    - whether attic cats should sit on the stairs;
    - whether to delete the Drive folder's `download` files.
-7. **Merged branches she may delete:**
+6. **Branches she may delete:**
    - `claude/digest-moves`;
    - `claude/elegant-edison-cnmcq7`;
    - `claude/exciting-bardeen-9vehk0`;
    - `claude/friendly-shannon-ykj7u1`;
    - `claude/kittychat-digest`;
-   - `claude/openexecutive-repo-eval-lbilmm`.
+   - `claude/openexecutive-repo-eval-lbilmm`;
+   - `claude/cool-cannon-wh25u6` and `claude/eloquent-thompson-e9b2uh` (merged 2 October);
+   - `claude/catio-gateway-plan`, the gateway's first draft (it needed a server and a domain). Not merged:
+     `harness/gateway/` replaces it.
 
    This session's git access can't delete them.
 
@@ -196,7 +203,9 @@ Its tests pass: the gateway in workerd, 9; the harness, 33.
 
 - **No Claude attribution lines** (`Co-Authored-By: Claude`, `Claude-Session:`) in commits on her public
   repos or forks: this one, the grocery app, Snail-Mail-Trail and the LibreSprite fork. She asked on
-  1 October; the gate hook enforces it once `claude/cool-cannon-wh25u6` is merged.
+  1 October; the gate hook enforces it (`harness/rules.json`).
+- The gateway's two secrets (`CATIO_TOKEN`, `CATIO_PASSWORD`) live only in Cloudflare and her Claude
+  environments: never in the repo, the chat or a test.
 - Never commit `art/licensed/`, `catio/data/sessions.json`, `catio/dist/` or anything from her sessions.
 
 ## Known limits

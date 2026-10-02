@@ -1,0 +1,17 @@
+{
+	// The Catio's gateway: the always-on hub every agent reports to. Workers Builds deploys it from this
+	// folder on every push to main (README.md says how to connect it once).
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "catio-gateway",
+	"main": "src/index.js",
+	"compatibility_date": "2026-09-15",
+	// The house: cats, notes, files and the sign-in lock, in one SQLite-backed Durable Object.
+	"durable_objects": { "bindings": [{ "name": "HOUSE", "class_name": "House" }] },
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["House"] }],
+	// The OAuth library's grants and tokens (hashed). No id: the first deploy creates it.
+	"kv_namespaces": [{ "binding": "OAUTH_KV" }],
+	"observability": { "enabled": true }
+	// Secrets, set in the dashboard (Settings > Variables and Secrets), never here:
+	//   CATIO_TOKEN     the key agents and the session hooks send; also in Claude's environment settings
+	//   CATIO_PASSWORD  Charlotte's sign-in password, for adding the gateway as a connector in claude.ai
+}

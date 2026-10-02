@@ -73,6 +73,21 @@ class Stdio(unittest.TestCase):
         self.assertEqual([n["author"] for n in self.tool("comments", cat="codex-shop")["notes"]], ["charlotte", "agent"])
         self.tool("manage", cat="codex-shop", action="pause")
         self.assertEqual(self.tool("inbox", agent="codex-shop")["request"]["action"], "pause")
+
+        # with mark, each thing waiting is handed over once (the gateway's session hooks rely on it)
+        time.sleep(0.01)   # notes are stamped to the millisecond here
+        self.tool("comment", cat="codex-shop", text="One more thing.")
+        self.tool("drop_file", name="b.md", base64=base64.b64encode(b"b").decode(), **{"for": "codex-shop"})
+        handed = self.tool("inbox", agent="codex-shop", mark=True)
+        self.assertEqual((len(handed["files"]), [n["text"] for n in handed["notes"]], handed["request"]["action"]),
+                         (1, ["One more thing."], "pause"))
+        self.assertEqual(self.tool("inbox", agent="codex-shop", mark=True), {"files": [], "notes": [], "request": None})
+        self.assertEqual(len(self.tool("inbox", agent="codex-shop")["files"]), 1)   # still waiting until picked up
+        # what she writes while the agent is answering still gets handed in
+        self.tool("comment", cat="codex-shop", text="Wait, one more.")
+        time.sleep(0.01)
+        self.tool("comment", cat="codex-shop", text="Pushed.", author="agent")
+        self.assertEqual([n["text"] for n in self.tool("inbox", agent="codex-shop", mark=True)["notes"]], ["Wait, one more."])
         self.tool("manage", cat="codex-shop", action="rename", value="Biscotte")
         self.tool("manage", cat="codex-shop", action="archive")
         self.assertEqual(self.tool("list_agents")["agents"], [])
