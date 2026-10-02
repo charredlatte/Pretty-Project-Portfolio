@@ -108,8 +108,8 @@ async function hoverCat(page, label) {
   await settle(page);
   return (await page.locator("#tip").isVisible()) ? await page.locator("#tip").innerText() : "";
 }
-// nothing is drawn over a cat on the map (her call, 2 October 2026)
-const ON_CATS = "#cats .cat .breed, #cats .cat .fcount, #cats .cat .crown, #cats .cat .pile-n, .bub, #overlay";
+// nothing is drawn on a cat but the cat (her call, 2 October 2026): whatever it would be called
+const ON_CATS = "#cats .cat > :not(.spr)";
 async function openHouse(page) {
   await closeMenu(page);
   await page.click("#houseBtn");
@@ -366,8 +366,6 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await check("every room has a queen, and she is nobody's session", async () => {
     const n = await page.locator("#cats .cat.queen").count();
     expect(n === 10, "queens drawn: " + n);
-    const crowns = await page.locator("#cats .cat.queen .crown").count();
-    expect(crowns === 0, "a crown sits on her on the map: " + crowns);
   });
   await check("she is never counted among the cats that need you", async () => {
     const before = await page.locator("#tally").textContent();

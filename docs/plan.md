@@ -185,7 +185,7 @@ merge to `main`.
 
 ## Publishing
 
-1. `sh catio/test/run.sh`: everything passes.
+1. CLAUDE.md's "Checking a change": looked at against her words, then `sh catio/test/run.sh`, everything passing.
 2. Read the live artifact in full (`Artifact` read, then every line of the saved file), and compare it with
    the branch's page. If the live one is newer, merge it first; never overwrite it.
 3. Publish `catio/index.html` to `artifacts.json`'s URL with only the files that changed, and **omit
@@ -196,7 +196,8 @@ merge to `main`.
 
    Pass `capabilities` only to add something on purpose (the `Catio` connector, in phase 5), and then pass
    the whole set.
-4. Afterwards: list the files, list `rooms`, and create, update and delete one probe in `cats`.
+4. Afterwards: list the files, read back and look at any art that changed, list `rooms`, and create, update
+   and delete one probe in `cats`.
 5. Add a line to `docs/history.md`.
 
 ## Rules worth repeating

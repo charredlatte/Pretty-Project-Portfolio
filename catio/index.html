@@ -68,11 +68,10 @@ a { color: var(--ink); }
 /* the mood faces: the pack's cat emoji, one 32 px cell per mood (--f follows MOODS: cry, meow, box, idle, sleep; then a queen's heart eyes) */
 .face-ico { --f: 3; display: inline-block; flex: none; width: 30px; height: 30px; image-rendering: pixelated;
   background: url(art/licensed/ui/faces.png) calc(var(--f) * -32px - 1px) -1px / 192px 32px no-repeat; }
-.fail > .face-ico, .fail .face { --f: 0; }
-.need > .face-ico, .need .face { --f: 1; }
-.gift > .face-ico, .gift .face { --f: 2; }
-.sleep > .face-ico, .sleep .face { --f: 4; }
-.queenb .face, .queenb > .face-ico { --f: 5; }
+.fail > .face-ico { --f: 0; }
+.need > .face-ico { --f: 1; }
+.gift > .face-ico { --f: 2; }
+.sleep > .face-ico { --f: 4; }
 
 /* the sign: the live tick, or the warning cross */
 .status { font-size: .8rem; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; }
@@ -184,10 +183,9 @@ a { color: var(--ink); }
 .stairs { position: absolute; z-index: 4990; background: transparent; border: 0; padding: 0; cursor: var(--point); }
 .stairs:hover, .stairs:focus-visible, .stairs.lit { outline: 0; background: rgba(255, 250, 225, .14); border: 9px solid transparent; border-image: url(art/licensed/ui/corners.png) 9 8 / calc(9px / var(--cs, 1)) calc(8px / var(--cs, 1)) stretch; }
 /* what's under the pointer, named in a line */
-.tip { pointer-events: none; z-index: 21; transform: translate(-50%, -100%); font: 18px/18px var(--pixel); gap: 6px; }
+.tip { pointer-events: none; z-index: 21; transform: translate(-50%, -100%); font: 18px/18px var(--pixel); gap: 6px; flex-wrap: wrap; max-width: 240px; }
 .tip small { font: 700 .74rem var(--body); color: var(--ink-soft); }
 /* what a cat needs, or what a queen is keeping: under the name, only while she hovers it */
-.tip { flex-wrap: wrap; max-width: 240px; }
 .tip .says { flex-basis: 100%; white-space: normal; font: 500 12.5px/1.3 var(--body); padding-bottom: 2px;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .house { position: absolute; inset: 0; width: 1920px; height: 1152px; max-width: none; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
@@ -485,8 +483,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
   const PAGE = 50;          // sessions per fetch
   const MAX_FILE = 20 * 1024 * 1024;   // the artifact's asset cap
   const INLINE = 48 * 1024;            // a text file this small rides inside the push itself
-  // A cat's model shows as its breed: a letter on a plaque. Agents from other makers show their maker.
-  const BREEDS = [[/fable/i, "F", "Fable"], [/opus/i, "O", "Opus"], [/sonnet/i, "S", "Sonnet"], [/haiku/i, "H", "Haiku"]];
+  // A cat's model is its breed, named in its card. Agents from other makers show their maker.
+  const BREEDS = [[/fable/i, "Fable"], [/opus/i, "Opus"], [/sonnet/i, "Sonnet"], [/haiku/i, "Haiku"]];
   const MODELS = [["claude-fable-5-1", "Fable 5.1"], ["claude-opus-5-5", "Opus 5.5"], ["claude-sonnet-5-5", "Sonnet 5.5"], ["claude-haiku-4-5-20251001", "Haiku 4.5"]];
   const STALE_DAYS = 7;     // sleeping cats, and cats with something to review, older than this go up to nap in the attic
 
@@ -667,9 +665,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
   function breedOf(c) {
     const b = BREEDS.find(([re]) => re.test(c.model || ""));
-    if (b) return { tag: b[1], name: b[2] + (c.model ? " (" + c.model + ")" : "") };
-    if (c.kind === "agent") { const who = c.provider || c.model || "agent"; return { tag: who.slice(0, 3).toUpperCase(), name: [c.provider, c.model].filter(Boolean).join(" · ") || "Another agent" }; }
-    return c.model ? { tag: "?", name: c.model } : null;
+    if (b) return b[1] + (c.model ? " (" + c.model + ")" : "");
+    if (c.kind === "agent") return [c.provider, c.model].filter(Boolean).join(" · ") || "Another agent";
+    return c.model;
   }
 
   const slug = (v) => lower(v).replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "none";
@@ -913,12 +911,10 @@ ul.gkey li > div.what { flex-basis: 100%; }
     b.replaceChildren(sprite(mood, c.coat));
   }
   function placeCat(layer, c, spot, room) {
-    const sp = SPR[c.mood];
     const b = el("button");
     b.type = "button";
     b.dataset.id = c.id;
     b.dataset.room = room; b.dataset.floor = levelOf(room);
-    const top = spot[1] * 2 - sp.ay;
     b.setAttribute("aria-label", c.name + " (" + c.project.name + "), " + MOODS[c.mood].label + ": " + c.title + (waitingFor(c.id) ? ". " + waitingFor(c.id) + " files waiting" : ""));
     const legs = calm() ? null : journey(c.id, spot, room);
     dress(b, c, legs ? "idle" : c.mood, spot, room);
@@ -930,7 +926,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     draggable(b, c);
     layer.appendChild(b);   // before it walks: a walk stops when its cat has left the page
     if (legs) walk(b, spot, legs.from, legs.legs).then((ok) => { if (ok) dress(b, c, c.mood, spot, room); });
-    VIEW.placed.push({ cat: c, x: spot[0] * 2, y: top + (c.mood === "idle" || c.mood === "box" ? 4 : 16), feet: spot[1] * 2, room });
+    VIEW.placed.push({ cat: c, x: spot[0] * 2, feet: spot[1] * 2, room });
   }
   function placeQueen(layer, k, here) {
     const spot = GEOM[k].queen;
@@ -950,7 +946,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     b.addEventListener("dblclick", (e) => { e.stopPropagation(); hideMenu(); openQueen(k); });
     hoverable(b, "queen", k);
     layer.appendChild(b);
-    VIEW.queens[k] = { queen: q, x: spot[0] * 2, y: top + (q.mood === "idle" ? 4 : 16), feet: spot[1] * 2, room: k };
+    VIEW.queens[k] = q;
   }
 
   function placePile(layer, pile, spot, room) {
@@ -968,7 +964,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     b.addEventListener("dblclick", (e) => { e.stopPropagation(); hideMenu(); openPile(pile, room); });
     hoverable(b, "pile", room);
     layer.appendChild(b);
-    if (MOODS[top.mood].needs) VIEW.placed.push({ cat: top, x: spot[0] * 2, y: spot[1] * 2 - sp.ay + 16, feet: spot[1] * 2, room });
+    if (MOODS[top.mood].needs) VIEW.placed.push({ cat: top, x: spot[0] * 2, feet: spot[1] * 2, room });
   }
 
   function catClicked(c) { hideMenu(); openCat(c.id); }
@@ -1360,7 +1356,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     let need = [], says = "";
     if (kind === "room") { text.push(roomInfo(key).name); need = needIn(VIEW.cats, key); if (!need.length) small.push(summary(VIEW.cats.filter((c) => c.roomKey === key))); }
     else if (kind === "stairs") { const f = other(S.floor); text.push(f === "upper" ? "Upstairs" : "Downstairs"); need = needOn(f); }
-    else if (kind === "queen") { const q = (VIEW.queens[key] && VIEW.queens[key].queen) || queenOf(key); text.push(q.name); small.push("queen"); says = q.pinned.length ? q.pinned[0].text : ""; }
+    else if (kind === "queen") { const q = VIEW.queens[key] || queenOf(key); text.push(q.name); small.push("queen"); says = q.pinned.length ? q.pinned[0].text : ""; }
     else if (kind === "pile") { const p = VIEW.piles[key] || []; text.push(p.length + " cats"); }
     else {
       const c = VIEW.cats.find((x) => x.id === key); if (!c) return;
@@ -1564,7 +1560,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
   function queenMenu(k) {
     const here = VIEW.cats.filter((c) => c.roomKey === k);
-    const q = (VIEW.queens[k] && VIEW.queens[k].queen) || queenOf(k);
+    const q = VIEW.queens[k] || queenOf(k);
     const h = el("h3"); h.append(el("span", "crown inline"), document.createTextNode(q.name));
     const out = [head(h, "Queen of the " + roomInfo(k).name)];
     out.push(el("div", q.pinned.length ? "ask-box need" : "sub", q.line || queenLine(q, here)));
@@ -1805,8 +1801,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     row("Title", c.title !== c.doing ? c.title : "");
     if (c.repo && c.repo !== c.project.name) row("Repository", c.repo);
     row("Branch", c.branch);
-    const br = breedOf(c);
-    if (br) row(c.kind === "agent" ? "Agent" : "Model", br.name);
+    row(c.kind === "agent" ? "Agent" : "Model", breedOf(c));
     row("Started on", c.origin);
     row("Last active", c.updated ? ago(c.updated) + " (" + new Date(c.updated).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) + ")" : "");
     more.append(dl, managing(c, dlg));

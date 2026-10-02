@@ -14,7 +14,7 @@ Publish `catio/index.html` with:
   `house-upper.png`, `decor.png`, `furniture.png`, `meadow.png`, `mochi-idle.png`, `mochi-box.png`,
   `pochi.png`) and the interface
   in `art/licensed/ui/` (`panel`, `button`, `button-hover`, `button-down`, `button-green`,
-  `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `bubble-tail`, `corners`,
+  `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `corners`,
   `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point`, `pointer`, `logo`, `pastel` `.png`,
   and `sprout.ttf`), and the map panel in `art/licensed/pastel/` (`panel`, `panel-dark`, `frame`, `button`,
   `button-hover`, `button-down`, `icons` `.png`);
@@ -153,7 +153,7 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
 The interface is Cup Nooble's Sprout Lands UI pack, cut by `build-art.py` into
 `art/licensed/ui/`. Menus, dialogs, the sign and the screen's frame are its tan panel; buttons are
 its cream square button (white on hover, pressed in when held; `green` and `pink` are recoloured
-copies); inputs are its grey pressed-in button; speech bubbles and a cat's ask are its grey bubble;
+copies); inputs are its grey pressed-in button; a cat's ask and the replies in its thread are its grey bubble;
 a filing cabinet's project sits in its pressed cream well; rooms and cabinets light up with its
 white selection brackets (on a room they stay one size on screen at any zoom), and so does the
 chosen room on the Edit rooms plan, which sits in its picture frame with its arrow, on its white
@@ -314,13 +314,21 @@ are the saved copy.
 
 ## Checking a change
 
-Run the end-to-end test before every publish:
+Look first, test second. A test rewritten to match the code only proves the two agree; looking is what
+proves the page does what she asked. In this order:
 
-```bash
-sh catio/test/run.sh
-```
+1. **Change it.** Art too: re-run `build-art.py` (or `furniture.py`).
+2. **Look at it before touching a test.** `sh catio/test/run.sh look kitchen study` (`ground`, `upper` or any
+   room key; a few seconds) writes `catio/test/.look/<name>.png`: the page in the publish skeleton, with the
+   stub's invented cats. Open each and hold it against her words, one ask at a time ("no z Z": find a
+   sleeping cat). A sprite sheet isn't in the DOM and no test can see it: open the sheet too. Not what she
+   asked for? Back to 1.
+3. **Run the test unchanged:** `sh catio/test/run.sh` (about two minutes). Every failure should be something
+   she asked to change. One she didn't is a regression: fix the page, not the test.
+4. **Rewrite only those checks, from her words:** what must be true now, not which class names went away
+   (`#cats .cat > :not(.spr)`, not a list of deleted classes). Then the whole suite: all checks must pass.
 
-It loads the page in the same skeleton the Artifact tool publishes, against `runtime-stub.js`
+The suite loads the page in the same skeleton the Artifact tool publishes, against `runtime-stub.js`
 (an in-memory db with live snapshots and the real path rules, plus a sessions feed the test
 changes as it runs), and walks: adopting a chat, through in progress and done, to letting it
 go; a session going blocked, working, finished, archived and failed; renaming and moving a
@@ -332,5 +340,6 @@ served on port 8791 with its own `data/`. All checks must pass.
 
 Its example data is invented. Never paste her real session list into the stub or the page.
 
-After publishing, check the real database with `ArtifactData`: list `rooms`, and create,
-update and delete one probe document in `cats` the way the page does.
+After publishing, read back every art file you changed (`Artifact` read with `path`) and look at it: a
+republish keeps the old copy of any file it wasn't given. Then check the real database with `ArtifactData`:
+list `rooms`, and create, update and delete one probe document in `cats` the way the page does.

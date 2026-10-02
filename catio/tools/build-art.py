@@ -152,14 +152,13 @@ def sprout(sprout_zip):
     basic.crop((275, 52, 285, 61)).save(out / "arrow.png")                          # the cream arrow on a select
     basic.crop((277, 2, 284, 14)).save(out / "pointer.png")                         # the menu cursor, beside the item
 
-    # the grey speech bubble, with its tail cut off to hang under a 9-slice body
+    # the grey speech bubble's body, its tail filled in, as a 9-slice: a cat's ask and the replies in its thread
     bub = member(z, "speech_bubble_grey.png").crop((11, 11, 53, 58))
     body = bub.crop((0, 0, 42, 42))
     for y in range(38, 42):
         for x in range(9, 33):
             body.putpixel((x, y), body.getpixel((8, y)))
     body.save(out / "bubble.png")
-    bub.crop((16, 38, 27, 47)).save(out / "bubble-tail.png")
 
     # the white selection brackets, as a 9-slice with empty edges: rooms light up with them
     corners = Image.new("RGBA", (20, 20))
