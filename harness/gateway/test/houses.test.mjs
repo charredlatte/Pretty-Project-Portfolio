@@ -5,7 +5,8 @@ import { FIRST_HOUSE, fileKeys, whose } from "../src/houses.js";
 
 test("a grant made before accounts still opens the first house as its owner", () => {
 	assert.deepEqual(whose({ user: "charlotte" }), { house: FIRST_HOUSE, owner: true });
-	assert.deepEqual(whose(undefined), { house: FIRST_HOUSE, owner: false });
+	assert.deepEqual(whose(undefined), { house: null, owner: false }, "a token that names nobody opens nothing");
+	assert.deepEqual(whose({ user: "tester" }), { house: null, owner: false });
 	assert.deepEqual(whose({ user: "tester", house: "tester", owner: false, admin: false }), { house: "tester", owner: false });
 	assert.deepEqual(whose({ user: "charlotte", house: FIRST_HOUSE, owner: false }), { house: FIRST_HOUSE, owner: false }, "an agents' key is never the owner");
 });

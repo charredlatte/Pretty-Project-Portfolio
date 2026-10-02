@@ -8,7 +8,7 @@ import RUNTIME from "../cafe/runtime.js";
 import { esc, page } from "./signin.js";
 import { randomToken, sha256 } from "./secret.js";
 import { bootProblem, hasAccount, registry } from "./registry.js";
-import { fileKeys } from "./houses.js";
+import { FIRST_HOUSE, fileKeys } from "./houses.js";
 
 const COOKIE = "__Host-catio";
 const STAY = 30 * 24 * 3600 * 1000;   // a signed-in browser stays signed in a month
@@ -112,8 +112,8 @@ function served(body, type, name, inline) {
 export async function cafe(request, env) {
 	const url = new URL(request.url), path = url.pathname, method = request.method;
 
-	// with an agents' key only: the licensed art and accounts (an admin's), and a user's café data, moved in once
-	if (path === "/api/import" || path.startsWith("/api/users") || path.startsWith("/api/art/")) {
+	// with an agents' key only: the licensed art (an admin's), and a user's café data, moved in once
+	if (path === "/api/import" || path.startsWith("/api/art/")) {
 		const by = await agentKey(request, env);
 		if (!by) return refuse(401, "unauthorized", "An agents' key is needed.");
 		return (await withKey(path, method, request, env, by)) || refuse(404, "not_found", "Not here.");
@@ -138,11 +138,14 @@ export async function cafe(request, env) {
 		if (!value) return new Response("Not found\n", { status: 404 });
 		return new Response(value, { headers: { "Content-Type": (metadata && metadata.type) || "application/octet-stream", "Cache-Control": "private, max-age=86400", "X-Content-Type-Options": "nosniff" } });
 	}
-	// a brain file is kept under its house's name, so another house can neither read nor delete it
+	// a brain file is kept under its house's name, so another house can neither read nor delete it; one from
+	// before accounts moves under the first house's name the first time it is read
 	if (path.startsWith("/files/") && method === "GET") {
-		for (const k of fileKeys(user.house, path.slice("/files/".length))) {
+		const keys = fileKeys(user.house, path.slice("/files/".length));
+		for (const k of keys) {
 			const { value, metadata } = await env.FILES.getWithMetadata(k, "arrayBuffer");
 			if (!value) continue;
+			if (k !== keys[0]) { await env.FILES.put(keys[0], value, { metadata }); await env.FILES.delete(k); }
 			const type = (metadata && metadata.type) || "";
 			return served(value, type, metadata && metadata.name, /^(image\/(png|jpeg|gif|webp)|text\/plain|application\/pdf)/.test(type));
 		}
@@ -188,6 +191,36 @@ export async function cafe(request, env) {
 		const gone = name && await (await registry(env)).dropKey(user.id, name);
 		return gone ? json({ ok: true }) : refuse(404, "not_found", "No key by that name.");
 	}
+	// accounts, made and reset by an admin signed in to their café (never by a key: a key is in every session's
+	// environment, and must not be able to become anyone's owner). The invite-only sign-up until there is a form.
+	if (path === "/api/users" && method === "POST") {
+		if (!user.admin) return refuse(403, "forbidden", "Only an admin creates accounts.");
+		const { id, password } = await bodyOf(request);
+		const made = await (await registry(env)).createUser(id, password);
+		if (made.error) return refuse(400, "bad_request", made.error);
+		return json({ id: made.user.id, house: made.user.house }, 201);
+	}
+	// a reset signs the user's browsers out, kills their keys, and takes back every connector they let in
+	if (path.startsWith("/api/users/") && method === "PUT") {
+		if (!user.admin) return refuse(403, "forbidden", "Only an admin resets a password.");
+		const id = tryDecode(path.slice("/api/users/".length));
+		if (!id) return refuse(400, "bad_request", "That isn't a handle.");
+		const { password } = await bodyOf(request);
+		const r = await (await registry(env)).setPassword(id, password);
+		if (r.error) return refuse(400, "bad_request", r.error);
+		// under the handle as the registry spells it, and, for the first house, under "charlotte": its grants from
+		// before accounts were made under that name whatever CATIO_HANDLE says
+		let revoked = 0;
+		for (const uid of new Set([r.id, ...(r.house === FIRST_HOUSE ? ["charlotte"] : [])])) {
+			for (let cursor; ;) {
+				const batch = await env.OAUTH_PROVIDER.listUserGrants(uid, cursor ? { cursor } : undefined);
+				for (const g of batch.items) { await env.OAUTH_PROVIDER.revokeGrant(g.id, uid); revoked++; }
+				if (!batch.cursor) break;
+				cursor = batch.cursor;
+			}
+		}
+		return json({ ok: true, revoked });
+	}
 	// the gateway's tools, as the owner uses them through their connector: as "charlotte", the house's owner
 	if (path.startsWith("/api/tools/") && method === "POST") {
 		const r = await house.call(path.slice("/api/tools/".length), await bodyOf(request), "charlotte");
@@ -216,31 +249,6 @@ async function withKey(path, method, request, env, by) {
 		}
 		if (!(await houseOf(env, by).importDocs(docs))) return refuse(409, "not_empty", "The café already has its data: an import happens once.");
 		return json({ ok: true, count: Object.keys(docs).length });
-	}
-	// accounts, made and reset by an admin: the invite-only sign-up until there is a form
-	if (path === "/api/users" && method === "POST") {
-		if (!by.admin) return refuse(403, "forbidden", "Only an admin creates accounts.");
-		const { id, password } = await bodyOf(request);
-		const made = await (await registry(env)).createUser(id, password);
-		if (made.error) return refuse(400, "bad_request", made.error);
-		return json({ id: made.user.id, house: made.user.house }, 201);
-	}
-	// a reset signs the user's browsers out and takes back every connector they let in (their OAuth grants)
-	if (path.startsWith("/api/users/") && method === "PUT") {
-		if (!by.admin) return refuse(403, "forbidden", "Only an admin resets a password.");
-		const id = tryDecode(path.slice("/api/users/".length));
-		if (!id) return refuse(400, "bad_request", "That isn't a handle.");
-		const { password } = await bodyOf(request);
-		const r = await (await registry(env)).setPassword(id, password);
-		if (r.error) return refuse(400, "bad_request", r.error);
-		let revoked = 0;   // under the handle as the registry spells it: grants were made under that one
-		for (let cursor; ;) {
-			const page = await env.OAUTH_PROVIDER.listUserGrants(r.id, cursor ? { cursor } : undefined);
-			for (const g of page.items) { await env.OAUTH_PROVIDER.revokeGrant(g.id, r.id); revoked++; }
-			if (!page.cursor) break;
-			cursor = page.cursor;
-		}
-		return json({ ok: true, revoked });
 	}
 	return null;
 }

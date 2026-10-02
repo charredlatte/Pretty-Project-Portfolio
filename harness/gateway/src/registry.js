@@ -17,7 +17,7 @@ export async function registry(env) {
 	const r = env.REGISTRY.get(env.REGISTRY.idFromName("registry"));
 	if (!booted) {
 		const made = await r.bootstrap(env.CATIO_PASSWORD, env.CATIO_TOKEN, env.CATIO_HANDLE);
-		booted = !made.error;
+		if (!made.error) booted = true;   // never back to false: another request may have got there first
 		problem = made.error || "";
 	}
 	return r;
@@ -48,6 +48,7 @@ export class Registry extends DurableObject {
 			"CREATE TABLE IF NOT EXISTS logins (hash TEXT PRIMARY KEY, user TEXT NOT NULL, until INTEGER NOT NULL)",
 			"CREATE TABLE IF NOT EXISTS wrong (user TEXT NOT NULL, at INTEGER NOT NULL)",
 		]) this.sql.exec(q);
+		this.turns = new Map();   // a handle's password tries, in turn
 	}
 
 	empty() {
@@ -61,10 +62,11 @@ export class Registry extends DurableObject {
 	 */
 	async bootstrap(password, token, handle) {
 		if (!this.empty()) return { ok: true };
+		if (token && token.length < MIN_SECRET) return { error: `CATIO_TOKEN is shorter than ${MIN_SECRET} characters: fix it, or remove it and mint a key from the café.` };
 		const id = String(handle || "charlotte").toLowerCase();
 		const made = await this.createUser(id, password || "", { house: FIRST_HOUSE, admin: true });
-		if (made.error) return { error: "CATIO_PASSWORD or CATIO_HANDLE: " + made.error };
-		if (token && token.length >= MIN_SECRET) this.addKey(id, await sha256(token), "bootstrap");
+		if (made.error) return this.empty() ? { error: "CATIO_PASSWORD or CATIO_HANDLE: " + made.error } : { ok: true };   // two firsts at once: one made it
+		if (token) this.addKey(id, await sha256(token), "bootstrap");
 		return { ok: true };
 	}
 
@@ -79,22 +81,28 @@ export class Registry extends DurableObject {
 		try {
 			this.sql.exec("INSERT INTO users (id, hash, salt, house, admin, created) VALUES (?, ?, ?, ?, ?, ?)",
 				id, hash, salt, house || id, admin ? 1 : 0, Date.now());
-		} catch {
+		} catch (e) {
+			if (!/users\.id/.test(String(e && e.message))) throw e;
 			return { error: "That handle is taken." };   // made twice at once: the hash above let another request in
 		}
 		return { user: this.user(id) };
 	}
 
-	/** A new password for an account (an admin's reset): `{ok, id}` with the handle as the registry spells it. */
+	/**
+	 * A new password for an account (an admin's reset): the user's browsers, keys and lock all go, so whoever had
+	 * the old password is out everywhere. `{ok, id, house}` with the handle as the registry spells it.
+	 */
 	async setPassword(id, password) {
 		id = String(id || "").trim().toLowerCase();
-		if (!this.user(id)) return { error: "No such account." };
+		const user = this.user(id);
+		if (!user) return { error: "No such account." };
 		if (String(password).length < MIN_SECRET) return { error: `A password is ${MIN_SECRET} characters or more.` };
 		const salt = randomToken(), hash = await hashPassword(password, salt);
 		this.sql.exec("UPDATE users SET hash = ?, salt = ? WHERE id = ?", hash, salt, id);
 		this.sql.exec("DELETE FROM logins WHERE user = ?", id);   // every browser signs in again
+		this.sql.exec("DELETE FROM keys WHERE user = ?", id);     // every key is dead: mint new ones
 		this.sql.exec("DELETE FROM wrong WHERE user = ?", id);    // and a locked-out user is let back in
-		return { ok: true, id };
+		return { ok: true, id, house: user.house };
 	}
 
 	user(id) {
@@ -102,18 +110,29 @@ export class Registry extends DurableObject {
 		return row ? { id: row.id, house: row.house, admin: !!row.admin } : null;
 	}
 
-	/** The user, when the handle and password match; `{locked: true}` while that user's sign-in waits; else null. */
-	async checkPassword(id, password) {
+	/**
+	 * The user, when the handle and password match; `{locked: true}` while that user's sign-in waits; else null.
+	 * One handle's tries run one after another (the hash yields, so without this a burst of guesses would all
+	 * pass the lock): five wrong at once lock like five in a row, and right ones in flight together don't.
+	 */
+	checkPassword(id, password) {
 		id = String(id || "").trim().toLowerCase();
 		if (!HANDLE.test(id)) return null;   // can't be anyone's: no hash, no lock row
+		const turn = (this.turns.get(id) || Promise.resolve()).then(() => this.tryPassword(id, password));
+		this.turns.set(id, turn.catch(() => {}));
+		return turn;
+	}
+
+	async tryPassword(id, password) {
 		if (this.locked(id)) return { locked: true };
-		// the try counts before the hash, so a burst of guesses in parallel locks at five like guesses in a row
-		this.sql.exec("DELETE FROM wrong WHERE at <= ?", Date.now() - LOCK_FOR);
-		this.sql.exec("INSERT INTO wrong (user, at) VALUES (?, ?)", id, Date.now());
 		const row = this.sql.exec("SELECT hash, salt FROM users WHERE id = ?", id).toArray()[0];
 		// hashed either way, so an unknown handle takes as long as a wrong password
 		const hash = await hashPassword(String(password || ""), row ? row.salt : "no-such-user");
-		if (!row || !sameHash(hash, row.hash)) return null;
+		if (!row || !sameHash(hash, row.hash)) {
+			this.sql.exec("DELETE FROM wrong WHERE at <= ?", Date.now() - LOCK_FOR);
+			this.sql.exec("INSERT INTO wrong (user, at) VALUES (?, ?)", id, Date.now());
+			return null;
+		}
 		this.sql.exec("DELETE FROM wrong WHERE user = ?", id);
 		return this.user(id);
 	}
@@ -141,11 +160,11 @@ export class Registry extends DurableObject {
 	}
 
 	keys(user) {
-		return this.sql.exec("SELECT name, created FROM keys WHERE user = ? ORDER BY created", user).toArray();
+		return this.sql.exec("SELECT name, created FROM keys WHERE user = ? ORDER BY created, rowid", user).toArray();
 	}
 
 	dropKey(user, name) {
-		return this.sql.exec("DELETE FROM keys WHERE user = ? AND name = ?", user, name).rowsWritten > 0;
+		return this.sql.exec("DELETE FROM keys WHERE user = ? AND name = ?", user, keyName(name)).rowsWritten > 0;
 	}
 
 	userOfKey(hash) {

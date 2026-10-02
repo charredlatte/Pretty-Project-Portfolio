@@ -2,10 +2,14 @@
 // house's brain files are kept. Plain JavaScript, so a test can import it outside workerd.
 export const FIRST_HOUSE = "house";   // the house there was before accounts: charlotte's
 
-/** The house a token opens and whether its holder owns it. A grant made before accounts carries only {user: "charlotte"}. */
+/**
+ * The house a token opens and whether its holder owns it. A grant made before accounts carries only
+ * {user: "charlotte"} and opens the first house as its owner; any other token without a house opens nothing.
+ */
 export function whose(props) {
 	const p = props || {};
-	return { house: p.house || FIRST_HOUSE, owner: p.owner ?? p.user === "charlotte" };
+	if (p.house) return { house: p.house, owner: !!p.owner };
+	return p.user === "charlotte" ? { house: FIRST_HOUSE, owner: true } : { house: null, owner: false };
 }
 
 const FILE_ID = /^[a-z0-9]+-[0-9a-f]{8}$/;   // as the café mints them; anything else (a colon, say) names no file

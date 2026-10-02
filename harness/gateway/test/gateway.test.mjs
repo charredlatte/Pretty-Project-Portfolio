@@ -223,21 +223,23 @@ describe("accounts", () => {
 	};
 	const as = (cookie, path, init = {}) => fetch(base + path, { ...init, headers: { Cookie: cookie, "X-Catio": "1", ...(init.headers || {}) } });
 
-	test("lets an admin create an account, and nobody else", async () => {
-		const make = (headers, body) => fetch(base + "/api/users", { method: "POST", headers, body: JSON.stringify(body) });
-		assert.equal((await make({ "Content-Type": "application/json" }, { id: "tester", password: TESTER })).status, 401);
-		assert.equal((await make(KEY("not-a-key-at-all-sorry"), { id: "tester", password: TESTER })).status, 401);
-		assert.equal((await make(KEY(TOKEN), { id: "Tester!", password: TESTER })).status, 400);
-		assert.equal((await make(KEY(TOKEN), { id: "tester", password: "short" })).status, 400);
-		assert.equal((await make(KEY(TOKEN), { id: "house", password: TESTER })).status, 400, "the first house's name is kept");
-		assert.equal((await fetch(base + "/api/users", { method: "POST", headers: KEY(TOKEN), body: "null" })).status, 400, "a null body is a bad request, not a crash");
-		const made = await make(KEY(TOKEN), { id: "Tester", password: TESTER });
+	test("lets an admin, signed in to the café, create an account, and nobody else", async () => {
+		({ cookie: herCookie } = await login("charlotte", PASSWORD));
+		assert.ok(herCookie);
+		const make = (cookie, body, headers = {}) => fetch(base + "/api/users", { method: "POST", headers: { Cookie: cookie, "X-Catio": "1", ...headers }, body: JSON.stringify(body) });
+		assert.equal((await fetch(base + "/api/users", { method: "POST", headers: KEY(TOKEN), body: JSON.stringify({ id: "tester", password: TESTER }) })).status, 401, "never with a key: one is in every session's environment");
+		assert.equal((await make("", { id: "tester", password: TESTER })).status, 401);
+		assert.equal((await make(herCookie, { id: "Tester!", password: TESTER })).status, 400);
+		assert.equal((await make(herCookie, { id: "tester", password: "short" })).status, 400);
+		assert.equal((await make(herCookie, { id: "house", password: TESTER })).status, 400, "the first house's name is kept");
+		assert.equal((await fetch(base + "/api/users", { method: "POST", headers: { Cookie: herCookie, "X-Catio": "1" }, body: "null" })).status, 400, "a null body is a bad request, not a crash");
+		const made = await make(herCookie, { id: "Tester", password: TESTER });
 		assert.equal(made.status, 201);
 		assert.deepEqual(await made.json(), { id: "tester", house: "tester" });
-		assert.equal((await make(KEY(TOKEN), { id: "tester", password: TESTER })).status, 400, "a handle is taken once");
-		({ cookie: herCookie } = await login("charlotte", PASSWORD));
+		assert.equal((await make(herCookie, { id: "tester", password: TESTER })).status, 400, "a handle is taken once");
 		({ cookie: theirs } = await login("tester", TESTER));
-		assert.ok(herCookie && theirs);
+		assert.ok(theirs);
+		assert.equal((await make(theirs, { id: "third", password: TESTER })).status, 403, "tester is no admin");
 	});
 
 	test("mints a key from a signed-in browser, shown once", async () => {
@@ -250,8 +252,7 @@ describe("accounts", () => {
 		assert.equal((await as(theirs, "/api/keys", { method: "POST", body: "null" })).status, 200, "no name is fine");
 		assert.equal((await as(theirs, "/api/keys", { method: "POST", body: JSON.stringify({ name: "laptop" }) })).status, 400, "names are unique");
 		assert.deepEqual((await (await as(theirs, "/api/keys")).json()).keys.map((k) => k.name), ["laptop", "key"]);
-		assert.equal((await fetch(base + "/api/users", { method: "POST", headers: KEY(key), body: JSON.stringify({ id: "third", password: TESTER }) })).status, 403, "tester is no admin");
-		assert.equal((await fetch(base + "/api/art/licensed/pochi.png", { method: "PUT", headers: KEY(key), body: "x" })).status, 403, "nor uploads art");
+		assert.equal((await fetch(base + "/api/art/licensed/pochi.png", { method: "PUT", headers: KEY(key), body: "x" })).status, 403, "tester's key uploads no art");
 	});
 
 	test("keeps each user's cats in their own house", async () => {
@@ -292,33 +293,41 @@ describe("accounts", () => {
 		assert.equal((await as(theirs, "/api/keys/laptop", { method: "DELETE" })).status, 200);
 		assert.equal((await fetch(base + "/mcp", { method: "POST", headers: KEY(key), body: "{}" })).status, 401, "a dropped key is dead");
 		assert.equal((await (await as(theirs, "/api/keys")).json()).keys.length, 1);
-		const reset = (k, id, password) => fetch(base + "/api/users/" + id, { method: "PUT", headers: KEY(k), body: JSON.stringify({ password }) });
+		const reset = (cookie, id, password) => as(cookie, "/api/users/" + id, { method: "PUT", body: JSON.stringify({ password }) });
 		const NEW = "tester-new-password-" + randomBytes(4).toString("hex");
-		assert.equal((await reset(TOKEN, "nobody", NEW)).status, 400);
-		assert.equal((await reset(TOKEN, "tester", "short")).status, 400);
-		// a connector tester let in dies with the reset too
+		assert.equal((await fetch(base + "/api/users/charlotte", { method: "PUT", headers: KEY(TOKEN), body: JSON.stringify({ password: NEW }) })).status, 401, "never with a key");
+		assert.equal((await reset(theirs, "charlotte", NEW)).status, 403, "tester is no admin");
+		assert.equal((await reset(herCookie, "nobody", NEW)).status, 400);
+		assert.equal((await reset(herCookie, "tester", "short")).status, 400);
+		// a connector tester let in, and a key they minted, die with the reset too
 		const { access_token: theirConnector } = await signIn({ user: "tester", password: TESTER });
 		assert.ok((await tool(theirConnector, "list_agents")).agents);
-		const done = await reset(TOKEN, "Tester", NEW);   // as an admin might type it: the grants are under "tester"
+		const { key: another } = await (await as(theirs, "/api/keys", { method: "POST", body: JSON.stringify({ name: "phone" }) })).json();
+		const done = await reset(herCookie, "Tester", NEW);   // as an admin might type it: the grants are under "tester"
 		assert.equal(done.status, 200);
 		assert.ok((await done.json()).revoked >= 1, "the connector's grant is found under the handle as spelt in the registry");
 		assert.equal((await fetch(base + "/mcp", { method: "POST", headers: KEY(theirConnector), body: "{}" })).status, 401, "the grant is revoked");
+		assert.equal((await fetch(base + "/mcp", { method: "POST", headers: KEY(another), body: "{}" })).status, 401, "the key is dead");
 		assert.equal((await as(theirs, "/api/db")).status, 401, "a reset signs every browser out");
 		assert.equal((await login("tester", TESTER)).status, 401);
 		({ cookie: theirs } = await login("tester", NEW));
 		assert.ok(theirs);
+		assert.deepEqual((await (await as(theirs, "/api/keys")).json()).keys, [], "no keys survive a reset");
 		TESTER_NOW = NEW;
 	});
 
 	test("locks one user's sign-in, not another's", async () => {
 		assert.equal((await login("not a handle!", TESTER_NOW)).status, 401, "an impossible handle is refused without a hash");
-		// five guesses at once lock like five in a row: the try counts before the hash
+		// right sign-ins in flight together don't lock anyone
+		const fine = await Promise.all([0, 1, 2, 3, 4, 5].map(() => login("tester", TESTER_NOW)));
+		assert.deepEqual(fine.map((r) => r.status), [303, 303, 303, 303, 303, 303]);
+		// five guesses at once lock like five in a row: one handle's tries run in turn
 		const burst = await Promise.all([0, 1, 2, 3, 4, 5, 6].map((i) => login("tester", "wrong-password-" + i)));
 		assert.deepEqual(burst.map((r) => r.status).sort(), [401, 401, 401, 401, 401, 429, 429]);
 		assert.equal((await login("tester", TESTER_NOW)).status, 429);
 		assert.equal((await login("charlotte", PASSWORD)).status, 303);
 		// an admin's reset lets a locked-out user back in
-		assert.equal((await fetch(base + "/api/users/tester", { method: "PUT", headers: KEY(TOKEN), body: JSON.stringify({ password: TESTER_NOW }) })).status, 200);
+		assert.equal((await as(herCookie, "/api/users/tester", { method: "PUT", body: JSON.stringify({ password: TESTER_NOW }) })).status, 200);
 		assert.equal((await login("tester", TESTER_NOW)).status, 303);
 	});
 });

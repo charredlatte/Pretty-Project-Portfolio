@@ -45,10 +45,11 @@ it is the admin, which uploads the café's art and creates the other accounts.
 
    Never paste either into a chat. Set both before the gateway's first request: that request turns them into the
    account `charlotte` (admin, house `house`; another gateway names its first account with a `CATIO_HANDLE`
-   variable) and its key `bootstrap`, once, and never again. So a missing or short `CATIO_TOKEN` at that moment
-   means no key: mint one from the café instead (below). After that the registry is what counts: changing the
-   secrets changes nothing, and they may be deleted once she has a key of her own and has dropped `bootstrap`.
-   A deploy that brings accounts signs every browser out of the café once: sign in again with the handle.
+   variable) and its key `bootstrap`, once, and never again. A `CATIO_TOKEN` shorter than 16 characters refuses
+   the whole bootstrap (the sign-in pages say so); none at all means no key: mint one from the café instead
+   (below). After that the registry is what counts: changing the secrets changes nothing, and they may be
+   deleted once she has a key of her own and has dropped `bootstrap`. A deploy that brings accounts signs every
+   browser out of the café once: sign in again with the handle.
 3. **Claude's environments.** In a cloud session, open the environment menu in the session's title bar → Edit. In
    each environment her sessions use:
    - add two environment variables, `CATIO_URL` = the address above and `CATIO_TOKEN` = the agents' key;
@@ -70,10 +71,12 @@ variables and the plugin, it is in `list_agents`.
 
 ## Accounts
 
-- **Another account:** with an admin's key, `POST /api/users` with `{"id": "<handle>", "password": "<16+ characters>"}`
-  (`curl -H "Authorization: Bearer $CATIO_TOKEN" -H "Content-Type: application/json" -d '{"id":"…","password":"…"}'
-  <address>/api/users`). A handle is 2 to 31 lower-case letters, digits or dashes. The account gets a house named
-  after it, and signs in to the café and the connector with that handle and password. There is no sign-up form yet.
+- **Another account:** an admin, signed in to the café, `POST /api/users` with `{"id": "<handle>", "password":
+  "<16+ characters>"}`: from the browser's console, `fetch("/api/users", {method: "POST", headers: {"X-Catio": "1",
+  "Content-Type": "application/json"}, body: JSON.stringify({id: "…", password: "…"})}).then(r => r.json()).then(console.log)`.
+  Never with a key: a key sits in every session's environment, and what a key can do, a leaked key can do. A
+  handle is 2 to 31 lower-case letters, digits or dashes. The account gets a house named after it, and signs in
+  to the café and the connector with that handle and password. There is no sign-up form yet.
 - **A key:** from a signed-in café, `POST /api/keys` with `{"name": "laptop"}` (the page sends `X-Catio: 1`;
   until it has a button, the browser's console does: `fetch("/api/keys", {method: "POST", headers: {"X-Catio": "1",
   "Content-Type": "application/json"}, body: JSON.stringify({name: "laptop"})}).then(r => r.json()).then(console.log)`).
@@ -81,12 +84,15 @@ variables and the plugin, it is in `list_agents`.
   user's sessions and agents run. Names are unique per user. `GET /api/keys` lists them by name,
   `DELETE /api/keys/<name>` kills one: a leaked key is dropped that way, the `bootstrap` key included, and it
   stays dropped.
-- **A forgotten or leaked password:** an admin resets it with `PUT /api/users/<handle>` and `{"password": "…"}`,
-  which signs that user's browsers out, takes back every connector they let in (their OAuth grants), and lets a
-  locked-out user back in. The handle `house` is kept: it names the first house.
-- **Guessing:** five wrong passwords lock that handle for a quarter of an hour, and an impossible handle costs
-  no hash. Against a flood of handles, a rate-limiting rule on `/login` and `/authorize` in Cloudflare (Security →
-  WAF, one rule on the free plan) is the gateway's to add.
+- **A forgotten or leaked password:** an admin, signed in to the café, resets it with `PUT /api/users/<handle>`
+  and `{"password": "…"}` (the same `fetch` shape), which signs that user's browsers out, takes back every
+  connector they let in (their OAuth grants), kills every key they minted, and lets a locked-out user back in.
+  Whoever had the old password is out everywhere; the user mints new keys. The handle `house` is kept: it names
+  the first house.
+- **Guessing:** five wrong passwords lock that handle for a quarter of an hour, at once or in a row; an
+  impossible handle costs no hash. Known limit: every password check runs in the one registry object, so a
+  flood of guesses at made-up handles slows every sign-in and key lookup behind it. A rate-limiting rule on
+  `/login` and `/authorize` in Cloudflare (Security → WAF, one rule on the free plan) is the gateway's to add.
 - **One house each:** cats, conversations, files and the café's documents are the house's; the licensed art is
   shared, uploaded by an admin.
 - **The art's licences are personal.** The packs the café is drawn with allow personal use and no redistribution,

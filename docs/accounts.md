@@ -66,12 +66,16 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
   thing the deploy does is sign her browsers out of the café, since cookies moved to the registry: she signs in
   again with the handle. The bootstrap happens once, into an empty registry, so a key she drops stays dropped;
   what the secrets got wrong shows on the sign-in pages until there is an account.
-- Accounts are made by an admin (`POST /api/users`), who can also reset a password (`PUT /api/users/<id>`:
-  browsers out, OAuth grants revoked, the lock cleared); a signed-in café mints, lists and drops keys
-  (`/api/keys`, names unique per user). The handle `house` is kept. Self sign-up, and a button for keys in the
-  page, are phase 2.
-- A try counts before the hash, so five guesses in parallel lock like five in a row. Against a flood of
-  handles, a Cloudflare rate-limiting rule on `/login` and `/authorize` is the gateway's to add.
+- Accounts are made by an admin signed in to the café (`POST /api/users`), who can also reset a password
+  (`PUT /api/users/<id>`: browsers out, OAuth grants revoked, keys killed, the lock cleared). Never by a key: a
+  key is in every session's environment, and a leaked one must not be able to become anyone's owner. A
+  signed-in café mints, lists and drops keys (`/api/keys`, names unique per user). The handle `house` is kept.
+  Self sign-up, and a button for keys in the page, are phase 2.
+- One handle's password tries run in turn, so five guesses in parallel lock like five in a row, and right
+  sign-ins in flight together lock nobody. Known limit: all of them run in the one registry object; against a
+  flood of made-up handles, a Cloudflare rate-limiting rule on `/login` and `/authorize` is the gateway's to add.
+- A token that names no house opens none (`whose()` fails closed); only a grant made before accounts, with
+  `{user: "charlotte"}` alone, opens the first house as its owner.
 - Brain files are kept under their house's name in KV (`file:<house>:<id>`; the first house also reads the
   `file:<id>` from before accounts), so a delete needs no read. `src/houses.js` is what every part agrees on:
   the first house's name, whose a token is, where a house's files are; plain JavaScript, so
