@@ -2332,7 +2332,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
       // only a repository she decided on in the GitHub step (a row she saw) leaves where it was filed
       const decided = Object.keys(A.repos), out = {};
       for (const k of ORDER) {
-        const kept = again ? roomInfo(k).repos.filter((r) => !decided.some((n) => same(r, n))) : [];
+        // an entry leaves a room only when the same repository was filed in another one; a bare name beside its full name stays
+        const kept = again ? roomInfo(k).repos.filter((r) => !decided.some((n) => same(r, n) && A.repos[n] !== k)) : [];
         out[k] = [...new Set(kept.concat(Object.keys(A.repos).filter((n) => A.repos[n] === k)))];
       }
       return out;
