@@ -1,4 +1,5 @@
-// The gateway end to end, in workerd: `wrangler dev` with a fresh state, then claude.ai's sign-in as claude.ai
+// The gateway end to end, in workerd: `wrangler dev` with a fresh state (its two secrets make the first account,
+// charlotte's, as they do on the first deploy with accounts), then claude.ai's sign-in as claude.ai
 // does it (register, authorize with her password, token, refresh), the tools as the page and an agent call
 // them, and the sign-in lock.
 //
@@ -92,15 +93,15 @@ async function openSignIn(clientId) {
 async function submit(page, fields) {
 	return fetch(base + "/authorize", {
 		method: "POST", redirect: "manual", headers: { "Content-Type": "application/x-www-form-urlencoded", Cookie: page.cookie },
-		body: form({ handle: page.handle, client: "Claude", host: "claude.ai", ...fields }),
+		body: form({ handle: page.handle, client: "Claude", host: "claude.ai", user: "charlotte", ...fields }),
 	});
 }
 
-// the whole sign-in, as claude.ai and her browser do it: an access token that acts as Charlotte
-async function signIn() {
+// the whole sign-in, as claude.ai and a browser do it: an access token that acts as the user (charlotte unless said)
+async function signIn(who = { user: "charlotte", password: PASSWORD }) {
 	const { client_id } = await (await register([CALLBACK])).json();
 	const page = await openSignIn(client_id);
-	const r = await submit(page, { password: PASSWORD, decision: "allow" });
+	const r = await submit(page, { ...who, decision: "allow" });
 	const code = new URL(r.headers.get("location")).searchParams.get("code");
 	const t = await fetch(base + "/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
 		body: form({ grant_type: "authorization_code", code, redirect_uri: CALLBACK, client_id, code_verifier: page.verifier, resource: base + "/mcp" }) });
@@ -117,12 +118,15 @@ describe("the café", () => {
 
 	test("asks for her password before showing anything", async () => {
 		const first = await (await fetch(base + "/")).text();
+		assert.match(first, /Your handle/);
 		assert.match(first, /Your Catio password/);
 		assert.doesNotMatch(first, /id="houseBtn"/);
 		for (const p of ["/api/db", "/art/licensed/pochi.png", "/files/x", "/ws"]) assert.equal((await fetch(base + p)).status, 401, p);
-		const wrong = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ password: "not-the-password-sorry" }), redirect: "manual" });
+		const wrong = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "charlotte", password: "not-the-password-sorry" }), redirect: "manual" });
 		assert.equal(wrong.status, 401);
-		const right = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ password: PASSWORD }), redirect: "manual" });
+		const nobody = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "nobody", password: PASSWORD }), redirect: "manual" });
+		assert.equal(nobody.status, 401);
+		const right = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "Charlotte", password: PASSWORD }), redirect: "manual" });
 		assert.equal(right.status, 303);
 		const set = right.headers.get("set-cookie");
 		assert.match(set, /^__Host-catio=[0-9a-f]{64}; Path=\/; Secure; HttpOnly; SameSite=Strict/);
@@ -201,6 +205,79 @@ describe("the café", () => {
 	});
 });
 
+// Accounts: the first is charlotte's, from the two secrets; an admin makes the others; each has a house of its own.
+describe("accounts", () => {
+	const TESTER = "tester-password-" + randomBytes(6).toString("hex");
+	let her = "", hers = "", theirs = "", key = "";
+	const KEY = (k) => ({ Authorization: "Bearer " + k, "Content-Type": "application/json" });
+	const login = async (user, password) => {
+		const r = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user, password }), redirect: "manual" });
+		return { status: r.status, cookie: r.status === 303 ? r.headers.get("set-cookie").split(";")[0] : "" };
+	};
+	const as = (cookie, path, init = {}) => fetch(base + path, { ...init, headers: { Cookie: cookie, "X-Catio": "1", ...(init.headers || {}) } });
+
+	test("lets an admin create an account, and nobody else", async () => {
+		const make = (headers, body) => fetch(base + "/api/users", { method: "POST", headers, body: JSON.stringify(body) });
+		assert.equal((await make({ "Content-Type": "application/json" }, { id: "tester", password: TESTER })).status, 401);
+		assert.equal((await make(KEY("not-a-key-at-all-sorry"), { id: "tester", password: TESTER })).status, 401);
+		assert.equal((await make(KEY(TOKEN), { id: "Tester!", password: TESTER })).status, 400);
+		assert.equal((await make(KEY(TOKEN), { id: "tester", password: "short" })).status, 400);
+		const made = await make(KEY(TOKEN), { id: "Tester", password: TESTER });
+		assert.equal(made.status, 201);
+		assert.deepEqual(await made.json(), { id: "tester", house: "tester" });
+		assert.equal((await make(KEY(TOKEN), { id: "tester", password: TESTER })).status, 400, "a handle is taken once");
+		({ cookie: hers } = await login("charlotte", PASSWORD));
+		({ cookie: theirs } = await login("tester", TESTER));
+		assert.ok(hers && theirs);
+	});
+
+	test("mints a key from a signed-in browser, shown once", async () => {
+		assert.equal((await fetch(base + "/api/keys", { method: "POST", headers: KEY(TOKEN), body: "{}" })).status, 401, "a key doesn't sign a browser in");
+		assert.equal((await fetch(base + "/api/keys", { method: "POST", headers: { Cookie: theirs }, body: "{}" })).status, 403, "not without X-Catio");
+		const r = await as(theirs, "/api/keys", { method: "POST", body: JSON.stringify({ name: "laptop" }) });
+		assert.equal(r.status, 200);
+		({ key } = await r.json());
+		assert.match(key, /^[0-9a-f]{64}$/);
+		assert.equal((await fetch(base + "/api/users", { method: "POST", headers: KEY(key), body: JSON.stringify({ id: "third", password: TESTER }) })).status, 403, "tester is no admin");
+		assert.equal((await fetch(base + "/api/art/licensed/pochi.png", { method: "PUT", headers: KEY(key), body: "x" })).status, 403, "nor uploads art");
+	});
+
+	test("keeps each user's cats in their own house", async () => {
+		assert.equal((await tool(key, "report_status", { agent: "tester-cat", mood: "needs", ask: "Which colour?" })).ok, true);
+		assert.equal((await tool(TOKEN, "report_status", { agent: "her-cat", mood: "busy" })).ok, true);
+		const theirCats = (await tool(key, "list_agents")).agents.map((a) => a.id);
+		assert.ok(theirCats.includes("tester-cat") && !theirCats.includes("her-cat"), String(theirCats));
+		const herCats = (await tool(TOKEN, "list_agents")).agents.map((a) => a.id);
+		assert.ok(herCats.includes("her-cat") && !herCats.includes("tester-cat"), String(herCats));
+		// the connector, signed in as tester, sees tester's house
+		({ access_token: her } = await signIn());
+		const { access_token: them } = await signIn({ user: "tester", password: TESTER });
+		assert.deepEqual((await tool(them, "list_agents")).agents.map((a) => a.id), ["tester-cat"]);
+		assert.ok(!(await tool(her, "list_agents")).agents.some((a) => a.id === "tester-cat"));
+		assert.equal((await tool(them, "comment", { cat: "tester-cat", text: "Blue." })).id !== undefined, true);
+		assert.deepEqual((await tool(key, "inbox", { agent: "tester-cat", mark: true })).notes.map((n) => n.text), ["Blue."]);
+	});
+
+	test("keeps each user's café apart: documents, files and the import", async () => {
+		assert.deepEqual((await (await as(theirs, "/api/db")).json()).docs, {});
+		const docs = { "rooms/kitchen": { name: "Their kitchen" } };
+		assert.equal((await fetch(base + "/api/import", { method: "POST", headers: KEY(key), body: JSON.stringify({ docs }) })).status, 200);
+		assert.deepEqual((await (await as(theirs, "/api/db")).json()).docs, docs);
+		assert.notDeepEqual((await (await as(hers, "/api/db")).json()).docs, docs);
+		const up = await (await as(theirs, "/api/files", { method: "POST", headers: { "Content-Type": "text/plain", "X-Name": "mine.txt" }, body: "theirs" })).json();
+		assert.equal((await as(theirs, up.url)).status, 200);
+		assert.equal((await as(hers, up.url)).status, 404);
+		assert.equal((await as(hers, "/api/files/" + up.id, { method: "DELETE" })).status, 200);
+		assert.equal((await as(theirs, up.url)).status, 200, "another user's delete does nothing");
+	});
+
+	test("locks one user's sign-in, not another's", async () => {
+		for (let i = 0; i < 5; i++) assert.equal((await login("tester", "wrong-password-" + i)).status, 401);
+		assert.equal((await login("tester", TESTER)).status, 429);
+		assert.equal((await login("charlotte", PASSWORD)).status, 303);
+	});
+});
+
 describe("the gateway", () => {
 	test("tells strangers to sign in, and how", async () => {
 		const r = await fetch(base + "/mcp", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
@@ -256,19 +333,21 @@ describe("the gateway", () => {
 		assert.equal((await register([CALLBACK, "http://localhost:4000/cb"])).status, 400);
 	});
 
-	test("signs Charlotte in with her password, never with a wrong one", async () => {
+	test("signs Charlotte in with her handle and password, never with a wrong one", async () => {
 		const { client_id } = await (await register([CALLBACK])).json();
 		const page = await openSignIn(client_id);
 		assert.equal(page.status, 200);
 		assert.ok(page.handle);
 		assert.match(page.html, /Let Claude into the Catio\?/);
+		assert.match(page.html, /name="user"/);
 		assert.match(page.html, /Access goes to <strong>claude\.ai<\/strong>/);
 		assert.equal(page.headers.get("x-frame-options"), "DENY");
 		assert.match(page.headers.get("content-security-policy"), /frame-ancestors 'none'/);
 
 		const wrong = await submit(page, { password: "not-her-password-123", decision: "allow" });
 		assert.equal(wrong.status, 401);
-		assert.match(await wrong.text(), /isn&#39;t right/);
+		assert.equal((await submit(page, { user: "someone-else", password: PASSWORD, decision: "allow" })).status, 401);
+		assert.match(await wrong.text(), /aren&#39;t right/);
 		const empty = await submit(page, { password: "", decision: "allow" });
 		assert.equal(empty.status, 400);
 

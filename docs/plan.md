@@ -169,6 +169,8 @@ Claude Code sessions in claude.ai stay claude.ai's: their full conversation open
 1. **The café on the gateway's address.** Built (this branch): sign-in, the page with `cafe/runtime.js`, her data
    in the house with live pushes over a WebSocket, art and brain files in KV, `cafe/move-in.py` to move in.
    Go-live: she merges, Workers Builds deploys, Claude runs `move-in.py` with the artifact's database.
+   **Accounts, phase 1** (`docs/accounts.md`): a handle, a password and a house each, the first hers; an admin
+   creates accounts and a signed-in café mints keys. Phase 2 is a sign-up form.
 2. **Chat in the café:** the gateway keeps each runner session's conversation; she sends, watches the reply
    stream, and can stop a run.
 3. **The runner:** a small program that starts Claude Code sessions for the café, signed in with her Claude plan

@@ -1,7 +1,8 @@
 # Accounts on the backend
 
 Can the KittyChat Café have accounts, one café per person, on the backend it has? Yes, with three changes to
-the gateway and nothing new in the stack. This is the recommendation (2 October 2026); nothing here is built.
+the gateway and nothing new in the stack. This was the recommendation of 2 October 2026; phase 1 is built
+(below, "As built").
 
 ## The three changes
 
@@ -50,6 +51,24 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
    already speaks (`S.host = "api"`, built for `catio_mcp.py --serve`), behind a cookie session. Then a café
    needs no artifact at all. Not needed for the onboarding.
 
+## As built: phase 1
+
+- `harness/gateway/src/registry.js`: the `Registry` object, with `users`, `keys`, `logins` and the per-user
+  lock. The House keeps only cats, notes, files and the café's documents.
+- The password hash is PBKDF2-SHA-256 at **100,000 rounds, Workers' cap** (more throws `NotSupportedError`),
+  computed **inside the Registry**: a Durable Object gets 30 s of CPU a request on every plan, where the free
+  plan's Worker gets 10 ms. It is below OWASP's 600,000, so the 16-character minimum and the five-tries lock stay.
+- Every token resolves to a user: the OAuth grant carries `{user, house, owner, admin}`, a bearer key is looked up
+  by its hash, a café cookie too. A grant made before accounts carries only `{user: "charlotte"}` and still
+  opens her house.
+- The first account is bootstrapped from `CATIO_PASSWORD` and `CATIO_TOKEN` into `charlotte`, house `house`,
+  admin, key `bootstrap`: nothing of hers moves and nothing stops working on deploy.
+- Accounts are made by an admin (`POST /api/users`); a signed-in café mints keys (`POST /api/keys`). Self sign-up
+  is phase 2.
+- On the wire the owner is still `charlotte` (the notes' `author`, "Charlotte only" in the tools): shared with
+  the page and `catio_mcp.py`, so renaming it to `owner` everywhere is its own change.
+- Brain files carry their house in KV metadata; a file kept before accounts belongs to the first house.
+
 ## Sources
 
 - Workers limits: https://developers.cloudflare.com/workers/platform/limits/
@@ -57,3 +76,4 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
   https://developers.cloudflare.com/durable-objects/platform/pricing/
 - KV limits: https://developers.cloudflare.com/kv/platform/limits/
 - Web Crypto on Workers: https://developers.cloudflare.com/workers/runtime-apis/web-crypto/
+- The PBKDF2 cap of 100,000 rounds: https://community.cloudflare.com/t/configure-pbkdf2-iteration-cap/848334

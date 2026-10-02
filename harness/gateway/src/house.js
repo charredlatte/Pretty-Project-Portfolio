@@ -1,7 +1,9 @@
-// The house: every cat the gateway knows, their conversations and the files waiting for them, in one
-// SQLite-backed Durable Object. The tools behave as harness/mcp/catio_mcp.py's do, with two differences:
-// nothing here can run a wake command, and only Charlotte (signed in through claude.ai) speaks as herself,
-// drops files and manages cats. Agents and session hooks, which hold CATIO_TOKEN, report and answer.
+// A house: every cat one user's gateway knows, their conversations and the files waiting for them, in one
+// SQLite-backed Durable Object; a house a user (src/registry.js says whose). The tools behave as
+// harness/mcp/catio_mcp.py's do, with two differences: nothing here can run a wake command, and only the house's
+// owner (signed in through claude.ai or the café) speaks as "charlotte", drops files and manages cats. Agents and
+// session hooks, which hold the owner's agents' key, report and answer. On the wire the owner is still "charlotte",
+// as the page and catio_mcp.py say it: renaming that everywhere is its own change.
 import { DurableObject } from "cloudflare:workers";
 import RULES from "../../rules.json";
 import { MOODS } from "./tools.js";
@@ -9,8 +11,6 @@ import { MOODS } from "./tools.js";
 const FIELDS = ["name", "model", "provider", "title", "project", "repo", "branch", "ask", "link", "session", "via", "cwd", "room"];
 const MAX_FILE = 1024 * 1024;   // a free Worker gets 10 ms of CPU a request: bigger files go through the brain
 const KEEP_PICKED = 7 * 24 * 3600 * 1000;   // a picked-up file keeps its bytes a week, then only its record
-const LOCK_AFTER = 5;   // wrong passwords before the sign-in waits
-const LOCK_FOR = 15 * 60 * 1000;
 const ACTIONS = ["rename", "move", "archive", "unarchive", "pause", "resume", "wrap_up", "message", "done"];
 
 class Refusal extends Error {}   // bad arguments: the caller is told, nothing breaks
@@ -155,15 +155,15 @@ export class House extends DurableObject {
 				"size INTEGER NOT NULL, note TEXT NOT NULL, at INTEGER NOT NULL, status TEXT NOT NULL, handed INTEGER, picked INTEGER, " +
 				"picked_by TEXT, base64 TEXT)",
 			"CREATE INDEX IF NOT EXISTS files_by_cat ON files (cat, status)",
-			"CREATE TABLE IF NOT EXISTS wrong_passwords (at INTEGER NOT NULL)",
 			// the café's own database, when it is served from here: one row a document, as the page keeps them
 			"CREATE TABLE IF NOT EXISTS docs (path TEXT PRIMARY KEY, data TEXT NOT NULL, at INTEGER NOT NULL)",
-			// browsers she signed in to the café, by the hash of their cookie
-			"CREATE TABLE IF NOT EXISTS logins (hash TEXT PRIMARY KEY, until INTEGER NOT NULL)",
 		]) this.sql.exec(q);
+		// the sign-in lock and the café's cookies moved to the registry with accounts
+		this.sql.exec("DROP TABLE IF EXISTS wrong_passwords");
+		this.sql.exec("DROP TABLE IF EXISTS logins");
 	}
 
-	/** One tool call. `who` is "charlotte" (signed in through claude.ai or the café) or "agent" (holds CATIO_TOKEN). */
+	/** One tool call. `who` is "charlotte" (the owner, signed in through claude.ai or the café) or "agent" (holds a key). */
 	call(name, args, who) {
 		const tool = Object.hasOwn(TOOLS, name) && TOOLS[name];
 		if (!tool) return { unknown: true };
@@ -177,7 +177,7 @@ export class House extends DurableObject {
 		}
 	}
 
-	// ---- the café, served from here: its documents, who is signed in, and the live line to each open café ----
+	// ---- the café, served from here: its documents, and the live line to each open café ----
 
 	docs() {
 		const out = {};
@@ -210,15 +210,6 @@ export class House extends DurableObject {
 		for (const [path, data] of Object.entries(docs)) this.sql.exec("INSERT INTO docs (path, data, at) VALUES (?, ?, ?)", path, JSON.stringify(data), Date.now());
 		this.tell({ type: "reload" });
 		return true;
-	}
-
-	login(hash, until) {
-		this.sql.exec("DELETE FROM logins WHERE until <= ?", Date.now());
-		this.sql.exec("INSERT INTO logins (hash, until) VALUES (?, ?)", hash, until);
-	}
-
-	loggedIn(hash) {
-		return this.sql.exec("SELECT COUNT(*) AS n FROM logins WHERE hash = ? AND until > ?", hash, Date.now()).one().n > 0;
 	}
 
 	// An open café keeps a WebSocket here, and hears every change as it happens. The Worker lets in only a
@@ -254,19 +245,5 @@ export class House extends DurableObject {
 	stamp() {
 		const last = this.sql.exec("SELECT MAX(at) AS at FROM notes").one().at || 0;
 		return Math.max(Date.now(), last + 1);
-	}
-
-	// The sign-in page's lock: five wrong passwords in a quarter of an hour, and it waits.
-	locked() {
-		return this.sql.exec("SELECT COUNT(*) AS n FROM wrong_passwords WHERE at > ?", Date.now() - LOCK_FOR).one().n >= LOCK_AFTER;
-	}
-
-	wrongPassword() {
-		this.sql.exec("DELETE FROM wrong_passwords WHERE at <= ?", Date.now() - LOCK_FOR);
-		this.sql.exec("INSERT INTO wrong_passwords (at) VALUES (?)", Date.now());
-	}
-
-	rightPassword() {
-		this.sql.exec("DELETE FROM wrong_passwords");
 	}
 }
