@@ -209,11 +209,19 @@ Adopted chats can hold anything she types, including legal matters. They live on
 artifact database, never in this repo. The adopt form says so. The same goes for what a queen
 keeps: her card carries the same warning.
 
+## Shipping
+
+Sessions here commit, push and open pull requests without asking, and **merge their own pull requests,
+semi-automatically** (Charlotte's call, 2 October 2026): the house rules' merging rule (`harness/README.md`,
+"Semi-automatic merging") merges only when a strong model did the work, the audits and a review of the last
+commit ran and nothing is a guess, and holds the rest for her with a note in the litter box. A change under
+`harness/` or `.claude/` always waits for her: those are the rules themselves, and the gateway deploys on merge.
+
 ## The harness (KittyChat)
 
 `harness/` is the harness behind the page (see `harness/README.md`): the `kittychat-house-rules`
 plugin (hooks: preflight before any browser, a read-only ponytail audit to open a session, a nudge to
-ship unpushed work; the `catio` skill) and `harness/mcp/catio_mcp.py`, the Catio MCP server other
+ship unpushed work, the gate on pushes and merges; the `catio` skill) and `harness/mcp/catio_mcp.py`, the Catio MCP server other
 agents join through. The rules are `harness/rules.json`; Claude seeds them into the `rules` collection.
 
 The page now **writes** through Claude Code Remote, always on an explicit action:

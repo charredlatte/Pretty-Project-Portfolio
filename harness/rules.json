@@ -19,7 +19,14 @@
     {
       "id": "ship",
       "title": "Semi-automatic shipping",
-      "text": "Once a change passes the repo's own checks, commit it and push it to the session's branch without asking, and open a pull request when the work is a complete unit and none is open. Never push to the default branch, force-push, merge (unless the repo's .claude/catio-rules.json says \"merge\": true), or delete branches, and ask first before anything else that leaves the machine (publishing, posting, sending, paying). The harness reminds you when a turn ends with work left unpushed.",
+      "text": "Once a change passes the repo's own checks, commit it and push it to the session's branch without asking, and open a pull request when the work is a complete unit and none is open. Never push to the default branch or force-push, delete a branch only once it is merged, and ask first before anything else that leaves the machine (publishing, posting, sending, paying). The harness refuses pushes to the default branch and force-pushes, and reminds you when a turn ends with work left unpushed.",
+      "enforced": true,
+      "on": true
+    },
+    {
+      "id": "merge",
+      "title": "Semi-automatic merging",
+      "text": "A repo whose .claude/catio-rules.json says \"merge\": true merges its own pull requests. When one is finished and its checks pass, run the code-review skill on it, then merge it with merge_pull_request: expectedHeadSha set to the commit you reviewed, and a commit message that ends with Checks: (what ran and passed) and Guesses: (none, or each thing you assumed rather than checked). The harness merges it only when a strong model did the work, the audits ran, the review ran after the last commit, nothing is a guess and nothing on the hold list changed. Anything else is held: the pull request stays open for Charlotte, and the reason goes in the litter box for her review. After a merge, delete the merged branch. In any other repo a finished pull request is hers to merge: tell her it's ready for her to merge.",
       "enforced": true,
       "on": true
     },
@@ -73,6 +80,13 @@
       "on": true
     }
   ],
+  "merging": {
+    "_comment": "Semi-automatic merging (the merge rule). strong: the models that may merge (any part of the model id); audits: skills that must have run in the session; review: the skill that must have run since the last commit; hold: paths whose change always waits for Charlotte, in every repo. A repo adds its own in .claude/catio-rules.json, e.g. {\"merge\": true, \"hold\": [\"harness/\"]}.",
+    "strong": ["opus", "fable"],
+    "audits": ["ponytail-audit"],
+    "review": "code-review",
+    "hold": [".claude/"]
+  },
   "public": [
     "charredlatte/Pretty-Project-Portfolio",
     "charredlatte/Intermarche-grocery-shopping-app",
