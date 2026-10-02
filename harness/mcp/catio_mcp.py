@@ -240,6 +240,66 @@ def manage(args):
     return {"ok": True, "woke": woke}
 
 
+QUIZ_MAX = 5
+
+
+def _quiz_of(args):
+    need(args, "title")
+    qs = args.get("questions")
+    if not isinstance(qs, list) or not qs or len(qs) > QUIZ_MAX:
+        raise ValueError("questions is a list of 1 to 5 {q, options, free}")
+    out = []
+    for x in qs:
+        q = x if isinstance(x, dict) else {"q": x}
+        text = str(q.get("q") or q.get("question") or "").strip()[:300]
+        if not text:
+            raise ValueError("every question needs its q")
+        options = [str(o).strip()[:300] for o in (q.get("options") if isinstance(q.get("options"), list) else [])][:6]
+        options = [o for o in options if o]
+        out.append({"q": text, "options": options, "free": q.get("free") is True or not options})
+    return str(args["title"]).strip()[:120], out
+
+
+def quiz(args):
+    """Homework the queen (or Charlotte) sets for Charlotte: a quiz whose answers unblock a cat."""
+    title, questions = _quiz_of(args)
+    rec = {"id": new_id(), "for": str(args.get("for") or "")[:200], "title": title, "questions": questions,
+           "by": "charlotte" if args.get("by") == "charlotte" else "queen", "at": now(), "status": "set"}
+    with LOCK:
+        s = load()
+        s.setdefault("quizzes", []).append(rec)
+        store(s)
+    return {"id": rec["id"]}
+
+
+def quizzes(args):
+    return {"quizzes": [q for q in load().get("quizzes", []) if args.get("done") is True or q.get("status") != "done"]}
+
+
+def answer(args):
+    """Charlotte hands homework in: her answers go to the cat, as her words, and to the queen."""
+    need(args, "quiz")
+    given = args.get("answers")
+    with LOCK:
+        s = load()
+        q = next((q for q in s.get("quizzes", []) if q["id"] == args["quiz"]), None)
+        if not q:
+            raise ValueError("no such quiz")
+        if q.get("status") == "done":
+            raise ValueError("that homework is handed in already")
+        given = [str(a if a is not None else "").strip()[:1000] for a in given] if isinstance(given, list) else []
+        if len(given) != len(q["questions"]) or any(not a for a in given):
+            raise ValueError("answers is one answer per question, in order")
+        q.update(status="done", answers=given, answeredAt=now())
+        store(s)
+        told = bool(q["for"]) and q["for"] in s["agents"]
+    text = "Homework handed in: " + q["title"] + "\n" + "\n".join("%d. %s \u2192 %s" % (i + 1, x["q"], given[i]) for i, x in enumerate(q["questions"]))
+    if told:
+        comment({"cat": q["for"], "text": text, "author": "charlotte"})
+    comment({"cat": "queen", "text": text + (("\n(for %s, %s)" % (q["for"], "told" if told else "not a cat here")) if q["for"] else ""), "author": "charlotte"})
+    return {"ok": True, "told": told}
+
+
 S = {"type": "string"}
 TOOLS = {
     "house_rules": (house_rules, "The KittyChat house rules every agent in the Catio follows. Read them when you start.", {}, []),
@@ -264,6 +324,15 @@ TOOLS = {
     "manage": (manage, "Manage an agent's cat: rename, move (room key), archive, unarchive, pause, resume, wrap_up, message, done (clear a request).",
                {"cat": S, "action": {"type": "string", "enum": ["rename", "move", "archive", "unarchive", "pause", "resume", "wrap_up", "message", "done"]}, "value": S},
                ["cat", "action"]),
+    "quiz": (quiz, "Set Charlotte homework (the queen, or Charlotte): a short quiz whose answers unblock a cat. One quiz per cat, 1 to 5 "
+             "questions, each with 2 to 6 concrete options she can pick, or free for a written answer. She answers in the café; the "
+             "cat gets her answers as her words, and the queen is told.",
+             {"for": dict(S, description="The cat it unblocks (its agent id), or empty for the house"), "title": S,
+              "questions": {"type": "array", "items": {"type": "object", "properties": {"q": S, "options": {"type": "array", "items": S}, "free": {"type": "boolean"}}, "required": ["q"]}}},
+             ["title", "questions"]),
+    "quizzes": (quizzes, "The homework set for Charlotte: the open quizzes, oldest first (done: true lists the handed-in ones too).", {"done": {"type": "boolean"}}, []),
+    "answer": (answer, "Hand homework in (Charlotte only): one answer per question, in order. Her answers reach the cat, as her words, and the queen.",
+               {"quiz": S, "answers": {"type": "array", "items": S}}, ["quiz", "answers"]),
 }
 
 

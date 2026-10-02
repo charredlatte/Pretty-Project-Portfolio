@@ -19,7 +19,23 @@ const DEFAULT_TZ = "Europe/Paris";
 const SAYS = ["charlotte", "queen"];   // whose notes a cat's hook is handed: hers, and her assistant's
 
 class Refusal extends Error {}   // bad arguments: the caller is told, nothing breaks
-const CHANGES = new Set(["report_status", "comment", "drop_file", "pick_up", "manage"]);   // tools that change what a café shows
+const CHANGES = new Set(["report_status", "comment", "drop_file", "pick_up", "manage", "quiz", "answer"]);   // tools that change what a café shows
+const QUIZ = { questions: 5, options: 6, text: 300, title: 120, answer: 1000 };
+
+// Homework, as the queen sets it: a title and 1 to 5 questions, each with concrete options or a written answer
+function quizOf(args) {
+	need(args, "title");
+	const qs = Array.isArray(args.questions) ? args.questions : [];
+	if (!qs.length || qs.length > QUIZ.questions) throw new Refusal("questions is a list of 1 to 5 {q, options, free}");
+	const questions = qs.map((x) => {
+		const q = x && typeof x === "object" ? x : { q: x };
+		const text = String(q.q || q.question || "").trim().slice(0, QUIZ.text);
+		if (!text) throw new Refusal("every question needs its q");
+		const options = (Array.isArray(q.options) ? q.options : []).map((o) => String(o).trim().slice(0, QUIZ.text)).filter(Boolean).slice(0, QUIZ.options);
+		return { q: text, options, free: q.free === true || !options.length };
+	});
+	return { title: String(args.title).trim().slice(0, QUIZ.title), questions };
+}
 
 function need(args, ...keys) {
 	for (const k of keys) if (!String(args[k] ?? "").trim()) throw new Refusal(k + " is required");
@@ -215,6 +231,40 @@ const TOOLS = {
 		h.save(a);
 		if (act === "message") TOOLS.comment(h, { cat: a.id, text: args.value, author: who }, who);
 		return { ok: true, woke: false };
+	},
+
+	// Homework: a quiz the queen (or Charlotte) sets for Charlotte, whose answers unblock a cat. Kept as quizzes/<id>
+	// documents, so an open café shows them at once. Handing one in posts her answers to the cat, as her words
+	// (its hook hands them in), and tells the queen, who sees to the rest.
+	quiz(h, args, who) {
+		if (who !== "charlotte" && who !== QUEEN) throw new Refusal("only the queen or Charlotte sets homework");
+		const { title, questions } = quizOf(args);
+		const id = newId();
+		h.putDoc("quizzes/" + id, { for: args.for ? String(args.for).slice(0, 200) : "", title, questions, by: who, at: Date.now(), status: "set" });
+		return { id };
+	},
+
+	quizzes(h, args) {
+		const all = h.sql.exec("SELECT path, data FROM docs WHERE path LIKE 'quizzes/%'").toArray().map((r) => ({ id: r.path.slice("quizzes/".length), ...JSON.parse(r.data) }));
+		return { quizzes: all.filter((z) => args.done === true || z.status !== "done").sort((a, b) => (a.at || 0) - (b.at || 0)) };
+	},
+
+	answer(h, args, who) {
+		if (who !== "charlotte") throw new Refusal("only Charlotte hands homework in");
+		need(args, "quiz");
+		const path = "quizzes/" + String(args.quiz);
+		const row = h.sql.exec("SELECT data FROM docs WHERE path = ?", path).toArray()[0];
+		if (!row) throw new Refusal("no such quiz");
+		const z = JSON.parse(row.data);
+		if (z.status === "done") throw new Refusal("that homework is handed in already");
+		const given = Array.isArray(args.answers) ? args.answers.map((a) => String(a == null ? "" : a).trim().slice(0, QUIZ.answer)) : [];
+		if (given.length !== z.questions.length || given.some((a) => !a)) throw new Refusal("answers is one answer per question, in order");
+		h.putDoc(path, { status: "done", answers: given, answeredAt: Date.now() }, true);
+		const text = "Homework handed in: " + z.title + "\n" + z.questions.map((q, i) => (i + 1) + ". " + q.q + " → " + given[i]).join("\n");
+		const told = !!(z.for && h.agent(z.for));
+		if (told) TOOLS.comment(h, { cat: z.for, text, author: "charlotte" }, "charlotte");
+		TOOLS.comment(h, { cat: QUEEN, text: text + (z.for ? "\n(for " + z.for + (told ? ", told)" : ", not a cat here)") : ""), author: "charlotte" }, "charlotte");
+		return { ok: true, told };
 	},
 };
 

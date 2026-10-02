@@ -45,7 +45,7 @@ class Stdio(unittest.TestCase):
         self.assertEqual(init["result"]["serverInfo"]["name"], "catio")
         self.rpc("notifications/initialized", notify=True)
         names = {t["name"] for t in self.rpc("tools/list")["result"]["tools"]}
-        self.assertEqual(names, {"house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage"})
+        self.assertEqual(names, {"house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "answer"})
         self.assertIn("preflight", [r["id"] for r in self.tool("house_rules")["rules"]])
 
         # an agent joins, with a wake command that records what it was woken with
@@ -88,6 +88,15 @@ class Stdio(unittest.TestCase):
         time.sleep(0.01)
         self.tool("comment", cat="codex-shop", text="Pushed.", author="agent")
         self.assertEqual([n["text"] for n in self.tool("inbox", agent="codex-shop", mark=True)["notes"]], ["Wait, one more."])
+        # homework: the queen sets a quiz for the cat; her answers reach it as her words, and the queen is told
+        z = self.tool("quiz", title="The theme", questions=[{"q": "Ship it?", "options": ["Yes", "Not yet"]}, {"q": "A word for the cat?", "free": True}], **{"for": "codex-shop"})
+        self.assertEqual([(q["title"], q["status"], q["by"]) for q in self.tool("quizzes")["quizzes"]], [("The theme", "set", "queen")])
+        time.sleep(0.01)
+        self.assertEqual(self.tool("answer", quiz=z["id"], answers=["Yes", "Good work"]), {"ok": True, "told": True})
+        self.assertEqual(self.tool("quizzes")["quizzes"], [])
+        handed = self.tool("inbox", agent="codex-shop", mark=True)["notes"]
+        self.assertEqual(handed[-1]["text"], "Homework handed in: The theme\n1. Ship it? \u2192 Yes\n2. A word for the cat? \u2192 Good work")
+        self.assertIn("(for codex-shop, told)", self.tool("comments", cat="queen")["notes"][-1]["text"])
         self.tool("manage", cat="codex-shop", action="rename", value="Biscotte")
         self.tool("manage", cat="codex-shop", action="archive")
         self.assertEqual(self.tool("list_agents")["agents"], [])

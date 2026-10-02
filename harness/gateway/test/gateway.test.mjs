@@ -424,6 +424,31 @@ describe("the queen", () => {
 		assert.deepEqual((await tool(TOKEN, "comments", { cat })).notes.map((n) => n.author), ["queen", "session"]);
 	});
 
+	test("sets Charlotte homework whose answers unblock a cat", async () => {
+		const cat = "session_01Queen";
+		assert.match((await tool(TOKEN, "quiz", { for: cat, title: "x", questions: [{ q: "y" }] })).refused, /only the queen or Charlotte/);
+		assert.match((await tool(QUEEN, "quiz", { title: "x", questions: [] })).refused, /questions is a list/);
+		const { id } = await tool(QUEEN, "quiz", { for: cat, title: "The menu fix", questions: [{ q: "Merge it?", options: ["Yes, merge it", "Not yet"] }, { q: "A word for the cat?", free: true }] });
+		assert.ok(id);
+		const open = (await tool(her, "quizzes")).quizzes;
+		assert.deepEqual(open.map((z) => [z.id, z.for, z.title, z.status, z.by, z.questions.length]), [[id, cat, "The menu fix", "set", "queen", 2]]);
+		assert.deepEqual(open[0].questions[0], { q: "Merge it?", options: ["Yes, merge it", "Not yet"], free: false });
+		assert.equal(open[0].questions[1].free, true);
+		assert.match((await tool(TOKEN, "answer", { quiz: id, answers: ["Yes, merge it", "Thanks"] })).refused, /only Charlotte/);
+		assert.match((await tool(her, "answer", { quiz: id, answers: ["Yes, merge it"] })).refused, /one answer per question/);
+		const waiting = wait();   // her runner is waiting: handing in reaches the queen at once
+		await sleep(300);
+		assert.deepEqual(await tool(her, "answer", { quiz: id, answers: ["Yes, merge it", "Well done, thou good cat"] }), { ok: true, told: true });
+		assert.deepEqual((await tool(her, "quizzes")).quizzes, []);
+		assert.equal((await tool(her, "quizzes", { done: true })).quizzes[0].answers[1], "Well done, thou good cat");
+		const box = await tool(TOKEN, "inbox", { agent: cat, mark: true });
+		assert.equal(box.notes.at(-1).author, "charlotte");
+		assert.equal(box.notes.at(-1).text, "Homework handed in: The menu fix\n1. Merge it? \u2192 Yes, merge it\n2. A word for the cat? \u2192 Well done, thou good cat");
+		const got = await waiting;
+		assert.match(got.notes.at(-1).text, /^Homework handed in: The menu fix[\s\S]*\(for session_01Queen, told\)$/);
+		assert.match((await tool(her, "answer", { quiz: id, answers: ["a", "b"] })).refused, /already/);
+	});
+
 	test("runs a routine once when it comes due", async () => {
 		const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Paris", hourCycle: "h23", hour: "numeric", minute: "numeric" })
 			.formatToParts(new Date()).map((p) => [p.type, p.value]));
@@ -478,7 +503,7 @@ describe("the gateway", () => {
 		assert.equal(init.result.serverInfo.name, "catio");
 		const { result } = await rpc(TOKEN, "tools/list", {});
 		assert.deepEqual(result.tools.map((t) => t.name),
-			["house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage"]);
+			["house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "answer"]);
 		const rules = await tool(TOKEN, "house_rules");
 		assert.ok(rules.rules.some((r) => r.id === "ship"));
 		assert.equal((await tool(TOKEN, "nope")).rpcError.code, -32602);

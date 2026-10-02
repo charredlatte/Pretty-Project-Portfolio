@@ -175,7 +175,8 @@ Claude Code sessions in claude.ai stay claude.ai's: their full conversation open
    passing things to her; a proper Elizabethan manner; a voice that turns on and off. The gateway keeps her
    conversation (the cat `queen`), streams her answer to every open café, and Stop ends her turn. Her voice and
    ears are the browser's own (free; Chrome or Edge); a paid voice (ElevenLabs, OpenAI) through the gateway is a
-   later option, behind the same switch.
+   later option, behind the same switch. Homework (her ask the same evening): the queen sets quizzes to unblock
+   cats, answered by tapping in her card; the answers reach the cat as Charlotte's words.
 3. **The runner.** Built (2 October): `harness/runner/queen.py`, on her Windows PC (her choice: free, while it's
    on), signed in with her Claude plan, holding the queen's own key (`CATIO_QUEEN`). It waits on the gateway, runs
    one `claude -p` turn per thing she says or routine due, with the Catio's tools and nothing that edits files,

@@ -405,6 +405,14 @@ ul.thread li.live::after { content: "▌"; margin-left: 2px; animation: blink 1s
 ul.thread li.handoff .open { margin-left: 6px; vertical-align: middle; }
 ul.thread li.handoff.new .who::after { content: " · new"; color: var(--ink); }
 .btn.voice { display: inline-flex; align-items: center; gap: 8px; width: max-content; }
+/* her homework: a quiz a blocked cat, answered by tapping */
+.homework { display: grid; gap: 8px; }
+.homework .quiz { display: grid; gap: 6px; padding: 4px 6px 6px; background: #DCE0D2 padding-box; border: 5px solid transparent; border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / 5px 5px 6px stretch; }
+.homework .quiz h3 { margin: 0; font: 18px/22px var(--pixel); }
+.homework .quiz fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 4px; }
+.homework .quiz legend { padding: 0; font-weight: 700; font-size: .9rem; }
+.homework .quiz .opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.homework .quiz .actions { margin-top: 2px; }
 .days { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: .9rem; }
 .days label { display: inline-flex; align-items: center; gap: 3px; }
 .days input, .field input[type="range"] { accent-color: #93B259; }
@@ -616,7 +624,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     sessions: null, sessionsAt: null, live: { state: "loading" },
     liveSessions: null, liveAt: null, copy: null, from: null,   // the live feed, and Claude's saved copy for when it's blocked
     rooms: {}, tweaks: {}, adopted: [], projects: {}, queens: {}, routines: {},
-    queenNotes: null, queenTurn: null, saidAt: null,   // the queen's conversation, her answer as she speaks it, and when each cat last spoke (for the handoffs)
+    queenNotes: null, queenTurn: null, saidAt: null, quizzes: [],   // the queen's conversation, her answer as she speaks it, when each cat last spoke (for the handoffs), her homework
     brain: [], notes: [], rules: {}, audits: {}, graphs: {}, outbox: [], agents: [],   // the harness: dropped files, conversations, house rules, audits, project maps, queued posts, other agents
     assets: null, sample: null, host: null, hostAt: null, hostNote: null, agentNotes: {},   // host: the agents' server (GATEWAY, HOST or "api"), last answering at hostAt; hostNote: what she can fix about it; agentNotes: what cats said there
     focus: null, cursor: null, cam: null, sound: false, showOld: false, prevNeeding: null, art: "checking",
@@ -752,12 +760,14 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
   // What the cats brought her that you haven't read: each cat's latest word, newer than when you last opened her card.
   const unreadHandoffs = (q) => S.agents.filter((a) => a.id !== QUEEN_ID && a.said && (a.said.at || 0) > q.readAt).length;
+  // The homework she set you and you haven't handed in: a quiz per blocked cat (quizzes, from the gateway).
+  const openQuizzes = () => (S.quizzes || []).filter((z) => z && z.status !== "done");
   // Asleep while her runner is away; sitting up with something for you; speaking up when she is saying a note.
   function queenMood(q) {
     const st = q.state || queenState();
     if (st === "away") return "sleep";
     if (st === "busy") return "idle";
-    if (q.unread) return "box";
+    if (q.homework || q.unread) return "box";
     return q.pinned.length ? "meow" : "idle";
   }
   // The one line she gives you without your having to open anything.
@@ -766,6 +776,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     if (q.pinned.length && st !== "busy") return q.pinned[0].text;
     if (st === "away") return "Away: start her runner on your PC to talk to her.";
     if (st === "busy") return "Answering\u2026";
+    if (q.homework) return "Homework: " + q.homework + (q.homework === 1 ? " quiz" : " quizzes") + " to hand in.";
     if (q.unread) return "Holding " + q.unread + (q.unread === 1 ? " thing" : " things") + " for you.";
     return "Here. Talk to her.";
   }
@@ -1001,6 +1012,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const q = queenOf();
     q.state = queenState();
     q.unread = unreadHandoffs(q);
+    q.homework = openQuizzes().length;
     q.mood = queenMood(q);
     q.line = queenLine(q);
     const sp = SPR[q.mood];
@@ -2044,7 +2056,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   function openQueen(section) {
     const dlg = $("queenDlg"); dlg.replaceChildren();
     const q = queenOf();
-    q.state = queenState(); q.unread = unreadHandoffs(q);
+    q.state = queenState(); q.unread = unreadHandoffs(q); q.homework = openQuizzes().length;
     const notes = q.notes.map((n) => ({ text: n.text, pinned: !!n.pinned, at: n.at || Date.now() }));
     const opened = Date.now();
     const box = el("div", "dlg queen");
@@ -2060,8 +2072,60 @@ ul.gkey li > div.what { flex-basis: 100%; }
     head.append(por, hd);
     box.appendChild(head);
 
-    // ---- the talk ----
+    // ---- the talk: her homework first, when she set some ----
     const talk = el("section", "talk");
+    const hw = el("div", "homework"); hw.id = "queenHomework";
+    const drawHomework = () => {
+      hw.replaceChildren();
+      const open = openQuizzes();
+      hw.hidden = !open.length;
+      const cats = allCats(true).cats;
+      for (const z of open) {
+        const f = el("form", "quiz"); f.dataset.quiz = z.id;
+        f.addEventListener("submit", (e) => e.preventDefault());
+        const cat = z.for ? cats.find((c) => c.agentId === z.for) : null;
+        f.appendChild(el("h3", null, z.title));
+        f.appendChild(el("p", "sub", "Homework from " + (z.by === QUEEN_ID ? q.name : "you") + (cat ? ", to unblock " + cat.name : z.for ? ", for " + z.for : "") + " · " + ago(z.at)));
+        const picks = [];
+        (z.questions || []).forEach((qq, i) => {
+          const fs = el("fieldset", "q");
+          fs.appendChild(el("legend", null, (i + 1) + ". " + qq.q));
+          const row = el("div", "opts");
+          let picked = null;
+          const free = el("input"); free.maxLength = 1000; free.placeholder = qq.options && qq.options.length ? "Something else…" : "Your answer";
+          for (const o of qq.options || []) {
+            const b = plainBtn(o, "tiny", () => { picked = o; free.value = ""; for (const x of row.children) { x.classList.toggle("green", x === b); x.setAttribute("aria-pressed", String(x === b)); } });
+            b.setAttribute("aria-pressed", "false");
+            row.appendChild(b);
+          }
+          fs.appendChild(row);
+          if (qq.free || !(qq.options && qq.options.length)) {
+            free.addEventListener("input", () => { if (free.value.trim()) { picked = null; for (const x of row.children) { x.classList.remove("green"); x.setAttribute("aria-pressed", "false"); } } });
+            free.setAttribute("aria-label", "Your answer to: " + qq.q);
+            const l = el("label", "field"); l.appendChild(free); fs.appendChild(l);
+          }
+          picks.push(() => free.value.trim() || picked || "");
+          f.appendChild(fs);
+        });
+        const hand = plainBtn("Hand it in", "green", async () => {
+          const answers = picks.map((p) => p());
+          if (answers.some((a) => !a)) { toast("Answer every question first.", "alert"); return; }
+          hand.disabled = true;
+          try {
+            await hostCall("answer", { quiz: z.id, answers });
+            toast("Handed in." + (cat ? " " + cat.name + " has your answers." : ""));
+            await refreshQuizzes();
+            loadQueenThread();
+          } catch (e) { toast(gatewayProblem(e), "alert"); hand.disabled = false; }
+        });
+        hand.className += " hand";
+        const acts = el("div", "actions"); acts.append(el("span", "spacer"), hand);
+        f.appendChild(acts);
+        hw.appendChild(f);
+      }
+    };
+    drawHomework();
+    talk.appendChild(hw);
     const ul = el("ul", "thread"); ul.id = "queenThread";
     const drawThreadQ = () => {
       ul.replaceChildren();
@@ -2231,9 +2295,10 @@ ul.gkey li > div.what { flex-basis: 100%; }
 
     QUEEN_UI = {
       draw: drawThreadQ,
+      homework: drawHomework,
       routines: () => { if (routines) routines.redraw(); },
       state: () => {
-        q.state = queenState(); q.unread = unreadHandoffs(q);
+        q.state = queenState(); q.unread = unreadHandoffs(q); q.homework = openQuizzes().length;
         st.textContent = "Queen of the house · " + stateWord(q.state); st.className = "mood " + (q.state === "away" ? "sleep" : "work");
         stop.hidden = q.state !== "busy";
         ln.textContent = queenLine(q);
@@ -3070,6 +3135,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     if (!S.host) return;
     try {
       const p = await hostCall("list_agents", {});
+      try { S.quizzes = ((await hostCall("quizzes", {})) || {}).quizzes || []; } catch (e) { /* an older server: no homework */ }
       S.agents = (p && p.agents) || []; S.hostAt = Date.now(); render();
       const ul = $("thread"), open = ul && VIEW.cats.find((x) => x.id === ul.dataset.cat);
       if (open) loadThread(open);
@@ -3077,7 +3143,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       const was = S.saidAt;
       S.saidAt = new Map(S.agents.filter((a) => a.id !== QUEEN_ID && a.said && a.said.at).map((a) => [a.id, a.said.at]));
       if (was) for (const [id, at] of S.saidAt) if ((was.get(id) || 0) < at) handoff(id);
-      if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.draw(); }
+      if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); QUEEN_UI.draw(); }
     } catch (e) {
       const code = e && e.code;
       if (S.host === GATEWAY && code !== "server_unavailable" && code !== "rate_limited") {
@@ -3093,6 +3159,13 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const c = VIEW.cats.find((x) => x.agentId === agentId), w = c && WHERE.get(c.id);
     if (!c || !w || calm()) return;
     toQueen(c, w);
+  }
+  // her homework, after she hands one in: the gateway's list again, and the queen redrawn
+  async function refreshQuizzes() {
+    if (!S.host) return;
+    try { S.quizzes = ((await hostCall("quizzes", {})) || {}).quizzes || []; } catch (e) { return; }
+    render();
+    if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); }
   }
   // the queen, as she speaks (the gateway pushes each piece of her answer to the café): her bubble grows, her
   // voice says each sentence, and when she is done her answer is in the thread

@@ -546,6 +546,40 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(d.notes.length === 1, JSON.stringify(d.notes));
   });
 
+  // homework: she sets a quiz to unblock a cat; you answer by tapping, and hand it in
+  await T(page, () => window.__catio.setQuiz({ for: "cse_fresh9", title: "The menu fix", questions: [{ q: "Merge it?", options: ["Yes, merge it", "Not yet"] }, { q: "A word for the cat?", options: [], free: true }] }));
+  await page.waitForTimeout(400);
+  await check("homework she set shows on her: she sits up with it, and hovering says so", async () => {
+    expect((await queen().getAttribute("class")).includes("m-box"), await queen().getAttribute("class"));
+    await page.mouse.move(8, 8);
+    await queen().hover();
+    await settle(page);
+    expect((await page.locator("#tip").innerText()).includes("Homework: 1 quiz"), await page.locator("#tip").innerText());
+  });
+  await queen().dblclick();
+  await settle(page);
+  await check("her card puts the homework first: the questions, with the options to tap", async () => {
+    expect(await page.locator("#queenHomework").isVisible(), "no homework in her card");
+    const t = await page.locator("#queenHomework").innerText();
+    expect(t.includes("The menu fix") && t.includes("Merge it?") && t.includes("A word for the cat?"), t);
+    expect(await page.locator('#queenHomework button:has-text("Yes, merge it")').count() === 1, "no option to tap");
+  });
+  await page.locator('#queenHomework button:has-text("Hand it in")').click();
+  await settle(page);
+  await check("it isn't handed in half done", async () => expect((await toast(page)).includes("Answer every question"), await toast(page)));
+  await page.locator('#queenHomework button:has-text("Yes, merge it")').click();
+  await page.fill('#queenHomework input[aria-label^="Your answer"]', "Well done, thou good cat");
+  await page.locator('#queenHomework button:has-text("Hand it in")').click();
+  await settle(page);
+  await check("handing it in sends your answers, in order, and the homework is done", async () => {
+    const a = await T(page, () => window.__catio.tools.filter((t) => t[1] === "answer").pop());
+    expect(a && a[2].quiz === "z1" && JSON.stringify(a[2].answers) === JSON.stringify(["Yes, merge it", "Well done, thou good cat"]), JSON.stringify(a));
+    expect(!(await page.locator("#queenHomework").isVisible()), "the homework is still there");
+    expect((await toast(page)).includes("Handed in"), await toast(page));
+  });
+  await page.keyboard.press("Escape");
+  await settle(page);
+
   // the bug this feature found: redrawing the menu under your pointer used to close it, because the
   // button the redraw removed no longer looked like part of the menu by the time the click arrived
   await openHouse(page);

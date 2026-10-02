@@ -113,6 +113,9 @@
     dispatchEvent(new CustomEvent("catio:queen", { detail: { type: "queen", turn: turn || "t1", text, done: !!done, routine: null, id } }));
   };
   T.handoff = (cat, text) => { const a = T.gw.find((x) => x.id === cat); a.said = { text, at: Date.now() }; dispatchEvent(new Event("catio:agents")); };
+  // homework the queen set (what the gateway's quizzes tool lists), and her answers as the page hands them in
+  T.quizzes = [];
+  T.setQuiz = (z) => { T.quizzes.push(Object.assign({ id: "z" + (T.quizzes.length + 1), by: "queen", at: Date.now(), status: "set" }, z)); dispatchEvent(new Event("catio:agents")); };
   // her voice: what she would have said aloud, without a sound; and the voices the browser would offer
   T.spoken = [];
   const VOICES = [{ name: "Google US English", lang: "en-US", default: true }, { name: "Microsoft Hazel - English (United Kingdom)", lang: "en-GB", default: false }];
@@ -145,6 +148,8 @@
       if (g === "ask") throw { code: "approval_required", message: "ask every time" };
       if (tool === "list_agents") return answer({ agents: clone(T.gw) });
       if (tool === "comments") return answer({ notes: clone(T.gwNotes.filter((n) => n.cat === input.cat)) });
+      if (tool === "quizzes") return answer({ quizzes: clone(T.quizzes.filter((z) => input.done || z.status !== "done")) });
+      if (tool === "answer") { const z = T.quizzes.find((x) => x.id === input.quiz); if (!z) throw { code: "tool_error", message: "no such quiz" }; z.status = "done"; z.answers = input.answers; return answer({ ok: true, told: true }); }
       return answer({ id: "g" + T.tools.length, woke: false });
     }
     if (server === "host:catio") {

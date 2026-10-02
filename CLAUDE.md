@@ -225,6 +225,13 @@ that inflates "3 need you" makes the sign a liar.
   `queens/house.readAt` is something it brought her: `refreshAgents()` diffs `said.at` and a copy of the cat walks to
   her seat (`toQueen`, the `toAttic` pattern, changing floor at the stair); her card shows it as "<cat> brought
   you" with an Open button, and opening her card writes `readAt`. Nothing is drawn on the cats.
+- **Homework** (her ask, 2 October: "allow the queen to assign homework by prompting quizzes to unblock sessions,
+  chats or cats"). The queen (or Charlotte) sets a quiz with the `quiz` tool: a title, `for` the cat it unblocks,
+  1 to 5 questions each with concrete options or a written answer; kept as `quizzes/<id>` in the House, listed by
+  `quizzes`. The page shows the open ones first in her card (`#queenHomework`: tap an option or write, Hand it
+  in → `answer`), and her hover says "Homework: N to hand in" (mood `box`). Handing in posts the answers to the
+  cat as Charlotte's words (its hook hands them in, `Homework handed in: …`) and to the queen's conversation, so
+  she can see to the rest. Only Charlotte hands in; the agents' key sets nothing.
 - **What she keeps** is hers alone; a note she is *saying* (`pinned`) becomes her line in her menu and hover.
   The room queens of before (`queens/<room>`) are read as hers until her first save, which writes `queens/house`
   and deletes them.

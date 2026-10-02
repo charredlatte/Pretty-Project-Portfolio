@@ -40,6 +40,16 @@ export const TOOLS = [
 		"done (clear a request). On the cat \"queen\", pause stops the turn she is on.",
 		{ cat: S, action: { type: "string", enum: ["rename", "move", "archive", "unarchive", "pause", "resume", "wrap_up", "message", "done"] }, value: S },
 		["cat", "action"]),
+	tool("quiz",
+		"Set Charlotte homework (the queen, or Charlotte): a short quiz whose answers unblock a cat. One quiz per cat, 1 to 5 " +
+		"questions, each with 2 to 6 concrete options she can pick, or free for a written answer. She answers in the café; the " +
+		"cat gets her answers as her words, and the queen is told.",
+		{ for: said("The cat it unblocks (its agent id), or empty for the house"), title: S,
+			questions: { type: "array", items: { type: "object", properties: { q: S, options: { type: "array", items: S }, free: { type: "boolean" } }, required: ["q"] } } },
+		["title", "questions"]),
+	tool("quizzes", "The homework set for Charlotte: the open quizzes, oldest first (done: true lists the handed-in ones too).", { done: { type: "boolean" } }),
+	tool("answer", "Hand homework in (Charlotte only): one answer per question, in order. Her answers reach the cat, as her words, and the queen.",
+		{ quiz: S, answers: { type: "array", items: S } }, ["quiz", "answers"]),
 ];
 
 export const INSTRUCTIONS = "The Catio is Charlotte's harness. Read house_rules, report_status when you start, need her, " +

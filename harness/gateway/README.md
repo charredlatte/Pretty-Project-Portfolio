@@ -138,6 +138,10 @@ queen runner acts in that account's house:
   (a cat's hook hands it in as `[Catio] The queen says: …`), `manage` and `drop_file`, never write as `charlotte`.
   The agents' key may do none of it: the cats act on what she says.
 - `manage {cat: "queen", action: "pause"}` (Stop in the café) ends the turn she is on.
+- **Homework.** `quiz` (the queen, or Charlotte) sets Charlotte a quiz to unblock a cat: a title, `for` the cat, 1 to
+  5 questions with concrete options or a written answer, kept as `quizzes/<id>` documents; `quizzes` lists the open
+  ones; `answer` (Charlotte only) hands one in, posts her answers to the cat as her words (`Homework handed in: …`,
+  through its hook) and tells the queen.
 - **Routines** are `routines/<id>` documents written by the café (`name`, `time`, `days`, `tz`, `prompt`, `on`,
   `last`). One is due when its latest firing is newer than `last`; the House's alarm wakes a waiting runner on
   time, and a missed one runs once when the runner is back.
