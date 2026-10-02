@@ -78,6 +78,8 @@ async function login(request, env) {
 
 // the page in the skeleton claude.ai's Artifact publish gives it, with the runtime first
 const CAFE = '<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">' +
+	// the tab's icon is the brand's cat-face bubble, licensed art: served, like the rest, only once she is signed in
+	'<link rel="icon" type="image/png" href="/art/licensed/ui/logo.png">' +
 	'<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style><script src="/runtime.js"></script></head><body>' + PAGE + "</body></html>";
 const PAGE_HEADERS = {
 	"Content-Type": "text/html; charset=utf-8",

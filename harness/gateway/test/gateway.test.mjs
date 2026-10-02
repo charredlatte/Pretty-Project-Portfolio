@@ -132,6 +132,7 @@ describe("the café", () => {
 		const page = await r.text();
 		assert.match(page, /<script src="\/runtime.js"><\/script><\/head><body>/);
 		assert.match(page, /id="houseBtn"/);
+		assert.match(page, /<link rel="icon" type="image\/png" href="\/art\/licensed\/ui\/logo.png">/, "the tab's icon is the café's cat");
 	});
 
 	test("moves her data in once, with the agents' key", async () => {
