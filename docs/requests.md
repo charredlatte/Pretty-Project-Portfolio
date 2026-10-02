@@ -1,7 +1,7 @@
 # What Charlotte has asked for
 
 Everything she has asked for across the Catio, the manor, this repo and the KittyChat Cafe, compiled and
-compressed. Read this before starting something new. Last updated 2 October 2026.
+compressed. Read this before starting something new. Last updated 2 October 2026 (evening).
 
 ## Where the project's information lives
 
@@ -190,3 +190,12 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 ## Still waiting on her
 
 The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.
+
+## 2 October, evening
+
+- **Sell the KittyChat Café.** A Shopify wireframe for distributing it (`docs/kittychat-shop/`, drawn in Figma like
+  the onboarding frames), and a business plan grounded in French law and her legal status. The plan is private
+  (her status, ARE, VAT): a private artifact, linked from the Café's queen, never in git.
+- **The litter box quiz as a skill on GitHub**: `catio-plugin/skills/litterbox-quiz/`, with the licensed interface
+  art left out ("for the UI, just drop the assets that are licensed").
+

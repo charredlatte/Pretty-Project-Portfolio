@@ -422,8 +422,10 @@ def main(argv):
     ap.add_argument("--write", action="store_true", help="file the notes and empty the box")
     ap.add_argument("--checkout", action="append", default=[], metavar="REPO=PATH",
                     help="where a project's checkout is, when it isn't beside this repo")
+    ap.add_argument("--box", type=Path, default=BOX, metavar="DIR",
+                    help="another litter box, such as piles of private projects kept out of git")
     a = ap.parse_args(argv)
-    run(write=a.write, given=dict(c.split("=", 1) for c in a.checkout))
+    run(box=a.box.resolve(), write=a.write, given=dict(c.split("=", 1) for c in a.checkout))
 
 
 if __name__ == "__main__":
