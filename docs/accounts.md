@@ -1,7 +1,8 @@
 # Accounts on the backend
 
 Can the KittyChat Café have accounts, one café per person, on the backend it has? Yes, with three changes to
-the gateway and nothing new in the stack. This is the recommendation (2 October 2026); nothing here is built.
+the gateway and nothing new in the stack. This was the recommendation of 2 October 2026; phase 1 is built
+(below, "As built").
 
 ## The three changes
 
@@ -53,6 +54,38 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
    (`src/cafe.js`, PR #32): the sign-in cookie, the café's documents and files in the house, the page with
    `cafe/runtime.js`; per account it is the same with `idFromName(user)`.
 
+## As built: phase 1
+
+- `harness/gateway/src/registry.js`: the `Registry` object, with `users`, `keys`, `logins` and the per-user
+  lock. The House keeps only cats, notes, files and the café's documents.
+- The password hash is PBKDF2-SHA-256 at **100,000 rounds, Workers' cap** (more throws `NotSupportedError`),
+  computed **inside the Registry**: a Durable Object gets 30 s of CPU a request on every plan, where the free
+  plan's Worker gets 10 ms. It is below OWASP's 600,000, so the 16-character minimum and the five-tries lock stay.
+- Every token resolves to a user: the OAuth grant carries `{user, house, owner, admin}`, a bearer key is looked up
+  by its hash, a café cookie too. A grant made before accounts carries only `{user: "charlotte"}` and still
+  opens her house.
+- The first account is bootstrapped from `CATIO_PASSWORD` and `CATIO_TOKEN` into `charlotte` (or `CATIO_HANDLE`),
+  house `house`, admin, key `bootstrap`: nothing of hers moves; her connector and her hook keep working. The one
+  thing the deploy does is sign her browsers out of the café, since cookies moved to the registry: she signs in
+  again with the handle. The bootstrap happens once, into an empty registry, so a key she drops stays dropped;
+  what the secrets got wrong shows on the sign-in pages until there is an account.
+- Accounts are made by an admin signed in to the café (`POST /api/users`), who can also reset a password
+  (`PUT /api/users/<id>`: browsers out, OAuth grants revoked, keys killed, the lock cleared). Never by a key: a
+  key is in every session's environment, and a leaked one must not be able to become anyone's owner. A
+  signed-in café mints, lists and drops keys (`/api/keys`, names unique per user). The handle `house` is kept.
+  Self sign-up, and a button for keys in the page, are phase 2.
+- One handle's password tries run in turn, so five guesses in parallel lock like five in a row, and right
+  sign-ins in flight together lock nobody. Known limit: all of them run in the one registry object; against a
+  flood of made-up handles, a Cloudflare rate-limiting rule on `/login` and `/authorize` is the gateway's to add.
+- A token that names no house opens none (`whose()` fails closed); only a grant made before accounts, with
+  `{user: "charlotte"}` alone, opens the first house as its owner.
+- Brain files are kept under their house's name in KV (`file:<house>:<id>`; the first house also reads the
+  `file:<id>` from before accounts), so a delete needs no read. `src/houses.js` is what every part agrees on:
+  the first house's name, whose a token is, where a house's files are; plain JavaScript, so
+  `test/houses.test.mjs` checks the upgrade paths outside workerd.
+- On the wire the owner is still `charlotte` (the notes' `author`, "Charlotte only" in the tools): shared with
+  the page and `catio_mcp.py`, so renaming it to `owner` everywhere is its own change.
+
 ## Sources
 
 - Workers limits: https://developers.cloudflare.com/workers/platform/limits/
@@ -60,3 +93,4 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
   https://developers.cloudflare.com/durable-objects/platform/pricing/
 - KV limits: https://developers.cloudflare.com/kv/platform/limits/
 - Web Crypto on Workers: https://developers.cloudflare.com/workers/runtime-apis/web-crypto/
+- The PBKDF2 cap of 100,000 rounds: https://community.cloudflare.com/t/configure-pbkdf2-iteration-cap/848334

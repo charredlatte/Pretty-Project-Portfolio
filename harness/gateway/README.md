@@ -14,13 +14,17 @@ keeps its cats, their conversations and the files waiting for them in one SQLite
  her PC's sessions ── report.py hook ─────┘      /mcp, /authorize, /token        which the page reads as her
 ```
 
-Two kinds of caller, told apart by how they sign in:
+It has accounts (`src/registry.js`): each user has a handle, a password and a house of their own, and sees only
+their own cats and café. Two kinds of caller, told apart by how they sign in:
 
-- **Charlotte, through claude.ai.** The gateway is a custom connector, signed in once with her password
-  (`CATIO_PASSWORD`, OAuth). She reads every cat, writes as herself, drops files and manages cats.
-- **Agents and the sessions' hooks.** They send the agents' key (`CATIO_TOKEN`) as a bearer token. They report,
-  read and answer, but never as her: only she writes as `charlotte`, drops files and manages. So a key that leaks
-  out of a session can't put words in her mouth to another one.
+- **A user, through claude.ai.** The gateway is a custom connector, signed in once with their handle and password
+  (OAuth). They read every cat in their house, write as its owner, drop files and manage cats.
+- **Agents and the sessions' hooks.** They send one of the user's agents' keys as a bearer token. They report,
+  read and answer, but never as the owner: only the owner writes as `charlotte` (the owner's name on the wire),
+  drops files and manages. So a key that leaks out of a session can't put words in her mouth to another one.
+
+The first account is `charlotte`'s, made from the two secrets below the first time the gateway runs with accounts;
+it is the admin, which uploads the café's art and creates the other accounts.
 
 ## Setting it up (once)
 
@@ -56,10 +60,39 @@ Two kinds of caller, told apart by how they sign in:
    doesn't have, and the reason the page's live read is refused today.
 5. Tell Claude it's done. The page is then republished to read the `Catio` connector (docs/plan.md, phase 5).
 
-To check: the address alone asks for her password (the café's sign-in), so it says the Worker is up. Both sign-ins
+To check: the address alone asks for her handle and password (the café's sign-in), so it says the Worker is up. Both sign-ins
 say when `CATIO_PASSWORD` is missing. The key is right when an agent's call to `/mcp`
 gets an answer instead of a 401 `invalid_token`. Once a session has started in an environment with the two
 variables and the plugin, it is in `list_agents`.
+
+## Accounts
+
+- **Another account:** an admin, signed in to the café, `POST /api/users` with `{"id": "<handle>", "password":
+  "<16+ characters>"}`: from the browser's console, `fetch("/api/users", {method: "POST", headers: {"X-Catio": "1",
+  "Content-Type": "application/json"}, body: JSON.stringify({id: "…", password: "…"})}).then(r => r.json()).then(console.log)`.
+  Never with a key: a key sits in every session's environment, and what a key can do, a leaked key can do. A
+  handle is 2 to 31 lower-case letters, digits or dashes. The account gets a house named after it, and signs in
+  to the café and the connector with that handle and password. There is no sign-up form yet.
+- **A key:** from a signed-in café, `POST /api/keys` with `{"name": "laptop"}` (the page sends `X-Catio: 1`;
+  until it has a button, the browser's console does: `fetch("/api/keys", {method: "POST", headers: {"X-Catio": "1",
+  "Content-Type": "application/json"}, body: JSON.stringify({name: "laptop"})}).then(r => r.json()).then(console.log)`).
+  The key is in the answer once, and the registry keeps only its hash. It goes in `CATIO_TOKEN` wherever that
+  user's sessions and agents run. Names are unique per user. `GET /api/keys` lists them by name,
+  `DELETE /api/keys/<name>` kills one: a leaked key is dropped that way, the `bootstrap` key included, and it
+  stays dropped.
+- **A forgotten or leaked password:** an admin, signed in to the café, resets it with `PUT /api/users/<handle>`
+  and `{"password": "…"}` (the same `fetch` shape), which signs that user's browsers out, takes back every
+  connector they let in (their OAuth grants), kills every key they minted, and lets a locked-out user back in.
+  Whoever had the old password is out everywhere; the user mints new keys. The handle `house` is kept: it names
+  the first house.
+- **Guessing:** five wrong passwords lock that handle for a quarter of an hour, at once or in a row; an
+  impossible handle costs no hash. Known limit: every password check runs in the one registry object, so a
+  flood of guesses at made-up handles slows every sign-in and key lookup behind it. A rate-limiting rule on
+  `/login` and `/authorize` in Cloudflare (Security → WAF, one rule on the free plan) is the gateway's to add.
+- **One house each:** cats, conversations, files and the café's documents are the house's; the licensed art is
+  shared, uploaded by an admin.
+- **The art's licences are personal.** The packs the café is drawn with allow personal use and no redistribution,
+  so a café served to other people needs their own packs, or none (the page draws plain panels without them).
 
 ## The café on its own address
 
@@ -67,8 +100,9 @@ The gateway's own address is the KittyChat Café, the way OpenClaw's gateway ser
 in claude.ai (`catio/index.html`), behind her password, with `cafe/runtime.js` standing in for what claude.ai gives a
 page (`src/cafe.js` serves both).
 
-- **Sign-in:** `CATIO_PASSWORD`, with the same lock as the connector's (five wrong in a quarter of an hour). A
-  browser stays signed in for a month (`__Host-catio`, `HttpOnly`, `SameSite=Strict`; only its hash is kept).
+- **Sign-in:** handle and password, with the same lock as the connector's (five wrong in a quarter of an hour). A
+  browser stays signed in for a month (`__Host-catio`, `HttpOnly`, `SameSite=Strict`; only its hash is kept, in
+  the registry).
 - **Her data:** the café's documents (rooms, renames, adopted chats, looks, queens, the brain, notes) live in the
   house (`docs`), and every change reaches an open café over a WebSocket at once. Her browser writes them only with
   the `X-Catio` header and from the café's own address.
@@ -76,9 +110,9 @@ page (`src/cafe.js` serves both).
   signed in, so the packs are never public; a brain file opens in a sandbox (`Content-Security-Policy: sandbox`),
   where nothing in it can run as the café.
 - **Moving in (once):** `CATIO_URL=… CATIO_TOKEN=… python3 harness/gateway/cafe/move-in.py docs.json` uploads the art
-  from a checkout that has it (`catio/art/licensed`, never committed) and imports the claude.ai artifact's database,
-  which Claude exports with `ArtifactData`. The import is taken only while the café is empty. Re-run it without
-  `docs.json` after rebuilding the art.
+  from a checkout that has it (`catio/art/licensed`, never committed; an admin's key) and imports the claude.ai
+  artifact's database, which Claude exports with `ArtifactData`, into the key's own house. The import is taken only
+  while that café is empty. Re-run it without `docs.json` after rebuilding the art.
 - **The sessions:** the cats come from the gateway, live, and from Claude's saved copy (`snapshot/sessions`). What
   only claude.ai can do says so: opening a session's full conversation, pausing, archiving, renaming it, starting
   one, and posting into a session that doesn't report. A session that reports is told through the gateway.
@@ -141,8 +175,10 @@ or finish, and check `inbox` between tasks.
 - **`inbox` takes `mark`**, which returns only what hasn't been handed over yet and counts it as handed over.
   The server on her computer takes it too.
 - **Sign-in.** Only Claude's connectors can register: a redirect to anywhere but `claude.ai` or `claude.com` is
-  refused. Five wrong passwords lock the sign-in for a quarter of an hour. Tokens are stored only as hashes
-  (`@cloudflare/workers-oauth-provider`), and a grant lives as long as claude.ai keeps refreshing it.
+  refused. Five wrong passwords lock that user's sign-in for a quarter of an hour. Passwords are kept as PBKDF2
+  hashes (100,000 rounds, Workers' cap, computed in the registry object where the CPU budget allows it), keys and
+  cookies as SHA-256 hashes, OAuth tokens as hashes too (`@cloudflare/workers-oauth-provider`), and a grant lives
+  as long as claude.ai keeps refreshing it.
 
 It costs nothing on the Workers free plan: 100,000 requests a day, against a few hundred.
 

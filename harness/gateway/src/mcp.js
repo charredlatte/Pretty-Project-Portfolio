@@ -1,5 +1,6 @@
 // MCP over Streamable HTTP at /mcp: JSON-RPC in a POST, JSON back, no server-sent stream and no sessions.
-// The OAuth provider has already checked the bearer token: ctx.props says who sent it.
+// The OAuth provider has already checked the bearer token: ctx.props says who sent it, and which house is theirs.
+import { whose } from "./houses.js";
 import { INSTRUCTIONS, TOOLS } from "./tools.js";
 
 const NAMES = new Set(TOOLS.map((t) => t.name));
@@ -35,7 +36,7 @@ async function answer(msg, house, who) {
 	const params = msg.params || {};
 	if (method === "initialize") {
 		return ok({ protocolVersion: params.protocolVersion || "2025-06-18", capabilities: { tools: {} },
-			serverInfo: { name: "catio", version: "0.2.0" }, instructions: INSTRUCTIONS });
+			serverInfo: { name: "catio", version: "0.3.0" }, instructions: INSTRUCTIONS });
 	}
 	if (method === "ping") return ok({});
 	if (method === "tools/list") return ok({ tools: TOOLS });

@@ -1,4 +1,5 @@
-// The gateway end to end, in workerd: `wrangler dev` with a fresh state, then claude.ai's sign-in as claude.ai
+// The gateway end to end, in workerd: `wrangler dev` with a fresh state (its two secrets make the first account,
+// charlotte's, as they do on the first deploy with accounts), then claude.ai's sign-in as claude.ai
 // does it (register, authorize with her password, token, refresh), the tools as the page and an agent call
 // them, and the sign-in lock.
 //
@@ -24,12 +25,13 @@ const freePort = () => new Promise((done) => {
 	const s = createServer().listen(0, "127.0.0.1", () => { const { port } = s.address(); s.close(() => done(port)); });
 });
 
-let base, wrangler, state, log = "";
+let base, wrangler, state, log = "", herCookie = "";
 
-before(async () => {
+// wrangler dev on a fresh state; again on the same state, at the end, as a deploy would start a new isolate
+async function start() {
 	const [port, inspector] = [await freePort(), await freePort()];
 	base = `http://127.0.0.1:${port}`;
-	state = mkdtempSync(join(tmpdir(), "catio-gateway-"));
+	log = "";
 	wrangler = spawn(process.execPath, [join(HERE, "node_modules/wrangler/bin/wrangler.js"), "dev", "--ip", "127.0.0.1",
 		"--port", String(port), "--inspector-port", String(inspector), "--persist-to", state,
 		"--var", "CATIO_TOKEN:" + TOKEN, "--var", "CATIO_PASSWORD:" + PASSWORD, "--var", "CATIO_QUEEN:" + QUEEN], {
@@ -44,10 +46,16 @@ before(async () => {
 		await new Promise((r) => setTimeout(r, 500));
 	}
 	throw new Error("wrangler dev didn't start:\n" + log);
+}
+const stop = () => { try { process.kill(-wrangler.pid, "SIGTERM"); } catch { /* already gone */ } };
+
+before(async () => {
+	state = mkdtempSync(join(tmpdir(), "catio-gateway-"));
+	await start();
 });
 
 after(() => {
-	try { process.kill(-wrangler.pid, "SIGTERM"); } catch { /* already gone */ }
+	stop();
 	rmSync(state, { recursive: true, force: true });
 });
 
@@ -93,15 +101,15 @@ async function openSignIn(clientId) {
 async function submit(page, fields) {
 	return fetch(base + "/authorize", {
 		method: "POST", redirect: "manual", headers: { "Content-Type": "application/x-www-form-urlencoded", Cookie: page.cookie },
-		body: form({ handle: page.handle, client: "Claude", host: "claude.ai", ...fields }),
+		body: form({ handle: page.handle, client: "Claude", host: "claude.ai", user: "charlotte", ...fields }),
 	});
 }
 
-// the whole sign-in, as claude.ai and her browser do it: an access token that acts as Charlotte
-async function signIn() {
+// the whole sign-in, as claude.ai and a browser do it: an access token that acts as the user (charlotte unless said)
+async function signIn(who = { user: "charlotte", password: PASSWORD }) {
 	const { client_id } = await (await register([CALLBACK])).json();
 	const page = await openSignIn(client_id);
-	const r = await submit(page, { password: PASSWORD, decision: "allow" });
+	const r = await submit(page, { ...who, decision: "allow" });
 	const code = new URL(r.headers.get("location")).searchParams.get("code");
 	const t = await fetch(base + "/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
 		body: form({ grant_type: "authorization_code", code, redirect_uri: CALLBACK, client_id, code_verifier: page.verifier, resource: base + "/mcp" }) });
@@ -118,12 +126,15 @@ describe("the café", () => {
 
 	test("asks for her password before showing anything", async () => {
 		const first = await (await fetch(base + "/")).text();
+		assert.match(first, /Your handle/);
 		assert.match(first, /Your Catio password/);
 		assert.doesNotMatch(first, /id="houseBtn"/);
 		for (const p of ["/api/db", "/art/licensed/pochi.png", "/files/x", "/ws"]) assert.equal((await fetch(base + p)).status, 401, p);
-		const wrong = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ password: "not-the-password-sorry" }), redirect: "manual" });
+		const wrong = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "charlotte", password: "not-the-password-sorry" }), redirect: "manual" });
 		assert.equal(wrong.status, 401);
-		const right = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ password: PASSWORD }), redirect: "manual" });
+		const nobody = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "nobody", password: PASSWORD }), redirect: "manual" });
+		assert.equal(nobody.status, 401);
+		const right = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "Charlotte", password: PASSWORD }), redirect: "manual" });
 		assert.equal(right.status, 303);
 		const set = right.headers.get("set-cookie");
 		assert.match(set, /^__Host-catio=[0-9a-f]{64}; Path=\/; Secure; HttpOnly; SameSite=Strict/);
@@ -371,19 +382,21 @@ describe("the gateway", () => {
 		assert.equal((await register([CALLBACK, "http://localhost:4000/cb"])).status, 400);
 	});
 
-	test("signs Charlotte in with her password, never with a wrong one", async () => {
+	test("signs Charlotte in with her handle and password, never with a wrong one", async () => {
 		const { client_id } = await (await register([CALLBACK])).json();
 		const page = await openSignIn(client_id);
 		assert.equal(page.status, 200);
 		assert.ok(page.handle);
 		assert.match(page.html, /Let Claude into the Catio\?/);
+		assert.match(page.html, /name="user"/);
 		assert.match(page.html, /Access goes to <strong>claude\.ai<\/strong>/);
 		assert.equal(page.headers.get("x-frame-options"), "DENY");
 		assert.match(page.headers.get("content-security-policy"), /frame-ancestors 'none'/);
 
 		const wrong = await submit(page, { password: "not-her-password-123", decision: "allow" });
 		assert.equal(wrong.status, 401);
-		assert.match(await wrong.text(), /isn&#39;t right/);
+		assert.equal((await submit(page, { user: "someone-else", password: PASSWORD, decision: "allow" })).status, 401);
+		assert.match(await wrong.text(), /aren&#39;t right/);
 		const empty = await submit(page, { password: "", decision: "allow" });
 		assert.equal(empty.status, 400);
 
@@ -529,5 +542,27 @@ describe("the gateway", () => {
 		const locked = await submit(page, { password: PASSWORD, decision: "allow" });
 		assert.equal(locked.status, 429);
 		assert.match(await locked.text(), /Too many wrong passwords/);
+	});
+});
+
+// Last, because every suite above holds the bootstrap key: once she drops it, it is dead. Her café cookie was
+// taken in the accounts suite, before the gateway suite locked her handle; a lock keeps nobody already in out.
+describe("the bootstrap key", () => {
+	test("can be dropped like any other, and stays dropped", async () => {
+		assert.ok(herCookie, "her café cookie from the accounts suite");
+		const api = (path, init = {}) => fetch(base + path, { ...init, headers: { Cookie: herCookie, "X-Catio": "1", ...(init.headers || {}) } });
+		assert.deepEqual((await (await api("/api/keys")).json()).keys.map((k) => k.name), ["bootstrap"]);
+		assert.equal((await api("/api/keys/bootstrap", { method: "DELETE" })).status, 200);
+		const mcp = () => fetch(base + "/mcp", { method: "POST", headers: { Authorization: "Bearer " + TOKEN }, body: "{}" });
+		assert.equal((await mcp()).status, 401);
+		// a new isolate (here: wrangler again on the same state) finds the registry full: nothing is bootstrapped
+		// again, so the key does not come back, and nothing says "no account yet"
+		stop();
+		await new Promise((r) => setTimeout(r, 500));
+		await start();
+		assert.equal((await fetch(base + "/")).status, 200);
+		assert.equal((await mcp()).status, 401);
+		const asHer = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "charlotte", password: PASSWORD }), redirect: "manual" });
+		assert.equal(asHer.status, 429, "the lock from the gateway suite is in the registry, not in the isolate");
 	});
 });
