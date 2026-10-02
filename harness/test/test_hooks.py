@@ -76,6 +76,27 @@ class Gates(unittest.TestCase):
         for command in ("python3 litterbox/sort.py", "curl -s --write-out %{http_code} https://example.com"):
             self.assertEqual(self.gate("Bash", {"command": command}).returncode, 0, command)
 
+    def test_no_claude_attribution_in_commits_on_public_repos(self):
+        audited = ["anthropic-skills:ponytail-audit"]
+        repos = {}
+        for name, url in (("cafe", "https://github.com/charredlatte/Pretty-Project-Portfolio.git"),
+                          ("shop", "https://github.com/charredlatte/montfortoise-shopify")):
+            repos[name] = Path(self.tmp, name)
+            subprocess.run(["git", "init", "-q", str(repos[name])], check=True)
+            subprocess.run(["git", "-C", str(repos[name]), "remote", "add", "origin", url], check=True)
+        signed = "git commit -q -F - <<'EOF'\nFix it\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF"
+        session = 'git commit -m "Fix it" -m "Claude-Session: https://claude.ai/code/session_1"'
+        r = self.gate("Bash", {"command": signed}, audited, cwd=str(repos["cafe"]))
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("no Claude attribution", r.stderr)
+        self.assertEqual(self.gate("Bash", {"command": session}, audited, cwd=str(repos["cafe"])).returncode, 2)
+        # from outside the repo, the way a cloud session commits
+        self.assertEqual(self.gate("Bash", {"command": "cd cafe && " + signed}, audited).returncode, 2)
+        self.assertEqual(self.gate("Bash", {"command": "git -C cafe " + signed[4:]}, audited).returncode, 2)
+        # a private repo may keep the lines, and a public one may commit without them
+        self.assertEqual(self.gate("Bash", {"command": signed}, audited, cwd=str(repos["shop"])).returncode, 0)
+        self.assertEqual(self.gate("Bash", {"command": 'git commit -m "Fix it"'}, audited, cwd=str(repos["cafe"])).returncode, 0)
+
     def test_scratch_writes_are_free(self):
         repo = Path(self.tmp, "repo"); repo.mkdir()
         self.assertEqual(self.gate("Write", {"file_path": self.tmp + "/scratch/x.md"}, cwd=str(repo)).returncode, 0)

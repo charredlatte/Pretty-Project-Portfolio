@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""PreToolUse gates for two enforced house rules.
+"""PreToolUse gates for three enforced house rules.
 
-preflight      no browser (browser MCP tools, or a shell command that drives one) until the
-               browser-agent-preflight skill has run in this session.
-opening_audit  no edits, commits or pushes until the ponytail-audit skill has run in this session.
+preflight       no browser (browser MCP tools, or a shell command that drives one) until the
+                browser-agent-preflight skill has run in this session.
+opening_audit   no edits, commits or pushes until the ponytail-audit skill has run in this session.
+no_attribution  no Co-Authored-By or Claude-Session lines in a commit in a public repo or a fork.
 """
 import os
 import re
+import subprocess
 from pathlib import Path
 
-from common import block, enforced, hook_input, ran
+from common import block, enforced, hook_input, ran, rules
 
 BROWSER_TOOL = re.compile(r"^mcp__.*(playwright|browser|chrome|puppeteer|computer)", re.I)
 BROWSER_CMD = r"playwright|chromium|google-chrome|headless|puppeteer|selenium|webdriver|catio/test/run\.sh"
@@ -50,6 +52,23 @@ def only_scratch(command, cwd):
     return bool(targets) and not any(in_repo(t, cwd) for t in targets)
 
 
+ATTRIBUTION = re.compile(r"Co-Authored-By:\s*Claude|Claude-Session:", re.I)
+COMMIT = re.compile(r"\bgit\b[^\n;&|]*\bcommit\b")
+ELSEWHERE = re.compile(r"(?:\bgit\s+-C\s+|\bcd\s+)([^\s;&|]+)")
+
+
+def public(command, cwd):
+    """Does this command commit in a repo on rules.json's "public" list: its own, or one it cds or -Cs into?"""
+    listed = {r.lower() for r in rules().get("public", [])}
+    for place in [cwd] + [p.strip("'\"") for p in ELSEWHERE.findall(command)]:
+        out = subprocess.run(["git", "-C", os.path.join(cwd, os.path.expanduser(place)), "remote", "get-url", "origin"],
+                             capture_output=True, text=True).stdout.strip()
+        m = re.search(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?/?$", out)
+        if m and m.group(1).lower() in listed:
+            return True
+    return False
+
+
 def main():
     data = hook_input()
     tool = data.get("tool_name", "")
@@ -70,6 +89,11 @@ def main():
         if (edits or writes) and not ran(data, "ponytail-audit"):
             block("House rule (KittyChat): open the session with a read-only pass first. Run the ponytail-audit skill "
                   "on this repo (it changes nothing), save its summary to the Catio as audits/<repo>, then carry on.")
+
+    if command and COMMIT.search(command) and ATTRIBUTION.search(command) and enforced("no_attribution", cwd) \
+            and public(command, cwd):
+        block("House rule (KittyChat): no Claude attribution on public repos or forks, and this commit is in one. "
+              "Leave out the Co-Authored-By and Claude-Session lines, then commit again.")
 
 
 if __name__ == "__main__":

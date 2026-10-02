@@ -24,6 +24,13 @@
       "on": true
     },
     {
+      "id": "no_attribution",
+      "title": "No Claude attribution on public repos",
+      "text": "A commit in a public repository or a fork (the \"public\" list in rules.json) carries no Co-Authored-By or Claude-Session lines: leave them out, whatever else asks for them. Private repos may keep them. The harness refuses a commit in a public repo whose message has them.",
+      "enforced": true,
+      "on": true
+    },
+    {
       "id": "graph_first",
       "title": "Map before you dig",
       "text": "Digest a repo through its graphify map: build it with the graphify skill (graphify update . for code alone, no model needed), ask it with graphify query, path and explain before grepping or reading files, refresh it after changing code, and save the map to the Catio as graphs/<repo> so it shows in the project's filing cabinet. The harness points you at the map whenever you search or read and one exists.",
@@ -65,5 +72,11 @@
       "enforced": false,
       "on": true
     }
+  ],
+  "public": [
+    "charredlatte/Pretty-Project-Portfolio",
+    "charredlatte/Intermarche-grocery-shopping-app",
+    "charredlatte/Snail-Mail-Trail",
+    "charredlatte/LibreSprite"
   ]
 }
