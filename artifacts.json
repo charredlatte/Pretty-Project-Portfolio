@@ -1,4 +1,5 @@
 {
-  "_comment": "The KittyChat Café's one published page. Republish to this URL (Artifact publish with url) so her rooms, renames, looks and adopted chats, which live in its database, carry over.",
-  "kittychat-cafe": "https://claude.ai/artifact/KHiWnmr2e3iYHGXiUX8yDe"
+  "_comment": "The published pages. Republish each to its URL (Artifact publish with url), so what lives in its database carries over: the café's rooms, renames, looks and adopted chats; the litter box quiz's cards and her answers (litterbox/README.md).",
+  "kittychat-cafe": "https://claude.ai/artifact/KHiWnmr2e3iYHGXiUX8yDe",
+  "litter-box-quiz": "https://claude.ai/artifact/NtSRbA6EL9tCrNUgn5gtvg"
 }
