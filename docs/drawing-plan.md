@@ -266,8 +266,7 @@ CSS has to change with it. Top, right, bottom, left.
 | ☐ | `button-down.png` | 26 × 26 | 4 | Pressed in: no raised edge |
 | ☐ | `button-green.png`, `button-pink.png` | 26 × 26 | 4 4 6 4 | Today recoloured from the cream one by code: draw them only if she wants them different |
 | ☐ | `field.png` | 26 × 26 | 4 4 5 4 | Text inputs: pressed in, pale grey |
-| ☐ | `bubble.png` | 42 × 42 | 5 5 6 5 | Speech bubbles and a cat's ask |
-| ☐ | `bubble-tail.png` | 11 × 9 | | The tail under a bubble |
+| ☐ | `bubble.png` | 42 × 42 | 5 5 6 5 | A cat's ask and the replies in its thread |
 | ☐ | `frame.png` | 30 × 30 | 7 | The picture frame: portraits, the Edit rooms plan |
 | ☐ | `corners.png` | 20 × 20 | 9 8 | Four selection brackets in the corners, empty middle. Rooms light up with them |
 | ☐ | `divider.png` | 58 × 4 | 4 1 0 1 | The line between parts of a menu |

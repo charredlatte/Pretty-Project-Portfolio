@@ -158,13 +158,12 @@ LAYOUT = {
     ],
     # Kitchen and counter, straight ahead from the front door behind the stair: the run under the window (fridge,
     # drawers, the sink, the hob, a pantry), the counter facing the hall where you order (cats at it are working),
-    # the cats' bowls and food bag, a runner, a cushion
+    # a runner, a cushion (no bowls or food bag: she hates the cat food, 2 October 2026)
     "kitchen": [
         ("fridge", 330, 58), ("counter_drawers", 346, 73), ("counter", 362, 73), ("counter_door", 378, 73),
         ("hob", 394, 73), ("counter", 410, 73), ("pantry", 428, 56), ("filing_cabinet", 450, 73),
         ("sink", 364, 75),
         ("island", 370, 140), ("island", 386, 140), ("island", 402, 140), ("chair_front", 340, 136),
-        ("bowl_food", 470, 150), ("bowl_water", 470, 172), ("food_bag", 452, 150),
         ("runner_blue", 290, 184), ("cushion_orange", 300, 110),
     ],
     # Cat lounge, where new cats come in: the fireplace between two tall windows, armchairs either side of the
@@ -201,10 +200,10 @@ LAYOUT = {
         ("runner_green", 560, 350), ("cushion_white", 525, 362),
     ],
     # Catio, outdoors at the bottom right: the chest (its filing cabinet), a cat tree (working), a table and chair
-    # for people (the queen's), bowls by the cat flap, cushions in the sun
+    # for people (the queen's), cushions in the sun
     "garden": [
         ("catio_chest", 704, 200), ("cat_tree", 850, 200), ("cushion_white", 780, 240),
-        ("runner_blue", 710, 280), ("bowl_water", 704, 336), ("bowl_food", 730, 336),
+        ("runner_blue", 710, 280),
         ("garden_table", 760, 330), ("garden_chair", 805, 350),
         ("cushion_orange", 860, 400), ("fern", 880, 420),
     ],
