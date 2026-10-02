@@ -32,6 +32,26 @@ from. Edit them freely: the sorter only adds, and never files a note that is alr
 - **`claude/catio-gateway-plan`** is the next job's plan. Before landing it, update step 1 for the server's
   localhost-only API. *— litterbox/2026-10-01-branches-cafe.md*
 
+### 2 October 2026: her recent sessions, compiled and sifted
+
+- **Sessions still waiting on questions that are settled.** Each can be archived from its cat's card:
+  - the attribution rule's session asks whether to merge PR #18, which was merged on 2 October;
+  - the compress-compile-sort audit asks her to resolve PR #9's conflict (merged) and to choose which branches
+    to merge (the list is in `docs/plan.md`);
+  - the MCP integration plan waits for a go-ahead on `claude/catio-gateway-plan`, which the gateway replaced;
+  - the manor retexture asks which UI bug to fix next (29 September). Versions 13 to 20 have redone the
+    interface since. *— litterbox/2026-10-02-recent-sessions.md*
+
+- **Her "yes" to letting the adopted chat go** has been in the outbox since 1 October. An adopted chat and a
+  session point to one conversation, so it shows as two cats. On her word, Claude deletes the adopted chat's
+  `cats` document. *— litterbox/2026-10-02-recent-sessions.md*
+
+- **Her archive request for the harness onboarding session** is in the outbox too. That session stopped at a
+  usage limit on 29 September, and Claude can archive it on her word. *— litterbox/2026-10-02-recent-sessions.md*
+
+- **Turn "Refresh the catio" back on until the gateway is up?** It keeps the saved copy fresh every two hours,
+  but it spends her weekly limit, which is what stopped it. *— litterbox/2026-10-02-recent-sessions.md*
+
 ## Ideas not built
 
 ### What's missing: art and sound for the Catio
@@ -278,6 +298,15 @@ These aren't art to get, but they're open questions on what you already have: *�
 - Little Dreamyland is by **Starmixu & Utaskuas**. Its licence: modifying allowed, non-commercial only, no
   redistribution or resale even modified, and no NFTs or AI training. Credit: "Assets from Little Dreamyland by
   Starmixu & Utaskuas." *— litterbox/loose-ends.md*
+
+### 2 October 2026: her recent sessions, compiled and sifted
+
+- **A session can check whether the gateway is deployed** without asking her: the Cloudflare connector is
+  connected in claude.ai, and its `workers_list` shows a `catio-gateway` Worker once she has imported it. *— litterbox/2026-10-02-recent-sessions.md*
+
+- **Sifting sessions:** `list_events` with `kinds: ["result"]` returns each turn's closing message without the
+  tool calls. A session's post-turn summary, in `list_sessions`'s `external_metadata`, gives its current ask
+  in a line. *— litterbox/2026-10-02-recent-sessions.md*
 
 ## Findings
 
@@ -701,3 +730,32 @@ switch. Seven new e2e checks glide the mouse in small steps. Tested by moving th
 
 - Nothing tells a session to drop its leftovers in the box, and a session in another repo reaches the box only
   when the café is checked out beside it. *— litterbox/2026-10-01-litter-box-chat.md*
+
+### 2 October 2026: her recent sessions, compiled and sifted
+
+- **Why the café still can't read live sessions** (issue #24). Three things stack up:
+  - claude.ai refuses the page's own `list_sessions`, and Claude Code Remote, being built in, has no switch
+    for her to turn;
+  - the saved copy the page falls back on had stopped. The "Refresh the catio" Routine has been off since
+    30 September, after its last run failed, so the copy was a day old. It was refreshed by hand on 2 October;
+  - the gateway that replaces both was never set up. Her Cloudflare account has no Workers, and claude.ai has
+    no `Catio` connector, so there is nothing live for the page to read yet. *— litterbox/2026-10-02-recent-sessions.md*
+
+- **Set up, the gateway still shows only the sessions that report to it.** A session reports through the
+  house-rules plugin's `harness/hooks/report.py`, and cloud sessions don't load the plugin (PR #25's audit).
+  Each environment needs the two setup-script lines from `harness/README.md`, as well as `CATIO_URL`,
+  `CATIO_TOKEN` and the gateway in its allowed domains. *— litterbox/2026-10-02-recent-sessions.md*
+
+- **The gateway's ponytail audit (2 October): lean already.** Four small cuts, about 15 lines:
+  - `House.call` checks the tool name a second time, after `mcp.js` already has, and nothing reads its
+    `unknown`;
+  - the files table's `picked_by` is written and never read;
+  - `secret.js` is one function for two callers, and could live in `signin.js`;
+  - `package.json`'s `dev` and `deploy` scripts are never run.
+
+  Kept on purpose:
+  - one OAuth provider per address, because the library needs an absolute resource URI;
+  - `wake`, `woke` and `waiting`, so the tools match `catio_mcp.py`;
+  - the JSON-RPC batch, so the Stop hook reports and collects in one request.
+
+  The summary is in the Catio, at `audits/pretty-project-portfolio`. *— litterbox/2026-10-02-recent-sessions.md*
