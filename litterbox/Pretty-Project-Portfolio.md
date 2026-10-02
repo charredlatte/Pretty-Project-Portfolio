@@ -21,7 +21,6 @@ project: Pretty-Project-Portfolio  # a guess by litterbox/sort.py: check it, the
   - A tap focuses the cat, so focus may open a menu only when `:focus-visible`. Otherwise the tap's click
     lands on the stage and closes the menu. *— litterbox/2026-10-02-catio-first-build.md*
 
-## Questions waiting on Charlotte
-
-- **Is the Catio on your USB stick current?** The zip this chat sent on 28 September is the one-floor cabin,
-  from before the manor. `python3 catio/tools/bundle.py` builds a new one. *— litterbox/2026-10-02-catio-first-build.md*
+- **The Catio's localhost copy goes in her Google Drive**, in My Drive › Claude › KittyChat Cafe (local copy),
+  not on her USB stick: it was never on the stick. The Drive connector can't upload a zip that size, so Claude
+  sends `catio-local.zip` in the chat and she saves it in that folder. *— litterbox/2026-10-02-catio-first-build.md*
