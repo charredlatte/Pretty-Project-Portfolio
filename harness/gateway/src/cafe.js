@@ -8,7 +8,8 @@ import RUNTIME from "../cafe/runtime.js";
 import { esc, page } from "./signin.js";
 import { randomToken, sha256 } from "./secret.js";
 import { registry } from "./registry.js";
-import { fileHouse } from "./houses.js";
+import { fileKeys } from "./houses.js";
+import { bootProblem } from "./registry.js";
 
 const COOKIE = "__Host-catio";
 const STAY = 30 * 24 * 3600 * 1000;   // a signed-in browser stays signed in a month
@@ -20,6 +21,8 @@ const ART_TYPES = { png: "image/png", ttf: "font/ttf" };
 
 const json = (body, status = 200) => Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
 const refuse = (status, code, error) => json({ code, error }, status);
+/** A path segment, decoded; null when it isn't valid. */
+const tryDecode = (s) => { try { return decodeURIComponent(s); } catch { return null; } };
 /** The request's JSON object, or {} when it isn't one. */
 const bodyOf = async (request) => { const b = await request.json().catch(() => null); return b && typeof b === "object" && !Array.isArray(b) ? b : {}; };
 
@@ -64,9 +67,11 @@ ${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}
 </form>`, status);
 }
 
+const NO_ACCOUNT = () => "The gateway has no account yet: add CATIO_PASSWORD in Cloudflare, and it becomes the first one." + (bootProblem() ? " " + bootProblem() : "");
+
 async function login(request, env) {
 	const reg = await registry(env);
-	if (await reg.empty()) return signInPage("The gateway has no account yet: add CATIO_PASSWORD in Cloudflare, and it becomes the first one.", 503);
+	if (await reg.empty()) return signInPage(NO_ACCOUNT(), 503);
 	const form = await request.formData();
 	const user = await reg.checkPassword(String(form.get("user") || ""), String(form.get("password") || ""));
 	if (user && user.locked) return signInPage("Too many wrong passwords. Try again in a quarter of an hour.", 429);
@@ -121,7 +126,8 @@ export async function cafe(request, env) {
 	const cafePaths = path === "/" || path === "/ws" || path.startsWith("/api/") || path.startsWith("/art/") || path.startsWith("/files/");
 	if (!cafePaths) return null;
 	const user = await signedIn(request, env);
-	if (!user) return path === "/" ? signInPage() : refuse(401, "signed_out", "Sign in to the café first.");
+	if (!user && path === "/") return (await (await registry(env)).empty()) ? signInPage(NO_ACCOUNT(), 503) : signInPage();
+	if (!user) return refuse(401, "signed_out", "Sign in to the café first.");
 
 	if (path === "/") return new Response(CAFE, { headers: PAGE_HEADERS });
 	if (path === "/ws") {
@@ -133,12 +139,15 @@ export async function cafe(request, env) {
 		if (!value) return new Response("Not found\n", { status: 404 });
 		return new Response(value, { headers: { "Content-Type": (metadata && metadata.type) || "application/octet-stream", "Cache-Control": "private, max-age=86400", "X-Content-Type-Options": "nosniff" } });
 	}
-	// a brain file belongs to a house
+	// a brain file is kept under its house's name, so another house can neither read nor delete it
 	if (path.startsWith("/files/") && method === "GET") {
-		const { value, metadata } = await env.FILES.getWithMetadata("file:" + path.slice("/files/".length), "arrayBuffer");
-		if (!value || fileHouse(metadata) !== user.house) return new Response("Not found\n", { status: 404 });
-		const type = (metadata && metadata.type) || "";
-		return served(value, type, metadata && metadata.name, /^(image\/(png|jpeg|gif|webp)|text\/plain|application\/pdf)/.test(type));
+		for (const k of fileKeys(user.house, path.slice("/files/".length))) {
+			const { value, metadata } = await env.FILES.getWithMetadata(k, "arrayBuffer");
+			if (!value) continue;
+			const type = (metadata && metadata.type) || "";
+			return served(value, type, metadata && metadata.name, /^(image\/(png|jpeg|gif|webp)|text\/plain|application\/pdf)/.test(type));
+		}
+		return new Response("Not found\n", { status: 404 });
 	}
 	const house = houseOf(env, user);
 	if (method === "GET" && path === "/api/db") return json({ docs: await house.docs() });
@@ -146,8 +155,8 @@ export async function cafe(request, env) {
 
 	if (!fromCafe(request)) return refuse(403, "forbidden", "Only the café's own page writes here.");
 	if (path.startsWith("/api/db/")) {
-		const doc = decodeURIComponent(path.slice("/api/db/".length));
-		if (!DOC_PATH.test(doc) || doc.split("/").length % 2) return refuse(400, "bad_request", "That isn't a document's path.");
+		const doc = tryDecode(path.slice("/api/db/".length));
+		if (!doc || !DOC_PATH.test(doc) || doc.split("/").length % 2) return refuse(400, "bad_request", "That isn't a document's path.");
 		if (method === "DELETE") { await house.dropDoc(doc); return json({ ok: true }); }
 		const text = await request.text();
 		if (text.length > MAX_DOC) return refuse(413, "too_big", "A document is 1 MB at most.");
@@ -163,20 +172,21 @@ export async function cafe(request, env) {
 		const id = Date.now().toString(36) + "-" + crypto.randomUUID().slice(0, 8);
 		const type = (request.headers.get("Content-Type") || "application/octet-stream").slice(0, 200);
 		const name = decodeURIComponent(request.headers.get("X-Name") || "file").slice(0, 200);
-		await env.FILES.put("file:" + id, body, { metadata: { type, name, size: body.byteLength, house: user.house } });
+		await env.FILES.put(fileKeys(user.house, id)[0], body, { metadata: { type, name, size: body.byteLength } });
 		return json({ id, url: "/files/" + id, sizeBytes: body.byteLength, contentType: type });
 	}
 	if (path.startsWith("/api/files/") && method === "DELETE") {
-		const id = path.slice("/api/files/".length);
-		const { value, metadata } = await env.FILES.getWithMetadata("file:" + id, "stream");
-		if (value) await value.cancel();
-		if (metadata && fileHouse(metadata) === user.house) await env.FILES.delete("file:" + id);
+		for (const k of fileKeys(user.house, path.slice("/api/files/".length))) await env.FILES.delete(k);
 		return json({ deleted: true });
 	}
 	// keys for this user's agents and sessions: minted (shown once; the registry keeps only the hash) and dropped
-	if (path === "/api/keys" && method === "POST") return json(await (await registry(env)).mintKey(user.id, (await bodyOf(request)).name));
+	if (path === "/api/keys" && method === "POST") {
+		const r = await (await registry(env)).mintKey(user.id, (await bodyOf(request)).name);
+		return r.error ? refuse(400, "bad_request", r.error) : json(r);
+	}
 	if (path.startsWith("/api/keys/") && method === "DELETE") {
-		const gone = await (await registry(env)).dropKey(user.id, decodeURIComponent(path.slice("/api/keys/".length)));
+		const name = tryDecode(path.slice("/api/keys/".length));
+		const gone = name && await (await registry(env)).dropKey(user.id, name);
 		return gone ? json({ ok: true }) : refuse(404, "not_found", "No key by that name.");
 	}
 	// the gateway's tools, as the owner uses them through their connector: as "charlotte", the house's owner
@@ -216,11 +226,22 @@ async function withKey(path, method, request, env, by) {
 		if (made.error) return refuse(400, "bad_request", made.error);
 		return json({ id: made.user.id, house: made.user.house }, 201);
 	}
+	// a reset signs the user's browsers out and takes back every connector they let in (their OAuth grants)
 	if (path.startsWith("/api/users/") && method === "PUT") {
 		if (!by.admin) return refuse(403, "forbidden", "Only an admin resets a password.");
+		const id = tryDecode(path.slice("/api/users/".length));
+		if (!id) return refuse(400, "bad_request", "That isn't a handle.");
 		const { password } = await bodyOf(request);
-		const r = await (await registry(env)).setPassword(decodeURIComponent(path.slice("/api/users/".length)), password);
-		return r.error ? refuse(400, "bad_request", r.error) : json(r);
+		const r = await (await registry(env)).setPassword(id, password);
+		if (r.error) return refuse(400, "bad_request", r.error);
+		let revoked = 0;
+		for (let cursor; ;) {
+			const page = await env.OAUTH_PROVIDER.listUserGrants(id, cursor ? { cursor } : undefined);
+			for (const g of page.items) { await env.OAUTH_PROVIDER.revokeGrant(g.id, id); revoked++; }
+			if (!page.cursor) break;
+			cursor = page.cursor;
+		}
+		return json({ ok: true, revoked });
 	}
 	return null;
 }

@@ -64,16 +64,20 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
 - The first account is bootstrapped from `CATIO_PASSWORD` and `CATIO_TOKEN` into `charlotte` (or `CATIO_HANDLE`),
   house `house`, admin, key `bootstrap`: nothing of hers moves; her connector and her hook keep working. The one
   thing the deploy does is sign her browsers out of the café, since cookies moved to the registry: she signs in
-  again with the handle. The bootstrap fills in what is missing on each new isolate, so a secret set later still
-  counts after a deploy.
-- Accounts are made by an admin (`POST /api/users`), who can also reset a password (`PUT /api/users/<id>`); a
-  signed-in café mints, lists and drops keys (`/api/keys`). The handle `house` is kept. Self sign-up, and a button
-  for keys in the page, are phase 2.
-- `src/houses.js` is what every part agrees on: the first house's name, whose a token is, whose a file is; it is
-  plain JavaScript, so `test/houses.test.mjs` checks the two upgrade paths outside workerd.
+  again with the handle. The bootstrap happens once, into an empty registry, so a key she drops stays dropped;
+  what the secrets got wrong shows on the sign-in pages until there is an account.
+- Accounts are made by an admin (`POST /api/users`), who can also reset a password (`PUT /api/users/<id>`:
+  browsers out, OAuth grants revoked, the lock cleared); a signed-in café mints, lists and drops keys
+  (`/api/keys`, names unique per user). The handle `house` is kept. Self sign-up, and a button for keys in the
+  page, are phase 2.
+- A try counts before the hash, so five guesses in parallel lock like five in a row. Against a flood of
+  handles, a Cloudflare rate-limiting rule on `/login` and `/authorize` is the gateway's to add.
+- Brain files are kept under their house's name in KV (`file:<house>:<id>`; the first house also reads the
+  `file:<id>` from before accounts), so a delete needs no read. `src/houses.js` is what every part agrees on:
+  the first house's name, whose a token is, where a house's files are; plain JavaScript, so
+  `test/houses.test.mjs` checks the upgrade paths outside workerd.
 - On the wire the owner is still `charlotte` (the notes' `author`, "Charlotte only" in the tools): shared with
   the page and `catio_mcp.py`, so renaming it to `owner` everywhere is its own change.
-- Brain files carry their house in KV metadata; a file kept before accounts belongs to the first house.
 
 ## Sources
 

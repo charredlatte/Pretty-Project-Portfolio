@@ -43,11 +43,12 @@ it is the admin, which uploads the café's art and creates the other accounts.
    - `CATIO_PASSWORD`: a different one, the password she signs in with (16 characters or more). It goes into her
      password manager and nowhere else.
 
-   Never paste either into a chat. On the first request they become the account `charlotte` (admin, house
-   `house`; another gateway names its first account with a `CATIO_HANDLE` variable) and its key `bootstrap`.
-   After that the registry is what counts: changing the secrets changes nothing, and they may be deleted once
-   she has minted a key of her own and dropped `bootstrap` (below). A deploy that brings accounts signs every
-   browser out of the café once: sign in again with the handle.
+   Never paste either into a chat. Set both before the gateway's first request: that request turns them into the
+   account `charlotte` (admin, house `house`; another gateway names its first account with a `CATIO_HANDLE`
+   variable) and its key `bootstrap`, once, and never again. So a missing or short `CATIO_TOKEN` at that moment
+   means no key: mint one from the café instead (below). After that the registry is what counts: changing the
+   secrets changes nothing, and they may be deleted once she has a key of her own and has dropped `bootstrap`.
+   A deploy that brings accounts signs every browser out of the café once: sign in again with the handle.
 3. **Claude's environments.** In a cloud session, open the environment menu in the session's title bar → Edit. In
    each environment her sessions use:
    - add two environment variables, `CATIO_URL` = the address above and `CATIO_TOKEN` = the agents' key;
@@ -77,10 +78,12 @@ variables and the plugin, it is in `list_agents`.
   until it has a button, the browser's console does: `fetch("/api/keys", {method: "POST", headers: {"X-Catio": "1",
   "Content-Type": "application/json"}, body: JSON.stringify({name: "laptop"})}).then(r => r.json()).then(console.log)`).
   The key is in the answer once, and the registry keeps only its hash. It goes in `CATIO_TOKEN` wherever that
-  user's sessions and agents run. `GET /api/keys` lists them by name, `DELETE /api/keys/<name>` kills one: a
-  leaked key is dropped that way, the `bootstrap` key included.
-- **A forgotten password:** an admin resets it with `PUT /api/users/<handle>` and `{"password": "…"}`, which
-  signs that user's browsers out. The handle `house` is kept: it names the first house.
+  user's sessions and agents run. Names are unique per user. `GET /api/keys` lists them by name,
+  `DELETE /api/keys/<name>` kills one: a leaked key is dropped that way, the `bootstrap` key included, and it
+  stays dropped.
+- **A forgotten or leaked password:** an admin resets it with `PUT /api/users/<handle>` and `{"password": "…"}`,
+  which signs that user's browsers out, takes back every connector they let in (their OAuth grants), and lets a
+  locked-out user back in. The handle `house` is kept: it names the first house.
 - **Guessing:** five wrong passwords lock that handle for a quarter of an hour, and an impossible handle costs
   no hash. Against a flood of handles, a rate-limiting rule on `/login` and `/authorize` in Cloudflare (Security →
   WAF, one rule on the free plan) is the gateway's to add.

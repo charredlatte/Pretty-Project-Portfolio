@@ -24,7 +24,7 @@ const freePort = () => new Promise((done) => {
 	const s = createServer().listen(0, "127.0.0.1", () => { const { port } = s.address(); s.close(() => done(port)); });
 });
 
-let base, wrangler, state, log = "";
+let base, wrangler, state, log = "", herCookie = "";
 
 before(async () => {
 	const [port, inspector] = [await freePort(), await freePort()];
@@ -208,7 +208,7 @@ describe("the café", () => {
 // Accounts: the first is charlotte's, from the two secrets; an admin makes the others; each has a house of its own.
 describe("accounts", () => {
 	const TESTER = "tester-password-" + randomBytes(6).toString("hex");
-	let her = "", hers = "", theirs = "", key = "", TESTER_NOW = "";
+	let her = "", theirs = "", key = "", TESTER_NOW = "";
 	const KEY = (k) => ({ Authorization: "Bearer " + k, "Content-Type": "application/json" });
 	const login = async (user, password) => {
 		const r = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user, password }), redirect: "manual" });
@@ -228,9 +228,9 @@ describe("accounts", () => {
 		assert.equal(made.status, 201);
 		assert.deepEqual(await made.json(), { id: "tester", house: "tester" });
 		assert.equal((await make(KEY(TOKEN), { id: "tester", password: TESTER })).status, 400, "a handle is taken once");
-		({ cookie: hers } = await login("charlotte", PASSWORD));
+		({ cookie: herCookie } = await login("charlotte", PASSWORD));
 		({ cookie: theirs } = await login("tester", TESTER));
-		assert.ok(hers && theirs);
+		assert.ok(herCookie && theirs);
 	});
 
 	test("mints a key from a signed-in browser, shown once", async () => {
@@ -241,6 +241,7 @@ describe("accounts", () => {
 		({ key } = await r.json());
 		assert.match(key, /^[0-9a-f]{64}$/);
 		assert.equal((await as(theirs, "/api/keys", { method: "POST", body: "null" })).status, 200, "no name is fine");
+		assert.equal((await as(theirs, "/api/keys", { method: "POST", body: JSON.stringify({ name: "laptop" }) })).status, 400, "names are unique");
 		assert.deepEqual((await (await as(theirs, "/api/keys")).json()).keys.map((k) => k.name), ["laptop", "key"]);
 		assert.equal((await fetch(base + "/api/users", { method: "POST", headers: KEY(key), body: JSON.stringify({ id: "third", password: TESTER }) })).status, 403, "tester is no admin");
 		assert.equal((await fetch(base + "/api/art/licensed/pochi.png", { method: "PUT", headers: KEY(key), body: "x" })).status, 403, "nor uploads art");
@@ -267,16 +268,18 @@ describe("accounts", () => {
 		const docs = { "rooms/kitchen": { name: "Their kitchen" } };
 		assert.equal((await fetch(base + "/api/import", { method: "POST", headers: KEY(key), body: JSON.stringify({ docs }) })).status, 200);
 		assert.deepEqual((await (await as(theirs, "/api/db")).json()).docs, docs);
-		assert.notDeepEqual((await (await as(hers, "/api/db")).json()).docs, docs);
+		assert.notDeepEqual((await (await as(herCookie, "/api/db")).json()).docs, docs);
 		const up = await (await as(theirs, "/api/files", { method: "POST", headers: { "Content-Type": "text/plain", "X-Name": "mine.txt" }, body: "theirs" })).json();
 		assert.equal((await as(theirs, up.url)).status, 200);
-		assert.equal((await as(hers, up.url)).status, 404);
-		assert.equal((await as(hers, "/api/files/" + up.id, { method: "DELETE" })).status, 200);
+		assert.equal((await as(herCookie, up.url)).status, 404);
+		assert.equal((await as(herCookie, "/api/files/" + up.id, { method: "DELETE" })).status, 200);
 		assert.equal((await as(theirs, up.url)).status, 200, "another user's delete does nothing");
 	});
 
 	test("drops a key, and lets an admin reset a password", async () => {
 		assert.equal((await as(theirs, "/api/keys/nope", { method: "DELETE" })).status, 404);
+		assert.equal((await as(theirs, "/api/keys/%E0%A4%A", { method: "DELETE" })).status, 404, "a broken escape is no key, not a crash");
+		assert.equal((await as(theirs, "/api/db/%E0%A4%A", { method: "DELETE" })).status, 400);
 		assert.equal((await as(theirs, "/api/keys/laptop", { method: "DELETE" })).status, 200);
 		assert.equal((await fetch(base + "/mcp", { method: "POST", headers: KEY(key), body: "{}" })).status, 401, "a dropped key is dead");
 		assert.equal((await (await as(theirs, "/api/keys")).json()).keys.length, 1);
@@ -284,7 +287,13 @@ describe("accounts", () => {
 		const NEW = "tester-new-password-" + randomBytes(4).toString("hex");
 		assert.equal((await reset(TOKEN, "nobody", NEW)).status, 400);
 		assert.equal((await reset(TOKEN, "tester", "short")).status, 400);
-		assert.equal((await reset(TOKEN, "tester", NEW)).status, 200);
+		// a connector tester let in dies with the reset too
+		const { access_token: theirConnector } = await signIn({ user: "tester", password: TESTER });
+		assert.ok((await tool(theirConnector, "list_agents")).agents);
+		const done = await reset(TOKEN, "tester", NEW);
+		assert.equal(done.status, 200);
+		assert.ok((await done.json()).revoked >= 1);
+		assert.equal((await fetch(base + "/mcp", { method: "POST", headers: KEY(theirConnector), body: "{}" })).status, 401, "the grant is revoked");
 		assert.equal((await as(theirs, "/api/db")).status, 401, "a reset signs every browser out");
 		assert.equal((await login("tester", TESTER)).status, 401);
 		({ cookie: theirs } = await login("tester", NEW));
@@ -294,9 +303,14 @@ describe("accounts", () => {
 
 	test("locks one user's sign-in, not another's", async () => {
 		assert.equal((await login("not a handle!", TESTER_NOW)).status, 401, "an impossible handle is refused without a hash");
-		for (let i = 0; i < 5; i++) assert.equal((await login("tester", "wrong-password-" + i)).status, 401);
+		// five guesses at once lock like five in a row: the try counts before the hash
+		const burst = await Promise.all([0, 1, 2, 3, 4, 5, 6].map((i) => login("tester", "wrong-password-" + i)));
+		assert.deepEqual(burst.map((r) => r.status).sort(), [401, 401, 401, 401, 401, 429, 429]);
 		assert.equal((await login("tester", TESTER_NOW)).status, 429);
 		assert.equal((await login("charlotte", PASSWORD)).status, 303);
+		// an admin's reset lets a locked-out user back in
+		assert.equal((await fetch(base + "/api/users/tester", { method: "PUT", headers: KEY(TOKEN), body: JSON.stringify({ password: TESTER_NOW }) })).status, 200);
+		assert.equal((await login("tester", TESTER_NOW)).status, 303);
 	});
 });
 
@@ -515,5 +529,21 @@ describe("the gateway", () => {
 		const locked = await submit(page, { password: PASSWORD, decision: "allow" });
 		assert.equal(locked.status, 429);
 		assert.match(await locked.text(), /Too many wrong passwords/);
+	});
+});
+
+// Last, because every suite above holds the bootstrap key: once she drops it, it is dead. Her café cookie was
+// taken in the accounts suite, before the gateway suite locked her handle; a lock keeps nobody already in out.
+describe("the bootstrap key", () => {
+	test("can be dropped like any other, and stays dropped", async () => {
+		assert.ok(herCookie, "her café cookie from the accounts suite");
+		const api = (path, init = {}) => fetch(base + path, { ...init, headers: { Cookie: herCookie, "X-Catio": "1", ...(init.headers || {}) } });
+		assert.deepEqual((await (await api("/api/keys")).json()).keys.map((k) => k.name), ["bootstrap"]);
+		assert.equal((await api("/api/keys/bootstrap", { method: "DELETE" })).status, 200);
+		const mcp = () => fetch(base + "/mcp", { method: "POST", headers: { Authorization: "Bearer " + TOKEN }, body: "{}" });
+		assert.equal((await mcp()).status, 401);
+		// the next requests find the registry full: nothing is bootstrapped again, the key does not come back
+		assert.equal((await fetch(base + "/")).status, 200);
+		assert.equal((await mcp()).status, 401);
 	});
 });
