@@ -13,7 +13,7 @@ The gateway (`harness/gateway/`) already has every piece an account needs, each 
 | Sign-in | `@cloudflare/workers-oauth-provider`, one password secret, `userId: "charlotte"` | email and password per user; the token carries `props.user` |
 | Data | one SQLite Durable Object, `HOUSE.idFromName("house")` | one `House` per user, `idFromName(user)`. `house.js` doesn't change |
 | Agents' key | one `CATIO_TOKEN` secret, `props.user: "agent"` | a key per account, stored hashed; `resolveExternalToken` looks it up |
-| The queen's key | one `CATIO_QUEEN` secret, `props.user: "queen"` (her runner, `harness/runner`) | one more key per account, role `queen`, stored the same way; the runner routes (`/api/runner/*`) look it up like the tools do |
+| The queen's key | a registry key with the role `queen`, seeded from the `CATIO_QUEEN` secret for the first account (her runner, `harness/runner`) | any account mints one from its café (`POST /api/keys {role: "queen"}`); the runner routes (`/api/runner/*`) and `/mcp` read the role, and the runner acts in that key's house |
 
 The page needs nothing new: the `Catio` connector is OAuth per claude.ai user, so each person's page reads
 their own house. GitHub needs nothing either: `list_repos` is Claude Code Remote's, per claude.ai user.

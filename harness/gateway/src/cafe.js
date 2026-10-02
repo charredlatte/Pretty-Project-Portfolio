@@ -47,10 +47,12 @@ function fromCafe(request) {
 	return request.headers.get("X-Catio") === "1" && (!origin || origin === new URL(request.url).origin);
 }
 
-const bearer = (request) => (/^Bearer\s+(\S+)$/i.exec(request.headers.get("Authorization") || "") || [])[1];
-const agentKey = (request, env) => sameSecret(bearer(request), env.CATIO_TOKEN);
-const queenKey = (request, env) => sameSecret(bearer(request), env.CATIO_QUEEN);   // her runner's own key, never the agents'
-const MAX_SAY = 64 * 1024;
+/** The user whose key this request carries (with the key's role on it), or null. */
+async function agentKey(request, env) {
+	const m = /^Bearer\s+(\S+)$/i.exec(request.headers.get("Authorization") || "");
+	return m ? (await registry(env)).userOfKey(await sha256(m[1])) : null;
+}
+const MAX_SAY = 64 * 1024;   // a turn of the queen's, streamed
 
 function signInPage(problem = "", status = 200) {
 	return page("The KittyChat Café", `<h1>The KittyChat Café</h1>
@@ -118,11 +120,12 @@ export async function cafe(request, env) {
 		return (await withKey(path, method, request, env, by)) || refuse(404, "not_found", "Not here.");
 	}
 
-	// the queen's runner (harness/runner/queen.py), with her own key: it waits here for what to do, and streams what she says
+	// the queen's runner (harness/runner/queen.py), with a key whose role is queen (CATIO_QUEEN for the first account,
+	// or one minted in the café): it waits here for what to do, and streams what she says, in that key's house
 	if (path.startsWith("/api/runner/") && method === "POST") {
-		if (!env.CATIO_QUEEN || env.CATIO_QUEEN.length < MIN_SECRET) return refuse(503, "no_queen", "The gateway has no queen's key yet: add CATIO_QUEEN in Cloudflare.");
-		if (!(await queenKey(request, env))) return refuse(401, "unauthorized", "The queen's key is needed.");
-		const house = houseOf(env);
+		const by = await agentKey(request, env);
+		if (!by || by.role !== "queen") return refuse(401, "unauthorized", "The queen's key is needed: the CATIO_QUEEN secret in Cloudflare, or a key minted for her in the café.");
+		const house = houseOf(env, by);
 		if (path === "/api/runner/wait") return json(await house.waitForQueen());
 		if (path === "/api/runner/say") {
 			const text = await request.text();
@@ -198,7 +201,8 @@ export async function cafe(request, env) {
 	}
 	// keys for this user's agents and sessions: minted (shown once; the registry keeps only the hash) and dropped
 	if (path === "/api/keys" && method === "POST") {
-		const r = await (await registry(env)).mintKey(user.id, (await bodyOf(request)).name);
+		const { name, role } = await bodyOf(request);
+		const r = await (await registry(env)).mintKey(user.id, name, role);
 		return r.error ? refuse(400, "bad_request", r.error) : json(r);
 	}
 	if (path.startsWith("/api/keys/") && method === "DELETE") {

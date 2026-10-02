@@ -232,18 +232,19 @@ export class House extends DurableObject {
 			"CREATE INDEX IF NOT EXISTS files_by_cat ON files (cat, status)",
 			// the café's own database, when it is served from here: one row a document, as the page keeps them
 			"CREATE TABLE IF NOT EXISTS docs (path TEXT PRIMARY KEY, data TEXT NOT NULL, at INTEGER NOT NULL)",
-			// browsers she signed in to the café, by the hash of their cookie
-			"CREATE TABLE IF NOT EXISTS logins (hash TEXT PRIMARY KEY, until INTEGER NOT NULL)",
 			// small flags that must outlive the object: whether the queen's turn is to stop
 			"CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
 		]) this.sql.exec(q);
+		// the sign-in lock and the café's cookies moved to the registry with accounts
+		this.sql.exec("DROP TABLE IF EXISTS wrong_passwords");
+		this.sql.exec("DROP TABLE IF EXISTS logins");
 		// the routine that asked for a note of the queen's, on houses built before she had any
 		if (!this.sql.exec("PRAGMA table_info(notes)").toArray().some((c) => c.name === "routine")) this.sql.exec("ALTER TABLE notes ADD COLUMN routine TEXT");
 		this.waiters = [];   // the runner's held waits: resolved when there is something for the queen to do
 	}
 
-	/** One tool call. `who` is "charlotte" (signed in through claude.ai or the café), "queen" (her runner, holding
-	 * CATIO_QUEEN) or "agent" (holds CATIO_TOKEN). */
+	/** One tool call. `who` is "charlotte" (the house's owner, signed in through claude.ai or the café), "queen" (the
+	 * house's queen runner, holding a key with that role) or "agent" (holds an agents' key). */
 	call(name, args, who) {
 		const tool = Object.hasOwn(TOOLS, name) && TOOLS[name];
 		if (!tool) return { unknown: true };

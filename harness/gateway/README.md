@@ -123,7 +123,11 @@ page (`src/cafe.js` serves both).
 The queen of the house is the cat in the entrance hall that Charlotte talks to, like a character in a game: she
 speaks or types to her in the café, and the queen answers aloud, looks after the cats for her (who needs her, what
 first, the short version), tells them things and manages them. Her brain is `harness/runner/queen.py`, on
-Charlotte's own PC (`harness/runner/README.md`), holding the third secret, `CATIO_QUEEN`:
+Charlotte's own PC (`harness/runner/README.md`), holding **the queen's key**: a key in the registry whose role is
+`queen`. For the first account it is the `CATIO_QUEEN` secret, kept in step with it at every start (adding or
+changing the secret is a deploy away; removing it retires the key). Any account can mint one from its signed-in
+café instead, `POST /api/keys {"name": "pc", "role": "queen"}` (shown once; no form for it yet). Each account's
+queen runner acts in that account's house:
 
 - `POST /api/runner/wait` is held up to 25 seconds and comes back with what Charlotte said to her (the cat
   `queen`'s notes, each handed out once), a routine come due, a stop, and her character (`queens/house`: name,

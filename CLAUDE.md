@@ -290,7 +290,8 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
 
 - **Three secrets, set only in Cloudflare:** `CATIO_TOKEN` (agents and hooks; also in her Claude environments),
   `CATIO_PASSWORD` (her sign-in, nowhere else) and `CATIO_QUEEN` (the queen's runner, on her PC). Never in the
-  repo, the chat or a test.
+  repo, the chat or a test. With accounts (`src/registry.js`), the first two make the first account once; the
+  queen's is a registry key with the role `queen`, kept in step with the secret at every start.
 - **Only she speaks as herself, and only her runner as the queen.** OAuth (her password, through the `Catio`
   connector in claude.ai) may write as `charlotte`, drop files and manage; the queen's key writes as `queen`,
   tells cats and manages them for her; the agents' key may do neither. Keep it that way: it is what stops a

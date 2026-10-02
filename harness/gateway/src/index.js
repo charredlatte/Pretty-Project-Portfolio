@@ -48,11 +48,11 @@ function provider(origin) {
 				return { code: "invalid_redirect_uri", description: "Only Claude's connectors can sign in to the Catio." };
 			}
 		},
-		// agents and the session hooks send the shared key itself; the queen's runner sends hers (harness/runner)
+		// agents and the session hooks send a user's agents' key, the queen's runner the user's queen key: the
+		// registry knows whose it is, and its role
 		async resolveExternalToken({ token, env }) {
-			if (await sameSecret(token, env.CATIO_TOKEN)) return { props: { user: "agent" }, audience: resource };
-			if (await sameSecret(token, env.CATIO_QUEEN)) return { props: { user: "queen" }, audience: resource };
-			return null;
+			const user = await (await registry(env)).userOfKey(await sha256(token));
+			return user ? { props: propsOf(user, false), audience: resource } : null;
 		},
 	}));
 	return providers.get(origin);

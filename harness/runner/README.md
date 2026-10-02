@@ -21,8 +21,8 @@ café shows it as she speaks. Nothing here costs anything beyond the plan; routi
    ```
    Save it in the password manager as `CATIO_QUEEN`, under the gateway's address. Then on Cloudflare, Workers &
    Pages → `catio-gateway` → Settings → Variables and Secrets → Add: type **Secret**, name `CATIO_QUEEN`, under
-   **Production**, then **Deploy**. It is the only key that may speak as the queen: never the agents' key, since
-   the cats act on what she says.
+   **Production**, then **Deploy**. The deploy makes it her key (the registry keeps it in step with the secret).
+   It is the only key that may speak as the queen: never the agents' key, since the cats act on what she says.
 3. **Two variables on the PC**, in PowerShell (they stick for every new window):
    ```powershell
    setx CATIO_URL "https://catio-gateway.<her subdomain>.workers.dev"
