@@ -22,7 +22,7 @@ for, in `docs/requests.md`; the audit behind phase 0, in `docs/audit-2026-10-01.
   - the drawing plan.
 - **Tests:**
   - e2e: 158 passed;
-  - harness: 34 passed;
+  - harness: 44 passed;
   - the gateway in workerd, with the real hook: 9 passed;
   - the sifter: 12 passed;
   - `furniture.check()` empty.
@@ -170,7 +170,13 @@ merge to `main`.
    - whether Rename should rename the real session;
    - whether attic cats should sit on the stairs;
    - whether to delete the Drive folder's `download` files.
-6. **Branches she may delete:**
+6. **Turn the house rules on in the cloud:** the two lines in `harness/README.md`, "In cloud sessions", go in
+   the environment's setup script. Until then no house rule runs in a cloud session, merging gate included.
+7. **Turn on *Automatically delete head branches*** in each repo (Settings → General → Pull Requests), so a
+   merge deletes its branch.
+8. **Opt the other repos in to semi-automatic merging**, if she wants: `{"merge": true}` in their
+   `.claude/catio-rules.json`. montfortoise-shopify should hold whatever its theme deploys from.
+9. **Branches she may delete:**
    - `claude/digest-moves`;
    - `claude/elegant-edison-cnmcq7`;
    - `claude/exciting-bardeen-9vehk0`;

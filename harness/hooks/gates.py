@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""PreToolUse gates for three enforced house rules.
+"""PreToolUse gates for the enforced house rules.
 
 preflight       no browser (browser MCP tools, or a shell command that drives one) until the
                 browser-agent-preflight skill has run in this session.
 opening_audit   no edits, commits or pushes until the ponytail-audit skill has run in this session.
 no_attribution  no Co-Authored-By or Claude-Session lines in a commit in a public repo or a fork.
+ship, merge     pushes, branch deletions and merges, in ship_gate.py.
 """
 import os
 import re
 import subprocess
 from pathlib import Path
 
+import ship_gate
 from common import block, enforced, hook_input, ran, rules
 
 BROWSER_TOOL = re.compile(r"^mcp__.*(playwright|browser|chrome|puppeteer|computer)", re.I)
@@ -94,6 +96,14 @@ def main():
             and public(command, cwd):
         block("House rule (KittyChat): no Claude attribution on public repos or forks, and this commit is in one. "
               "Leave out the Co-Authored-By and Claude-Session lines, then commit again.")
+
+    try:
+        ship_gate.check(data, tool, args, cwd, command)
+    except SystemExit:
+        raise
+    except Exception as e:  # a hook that crashes lets the call through, so this one fails closed
+        block(f"House rule (KittyChat): the shipping gate couldn't check this ({type(e).__name__}: {e}). "
+              "Tell Charlotte, and leave the push or merge for her.")
 
 
 if __name__ == "__main__":

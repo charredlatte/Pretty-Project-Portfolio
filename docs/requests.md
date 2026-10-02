@@ -159,6 +159,18 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 - **No Claude co-author or session links** in commits on her public repos or forks (1 October, from another
   session; the rule is on `claude/cool-cannon-wh25u6`).
 
+## Semi-automatic merging (2 October)
+
+- **"Audit the KittyChat Cafe House Rules."** Done in this round: the house rules weren't running in cloud
+  sessions at all, and "no merge", "never the default branch" and "no force-push" were only words. The audit is
+  in the PR's description.
+- **"A semi-automatic mode in the plugin that allows merges and pushes to be semi-automatic. Merge and delete
+  after audits when the model has a very high confidence and is using a strong model for the task at hand.
+  Anything that is guess work gets sifted through the litterbox for human review."** The merging rule
+  (`harness/README.md`, "Semi-automatic merging"), on in this repo and the grocery app.
+- **"This line confuses me: Your house rules forbid me from merging, so the merge is yours to do."** It came from
+  the old shipping rule ("never … merge"). A session now says "PR #N is ready for you to merge", or "PR #N is
+  waiting for your review" with the reason, and nothing about rules.
 ## Nothing on the cats (2 October)
 
 - **"I don't like the letters over the cats. Remove all icons on top of the moving cats. Only show menus on

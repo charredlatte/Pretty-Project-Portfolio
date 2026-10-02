@@ -159,17 +159,218 @@ class Ship(unittest.TestCase):
     def test_a_repo_can_say_its_sessions_merge(self):
         self.g("checkout", "-b", "feature")
         Path(self.work, "a").write_text("2")
-        self.assertIn("no merge.", self.stop()["reason"])
+        self.assertIn("A finished pull request is hers to merge: tell her it's ready.", self.stop()["reason"])
         Path(self.work, ".claude").mkdir()
         Path(self.work, ".claude", "catio-rules.json").write_text('{"merge": true}')
         reason = self.stop()["reason"]
-        self.assertIn("work merges its own pull requests: merge the pull request once its checks pass", reason)
-        self.assertIn("Never push to the default branch, no force-push", reason)
+        self.assertIn("work merges its own pull requests: when the work is finished, run the code-review skill", reason)
+        self.assertNotIn("hers to merge", reason)
+        self.assertIn("Never the default branch, no force-push", reason)
 
     def test_graphify_map_is_not_work_to_ship(self):
         self.g("checkout", "-b", "feature"); self.g("push", "-u", "origin", "feature")
         Path(self.work, "graphify-out").mkdir(); Path(self.work, "graphify-out", "graph.json").write_text("{}")
         self.assertIsNone(self.stop())
+
+
+class Merging(unittest.TestCase):
+    """Semi-automatic merging: merged when nothing is a guess, held for her in the litter box when something is."""
+    CARD = "Checks: unit tests pass\nGuesses: none"
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.repo = self.checkout("cafe", {"merge": True, "hold": ["harness/"]})
+        box = Path(self.tmp, "box")
+        subprocess.run(["git", "init", "-q", str(box)], check=True)
+        Path(box, "litterbox").mkdir(); Path(box, "litterbox", "sort.py").write_text("")
+        self.box = box / "litterbox"
+
+    def checkout(self, name, rules=None):
+        """A repo on a feature branch one commit ahead of origin/main, its origin on GitHub (never fetched)."""
+        repo = Path(self.tmp, name)
+        g = lambda *a: subprocess.run(["git", *a], cwd=repo, check=True, capture_output=True)
+        subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+        g("config", "user.email", "t@t"); g("config", "user.name", "t")
+        g("remote", "add", "origin", f"https://github.com/charredlatte/{name}.git")
+        Path(repo, "a").write_text("1")
+        if rules is not None:
+            Path(repo, ".claude").mkdir(); Path(repo, ".claude", "catio-rules.json").write_text(json.dumps(rules))
+        g("add", "-A"); g("commit", "-qm", "one"); g("update-ref", "refs/remotes/origin/main", "HEAD")
+        g("checkout", "-qb", "feature")
+        Path(repo, "a").write_text("2"); g("commit", "-qam", "two")
+        self.g = g
+        return repo
+
+    def head(self, repo=None):
+        return subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo or self.repo, capture_output=True, text=True).stdout.strip()
+
+    def transcript(self, model="claude-opus-5-5", skills=("ponytail-audit", "code-review"), when="2999-01-01T00:00:00Z"):
+        p = Path(self.tmp, "t.jsonl")
+        with p.open("w") as f:
+            for s in skills:
+                f.write(json.dumps({"type": "assistant", "timestamp": when, "message": {"role": "assistant", "model": model,
+                        "content": [{"type": "tool_use", "id": "t", "name": "Skill", "input": {"skill": "anthropic-skills:" + s}}]}}) + "\n")
+        return str(p)
+
+    def gate(self, tool, args, cwd=None, **kw):
+        return run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": tool, "tool_input": args,
+                                "transcript_path": self.transcript(**kw), "cwd": str(cwd or self.tmp)})
+
+    def merge(self, message=CARD, head=None, repo="cafe", merge_method=None, **kw):
+        args = {"owner": "charredlatte", "repo": repo, "pullNumber": 7, "commit_message": message,
+                "expectedHeadSha": self.head() if head is None else head, "merge_method": merge_method}
+        return self.gate("mcp__github__merge_pull_request", args, **kw)
+
+    def note(self):
+        p = self.box / "held-cafe-7.md"
+        return p.read_text() if p.exists() else None
+
+    def test_merges_when_a_strong_model_reviewed_it_and_nothing_is_a_guess(self):
+        r = self.merge()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIsNone(self.note())
+        self.assertEqual(self.merge(model="claude-fable-5-1").returncode, 0)
+
+    def test_a_repo_that_doesnt_merge_leaves_it_to_her(self):
+        self.checkout("shop")
+        r = self.gate("mcp__github__merge_pull_request", {"owner": "charredlatte", "repo": "shop", "pullNumber": 3,
+                                                           "commit_message": self.CARD, "expectedHeadSha": "x"})
+        self.assertEqual(r.returncode, 2)
+        self.assertIn('tell her in one line: "PR #3 is ready for you to merge."', r.stderr)
+        r = self.gate("mcp__github__merge_pull_request", {"owner": "charredlatte", "repo": "elsewhere", "pullNumber": 3})
+        self.assertIn("there's no checkout of charredlatte/elsewhere here", r.stderr)
+
+    def test_guesswork_is_held_for_her_in_the_litter_box(self):
+        r = self.merge("Checks: unit tests pass\nGuesses: that the Drive API rounds prices.")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("held PR #7 for Charlotte: guesses: that the Drive API rounds prices", r.stderr)
+        self.assertIn('"PR #7 is waiting for your review: guesses: that the Drive API rounds prices."', r.stderr)
+        note = self.note()
+        self.assertTrue(note.startswith("---\nproject: cafe\ndate: "), note)
+        self.assertIn("## Waiting on Charlotte\n\n- [ ] [charredlatte/cafe#7](https://github.com/charredlatte/cafe/pull/7)", note)
+        self.assertNotIn("rounds prices..", note)
+
+    def test_a_model_off_the_strong_list_is_held(self):
+        r = self.merge(model="claude-sonnet-5-5")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("claude-sonnet-5-5 worked on it, and only opus or fable may merge", self.note())
+
+    def test_held_paths_wait_for_her(self):
+        Path(self.repo, "harness").mkdir(); Path(self.repo, "harness", "rules.json").write_text("{}")
+        self.g("add", "-A"); self.g("commit", "-qm", "rules")
+        self.assertIn("it changes harness, which always waits for her", self.merge().stderr)
+        Path(self.repo, ".claude", "settings.json").write_text("{}")
+        self.g("add", "-A"); self.g("commit", "-qm", "settings")
+        self.assertIn("it changes .claude, harness", self.merge().stderr)
+
+    def test_what_the_session_can_fix_is_sent_back_not_held(self):
+        cases = (
+            (dict(skills=("ponytail-audit",)), "run the code-review skill on PR #7"),
+            (dict(when="2000-01-01T00:00:00Z"), "(it hasn't run since the last commit)"),
+            (dict(skills=("code-review",)), "run the ponytail-audit skill"),
+            (dict(head=""), "pass expectedHeadSha: " + self.head()),
+            (dict(head="abc"), "expectedHeadSha is abc, but this checkout is at"),
+            (dict(message="Merge it"), 'end the merge\'s commit message with "Checks: <what ran and passed>"'),
+        )
+        for kw, words in cases:
+            r = self.merge(**kw)
+            self.assertEqual(r.returncode, 2, kw)
+            self.assertIn("not ready to merge PR #7 yet: ", r.stderr)
+            self.assertIn(words, r.stderr, kw)
+        Path(self.repo, "a").write_text("3")
+        self.assertIn("commit or drop the uncommitted changes", self.merge().stderr)
+        self.assertIsNone(self.note())
+
+    def test_moving_a_file_out_of_a_held_path_is_still_held(self):
+        Path(self.repo, "harness").mkdir(); Path(self.repo, "harness", "gate.py").write_text("x = 1\n" * 20)
+        self.g("add", "-A"); self.g("commit", "-qm", "gate"); self.g("update-ref", "refs/remotes/origin/main", "HEAD")
+        self.g("mv", "harness/gate.py", "gate.py"); self.g("commit", "-qm", "move it out")
+        self.assertIn("it changes harness", self.merge().stderr)
+
+    def test_the_guesses_are_their_own_paragraph(self):
+        for card in ("Checks: tests pass\nGuesses: none\n\nCo-Authored-By: someone <a@b>",
+                     "Guesses: none.\nChecks: tests pass"):
+            self.assertEqual(self.merge(card).returncode, 0, card)
+        r = self.merge("Checks: tests pass\nGuesses:\n- that prices round\n- that UTC is fine\n\nSigned-off-by: x")
+        self.assertIn("guesses: - that prices round - that UTC is fine. A note", r.stderr)
+
+    def test_only_a_plain_merge_and_a_typed_review_counts(self):
+        self.assertIn('merge with merge_method "merge", not squash', self.merge(merge_method="squash").stderr)
+        p = Path(self.tmp, "typed.jsonl")
+        p.write_text("\n".join(json.dumps(e) for e in (
+            {"type": "user", "timestamp": "2999-01-01T00:00:00Z", "message": {"role": "user", "content":
+             "<command-message>code-review</command-message>\n<command-name>/code-review</command-name>"}},
+            {"type": "assistant", "message": {"role": "assistant", "model": "claude-opus-5-5", "content": [
+             {"type": "tool_use", "id": "t", "name": "Skill", "input": {"skill": "ponytail-audit"}}]}},
+            {"type": "assistant", "isSidechain": True, "message": {"role": "assistant", "model": "claude-haiku-4-5", "content": []}},
+        )) + "\n")
+        args = {"owner": "charredlatte", "repo": "cafe", "pullNumber": 7, "commit_message": self.CARD, "expectedHeadSha": self.head()}
+        r = run("gates.py", {"tool_name": "mcp__github__merge_pull_request", "tool_input": args, "transcript_path": str(p), "cwd": self.tmp})
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_any_github_servers_merge_is_checked(self):
+        r = self.gate("mcp__plugin_github_github__merge_pull_request", {"owner": "charredlatte", "repo": "cafe", "pullNumber": 7})
+        self.assertIn("not ready to merge PR #7", r.stderr)
+
+    def test_auto_merge_and_gh(self):
+        r = self.gate("mcp__github__enable_pr_auto_merge", {"owner": "charredlatte", "repo": "cafe", "pullNumber": 7})
+        self.assertIn("auto-merge can't be pinned", r.stderr)
+        body = f"gh pr merge 7 --merge --match-head-commit {self.head()} --body '{self.CARD}'"
+        self.assertEqual(self.gate("Bash", {"command": body}, cwd=self.repo).returncode, 0)
+        self.assertEqual(self.gate("Bash", {"command": "cd cafe && " + body}).returncode, 0)
+        self.assertIn("auto-merge", self.gate("Bash", {"command": body + " --auto"}, cwd=self.repo).stderr)
+        self.assertIn("not squash", self.gate("Bash", {"command": body + " --squash"}, cwd=self.repo).stderr)
+        self.assertIn("not ready to merge PR #7", self.gate("Bash", {"command": "gh pr merge 7"}, cwd=self.repo).stderr)
+        self.assertIn("name the pull request's number", self.gate("Bash", {"command": "gh pr merge feature"}, cwd=self.repo).stderr)
+
+
+class Pushing(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        origin, work = Path(self.tmp, "origin.git"), Path(self.tmp, "work")
+        self.g = lambda *a: subprocess.run(["git", *a], cwd=work, check=True, capture_output=True)
+        subprocess.run(["git", "init", "--bare", "-q", "-b", "main", str(origin)], check=True)
+        subprocess.run(["git", "clone", "-q", str(origin), str(work)], check=True, capture_output=True)
+        self.g("config", "user.email", "t@t"); self.g("config", "user.name", "t")
+        Path(work, "a").write_text("1"); self.g("add", "a"); self.g("commit", "-qm", "one")
+        self.g("push", "-q", "-u", "origin", "HEAD:main"); self.g("remote", "set-head", "origin", "main")
+        self.work = work
+
+    def push(self, command, tool="Bash"):
+        args = {"command": command} if tool == "Bash" else command
+        return run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": tool, "tool_input": args,
+                                "transcript_path": transcript(self.tmp, ["ponytail-audit"]), "cwd": str(self.work)})
+
+    def test_never_the_default_branch(self):
+        for command in ("git push origin main", "git push", "git push -u origin HEAD:main", "git push origin feature:refs/heads/main",
+                        "git -c push.default=current push origin main", "if git push origin main; then echo ok; fi",
+                        "{ git push origin main; }", 'bash -c "git push origin main"', "env GIT_TRACE=1 git push origin main"):
+            r = self.push(command)
+            self.assertEqual(r.returncode, 2, command)
+            self.assertIn("never push to the default branch (main)", r.stderr)
+        self.g("checkout", "-qb", "feature")
+        for command in ("git push -u origin feature", "git push", "git push origin HEAD 2>&1 | tail -1", "git push --tags",
+                        'cd "$NOWHERE" && git push origin feature', 'git commit -m "then git push" --dry-run'):
+            self.assertEqual(self.push(command).returncode, 0, command)
+        self.assertEqual(self.push({"owner": "o", "repo": "r", "branch": "main"}, "mcp__github__push_files").returncode, 2)
+        self.assertEqual(self.push({"owner": "o", "repo": "r", "branch": "feature"}, "mcp__github__push_files").returncode, 0)
+
+    def test_no_force_push(self):
+        self.g("checkout", "-qb", "feature")
+        for command in ("git push -f origin feature", "git push --force-with-lease", "git push origin +feature",
+                        "git push -uf origin feature", "git push --all origin", "git push origin 'refs/heads/*:refs/heads/*'"):
+            self.assertEqual(self.push(command).returncode, 2, command)
+
+    def test_only_a_merged_branch_is_deleted_and_only_where_sessions_merge(self):
+        self.g("checkout", "-qb", "done"); self.g("push", "-q", "origin", "done")
+        self.g("checkout", "-qb", "open"); Path(self.work, "b").write_text("x"); self.g("add", "b"); self.g("commit", "-qm", "b")
+        self.g("push", "-q", "origin", "open")
+        self.assertIn("Charlotte's to delete", self.push("git push origin --delete done").stderr)
+        Path(self.work, ".claude").mkdir(); Path(self.work, ".claude", "catio-rules.json").write_text('{"merge": true}')
+        self.assertEqual(self.push("git push origin --delete done").returncode, 0)
+        self.assertEqual(self.push("git push origin :done").returncode, 0)
+        self.assertIn("open isn't merged into main, so it stays", self.push("git push origin -d open").stderr)
+        self.assertIn("never push to the default branch", self.push("git push origin --delete main").stderr)
 
 
 class GraphFirst(unittest.TestCase):
@@ -213,11 +414,14 @@ class SessionStart(unittest.TestCase):
             self.assertIn(words, r.stdout)
 
     def test_says_when_a_repo_merges(self):
-        tmp = tempfile.mkdtemp()
-        self.assertNotIn("merges its own pull requests", run("session_start.py", {"cwd": tmp}).stdout)
+        tmp = Path(tempfile.mkdtemp(), "cafe")
+        subprocess.run(["git", "init", "-q", str(tmp)], check=True)
+        self.assertIn("  cafe's pull requests are hers to merge.", run("session_start.py", {"cwd": str(tmp)}).stdout)
         Path(tmp, ".claude").mkdir()
-        Path(tmp, ".claude", "catio-rules.json").write_text('{"merge": true}')
-        self.assertIn("This repo merges its own pull requests", run("session_start.py", {"cwd": tmp}).stdout)
+        Path(tmp, ".claude", "catio-rules.json").write_text('{"merge": true, "hold": ["harness/"]}')
+        out = run("session_start.py", {"cwd": str(tmp)}).stdout
+        self.assertIn("  cafe merges its own pull requests; changes to harness/ always wait for her.", out)
+        self.assertIn("**Semi-automatic merging** (enforced)", out)
 
     def test_resume_skips_the_audit_prompt(self):
         r = run("session_start.py", {"source": "resume", "cwd": tempfile.mkdtemp()})
