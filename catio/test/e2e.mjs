@@ -1452,6 +1452,8 @@ if (LOCAL) {
   await page.reload();
   await page.waitForTimeout(600);
   await check("and the cat is still there after a reload", async () => expect(await page.locator('#cats .cat[aria-label^="Loco "]').count() === 1, "lost on reload"));
+  await page.waitForTimeout(1200);   // past the second the wizard gives the rooms
+  await check("on localhost the rooms come from data/rooms.json, so the wizard never shows", async () => expect(await page.locator("#setupDlg[open]").count() === 0, "wizard open on a seeded café"));
   await openCat(page, "Loco");
   await menuButton(page, "Details").click();
   await page.click("#catDlg button:has-text('Let go')");
