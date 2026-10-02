@@ -61,6 +61,13 @@ def apply(answers_dir, box):
     for pile, front, _, notes in waiting(box):
         keep = []
         for n in notes:
+            a = answers.get(card_id(pile, n))
+            if not a:
+                keep.append(n)
+            elif a.get("verdict") == "file" and a.get("project"):
+                sorted_.setdefault(a["project"], []).append(n)
+            else:
+                dropped += 1
             a = answers.get(card_id(pile, n)) or {}
             if a.get("verdict") == "file" and a.get("project"):
                 sorted_.setdefault(a["project"], []).append(n)
@@ -81,6 +88,7 @@ def apply(answers_dir, box):
         before = dest.read_text(encoding="utf-8") if dest.exists() else f"---\nproject: {project}\ndate: {today}\n---\n"
         dest.write_text(before.rstrip() + "\n\n" + leftover("", notes), encoding="utf-8")
         print(f"{dest.name}: {len(notes)} checked for {project}")
+    print(f"dropped as settled: {dropped}. Next: python3 litterbox/sort.py --write")
     print(f"dropped as settled: {dropped}. Next: python3 litterbox/sort.py --write" + (f" --box {box}" if box != BOX.resolve() else ""))
 
 
