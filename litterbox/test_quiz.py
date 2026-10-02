@@ -76,6 +76,24 @@ class Quiz(unittest.TestCase):
         self.assertNotIn("Emscripten", left)
         self.assertNotIn("deployment session", left)
 
+    def test_an_answer_that_says_nothing_leaves_the_note(self):
+        ids = sorted(self.cards(), key=lambda i: self.cards()[i]["order"])
+        answers = Path(self.tmp.name) / "saved" / "answers"
+        answers.mkdir(parents=True)
+        (answers / f"{ids[0]}.json").write_text(json.dumps({"verdict": "file", "project": ""}))
+        (answers / f"{ids[1]}.json").write_text(json.dumps({"verdict": "maybe"}))
+        with contextlib.redirect_stdout(io.StringIO()):
+            quiz.apply(answers.parent, self.box)
+        self.assertEqual((self.box / "LibreSprite.md").read_text(encoding="utf-8"), PILE, "untouched, byte for byte")
+        self.assertEqual(list(self.box.glob("*-sorted-*")), [])
+
+    def test_a_new_deal_clears_the_old_cards(self):
+        out = Path(self.tmp.name) / "cards"
+        out.mkdir()
+        (out / "stale.json").write_text("{}")
+        self.cards()
+        self.assertFalse((out / "stale.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -345,7 +345,7 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     b.dataset.repo = p.repo;
     if (a && a.verdict === "file" && a.project === p.repo) b.classList.add("green");
     else if (a && a.verdict === "file" && p.repo === c.guess) b.classList.add("was");
-    b.innerHTML = (key ? '<span class="key">' + key + "</span>" : "") + '<span class="name"><span>' + esc(p.label.toUpperCase()) + '</span><span class="repo">' + esc(p.repo) + "</span></span>" +
+    b.innerHTML = (key ? '<span class="key">' + key + "</span>" : "") + '<span class="name"><span>' + esc((p.label || p.repo).toUpperCase()) + '</span><span class="repo">' + esc(p.repo) + "</span></span>" +
       (b.classList.contains("was") ? '<span class="was-tag">GUESS</span>' : "");
     b.setAttribute("aria-pressed", String(b.classList.contains("green")));
     b.disabled = S.readOnly;
