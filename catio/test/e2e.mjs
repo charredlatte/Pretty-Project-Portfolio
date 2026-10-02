@@ -1657,6 +1657,8 @@ if (LOCAL) {
   await page.reload();
   await page.waitForTimeout(600);
   await check("and the cat is still there after a reload", async () => expect(await page.locator('#cats .cat[aria-label^="Loco "]').count() === 1, "lost on reload"));
+  await page.waitForTimeout(1200);   // past the second the wizard gives the rooms
+  await check("on localhost the rooms come from data/rooms.json, so the wizard never shows", async () => expect(await page.locator("#setupDlg[open]").count() === 0, "wizard open on a seeded café"));
   await openCat(page, "Loco");
   await menuButton(page, "Details").click();
   await page.click("#catDlg button:has-text('Let go')");
@@ -1736,6 +1738,304 @@ if (LOCAL) {
     expect(await page.locator("#toast").isVisible(), "gone");
   });
   await check("no page errors with the audit's fixes", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+
+/* ---------- 10. the first run: the wizard over an empty café, and closed rooms ---------- */
+// the wizard gives the rooms a second to arrive before it opens
+const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000 }).then(() => settle(page));
+{
+  const { page, ctx } = await open("");
+  await page.waitForTimeout(1500);   // past the second the wizard gives the rooms
+  await check("a café with rooms never sees the wizard", async () => expect(await page.locator("#setupDlg[open]").count() === 0, "wizard open"));
+  await ctx.close();
+}
+{
+  const { page, ctx, errors } = await open("?mode=empty");
+  const nextStep = async () => { await page.click("#setupDlg button[type=submit]"); await settle(page); };
+  const title = () => page.locator("#setupTitle").innerText();
+  await check("a café with no rooms opens the wizard on Welcome, and Later or Escape closes it without writing", async () => {
+    await wizard(page);
+    expect(await page.locator("#setupDlg[open]").count() === 1, "wizard not open");
+    expect((await title()) === "Welcome", await title());
+    await page.click("#setupDlg button:has-text('Later')"); await settle(page);
+    expect(await page.locator("#setupDlg[open]").count() === 0, "Later left it open");
+    await page.click("#houseBtn");
+    await menuButton(page, "Set up again…").click(); await settle(page);
+    await page.keyboard.press("Escape"); await settle(page);
+    expect(await page.locator("#setupDlg[open]").count() === 0, "still open");
+    expect((await T(page, () => window.__catio.writes.length)) === 0, "wrote something");
+  });
+  await page.click("#houseBtn");
+  await menuButton(page, "Set up again…").click();
+  await settle(page);
+  await check("the House menu opens it again", async () => expect(await page.locator("#setupDlg[open]").count() === 1, "not open"));
+  await page.fill("#setupName", "Mochi's Café");
+  await nextStep();
+  await check("Rooms: the counter opens rooms from the front of the house, with a name field each", async () => {
+    expect((await title()) === "Rooms", await title());
+    expect((await page.locator("#roomsN").innerText()) === "4", "not 4");
+    await page.click("#roomsLess"); await settle(page);
+    expect((await page.locator("#roomsN").innerText()) === "3", "not 3");
+    expect(await page.locator('.roomgrid li[data-open="true"]').count() === 3 && await page.locator('.roomgrid li[data-open="false"]').count() === 7, "grid");
+    expect((await page.locator('.roomgrid li[data-room="hall"]').innerText()).toLowerCase().includes("closed"), "a reader isn't told closed");
+    expect(await page.locator("#sn-living").count() === 1 && await page.locator("#sn-kitchen").count() === 1 && await page.locator("#sn-study").count() === 0, "name fields");
+    expect((await page.locator("#setupDlg").innerText()).includes("new cats come in here"), "front door not said");
+  });
+  await page.fill("#sn-living", "Lounge");
+  await nextStep();
+  await page.click("#ghConnect");
+  await page.waitForTimeout(300);
+  await check("GitHub: the repositories listed, each with a select of the open rooms, the front door first", async () => {
+    expect((await title()) === "GitHub", await title());
+    expect(await page.locator("#setupDlg .repo").count() === 2, "rows: " + await page.locator("#setupDlg .repo").count());
+    expect((await page.locator("#setupDlg .repo").first().innerText()).includes("charredlatte/my-portfolio"), "first repo");
+    expect((await page.locator("#sr-0").inputValue()) === "living", "default room");
+    expect(await page.locator("#sr-0 option").count() === 3, "closed rooms offered");
+    expect((await page.locator("#sr-0 option").first().innerText()) === "Lounge", "the name she typed");
+  });
+  await page.selectOption("#sr-1", "kitchen");
+  await page.click("#setupDlg button:has-text('Back')"); await settle(page);
+  await page.click("#roomsLess"); await settle(page);
+  await nextStep();
+  await check("a pick for a room closed afterwards falls back to the front door on a first run", async () => {
+    expect((await page.locator("#sr-1").inputValue()) === "living", "recipes' room: " + await page.locator("#sr-1").inputValue());
+    expect(await page.locator("#sr-1 option").count() === 2, "a closed room offered");
+  });
+  await page.click("#setupDlg button:has-text('Back')"); await settle(page);
+  await page.click("#roomsMore"); await settle(page);
+  await nextStep();
+  await page.selectOption("#sr-1", "kitchen");
+  await nextStep();
+  await check("Sessions: what the live read found, with no new call", async () => {
+    expect((await title()) === "Sessions", await title());
+    expect((await page.locator("#setupDlg").innerText()).includes("3 sessions found"), await page.locator("#setupDlg").innerText());
+    expect((await T(page, () => window.__catio.calls)) === 1, "list_sessions called again");
+  });
+  await nextStep();
+  await check("Litter box: a drop zone and the brain, nothing to switch", async () => {
+    expect((await title()) === "Litter box", await title());
+    expect(await page.locator("#setupDrop").isVisible() && await page.locator("#setupBrain").isVisible(), "drop zone / brain");
+    expect(await page.locator("#setupDlg .switch").count() === 0, "a switch");
+    expect((await page.locator("#setupDlg").innerText()).includes("litterbox/"), "the folder");
+  });
+  await nextStep();
+  await check("How it works: the five lines and the two install lines", async () => {
+    expect((await title()) === "How it works", await title());
+    expect(await page.locator("#setupDlg ul.how li").count() === 5, "lines");
+    expect((await page.locator("#installLines").innerText()).includes("claude plugin install kittychat-house-rules@kittychat"), "install line");
+    expect(await page.locator("#copyInstall").isVisible(), "copy");
+  });
+  await nextStep();
+  await check("Done: the summary, and nothing written yet", async () => {
+    expect((await title()) === "Done", await title());
+    const t = await page.locator("#setupDlg").innerText();
+    for (const w of ["Mochi's Café", "3 rooms open", "2 repositories filed", "3 cats at the door", "OPEN THE DOORS"]) expect(t.toUpperCase().includes(w.toUpperCase()), w + " missing: " + t);
+    expect((await T(page, () => window.__catio.writes.length)) === 0, "wrote before the doors opened");
+  });
+  await nextStep();
+  await page.waitForTimeout(300);
+  await check("Open the doors writes the house and all ten rooms in one go: three open, seven closed, each with a model", async () => {
+    expect(await page.locator("#setupDlg[open]").count() === 0, "still open");
+    const st = await T(page, () => window.__catio.store);
+    expect(st["house/main"] && st["house/main"].name === "Mochi's Café" && st["house/main"].onboarded > 0, JSON.stringify(st["house/main"]));
+    const rooms = Object.entries(st).filter(([k]) => k.startsWith("rooms/"));
+    expect(rooms.length === 10, "rooms: " + rooms.length);
+    expect(rooms.filter(([, r]) => r.closed).length === 7 && !st["rooms/living"].closed && !st["rooms/dining"].closed && !st["rooms/kitchen"].closed, "open set");
+    expect(rooms.every(([, r]) => r.model === "claude-opus-5-5" && r.blurb === ""), "model or blurb missing");
+    expect(st["rooms/living"].catchAll && !st["rooms/kitchen"].catchAll && st["rooms/living"].name === "Lounge", "front door / name");
+    expect(st["rooms/living"].repos.includes("charredlatte/my-portfolio") && st["rooms/kitchen"].repos.includes("charredlatte/recipes"), "repos");
+  });
+  await check("the brand and the title read the café's name", async () => {
+    expect((await page.locator("#houseBtn .nm").innerText()) === "Mochi's Café", await page.locator("#houseBtn .nm").innerText());
+    expect((await page.title()).includes("Mochi's Café"), await page.title());
+  });
+  // a closed room gets no cats: a repo listed in it, and a chat moved to it, both land at the front door
+  await T(page, () => { window.__catio.put("rooms/study", { name: "Craft room", blurb: "", repos: ["montfortoise-shopify"], catchAll: false, closed: true, model: "claude-opus-5-5" }); });
+  await T(page, () => { window.__catio.put("cats/willow", { title: "Willow", room: "study", mood: "busy", name: "Willow" }); });
+  await page.waitForTimeout(300);
+  await check("the adopt form offers open rooms only, starting at the front door", async () => {
+    await openRoom(page, "living");
+    await menuButton(page, "Add a cat").click(); await settle(page);
+    await menuButton(page, "Adopt a chat").click(); await settle(page);
+    expect((await page.locator("#adRoom").inputValue()) === "living", "not the front door: " + await page.locator("#adRoom").inputValue());
+    expect(await page.locator("#adRoom option[value=study]").count() === 0 && await page.locator("#adRoom option[value=bath]").count() === 0, "a closed room offered");
+    await page.keyboard.press("Escape"); await settle(page);
+  });
+  await check("a session whose repo a closed room lists, and a chat moved there, sit at the front door", async () => {
+    expect((await page.locator('#cats .cat[aria-label*="Shop about page"]').getAttribute("data-room")) === "living", "session not in the lounge");
+    expect((await page.locator('#cats .cat[aria-label^="Willow"]').getAttribute("data-room")) === "living", "chat not in the lounge");
+  });
+  await T(page, () => { window.__catio.put("sessions/session_work1", { room: "bath" }); });
+  await page.waitForTimeout(300);
+  await closeMenu(page);
+  await page.locator('#cats .cat[aria-label*="Week tab editing"]').dispatchEvent("dblclick");
+  await settle(page);
+  await check("a session's card keeps the closed room she moved it to, so a save never moves it", async () => {
+    expect((await page.locator('#cats .cat[aria-label*="Week tab editing"]').getAttribute("data-room")) === "living", "not at the front door meanwhile");
+    expect((await page.locator("#catDlg #catRoom").inputValue()) === "bath", "room: " + await page.locator("#catDlg #catRoom").inputValue());
+  });
+  await page.keyboard.press("Escape"); await settle(page);
+  await closeMenu(page);
+  await page.locator('#cats .cat[aria-label^="Willow"]').dispatchEvent("dblclick");   // the card
+  await settle(page);
+  await check("a cat's card keeps its closed room, named closed, so a save never moves it", async () => {
+    expect(await page.locator("#catDlg[open]").count() === 1, "card not open");
+    const sel = page.locator("#catDlg #adRoom");
+    expect((await sel.inputValue()) === "study", "room: " + await sel.inputValue());
+    expect((await sel.locator("option[value=study]").innerText()).includes("closed"), "not said closed");
+    expect(await sel.locator("option[value=bath]").count() === 0, "another closed room offered");
+  });
+  await page.keyboard.press("Escape"); await settle(page);
+  await check("a closed room is dimmed, faint on the minimap, has no queen, and hovering it says closed", async () => {
+    expect(await page.locator('.roomhit[data-room="study"][data-closed]').count() === 1, "not marked closed");
+    expect(await page.locator('.roomhit[data-room="study"] .tag, #overlay .tag').count() === 0, "a sign");
+    expect(await page.locator('.mm-room[data-room="study"].closed').count() === 1, "minimap");
+    expect(await page.locator('#cats .cat[data-queen="study"]').count() === 0, "queen drawn");
+    await hoverRoom(page, "study");
+    const t = await page.locator("#tip").innerText();
+    expect(t.includes("Craft room") && t.toLowerCase().includes("closed"), t);
+  });
+  await openRoom(page, "study");
+  await check("a closed room's menu is its name, Closed, Open this room and Edit rooms", async () => {
+    const t = await menuText(page);
+    expect(t.includes("Craft room") && t.includes("Closed") && t.includes("Open this room") && t.includes("Edit rooms"), t);
+    expect(!t.includes("Look in") && !t.includes("Add a cat"), "a working room's actions: " + t);
+  });
+  await menuButton(page, "Open this room").click();
+  await page.waitForTimeout(300);
+  await check("Open this room opens it: the queen is back and the listed repo's cat walks in", async () => {
+    expect((await T(page, () => window.__catio.store["rooms/study"].closed)) === false, "still closed");
+    expect(await page.locator('#cats .cat[data-queen="study"]').count() === 1, "no queen");
+    expect((await page.locator('#cats .cat[aria-label*="Shop about page"]').getAttribute("data-room")) === "study", "cat not in the craft room");
+  });
+  // Edit rooms: a switch per room; the front door can't be closed, it moves
+  await page.click("#houseBtn");
+  await menuButton(page, "Edit rooms").click();
+  await settle(page);
+  await check("Edit rooms has an Open switch per room, and a closed room's option is off the front-door list", async () => {
+    expect((await page.locator("#ro-living").getAttribute("aria-pressed")) === "true" && (await page.locator("#ro-bath").getAttribute("aria-pressed")) === "false", "switches");
+    expect(await page.locator("#catchAll option[value=bath]").evaluate((o) => o.hidden && o.disabled), "a closed room offered as the front door");
+    expect(await page.locator("#rt-bath.closed").count() === 1, "plan tab not dimmed");
+  });
+  await page.click("#rt-living");
+  await page.click("#ro-living");
+  await check("closing the front door's room moves the front door to the next open room", async () => {
+    expect((await page.locator("#catchAll").inputValue()) === "dining", "front door: " + await page.locator("#catchAll").inputValue());
+    expect((await page.locator("#ro-living").getAttribute("aria-pressed")) === "false", "not closed");
+    expect(await page.locator("#rt-dining .door").count() === 1, "door not moved");
+  });
+  await page.click("#ro-living");   // open it again
+  await page.click("#rt-kitchen");
+  await page.fill("#rb-kitchen", "Weekly meals");
+  await page.click("#ro-kitchen");
+  await page.click('#roomsDlg button[type="submit"]');
+  await page.waitForTimeout(300);
+  await check("Save rooms keeps closed with the rest of each room", async () => {
+    const k = await T(page, () => window.__catio.store["rooms/kitchen"]);
+    expect(k.closed === true && k.blurb === "Weekly meals" && k.model === "claude-opus-5-5", JSON.stringify(k));
+    expect((await T(page, () => window.__catio.store["rooms/living"].closed)) === false, "lounge closed");
+  });
+  // set up again: prefilled, and a room's blurb and model survive it
+  await page.click("#houseBtn");
+  await menuButton(page, "Set up again…").click();
+  await settle(page);
+  await T(page, () => { const st = window.__catio.store; window.__catio.put("rooms/dining", Object.assign({}, st["rooms/dining"], { repos: ["recipes", "Snail-Mail-Trail"] })); window.__catio.put("rooms/study", Object.assign({}, st["rooms/study"], { repos: ["montfortoise-shopify", "Snail-Mail-Trail", "upstream/recipes"] })); });
+  await page.waitForTimeout(100);
+  await check("Set up again is prefilled from the café as it is", async () => {
+    expect((await page.locator("#setupName").inputValue()) === "Mochi's Café", "name");
+    await nextStep();
+    expect((await page.locator("#roomsN").innerText()) === "3", "open rooms: " + await page.locator("#roomsN").innerText());
+    expect((await page.locator("#sn-living").inputValue()) === "Lounge", "the lounge's name");
+    const t = await page.locator("#setupDlg").innerText().then((x) => x.toUpperCase());
+    expect(t.includes("CAFÉ · NEW CATS COME IN HERE") && !t.includes("CAT LOUNGE · NEW CATS"), "the front door she flagged (the café) not kept: " + t);
+  });
+  await nextStep();
+  await page.click("#ghConnect"); await page.waitForTimeout(300);
+  await check("a listed repository keeps the room it is filed in as its default, a closed one included", async () => {
+    // charredlatte/recipes was filed in the kitchen on the first run; the kitchen is closed now, and dining lists it by name alone
+    expect((await page.locator("#sr-1").inputValue()) === "kitchen", "recipes' room: " + await page.locator("#sr-1").inputValue());
+    expect((await page.locator("#sr-1 option[value=kitchen]").innerText()).includes("closed"), "the closed room not said");
+    expect((await page.locator("#sr-0").inputValue()) === "living", "my-portfolio's room");
+  });
+  await page.selectOption("#sr-1", "living");
+  await page.click("#setupDlg button:has-text('Back')"); await settle(page);
+  await page.click("#roomsMore"); await settle(page);
+  await check("+ opens the next room in the opening order, and keeps the focus on the button", async () => {
+    expect((await page.locator("#roomsN").innerText()) === "4", "not 4");
+    expect(await page.locator('.roomgrid li[data-room="kitchen"][data-open="true"]').count() === 1, "the kitchen, next in order, not opened");
+    expect(await page.locator('.roomgrid li[data-room="study"][data-open="true"]').count() === 1, "the craft room closed");
+    expect((await page.evaluate(() => document.activeElement.id)) === "roomsMore", "focus: " + await page.evaluate(() => document.activeElement.id));
+  });
+  for (let i = 0; i < 6; i++) await nextStep();
+  await page.waitForTimeout(300);
+  await check("opening the doors again keeps what Edit rooms looks after, and the rooms she had open", async () => {
+    const st = await T(page, () => window.__catio.store);
+    expect(await page.locator("#setupDlg[open]").count() === 0, "still open");
+    expect(st["rooms/kitchen"].closed === false && st["rooms/kitchen"].blurb === "Weekly meals" && st["rooms/kitchen"].model === "claude-opus-5-5", JSON.stringify(st["rooms/kitchen"]));
+    expect(st["rooms/study"].closed === false && st["rooms/study"].repos.includes("montfortoise-shopify"), "the craft room lost its state or its repo: " + JSON.stringify(st["rooms/study"]));
+    expect(st["rooms/bath"].closed === true, "the ensuite opened");
+    expect(st["rooms/dining"].catchAll && !st["rooms/living"].catchAll, "the front door moved");
+    expect(st["rooms/living"].repos.includes("charredlatte/recipes") && !st["rooms/dining"].repos.includes("recipes") && !st["rooms/kitchen"].repos.includes("charredlatte/recipes"), "recipes in two rooms or two spellings: " + JSON.stringify([st["rooms/living"].repos, st["rooms/dining"].repos, st["rooms/kitchen"].repos]));
+    expect(st["rooms/dining"].repos.includes("Snail-Mail-Trail") && st["rooms/study"].repos.includes("Snail-Mail-Trail"), "a repository GitHub never listed was moved");
+    expect(st["rooms/study"].repos.includes("upstream/recipes"), "another owner's recipes taken for hers");
+    expect(st["house/main"].name === "Mochi's Café", "name lost");
+  });
+  await check("no page errors through the first run", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+{
+  const { page, ctx } = await open("?mode=empty&repos=none");
+  const nextStep = async () => { await page.click("#setupDlg button[type=submit]"); await settle(page); };
+  await wizard(page);
+  await nextStep(); await nextStep();
+  await page.click("#ghConnect");
+  await page.waitForTimeout(300);
+  await check("GitHub not connected: the page says what to do, and Skip for now moves on", async () => {
+    const t = await page.locator("#setupDlg").innerText();
+    expect(t.includes("Connect GitHub in claude.ai") && t.includes("install the Claude GitHub App"), t);
+    expect(await page.locator("#ghRetry").isVisible(), "no Check again");
+    await page.click("#ghSkip"); await settle(page);
+    expect((await page.locator("#setupTitle").innerText()) === "Sessions", await page.locator("#setupTitle").innerText());
+  });
+  await check("the first run's own writes don't close it early: one toast, the doors open once", async () => {
+    expect(await page.locator("#setupDlg[open]").count() === 1, "closed early");
+  });
+  for (let i = 0; i < 4; i++) await nextStep();
+  await page.waitForTimeout(300);
+  await check("the doors still open with no repositories filed", async () => {
+    const st = await T(page, () => window.__catio.store);
+    expect(st["house/main"] && st["rooms/living"] && st["rooms/living"].catchAll && st["rooms/living"].repos.length === 0, JSON.stringify(st["rooms/living"]));
+  });
+  await ctx.close();
+}
+{
+  const { page, ctx } = await open("?mode=empty&repos=denied");
+  const nextStep = async () => { await page.click("#setupDlg button[type=submit]"); await settle(page); };
+  await wizard(page);
+  await nextStep(); await nextStep();
+  await page.click("#ghConnect");
+  await page.waitForTimeout(300);
+  await check("the page's own grant refused: its own words, nothing about GitHub, and Skip", async () => {
+    const t = await page.locator("#setupDlg").innerText();
+    expect(t.includes("list_repos") && t.includes("Edit rooms") && !t.includes("Claude GitHub App"), t);
+    await page.click("#ghSkip"); await settle(page);
+    expect((await page.locator("#setupTitle").innerText()) === "Sessions", "not on Sessions");
+  });
+  await ctx.close();
+}
+{
+  const { page, ctx } = await open("?mode=empty", { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  await check("on a phone the wizard fits, and a tap moves it on", async () => {
+    await wizard(page);
+    const dlg = await page.locator("#setupDlg").boundingBox();
+    expect(dlg && dlg.x >= 0 && dlg.x + dlg.width <= 390, JSON.stringify(dlg));
+    await page.locator("#setupDlg button[type=submit]").tap(); await settle(page);
+    expect((await page.locator("#setupTitle").innerText()) === "Rooms", "not on Rooms");
+    const dlg2 = await page.locator("#setupDlg").boundingBox();
+    expect(dlg2.x >= 0 && dlg2.x + dlg2.width <= 390, JSON.stringify(dlg2));
+    expect(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), "horizontal scroll");
+  });
   await ctx.close();
 }
 

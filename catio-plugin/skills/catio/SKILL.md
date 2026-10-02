@@ -79,15 +79,30 @@ interface.
 That writes `catio/art/licensed/`, which stays gitignored. Never commit what it produces, and never
 put it in anything you share — that is the whole reason it is separate.
 
-### 3. Their rooms
+### 3. Their café, their rooms and their repositories
 
-`catio/data/rooms.json` maps repositories to rooms. Each key is a room of the manor; `repos` takes
-repository names or `owner/repo`, and exactly one room should have `"catchAll": true` — new cats
-arrive there when nothing else claims them.
+Ask the same things the page's own wizard asks, in this order, so the page skips it:
+
+1. **The café's name.** Written to `house/main` as `{ "name": "<their name>", "onboarded": <ms since epoch> }`.
+   The brand and the browser title read it.
+2. **How many rooms, and their names.** The rooms open from the front of the house, public to private:
+   `living` (the cat lounge), `dining` (the café), `kitchen`, `study` (the craft room), `sunroom` (the terrace),
+   `garden` (the catio), `brain` (the library), `bedroom`, `bath` (the ensuite), `hall`. The first N are open and
+   the rest get `"closed": true`: a closed room is dimmed, has no queen and gets no cats, and opens later under
+   Edit rooms. The first open room is where new cats come in (`"catchAll": true`).
+3. **Which room each repository goes in.** Call `list_repos` (Claude Code Remote) and ask, repository by
+   repository; `repos` takes repository names or `owner/repo`. A repository filed in a closed room is never
+   matched, so file them in open rooms.
+
+Then write `house/main` and all ten `rooms/<k>` to their artifact's database with `ArtifactData` (step 5
+has the URL), one document per room:
 
 ```json
-"kitchen": { "name": "Kitchen", "blurb": "Weekly meals", "repos": ["my-recipe-app"], "catchAll": false }
+"kitchen": { "name": "Kitchen", "blurb": "Weekly meals", "repos": ["my-recipe-app"], "catchAll": false, "closed": false, "model": "claude-opus-5-5" }
 ```
+
+`catio/data/rooms.json` is the localhost mirror of those answers (the same ten objects, keyed by room):
+keep it in step, `closed` included, so the folder in step 6 opens the same café.
 
 The room keys are fixed by the picture — they are places in a drawing, not a list you can extend.
 Downstairs: `dining` (the café), `kitchen`, `living` (the cat lounge), `study` (the craft room), `hall`
@@ -97,6 +112,13 @@ blurbs are theirs to change, here or from the page's own "Edit rooms".
 
 Ask what they actually work on and fill this in with them. A manor where everything lands in the
 cat lounge is a worse dashboard than a list.
+
+### 3b. The litter box
+
+`litterbox/` is in their clone: loose Markdown notes go in, and `python3 litterbox/sort.py` piles them by
+project and files each pile, once checked, into that project's repository (`HOME` in `sort.py` names another
+path than `docs/from-the-litterbox.md`). Pull requests the merging rule holds for them land there too. On the
+page the same idea is the brain's tray: a file dropped on the house waits there until it is sorted to a cat.
 
 ### 4. Their sessions
 
@@ -119,13 +141,13 @@ afterwards with `url` so nothing they have done on the page is lost.
 On the first publish it needs these capabilities:
 
 ```
-capabilities: { mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions", "create_session",
+capabilities: { mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions", "list_repos", "create_session",
   "set_session_title", "archive_session", "unarchive_session", "interrupt_session"] }] },
   db: {}, assets: {}, sample: {} }
 ```
 
 The `mcp` grant is what lets the page read and manage their sessions as them, and only ever on their
-click; `db` is where rooms, renames, adopted chats and the queens' notes are kept; `assets` holds files
+click (`list_repos` is what the wizard's GitHub step asks for their repositories); `db` is where rooms, renames, adopted chats and the queens' notes are kept; `assets` holds files
 dropped on a cat; `sample` lets the page ask Claude which cat a file is for. On a republish, omit
 `capabilities` to keep what is stored: passing it replaces the whole set, so naming only some revokes
 the rest.
