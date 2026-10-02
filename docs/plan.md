@@ -156,6 +156,7 @@ merge to `main`.
    - agent cats through `host:catio` (only the Claude desktop app can declare it). Agents that report to the
      gateway show up anywhere, through the `Catio` connector;
    - `catio-plugin/` listed in the marketplace beside `kittychat-house-rules`.
+   - accounts, one café per person: the recommendation is `docs/accounts.md`.
 
 ## Waiting on Charlotte
 
