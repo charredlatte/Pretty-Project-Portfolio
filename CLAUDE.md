@@ -245,6 +245,27 @@ Capabilities for the next publish (full set, replacing the stored one):
 (it starts a new one): see `docs/audit-2026-10-01.md` and phase 0 of `docs/plan.md` before touching
 `postToSession()`. What's next, renovation mode included, is `docs/plan.md`.
 
+### The gateway
+
+`harness/gateway/` is the Catio's always-on hub: a Cloudflare Worker (free plan, `catio-gateway.<her
+subdomain>.workers.dev`) with the Catio server's tools at `/mcp`. Every session reports to it through
+`harness/hooks/report.py`, which does nothing until `CATIO_URL` and `CATIO_TOKEN` are in the environment, and
+its Stop hook hands in what she sent. Workers Builds deploys it on every merge to `main`; never deploy it by hand.
+
+- **Two secrets, set only in Cloudflare:** `CATIO_TOKEN` (agents and hooks; also in her Claude environments) and
+  `CATIO_PASSWORD` (her sign-in, nowhere else). Never in the repo, the chat or a test.
+- **Only she speaks as herself.** OAuth (her password, through the `Catio` connector in claude.ai) may write as
+  `charlotte`, drop files and manage; the agents' key may not. Keep it that way: it is what stops a leaked key
+  from putting instructions in her mouth.
+- **Only Claude's connectors may register** (redirects to `claude.ai` or `claude.com`).
+- **Keep its tools in step with `catio_mcp.py`**: same names, arguments and results, so the page and agents
+  use either.
+- **Test** with `cd harness/gateway && npm install && npm test` (workerd, the real hook included) and
+  `python3 -m unittest discover harness/test`.
+
+Setting it up is hers: the five steps in `harness/gateway/README.md`. After that the page reads the `Catio`
+connector (phase 5 of `docs/plan.md`).
+
 ## Live sessions
 
 The page calls `list_sessions` (limit 50) through the `mcp` capability as the viewer. Its write
