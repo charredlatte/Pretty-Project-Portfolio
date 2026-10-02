@@ -1563,7 +1563,8 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
     expect((await page.locator("#roomsN").innerText()) === "4", "not 4");
     await page.click("#roomsLess"); await settle(page);
     expect((await page.locator("#roomsN").innerText()) === "3", "not 3");
-    expect(await page.locator('.roomgrid [aria-pressed="true"]').count() === 3 && await page.locator('.roomgrid [aria-pressed="false"]').count() === 7, "grid");
+    expect(await page.locator('.roomgrid li[data-open="true"]').count() === 3 && await page.locator('.roomgrid li[data-open="false"]').count() === 7, "grid");
+    expect((await page.locator('.roomgrid li[data-room="hall"]').innerText()).toLowerCase().includes("closed"), "a reader isn't told closed");
     expect(await page.locator("#sn-living").count() === 1 && await page.locator("#sn-kitchen").count() === 1 && await page.locator("#sn-study").count() === 0, "name fields");
     expect((await page.locator("#setupDlg").innerText()).includes("new cats come in here"), "front door not said");
   });
@@ -1705,16 +1706,19 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
   });
   await nextStep();
   await page.click("#ghConnect"); await page.waitForTimeout(300);
-  await check("a repository GitHub lists by owner and name is the one filed by name alone: its room is prefilled", async () => {
-    expect((await page.locator("#sr-1").inputValue()) === "dining", "recipes' room: " + await page.locator("#sr-1").inputValue());
+  await check("a listed repository keeps the room it is filed in as its default, a closed one included", async () => {
+    // charredlatte/recipes was filed in the kitchen on the first run; the kitchen is closed now, and dining lists it by name alone
+    expect((await page.locator("#sr-1").inputValue()) === "kitchen", "recipes' room: " + await page.locator("#sr-1").inputValue());
+    expect((await page.locator("#sr-1 option[value=kitchen]").innerText()).includes("closed"), "the closed room not said");
+    expect((await page.locator("#sr-0").inputValue()) === "living", "my-portfolio's room");
   });
   await page.selectOption("#sr-1", "living");
   await page.click("#setupDlg button:has-text('Back')"); await settle(page);
   await page.click("#roomsMore"); await settle(page);
   await check("+ opens the next room in the opening order, and keeps the focus on the button", async () => {
     expect((await page.locator("#roomsN").innerText()) === "4", "not 4");
-    expect(await page.locator('.roomgrid [data-room="kitchen"][aria-pressed="true"]').count() === 1, "the kitchen, next in order, not opened");
-    expect(await page.locator('.roomgrid [data-room="study"][aria-pressed="true"]').count() === 1, "the craft room closed");
+    expect(await page.locator('.roomgrid li[data-room="kitchen"][data-open="true"]').count() === 1, "the kitchen, next in order, not opened");
+    expect(await page.locator('.roomgrid li[data-room="study"][data-open="true"]').count() === 1, "the craft room closed");
     expect((await page.evaluate(() => document.activeElement.id)) === "roomsMore", "focus: " + await page.evaluate(() => document.activeElement.id));
   });
   for (let i = 0; i < 6; i++) await nextStep();

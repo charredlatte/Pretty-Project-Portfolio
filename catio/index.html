@@ -311,9 +311,9 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .steps span.on { opacity: 1; }
 .counter { display: flex; align-items: center; gap: 12px; }
 .counter b { font: 36px/44px var(--pixel); min-width: 2ch; text-align: center; }
-.roomgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
+ul.roomgrid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
 .roomgrid .btn { width: 100%; text-align: center; padding: 0; overflow: hidden; text-overflow: ellipsis; font-size: 18px; }
-.roomgrid .btn[aria-pressed="false"] { opacity: .4; }
+.roomgrid li[data-open="false"] .btn { opacity: .4; }
 .repo { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .repo code { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; font-size: .85rem; }
 .repo select { flex: 0 1 180px; }
@@ -2322,7 +2322,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
     // unless GitHub listed it (matched by name, with or without its owner); then the select, prefilled with its
     // room, decides. The rest, duplicates and all, is left alone.
     const tail = (r) => lower(r).split("/").pop();
-    const roomOfRepo = (name) => ORDER.find((k) => roomInfo(k).repos.some((r) => tail(r) === tail(name)));
+    const roomOfRepo = (name) => ORDER.find((k) => roomInfo(k).repos.some((r) => lower(r) === lower(name)))   // its exact name first
+      || ORDER.find((k) => roomInfo(k).repos.some((r) => tail(r) === tail(name)));
     const open = () => OPENING.filter((k) => A.open.includes(k));
     const filed = () => {
       const listed = new Set((A.gh || []).map(tail)), out = {};
@@ -2359,8 +2360,12 @@ ul.gkey li > div.what { flex-basis: 100%; }
         less.disabled = A.open.length <= 1; more.disabled = A.open.length >= 10;
         less.addEventListener("click", () => { A.open = open().slice(0, -1); goStep(1, A.open.length > 1 ? "roomsLess" : "roomsMore"); });
         more.addEventListener("click", () => { A.open = open().concat(OPENING.find((k) => !A.open.includes(k))); goStep(1, A.open.length < 10 ? "roomsMore" : "roomsLess"); });
-        const grid = el("div", "roomgrid");
-        for (const k of OPENING) { const b = el("span", "btn", GEOM[k].name); b.setAttribute("aria-pressed", String(open().includes(k))); b.dataset.room = k; grid.appendChild(b); }
+        const grid = el("ul", "roomgrid"); grid.setAttribute("aria-label", "The rooms");
+        for (const k of OPENING) {
+          const li = el("li"); li.dataset.room = k; li.dataset.open = String(open().includes(k));
+          const b = el("span", "btn", GEOM[k].name); b.append(el("span", "sr", open().includes(k) ? ", open" : ", closed"));
+          li.appendChild(b); grid.appendChild(li);
+        }
         sec.append(ctr, grid);
         open().forEach((k) => {
           const nm = el("input"); nm.id = "sn-" + k; nm.value = A.names[k]; nm.maxLength = 30; nm.placeholder = GEOM[k].name;
@@ -2400,9 +2405,10 @@ ul.gkey li > div.what { flex-basis: 100%; }
           A.gh.forEach((name, i) => {
             const row = el("div", "repo");
             const sel = el("select"); sel.id = "sr-" + i; sel.setAttribute("aria-label", "Room for " + name);
-            for (const k of open()) { const o = el("option", null, nameOf(k)); o.value = k; sel.appendChild(o); }
             const was = A.repos[name] || roomOfRepo(name);
-            sel.value = open().includes(was) ? was : fallback;
+            for (const k of open()) { const o = el("option", null, nameOf(k)); o.value = k; sel.appendChild(o); }
+            if (GEOM[was] && !open().includes(was)) { const o = el("option", null, nameOf(was) + " (closed)"); o.value = was; sel.appendChild(o); }   // where it is: a closed room keeps it
+            sel.value = GEOM[was] ? was : fallback;
             A.repos[name] = sel.value;
             sel.addEventListener("change", () => { A.repos[name] = sel.value; });
             const fld = el("label", "field"); fld.append(el("span", "sr", "Room"), sel);
