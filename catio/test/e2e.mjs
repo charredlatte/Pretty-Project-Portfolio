@@ -1307,6 +1307,64 @@ async function dropFiles(page, sel, files) {
   });
   await ctx.close();
 }
+// The gateway, through her CATIO connector (phase 5): every session reports there, so the cats are live even when
+// claude.ai refuses the page its list, and what she sends reaches a running session when its turn ends.
+{
+  const { page, ctx, errors } = await open("?gateway=1&mode=blocked");
+  await page.waitForTimeout(300);
+  await check("a session that reports to the gateway is one cat, with what it last said there", async () => {
+    const shop = page.locator('#cats .cat[aria-label*="Shop about page"]');
+    expect(await shop.count() === 1, "the session shows " + (await shop.count()) + " times");
+    expect((await shop.getAttribute("aria-label")).includes("review"), "the saved copy's mood, not the gateway's: " + (await shop.getAttribute("aria-label")));
+    const fresh = page.locator('#cats .cat[aria-label*="Menu fix"]');
+    expect(await fresh.count() === 1 && (await fresh.getAttribute("aria-label")).includes("Meowing"), "a session only the gateway knows yet");
+    expect((await hoverCat(page, "Menu fix")).includes("Merge the menu fix?"), "its ask, on hover");
+    await openHouse(page);
+    expect((await menuText(page)).includes("Gateway live"), await menuText(page));
+  });
+  await openCat(page, "Shop about page");
+  await menuButton(page, "Talk").click();
+  await page.waitForTimeout(200);
+  await check("what a session said through the gateway is in its conversation", async () => {
+    const t = await page.locator("#thread").innerText();
+    expect(t.includes("The French text is in, ready for you."), t);
+  });
+  await page.fill("#sayTo", "Merci, I'll read it tonight");
+  await page.click("#saySend");
+  await page.waitForTimeout(200);
+  await check("writing to it goes through the gateway, not the outbox, and says when it arrives", async () => {
+    const c = (await tools(page, "comment")).pop();
+    expect(c && c[0] === "CATIO" && c[2].cat === "cse_blocked1" && c[2].text === "Merci, I'll read it tonight" && c[2].author === "charlotte", JSON.stringify(c));
+    expect(!(await outbox(page)).length, "it went to the outbox");
+    expect((await toast(page)).includes("when its turn ends"), await toast(page));
+    expect((await page.getAttribute("#sayTo", "placeholder")).includes("turn ends"), "the box promises it goes straight in");
+  });
+  await page.keyboard.press("Escape");
+  await openCat(page, "Menu fix");
+  await menuButton(page, "Talk").click();
+  await page.fill("#sayTo", "Yes, merge it");
+  await page.click("#saySend");
+  await page.waitForTimeout(200);
+  await check("a session only the gateway knows is written to through it too", async () => {
+    const c = (await tools(page, "comment")).pop();
+    expect(c && c[0] === "CATIO" && c[2].cat === "cse_fresh9" && c[2].text === "Yes, merge it", JSON.stringify(c));
+  });
+  await check("no page errors with the gateway", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+// When CATIO asks before every call, the page can't read it: the House menu says what to change, and the agents on
+// her computer still come in.
+{
+  const { page, ctx, errors } = await open("?gateway=ask&agents=1");
+  await page.waitForTimeout(300);
+  await check("a gateway that asks every time is named in the House menu, with the fix", async () => {
+    await openHouse(page);
+    expect((await menuText(page)).includes("Always allow"), await menuText(page));
+    expect(await page.locator('#cats .cat[aria-label*="Shop theme"]').count() === 1, "the agents on her computer");
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
 // When send_message works, a post goes straight into the session; when it fails, it waits with the reason.
 {
   const { page, ctx, errors } = await open("?send=ok");

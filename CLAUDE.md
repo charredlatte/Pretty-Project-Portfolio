@@ -18,8 +18,8 @@ Publish `catio/index.html` with:
   `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point`, `pointer`, `logo`, `pastel` `.png`,
   and `sprout.ttf`), and the map panel in `art/licensed/pastel/` (`panel`, `panel-dark`, `frame`, `button`,
   `button-hover`, `button-down`, `icons` `.png`);
-- `capabilities`: omit it on a republish to keep what's stored: Claude Code Remote's eight tools (below),
-  `db`, `assets` and `sample`. Pass it only to add a tool on purpose, and then pass the whole set.
+- `capabilities`: omit it on a republish to keep what's stored: Claude Code Remote's eight tools and the
+  gateway's five (below), `db`, `assets` and `sample`. Pass it only to add a tool on purpose, and then pass the whole set.
 
 `catio/data/` is **not** published: it is for the localhost copy (below).
 
@@ -244,15 +244,19 @@ The page now **writes** through Claude Code Remote, always on an explicit action
 - **Talking**: `notes/<id>` `{cat, text, author: charlotte|session|agent, at, via}`; replies show live.
 - **Managing**: `set_session_title`, `interrupt_session`, `archive_session` (+ `delete_trigger`),
   `unarchive_session`, `create_session` (New cat, model from `rooms/<k>.model`).
-- **Agents**: `host:catio` `list_agents`, `comment`, `drop_file`, `manage` (on localhost, `/api/*` when
-  served by `catio_mcp.py --serve`). Breeds: the model, in the cat's card.
+- **Agents, and the sessions that report**: the gateway through her `CATIO` connector (`GATEWAY` in the page),
+  else `host:catio` (on localhost, `/api/*` when served by `catio_mcp.py --serve`): `list_agents` every 30 s,
+  `comments`, `comment`, `drop_file`, `manage`. A session that reports to the gateway is one cat with its
+  claude.ai session (`fromGateway()`: the ids match after their prefix, `cse_…` there, `session_…` in the list),
+  wearing the gateway's mood when it is newer; what she writes or drops on it goes through the gateway, not the
+  outbox, and its replies there show in its conversation. Breeds: the model, in the cat's card.
 - `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet.
 
-Capabilities for the next publish (full set, replacing the stored one):
-`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "host:catio", tools: ["list_agents","drop_file","comment","comments","manage"] }] }, db: {}, assets: {}, sample: {} }`
+The stored capabilities (the full set, to pass whole if a tool is ever added):
+`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "CATIO", tools: ["list_agents","comment","comments","drop_file","manage"] }] }, db: {}, assets: {}, sample: {} }`
 
-`host:catio` can only be declared from the Claude desktop app, so the stored set has Claude Code Remote,
-`db`, `assets` and `sample` only. `delete_trigger` stays only to clean up the Routines older versions bound. Posting into a session through a bound Routine doesn't reach the session
+`host:catio` (the same five tools) can only be declared from the Claude desktop app, so it isn't in the stored
+set. `delete_trigger` stays only to clean up the Routines older versions bound. Posting into a session through a bound Routine doesn't reach the session
 (it starts a new one): see `docs/audit-2026-10-01.md` and phase 0 of `docs/plan.md` before touching
 `postToSession()`. What's next, renovation mode included, is `docs/plan.md`.
 
@@ -274,8 +278,8 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
 - **Test** with `cd harness/gateway && npm install && npm test` (workerd, the real hook included) and
   `python3 -m unittest discover harness/test`.
 
-Setting it up is hers: the five steps in `harness/gateway/README.md`. After that the page reads the `Catio`
-connector (phase 5 of `docs/plan.md`).
+It is set up (2 October 2026): her connector is named `CATIO` in claude.ai, and the page reads it (phase 5 of
+`docs/plan.md`). Setting up another is the five steps in `harness/gateway/README.md`.
 
 ## Live sessions
 

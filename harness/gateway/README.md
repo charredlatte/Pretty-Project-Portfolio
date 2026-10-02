@@ -25,13 +25,16 @@ Two kinds of caller, told apart by how they sign in:
 ## Setting it up (once)
 
 1. **Cloudflare.** Workers & Pages → Create → Import a repository → `charredlatte/Pretty-Project-Portfolio`.
-   - Name it `catio-gateway` (it must match `wrangler.jsonc`).
+   - Name it `catio-gateway`. Cloudflare fills in the repo's name, `pretty-project-portfolio`: replace it, because
+     the Worker's name must match `wrangler.jsonc` or later deploys fail. A Worker made under the wrong name is
+     simplest deleted (Settings → Danger zone) and imported again; delete its leftover KV namespace too.
    - Set the root directory to `harness/gateway` and the production branch to `main`. Leave the build command
      empty, and keep the deploy command as `npx wrangler deploy`.
    - Deploy. The first deploy creates the KV namespace and the Durable Object. Its address is on the Worker's page:
      `https://catio-gateway.<subdomain>.workers.dev`. If Cloudflare asks for a workers.dev subdomain, pick one.
    - From then on every merge to `main` redeploys it.
-2. **Two secrets.** On the Worker, go to Settings → Variables and Secrets → Add, type *Secret*:
+2. **Two secrets.** On the Worker, go to Settings → Variables and Secrets → Add, type *Secret*, under
+   *Production*, then Deploy:
    - `CATIO_TOKEN`: the agents' key, 32 random characters or more.
    - `CATIO_PASSWORD`: a different one, the password she signs in with (16 characters or more). It goes into her
      password manager and nowhere else.
@@ -40,7 +43,9 @@ Two kinds of caller, told apart by how they sign in:
 3. **Claude's environments.** In a cloud session, open the environment menu in the session's title bar → Edit. In
    each environment her sessions use:
    - add two environment variables, `CATIO_URL` = the address above and `CATIO_TOKEN` = the agents' key;
-   - under Network access, add `catio-gateway.<subdomain>.workers.dev` to the allowed domains.
+   - under Network access, add `catio-gateway.<subdomain>.workers.dev` to the allowed domains;
+   - install the house-rules plugin in its setup script (`harness/README.md`, *In cloud sessions*): the hook that
+     reports is in it, and a cloud session doesn't install it by itself.
 
    On her PC, the same two variables go under `"env"` in `~/.claude/settings.json`, for local sessions.
 4. **claude.ai.** Customize → Connectors → Add → Custom → Web. Name it `Catio`, with the URL `<address>/mcp`. A
@@ -49,8 +54,10 @@ Two kinds of caller, told apart by how they sign in:
    doesn't have, and the reason the page's live read is refused today.
 5. Tell Claude it's done. The page is then republished to read the `Catio` connector (docs/plan.md, phase 5).
 
-To check: the address alone answers "The Catio's gateway." Once a session has started in an environment with the
-two variables, it is in `list_agents`.
+To check: the address alone answers "The Catio's gateway." That page never changes, so it only says the Worker
+is up. The sign-in page says when `CATIO_PASSWORD` is missing. The key is right when an agent's call to `/mcp`
+gets an answer instead of a 401 `invalid_token`. Once a session has started in an environment with the two
+variables and the plugin, it is in `list_agents`.
 
 ## How a session uses it
 
