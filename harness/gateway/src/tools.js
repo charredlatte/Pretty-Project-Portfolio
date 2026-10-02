@@ -22,21 +22,34 @@ export const TOOLS = [
 			wake: { type: ["array", "null"], items: S, description: "Ignored here: the gateway can't run commands. Check inbox instead." },
 		},
 		["agent"]),
-	tool("list_agents", "Every agent cat in the Catio.", { archived: { type: "boolean" } }),
+	tool("list_agents", "Every agent cat in the Catio: who works where, what each needs, and what it last said (said). " +
+		"The queen of the house is the cat \"queen\": her runner is present when it is there.", { archived: { type: "boolean" } }),
 	tool("inbox",
-		"Files, notes from Charlotte, and any request (pause, resume, wrap_up) waiting for an agent. With mark, only " +
-		"what hasn't been handed over yet, and it counts as handed over.",
+		"Files, notes from Charlotte or the queen, and any request (pause, resume, wrap_up) waiting for an agent. With mark, " +
+		"only what hasn't been handed over yet, and it counts as handed over.",
 		{ agent: S, mark: { type: "boolean" } }, ["agent"]),
 	tool("pick_up", "Take a file from your inbox: returns it as base64 and marks it picked up.", { id: S, agent: S }, ["id"]),
-	tool("drop_file", "Give a file to an agent's cat (Charlotte only; up to 1 MiB).",
+	tool("drop_file", "Give a file to an agent's cat (Charlotte or the queen; up to 1 MiB).",
 		{ name: S, type: S, base64: S, for: said("The agent id"), note: S }, ["name", "base64", "for"]),
-	tool("comment", "Add to a cat's conversation. Agents answer Charlotte with author agent (or session).",
-		{ cat: S, text: S, author: { type: "string", enum: ["charlotte", "agent", "session"] } }, ["cat", "text"]),
+	tool("comment", "Add to a cat's conversation. Agents answer Charlotte with author agent (or session); the queen tells a cat " +
+		"as queen, which it hears when its turn ends.",
+		{ cat: S, text: S, author: { type: "string", enum: ["charlotte", "agent", "session", "queen"] } }, ["cat", "text"]),
 	tool("comments", "A cat's conversation, oldest first.", { cat: S, limit: { type: "integer" } }, ["cat"]),
 	tool("manage",
-		"Manage an agent's cat (Charlotte only): rename, move (room key), archive, unarchive, pause, resume, wrap_up, message, done (clear a request).",
+		"Manage an agent's cat (Charlotte or the queen): rename, move (room key), archive, unarchive, pause, resume, wrap_up, message, " +
+		"done (clear a request). On the cat \"queen\", pause stops the turn she is on.",
 		{ cat: S, action: { type: "string", enum: ["rename", "move", "archive", "unarchive", "pause", "resume", "wrap_up", "message", "done"] }, value: S },
 		["cat", "action"]),
+	tool("quiz",
+		"Set Charlotte homework (the queen, or Charlotte): a short quiz whose answers unblock a cat. One quiz per cat, 1 to 5 " +
+		"questions, each with 2 to 6 concrete options she can pick, or free for a written answer. She answers in the café; the " +
+		"cat gets her answers as her words, and the queen is told.",
+		{ for: said("The cat it unblocks (its agent id), or empty for the house"), title: S,
+			questions: { type: "array", items: { type: "object", properties: { q: S, options: { type: "array", items: S }, free: { type: "boolean" } }, required: ["q"] } } },
+		["title", "questions"]),
+	tool("quizzes", "The homework set for Charlotte: the open quizzes, oldest first (done: true lists the handed-in ones too).", { done: { type: "boolean" } }),
+	tool("answer", "Hand homework in (Charlotte only): one answer per question, in order. Her answers reach the cat, as her words, and the queen.",
+		{ quiz: S, answers: { type: "array", items: S } }, ["quiz", "answers"]),
 ];
 
 export const INSTRUCTIONS = "The Catio is Charlotte's harness. Read house_rules, report_status when you start, need her, " +

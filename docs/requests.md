@@ -58,7 +58,11 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 - **A saved copy of her sessions** shows when the live read is blocked. A Routine refreshes it every two
   hours, from 07:59 to 19:59 Paris time.
 - **A copy that runs off a USB stick**, on localhost.
-- **A queen in every room** keeps notes and can say one aloud. She is never counted.
+- **One queen of the house** (2 October: "merge the queen cats to make one main character queen cat that you
+  chat with that does everything for you. The way you would interact with a real harness"), in the entrance
+  hall: chat with her like an NPC in an RPG, voice to text, a voice that turns on and off, a proper Elizabethan
+  English accent, a character you customise and set routines with, and cats with handoffs visibly passing things
+  to her for you to read. She keeps notes and can say one aloud. She is never counted.
 - **The Sprout Lands interface everywhere**, in its pixel font, with French accents.
 - **A plugin** so other people can run their own Catio.
 

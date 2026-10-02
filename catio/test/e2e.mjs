@@ -358,98 +358,227 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await ctx.close();
 }
 
-/* ---------- 5b. the queens: one per room, keeping what matters in it ---------- */
+/* ---------- 5b. the queen of the house: one cat you talk to, like an NPC ---------- */
+// Her words (2 October 2026): "Merge the queen cats to make one main character queen cat that you chat with that does
+// everything for you"; voice to text; a character you customise, with routines; cats with handoffs visibly passing
+// things to her; an Elizabethan manner; a voice you can turn on and off.
 {
-  const { page, ctx, errors } = await open();
-  const queen = (room) => page.locator('#cats .cat[data-queen="' + room + '"]');
+  const { page, ctx, errors } = await open("?via=gateway&mode=blocked");
+  const queen = () => page.locator("#cats .cat.queen");
+  const routines = () => T(page, () => Object.entries(window.__catio.store).filter(([k]) => k.startsWith("routines/")).map(([, v]) => v));
+  // a room queen of before, with what she kept: it is the queen of the house's now
+  await T(page, () => window.__catio.put("queens/kitchen", { name: "Berthe", notes: [{ text: "The Drive order goes in on Sunday.", pinned: false, at: 1 }] }));
+  await page.waitForTimeout(300);
 
-  await check("every room has a queen, and she is nobody's session", async () => {
-    const n = await page.locator("#cats .cat.queen").count();
-    expect(n === 10, "queens drawn: " + n);
+  await check("one queen, in the entrance hall, and no other", async () => {
+    expect(await queen().count() === 1, "queens drawn: " + (await queen().count()));
+    expect((await queen().getAttribute("data-queen")) === "hall", await queen().getAttribute("data-queen"));
+    expect(await page.locator('#cats .cat[data-id="agent:queen"]').count() === 0, "her runner's record is drawn as a cat");
   });
   await check("she is never counted among the cats that need you", async () => {
     const before = await page.locator("#tally").textContent();
-    // the sign counts working cats only: a queen sitting up must not add to it
     const needing = await page.locator("#cats .cat:not(.queen).m-meow, #cats .cat:not(.queen).m-cry, #cats .cat:not(.queen).m-box").count();
     const said = (before.match(/(\d+) need you/) || [])[1];
     expect(String(needing) === String(said || 0), "sign says " + said + ", cats needing you: " + needing);
   });
-  await queen("kitchen").hover();
+  await page.mouse.move(8, 8);
+  await queen().hover();
   await settle(page);
-  await check("hovering her names her", async () => expect((await page.locator("#tip").innerText()).includes("queen"), await page.locator("#tip").innerText()));
-  await queen("kitchen").click();
-  await settle(page);
-  await check("clicking her gives the room in one line", async () => {
-    const t = await menuText(page);
-    expect(t.includes("Queen of the Kitchen"), t);
-    expect(/needs you|need you in here|All quiet|Nothing in this room/.test(t), t);
+  await check("hovering her names her, and says she is holding what a cat brought", async () => {
+    const t = await page.locator("#tip").innerText();
+    expect(t.includes("queen") && t.includes("Holding 1 thing"), t);
+    expect((await queen().getAttribute("class")).includes("m-box"), await queen().getAttribute("class"));
+    expect(await page.locator(ON_CATS).count() === 0, "something is drawn over the cats");
   });
+  await queen().click();
+  await settle(page);
+  await check("her menu: queen of the house, here, and Talk to her first", async () => {
+    const t = await menuText(page);
+    expect(t.includes("Queen of the house") && t.includes("here"), t);
+    expect(await page.locator("#menu .mi.primary:has-text('Talk to her')").count() === 1, t);
+  });
+  await menuButton(page, "Talk to her").click();
+  await settle(page);
+  await check("her card shows what the cat brought her, with a way to the cat, and counts it as read", async () => {
+    const h = page.locator("#queenThread li.handoff");
+    expect(await h.count() === 1, "handoffs: " + (await h.count()));
+    const t = await h.innerText();
+    expect(t.includes("brought you") && t.includes("The French text is in"), t);
+    expect(await h.locator("button:has-text('Open')").count() === 1, "no way to the cat");
+    expect((await page.locator("#queenThread li.greet").innerText()).includes("Good morrow"), "no greeting before she has spoken");
+    const d = await T(page, () => window.__catio.store["queens/house"]);
+    expect(d && d.readAt > 0, JSON.stringify(d));
+    expect((await page.locator("#queenKeeps").textContent()).includes("The Drive order"), "what Berthe kept isn't hers");
+  });
+  await page.fill("#queenSay", "Who needs me today?");
+  await page.click("#queenSend");
+  await settle(page);
+  await check("what you say goes to her through the gateway, as you", async () => {
+    const c = await T(page, () => window.__catio.tools.filter((t) => t[1] === "comment").pop());
+    expect(c && c[0] === "CATIO" && c[2].cat === "queen" && c[2].text === "Who needs me today?" && c[2].author === "charlotte", JSON.stringify(c));
+    expect((await page.locator("#queenThread li.me").innerText()).includes("Who needs me today?"), "not in her thread");
+  });
+  await T(page, () => { const a = window.__catio.gw.find((x) => x.id === "queen"); a.mood = "busy"; dispatchEvent(new Event("catio:agents")); window.__catio.queenSays("Good morrow, my lady. Two cats need thee: ", false, "t1"); });
+  await page.waitForTimeout(300);
+  await check("her answer shows as she speaks it, and Stop is there while she does", async () => {
+    expect((await page.locator("#queenLive").innerText()).includes("Two cats need thee"), "no live bubble");
+    expect(await page.locator("#queenStop").isVisible(), "no Stop");
+    expect((await page.locator("#queenState").innerText()).includes("answering"), await page.locator("#queenState").innerText());
+  });
+  await page.click("#queenStop");
+  await settle(page);
+  await check("Stop asks the gateway to end her turn", async () => {
+    const m = await T(page, () => window.__catio.tools.filter((t) => t[1] === "manage").pop());
+    expect(m && m[2].cat === "queen" && m[2].action === "pause", JSON.stringify(m));
+  });
+  await T(page, () => { window.__catio.queenSays("Good morrow, my lady. Two cats need thee: Praline and Nougat.", true, "t1"); const a = window.__catio.gw.find((x) => x.id === "queen"); a.mood = "done"; dispatchEvent(new Event("catio:agents")); });
+  await page.waitForTimeout(400);
+  await check("done, her answer is in the thread and the bubble is gone", async () => {
+    expect(await page.locator("#queenLive").count() === 0, "still speaking");
+    const them = await page.locator("#queenThread li.them:not(.handoff)").last().innerText();
+    expect(them.includes("Praline and Nougat"), them);
+    expect(!(await page.locator("#queenStop").isVisible()), "Stop still there");
+    expect(await page.locator("#queenThread li.greet").count() === 0, "the greeting stays once she has spoken");
+  });
+  await check("Speak is there: the browser can hear her", async () => expect(await page.locator("#queenSpeak").count() === 1, "no Speak button"));
+  await page.click("#queenVoice");
+  await settle(page);
+  await T(page, () => window.__catio.queenSays("Anon, my lady. All is well.", true, "t2"));
+  await page.waitForTimeout(300);
+  await check("her voice switches on, is saved with her, and says what she says in English (UK)", async () => {
+    const d = await T(page, () => window.__catio.store["queens/house"]);
+    expect(d && d.voice && d.voice.on === true, JSON.stringify(d && d.voice));
+    const sp = await T(page, () => window.__catio.spoken);
+    const last = sp[sp.length - 1];
+    expect(last && last.text === "Anon, my lady. All is well.", JSON.stringify(sp));
+    expect(/en-GB/i.test(last.lang) && /Hazel/.test(last.voice || ""), JSON.stringify(last));
+  });
+  // her character: name, coat, how she speaks, what she listens for; saving moves what the room queen kept into her
+  await page.click("#queenCharacter summary");
+  await page.fill("#queenRename", "Mémé");
+  await page.selectOption("#queenCoat", "1");
+  await check("she speaks Elizabethan English unless told otherwise", async () => expect((await page.inputValue("#queenManner")).includes("Elizabethan"), await page.inputValue("#queenManner")));
+  await page.fill("#queenManner", "Elizabethan English, brisk.");
+  await page.selectOption("#queenLang", "fr-FR");
+  await page.click("#queenSave");
+  await settle(page);
+  await check("her character is one document, and what the room queens kept is hers now", async () => {
+    const d = await T(page, () => window.__catio.store["queens/house"]);
+    expect(d.name === "Mémé" && d.coat === 1 && d.manner === "Elizabethan English, brisk." && d.voice.lang === "fr-FR" && d.voice.on === true, JSON.stringify(d));
+    expect(d.notes.length === 1 && d.notes[0].text.startsWith("The Drive order"), JSON.stringify(d.notes));
+    expect(!(await T(page, () => window.__catio.store["queens/kitchen"])), "the kitchen's queen document is still there");
+    const label = await queen().getAttribute("aria-label");
+    expect(label.startsWith("Mémé, queen of the house"), label);
+  });
+  // routines, for her runner to run
+  await queen().dblclick();
+  await settle(page);
+  await page.click("#queenRoutines summary");
+  await page.fill("#routineName", "Morning round");
+  await page.fill("#routineTime", "08:30");
+  await page.fill("#routinePrompt", "Who needs me today, and what first?");
+  await page.click("#routineAdd");
+  await settle(page);
+  await check("a routine is a document her runner reads: name, time, days, what to ask, on", async () => {
+    const r = await routines();
+    expect(r.length === 1, JSON.stringify(r));
+    expect(r[0].name === "Morning round" && r[0].time === "08:30" && r[0].prompt.startsWith("Who needs me") && r[0].on === true && r[0].days.length === 5 && !!r[0].tz, JSON.stringify(r[0]));
+    expect((await page.locator("#routineList").innerText()).includes("Morning round"), await page.locator("#routineList").innerText());
+  });
+  await page.locator('#routineList button[aria-pressed="true"]').click();
+  await settle(page);
+  await check("its switch turns it off", async () => expect((await routines())[0].on === false, JSON.stringify(await routines())));
+  await page.keyboard.press("Escape");
+  await settle(page);
+  // what she keeps, from her card: give, say, take back, forget
+  await queen().click();
+  await settle(page);
   await menuButton(page, "What she keeps").click();
   await settle(page);
-  await check("her card opens with nothing kept yet", async () => {
-    const t = await page.locator("#queenDlg").innerText();
-    expect(t.includes("She is keeping nothing for this room yet."), t.slice(0, 200));
-  });
-  await page.fill("#queenAdd", "The Drive order goes in on Sunday.");
-  await page.locator('#queenDlg button:has-text("Give it to her")').click();
   await page.fill("#queenAdd", "Chilli is a health rule, never a taste.");
   await page.locator('#queenDlg button:has-text("Give it to her")').click();
   await page.locator('#queenDlg button:has-text("Say it")').last().click();
-  await page.fill("#queenRename", "Mémé");
-  await page.click("#queenSave");
   await settle(page);
-  await check("what you give her is written as one document for that room", async () => {
-    const d = await T(page, () => window.__catio.store["queens/kitchen"]);
-    expect(d && d.name === "Mémé", JSON.stringify(d));
-    expect(d.notes.length === 2, "notes: " + JSON.stringify(d.notes));
+  await page.keyboard.press("Escape");
+  await settle(page);
+  await check("what you give her is kept, and the one she is saying is her line", async () => {
+    const d = await T(page, () => window.__catio.store["queens/house"]);
+    expect(d.notes.length === 2, JSON.stringify(d.notes));
     const said = d.notes.filter((n) => n.pinned);
     expect(said.length === 1 && said[0].text.startsWith("The Drive order"), JSON.stringify(said));
-  });
-  await check("she takes her new name and sits up to say it", async () => {
-    const label = await queen("kitchen").getAttribute("aria-label");
-    expect(label.startsWith("Mémé, queen of the Kitchen"), label);
-    expect((await queen("kitchen").getAttribute("class")).includes("m-meow"), await queen("kitchen").getAttribute("class"));
-  });
-  await page.evaluate(() => document.querySelector('.roomhit[data-room="kitchen"]').dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
-  await page.waitForTimeout(800);
-  await check("hovering her says what she's keeping, with no bubble over her, and a click opens her menu", async () => {
-    expect(await page.locator(ON_CATS).count() === 0, "something is drawn over the cats");
     await page.mouse.move(8, 8);
-    await queen("kitchen").hover();
+    await queen().hover();
     await settle(page);
-    const t = await page.locator("#tip").innerText();
-    expect(t.includes("The Drive order"), t);
-    await queen("kitchen").click();
-    await settle(page);
-    expect((await menuText(page)).includes("Queen of the Kitchen"), "her menu did not open: " + (await menuText(page)));
+    expect((await page.locator("#tip").innerText()).includes("The Drive order"), await page.locator("#tip").innerText());
+    expect((await queen().getAttribute("class")).includes("m-meow"), await queen().getAttribute("class"));
   });
+  await queen().click();
+  await settle(page);
   await check("the one she is saying is not listed twice in her menu", async () => {
     const t = await menuText(page);
     expect(t.split("The Drive order").length === 2, t);
     expect(t.includes("Chilli is a health rule"), t);
   });
-  await queen("kitchen").dblclick();
+  await queen().dblclick();
   await settle(page);
+  await page.click("#queenKeeps summary");
   await page.locator('#queenDlg button:has-text("Saying it")').click();
-  await page.click("#queenSave");
+  await settle(page);
+  await page.keyboard.press("Escape");
   await settle(page);
   await check("taking it back stops her saying it", async () => {
-    const d = await T(page, () => window.__catio.store["queens/kitchen"]);
+    const d = await T(page, () => window.__catio.store["queens/house"]);
     expect(d.notes.every((n) => !n.pinned), JSON.stringify(d.notes));
     await page.mouse.move(8, 8);
-    await queen("kitchen").hover();
+    await queen().hover();
     await settle(page);
     expect(!(await page.locator("#tip").innerText()).includes("The Drive order"), "still saying it");
   });
-  await queen("kitchen").dblclick();
+  await queen().dblclick();
   await settle(page);
+  await page.click("#queenKeeps summary");
   await page.locator('#queenDlg button:has-text("Forget")').first().click();
-  await page.click("#queenSave");
+  await settle(page);
+  await page.keyboard.press("Escape");
   await settle(page);
   await check("forgetting one leaves the rest", async () => {
-    const d = await T(page, () => window.__catio.store["queens/kitchen"]);
+    const d = await T(page, () => window.__catio.store["queens/house"]);
     expect(d.notes.length === 1, JSON.stringify(d.notes));
   });
+
+  // homework: she sets a quiz to unblock a cat; you answer by tapping, and hand it in
+  await T(page, () => window.__catio.setQuiz({ for: "cse_fresh9", title: "The menu fix", questions: [{ q: "Merge it?", options: ["Yes, merge it", "Not yet"] }, { q: "A word for the cat?", options: [], free: true }] }));
+  await page.waitForTimeout(400);
+  await check("homework she set shows on her: she sits up with it, and hovering says so", async () => {
+    expect((await queen().getAttribute("class")).includes("m-box"), await queen().getAttribute("class"));
+    await page.mouse.move(8, 8);
+    await queen().hover();
+    await settle(page);
+    expect((await page.locator("#tip").innerText()).includes("Homework: 1 quiz"), await page.locator("#tip").innerText());
+  });
+  await queen().dblclick();
+  await settle(page);
+  await check("her card puts the homework first: the questions, with the options to tap", async () => {
+    expect(await page.locator("#queenHomework").isVisible(), "no homework in her card");
+    const t = await page.locator("#queenHomework").innerText();
+    expect(t.includes("The menu fix") && t.includes("Merge it?") && t.includes("A word for the cat?"), t);
+    expect(await page.locator('#queenHomework button:has-text("Yes, merge it")').count() === 1, "no option to tap");
+  });
+  await page.locator('#queenHomework button:has-text("Hand it in")').click();
+  await settle(page);
+  await check("it isn't handed in half done", async () => expect((await toast(page)).includes("Answer every question"), await toast(page)));
+  await page.locator('#queenHomework button:has-text("Yes, merge it")').click();
+  await page.fill('#queenHomework input[aria-label^="Your answer"]', "Well done, thou good cat");
+  await page.locator('#queenHomework button:has-text("Hand it in")').click();
+  await settle(page);
+  await check("handing it in sends your answers, in order, and the homework is done", async () => {
+    const a = await T(page, () => window.__catio.tools.filter((t) => t[1] === "answer").pop());
+    expect(a && a[2].quiz === "z1" && JSON.stringify(a[2].answers) === JSON.stringify(["Yes, merge it", "Well done, thou good cat"]), JSON.stringify(a));
+    expect(!(await page.locator("#queenHomework").isVisible()), "the homework is still there");
+    expect((await toast(page)).includes("Handed in"), await toast(page));
+  });
+  await page.keyboard.press("Escape");
+  await settle(page);
 
   // the bug this feature found: redrawing the menu under your pointer used to close it, because the
   // button the redraw removed no longer looked like part of the menu by the time the click arrived
@@ -462,7 +591,38 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(now.includes("House rules"), "it reopened on something else: " + now.slice(0, 80));
     expect(now.includes("Sound on") && was.includes("Sound off"), now.slice(0, 120));
   });
-  await check("no page errors while working the queens", async () => expect(errors.length === 0, errors.join("; ")));
+  await check("no page errors while working the queen", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+// without her runner she is away; with the cats moving, a cat with news walks a copy of itself to her
+{
+  const { page, ctx, errors } = await open("?via=gateway&mode=blocked&queen=away");
+  await page.mouse.move(8, 8);
+  await page.locator("#cats .cat.queen").hover();
+  await settle(page);
+  await check("without her runner she is asleep, and hovering says so", async () => {
+    const t = await page.locator("#tip").innerText();
+    expect(t.includes("Away"), t);
+    expect((await page.locator("#cats .cat.queen").getAttribute("class")).includes("m-sleep"), await page.locator("#cats .cat.queen").getAttribute("class"));
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
+{
+  const { page, ctx, errors } = await open("?via=gateway&mode=blocked", { reducedMotion: "no-preference" });
+  await page.waitForTimeout(4200);   // the page's waking moment: before it, cats are simply in their places
+  await T(page, () => window.__catio.handoff("cse_fresh9", "The menu fix is merged, your majesty."));
+  await page.waitForTimeout(600);
+  await check("a cat with news walks a copy of itself to the queen", async () => {
+    expect(await page.locator("#walkers .walker[data-handoff]").count() === 1, "no walker");
+  });
+  await page.locator("#cats .cat.queen").dblclick();
+  await settle(page);
+  await check("and what it brought is in her thread", async () => {
+    const t = await page.locator("#queenThread").innerText();
+    expect(t.includes("brought you") && t.includes("The menu fix is merged"), t);
+    expect(errors.length === 0, errors.join("; "));
+  });
   await ctx.close();
 }
 
@@ -477,10 +637,9 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(words.includes("build-art.py"), "it does not say how to fix it: " + words);
     expect(await page.locator("#status.warn").count() === 1, "the sign is not flagging it");
     // her menu and what she keeps still work without the packs to draw them
-    await toFloor(page, "upper");
-    await page.locator('#cats .cat[data-queen="bedroom"]').click();
+    await page.locator("#cats .cat.queen").click();
     await settle(page);
-    expect((await menuText(page)).includes("Queen of the Bedroom"), await menuText(page));
+    expect((await menuText(page)).includes("Queen of the house"), await menuText(page));
   });
   await check("without the interface art the sign and menus sit on plain colour, not the meadow", async () => {
     const bg = (sel) => page.locator(sel).evaluate((e) => getComputedStyle(e).backgroundColor);
@@ -1505,20 +1664,22 @@ if (LOCAL) {
   await settle(page);
   await check("letting it go on localhost removes it", async () => expect(await page.locator('#cats .cat[aria-label^="Loco "]').count() === 0, "still there"));
   await toFloor(page, "ground");
-  await page.locator('#cats .cat[data-queen="kitchen"]').dblclick();
+  await page.locator("#cats .cat.queen").dblclick();
   await settle(page);
+  await page.click("#queenKeeps summary");
   await page.fill("#queenAdd", "Off a USB stick, she still remembers.");
   await page.locator('#queenDlg button:has-text("Give it to her")').click();
   await page.locator('#queenDlg button:has-text("Say it")').first().click();
-  await page.click("#queenSave");
+  await settle(page);
+  await page.keyboard.press("Escape");
   await settle(page);
   await page.reload();
   await page.waitForTimeout(700);
-  await check("on localhost a queen keeps what you give her, across a reload", async () => {
-    const label = await page.locator('#cats .cat[data-queen="kitchen"]').getAttribute("aria-label");
+  await check("on localhost the queen keeps what you give her, across a reload", async () => {
+    const label = await page.locator("#cats .cat.queen").getAttribute("aria-label");
     expect(label.includes("Off a USB stick"), label);
     await page.mouse.move(8, 8);
-    await page.locator('#cats .cat[data-queen="kitchen"]').hover();
+    await page.locator("#cats .cat.queen").hover();
     await settle(page);
     expect((await page.locator("#tip").innerText()).includes("Off a USB stick"), "she stopped saying it after the reload");
     expect(errors.length === 0, errors.join("; "));

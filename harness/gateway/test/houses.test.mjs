@@ -4,11 +4,13 @@ import { test } from "node:test";
 import { FIRST_HOUSE, fileKeys, whose } from "../src/houses.js";
 
 test("a grant made before accounts still opens the first house as its owner", () => {
-	assert.deepEqual(whose({ user: "charlotte" }), { house: FIRST_HOUSE, owner: true });
-	assert.deepEqual(whose(undefined), { house: null, owner: false }, "a token that names nobody opens nothing");
-	assert.deepEqual(whose({ user: "tester" }), { house: null, owner: false });
-	assert.deepEqual(whose({ user: "tester", house: "tester", owner: false, admin: false }), { house: "tester", owner: false });
-	assert.deepEqual(whose({ user: "charlotte", house: FIRST_HOUSE, owner: false }), { house: FIRST_HOUSE, owner: false }, "an agents' key is never the owner");
+	assert.deepEqual(whose({ user: "charlotte" }), { house: FIRST_HOUSE, owner: true, role: "agent" });
+	assert.deepEqual(whose(undefined), { house: null, owner: false, role: "agent" }, "a token that names nobody opens nothing");
+	assert.deepEqual(whose({ user: "tester" }), { house: null, owner: false, role: "agent" });
+	assert.deepEqual(whose({ user: "tester", house: "tester", owner: false, admin: false }), { house: "tester", owner: false, role: "agent" });
+	assert.deepEqual(whose({ user: "charlotte", house: FIRST_HOUSE, owner: false }), { house: FIRST_HOUSE, owner: false, role: "agent" }, "an agents' key is never the owner");
+	assert.deepEqual(whose({ user: "charlotte", house: FIRST_HOUSE, owner: false, role: "queen" }), { house: FIRST_HOUSE, owner: false, role: "queen" }, "the queen's key speaks as the queen, never as the owner");
+	assert.deepEqual(whose({ user: "tester", house: "tester", owner: false, role: "king" }), { house: "tester", owner: false, role: "agent" }, "a role the registry doesn't mint is an agent's");
 });
 
 test("a file kept before accounts is still the first house's, and nobody else's", () => {

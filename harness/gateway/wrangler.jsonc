@@ -18,4 +18,5 @@
 	// (src/registry.js, bootstrap) when the registry is empty, and may be deleted once she has her own key:
 	//   CATIO_TOKEN     the key agents and the session hooks send; also in Claude's environment settings
 	//   CATIO_PASSWORD  Charlotte's sign-in password, for adding the gateway as a connector in claude.ai
+	//   CATIO_QUEEN     the queen's runner's own key (harness/runner), the only one that speaks as the queen
 }

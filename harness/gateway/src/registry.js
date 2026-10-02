@@ -1,7 +1,9 @@
 // The registry: who has an account on this gateway, one SQLite-backed Durable Object for all of them. A user has
 // a handle, a password (kept as its PBKDF2 hash), a house (the House object their cats live in) and, for the first
 // of them, the admin's rights: uploading the café's art and creating accounts. Agents' keys and the café's cookies
-// are kept only as hashes, each pointing at its user. Nothing in here is a cat: those are in the houses.
+// are kept only as hashes, each pointing at its user. A key has a role: "agent" (sessions and other agents) or
+// "queen" (the user's queen runner, harness/runner, the only key that speaks as the queen). Nothing in here is a
+// cat: those are in the houses.
 import { DurableObject } from "cloudflare:workers";
 import { FIRST_HOUSE } from "./houses.js";
 import { MIN_SECRET, hashPassword, randomToken, sameHash, sha256 } from "./secret.js";
@@ -9,14 +11,16 @@ import { MIN_SECRET, hashPassword, randomToken, sameHash, sha256 } from "./secre
 const LOCK_AFTER = 5;   // wrong passwords before a user's sign-in waits
 const LOCK_FOR = 15 * 60 * 1000;
 const HANDLE = /^[a-z0-9][a-z0-9-]{1,30}$/;
+const ROLES = ["agent", "queen"];
 const keyName = (name) => String(name || "key").slice(0, 60);
+const QUEEN_KEY = "queen";   // the name of the queen's key seeded from the CATIO_QUEEN secret
 
 /** The registry, with the first account made from the secrets while it is empty (tried until it has one). */
 let booted = false, problem = "";
 export async function registry(env) {
 	const r = env.REGISTRY.get(env.REGISTRY.idFromName("registry"));
 	if (!booted) {
-		const made = await r.bootstrap(env.CATIO_PASSWORD, env.CATIO_TOKEN, env.CATIO_HANDLE);
+		const made = await r.bootstrap(env.CATIO_PASSWORD, env.CATIO_TOKEN, env.CATIO_HANDLE, env.CATIO_QUEEN);
 		if (!made.error) booted = true;   // never back to false: another request may have got there first
 		problem = made.error || "";
 	}
@@ -32,8 +36,8 @@ export async function hasAccount(env) {
 /** Why there is no account yet, for the sign-in pages: what the bootstrap found wrong with the secrets. */
 export const bootProblem = () => problem;
 
-/** What a token says about its holder: their user, their house, and whether they are its owner (not an agent). */
-export const propsOf = (user, owner) => ({ user: user.id, house: user.house, owner, admin: user.admin });
+/** What a token says about its holder: their user, their house, whether they are its owner (not a key), and a key's role. */
+export const propsOf = (user, owner) => ({ user: user.id, house: user.house, owner, admin: user.admin, ...(user.role ? { role: user.role } : {}) });
 
 export class Registry extends DurableObject {
 	constructor(ctx, env) {
@@ -48,6 +52,8 @@ export class Registry extends DurableObject {
 			"CREATE TABLE IF NOT EXISTS logins (hash TEXT PRIMARY KEY, user TEXT NOT NULL, until INTEGER NOT NULL)",
 			"CREATE TABLE IF NOT EXISTS wrong (user TEXT NOT NULL, at INTEGER NOT NULL)",
 		]) this.sql.exec(q);
+		// a key's role, on registries made before the queen had one
+		if (!this.sql.exec("PRAGMA table_info(keys)").toArray().some((c) => c.name === "role")) this.sql.exec("ALTER TABLE keys ADD COLUMN role TEXT NOT NULL DEFAULT 'agent'");
 		this.turns = new Map();   // a handle's password tries, in turn
 	}
 
@@ -58,16 +64,30 @@ export class Registry extends DurableObject {
 	/**
 	 * The first account and its key, from the two secrets the gateway had before it had accounts (CATIO_HANDLE names
 	 * it; charlotte by default). Once, into an empty registry: a key dropped later stays dropped. `{ok}` once the
-	 * registry has an account, else `{error}` saying what is wrong with the secrets.
+	 * registry has an account, else `{error}` saying what is wrong with the secrets. The queen's key is different:
+	 * CATIO_QUEEN is the first account's queen key for as long as the secret is set (it is checked at every start,
+	 * so adding or changing the secret is a deploy away, and removing it retires the key).
 	 */
-	async bootstrap(password, token, handle) {
-		if (!this.empty()) return { ok: true };
+	async bootstrap(password, token, handle, queen) {
+		if (!this.empty()) { await this.seedQueen(queen); return { ok: true }; }
 		if (token && token.length < MIN_SECRET) return { error: `CATIO_TOKEN is shorter than ${MIN_SECRET} characters: fix it, or remove it and mint a key from the café.` };
 		const id = String(handle || "charlotte").toLowerCase();
 		const made = await this.createUser(id, password || "", { house: FIRST_HOUSE, admin: true });
 		if (made.error) return this.empty() ? { error: "CATIO_PASSWORD or CATIO_HANDLE: " + made.error } : { ok: true };   // two firsts at once: one made it
 		if (token) this.addKey(id, await sha256(token), "bootstrap");
+		await this.seedQueen(queen);
 		return { ok: true };
+	}
+
+	/** The first account's queen key is the CATIO_QUEEN secret: kept in step with it, dropped when it goes. */
+	async seedQueen(queen) {
+		const first = this.sql.exec("SELECT id FROM users WHERE house = ? ORDER BY created LIMIT 1", FIRST_HOUSE).toArray()[0];
+		if (!first) return;
+		const have = this.sql.exec("SELECT hash FROM keys WHERE user = ? AND name = ? AND role = 'queen'", first.id, QUEEN_KEY).toArray()[0];
+		const want = queen && queen.length >= MIN_SECRET ? await sha256(queen) : null;
+		if (have && have.hash === want) return;
+		if (have) this.sql.exec("DELETE FROM keys WHERE user = ? AND name = ?", first.id, QUEEN_KEY);
+		if (want) this.addKey(first.id, want, QUEEN_KEY, "queen");
 	}
 
 	/** A new account: `{user}`, or `{error}` for the caller to pass on. */
@@ -142,9 +162,9 @@ export class Registry extends DurableObject {
 	}
 
 	/** True when the key is kept; false when the user already has one by that name. Anything else is thrown. */
-	addKey(user, hash, name) {
+	addKey(user, hash, name, role = "agent") {
 		try {
-			this.sql.exec("INSERT INTO keys (hash, user, name, created) VALUES (?, ?, ?, ?)", hash, user, keyName(name), Date.now());
+			this.sql.exec("INSERT INTO keys (hash, user, name, created, role) VALUES (?, ?, ?, ?, ?)", hash, user, keyName(name), Date.now(), role);
 			return true;
 		} catch (e) {
 			if (/keys\.user, keys\.name/.test(String(e && e.message))) return false;
@@ -152,24 +172,29 @@ export class Registry extends DurableObject {
 		}
 	}
 
-	/** A new agents' key for a user, `{key, name}`: returned once, kept only as its hash. Names are unique per user. */
-	async mintKey(user, name) {
+	/** A new key for a user, `{key, name, role}`: returned once, kept only as its hash. Names are unique per user.
+	 * The role is "agent" (the default: sessions and agents) or "queen" (the user's queen runner). */
+	async mintKey(user, name, role = "agent") {
+		role = String(role || "agent");
+		if (!ROLES.includes(role)) return { error: "A key's role is agent or queen." };
 		const key = randomToken();
-		if (!this.addKey(user, await sha256(key), name)) return { error: "You already have a key by that name: drop it first." };
-		return { key, name: keyName(name) };
+		if (!this.addKey(user, await sha256(key), name, role)) return { error: "You already have a key by that name: drop it first." };
+		return { key, name: keyName(name), role };
 	}
 
 	keys(user) {
-		return this.sql.exec("SELECT name, created FROM keys WHERE user = ? ORDER BY created, rowid", user).toArray();
+		return this.sql.exec("SELECT name, created, role FROM keys WHERE user = ? ORDER BY created, rowid", user).toArray();
 	}
 
 	dropKey(user, name) {
 		return this.sql.exec("DELETE FROM keys WHERE user = ? AND name = ?", user, keyName(name)).rowsWritten > 0;
 	}
 
+	/** The key's user, with the key's role on it, or null. */
 	userOfKey(hash) {
-		const row = this.sql.exec("SELECT user FROM keys WHERE hash = ?", hash).toArray()[0];
-		return row ? this.user(row.user) : null;
+		const row = this.sql.exec("SELECT user, role FROM keys WHERE hash = ?", hash).toArray()[0];
+		const user = row && this.user(row.user);
+		return user ? { ...user, role: row.role || "agent" } : null;
 	}
 
 	login(hash, user, until) {
