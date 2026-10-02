@@ -186,6 +186,10 @@ a { color: var(--ink); }
 /* what's under the pointer, named in a line */
 .tip { pointer-events: none; z-index: 21; transform: translate(-50%, -100%); font: 18px/18px var(--pixel); gap: 6px; }
 .tip small { font: 700 .74rem var(--body); color: var(--ink-soft); }
+/* what a cat needs, or what a queen is keeping: under the name, only while she hovers it */
+.tip { flex-wrap: wrap; max-width: 240px; }
+.tip .says { flex-basis: 100%; white-space: normal; font: 500 12.5px/1.3 var(--body); padding-bottom: 2px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .house { position: absolute; inset: 0; width: 1920px; height: 1152px; max-width: none; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
 .prop { position: absolute; pointer-events: none; }
 /* a piece of furniture: one cell of an atlas, at two screen pixels an art pixel, in the cats' z-space */
@@ -204,11 +208,10 @@ a { color: var(--ink); }
 .spr { display: inline-block; vertical-align: bottom; filter: var(--tint, none); image-rendering: pixelated; background-repeat: no-repeat; }
 .cat .spr { display: block; }
 /* a count: the pack's white button at one pixel a pixel */
-.pile-n, .badge .n { font: 800 11px/1 var(--body); color: var(--ink); padding: 0 1px;
+.badge .n { font: 800 11px/1 var(--body); color: var(--ink); padding: 0 1px;
   border-style: solid; border-color: transparent; border-width: 3px 3px 5px; border-image: url(art/licensed/ui/button-hover.png) 4 4 6 4 fill / 3px 3px 5px stretch; }
-.pile-n { position: absolute; right: -6px; top: 4px; }
 /* a queen's crown: the pack's crown icon, gilded */
-.cat .crown, .crown { position: absolute; width: 14px; height: 13px; pointer-events: none; image-rendering: pixelated; background: url(art/licensed/ui/crown.png) no-repeat; }
+.crown { position: absolute; width: 14px; height: 13px; pointer-events: none; image-rendering: pixelated; background: url(art/licensed/ui/crown.png) no-repeat; }
 .crown.inline { position: static; display: inline-block; flex: none; }
 .crown.corner { right: 8px; bottom: 8px; transform: scale(2); transform-origin: 100% 100%; }
 /* what a queen keeps: a brown star each, gold for the one she says */
@@ -242,27 +245,12 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .cat.m-meow { animation: hop 1s steps(2) infinite; }
 @keyframes hop { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
 
-/* overlay: speech bubbles, drawn at screen size (one art pixel a pixel) */
-.overlay { position: absolute; inset: 0; pointer-events: none; transition: opacity .15s; }
-.overlay.moving { opacity: 0; }
 .tag { position: absolute; font: 18px/18px var(--pixel); padding: 0 2px; white-space: nowrap; display: flex; gap: 5px; align-items: center; color: var(--ink); background: var(--cream) padding-box;
   border-style: solid; border-color: transparent; border-width: 4px 4px 6px; border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / 4px 4px 6px stretch; image-rendering: pixelated; }
 /* a badge: the face of the most urgent cat that needs you, and how many */
 .badge { flex: none; display: inline-flex; align-items: center; gap: 0; }
 .badge .face-ico { margin: -7px -2px -7px 0; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.bub { position: absolute; pointer-events: auto; transform: translate(-50%, -100%); cursor: var(--point); color: var(--ink); padding: 0 2px 1px; font: 500 12.5px/1.3 var(--body);
-  max-width: 200px; width: max-content; text-align: left; background: #DCE0D2 padding-box;
-  border-style: solid; border-color: transparent; border-width: 5px 5px 6px; border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / 5px 5px 6px stretch; image-rendering: pixelated; }
-.bub::after { content: ""; position: absolute; left: 50%; bottom: -11px; width: 11px; height: 9px; margin-left: -5px; background: url(art/licensed/ui/bubble-tail.png) no-repeat; }
-.bub.below { transform: translate(-50%, 0); }
-.bub.below::after { bottom: auto; top: -10px; transform: scaleY(-1); }
-.bub b { display: flex; align-items: center; gap: 4px; font: 18px/22px var(--pixel); margin: 0 0 1px; font-weight: normal; }
-.bub b .face-ico { margin: -2px 0 -3px -2px; }
-.bub .t { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.bub.icon { padding: 0; border: 0; border-image: none; width: auto; background: none; }
-.bub.icon::after { display: none; }
-.bub.icon .face { display: block; }
 .stage-msg { position: absolute; left: 50%; bottom: calc(6 * var(--u) + 10px); transform: translateX(-50%); font-size: .85rem; padding: 0 6px; max-width: calc(100% - 24px); text-align: center; }
 
 /* a menu: the panel beside the room, cat or queen you clicked, or under the brand. Every one has the same
@@ -396,12 +384,6 @@ dialog.wide { width: min(600px, calc(100vw - 24px)); }
 .veil .tag { position: static; font-size: 18px; }
 .cat.drop-on, .roomhit.drop-on { outline: 0; border: 9px solid transparent; border-image: url(art/licensed/ui/corners.png) 9 8 / 9px 8px stretch; border-image-outset: 5px; background: rgba(255, 250, 225, .18); }
 .roomhit.drop-on { border-image-outset: 0; }
-/* a cat's model, as a little plaque on its shoulder (F Fable, O Opus, S Sonnet, H Haiku, or the agent's maker) */
-.breed { position: absolute; font: 800 10px/1 var(--body); color: var(--ink); padding: 0 1px; pointer-events: none; white-space: nowrap;
-  border-style: solid; border-color: transparent; border-width: 3px 3px 5px; border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / 3px 3px 5px stretch; background: var(--cream) padding-box; }
-.stage:not(.inroom) .breed { display: none; }
-.fcount { position: absolute; font: 800 11px/1 var(--body); color: var(--ink); padding: 0 1px; pointer-events: none;
-  border-style: solid; border-color: transparent; border-width: 3px 3px 5px; border-image: url(art/licensed/ui/button-green.png) 4 4 6 4 fill / 3px 3px 5px stretch; background: #C0D470 padding-box; }
 .cat.dragging { opacity: .35; }
 .ghost { position: fixed; z-index: 45; pointer-events: none; transform: translate(-50%, -85%) scale(1.6); transform-origin: 50% 100%; }
 /* a list of dropped files, and a cat's conversation */
@@ -459,7 +441,6 @@ ul.gkey li > div.what { flex-basis: 100%; }
       <div id="cats"></div>
       <div id="walkers"></div>
     </div>
-    <div class="overlay" id="overlay"></div>
     <div class="tag tip" id="tip" hidden></div>
     <div class="stage-msg" id="stageMsg" hidden></div>
     <div class="veil" id="veil" hidden><span class="tag" id="veilSay">Drop into the brain</span></div>
@@ -513,7 +494,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   // (level) and open floor, the landing and the stair, the furniture as atlas cells (kind, layer, footprint,
   // stations) and its default layout.
   /* MANOR:BEGIN generated by catio/tools/furniture.py: edit that, not this */
-  const MANOR = {"world":[960,576],"face":32,"rooms":{"dining":[96,48,181,165],"kitchen":[272,48,245,165],"living":[512,48,181,165],"study":[96,208,181,181],"hall":[272,208,245,181],"sunroom":[512,208,181,181],"brain":[96,48,181,165],"bedroom":[512,48,101,165],"bath":[608,48,85,165],"garden":[688,176,224,288]},"level":{"dining":"ground","kitchen":"ground","living":"ground","study":"ground","hall":"ground","sunroom":"ground","brain":"upper","bedroom":"upper","bath":"upper","garden":"ground"},"landing":[272,48,245,341],"stairs":[362,213,64,80],"floors":{"dining":[101,85,272,208],"kitchen":[277,85,512,208],"living":[517,85,688,208],"study":[101,245,272,384],"hall":[277,245,512,384],"sunroom":[517,245,688,384],"brain":[101,85,272,208],"bedroom":[517,85,608,208],"bath":[613,85,688,208],"garden":[696,192,908,456]},"doors":[["dining","kitchen",[264,146],[284,146]],["kitchen","living",[504,146],[524,146]],["dining","study",[173,200],[173,252]],["kitchen","hall",[316,200],[316,252]],["kitchen","hall",[472,200],[472,252]],["living","sunroom",[600,200],[600,252]],["study","hall",[264,315],[284,315]],["hall","sunroom",[504,315],[524,315]],["brain","landing",[264,146],[284,146]],["landing","bedroom",[504,146],[524,146]],["bedroom","bath",[600,144],[620,144]],["hall","landing",[394,299],[394,205]],["sunroom","garden",[680,320],[704,320]],["hall",null,[394,378],[394,404]]],"atlases":{"cc":[512,99],"lic":[512,110]},"pieces":{"stairs":{"atlas":"lic","at":[43,0],"size":[64,80],"kind":"essential","layer":"floor","foot":[0,0,64,80],"stations":[["upstairs",32,78],["upstairs",32,54],["upstairs",32,30],["upstairs",32,6]]},"door_mat":{"atlas":"cc","at":[227,84],"size":[30,10],"kind":"essential","layer":"rug","foot":null,"stations":[["needs",9,8],["needs",22,8]]},"rug_red_diamond":{"atlas":"cc","at":[63,53],"size":[48,30],"kind":"connected","layer":"rug","foot":null,"stations":[["fail",24,18]]},"rug_blue_diamond":{"atlas":"cc","at":[14,53],"size":[48,30],"kind":"connected","layer":"rug","foot":null,"stations":[["fail",24,18]]},"filing_cabinet":{"atlas":"cc","at":[271,53],"size":[16,27],"kind":"essential","layer":"floor","foot":[0,7,16,20],"stations":[["review",8,36]]},"writing_desk":{"atlas":"cc","at":[327,0],"size":[32,32],"kind":"connected","layer":"floor","foot":[0,8,32,24],"stations":[["work",16,42]]},"armchair_pink":{"atlas":"cc","at":[483,0],"size":[24,30],"kind":"connected","layer":"floor","foot":[0,8,24,22],"stations":[["queen",12,36]]},"lamp_floor":{"atlas":"cc","at":[0,53],"size":[13,30],"kind":"decor","layer":"floor","foot":[0,8,13,22],"stations":[]},"plant_pampas":{"atlas":"cc","at":[80,0],"size":[15,43],"kind":"decor","layer":"floor","foot":[0,11,15,32],"stations":[]},"plant_snake":{"atlas":"cc","at":[360,0],"size":[11,31],"kind":"decor","layer":"floor","foot":[0,8,11,23],"stations":[]},"cushion_blue":{"atlas":"cc","at":[137,84],"size":[14,14],"kind":"connected","layer":"rug","foot":null,"stations":[["sleep",7,10]]},"cushion_green":{"atlas":"cc","at":[152,84],"size":[14,14],"kind":"connected","layer":"rug","foot":null,"stations":[["sleep",7,10]]},"cushion_orange":{"atlas":"cc","at":[167,84],"size":[14,14],"kind":"connected","layer":"rug","foot":null,"stations":[["sleep",7,10]]},"cushion_white":{"atlas":"cc","at":[182,84],"size":[14,14],"kind":"connected","layer":"rug","foot":null,"stations":[["sleep",7,10]]},"bookcase_dark_books":{"atlas":"lic","at":[148,0],"size":[52,58],"kind":"decor","layer":"floor","foot":[0,34,52,24],"stations":[]},"bookcase_red_books":{"atlas":"lic","at":[201,0],"size":[52,58],"kind":"decor","layer":"floor","foot":[0,34,52,24],"stations":[]},"bookcase_filled":{"atlas":"cc","at":[0,0],"size":[46,52],"kind":"decor","layer":"floor","foot":[0,30,46,22],"stations":[]},"brain_desk":{"atlas":"cc","at":[225,0],"size":[50,32],"kind":"essential","layer":"floor","foot":[0,6,50,26],"stations":[]},"chair_back":{"atlas":"cc","at":[383,53],"size":[14,22],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["work",7,22]]},"brain_chest":{"atlas":"lic","at":[0,89],"size":[22,21],"kind":"essential","layer":"floor","foot":[0,5,22,16],"stations":[]},"armchair_blue":{"atlas":"cc","at":[389,0],"size":[22,30],"kind":"connected","layer":"floor","foot":[0,8,22,22],"stations":[["queen",11,36]]},"fireplace":{"atlas":"cc","at":[96,0],"size":[32,42],"kind":"essential","layer":"floor","foot":[0,30,32,12],"stations":[]},"sofa_blue_back":{"atlas":"cc","at":[430,53],"size":[40,22],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["sleep",20,16]]},"armchair_blue_l":{"atlas":"cc","at":[412,0],"size":[22,30],"kind":"connected","layer":"floor","foot":[0,8,22,22],"stations":[["queen",11,36]]},"armchair_blue_r":{"atlas":"cc","at":[435,0],"size":[22,30],"kind":"decor","layer":"floor","foot":[0,8,22,22],"stations":[]},"fridge":{"atlas":"cc","at":[146,0],"size":[16,40],"kind":"decor","layer":"floor","foot":[0,20,16,20],"stations":[]},"pantry":{"atlas":"cc","at":[129,0],"size":[16,42],"kind":"decor","layer":"floor","foot":[0,22,16,20],"stations":[]},"counter":{"atlas":"cc","at":[187,53],"size":[16,27],"kind":"decor","layer":"floor","foot":[0,10,16,17],"stations":[]},"counter_drawers":{"atlas":"cc","at":[221,53],"size":[16,27],"kind":"decor","layer":"floor","foot":[0,10,16,17],"stations":[]},"counter_door":{"atlas":"cc","at":[204,53],"size":[16,27],"kind":"decor","layer":"floor","foot":[0,10,16,17],"stations":[]},"hob":{"atlas":"cc","at":[288,53],"size":[16,27],"kind":"decor","layer":"floor","foot":[0,10,16,17],"stations":[]},"sink":{"atlas":"cc","at":[93,84],"size":[28,15],"kind":"decor","layer":"top","foot":null,"stations":[]},"island":{"atlas":"cc","at":[305,53],"size":[16,27],"kind":"connected","layer":"floor","foot":[0,10,16,17],"stations":[["work",8,32]]},"chair_front":{"atlas":"cc","at":[112,53],"size":[14,28],"kind":"connected","layer":"floor","foot":[0,7,14,21],"stations":[["queen",7,32]]},"runner_blue":{"atlas":"cc","at":[0,84],"size":[30,15],"kind":"connected","layer":"rug","foot":null,"stations":[["fail",15,10]]},"bowl_food":{"atlas":"lic","at":[69,89],"size":[22,18],"kind":"decor","layer":"floor","foot":[0,4,22,14],"stations":[]},"bowl_water":{"atlas":"lic","at":[92,89],"size":[22,18],"kind":"decor","layer":"floor","foot":[0,4,22,14],"stations":[]},"food_bag":{"atlas":"lic","at":[415,0],"size":[16,31],"kind":"decor","layer":"floor","foot":[0,8,16,23],"stations":[]},"dining_table":{"atlas":"cc","at":[276,0],"size":[50,32],"kind":"decor","layer":"floor","foot":[0,6,50,26],"stations":[]},"chair_front_decor":{"atlas":"cc","at":[127,53],"size":[14,28],"kind":"decor","layer":"floor","foot":[0,0,0,0],"stations":[]},"chair_back_work":{"atlas":"cc","at":[398,53],"size":[14,22],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["work",7,22]]},"chair_right":{"atlas":"cc","at":[157,53],"size":[14,27],"kind":"decor","layer":"floor","foot":[0,0,0,0],"stations":[]},"chair_left_queen":{"atlas":"cc","at":[142,53],"size":[14,27],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["queen",7,30]]},"sideboard":{"atlas":"cc","at":[322,53],"size":[32,27],"kind":"decor","layer":"floor","foot":[0,10,32,17],"stations":[]},"runner_yellow":{"atlas":"cc","at":[62,84],"size":[30,15],"kind":"connected","layer":"rug","foot":null,"stations":[["fail",15,10]]},"sunflower":{"atlas":"cc","at":[163,0],"size":[14,40],"kind":"decor","layer":"floor","foot":[0,10,14,30],"stations":[]},"armchair_green":{"atlas":"cc","at":[458,0],"size":[24,30],"kind":"connected","layer":"floor","foot":[0,8,24,22],"stations":[["queen",12,36]]},"scratching_post":{"atlas":"lic","at":[333,0],"size":[28,38],"kind":"connected","layer":"floor","foot":[0,10,28,28],"stations":[["work",14,44]]},"runner_green":{"atlas":"cc","at":[31,84],"size":[30,15],"kind":"connected","layer":"rug","foot":null,"stations":[["fail",15,10]]},"palm":{"atlas":"lic","at":[391,0],"size":[23,34],"kind":"decor","layer":"floor","foot":[0,8,23,26],"stations":[]},"fiddle_fig":{"atlas":"lic","at":[313,0],"size":[19,38],"kind":"decor","layer":"floor","foot":[0,10,19,28],"stations":[]},"fern":{"atlas":"lic","at":[432,0],"size":[22,26],"kind":"decor","layer":"floor","foot":[0,6,22,20],"stations":[]},"monstera":{"atlas":"lic","at":[477,0],"size":[24,25],"kind":"decor","layer":"floor","foot":[0,6,24,19],"stations":[]},"trailing_ivy":{"atlas":"lic","at":[115,89],"size":[23,17],"kind":"decor","layer":"floor","foot":[0,4,23,13],"stations":[]},"shelves_supplies":{"atlas":"cc","at":[178,0],"size":[46,36],"kind":"decor","layer":"floor","foot":[0,16,46,20],"stations":[]},"worktable":{"atlas":"lic","at":[254,0],"size":[58,50],"kind":"connected","layer":"floor","foot":[0,8,58,42],"stations":[["work",29,58]]},"yarn_red":{"atlas":"lic","at":[151,89],"size":[11,10],"kind":"decor","layer":"top","foot":null,"stations":[]},"yarn_blue":{"atlas":"lic","at":[139,89],"size":[11,10],"kind":"decor","layer":"top","foot":null,"stations":[]},"tin_buttons":{"atlas":"lic","at":[163,89],"size":[9,9],"kind":"decor","layer":"top","foot":null,"stations":[]},"supply_chest":{"atlas":"lic","at":[455,0],"size":[21,26],"kind":"decor","layer":"floor","foot":[0,6,21,20],"stations":[]},"chair_right_queen":{"atlas":"cc","at":[172,53],"size":[14,27],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["queen",7,30]]},"bed":{"atlas":"cc","at":[47,0],"size":[32,47],"kind":"connected","layer":"floor","foot":[0,8,32,39],"stations":[["sleep",16,34]]},"nightstand":{"atlas":"cc","at":[413,53],"size":[16,22],"kind":"decor","layer":"floor","foot":[0,8,16,14],"stations":[]},"dresser":{"atlas":"cc","at":[238,53],"size":[32,27],"kind":"decor","layer":"floor","foot":[0,10,32,17],"stations":[]},"foot_chest":{"atlas":"lic","at":[46,89],"size":[22,21],"kind":"decor","layer":"floor","foot":[0,5,22,16],"stations":[]},"toilet":{"atlas":"cc","at":[372,0],"size":[16,31],"kind":"decor","layer":"floor","foot":[0,10,16,21],"stations":[]},"basin":{"atlas":"cc","at":[122,84],"size":[14,14],"kind":"decor","layer":"wall","foot":null,"stations":[]},"mirror_small":{"atlas":"cc","at":[471,53],"size":[12,21],"kind":"decor","layer":"wall","foot":null,"stations":[]},"shower":{"atlas":"cc","at":[355,53],"size":[12,25],"kind":"decor","layer":"wall","foot":null,"stations":[]},"towel":{"atlas":"cc","at":[197,84],"size":[12,14],"kind":"decor","layer":"wall","foot":null,"stations":[]},"bath_mat":{"atlas":"cc","at":[210,84],"size":[16,10],"kind":"connected","layer":"rug","foot":null,"stations":[["queen",8,8]]},"plant_bath":{"atlas":"cc","at":[368,53],"size":[14,24],"kind":"decor","layer":"floor","foot":[0,6,14,18],"stations":[]},"cat_tree":{"atlas":"lic","at":[0,0],"size":[42,88],"kind":"connected","layer":"floor","foot":[4,60,36,28],"stations":[["work",22,92]]},"garden_table":{"atlas":"lic","at":[108,0],"size":[39,66],"kind":"decor","layer":"floor","foot":[0,20,39,46],"stations":[]},"garden_chair":{"atlas":"lic","at":[362,0],"size":[28,36],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["queen",14,38]]},"catio_chest":{"atlas":"lic","at":[23,89],"size":[22,21],"kind":"essential","layer":"floor","foot":[0,5,22,16],"stations":[["review",11,28]]}},"layout":{"dining":[["filing_cabinet",106,72],["sideboard",226,72],["sunflower",256,66],["dining_table",140,120],["chair_front_decor",147,102],["chair_front_decor",169,102],["chair_right",124,123],["chair_left_queen",192,123],["chair_back_work",147,146],["chair_back_work",169,146],["writing_desk",226,130],["chair_front_decor",235,114],["runner_yellow",112,186],["cushion_green",240,190]],"kitchen":[["fridge",330,58],["counter_drawers",346,73],["counter",362,73],["counter_door",378,73],["hob",394,73],["counter",410,73],["pantry",428,56],["filing_cabinet",450,73],["sink",364,75],["island",370,140],["island",386,140],["island",402,140],["chair_front",340,136],["bowl_food",470,150],["bowl_water",470,172],["food_bag",452,150],["runner_blue",290,184],["cushion_orange",300,110]],"living":[["fireplace",586,53],["rug_red_diamond",578,120],["armchair_blue_r",540,124],["armchair_blue_l",616,124],["sofa_blue_back",582,156],["cat_tree",646,112],["filing_cabinet",522,73],["cushion_white",524,180],["cushion_blue",560,190]],"study":[["bookcase_filled",104,213],["shelves_supplies",200,222],["filing_cabinet",250,222],["worktable",140,280],["yarn_red",148,290],["yarn_blue",162,292],["tin_buttons",178,289],["writing_desk",220,300],["chair_right_queen",116,300],["supply_chest",240,350],["runner_green",110,360],["trailing_ivy",160,396],["cushion_blue",196,398]],"hall":[["stairs",362,213],["door_mat",379,372],["rug_red_diamond",370,310],["lamp_floor",345,258],["lamp_floor",432,258],["plant_pampas",284,250],["plant_snake",284,350],["writing_desk",300,330],["armchair_pink",336,334],["filing_cabinet",480,334],["cushion_blue",450,300],["cushion_orange",455,345]],"sunroom":[["palm",522,232],["monstera",650,230],["scratching_post",650,258],["garden_table",560,262],["garden_chair",604,282],["writing_desk",620,336],["fiddle_fig",664,338],["fern",530,300],["runner_green",560,350],["cushion_white",525,362]],"garden":[["catio_chest",704,200],["cat_tree",850,200],["cushion_white",780,240],["runner_blue",710,280],["bowl_water",704,336],["bowl_food",730,336],["garden_table",760,330],["garden_chair",805,350],["cushion_orange",860,400],["fern",880,420]],"brain":[["bookcase_dark_books",102,48],["bookcase_red_books",214,48],["armchair_blue",110,120],["lamp_floor",136,114],["brain_desk",160,120],["chair_back",178,146],["brain_chest",224,150],["filing_cabinet",250,120],["rug_blue_diamond",120,170],["cushion_green",236,186]],"bath":[["mirror_small",648,56],["basin",647,76],["shower",670,56],["bath_mat",668,96],["toilet",668,130],["plant_bath",618,180],["cushion_white",640,186]],"bedroom":[["nightstand",542,72],["bed",560,62],["nightstand",592,72],["filing_cabinet",522,66],["rug_blue_diamond",540,150],["armchair_pink",580,168],["cushion_orange",524,184]],"landing":[["plant_pampas",285,88],["plant_snake",495,95],["lamp_floor",300,300],["rug_red_diamond",370,320],["runner_blue",380,150]]}};
+  const MANOR = {"world":[960,576],"face":32,"rooms":{"dining":[96,48,181,165],"kitchen":[272,48,245,165],"living":[512,48,181,165],"study":[96,208,181,181],"hall":[272,208,245,181],"sunroom":[512,208,181,181],"brain":[96,48,181,165],"bedroom":[512,48,101,165],"bath":[608,48,85,165],"garden":[688,176,224,288]},"level":{"dining":"ground","kitchen":"ground","living":"ground","study":"ground","hall":"ground","sunroom":"ground","brain":"upper","bedroom":"upper","bath":"upper","garden":"ground"},"landing":[272,48,245,341],"stairs":[362,213,64,80],"floors":{"dining":[101,85,272,208],"kitchen":[277,85,512,208],"living":[517,85,688,208],"study":[101,245,272,384],"hall":[277,245,512,384],"sunroom":[517,245,688,384],"brain":[101,85,272,208],"bedroom":[517,85,608,208],"bath":[613,85,688,208],"garden":[696,192,908,456]},"doors":[["dining","kitchen",[264,146],[284,146]],["kitchen","living",[504,146],[524,146]],["dining","study",[173,200],[173,252]],["kitchen","hall",[316,200],[316,252]],["kitchen","hall",[472,200],[472,252]],["living","sunroom",[600,200],[600,252]],["study","hall",[264,315],[284,315]],["hall","sunroom",[504,315],[524,315]],["brain","landing",[264,146],[284,146]],["landing","bedroom",[504,146],[524,146]],["bedroom","bath",[600,144],[620,144]],["hall","landing",[394,299],[394,205]],["sunroom","garden",[680,320],[704,320]],["hall",null,[394,378],[394,404]]],"atlases":{"cc":[512,99],"lic":[512,110]},"pieces":{"stairs":{"atlas":"lic","at":[43,0],"size":[64,80],"kind":"essential","layer":"floor","foot":[0,0,64,80],"stations":[["upstairs",32,78],["upstairs",32,54],["upstairs",32,30],["upstairs",32,6]]},"door_mat":{"atlas":"cc","at":[227,84],"size":[30,10],"kind":"essential","layer":"rug","foot":null,"stations":[["needs",9,8],["needs",22,8]]},"rug_red_diamond":{"atlas":"cc","at":[63,53],"size":[48,30],"kind":"connected","layer":"rug","foot":null,"stations":[["fail",24,18]]},"rug_blue_diamond":{"atlas":"cc","at":[14,53],"size":[48,30],"kind":"connected","layer":"rug","foot":null,"stations":[["fail",24,18]]},"filing_cabinet":{"atlas":"cc","at":[271,53],"size":[16,27],"kind":"essential","layer":"floor","foot":[0,7,16,20],"stations":[["review",8,36]]},"writing_desk":{"atlas":"cc","at":[327,0],"size":[32,32],"kind":"connected","layer":"floor","foot":[0,8,32,24],"stations":[["work",16,42]]},"armchair_pink":{"atlas":"cc","at":[483,0],"size":[24,30],"kind":"connected","layer":"floor","foot":[0,8,24,22],"stations":[["queen",12,36]]},"lamp_floor":{"atlas":"cc","at":[0,53],"size":[13,30],"kind":"decor","layer":"floor","foot":[0,8,13,22],"stations":[]},"plant_pampas":{"atlas":"cc","at":[80,0],"size":[15,43],"kind":"decor","layer":"floor","foot":[0,11,15,32],"stations":[]},"plant_snake":{"atlas":"cc","at":[360,0],"size":[11,31],"kind":"decor","layer":"floor","foot":[0,8,11,23],"stations":[]},"cushion_blue":{"atlas":"cc","at":[137,84],"size":[14,14],"kind":"connected","layer":"rug","foot":null,"stations":[["sleep",7,10]]},"cushion_green":{"atlas":"cc","at":[152,84],"size":[14,14],"kind":"connected","layer":"rug","foot":null,"stations":[["sleep",7,10]]},"cushion_orange":{"atlas":"cc","at":[167,84],"size":[14,14],"kind":"connected","layer":"rug","foot":null,"stations":[["sleep",7,10]]},"cushion_white":{"atlas":"cc","at":[182,84],"size":[14,14],"kind":"connected","layer":"rug","foot":null,"stations":[["sleep",7,10]]},"bookcase_dark_books":{"atlas":"lic","at":[148,0],"size":[52,58],"kind":"decor","layer":"floor","foot":[0,34,52,24],"stations":[]},"bookcase_red_books":{"atlas":"lic","at":[201,0],"size":[52,58],"kind":"decor","layer":"floor","foot":[0,34,52,24],"stations":[]},"bookcase_filled":{"atlas":"cc","at":[0,0],"size":[46,52],"kind":"decor","layer":"floor","foot":[0,30,46,22],"stations":[]},"brain_desk":{"atlas":"cc","at":[225,0],"size":[50,32],"kind":"essential","layer":"floor","foot":[0,6,50,26],"stations":[]},"chair_back":{"atlas":"cc","at":[383,53],"size":[14,22],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["work",7,22]]},"brain_chest":{"atlas":"lic","at":[0,89],"size":[22,21],"kind":"essential","layer":"floor","foot":[0,5,22,16],"stations":[]},"armchair_blue":{"atlas":"cc","at":[389,0],"size":[22,30],"kind":"connected","layer":"floor","foot":[0,8,22,22],"stations":[["queen",11,36]]},"fireplace":{"atlas":"cc","at":[96,0],"size":[32,42],"kind":"essential","layer":"floor","foot":[0,30,32,12],"stations":[]},"sofa_blue_back":{"atlas":"cc","at":[430,53],"size":[40,22],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["sleep",20,16]]},"armchair_blue_l":{"atlas":"cc","at":[412,0],"size":[22,30],"kind":"connected","layer":"floor","foot":[0,8,22,22],"stations":[["queen",11,36]]},"armchair_blue_r":{"atlas":"cc","at":[435,0],"size":[22,30],"kind":"decor","layer":"floor","foot":[0,8,22,22],"stations":[]},"fridge":{"atlas":"cc","at":[146,0],"size":[16,40],"kind":"decor","layer":"floor","foot":[0,20,16,20],"stations":[]},"pantry":{"atlas":"cc","at":[129,0],"size":[16,42],"kind":"decor","layer":"floor","foot":[0,22,16,20],"stations":[]},"counter":{"atlas":"cc","at":[187,53],"size":[16,27],"kind":"decor","layer":"floor","foot":[0,10,16,17],"stations":[]},"counter_drawers":{"atlas":"cc","at":[221,53],"size":[16,27],"kind":"decor","layer":"floor","foot":[0,10,16,17],"stations":[]},"counter_door":{"atlas":"cc","at":[204,53],"size":[16,27],"kind":"decor","layer":"floor","foot":[0,10,16,17],"stations":[]},"hob":{"atlas":"cc","at":[288,53],"size":[16,27],"kind":"decor","layer":"floor","foot":[0,10,16,17],"stations":[]},"sink":{"atlas":"cc","at":[93,84],"size":[28,15],"kind":"decor","layer":"top","foot":null,"stations":[]},"island":{"atlas":"cc","at":[305,53],"size":[16,27],"kind":"connected","layer":"floor","foot":[0,10,16,17],"stations":[["work",8,32]]},"chair_front":{"atlas":"cc","at":[112,53],"size":[14,28],"kind":"connected","layer":"floor","foot":[0,7,14,21],"stations":[["queen",7,32]]},"runner_blue":{"atlas":"cc","at":[0,84],"size":[30,15],"kind":"connected","layer":"rug","foot":null,"stations":[["fail",15,10]]},"bowl_food":{"atlas":"lic","at":[69,89],"size":[22,18],"kind":"decor","layer":"floor","foot":[0,4,22,14],"stations":[]},"bowl_water":{"atlas":"lic","at":[92,89],"size":[22,18],"kind":"decor","layer":"floor","foot":[0,4,22,14],"stations":[]},"food_bag":{"atlas":"lic","at":[415,0],"size":[16,31],"kind":"decor","layer":"floor","foot":[0,8,16,23],"stations":[]},"dining_table":{"atlas":"cc","at":[276,0],"size":[50,32],"kind":"decor","layer":"floor","foot":[0,6,50,26],"stations":[]},"chair_front_decor":{"atlas":"cc","at":[127,53],"size":[14,28],"kind":"decor","layer":"floor","foot":[0,0,0,0],"stations":[]},"chair_back_work":{"atlas":"cc","at":[398,53],"size":[14,22],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["work",7,22]]},"chair_right":{"atlas":"cc","at":[157,53],"size":[14,27],"kind":"decor","layer":"floor","foot":[0,0,0,0],"stations":[]},"chair_left_queen":{"atlas":"cc","at":[142,53],"size":[14,27],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["queen",7,30]]},"sideboard":{"atlas":"cc","at":[322,53],"size":[32,27],"kind":"decor","layer":"floor","foot":[0,10,32,17],"stations":[]},"runner_yellow":{"atlas":"cc","at":[62,84],"size":[30,15],"kind":"connected","layer":"rug","foot":null,"stations":[["fail",15,10]]},"sunflower":{"atlas":"cc","at":[163,0],"size":[14,40],"kind":"decor","layer":"floor","foot":[0,10,14,30],"stations":[]},"armchair_green":{"atlas":"cc","at":[458,0],"size":[24,30],"kind":"connected","layer":"floor","foot":[0,8,24,22],"stations":[["queen",12,36]]},"scratching_post":{"atlas":"lic","at":[333,0],"size":[28,38],"kind":"connected","layer":"floor","foot":[0,10,28,28],"stations":[["work",14,44]]},"runner_green":{"atlas":"cc","at":[31,84],"size":[30,15],"kind":"connected","layer":"rug","foot":null,"stations":[["fail",15,10]]},"palm":{"atlas":"lic","at":[391,0],"size":[23,34],"kind":"decor","layer":"floor","foot":[0,8,23,26],"stations":[]},"fiddle_fig":{"atlas":"lic","at":[313,0],"size":[19,38],"kind":"decor","layer":"floor","foot":[0,10,19,28],"stations":[]},"fern":{"atlas":"lic","at":[432,0],"size":[22,26],"kind":"decor","layer":"floor","foot":[0,6,22,20],"stations":[]},"monstera":{"atlas":"lic","at":[477,0],"size":[24,25],"kind":"decor","layer":"floor","foot":[0,6,24,19],"stations":[]},"trailing_ivy":{"atlas":"lic","at":[115,89],"size":[23,17],"kind":"decor","layer":"floor","foot":[0,4,23,13],"stations":[]},"shelves_supplies":{"atlas":"cc","at":[178,0],"size":[46,36],"kind":"decor","layer":"floor","foot":[0,16,46,20],"stations":[]},"worktable":{"atlas":"lic","at":[254,0],"size":[58,50],"kind":"connected","layer":"floor","foot":[0,8,58,42],"stations":[["work",29,58]]},"yarn_red":{"atlas":"lic","at":[151,89],"size":[11,10],"kind":"decor","layer":"top","foot":null,"stations":[]},"yarn_blue":{"atlas":"lic","at":[139,89],"size":[11,10],"kind":"decor","layer":"top","foot":null,"stations":[]},"tin_buttons":{"atlas":"lic","at":[163,89],"size":[9,9],"kind":"decor","layer":"top","foot":null,"stations":[]},"supply_chest":{"atlas":"lic","at":[455,0],"size":[21,26],"kind":"decor","layer":"floor","foot":[0,6,21,20],"stations":[]},"chair_right_queen":{"atlas":"cc","at":[172,53],"size":[14,27],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["queen",7,30]]},"bed":{"atlas":"cc","at":[47,0],"size":[32,47],"kind":"connected","layer":"floor","foot":[0,8,32,39],"stations":[["sleep",16,34]]},"nightstand":{"atlas":"cc","at":[413,53],"size":[16,22],"kind":"decor","layer":"floor","foot":[0,8,16,14],"stations":[]},"dresser":{"atlas":"cc","at":[238,53],"size":[32,27],"kind":"decor","layer":"floor","foot":[0,10,32,17],"stations":[]},"foot_chest":{"atlas":"lic","at":[46,89],"size":[22,21],"kind":"decor","layer":"floor","foot":[0,5,22,16],"stations":[]},"toilet":{"atlas":"cc","at":[372,0],"size":[16,31],"kind":"decor","layer":"floor","foot":[0,10,16,21],"stations":[]},"basin":{"atlas":"cc","at":[122,84],"size":[14,14],"kind":"decor","layer":"wall","foot":null,"stations":[]},"mirror_small":{"atlas":"cc","at":[471,53],"size":[12,21],"kind":"decor","layer":"wall","foot":null,"stations":[]},"shower":{"atlas":"cc","at":[355,53],"size":[12,25],"kind":"decor","layer":"wall","foot":null,"stations":[]},"towel":{"atlas":"cc","at":[197,84],"size":[12,14],"kind":"decor","layer":"wall","foot":null,"stations":[]},"bath_mat":{"atlas":"cc","at":[210,84],"size":[16,10],"kind":"connected","layer":"rug","foot":null,"stations":[["queen",8,8]]},"plant_bath":{"atlas":"cc","at":[368,53],"size":[14,24],"kind":"decor","layer":"floor","foot":[0,6,14,18],"stations":[]},"cat_tree":{"atlas":"lic","at":[0,0],"size":[42,88],"kind":"connected","layer":"floor","foot":[4,60,36,28],"stations":[["work",22,92]]},"garden_table":{"atlas":"lic","at":[108,0],"size":[39,66],"kind":"decor","layer":"floor","foot":[0,20,39,46],"stations":[]},"garden_chair":{"atlas":"lic","at":[362,0],"size":[28,36],"kind":"connected","layer":"floor","foot":[0,0,0,0],"stations":[["queen",14,38]]},"catio_chest":{"atlas":"lic","at":[23,89],"size":[22,21],"kind":"essential","layer":"floor","foot":[0,5,22,16],"stations":[["review",11,28]]}},"layout":{"dining":[["filing_cabinet",106,72],["sideboard",226,72],["sunflower",256,66],["dining_table",140,120],["chair_front_decor",147,102],["chair_front_decor",169,102],["chair_right",124,123],["chair_left_queen",192,123],["chair_back_work",147,146],["chair_back_work",169,146],["writing_desk",226,130],["chair_front_decor",235,114],["runner_yellow",112,186],["cushion_green",240,190]],"kitchen":[["fridge",330,58],["counter_drawers",346,73],["counter",362,73],["counter_door",378,73],["hob",394,73],["counter",410,73],["pantry",428,56],["filing_cabinet",450,73],["sink",364,75],["island",370,140],["island",386,140],["island",402,140],["chair_front",340,136],["runner_blue",290,184],["cushion_orange",300,110]],"living":[["fireplace",586,53],["rug_red_diamond",578,120],["armchair_blue_r",540,124],["armchair_blue_l",616,124],["sofa_blue_back",582,156],["cat_tree",646,112],["filing_cabinet",522,73],["cushion_white",524,180],["cushion_blue",560,190]],"study":[["bookcase_filled",104,213],["shelves_supplies",200,222],["filing_cabinet",250,222],["worktable",140,280],["yarn_red",148,290],["yarn_blue",162,292],["tin_buttons",178,289],["writing_desk",220,300],["chair_right_queen",116,300],["supply_chest",240,350],["runner_green",110,360],["trailing_ivy",160,396],["cushion_blue",196,398]],"hall":[["stairs",362,213],["door_mat",379,372],["rug_red_diamond",370,310],["lamp_floor",345,258],["lamp_floor",432,258],["plant_pampas",284,250],["plant_snake",284,350],["writing_desk",300,330],["armchair_pink",336,334],["filing_cabinet",480,334],["cushion_blue",450,300],["cushion_orange",455,345]],"sunroom":[["palm",522,232],["monstera",650,230],["scratching_post",650,258],["garden_table",560,262],["garden_chair",604,282],["writing_desk",620,336],["fiddle_fig",664,338],["fern",530,300],["runner_green",560,350],["cushion_white",525,362]],"garden":[["catio_chest",704,200],["cat_tree",850,200],["cushion_white",780,240],["runner_blue",710,280],["garden_table",760,330],["garden_chair",805,350],["cushion_orange",860,400],["fern",880,420]],"brain":[["bookcase_dark_books",102,48],["bookcase_red_books",214,48],["armchair_blue",110,120],["lamp_floor",136,114],["brain_desk",160,120],["chair_back",178,146],["brain_chest",224,150],["filing_cabinet",250,120],["rug_blue_diamond",120,170],["cushion_green",236,186]],"bath":[["mirror_small",648,56],["basin",647,76],["shower",670,56],["bath_mat",668,96],["toilet",668,130],["plant_bath",618,180],["cushion_white",640,186]],"bedroom":[["nightstand",542,72],["bed",560,62],["nightstand",592,72],["filing_cabinet",522,66],["rug_blue_diamond",540,150],["armchair_pink",580,168],["cushion_orange",524,184]],"landing":[["plant_pampas",285,88],["plant_snake",495,95],["lamp_floor",300,300],["rug_red_diamond",370,320],["runner_blue",380,150]]}};
   /* MANOR:END */
   const ROOM_NAMES = { garden: "Catio", kitchen: "Kitchen", dining: "Café", brain: "Library", living: "Cat lounge",
     sunroom: "Terrace", study: "Craft room", bedroom: "Bedroom", bath: "Ensuite", hall: "Entrance hall" };
@@ -920,20 +901,16 @@ ul.gkey li > div.what { flex-basis: 100%; }
     renderStatus();
     drawControls();
     labelRooms();
-    placeOverlay();
     if (MENU.kind) showMenu(MENU.kind, MENU.key);   // keep an open menu's numbers current
   }
 
-  // A cat's look at a spot: its sprite for a mood, anchored by the feet, with its breed and file count.
+  // A cat's look at a spot: its sprite for a mood, anchored by the feet. Nothing is drawn on a cat: no letters,
+  // counts, faces, bubbles or crowns (her call, 2 October 2026). Hovering a cat says what it needs.
   function dress(b, c, mood, spot, room) {
     const sp = SPR[mood];
     b.className = "cat m-" + mood;
     Object.assign(b.style, { left: spot[0] * 2 - sp.ax + "px", top: spot[1] * 2 - sp.ay + "px", width: sp.w + "px", height: sp.h + "px", zIndex: zOf(room) + 1000 + spot[1] * 2 });
     b.replaceChildren(sprite(mood, c.coat));
-    const br = breedOf(c);
-    if (br) { const t = el("span", "breed", br.tag); t.title = br.name; t.style.left = sp.ax - 22 + "px"; t.style.top = sp.ay - 26 + "px"; b.appendChild(t); }
-    const nf = waitingFor(c.id);
-    if (nf) { const t = el("span", "fcount", String(nf)); t.title = nf + (nf === 1 ? " file" : " files") + " from the brain"; t.style.left = sp.ax + 8 + "px"; t.style.top = sp.ay - 4 + "px"; b.appendChild(t); }
   }
   function placeCat(layer, c, spot, room) {
     const sp = SPR[c.mood];
@@ -969,9 +946,6 @@ ul.gkey li > div.what { flex-basis: 100%; }
     Object.assign(b.style, { left: spot[0] * 2 - sp.ax + "px", top: top + "px", width: sp.w + "px", height: sp.h + "px", zIndex: zOf(k) + 1000 + spot[1] * 2 });
     b.setAttribute("aria-label", q.name + ", queen of the " + roomInfo(k).name + ". " + q.line);
     b.appendChild(sprite(q.mood, q.coat));
-    const cr = el("span", "crown");
-    cr.style.left = sp.ax - 4 + "px"; cr.style.top = sp.ay - (q.mood === "meow" || q.mood === "cry" ? 48 : 34) + "px";   // on her head: higher when she sits up
-    b.appendChild(cr);
     b.addEventListener("click", (e) => { e.stopPropagation(); toggleMenu("queen", k, b); });
     b.addEventListener("dblclick", (e) => { e.stopPropagation(); hideMenu(); openQueen(k); });
     hoverable(b, "queen", k);
@@ -988,7 +962,6 @@ ul.gkey li > div.what { flex-basis: 100%; }
     Object.assign(b.style, { left: spot[0] * 2 - sp.ax + "px", top: spot[1] * 2 - sp.ay + "px", width: sp.w + "px", height: sp.h + "px", zIndex: zOf(room) + 1000 + spot[1] * 2 });
     b.setAttribute("aria-label", pile.length + " cats curled up together in " + roomInfo(room).name);
     b.appendChild(sprite(top.mood, top.coat));
-    b.appendChild(el("span", "pile-n", "+" + (pile.length - 1)));
     VIEW.piles[room] = pile;
     for (const c of pile) { WHERE.set(c.id, { x: spot[0], y: spot[1], room }); SEEN.add(c.id); }
     b.addEventListener("click", (e) => { e.stopPropagation(); toggleMenu("pile", room, b); });
@@ -1142,8 +1115,6 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const fit = (t, view, world) => world <= view ? (view - world) / 2 : Math.min(m, Math.max(view - world - m, t));
     return { s, tx: fit(c.tx, W, WORLD[0] * 2 * s), ty: fit(c.ty, H, WORLD[1] * 2 * s), W, H };
   }
-  let ovRaf = 0;
-  function overlaySoon() { if (!ovRaf) ovRaf = requestAnimationFrame(() => { ovRaf = 0; placeOverlay(); }); }
   function setCam(c, animate) {
     c = clampCam(c);
     S.cam = c;
@@ -1158,11 +1129,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
     drawView(animate);
     labelRooms();
     clearTimeout(setCam.t);
-    const ov = $("overlay");
-    if (!animate || reduced()) { ov.classList.remove("moving"); overlaySoon(); return; }
-    ov.classList.add("moving");
-    // once the camera has moved, the signs come back and an open menu finds its room again
-    setCam.t = setTimeout(() => { placeOverlay(); ov.classList.remove("moving"); if (MENU.kind) showMenu(MENU.kind, MENU.key, anchorOf(MENU.kind, MENU.key)); }, 560);
+    if (!animate || reduced()) return;
+    // once the camera has moved, an open menu finds its room again
+    setCam.t = setTimeout(() => { if (MENU.kind) showMenu(MENU.kind, MENU.key, anchorOf(MENU.kind, MENU.key)); }, 560);
   }
   function layout(instant) { setCam(frame(S.focus ? padded(S.focus) : WHOLE), !instant); }
 
@@ -1180,10 +1149,10 @@ ul.gkey li > div.what { flex-basis: 100%; }
     }
     return best;
   }
-  // after she moves the camera herself: the room filling the view is the one she's in, with its bubbles
+  // after she moves the camera herself: the room filling the view is the one she's in
   function settleFocus() {
     const k = roomInView();
-    if (k === S.focus) { placeOverlay(); return; }
+    if (k === S.focus) return;
     S.focus = k;
     if (k) S.cursor = k;
     render();
@@ -1331,7 +1300,6 @@ ul.gkey li > div.what { flex-basis: 100%; }
   // only once you're in it. Cabinets are reached through the room's Files.
   function labelRooms() {
     const cur = S.focus || curRoom();
-    $("stage").classList.toggle("inroom", !!S.focus);   // breeds and file counts show once you're in a room
     for (const b of $("hits").querySelectorAll(".roomhit")) {
       const k = b.dataset.room, here = k === S.focus;
       b.classList.toggle("here", here);
@@ -1389,15 +1357,21 @@ ul.gkey li > div.what { flex-basis: 100%; }
   function showTip(kind, key, node) {
     if (MENU.kind === kind && MENU.key === key) return;
     const t = $("tip"), text = [], small = [];
-    let need = [];
+    let need = [], says = "";
     if (kind === "room") { text.push(roomInfo(key).name); need = needIn(VIEW.cats, key); if (!need.length) small.push(summary(VIEW.cats.filter((c) => c.roomKey === key))); }
     else if (kind === "stairs") { const f = other(S.floor); text.push(f === "upper" ? "Upstairs" : "Downstairs"); need = needOn(f); }
-    else if (kind === "queen") { const q = (VIEW.queens[key] && VIEW.queens[key].queen) || queenOf(key); text.push(q.name); small.push("queen"); }
+    else if (kind === "queen") { const q = (VIEW.queens[key] && VIEW.queens[key].queen) || queenOf(key); text.push(q.name); small.push("queen"); says = q.pinned.length ? q.pinned[0].text : ""; }
     else if (kind === "pile") { const p = VIEW.piles[key] || []; text.push(p.length + " cats"); }
-    else { const c = VIEW.cats.find((x) => x.id === key); if (!c) return; text.push(c.name); small.push(MOODS[c.mood].short); }
+    else {
+      const c = VIEW.cats.find((x) => x.id === key); if (!c) return;
+      const nf = waitingFor(c.id);
+      text.push(c.name); small.push(MOODS[c.mood].short);
+      says = [MOODS[c.mood].needs ? c.ask : "", nf ? nf + (nf === 1 ? " file" : " files") + " waiting" : ""].filter(Boolean).join(" · ");
+    }
     t.replaceChildren(el("span", null, text.join(" ")));
     if (small.length) t.appendChild(el("small", null, small.join(" ")));
     if (need.length) t.appendChild(badge(need.sort((a, b) => MOODS[a.mood].rank - MOODS[b.mood].rank)));
+    if (says) t.appendChild(el("span", "says", says));
     t.hidden = false;
     const a = node.getBoundingClientRect(), st = $("stage").getBoundingClientRect();
     const x = Math.max(t.offsetWidth / 2 + 8, Math.min(st.width - t.offsetWidth / 2 - 8, a.left - st.left + a.width / 2));
@@ -1640,66 +1614,6 @@ ul.gkey li > div.what { flex-basis: 100%; }
       S.assets && mi("Add files", () => { hideMenu(); pickFiles({ cat: c.id }); }),
       S.focus !== c.roomKey && mi("Look in", () => focusRoom(c.roomKey))]));
     return out;
-  }
-
-  function placeOverlay() {
-    const ov = $("overlay"); ov.replaceChildren();
-    const cam = S.cam; if (!cam) return;
-    const toScreen = (x, y) => [cam.tx + x * cam.s, cam.ty + y * cam.s];
-    // Nothing on the map but the cats: rooms are named on hover, the other floor's news is on its button.
-    const text = !!S.focus;
-    const taken = [];   // bubbles and faces keep off each other
-    // A text bubble goes above the cat; if that is off the top or on another bubble, below it;
-    // failing both, the cat just shows the little face icon.
-    function bubble(p, kind, title, body, act, hoverKind, hoverKey, aria, sidestep) {
-      const [sx, sy] = toScreen(p.x, p.y);
-      if (sx < 0 || sx > cam.W || sy < 0 || sy > cam.H + 20) return;
-      const clampX = Math.min(Math.max(sx, 104), cam.W - 104);
-      const feetY = toScreen(p.x, p.feet)[1] + 14;
-      const up = [clampX - 101, sy - 96, clampX + 101, sy], down = [clampX - 101, feetY - 6, clampX + 101, feetY + 90];
-      const free = (r) => !taken.some((t) => r[0] < t[2] && t[0] < r[2] && r[1] < t[3] && t[1] < r[3]);
-      let mode = "icon";
-      if (text && up[1] >= 0 && free(up)) mode = "up";
-      else if (text && down[3] <= cam.H + 10 && free(down)) mode = "down";
-      // a face goes over the cat's head; a queen's steps beside her head if a cat's face is there
-      let [ix, iy] = [sx, sy];
-      if (mode !== "icon") taken.push(mode === "up" ? up : down);
-      else {
-        const at = [[sx, sy], ...(sidestep ? [[sx + 30, sy + 24], [sx - 30, sy + 24]] : [])].find(([x, y]) => free([x - 16, y - 36, x + 16, y]));
-        if (!at) return;
-        [ix, iy] = at;
-        taken.push([ix - 16, iy - 36, ix + 16, iy]);
-      }
-      const below = mode === "down", asText = mode !== "icon";
-      const b = el("button", "bub " + kind + (asText ? "" : " icon") + (below ? " below" : ""));
-      b.type = "button";
-      b.tabIndex = -1;   // the map is one Tab stop: the cat itself is reachable, so its bubble isn't another stop
-      b.setAttribute("aria-label", aria);
-      if (asText) { const hd = el("b"); hd.append(el("span", "face face-ico"), document.createTextNode(title)); b.append(hd, el("span", "t", body)); }
-      else b.appendChild(el("span", "face face-ico"));
-      Object.assign(b.style, { left: (asText ? clampX : ix) + "px", top: (below ? feetY : asText ? sy - 10 : iy - 4) + "px" });
-      b.addEventListener("click", act);
-      hoverable(b, hoverKind, hoverKey);
-      ov.appendChild(b);
-    }
-    for (const p of VIEW.placed) {
-      const m = MOODS[p.cat.mood];
-      if (!m.needs || levelOf(p.room) !== S.floor) continue;
-      if (S.focus && p.room !== S.focus) continue;
-      bubble(p, m.kind, p.cat.name, p.cat.ask,
-        () => toggleMenu("cat", p.cat.id, anchorOf("cat", p.cat.id)), "cat", p.cat.id,
-        p.cat.name + ": " + m.short + ". " + p.cat.ask);
-    }
-    // the queens hand you what they are keeping, without your having to ask
-    for (const k of ORDER) {
-      const p = VIEW.queens[k];
-      if (!p || !p.queen.pinned.length || levelOf(k) !== S.floor) continue;
-      if (S.focus && p.room !== S.focus) continue;
-      const q = p.queen;
-      bubble(p, "queenb", q.name, q.pinned[0].text,
-        () => toggleMenu("queen", k, anchorOf("queen", k)), "queen", k,
-        q.name + ", queen of the " + roomInfo(k).name + ", is keeping: " + q.pinned[0].text, true);
-    }
   }
 
   /* ---------- status line ---------- */
@@ -2843,7 +2757,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
   $("stage").addEventListener("pointerdown", (e) => {
     swallowClick = false;
-    if (e.target.closest("#menu, .bub, .tag.files")) return;
+    if (e.target.closest("#menu, .tag.files")) return;
     PTR.set(e.pointerId, [e.clientX, e.clientY]);
     if (PTR.size === 2) {   // a second finger: pinch
       const [a, b] = [...PTR.values()];
@@ -2974,7 +2888,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   $("stage").addEventListener("click", (e) => {
     const path = (e.composedPath && e.composedPath()) || [e.target];
     const chrome = path.some((n) => n && n.nodeType === 1 &&
-      (n === $("menu") || (n.matches && n.matches(".cat, .roomhit, .cabinet, .bub, .tag, .stairs"))));
+      (n === $("menu") || (n.matches && n.matches(".cat, .roomhit, .cabinet, .tag, .stairs"))));
     if (!chrome) hideMenu();
   });
   // Escape closes the menu; with none open, it goes back out to the whole house. Page Up and Page Down change

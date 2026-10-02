@@ -405,15 +405,23 @@ def main():
     atl["lic"].save(OUT / "licensed" / "furniture.png")
     sheet.crop((16, 16, 128, 48)).save(OUT / "licensed" / "meadow.png")
     cats = zipfile.ZipFile(cats_zip)
-    for suffix, name in [("MochiFree/Idle.png", "mochi-idle.png"), ("MochiFree/Box3.png", "mochi-box.png"),
-                         ("PochiFree/FreeSprites.png", "pochi.png")]:
+    for suffix, name in [("MochiFree/Idle.png", "mochi-idle.png"), ("MochiFree/Box3.png", "mochi-box.png")]:
         member(cats, suffix).save(OUT / "licensed" / name)
+    unz(member(cats, "PochiFree/FreeSprites.png")).save(OUT / "licensed" / "pochi.png")
     sprout(sprout_zip)
     pastel(pastel_zip, sprout_zip)
     map_panel(pastel_zip)
     cat_ui(cats_zip)
     furniture.write_page(OUT.parent / "index.html")
     print("art written to", OUT, "and the page's MANOR block updated")
+
+
+def unz(sheet):
+    """Pochi asleep without its "z Z": nothing is drawn over a cat (her call, 2 October 2026). In the sleep row
+    (y 128-191) every 64 px frame has the Z's in rows 0-26, and the cat itself starts at row 29."""
+    sheet = sheet.convert("RGBA")
+    sheet.paste((0, 0, 0, 0), (0, 128, sheet.width, 128 + 27))
+    return sheet
 
 
 if __name__ == "__main__":

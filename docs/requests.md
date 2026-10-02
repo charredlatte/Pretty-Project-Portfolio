@@ -159,6 +159,16 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 - **No Claude co-author or session links** in commits on her public repos or forks (1 October, from another
   session; the rule is on `claude/cool-cannon-wh25u6`).
 
+## Nothing on the cats (2 October)
+
+- **"I don't like the letters over the cats. Remove all icons on top of the moving cats. Only show menus on
+  hover."** Asked, she chose: hovering a cat shows what it needs, a click still opens its menu, and "remove
+  everything. The crowns, the letters etc." So no model letters, file counts, faces, bubbles, pile numbers,
+  crowns or "z Z" on the map.
+- **"I hate the cat food."** The bowls and the food bag are gone from the kitchen, and the bowls from the catio.
+- **Her local copy lives in Google Drive**, My Drive › Claude › KittyChat Cafe (local copy): "my google drive,
+  which is where I tell you to save everything".
+
 ## Still waiting on her
 
 The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.
