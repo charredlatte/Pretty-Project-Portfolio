@@ -8,6 +8,7 @@ import RUNTIME from "../cafe/runtime.js";
 import { esc, page } from "./signin.js";
 import { randomToken, sha256 } from "./secret.js";
 import { registry } from "./registry.js";
+import { fileHouse } from "./houses.js";
 
 const COOKIE = "__Host-catio";
 const STAY = 30 * 24 * 3600 * 1000;   // a signed-in browser stays signed in a month
@@ -19,6 +20,8 @@ const ART_TYPES = { png: "image/png", ttf: "font/ttf" };
 
 const json = (body, status = 200) => Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
 const refuse = (status, code, error) => json({ code, error }, status);
+/** The request's JSON object, or {} when it isn't one. */
+const bodyOf = async (request) => { const b = await request.json().catch(() => null); return b && typeof b === "object" && !Array.isArray(b) ? b : {}; };
 
 function cookieOf(request) {
 	for (const part of (request.headers.get("Cookie") || "").split(";")) {
@@ -106,7 +109,7 @@ export async function cafe(request, env) {
 	const url = new URL(request.url), path = url.pathname, method = request.method;
 
 	// with an agents' key only: the licensed art and accounts (an admin's), and a user's café data, moved in once
-	if (path === "/api/import" || path === "/api/users" || path.startsWith("/api/art/")) {
+	if (path === "/api/import" || path.startsWith("/api/users") || path.startsWith("/api/art/")) {
 		const by = await agentKey(request, env);
 		if (!by) return refuse(401, "unauthorized", "An agents' key is needed.");
 		return (await withKey(path, method, request, env, by)) || refuse(404, "not_found", "Not here.");
@@ -130,15 +133,16 @@ export async function cafe(request, env) {
 		if (!value) return new Response("Not found\n", { status: 404 });
 		return new Response(value, { headers: { "Content-Type": (metadata && metadata.type) || "application/octet-stream", "Cache-Control": "private, max-age=86400", "X-Content-Type-Options": "nosniff" } });
 	}
-	// a brain file belongs to a house (one kept before accounts belongs to the first)
+	// a brain file belongs to a house
 	if (path.startsWith("/files/") && method === "GET") {
 		const { value, metadata } = await env.FILES.getWithMetadata("file:" + path.slice("/files/".length), "arrayBuffer");
-		if (!value || ((metadata && metadata.house) || "house") !== user.house) return new Response("Not found\n", { status: 404 });
+		if (!value || fileHouse(metadata) !== user.house) return new Response("Not found\n", { status: 404 });
 		const type = (metadata && metadata.type) || "";
 		return served(value, type, metadata && metadata.name, /^(image\/(png|jpeg|gif|webp)|text\/plain|application\/pdf)/.test(type));
 	}
 	const house = houseOf(env, user);
 	if (method === "GET" && path === "/api/db") return json({ docs: await house.docs() });
+	if (method === "GET" && path === "/api/keys") return json({ keys: await (await registry(env)).keys(user.id) });
 
 	if (!fromCafe(request)) return refuse(403, "forbidden", "Only the café's own page writes here.");
 	if (path.startsWith("/api/db/")) {
@@ -164,18 +168,20 @@ export async function cafe(request, env) {
 	}
 	if (path.startsWith("/api/files/") && method === "DELETE") {
 		const id = path.slice("/api/files/".length);
-		const { metadata } = await env.FILES.getWithMetadata("file:" + id, "stream");
-		if (metadata && (metadata.house || "house") === user.house) await env.FILES.delete("file:" + id);
+		const { value, metadata } = await env.FILES.getWithMetadata("file:" + id, "stream");
+		if (value) await value.cancel();
+		if (metadata && fileHouse(metadata) === user.house) await env.FILES.delete("file:" + id);
 		return json({ deleted: true });
 	}
-	// a key for this user's agents and sessions, shown once: the registry keeps only its hash
-	if (path === "/api/keys" && method === "POST") {
-		const { name } = await request.json().catch(() => ({}));
-		return json({ key: await (await registry(env)).mintKey(user.id, name), name: String(name || "key").slice(0, 60) });
+	// keys for this user's agents and sessions: minted (shown once; the registry keeps only the hash) and dropped
+	if (path === "/api/keys" && method === "POST") return json(await (await registry(env)).mintKey(user.id, (await bodyOf(request)).name));
+	if (path.startsWith("/api/keys/") && method === "DELETE") {
+		const gone = await (await registry(env)).dropKey(user.id, decodeURIComponent(path.slice("/api/keys/".length)));
+		return gone ? json({ ok: true }) : refuse(404, "not_found", "No key by that name.");
 	}
 	// the gateway's tools, as the owner uses them through their connector: as "charlotte", the house's owner
 	if (path.startsWith("/api/tools/") && method === "POST") {
-		const r = await house.call(path.slice("/api/tools/".length), await request.json().catch(() => ({})), "charlotte");
+		const r = await house.call(path.slice("/api/tools/".length), await bodyOf(request), "charlotte");
 		if (r.unknown) return refuse(404, "not_found", "No such tool.");
 		if (r.error) return refuse(400, "tool_error", r.error);
 		return json(r.ok);
@@ -195,20 +201,26 @@ async function withKey(path, method, request, env, by) {
 		return json({ ok: true, path: key });
 	}
 	if (path === "/api/import" && method === "POST") {
-		const { docs } = await request.json().catch(() => ({}));
+		const { docs } = await bodyOf(request);
 		if (!docs || typeof docs !== "object" || Object.keys(docs).some((p) => !DOC_PATH.test(p) || p.split("/").length % 2)) {
 			return refuse(400, "bad_request", "docs is {path: data}, with document paths.");
 		}
 		if (!(await houseOf(env, by).importDocs(docs))) return refuse(409, "not_empty", "The café already has its data: an import happens once.");
 		return json({ ok: true, count: Object.keys(docs).length });
 	}
-	// an account, made by an admin: the invite-only sign-up until there is a form
+	// accounts, made and reset by an admin: the invite-only sign-up until there is a form
 	if (path === "/api/users" && method === "POST") {
 		if (!by.admin) return refuse(403, "forbidden", "Only an admin creates accounts.");
-		const { id, password } = await request.json().catch(() => ({}));
+		const { id, password } = await bodyOf(request);
 		const made = await (await registry(env)).createUser(id, password);
 		if (made.error) return refuse(400, "bad_request", made.error);
 		return json({ id: made.user.id, house: made.user.house }, 201);
+	}
+	if (path.startsWith("/api/users/") && method === "PUT") {
+		if (!by.admin) return refuse(403, "forbidden", "Only an admin resets a password.");
+		const { password } = await bodyOf(request);
+		const r = await (await registry(env)).setPassword(decodeURIComponent(path.slice("/api/users/".length)), password);
+		return r.error ? refuse(400, "bad_request", r.error) : json(r);
 	}
 	return null;
 }

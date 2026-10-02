@@ -1,5 +1,5 @@
-// Secrets: comparing a presented key with one we hold without leaking how much of it matched, and the password
-// hash. Everything here is Web Crypto, built into Workers.
+// Secrets: hashes for keys and cookies, the password hash, and comparing two hashes without leaking how much of
+// them matched. Everything here is Web Crypto, built into Workers.
 const enc = new TextEncoder();
 
 export const MIN_SECRET = 16;
@@ -11,12 +11,6 @@ export const sha256 = async (s) => hex(await crypto.subtle.digest("SHA-256", enc
 
 /** 32 random bytes, as hex: an agent's key, a browser's cookie, a password's salt. */
 export const randomToken = () => hex(crypto.getRandomValues(new Uint8Array(32)));
-
-export async function sameSecret(given, secret) {
-	if (!given || !secret || secret.length < MIN_SECRET) return false;
-	const [a, b] = await Promise.all([given, secret].map((s) => crypto.subtle.digest("SHA-256", enc.encode(s))));
-	return crypto.subtle.timingSafeEqual(a, b);
-}
 
 /** Two hex digests of the same length, compared in constant time. */
 export const sameHash = (a, b) => a.length === b.length && crypto.subtle.timingSafeEqual(enc.encode(a), enc.encode(b));

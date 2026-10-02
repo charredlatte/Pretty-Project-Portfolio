@@ -44,8 +44,10 @@ it is the admin, which uploads the café's art and creates the other accounts.
      password manager and nowhere else.
 
    Never paste either into a chat. On the first request they become the account `charlotte` (admin, house
-   `house`) and its key `bootstrap`; after that the registry is what counts, and the two secrets may be deleted
-   once she has minted a key of her own (below). Changing them later changes nothing.
+   `house`; another gateway names its first account with a `CATIO_HANDLE` variable) and its key `bootstrap`.
+   After that the registry is what counts: changing the secrets changes nothing, and they may be deleted once
+   she has minted a key of her own and dropped `bootstrap` (below). A deploy that brings accounts signs every
+   browser out of the café once: sign in again with the handle.
 3. **Claude's environments.** In a cloud session, open the environment menu in the session's title bar → Edit. In
    each environment her sessions use:
    - add two environment variables, `CATIO_URL` = the address above and `CATIO_TOKEN` = the agents' key;
@@ -71,12 +73,19 @@ variables and the plugin, it is in `list_agents`.
   (`curl -H "Authorization: Bearer $CATIO_TOKEN" -H "Content-Type: application/json" -d '{"id":"…","password":"…"}'
   <address>/api/users`). A handle is 2 to 31 lower-case letters, digits or dashes. The account gets a house named
   after it, and signs in to the café and the connector with that handle and password. There is no sign-up form yet.
-- **A key:** from a signed-in café, `POST /api/keys` with `{"name": "laptop"}` (the page sends `X-Catio: 1`);
-  the key is in the answer once, and the registry keeps only its hash. It goes in `CATIO_TOKEN` wherever that
-  user's sessions and agents run.
+- **A key:** from a signed-in café, `POST /api/keys` with `{"name": "laptop"}` (the page sends `X-Catio: 1`;
+  until it has a button, the browser's console does: `fetch("/api/keys", {method: "POST", headers: {"X-Catio": "1",
+  "Content-Type": "application/json"}, body: JSON.stringify({name: "laptop"})}).then(r => r.json()).then(console.log)`).
+  The key is in the answer once, and the registry keeps only its hash. It goes in `CATIO_TOKEN` wherever that
+  user's sessions and agents run. `GET /api/keys` lists them by name, `DELETE /api/keys/<name>` kills one: a
+  leaked key is dropped that way, the `bootstrap` key included.
+- **A forgotten password:** an admin resets it with `PUT /api/users/<handle>` and `{"password": "…"}`, which
+  signs that user's browsers out. The handle `house` is kept: it names the first house.
+- **Guessing:** five wrong passwords lock that handle for a quarter of an hour, and an impossible handle costs
+  no hash. Against a flood of handles, a rate-limiting rule on `/login` and `/authorize` in Cloudflare (Security →
+  WAF, one rule on the free plan) is the gateway's to add.
 - **One house each:** cats, conversations, files and the café's documents are the house's; the licensed art is
-  shared, uploaded by an admin. Five wrong passwords lock that user's sign-in for a quarter of an hour, nobody
-  else's.
+  shared, uploaded by an admin.
 - **The art's licences are personal.** The packs the café is drawn with allow personal use and no redistribution,
   so a café served to other people needs their own packs, or none (the page draws plain panels without them).
 

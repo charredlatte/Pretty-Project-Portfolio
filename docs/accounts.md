@@ -61,10 +61,16 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
 - Every token resolves to a user: the OAuth grant carries `{user, house, owner, admin}`, a bearer key is looked up
   by its hash, a café cookie too. A grant made before accounts carries only `{user: "charlotte"}` and still
   opens her house.
-- The first account is bootstrapped from `CATIO_PASSWORD` and `CATIO_TOKEN` into `charlotte`, house `house`,
-  admin, key `bootstrap`: nothing of hers moves and nothing stops working on deploy.
-- Accounts are made by an admin (`POST /api/users`); a signed-in café mints keys (`POST /api/keys`). Self sign-up
-  is phase 2.
+- The first account is bootstrapped from `CATIO_PASSWORD` and `CATIO_TOKEN` into `charlotte` (or `CATIO_HANDLE`),
+  house `house`, admin, key `bootstrap`: nothing of hers moves; her connector and her hook keep working. The one
+  thing the deploy does is sign her browsers out of the café, since cookies moved to the registry: she signs in
+  again with the handle. The bootstrap fills in what is missing on each new isolate, so a secret set later still
+  counts after a deploy.
+- Accounts are made by an admin (`POST /api/users`), who can also reset a password (`PUT /api/users/<id>`); a
+  signed-in café mints, lists and drops keys (`/api/keys`). The handle `house` is kept. Self sign-up, and a button
+  for keys in the page, are phase 2.
+- `src/houses.js` is what every part agrees on: the first house's name, whose a token is, whose a file is; it is
+  plain JavaScript, so `test/houses.test.mjs` checks the two upgrade paths outside workerd.
 - On the wire the owner is still `charlotte` (the notes' `author`, "Charlotte only" in the tools): shared with
   the page and `catio_mcp.py`, so renaming it to `owner` everywhere is its own change.
 - Brain files carry their house in KV metadata; a file kept before accounts belongs to the first house.
