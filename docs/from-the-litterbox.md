@@ -32,6 +32,23 @@ from. Edit them freely: the sorter only adds, and never files a note that is alr
 - **`claude/catio-gateway-plan`** is the next job's plan. Before landing it, update step 1 for the server's
   localhost-only API. *— litterbox/2026-10-01-branches-cafe.md*
 
+### 2 October 2026: issue #24's round, sifted
+
+- **Four sessions still wait on questions that are settled.** Each can be archived from its cat:
+  - the attribution rule's session, which asks about PR #18 (merged);
+  - the compress-compile-sort audit, which asks about PR #9 (merged) and which branches to merge (the list is in
+    `docs/plan.md`);
+  - the MCP integration plan, which waits for a go-ahead on `claude/catio-gateway-plan` (the gateway replaced
+    it);
+  - the manor retexture, which asks which UI bug to fix next (29 September). *— litterbox/2026-10-02-issue-24-report.md*
+
+- **Her "yes" to letting the adopted chat go was marked delivered, but nothing happened.** The adopted chat still
+  points to the same conversation as a session, so it shows as two cats. Her answer stands: Claude deletes the
+  adopted chat's `cats` document once she confirms. *— litterbox/2026-10-02-issue-24-report.md*
+
+- **"Which comes first" in `docs/plan.md`'s list is settled.** Issue #24 chose the page reading the gateway, and
+  version 21 did it. By the plan's order, phase 2 (the camera) is next. *— litterbox/2026-10-02-issue-24-report.md*
+
 ## Ideas not built
 
 ### What's missing: art and sound for the Catio
@@ -278,6 +295,41 @@ These aren't art to get, but they're open questions on what you already have: *�
 - Little Dreamyland is by **Starmixu & Utaskuas**. Its licence: modifying allowed, non-commercial only, no
   redistribution or resale even modified, and no NFTs or AI training. Credit: "Assets from Little Dreamyland by
   Starmixu & Utaskuas." *— litterbox/loose-ends.md*
+
+### 2 October 2026: issue #24's round, sifted
+
+- **A session can check the gateway without asking her:**
+  - the Cloudflare connector's `workers_list` shows `catio-gateway`;
+  - `ListConnectors` shows `CATIO`;
+  - in a session that has the connector, the `CATIO` tools answer, `list_agents` included. *— litterbox/2026-10-02-issue-24-report.md*
+
+- **Sifting sessions:** `list_events` with `kinds: ["result"]` returns each turn's closing message without the
+  tool calls. A session's post-turn summary, in `list_sessions`'s `external_metadata`, gives its current ask in
+  a line. *— litterbox/2026-10-02-issue-24-report.md*
+
+- **Check `main` again before filing.** On 2 October, the gateway was set up and version 21 was written between
+  the round's diagnosis (14:45 UTC) and its sift (19:50 UTC). Half of the round's report had gone stale. *— litterbox/2026-10-02-issue-24-report.md*
+
+### 28 September 2026: the chat that built the first Catio
+
+- **The Catio artifact's wake subscription never registered** for the session that built it (`mint_failed`).
+  A session can't count on being woken by her comments or edits on the page: read the page's database with
+  `ArtifactData`, or ask her. *— litterbox/2026-10-02-catio-first-build.md*
+
+- **A full `list_sessions` is too big to read inline**: about 83,000 characters for 46 sessions, 115,000 for 50. The tool
+  saves it to a tool-results file, with the list under its `ccr` key; pass that object to
+  `catio/tools/save-sessions.py` to refresh the Catio's saved copy. *— litterbox/2026-10-02-catio-first-build.md*
+
+- **Testing the Catio's menus in Playwright:**
+  - A menu laid over its target steals the hover, so menus open beside what they belong to, and a test
+    points at a clear patch of floor (found with `elementFromPoint`).
+  - The first Escape only closes a menu; zooming out takes a second one.
+  - A tap focuses the cat, so focus may open a menu only when `:focus-visible`. Otherwise the tap's click
+    lands on the stage and closes the menu. *— litterbox/2026-10-02-catio-first-build.md*
+
+- **The Catio's localhost copy goes in her Google Drive**, in My Drive › Claude › KittyChat Cafe (local copy),
+  not on her USB stick: it was never on the stick. The Drive connector can't upload a zip that size, so Claude
+  sends `catio-local.zip` in the chat and she saves it in that folder. *— litterbox/2026-10-02-catio-first-build.md*
 
 ## Findings
 
@@ -701,3 +753,39 @@ switch. Seven new e2e checks glide the mouse in small steps. Tested by moving th
 
 - Nothing tells a session to drop its leftovers in the box, and a session in another repo reaches the box only
   when the café is checked out beside it. *— litterbox/2026-10-01-litter-box-chat.md*
+
+### 2 October 2026: issue #24's round, sifted
+
+- **The gateway's ponytail audit (2 October, before the café moved onto the gateway): lean.** Three small cuts,
+  still there on `main` at 19:50 UTC:
+  - `House.call` checks the tool name a second time, after `mcp.js` already has, and nothing reads its
+    `unknown`;
+  - the files table's `picked_by` is written and never read;
+  - `package.json`'s `dev` and `deploy` scripts are never run.
+
+  A fourth cut, moving `secret.js` into `signin.js`, no longer applies, because `cafe.js` uses it too.
+
+  Kept on purpose:
+  - one OAuth provider per address, because the library needs an absolute resource URI;
+  - `wake`, `woke` and `waiting`, so the tools match `catio_mcp.py`;
+  - the JSON-RPC batch, so the Stop hook reports and collects in one request.
+
+  Not audited: `src/cafe.js` and `cafe/`, which came later. The summary is in the Catio, at
+  `audits/pretty-project-portfolio`. *— litterbox/2026-10-02-issue-24-report.md*
+
+- **One session can be in the gateway twice**, as `cse_…` and as `session_…`. Both were in `list_agents` at
+  19:50 UTC: the `cse_…` one from the hook, with a link, and the `session_…` one with a title and no link.
+  - The café's `allCats()` keys the gateway's cats by the id after its prefix. The gateway lists the newest
+    first, so the older record wins: its mood and `agentId` go on the session's cat, and the other record shows
+    as a second cat.
+  - If the kept record is `session_…`, what she sends goes to an inbox the Stop hook never collects, because the
+    hook asks for `cse_…`.
+  - This was read from the code, not seen on the page.
+  - Fix: let one record per session through, the newest, or have the gateway merge the two. *— litterbox/2026-10-02-issue-24-report.md*
+
+- **Short-lived `cli-…` cats.** At 19:50 UTC, 10 of the gateway's 16 cats were `cli-…` ids on `main`.
+  - Each started and finished within a second, in bursts, one per repo, at the moments cloud sessions started.
+  - Something in a starting cloud session runs Claude Code briefly in each repo, without a claude.ai session id,
+    and `report.py` reports it. The setup script's plugin install is the first suspect. This is not confirmed.
+  - The café shows them as finished cats.
+  - Fix: `report.py` skips a run that never had a prompt, or the café hides `cli-` cats that never had one. *— litterbox/2026-10-02-issue-24-report.md*

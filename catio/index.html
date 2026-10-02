@@ -421,6 +421,29 @@ ul.thread li { padding: 0 4px; font-size: .88rem; overflow-wrap: anywhere; white
 ul.thread li.them { background-color: #DCE0D2; border-image-source: url(art/licensed/ui/bubble.png); border-image-slice: 5 5 6 5 fill; border-width: 5px 5px 6px; margin-right: 24px; }
 ul.thread li.me { margin-left: 24px; }
 ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-soft); }
+/* the queen's card: her dialogue, like an NPC's */
+.dlg.queen .talk { display: grid; gap: 8px; }
+.dlg.queen .talk .row > .field { flex: 1 1 200px; }
+#queenThread { max-height: 40vh; overflow: auto; }
+ul.thread li.greet { font-style: italic; }
+ul.thread li.live::after { content: "▌"; margin-left: 2px; animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+ul.thread li.handoff .open { margin-left: 6px; vertical-align: middle; }
+ul.thread li.handoff.new .who::after { content: " · new"; color: var(--ink); }
+.btn.voice { display: inline-flex; align-items: center; gap: 8px; width: max-content; }
+/* her homework: a quiz a blocked cat, answered by tapping */
+.homework { display: grid; gap: 8px; }
+.homework .quiz { display: grid; gap: 6px; padding: 4px 6px 6px; background: #DCE0D2 padding-box; border: 5px solid transparent; border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / 5px 5px 6px stretch; }
+.homework .quiz h3 { margin: 0; font: 18px/22px var(--pixel); }
+.homework .quiz fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 4px; }
+.homework .quiz legend { padding: 0; font-weight: 700; font-size: .9rem; }
+.homework .quiz .opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.homework .quiz .actions { margin-top: 2px; }
+.days { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: .9rem; }
+.days label { display: inline-flex; align-items: center; gap: 3px; }
+.days input, .field input[type="range"] { accent-color: #93B259; }
+.field input[type="range"] { border: 0; border-image: none; padding: 0; }
+.routines > * + * { margin-top: 8px; }
 .rules li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: start; }
 .rules .t { font-size: .85rem; color: var(--ink-soft); grid-column: 1; }
 .rules .lock { font: 800 .72rem var(--body); color: var(--ink-soft); display: inline-flex; align-items: center; gap: 2px; }
@@ -507,6 +530,10 @@ ul.gkey li > div.what { flex-basis: 100%; }
   "use strict";
   const SERVER = "Claude Code Remote";
   const GATEWAY = "CATIO";     // the Catio's gateway (harness/gateway): her connector in claude.ai, where every session reports
+  // Served from the gateway's own address (harness/gateway/cafe/runtime.js) instead of claude.ai: the sessions come
+  // from the gateway, and what only claude.ai can do (archive, pause, retitle, start a session, post into one that
+  // doesn't report) says so instead of pretending.
+  const VIA_GATEWAY = !!(window.claude && window.claude.catioGateway);
   const HOST = "host:catio";   // the Catio MCP server on her own computer (harness/mcp/catio_mcp.py), in the Claude app
   const PAGE = 50;          // sessions per fetch
   const MAX_FILE = 20 * 1024 * 1024;   // the artifact's asset cap
@@ -596,10 +623,15 @@ ul.gkey li > div.what { flex-basis: 100%; }
   const NAMES = ["Praline", "Noisette", "Biscotte", "Caramel", "Figue", "Brioche", "Madeleine", "Pistache", "Tartine", "Chouquette",
     "Galette", "Canelé", "Miso", "Yuzu", "Sésame", "Cannelle", "Muscade", "Olive", "Prune", "Myrtille", "Cerise", "Guimauve",
     "Nougat", "Réglisse", "Clafoutis", "Crumble", "Macaron", "Mirabelle", "Pomme", "Gaufre", "Tofu", "Matcha"];
-  // Every room has one queen: she is not a session, she never leaves, and she keeps what matters
-  // in that room. Older, statelier names than the working cats'.
+  // The house has one queen: she is not a session, she never leaves, she keeps what matters, and she is the
+  // one you talk to (her runner, harness/runner, is her brain). An older, statelier name than the working cats'.
   const QUEEN_NAMES = ["Mémé", "Duchesse", "Joséphine", "Colette", "Berthe", "Augustine", "Odette",
     "Simone", "Marguerite", "Hortense", "Célestine", "Philomène"];
+  const QUEEN_ROOM = "hall";   // her seat: the pink armchair in the entrance hall
+  const QUEEN_ID = "queen";    // her cat on the gateway: her conversation with you, and her runner's presence
+  const MANNER = "Elizabethan English, warm and a touch grand: \"my lady\", \"prithee\", \"'tis\", \"mayhap\", \"anon\". The news first, plain enough to act on; the flourish after.";
+  const GREETING = "Good morrow, my lady. What wouldst thou have of me?";
+  const LISTEN = [["en-GB", "English (UK)"], ["en-US", "English (US)"], ["fr-FR", "Français"]];   // what she listens for
   const NOTE_MAX = 160;     // one line she can hold in her head
   const NOTES_MAX = 12;     // more than this and nothing is important any more
 
@@ -619,6 +651,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
     sessions: null, sessionsAt: null, live: { state: "loading" },
     liveSessions: null, liveAt: null, copy: null, from: null,   // the live feed, and Claude's saved copy for when it's blocked
     rooms: {}, house: {}, tweaks: {}, adopted: [], projects: {}, queens: {},   // house: house/main, the café's own name
+    rooms: {}, tweaks: {}, adopted: [], projects: {}, queens: {}, routines: {},
+    queenNotes: null, queenTurn: null, saidAt: null, quizzes: [],   // the queen's conversation, her answer as she speaks it, when each cat last spoke (for the handoffs), her homework
     brain: [], notes: [], rules: {}, audits: {}, graphs: {}, outbox: [], agents: [],   // the harness: dropped files, conversations, house rules, audits, project maps, queued posts, other agents
     assets: null, sample: null, host: null, hostAt: null, hostNote: null, agentNotes: {},   // host: the agents' server (GATEWAY, HOST or "api"), last answering at hostAt; hostNote: what she can fix about it; agentNotes: what cats said there
     focus: null, cursor: null, cam: null, sound: false, showOld: false, prevNeeding: null, art: "checking",
@@ -688,7 +722,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       id: "agent:" + a.id, agentId: a.id, kind: "agent", mood,
       title: a.title || a.name || a.id, ask: MOODS[mood].needs ? (a.ask || "Waiting for you.") : "",
       doing: a.title || "", repo: a.repo || "", branch: a.branch || "", origin: code ? "a Claude Code session" : (a.provider || "another maker") + "'s agent",
-      model: a.model || "", provider: a.provider || "", wakes: !!a.wakes,
+      model: a.model || "", provider: a.provider || "", wakes: !!a.wakes, said: a.said || null,
       updated: a.updated || 0, link: code && a.session ? sessionLink(a.session) : a.link || "", room: a.room || "", nameOverride: a.name || "", projectName: a.project || "",
     };
   }
@@ -702,6 +736,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     c.agentId = a.id;
     c.nameOverride = a.name || "";
     c.room = a.room || "";
+    c.said = a.said || null;   // what it last said: what it brings the queen
     if (c.archived || (a.updated || 0) <= c.updated) return;
     c.mood = AGENT_MOODS[a.mood] || c.mood;
     c.ask = !MOODS[c.mood].needs ? "" : a.ask || (c.mood === "cry" ? "The last turn stopped with an error." : c.mood === "box" ? "Ready for you to look over." : "Waiting for you.");
@@ -724,32 +759,54 @@ ul.gkey li > div.what { flex-basis: 100%; }
     return { coat: COATS[d.coat] ? d.coat : hash(p.key) % COATS.length };
   }
 
-  // The queen of a room. Not a session and not adopted: she is always there, she is never counted
-  // among the cats that need you, and what she keeps is the point of her.
-  function queenOf(k) {
-    const d = S.queens[k] || {};
-    const notes = (Array.isArray(d.notes) ? d.notes : []).filter((n) => n && n.text);
+  // The queen of the house. Not a session and not adopted: she is always there, she is never counted among the
+  // cats that need you, and she is the one you talk to. Her character and what she keeps are queens/house; what
+  // the room queens of before kept is hers too, until she is saved, when it moves into her document.
+  // Her seat is the hall's; when that room is closed (onboarding), she sits where new cats come in.
+  const queenRoom = () => (GEOM[QUEEN_ROOM] && GEOM[QUEEN_ROOM].queen && !(typeof roomOpen === "function" && !roomOpen(QUEEN_ROOM)) ? QUEEN_ROOM : catchAllRoom());
+  function queenOf() {
+    const h = S.queens.house || {};
+    const rooms = ORDER.filter((k) => S.queens[k]);
+    const own = (Array.isArray(h.notes) ? h.notes : []).filter((n) => n && n.text);
+    const kept = rooms.flatMap((k) => (Array.isArray(S.queens[k].notes) ? S.queens[k].notes : []).filter((n) => n && n.text).map((n) => Object.assign({}, n, { room: k })));
+    const notes = own.concat(kept).sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.at || 0) - (a.at || 0));
+    const coat = Number.isInteger(h.coat) && COATS[h.coat] ? h.coat : hash("queen:house") % COATS.length;
     return {
-      key: k,
-      name: d.name || QUEEN_NAMES[hash("queen:" + k) % QUEEN_NAMES.length],
-      notes: notes.slice().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.at || 0) - (a.at || 0)),
-      pinned: notes.filter((n) => n.pinned),
-      coat: COATS[hash("queen:" + k) % COATS.length].f,
+      key: "house",
+      name: h.name || rooms.map((k) => S.queens[k].name).find(Boolean) || QUEEN_NAMES[hash("queen:house") % QUEEN_NAMES.length],
+      notes, pinned: notes.filter((n) => n.pinned), coat: COATS[coat].f, coatIdx: coat,
+      manner: h.manner || MANNER, greeting: h.greeting || GREETING,
+      voice: Object.assign({ on: false, name: "", rate: 1, pitch: 1, lang: "en-GB" }, h.voice || {}),
+      readAt: h.readAt || 0, leftovers: rooms,
     };
   }
-  // She sits up when the room needs you, and speaks up when she is holding something for you.
-  function queenMood(q, here) {
-    if (q.pinned.length) return "meow";
-    return here.some((c) => MOODS[c.mood].needs) ? "idle" : "sleep";
+  // Her runner is her brain: away (none for two minutes), busy (answering) or here.
+  function queenState() {
+    const a = S.agents.find((x) => x.id === QUEEN_ID);
+    if (!a || Date.now() - (a.updated || 0) > 2 * 60e3) return "away";
+    return a.mood === "busy" ? "busy" : "here";
   }
-  // The one line she gives you about her room, without your having to open anything.
-  function queenLine(q, here) {
-    if (q.pinned.length) return q.pinned[0].text;
-    const need = here.filter((c) => MOODS[c.mood].needs);
-    if (need.length === 1) return need[0].name + " needs you: " + (need[0].ask || need[0].title);
-    if (need.length) return need.length + " cats need you in here.";
-    if (here.length) return "All quiet \u2014 " + here.length + (here.length === 1 ? " cat" : " cats") + ", none needing you.";
-    return "Nothing in this room just now.";
+  // What the cats brought her that you haven't read: each cat's latest word, newer than when you last opened her card.
+  const unreadHandoffs = (q) => S.agents.filter((a) => a.id !== QUEEN_ID && a.said && (a.said.at || 0) > q.readAt).length;
+  // The homework she set you and you haven't handed in: a quiz per blocked cat (quizzes, from the gateway).
+  const openQuizzes = () => (S.quizzes || []).filter((z) => z && z.status !== "done");
+  // Asleep while her runner is away; sitting up with something for you; speaking up when she is saying a note.
+  function queenMood(q) {
+    const st = q.state || queenState();
+    if (st === "away") return "sleep";
+    if (st === "busy") return "idle";
+    if (q.homework || q.unread) return "box";
+    return q.pinned.length ? "meow" : "idle";
+  }
+  // The one line she gives you without your having to open anything.
+  function queenLine(q) {
+    const st = q.state || queenState();
+    if (q.pinned.length && st !== "busy") return q.pinned[0].text;
+    if (st === "away") return "Away: start her runner on your PC to talk to her.";
+    if (st === "busy") return "Answering\u2026";
+    if (q.homework) return "Homework: " + q.homework + (q.homework === 1 ? " quiz" : " quizzes") + " to hand in.";
+    if (q.unread) return "Holding " + q.unread + (q.unread === 1 ? " thing" : " things") + " for you.";
+    return "Here. Talk to her.";
   }
 
   function roomInfo(key) {
@@ -797,7 +854,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       cats.push(c);
     }
     for (const d of S.adopted) cats.push(catFromAdopted(d));
-    for (const a of S.agents) if (!a.archived && !joined.has(a.id)) cats.push(catFromAgent(a));
+    for (const a of S.agents) if (!a.archived && !joined.has(a.id) && a.id !== QUEEN_ID) cats.push(catFromAgent(a));   // the queen is not work to be done
     for (const c of cats) {
       const t = S.tweaks[c.id];
       c.name = (t && t.name) || c.nameOverride || NAMES[hash(c.id) % NAMES.length];
@@ -926,7 +983,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     for (const k of ORDER) {
       const here = cats.filter((c) => c.roomKey === k);
       const st = stationsOf(k), floor = freeFloor(k), taken = [];
-      if (GEOM[k].queen) taken.push(GEOM[k].queen);
+      if (GEOM[k].queen && k === queenRoom()) taken.push(GEOM[k].queen);   // her seat is hers; the other rooms' seats are free floor
       const clear = (p) => !taken.some((t) => Math.abs(t[0] - p[0]) < 22 && Math.abs(t[1] - p[1]) < 14);   // a cat's width apart
       const [rx, ry, rw, rh] = GEOM[k].r, mid = [rx + rw / 2, ry + rh / 2];
       const pile = [];
@@ -944,8 +1001,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
         placeCat(layer, c, spot, k);
       }
       if (pile.length) placePile(layer, pile, taken[taken.length - 1] || mid, k);
-      placeQueen(layer, k, here);
     }
+    placeQueen(layer, queenRoom());
     // a cat that was in the house and is now napping in the attic walks off to it; one that was let go just goes
     for (const [id, w] of WHERE) {
       if (SEEN.has(id)) continue;
@@ -992,16 +1049,26 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const q = queenOf(k);
     q.mood = queenMood(q, here);
     q.line = queenLine(q, here);
+  // The queen, on her seat in room k. Nothing is drawn on her either: hovering her says how she is.
+  function placeQueen(layer, k) {
+    const spot = GEOM[k] && GEOM[k].queen;
+    if (!spot) return;
+    const q = queenOf();
+    q.state = queenState();
+    q.unread = unreadHandoffs(q);
+    q.homework = openQuizzes().length;
+    q.mood = queenMood(q);
+    q.line = queenLine(q);
     const sp = SPR[q.mood];
     const b = el("button", "cat queen m-" + q.mood);
     b.type = "button";
     b.dataset.queen = k; b.dataset.floor = levelOf(k);
     const top = spot[1] * 2 - sp.ay;
     Object.assign(b.style, { left: spot[0] * 2 - sp.ax + "px", top: top + "px", width: sp.w + "px", height: sp.h + "px", zIndex: zOf(k) + 1000 + spot[1] * 2 });
-    b.setAttribute("aria-label", q.name + ", queen of the " + roomInfo(k).name + ". " + q.line);
+    b.setAttribute("aria-label", q.name + ", queen of the house. " + q.line);
     b.appendChild(sprite(q.mood, q.coat));
     b.addEventListener("click", (e) => { e.stopPropagation(); toggleMenu("queen", k, b); });
-    b.addEventListener("dblclick", (e) => { e.stopPropagation(); hideMenu(); openQueen(k); });
+    b.addEventListener("dblclick", (e) => { e.stopPropagation(); hideMenu(); openQueen("talk"); });
     hoverable(b, "queen", k);
     layer.appendChild(b);
     VIEW.queens[k] = q;
@@ -1134,6 +1201,40 @@ ul.gkey li > div.what { flex-basis: 100%; }
     walk(d, end, [w.x, w.y], legs)
       .then(() => d.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" }).finished)
       .finally(() => d.remove());
+  }
+  // a cat with news for the queen: a copy of it walks to her seat (by the stair when she is on the other floor,
+  // changing floor at its head) and is gone; what it brought shows in her thread
+  function toQueen(c, w) {
+    const k = queenRoom(), seat = GEOM[k] && GEOM[k].queen;
+    if (!seat) return;
+    const end = [seat[0] + 10, seat[1]], sp = SPR.idle;   // beside her, not on her lap
+    const d = el("div", "walker");
+    d.setAttribute("aria-hidden", "true");
+    d.dataset.handoff = c.id;
+    Object.assign(d.style, { left: end[0] * 2 - sp.ax + "px", top: end[1] * 2 - sp.ay + "px", width: sp.w + "px", height: sp.h + "px" });
+    d.appendChild(sprite("idle", c.coat));
+    $("walkers").appendChild(d);
+    const upFrom = levelOf(w.room) === "upper", upTo = levelOf(k) === "upper", f = flight();
+    let go;
+    if (upFrom === upTo) { d.dataset.floor = levelOf(k); go = walk(d, end, [w.x, w.y], wayTo([w.x, w.y], w.room, end, k)); }
+    else if (!f.length) { d.remove(); return; }
+    else if (upFrom) {   // to the stair head, then down the flight and on
+      d.dataset.floor = "upper";
+      const down = f.slice().reverse();
+      go = walk(d, end, [w.x, w.y], wayTo([w.x, w.y], w.room, STAIR[3], "landing")).then((ok) => {
+        if (!ok) return false;
+        d.dataset.floor = "ground";
+        return walk(d, end, down[0], [...down.slice(1).map((p) => [p, "hall", ON_STAIRS]), ...wayTo(f[0], "hall", end, k)]);
+      });
+    } else {   // up the flight, then on from its head
+      d.dataset.floor = "ground";
+      go = walk(d, end, [w.x, w.y], [...wayTo([w.x, w.y], w.room, f[0], "hall"), ...f.slice(1).map((p) => [p, "hall", ON_STAIRS])]).then((ok) => {
+        if (!ok) return false;
+        d.dataset.floor = "upper";
+        return walk(d, end, STAIR[3], wayTo(STAIR[3], "landing", end, k));
+      });
+    }
+    go.then(() => d.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" }).finished).finally(() => d.remove());
   }
   // now and then a working cat gets up, wanders a few steps from its station, and comes back
   setInterval(() => {
@@ -1415,7 +1516,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     let need = [], says = "";
     if (kind === "room") { text.push(roomInfo(key).name); if (!roomOpen(key)) small.push("closed"); else { need = needIn(VIEW.cats, key); if (!need.length) small.push(summary(VIEW.cats.filter((c) => c.roomKey === key))); } }
     else if (kind === "stairs") { const f = other(S.floor); text.push(f === "upper" ? "Upstairs" : "Downstairs"); need = needOn(f); }
-    else if (kind === "queen") { const q = VIEW.queens[key] || queenOf(key); text.push(q.name); small.push("queen"); says = q.pinned.length ? q.pinned[0].text : ""; }
+    else if (kind === "queen") { const q = VIEW.queens[key] || queenOf(); text.push(q.name); small.push("queen"); says = q.line || queenLine(q); }
     else if (kind === "pile") { const p = VIEW.piles[key] || []; text.push(p.length + " cats"); }
     else {
       const c = VIEW.cats.find((x) => x.id === key); if (!c) return;
@@ -1552,6 +1653,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const L = S.live;
     if (L.state === "loading") return "Waking the cats…";
     if (L.state === "ok") return "Live · checked " + clock(S.sessionsAt);
+    if (L.state === "gateway") return "Live through your gateway" + (S.hostAt ? " · " + clock(S.hostAt) : "");
     if (L.state === "local") return S.from === "copy" ? "On this computer · saved " + clock(S.sessionsAt) : "On this computer";
     return S.from === "copy" ? "Claude's copy · saved " + clock(S.sessionsAt) : "Not live";
   }
@@ -1574,7 +1676,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     out.push(el("div", "rule"));
     const look = S.focus === k ? mi("Whole house", zoomOut) : mi("Look in", () => focusRoom(k));
     if (MENU.sub === "add") out.push(list([
-      S.mcp && mi("New session", () => { hideMenu(); openNewCat(k); }),
+      S.mcp && !VIA_GATEWAY && mi("New session", () => { hideMenu(); openNewCat(k); }),
       mi("Adopt a chat", () => { hideMenu(); openAdopt(k); }),
       mi("Back", () => { MENU.sub = null; showMenu("room", k); })]));
     else {
@@ -1593,7 +1695,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   // the house: what belongs to all of it, not one room
   function houseMenu() {
     const all = VIEW.cats, tray = S.brain.filter((d) => d.status === "unsorted").length;
-    const sub = [liveLine(), S.host === GATEWAY && S.hostAt && "Gateway live · " + clock(S.hostAt), VIEW.attic && VIEW.attic + " napping in the attic", S.hostNote].filter(Boolean).join(" · ");
+    const sub = [liveLine(), S.host === GATEWAY && S.hostAt && !VIA_GATEWAY && "Gateway live · " + clock(S.hostAt), VIEW.attic && VIEW.attic + " napping in the attic", S.hostNote].filter(Boolean).join(" · ");
     // the brand above it is the title and carries the badge, so the menu starts with how the cats are reaching you
     const out = [el("p", "sub", sub + (all.length ? ". " + summary(all).replace(/^./, (x) => x.toUpperCase()) + "." : ""))];
     const snd = el("button", "mi sw sound", S.sound ? "Sound on" : "Sound off"); snd.type = "button";
@@ -1622,11 +1724,11 @@ ul.gkey li > div.what { flex-basis: 100%; }
       el("div", "rule"), list([mi("See them all", () => { hideMenu(); openPile(pile, room); })])];
   }
   function queenMenu(k) {
-    const here = VIEW.cats.filter((c) => c.roomKey === k);
-    const q = VIEW.queens[k] || queenOf(k);
+    const q = VIEW.queens[k] || queenOf();
+    const st = q.state || queenState();
     const h = el("h3"); h.append(el("span", "crown inline"), document.createTextNode(q.name));
-    const out = [head(h, "Queen of the " + roomInfo(k).name)];
-    out.push(el("div", q.pinned.length ? "ask-box need" : "sub", q.line || queenLine(q, here)));
+    const out = [head(h, "Queen of the house · " + stateWord(st))];
+    out.push(el("div", q.unread || (q.pinned.length && st !== "busy") ? "ask-box need" : "sub", q.line || queenLine(q)));
     // the headline is already her top pinned note, so the list picks up from the next one
     const rest = q.pinned.length ? q.notes.slice(1) : q.notes;
     if (rest.length) {
@@ -1640,9 +1742,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
       out.push(ul);
     }
     out.push(el("div", "rule"), list([
-      mi("What she keeps", () => { hideMenu(); openQueen(k); }),
-      S.focus === k ? mi("Whole house", zoomOut) : mi("Look in", () => focusRoom(k)),
-      GEOM[k].cabinet && mi("Files", () => { hideMenu(); openCabinet(k); })]));
+      mi("Talk to her", () => { hideMenu(); openQueen("talk"); }),
+      mi("What she keeps", () => { hideMenu(); openQueen("keeps"); }),
+      S.focus === k ? mi("Whole house", zoomOut) : mi("Look in", () => focusRoom(k))]));
     return out;
   }
 
@@ -1690,11 +1792,12 @@ ul.gkey li > div.what { flex-basis: 100%; }
   function renderStatus() {
     const st = $("status"); st.replaceChildren();
     const L = S.live;
-    st.classList.toggle("warn", L.state !== "ok" && L.state !== "loading" && L.state !== "local");
+    st.classList.toggle("warn", L.state !== "ok" && L.state !== "loading" && L.state !== "local" && L.state !== "gateway");
     st.appendChild(el("span", "dot" + (L.state === "loading" ? " wait" : "")));
     const msg = $("stageMsg");
     msg.hidden = true;
     if (L.state === "loading") st.appendChild(el("span", "words", "Waking the cats… (the first visit asks to read your Claude Code sessions)"));
+    else if (L.state === "gateway") st.appendChild(el("span", "words", "Live through your gateway"));
     else if (L.state === "ok") {
       const n = (S.sessions || []).length;
       st.appendChild(el("span", "words", "Live · updated " + clock(S.sessionsAt) + " · your " + n + " most recent Claude Code sessions, checked every minute"));
@@ -1766,6 +1869,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
   function watch(fresh) {
     if (!S.mcp) return;
+    if (VIA_GATEWAY) { S.live = { state: "gateway" }; pick(); render(); return; }
     if (S.unwatch) { S.unwatch(); S.unwatch = null; }
     if (fresh && S.mcp.invalidate) S.mcp.invalidate(SERVER, "list_sessions").catch(() => {});
     S.live = { state: "loading" }; renderStatus();
@@ -1806,6 +1910,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     db.doc("snapshot/sessions").onSnapshot((d) => { S.copy = d.exists ? d.data() : null; pick(); render(); }, fail);
     db.collection("projects").onSnapshot((snap) => { const p = {}; for (const d of snap.docs) p[d.id] = d.data(); S.projects = p; render(); }, fail);
     db.collection("queens").onSnapshot((snap) => { const q = {}; for (const d of snap.docs) q[d.id] = d.data(); S.queens = q; render(); }, fail);
+    db.collection("routines").onSnapshot((snap) => { const r = {}; for (const d of snap.docs) r[d.id] = d.data(); S.routines = r; if (QUEEN_UI) QUEEN_UI.routines(); }, fail);
     const list = (name, into) => db.collection(name).onSnapshot((snap) => { into(snap.docs.map((d) => Object.assign({ id: d.id }, d.data()))); render(); }, fail);
     list("brain", (v) => { S.brain = v; });
     list("notes", (v) => {
@@ -1884,12 +1989,12 @@ ul.gkey li > div.what { flex-basis: 100%; }
     r.append(field("Name", nm), field("Lives in", roomSelect("catRoom", (S.tweaks[c.id] || {}).room || c.roomKey)));   // the room she gave it, even closed
     more.appendChild(r);
     let ti = null;
-    if (c.kind === "session") { ti = el("input"); ti.id = "catTitle"; ti.value = c.title; ti.maxLength = 120; more.appendChild(field("The session's title", ti)); }
+    if (c.kind === "session" && !VIA_GATEWAY) { ti = el("input"); ti.id = "catTitle"; ti.value = c.title; ti.maxLength = 120; more.appendChild(field("The session's title", ti)); }
     const sv = plainBtn("Save", "green", async () => {
       const room = $("catRoom").value, name = nm.value.trim();
       const ok = c.kind === "session"
         ? await save(async (db) => {
-          const title = ti.value.trim();
+          const title = ti ? ti.value.trim() : "";
           await db.doc("sessions/" + c.id).set(Object.assign({}, S.tweaks[c.id] || {}, { name, room, updatedAt: Date.now() }));
           if (title && title !== c.title) {
             try { await call("set_session_title", { session_id: c.id, title }); }
@@ -1915,32 +2020,257 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
 
   // Her card: what she is keeping, what to give her, and what she should say out loud.
-  function openQueen(k) {
+  const stateWord = (st) => (st === "away" ? "away" : st === "busy" ? "answering" : "here");
+  const gatewayProblem = (e) => {
+    const c = e && e.code;
+    if (c === "no_mcp" || c === "server_not_connected" || c === "server_not_found") return "Your gateway isn't reachable from here: open the café on your gateway's address.";
+    return HOST_NOTES[c] || "The gateway didn't take it (" + (c || "error") + ").";
+  };
+  // Her voice is the browser's own (speechSynthesis), when her switch is on: one function, so a paid voice could be
+  // a second branch later. A streaming answer is spoken a sentence at a time, as each completes.
+  function voices() { try { return (window.speechSynthesis && speechSynthesis.getVoices()) || []; } catch (e) { return []; } }
+  function speak(text, voice) {
+    const v = voice || queenOf().voice;
+    if (!v.on || !window.speechSynthesis || !String(text || "").trim()) return;
+    const u = new SpeechSynthesisUtterance(String(text));
+    const all = voices(), pick = all.find((x) => x.name === v.name) || all.find((x) => /^en[-_]GB/i.test(x.lang)) || null;
+    u.lang = (pick && pick.lang) || "en-GB"; u.rate = +v.rate || 1; u.pitch = +v.pitch || 1;
+    try { if (pick) u.voice = pick; speechSynthesis.speak(u); } catch (e) {}
+  }
+  const SPOKEN = { turn: null, upTo: 0 };
+  function speakTurn(m) {
+    const text = m.text || "";
+    if (SPOKEN.turn !== m.turn || SPOKEN.upTo > text.length) { SPOKEN.turn = m.turn; SPOKEN.upTo = 0; }   // a new turn, or one that starts over
+    const rest = text.slice(SPOKEN.upTo);
+    if (m.done) { speak(rest); SPOKEN.upTo = text.length; return; }
+    const re = /[^.!?]*[.!?]+["')\]]*\s+/g;
+    let mm, end = 0;
+    while ((mm = re.exec(rest))) end = re.lastIndex;
+    if (end) { speak(rest.slice(0, end)); SPOKEN.upTo += end; }
+  }
+  // Her conversation (the gateway's notes for the cat "queen"): what you said and what she said
+  async function loadQueenThread() {
+    if (!S.host) return;
+    let p;
+    try { p = await hostCall("comments", { cat: QUEEN_ID, limit: 40 }); } catch (e) { return; }
+    const notes = (p && p.notes) || [];
+    if (!VIA_GATEWAY && S.queenNotes) {   // no live line in claude.ai: a new word of hers found by the poll is spoken
+      const known = new Set(S.queenNotes.map((n) => n.id));
+      for (const n of notes) if (n.author === QUEEN_ID && !known.has(n.id)) speak(n.text);
+    }
+    S.queenNotes = notes;
+    if (QUEEN_UI) QUEEN_UI.draw();
+  }
+  // Her routines: what to ask her, at what time, on which days. routines/<id>, read by her runner through the gateway.
+  const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], DAY_IDX = [1, 2, 3, 4, 5, 6, 0];
+  function routinesPanel() {
+    const wrap = el("div", "routines");
+    const ul = el("ul", "keeps"); ul.id = "routineList";
+    const draw = () => {
+      ul.replaceChildren();
+      const ids = Object.keys(S.routines || {}).sort();
+      if (!ids.length) ul.appendChild(el("li", "sub", "No routines yet. The day's list every morning, say."));
+      for (const id of ids) {
+        const r = S.routines[id] || {};
+        const li = el("li", "kept" + (r.on ? " pin" : "")); li.dataset.routine = id;
+        const days = Array.isArray(r.days) && r.days.length && r.days.length < 7 ? DAY_IDX.map((d, i) => (r.days.includes(d) ? DAYS[i] : "")).filter(Boolean).join(" ") : "every day";
+        li.append(el("span", "dot"), el("span", "t", (r.name || id) + " · " + (r.time || "") + " · " + days + (r.last ? " · last " + ago(r.last) : "")));
+        const sw = plainBtn(r.on ? "On" : "Off", "tiny" + (r.on ? " green" : ""), () => save((db) => db.doc("routines/" + id).update({ on: !r.on, last: Date.now() })));
+        sw.setAttribute("aria-pressed", String(!!r.on)); sw.setAttribute("aria-label", (r.name || id) + (r.on ? ": on" : ": off"));
+        const rm = plainBtn("Forget", "tiny pink", () => save((db) => db.doc("routines/" + id).delete()));
+        rm.setAttribute("aria-label", "Forget: " + (r.name || id));
+        li.append(sw, rm);
+        ul.appendChild(li);
+      }
+    };
+    draw();
+    let tz = "Europe/Paris";
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || tz; } catch (e) {}
+    const name = el("input"); name.id = "routineName"; name.maxLength = 60; name.placeholder = "Morning round";
+    const time = el("input"); time.id = "routineTime"; time.type = "time"; time.value = "09:00";
+    const dayBox = el("div", "days"); dayBox.id = "routineDays";
+    DAYS.forEach((d, i) => { const l = el("label"); const c = el("input"); c.type = "checkbox"; c.value = String(DAY_IDX[i]); c.checked = i < 5; l.append(c, document.createTextNode(d)); dayBox.appendChild(l); });
+    const prompt = el("textarea"); prompt.id = "routinePrompt"; prompt.rows = 2; prompt.maxLength = 1000; prompt.placeholder = "Who needs me today, and what first?";
+    const addBtn = plainBtn("Add", "green", async () => {
+      const n = name.value.trim(), t = time.value, p = prompt.value.trim();
+      const days = [...dayBox.querySelectorAll("input:checked")].map((c) => +c.value);
+      if (!n || !t || !p || !days.length) { toast("A routine needs a name, a time, a day and what to ask her.", "alert"); return; }
+      const ok = await save((db) => db.doc("routines/" + gid()).set({ name: n, time: t, days, tz, prompt: p, on: true, last: Date.now(), createdAt: Date.now() }), "Added. She'll do it at " + t + ".");
+      if (ok) { name.value = ""; prompt.value = ""; }
+    });
+    addBtn.id = "routineAdd";
+    const r1 = el("div", "row"); r1.append(field("Name", name), field("At", time));
+    const df = el("div", "field"); df.append(el("span", null, "On"), dayBox);
+    const r2 = el("div", "row"); r2.append(df, field("What to ask her", prompt));
+    const acts = el("div", "actions"); acts.append(el("span", "spacer"), addBtn);
+    wrap.append(ul, r1, r2, acts, el("p", "note", "They run while her runner is on, in your time zone (" + tz + "). A missed one runs once when it is back."));
+    wrap.redraw = draw;
+    return wrap;
+  }
+
+  // Her card, like an NPC's dialogue: her greeting, the thread (what she said, what the cats brought her, what you
+  // said), her answer as she speaks it, Speak / Send / Stop and her voice; then, folded, what she keeps, her
+  // character (name, coat, manner, greeting, voice) and her routines. Opening it counts the handoffs as read.
+  let QUEEN_UI = null, QUEEN_POLL = null;
+  function openQueen(section) {
     const dlg = $("queenDlg"); dlg.replaceChildren();
-    const here = VIEW.cats.filter((c) => c.roomKey === k);
-    const q = queenOf(k);
+    const q = queenOf();
+    q.state = queenState(); q.unread = unreadHandoffs(q); q.homework = openQuizzes().length;
     const notes = q.notes.map((n) => ({ text: n.text, pinned: !!n.pinned, at: n.at || Date.now() }));
-    const box = el("div", "dlg");
+    const opened = Date.now();
+    const box = el("div", "dlg queen");
 
     const head = el("div", "head");
     const por = el("div", "portrait");
-    por.append(sprite(queenMood(q, here), q.coat), el("span", "crown corner"));
+    por.append(sprite(queenMood(q), q.coat), el("span", "crown corner"));
     const hd = el("div");
     const h = el("h2", null, q.name); h.id = "queenName";
-    hd.append(h, el("span", "mood work", "Queen of the " + roomInfo(k).name));
+    const st = el("span", "mood " + (q.state === "away" ? "sleep" : "work"), "Queen of the house · " + stateWord(q.state)); st.id = "queenState";
+    const ln = el("p", "note", queenLine(q)); ln.id = "queenLineNote";
+    hd.append(h, st, ln);
     head.append(por, hd);
-    box.append(head, el("div", null, queenLine(q, here)));
+    box.appendChild(head);
 
+    // ---- the talk: her homework first, when she set some ----
+    const talk = el("section", "talk");
+    const hw = el("div", "homework"); hw.id = "queenHomework";
+    const drawHomework = () => {
+      hw.replaceChildren();
+      const open = openQuizzes();
+      hw.hidden = !open.length;
+      const cats = allCats(true).cats;
+      for (const z of open) {
+        const f = el("form", "quiz"); f.dataset.quiz = z.id;
+        f.addEventListener("submit", (e) => e.preventDefault());
+        const cat = z.for ? cats.find((c) => c.agentId === z.for) : null;
+        f.appendChild(el("h3", null, z.title));
+        f.appendChild(el("p", "sub", "Homework from " + (z.by === QUEEN_ID ? q.name : "you") + (cat ? ", to unblock " + cat.name : z.for ? ", for " + z.for : "") + " · " + ago(z.at)));
+        const picks = [];
+        (z.questions || []).forEach((qq, i) => {
+          const fs = el("fieldset", "q");
+          fs.appendChild(el("legend", null, (i + 1) + ". " + qq.q));
+          const row = el("div", "opts");
+          let picked = null;
+          const free = el("input"); free.maxLength = 1000; free.placeholder = qq.options && qq.options.length ? "Something else…" : "Your answer";
+          for (const o of qq.options || []) {
+            const b = plainBtn(o, "tiny", () => { picked = o; free.value = ""; for (const x of row.children) { x.classList.toggle("green", x === b); x.setAttribute("aria-pressed", String(x === b)); } });
+            b.setAttribute("aria-pressed", "false");
+            row.appendChild(b);
+          }
+          fs.appendChild(row);
+          if (qq.free || !(qq.options && qq.options.length)) {
+            free.addEventListener("input", () => { if (free.value.trim()) { picked = null; for (const x of row.children) { x.classList.remove("green"); x.setAttribute("aria-pressed", "false"); } } });
+            free.setAttribute("aria-label", "Your answer to: " + qq.q);
+            const l = el("label", "field"); l.appendChild(free); fs.appendChild(l);
+          }
+          picks.push(() => free.value.trim() || picked || "");
+          f.appendChild(fs);
+        });
+        const hand = plainBtn("Hand it in", "green", async () => {
+          const answers = picks.map((p) => p());
+          if (answers.some((a) => !a)) { toast("Answer every question first.", "alert"); return; }
+          hand.disabled = true;
+          try {
+            await hostCall("answer", { quiz: z.id, answers });
+            toast("Handed in." + (cat ? " " + cat.name + " has your answers." : ""));
+            await refreshQuizzes();
+            loadQueenThread();
+          } catch (e) { toast(gatewayProblem(e), "alert"); hand.disabled = false; }
+        });
+        hand.className += " hand";
+        const acts = el("div", "actions"); acts.append(el("span", "spacer"), hand);
+        f.appendChild(acts);
+        hw.appendChild(f);
+      }
+    };
+    drawHomework();
+    talk.appendChild(hw);
+    const ul = el("ul", "thread"); ul.id = "queenThread";
+    const drawThreadQ = () => {
+      ul.replaceChildren();
+      const cats = allCats(true).cats;
+      const items = (S.queenNotes || []).filter((n) => n.author === "charlotte" || n.author === QUEEN_ID).map((n) => ({ kind: n.author, text: n.text, at: n.at || 0, routine: n.routine }))
+        .concat(cats.filter((c) => c.said && c.said.text).map((c) => ({ kind: "handoff", cat: c, text: c.said.text, at: c.said.at || 0 })))
+        .sort((a, b) => a.at - b.at).slice(-20);
+      if (!items.some((it) => it.kind !== "handoff")) { const li = el("li", "them greet"); li.append(el("span", "who", q.name), document.createTextNode(q.greeting)); ul.appendChild(li); }   // nothing said yet: her greeting
+      for (const it of items) {
+        const li = el("li", it.kind === "charlotte" ? "me" : it.kind === "handoff" ? "them handoff" + (it.at > q.readAt ? " new" : "") : "them");
+        const who = it.kind === "charlotte" ? "You" : it.kind === "handoff" ? it.cat.name + " brought you" : q.name + (it.routine && it.routine.name ? " · " + it.routine.name : "");
+        li.append(el("span", "who", who + " · " + ago(it.at)), document.createTextNode(it.text));
+        if (it.kind === "handoff" && VIEW.cats.some((x) => x.id === it.cat.id)) { const o = plainBtn("Open " + it.cat.name, "tiny open", () => { dlg.close(); openCat(it.cat.id); }); li.appendChild(o); }
+        ul.appendChild(li);
+      }
+      if (S.queenTurn) { const li = el("li", "them live"); li.id = "queenLive"; li.append(el("span", "who", q.name + " · speaking"), document.createTextNode(S.queenTurn.text || "…")); ul.appendChild(li); }
+      ul.scrollTop = ul.scrollHeight;
+    };
+    talk.appendChild(ul);
+    const say = el("textarea"); say.id = "queenSay"; say.rows = 2; say.maxLength = 4000; say.placeholder = "Ask " + q.name + "…";
+    say.setAttribute("aria-label", "Say to " + q.name);
+    const send = plainBtn("Send", "green", async () => {
+      const text = say.value.trim();
+      if (!text) { say.focus(); return; }
+      send.disabled = true;
+      try {
+        await hostCall("comment", { cat: QUEEN_ID, text, author: "charlotte" });
+        say.value = "";
+        S.queenNotes = (S.queenNotes || []).concat([{ id: "me" + Date.now(), cat: QUEEN_ID, author: "charlotte", text, at: Date.now() }]);
+        drawThreadQ();
+        if (queenState() === "away") toast("Kept for her: she answers once her runner is on.");
+      } catch (e) { toast(gatewayProblem(e), "alert"); }
+      send.disabled = false;
+      say.focus();
+    });
+    send.id = "queenSend";
+    say.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send.click(); } });
+    const stop = plainBtn("Stop", "pink", async () => {
+      try { await hostCall("manage", { cat: QUEEN_ID, action: "pause" }); toast("She stops there."); }
+      catch (e) { toast(gatewayProblem(e), "alert"); }
+    });
+    stop.id = "queenStop"; stop.hidden = q.state !== "busy";
+    const row = el("div", "row");
+    const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (Rec) {   // voice to text: the browser's own (Chrome, Edge); what it heard stays in the box for her to send or fix
+      let rec = null;
+      const sp = plainBtn("Speak", "", () => {
+        if (rec) { rec.stop(); return; }
+        rec = new Rec(); rec.lang = currentVoice().lang || "en-GB"; rec.interimResults = true; rec.continuous = false;
+        const base = say.value.trim() ? say.value.replace(/\s*$/, " ") : "";
+        rec.onresult = (e) => { let t = ""; for (const r of e.results) t += r[0].transcript; say.value = base + t; };
+        rec.onend = () => { rec = null; sp.textContent = "Speak"; sp.setAttribute("aria-pressed", "false"); };
+        rec.onerror = (e) => { toast(e.error === "not-allowed" || e.error === "service-not-allowed" ? "The browser didn't let the café hear you." : "Couldn't hear you (" + e.error + ").", "alert"); };
+        try { rec.start(); sp.textContent = "Listening…"; sp.setAttribute("aria-pressed", "true"); } catch (e) { rec = null; }
+      });
+      sp.id = "queenSpeak"; sp.setAttribute("aria-pressed", "false");
+      row.appendChild(sp);
+    }
+    row.append(el("label", "field").appendChild(say).parentNode, send, stop);
+    // her voice, on or off, saved with her
+    let voiceOn = !!q.voice.on;
+    const vb = el("button", "btn sw sound voice"); vb.type = "button"; vb.id = "queenVoice";
+    const vbt = el("span", null, voiceOn ? "Voice on" : "Voice off");
+    vb.append(el("span", "switch" + (voiceOn ? " on" : "")), vbt);
+    vb.setAttribute("aria-pressed", String(voiceOn));
+    vb.hidden = !window.speechSynthesis;
+    vb.addEventListener("click", async () => {
+      voiceOn = !voiceOn;
+      vb.firstChild.classList.toggle("on", voiceOn); vbt.textContent = voiceOn ? "Voice on" : "Voice off"; vb.setAttribute("aria-pressed", String(voiceOn));
+      if (voiceOn) speak(gr.value.trim() || q.greeting, currentVoice());
+      await persist();
+    });
+    talk.append(row, vb);
+    box.appendChild(talk);
+
+    // ---- what she keeps ----
+    const kd = el("details", "more"); kd.id = "queenKeeps"; kd.open = section === "keeps";
+    kd.appendChild(el("summary", null, "What she keeps"));
     const list = el("ul", "keeps");
-    // what she keeps is saved as you change it, so closing the card never loses a note
-    const keep = () => save((db) => db.doc("queens/" + k).set({ name: (S.queens[k] && S.queens[k].name) || "", notes, updatedAt: Date.now() }));
     function draw() {
       list.replaceChildren();
-      if (!notes.length) list.appendChild(el("li", "sub", "She is keeping nothing for this room yet."));
+      if (!notes.length) list.appendChild(el("li", "sub", "She is keeping nothing for you yet."));
       notes.forEach((n, i) => {
         const li = el("li", n.pinned ? "kept pin" : "kept");
         const pin = plainBtn(n.pinned ? "Saying it" : "Say it", "tiny" + (n.pinned ? " green" : ""), () => { n.pinned = !n.pinned; draw(); keep(); });
-        pin.title = n.pinned ? "She says this in the room until you take it back" : "Have her say this out loud in the room";
+        pin.title = n.pinned ? "She says this in the hall until you take it back" : "Have her say this out loud";
         pin.setAttribute("aria-pressed", String(n.pinned));
         const rm = plainBtn("Forget", "tiny pink", () => { notes.splice(i, 1); draw(); keep(); });
         rm.setAttribute("aria-label", "Forget: " + n.text);
@@ -1949,8 +2279,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       });
     }
     draw();
-    box.appendChild(list);
-
+    kd.appendChild(list);
     const add = el("input"); add.id = "queenAdd"; add.maxLength = NOTE_MAX; add.placeholder = "The Drive order goes in on Sunday";
     const give = () => {
       const t = add.value.trim();
@@ -1960,26 +2289,89 @@ ul.gkey li > div.what { flex-basis: 100%; }
       add.value = ""; draw(); add.focus(); keep();
     };
     add.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); give(); } });
-    const row = el("div", "row");
-    row.append(field("Something she should keep", add), plainBtn("Give it to her", "green", give));
-    box.appendChild(row);
+    const krow = el("div", "row");
+    krow.append(field("Something she should keep", add), plainBtn("Give it to her", "green", give));
+    kd.appendChild(krow);
+    box.appendChild(kd);
 
-    const nm = el("input"); nm.id = "queenRename"; nm.value = (S.queens[k] && S.queens[k].name) || ""; nm.placeholder = q.name; nm.maxLength = 30;
-    box.appendChild(field("Her name", nm));
-    box.appendChild(el("p", "note", "Saved in this page: anyone you share it with can read it, so keep sensitive details out."));
+    // ---- her character ----
+    const cd = el("details", "more"); cd.id = "queenCharacter"; cd.open = section === "character";
+    cd.appendChild(el("summary", null, "Her character"));
+    const nm = el("input"); nm.id = "queenRename"; nm.value = (S.queens.house && S.queens.house.name) || ""; nm.placeholder = q.name; nm.maxLength = 30;
+    const coat = el("select"); coat.id = "queenCoat";
+    COATS.forEach((c, i) => { const o = el("option", null, c.name); o.value = String(i); if (i === q.coatIdx) o.selected = true; coat.appendChild(o); });
+    const r1 = el("div", "row"); r1.append(field("Her name", nm), field("Her coat", coat)); cd.appendChild(r1);
+    const gr = el("input"); gr.id = "queenGreeting"; gr.value = q.greeting; gr.maxLength = 200;
+    cd.appendChild(field("Her greeting", gr));
+    let manner = null;
+    if (VIA_GATEWAY) { manner = el("textarea"); manner.id = "queenManner"; manner.rows = 3; manner.maxLength = 2000; manner.value = q.manner; cd.appendChild(field("How she speaks", manner)); }
+    else cd.appendChild(el("p", "note", "How she speaks, and her routines, are set in the café on your gateway: her runner reads them there."));
+    let vsel = null;
+    if (window.speechSynthesis) {
+      vsel = el("select"); vsel.id = "queenVoiceName";
+      const auto = el("option", null, "The browser's English (UK) voice"); auto.value = ""; vsel.appendChild(auto);
+      const gb = (v) => (/^en[-_]GB/i.test(v.lang) ? 0 : 1);
+      for (const v of voices().slice().sort((a, b) => gb(a) - gb(b) || a.name.localeCompare(b.name))) { const o = el("option", null, v.name + " (" + v.lang + ")"); o.value = v.name; if (v.name === q.voice.name) o.selected = true; vsel.appendChild(o); }
+    }
+    const rate = el("input"); rate.id = "queenRate"; rate.type = "range"; rate.min = "0.6"; rate.max = "1.4"; rate.step = "0.1"; rate.value = String(q.voice.rate);
+    const pitch = el("input"); pitch.id = "queenPitch"; pitch.type = "range"; pitch.min = "0.6"; pitch.max = "1.6"; pitch.step = "0.1"; pitch.value = String(q.voice.pitch);
+    const lang = el("select"); lang.id = "queenLang";
+    for (const [v, l] of LISTEN) { const o = el("option", null, l); o.value = v; if (v === q.voice.lang) o.selected = true; lang.appendChild(o); }
+    const currentVoice = () => ({ on: voiceOn, name: vsel ? vsel.value : q.voice.name, rate: +rate.value || 1, pitch: +pitch.value || 1, lang: lang.value });
+    const r2 = el("div", "row");
+    if (vsel) r2.appendChild(field("Her voice", vsel));
+    r2.append(field("How fast", rate), field("How high", pitch));
+    cd.appendChild(r2);
+    const r3 = el("div", "row"); r3.appendChild(field("She listens for", lang));
+    const hear = plainBtn("Hear her", "", () => speak(gr.value.trim() || q.greeting, Object.assign(currentVoice(), { on: true }))); hear.id = "queenHear"; hear.hidden = !window.speechSynthesis;
+    r3.appendChild(hear);
+    cd.appendChild(r3);
+    cd.appendChild(el("p", "note", "Saved in this page: anyone you share it with can read it, so keep sensitive details out."));
+    const sv = el("button", "btn green", "Save"); sv.type = "button"; sv.id = "queenSave";
+    sv.addEventListener("click", async () => { if (await persist("Saved. " + (nm.value.trim() || q.name) + " has it.")) dlg.close(); });
+    const sa = el("div", "actions"); sa.append(el("span", "spacer"), sv); cd.appendChild(sa);
+    box.appendChild(cd);
 
-    const acts = el("div", "actions");
-    const sv = el("button", "btn green", "Save"); sv.type = "button";
-    sv.id = "queenSave";
-    sv.addEventListener("click", async () => {
-      const name = nm.value.trim();
-      const ok = await save((db) => db.doc("queens/" + k).set({ name, notes, updatedAt: Date.now() }), "Saved. " + (name || q.name) + " has it.");
-      if (ok) dlg.close();
-    });
-    acts.append(closeBtn(dlg), el("span", "spacer"), sv);
+    // ---- her routines ----
+    let routines = null;
+    if (VIA_GATEWAY) {
+      const rd = el("details", "more"); rd.id = "queenRoutines"; rd.open = section === "routines";
+      rd.appendChild(el("summary", null, "Routines"));
+      routines = routinesPanel();
+      rd.appendChild(routines);
+      box.appendChild(rd);
+    }
+
+    const acts = el("div", "actions"); acts.append(closeBtn(dlg));
     box.appendChild(acts);
     dlg.appendChild(box);
+
+    // what she is, as one document; saving it moves what the room queens kept into it
+    const docOf = () => ({ name: nm.value.trim(), coat: +coat.value, manner: manner ? manner.value.trim() : ((S.queens.house || {}).manner || ""), greeting: gr.value.trim(),
+      voice: currentVoice(), notes, readAt: Math.max(q.readAt, q.unread ? opened : 0), updatedAt: Date.now() });
+    const persist = (ok) => save(async (db) => { await db.doc("queens/house").set(docOf()); for (const k of q.leftovers) await db.doc("queens/" + k).delete(); }, ok);
+    const keep = () => persist();   // what she keeps is saved as you change it, so closing the card never loses a note
+
+    QUEEN_UI = {
+      draw: drawThreadQ,
+      homework: drawHomework,
+      routines: () => { if (routines) routines.redraw(); },
+      state: () => {
+        q.state = queenState(); q.unread = unreadHandoffs(q); q.homework = openQuizzes().length;
+        st.textContent = "Queen of the house · " + stateWord(q.state); st.className = "mood " + (q.state === "away" ? "sleep" : "work");
+        stop.hidden = q.state !== "busy";
+        ln.textContent = queenLine(q);
+        por.replaceChildren(sprite(queenMood(q), q.coat), el("span", "crown corner"));
+      },
+    };
+    dlg.addEventListener("close", () => { QUEEN_UI = null; if (QUEEN_POLL) { clearInterval(QUEEN_POLL); QUEEN_POLL = null; } }, { once: true });
+    drawThreadQ();
+    loadQueenThread();
+    if (!VIA_GATEWAY && S.host) QUEEN_POLL = setInterval(loadQueenThread, 5000);   // no live line in claude.ai: look every few seconds while her card is open
     show(dlg);
+    if (section === "talk" || !section) say.focus();
+    if (q.unread) save((db) => db.doc("queens/house").set(Object.assign({}, S.queens.house || {}, { readAt: opened })));   // read: one write, on her action
+    if (voiceOn) speak(q.greeting, currentVoice());
   }
 
   function adoptForm(c, room) {
@@ -2552,6 +2944,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
   // Post text into a session. Resolves "pushed" or "queued"; rejects only if saving the queue fails too.
   async function postToSession(cat, text, item) {
+    if (VIA_GATEWAY) return "unreachable";   // nothing outside claude.ai can post into it, and nothing here would collect an outbox
     if (!S.mcp) return queue(cat, Object.assign({ text }, item), "no_mcp");
     const k = await sendKeys();
     try { await call("send_message", { [k.id]: cat.id, [k.text]: text }); return "pushed"; }
@@ -2578,7 +2971,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     if (cat.kind === "session") return postToSession(cat, text, item);
     return "kept";
   }
-  const saidAs = { pushed: "Sent.", gateway: "Sent. It reaches the session when its turn ends.", queued: "Waiting in the outbox: it couldn't be posted into the session, so it isn't there yet.", kept: "Kept on the card." };
+  const saidAs = { pushed: "Sent.", gateway: "Sent. It reaches the session when its turn ends.", unreachable: "Kept on the card: this session doesn't report to your gateway, so open it in claude.ai to tell it.", queued: "Waiting in the outbox: it couldn't be posted into the session, so it isn't there yet.", kept: "Kept on the card." };
 
   /* ---------- the brain: dropping files, and where they go ---------- */
   const isText = (f) => /^text\/|json|xml|csv|markdown|javascript|yaml|x-sh/.test(f.type) || /\.(md|txt|csv|json|ya?ml|html?|js|ts|py|sh|log|ics|vcf|eml)$/i.test(f.name);
@@ -2771,7 +3164,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const sent = res === "pushed" || res === "gateway";
     await S.db.doc("brain/" + id).update({ status: sent ? "pushed" : "waiting", sentAt: Date.now(), via: res });
     return res === "pushed" ? doc.name + " went to " + cat.name + "." : res === "gateway" ? doc.name + " is on its way to " + cat.name + ": it arrives when the session's turn ends."
-      : res === "queued" ? doc.name + " is kept, and waits in the outbox for " + cat.name + ": it couldn't be posted into the session." : doc.name + " is on " + cat.name + "'s card.";
+      : res === "queued" ? doc.name + " is kept, and waits in the outbox for " + cat.name + ": it couldn't be posted into the session."
+      : res === "unreachable" ? doc.name + " is kept in the brain: " + cat.name + " doesn't report to your gateway, so open it in claude.ai to hand it over." : doc.name + " is on " + cat.name + "'s card.";
   }
   // File an unsorted one under a cat, from the brain's tray.
   async function fileUnder(d, cat) {
@@ -2890,7 +3284,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     ul.hidden = !notes.length;
     for (const n of notes) {
       const li = el("li", n.author === "charlotte" ? "me" : "them");
-      li.append(el("span", "who", (n.author === "charlotte" ? "You" : c.name) + " · " + ago(n.at) + (n.via === "queued" ? " · queued" : "")), document.createTextNode(n.text));
+      li.append(el("span", "who", (n.author === "charlotte" ? "You" : c.name) + " · " + ago(n.at) + (n.via === "queued" ? " · queued" : n.via === "unreachable" ? " · not delivered" : "")), document.createTextNode(n.text));
       ul.appendChild(li);
     }
   }
@@ -2915,7 +3309,10 @@ ul.gkey li > div.what { flex-basis: 100%; }
       try { await call(tool, { session_id: c.id }); toast(done); }
       catch (e) { if (REFUSED.has(e.code) || !S.mcp) { await queue(c, { kind: "manage", action }, e.code || "no_mcp"); toast(saidAs.queued, "stay"); } else throw e; }
     };
-    if (c.kind === "session") {
+    if (c.kind === "session" && VIA_GATEWAY) {
+      // only claude.ai can pause or archive a session; through the gateway, a reporting one can still be asked to wrap up
+      if (c.agentId) act("Ask to wrap up", "", request("wrap_up", c.name + " will finish, ship and summarise."), null, "check");
+    } else if (c.kind === "session") {
       if (c.mood === "idle") act("Pause", "", direct("interrupt_session", "pause", c.name + " stops at the next safe point."), null, "pause");
       act("Ask to wrap up", "", request("wrap_up", c.name + " will finish, ship and summarise."), null, "check");
       if (c.archived) act("Unarchive", "", direct("unarchive_session", "unarchive", c.name + " is back."), null, "unlock");
@@ -3045,9 +3442,15 @@ ul.gkey li > div.what { flex-basis: 100%; }
     if (!S.host) return;
     try {
       const p = await hostCall("list_agents", {});
+      try { S.quizzes = ((await hostCall("quizzes", {})) || {}).quizzes || []; } catch (e) { /* an older server: no homework */ }
       S.agents = (p && p.agents) || []; S.hostAt = Date.now(); render();
       const ul = $("thread"), open = ul && VIEW.cats.find((x) => x.id === ul.dataset.cat);
       if (open) loadThread(open);
+      // what the cats brought the queen since the last look: each walks a copy of itself to her
+      const was = S.saidAt;
+      S.saidAt = new Map(S.agents.filter((a) => a.id !== QUEEN_ID && a.said && a.said.at).map((a) => [a.id, a.said.at]));
+      if (was) for (const [id, at] of S.saidAt) if ((was.get(id) || 0) < at) handoff(id);
+      if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); QUEEN_UI.draw(); }
     } catch (e) {
       const code = e && e.code;
       if (S.host === GATEWAY && code !== "server_unavailable" && code !== "rate_limited") {
@@ -3058,6 +3461,28 @@ ul.gkey li > div.what { flex-basis: 100%; }
       if (code === "server_not_connected" || code === "not_in_manifest" || code === "server_not_found") { S.host = null; S.agents = []; render(); }
     }
   }
+  addEventListener("catio:agents", () => refreshAgents());   // on the gateway's own address, it says when a cat changed
+  function handoff(agentId) {
+    const c = VIEW.cats.find((x) => x.agentId === agentId), w = c && WHERE.get(c.id);
+    if (!c || !w || calm()) return;
+    toQueen(c, w);
+  }
+  // her homework, after she hands one in: the gateway's list again, and the queen redrawn
+  async function refreshQuizzes() {
+    if (!S.host) return;
+    try { S.quizzes = ((await hostCall("quizzes", {})) || {}).quizzes || []; } catch (e) { return; }
+    render();
+    if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); }
+  }
+  // the queen, as she speaks (the gateway pushes each piece of her answer to the café): her bubble grows, her
+  // voice says each sentence, and when she is done her answer is in the thread
+  addEventListener("catio:queen", (e) => {
+    const m = e.detail || {};
+    S.queenTurn = m.done ? null : { turn: m.turn, text: m.text || "", routine: m.routine };
+    if (m.done) loadQueenThread();
+    if (QUEEN_UI) QUEEN_UI.draw();
+    speakTurn(m);
+  });
 
   /* ---------- sound ---------- */
   let audio = null;

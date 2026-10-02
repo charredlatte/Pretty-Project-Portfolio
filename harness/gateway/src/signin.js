@@ -1,8 +1,9 @@
-// /authorize: the page claude.ai opens when Charlotte adds the gateway as a connector. She types her password
-// (CATIO_PASSWORD), and Claude gets a token to read and manage the cats as her. Nobody but Claude's connectors
-// may ask: anywhere else, a token would leave with someone else.
+// /authorize: the page claude.ai opens when a user adds the gateway as a connector. They type their handle and
+// password, and Claude gets a token to read and manage their cats as them. Nobody but Claude's connectors may
+// ask: anywhere else, a token would leave with someone else.
 import { AuthorizationError, CimdFetchError } from "@cloudflare/workers-oauth-provider";
-import { MIN_SECRET, sameSecret } from "./secret.js";
+import { MIN_SECRET } from "./secret.js";
+import { bootProblem, hasAccount, propsOf, registry } from "./registry.js";
 
 const CLAUDE = ["claude.ai", "claude.com"];
 
@@ -16,7 +17,7 @@ export function fromClaude(uri) {
 	}
 }
 
-const esc = (v) => String(v).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+export const esc = (v) => String(v).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 const HEADERS = {
 	"Content-Type": "text/html; charset=utf-8",
@@ -27,7 +28,7 @@ const HEADERS = {
 	"Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https://claude.ai https://claude.com; frame-ancestors 'none'; base-uri 'none'",
 };
 
-function page(title, body, status = 200, headers = new Headers()) {
+export function page(title, body, status = 200, headers = new Headers()) {
 	for (const [k, v] of Object.entries(HEADERS)) headers.set(k, v);
 	return new Response(`<!doctype html>
 <html lang="en">
@@ -70,8 +71,10 @@ ${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}
 <input type="hidden" name="handle" value="${esc(handle)}">
 <input type="hidden" name="client" value="${esc(shown.client)}">
 <input type="hidden" name="host" value="${esc(shown.host)}">
+<label for="user">Your handle</label>
+<input id="user" name="user" autocomplete="username" autocapitalize="none" required autofocus>
 <label for="password">Your Catio password</label>
-<input id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+<input id="password" name="password" type="password" autocomplete="current-password" required>
 <div class="row"><button class="go" name="decision" value="allow">Let it in</button><button name="decision" value="deny" formnovalidate>Not now</button></div>
 </form>`, status, headers);
 }
@@ -85,10 +88,11 @@ const notClaude = () => page("Not this one", `<h1>Only Claude can sign in here</
 export async function authorize(request, env) {
 	const oauth = env.OAUTH_PROVIDER;
 	try {
-		if (!env.CATIO_PASSWORD || env.CATIO_PASSWORD.length < MIN_SECRET) {
-			return page("No password yet", `<h1>The gateway has no password yet</h1>
+		if (!(await hasAccount(env))) {
+			return page("No account yet", `<h1>The gateway has no account yet</h1>
 <p>Add a secret named <strong>CATIO_PASSWORD</strong>, ${MIN_SECRET} characters or more, in Cloudflare: Workers &amp; Pages, then
-catio-gateway, Settings, Variables and Secrets. Then connect again.</p>`, 503);
+catio-gateway, Settings, Variables and Secrets. It becomes the first account's password. Then connect again.</p>
+${bootProblem() ? `<p class="bad">${esc(bootProblem())}</p>` : ""}`, 503);
 		}
 		if (request.method === "GET") {
 			const ask = await oauth.parseAuthRequest(request);
@@ -108,18 +112,14 @@ catio-gateway, Settings, Variables and Secrets. Then connect again.</p>`, 503);
 		}
 		const password = String(form.get("password") || "");
 		if (!password) return consent(shown, handle, "Type your password first.", 400);
-		const house = env.HOUSE.get(env.HOUSE.idFromName("house"));
-		if (await house.locked()) return consent(shown, handle, "Too many wrong passwords. Try again in a quarter of an hour.", 429);
-		if (!(await sameSecret(password, env.CATIO_PASSWORD))) {
-			await house.wrongPassword();
-			return consent(shown, handle, "That password isn't right.", 401);
-		}
-		await house.rightPassword();
+		const user = await (await registry(env)).checkPassword(String(form.get("user") || ""), password);
+		if (user && user.locked) return consent(shown, handle, "Too many wrong passwords. Try again in a quarter of an hour.", 429);
+		if (!user) return consent(shown, handle, "That handle and password aren't right.", 401);
 
 		const approved = await oauth.approveConsent(request, handle, { scope: [] });
 		if (!fromClaude(approved.request.redirectUri)) return notClaude();
 		const { redirectTo } = await oauth.completeAuthorization({
-			request: approved.request, userId: "charlotte", metadata: {}, scope: [], props: { user: "charlotte" },
+			request: approved.request, userId: user.id, metadata: {}, scope: [], props: propsOf(user, true),
 		});
 		approved.headers.set("Location", redirectTo);
 		return new Response(null, { status: 302, headers: approved.headers });

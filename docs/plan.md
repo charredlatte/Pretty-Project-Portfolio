@@ -151,11 +151,40 @@ merge to `main`.
      next Stop; its answers there (`report.py say`) show in its conversation;
    - when CATIO asks before every call or needs signing in again, the House menu says so.
 3. **Later:**
-   - agents the gateway runs itself (the rest of OpenClaw), which would need a machine;
+   - agents the gateway runs itself: phase 6;
    - a Telegram channel;
    - agent cats through `host:catio` (only the Claude desktop app can declare it). Agents that report to the
      gateway show up anywhere, through the `Catio` connector;
    - `catio-plugin/` listed in the marketplace beside `kittychat-house-rules`.
+   - accounts, one café per person: the recommendation is `docs/accounts.md`.
+
+### Phase 6: the Catio as the UI for all her sessions, in OpenClaw's shape
+
+Her ask (2 October): "I want to be able to use the catio as a UI for all of my Claude sessions", not an artifact,
+and "Open session" not sending her back into claude.ai. OpenClaw's gateway serves its Control UI from its own
+address and runs the sessions itself, so the UI is where you chat (`chat.send`, `chat.history`, `chat.abort`); a
+coding agent such as Claude Code runs on "the machine that runs the coding agent", which dials out to the gateway.
+Claude Code sessions in claude.ai stay claude.ai's: their full conversation opens only there.
+
+1. **The café on the gateway's address.** Built (this branch): sign-in, the page with `cafe/runtime.js`, her data
+   in the house with live pushes over a WebSocket, art and brain files in KV, `cafe/move-in.py` to move in.
+   Go-live: she merges, Workers Builds deploys, Claude runs `move-in.py` with the artifact's database.
+2. **Chat in the café.** Built (2 October): one queen of the house, in the entrance hall, that she talks to like an
+   NPC. Her words: "Merge the queen cats to make one main character queen cat that you chat with that does
+   everything for you"; voice to text; a character she can customise, with routines; cats with handoffs visibly
+   passing things to her; a proper Elizabethan manner; a voice that turns on and off. The gateway keeps her
+   conversation (the cat `queen`), streams her answer to every open café, and Stop ends her turn. Her voice and
+   ears are the browser's own (free; Chrome or Edge); a paid voice (ElevenLabs, OpenAI) through the gateway is a
+   later option, behind the same switch. Homework (her ask the same evening): the queen sets quizzes to unblock
+   cats, answered by tapping in her card; the answers reach the cat as Charlotte's words.
+3. **The runner.** Built (2 October): `harness/runner/queen.py`, on her Windows PC (her choice: free, while it's
+   on), signed in with her Claude plan, holding the queen's own key (`CATIO_QUEEN`). It waits on the gateway, runs
+   one `claude -p` turn per thing she says or routine due, with the Catio's tools and nothing that edits files,
+   and streams the answer back. Routines run while it runs. Go-live needs her: the secret on the Worker, the two
+   variables on the PC, `python harness\runner\queen.py` (`harness/runner/README.md`).
+   Always-on homes, if she wants one later (prices of October 2026): Cloudflare Containers next to the gateway
+   ($5/month Workers Paid, sleeps when idle, about 7¢ a working hour at 4 GB), Hetzner CAX11 (€5.99 + €0.50 a month),
+   Oracle's Always Free ARM machine (2 cores, 12 GB since June 2026), a Raspberry Pi. Claude Code needs 4 GB.
 
 ### Phase 6: onboarding. Built
 
@@ -170,19 +199,20 @@ questions. Closed rooms are dimmed, queenless and get no cats. CLAUDE.md, "Onboa
    through the hook and showed in `list_agents`, once PR #26 gave the hook its own User-Agent (Cloudflare refuses
    Python's). Left for her: set the connector's tools to Always allow, if she hasn't.
 2. **Which comes first:** phase 2 (the camera) or the page reading the gateway (phase 5).
-3. **The posts waiting since 30 September**, which a session collects only when it next runs:
-   - two messages to Clafoutis;
-   - one to Matcha;
-   - Nougat's "yes";
-   - an archive request for another Nougat session, which Claude can do on her word.
+3. ~~The posts waiting since 30 September~~: delivered from a session on 2 October with Claude Code Remote's
+   `send_message` (four messages, one archive; two were already done) and marked delivered.
 4. **Rotate the MCPmarket token** in her plugin zip's `.mcp.json`.
 5. **Small questions:**
    - who made `plants.zip`;
    - whether Rename should rename the real session;
    - whether attic cats should sit on the stairs;
    - whether to delete the Drive folder's `download` files.
-6. **Turn the house rules on in the cloud:** the two lines in `harness/README.md`, "In cloud sessions", go in
-   the environment's setup script. Until then no house rule runs in a cloud session, merging gate included.
+6. ~~Turn the house rules on in the cloud~~: done 2 October, the two lines are in the environment's setup script
+   and a restarted session had the rules on.
+10. **The queen's key and her runner** (after the queen's pull request merges): the secret `CATIO_QUEEN` on the
+    Worker, then on her PC `setx CATIO_URL`, `setx CATIO_QUEEN` and `python harness\runner\queen.py`
+    (`harness/runner/README.md`). Then open the café in Chrome, click the queen in the hall, turn her voice on,
+    and talk to her.
 7. **Turn on *Automatically delete head branches*** in each repo (Settings → General → Pull Requests), so a
    merge deletes its branch.
 8. **Opt the other repos in to semi-automatic merging**, if she wants: `{"merge": true}` in their

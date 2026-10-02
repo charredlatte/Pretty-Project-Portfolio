@@ -5,13 +5,18 @@
 	"name": "catio-gateway",
 	"main": "src/index.js",
 	"compatibility_date": "2026-09-15",
-	// The house: cats, notes, files and the sign-in lock, in one SQLite-backed Durable Object.
-	"durable_objects": { "bindings": [{ "name": "HOUSE", "class_name": "House" }] },
-	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["House"] }],
-	// The OAuth library's grants and tokens (hashed). No id: the first deploy creates it.
-	"kv_namespaces": [{ "binding": "OAUTH_KV" }],
+	// A house a user: their cats, notes, files and the café's documents, each a SQLite-backed Durable Object; and
+	// the registry, one for all: who has an account, their keys and their sign-ins.
+	"durable_objects": { "bindings": [{ "name": "HOUSE", "class_name": "House" }, { "name": "REGISTRY", "class_name": "Registry" }] },
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["House"] }, { "tag": "v2", "new_sqlite_classes": ["Registry"] }],
+	// The OAuth library's grants and tokens (hashed), and the café's art and brain files. No ids: a deploy creates them.
+	"kv_namespaces": [{ "binding": "OAUTH_KV" }, { "binding": "FILES" }],
+	// The café (catio/index.html) and its runtime (cafe/runtime.js) go into the Worker as text.
+	"rules": [{ "type": "Text", "globs": ["**/*.html", "**/cafe/*.js"], "fallthrough": true }],
 	"observability": { "enabled": true }
-	// Secrets, set in the dashboard (Settings > Variables and Secrets), never here:
+	// Secrets, set in the dashboard (Settings > Variables and Secrets), never here. They make the first account
+	// (src/registry.js, bootstrap) when the registry is empty, and may be deleted once she has her own key:
 	//   CATIO_TOKEN     the key agents and the session hooks send; also in Claude's environment settings
 	//   CATIO_PASSWORD  Charlotte's sign-in password, for adding the gateway as a connector in claude.ai
+	//   CATIO_QUEEN     the queen's runner's own key (harness/runner), the only one that speaks as the queen
 }

@@ -1,11 +1,18 @@
 {
   "name": "kittychat",
-  "owner": { "name": "Charlotte Badot" },
+  "owner": {
+    "name": "Charlotte Badot"
+  },
   "plugins": [
     {
       "name": "kittychat-house-rules",
       "source": "./harness",
       "description": "The KittyChat Café's house rules, the catio skill and graphify."
+    },
+    {
+      "name": "catio",
+      "source": "./catio-plugin",
+      "description": "Set up your own Catio, and the litter box quiz for checking the sifter's piles."
     }
   ]
 }

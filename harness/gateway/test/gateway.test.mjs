@@ -1,4 +1,5 @@
-// The gateway end to end, in workerd: `wrangler dev` with a fresh state, then claude.ai's sign-in as claude.ai
+// The gateway end to end, in workerd: `wrangler dev` with a fresh state (its two secrets make the first account,
+// charlotte's, as they do on the first deploy with accounts), then claude.ai's sign-in as claude.ai
 // does it (register, authorize with her password, token, refresh), the tools as the page and an agent call
 // them, and the sign-in lock.
 //
@@ -16,6 +17,7 @@ import { fileURLToPath } from "node:url";
 const HERE = fileURLToPath(new URL("..", import.meta.url));
 const REPORT = join(HERE, "../hooks/report.py");
 const TOKEN = "agent-key-" + randomBytes(12).toString("hex");
+const QUEEN = "queen-key-" + randomBytes(12).toString("hex");
 const PASSWORD = "her-password-" + randomBytes(8).toString("hex");
 const CALLBACK = "https://claude.ai/api/mcp/auth_callback";
 
@@ -23,15 +25,16 @@ const freePort = () => new Promise((done) => {
 	const s = createServer().listen(0, "127.0.0.1", () => { const { port } = s.address(); s.close(() => done(port)); });
 });
 
-let base, wrangler, state, log = "";
+let base, wrangler, state, log = "", herCookie = "";
 
-before(async () => {
+// wrangler dev on a fresh state; again on the same state, at the end, as a deploy would start a new isolate
+async function start() {
 	const [port, inspector] = [await freePort(), await freePort()];
 	base = `http://127.0.0.1:${port}`;
-	state = mkdtempSync(join(tmpdir(), "catio-gateway-"));
+	log = "";
 	wrangler = spawn(process.execPath, [join(HERE, "node_modules/wrangler/bin/wrangler.js"), "dev", "--ip", "127.0.0.1",
 		"--port", String(port), "--inspector-port", String(inspector), "--persist-to", state,
-		"--var", "CATIO_TOKEN:" + TOKEN, "--var", "CATIO_PASSWORD:" + PASSWORD], {
+		"--var", "CATIO_TOKEN:" + TOKEN, "--var", "CATIO_PASSWORD:" + PASSWORD, "--var", "CATIO_QUEEN:" + QUEEN], {
 		cwd: HERE, env: { ...process.env, WRANGLER_SEND_METRICS: "false", NO_COLOR: "1" }, stdio: ["ignore", "pipe", "pipe"],
 		detached: true,   // its own process group, so workerd goes with it
 	});
@@ -43,10 +46,16 @@ before(async () => {
 		await new Promise((r) => setTimeout(r, 500));
 	}
 	throw new Error("wrangler dev didn't start:\n" + log);
+}
+const stop = () => { try { process.kill(-wrangler.pid, "SIGTERM"); } catch { /* already gone */ } };
+
+before(async () => {
+	state = mkdtempSync(join(tmpdir(), "catio-gateway-"));
+	await start();
 });
 
 after(() => {
-	try { process.kill(-wrangler.pid, "SIGTERM"); } catch { /* already gone */ }
+	stop();
 	rmSync(state, { recursive: true, force: true });
 });
 
@@ -92,15 +101,15 @@ async function openSignIn(clientId) {
 async function submit(page, fields) {
 	return fetch(base + "/authorize", {
 		method: "POST", redirect: "manual", headers: { "Content-Type": "application/x-www-form-urlencoded", Cookie: page.cookie },
-		body: form({ handle: page.handle, client: "Claude", host: "claude.ai", ...fields }),
+		body: form({ handle: page.handle, client: "Claude", host: "claude.ai", user: "charlotte", ...fields }),
 	});
 }
 
-// the whole sign-in, as claude.ai and her browser do it: an access token that acts as Charlotte
-async function signIn() {
+// the whole sign-in, as claude.ai and a browser do it: an access token that acts as the user (charlotte unless said)
+async function signIn(who = { user: "charlotte", password: PASSWORD }) {
 	const { client_id } = await (await register([CALLBACK])).json();
 	const page = await openSignIn(client_id);
-	const r = await submit(page, { password: PASSWORD, decision: "allow" });
+	const r = await submit(page, { ...who, decision: "allow" });
 	const code = new URL(r.headers.get("location")).searchParams.get("code");
 	const t = await fetch(base + "/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
 		body: form({ grant_type: "authorization_code", code, redirect_uri: CALLBACK, client_id, code_verifier: page.verifier, resource: base + "/mcp" }) });
@@ -108,6 +117,373 @@ async function signIn() {
 }
 
 // ---------- the tests ----------
+// The café on the gateway's own address: hers alone, behind her password, as OpenClaw's Control UI is.
+describe("the café", () => {
+	let cookie = "";
+	const KEY = () => ({ Authorization: "Bearer " + TOKEN });
+	const api = (path, init = {}) => fetch(base + path, { ...init, headers: { Cookie: cookie, "X-Catio": "1", ...(init.headers || {}) } });
+	const put = (path, data, method = "PUT") => api("/api/db/" + path, { method, body: JSON.stringify({ data }) });
+
+	test("asks for her password before showing anything", async () => {
+		const first = await (await fetch(base + "/")).text();
+		assert.match(first, /Your handle/);
+		assert.match(first, /Your Catio password/);
+		assert.doesNotMatch(first, /id="houseBtn"/);
+		for (const p of ["/api/db", "/art/licensed/pochi.png", "/files/x", "/ws"]) assert.equal((await fetch(base + p)).status, 401, p);
+		const wrong = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "charlotte", password: "not-the-password-sorry" }), redirect: "manual" });
+		assert.equal(wrong.status, 401);
+		const nobody = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "nobody", password: PASSWORD }), redirect: "manual" });
+		assert.equal(nobody.status, 401);
+		const right = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "Charlotte", password: PASSWORD }), redirect: "manual" });
+		assert.equal(right.status, 303);
+		const set = right.headers.get("set-cookie");
+		assert.match(set, /^__Host-catio=[0-9a-f]{64}; Path=\/; Secure; HttpOnly; SameSite=Strict/);
+		cookie = set.split(";")[0];
+		const r = await fetch(base + "/", { headers: { Cookie: cookie } });
+		assert.equal(r.headers.get("x-frame-options"), "DENY");
+		const page = await r.text();
+		assert.match(page, /<script src="\/runtime.js"><\/script><\/head><body>/);
+		assert.match(page, /id="houseBtn"/);
+		assert.match(page, /<link rel="icon" type="image\/png" href="\/art\/licensed\/ui\/logo.png">/, "the tab's icon is the café's cat");
+	});
+
+	test("moves her data in once, with the agents' key", async () => {
+		const docs = { "rooms/kitchen": { name: "Kitchen", repos: ["groceries"] }, "cats/c1": { title: "A chat", mood: "needs" } };
+		const send = (headers) => fetch(base + "/api/import", { method: "POST", headers, body: JSON.stringify({ docs }) });
+		assert.equal((await send({})).status, 401);
+		assert.equal((await send({ Cookie: cookie })).status, 401);
+		assert.equal((await send(KEY())).status, 200);
+		assert.equal((await send(KEY())).status, 409);
+		assert.deepEqual((await (await api("/api/db")).json()).docs, docs);
+	});
+
+	test("keeps the page's documents, and tells an open café at once", async () => {
+		const heard = [];
+		const ws = new WebSocket(base.replace("http", "ws") + "/ws", { headers: { Cookie: cookie, Origin: base } });
+		ws.onmessage = (e) => heard.push(JSON.parse(e.data));
+		await new Promise((ok, no) => { ws.onopen = ok; ws.onerror = no; });
+		assert.equal((await fetch(base + "/api/db/rooms/kitchen", { method: "PUT", headers: { Cookie: cookie }, body: JSON.stringify({ data: {} }) })).status, 403);
+		assert.equal((await put("rooms/kitchen", { name: "Cuisine" })).status, 200);
+		assert.equal((await put("cats/c1", { mood: "done" }, "PATCH")).status, 200);
+		assert.equal((await put("cats/nobody", { mood: "done" }, "PATCH")).status, 404);
+		assert.equal((await put("rooms", { name: "x" })).status, 400);
+		assert.equal((await api("/api/db/cats/c1", { method: "DELETE" })).status, 200);
+		const { docs } = await (await api("/api/db")).json();
+		assert.deepEqual(docs, { "rooms/kitchen": { name: "Cuisine" } });
+		await new Promise((r) => setTimeout(r, 300));
+		assert.deepEqual(heard.filter((m) => m.type === "doc").map((m) => [m.path, m.data]),
+			[["rooms/kitchen", { name: "Cuisine" }], ["cats/c1", { title: "A chat", mood: "done" }], ["cats/c1", null]]);
+		await api("/api/tools/report_status", { method: "POST", body: JSON.stringify({ agent: "cafe-cat", mood: "busy" }) });
+		await new Promise((r) => setTimeout(r, 300));
+		assert.ok(heard.some((m) => m.type === "agents"), "a cat's change reaches the café");
+		ws.close();
+		const stranger = new WebSocket(base.replace("http", "ws") + "/ws", { headers: { Cookie: cookie, Origin: "https://elsewhere.example" } });
+		await assert.rejects(new Promise((ok, no) => { stranger.onopen = ok; stranger.onerror = no; }));
+	});
+
+	test("serves the licensed art only to her, from what the agents' key uploaded", async () => {
+		const png = Buffer.from("89504e470d0a1a0a0000", "hex");
+		const up = (path, body, headers = KEY()) => fetch(base + "/api/" + path, { method: "PUT", headers, body });
+		assert.equal((await up("art/licensed/pochi.png", png, {})).status, 401);
+		assert.equal((await up("art/licensed/evil.html", "<script>")).status, 400);
+		assert.equal((await up("art/licensed/pochi.png", png)).status, 200);
+		assert.equal((await fetch(base + "/art/licensed/pochi.png")).status, 401);
+		const r = await api("/art/licensed/pochi.png");
+		assert.equal(r.headers.get("content-type"), "image/png");
+		assert.deepEqual(Buffer.from(await r.arrayBuffer()), png);
+	});
+
+	test("keeps the brain's files, and opens them where nothing in them can run", async () => {
+		const up = await (await api("/api/files", { method: "POST", headers: { "Content-Type": "text/html", "X-Name": "notes.html" }, body: "<script>alert(1)</script>" })).json();
+		const r = await api(up.url);
+		assert.equal(await r.text(), "<script>alert(1)</script>");
+		assert.match(r.headers.get("content-security-policy"), /^sandbox/);
+		assert.match(r.headers.get("content-disposition"), /^attachment/);
+		assert.equal((await api("/api/files/" + up.id, { method: "DELETE" })).status, 200);
+		assert.equal((await api(up.url)).status, 404);
+	});
+
+	test("uses the gateway's tools as herself", async () => {
+		assert.equal((await api("/api/tools/comment", { method: "POST", body: JSON.stringify({ cat: "cafe-cat", text: "From the café" }) })).status, 200);
+		const { notes } = await (await api("/api/tools/comments", { method: "POST", body: JSON.stringify({ cat: "cafe-cat" }) })).json();
+		assert.deepEqual([notes.at(-1).author, notes.at(-1).text], ["charlotte", "From the café"]);
+		assert.equal((await api("/api/tools/no_such_tool", { method: "POST", body: "{}" })).status, 404);
+		assert.equal((await api("/api/tools/manage", { method: "POST", body: JSON.stringify({ cat: "nobody", action: "archive" }) })).status, 400);
+		assert.match(await (await fetch(base + "/runtime.js")).text(), /catioGateway: true/);
+	});
+});
+
+// Accounts: the first is charlotte's, from the two secrets; an admin makes the others; each has a house of its own.
+describe("accounts", () => {
+	const TESTER = "tester-password-" + randomBytes(6).toString("hex");
+	let her = "", theirs = "", key = "", TESTER_NOW = "";
+	const KEY = (k) => ({ Authorization: "Bearer " + k, "Content-Type": "application/json" });
+	const login = async (user, password) => {
+		const r = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user, password }), redirect: "manual" });
+		return { status: r.status, cookie: r.status === 303 ? r.headers.get("set-cookie").split(";")[0] : "" };
+	};
+	const as = (cookie, path, init = {}) => fetch(base + path, { ...init, headers: { Cookie: cookie, "X-Catio": "1", ...(init.headers || {}) } });
+
+	test("lets an admin, signed in to the café, create an account, and nobody else", async () => {
+		({ cookie: herCookie } = await login("charlotte", PASSWORD));
+		assert.ok(herCookie);
+		const make = (cookie, body, headers = {}) => fetch(base + "/api/users", { method: "POST", headers: { Cookie: cookie, "X-Catio": "1", ...headers }, body: JSON.stringify(body) });
+		assert.equal((await fetch(base + "/api/users", { method: "POST", headers: KEY(TOKEN), body: JSON.stringify({ id: "tester", password: TESTER }) })).status, 401, "never with a key: one is in every session's environment");
+		assert.equal((await make("", { id: "tester", password: TESTER })).status, 401);
+		assert.equal((await make(herCookie, { id: "Tester!", password: TESTER })).status, 400);
+		assert.equal((await make(herCookie, { id: "tester", password: "short" })).status, 400);
+		assert.equal((await make(herCookie, { id: "house", password: TESTER })).status, 400, "the first house's name is kept");
+		assert.equal((await fetch(base + "/api/users", { method: "POST", headers: { Cookie: herCookie, "X-Catio": "1" }, body: "null" })).status, 400, "a null body is a bad request, not a crash");
+		const made = await make(herCookie, { id: "Tester", password: TESTER });
+		assert.equal(made.status, 201);
+		assert.deepEqual(await made.json(), { id: "tester", house: "tester" });
+		assert.equal((await make(herCookie, { id: "tester", password: TESTER })).status, 400, "a handle is taken once");
+		({ cookie: theirs } = await login("tester", TESTER));
+		assert.ok(theirs);
+		assert.equal((await make(theirs, { id: "third", password: TESTER })).status, 403, "tester is no admin");
+	});
+
+	test("mints a key from a signed-in browser, shown once", async () => {
+		assert.equal((await fetch(base + "/api/keys", { method: "POST", headers: KEY(TOKEN), body: "{}" })).status, 401, "a key doesn't sign a browser in");
+		assert.equal((await fetch(base + "/api/keys", { method: "POST", headers: { Cookie: theirs }, body: "{}" })).status, 403, "not without X-Catio");
+		const r = await as(theirs, "/api/keys", { method: "POST", body: JSON.stringify({ name: "laptop" }) });
+		assert.equal(r.status, 200);
+		({ key } = await r.json());
+		assert.match(key, /^[0-9a-f]{64}$/);
+		assert.equal((await as(theirs, "/api/keys", { method: "POST", body: "null" })).status, 200, "no name is fine");
+		assert.equal((await as(theirs, "/api/keys", { method: "POST", body: JSON.stringify({ name: "laptop" }) })).status, 400, "names are unique");
+		assert.deepEqual((await (await as(theirs, "/api/keys")).json()).keys.map((k) => k.name), ["laptop", "key"]);
+		assert.equal((await fetch(base + "/api/art/licensed/pochi.png", { method: "PUT", headers: KEY(key), body: "x" })).status, 403, "tester's key uploads no art");
+	});
+
+	test("keeps each user's cats in their own house", async () => {
+		assert.equal((await tool(key, "report_status", { agent: "tester-cat", mood: "needs", ask: "Which colour?" })).ok, true);
+		assert.equal((await tool(TOKEN, "report_status", { agent: "her-cat", mood: "busy" })).ok, true);
+		const theirCats = (await tool(key, "list_agents")).agents.map((a) => a.id);
+		assert.ok(theirCats.includes("tester-cat") && !theirCats.includes("her-cat"), String(theirCats));
+		const herCats = (await tool(TOKEN, "list_agents")).agents.map((a) => a.id);
+		assert.ok(herCats.includes("her-cat") && !herCats.includes("tester-cat"), String(herCats));
+		// the connector, signed in as tester, sees tester's house
+		({ access_token: her } = await signIn());
+		const { access_token: them } = await signIn({ user: "tester", password: TESTER });
+		assert.deepEqual((await tool(them, "list_agents")).agents.map((a) => a.id), ["tester-cat"]);
+		assert.ok(!(await tool(her, "list_agents")).agents.some((a) => a.id === "tester-cat"));
+		assert.equal((await tool(them, "comment", { cat: "tester-cat", text: "Blue." })).id !== undefined, true);
+		assert.deepEqual((await tool(key, "inbox", { agent: "tester-cat", mark: true })).notes.map((n) => n.text), ["Blue."]);
+	});
+
+	test("keeps each user's café apart: documents, files and the import", async () => {
+		assert.deepEqual((await (await as(theirs, "/api/db")).json()).docs, {});
+		const docs = { "rooms/kitchen": { name: "Their kitchen" } };
+		assert.equal((await fetch(base + "/api/import", { method: "POST", headers: KEY(key), body: JSON.stringify({ docs }) })).status, 200);
+		assert.deepEqual((await (await as(theirs, "/api/db")).json()).docs, docs);
+		assert.notDeepEqual((await (await as(herCookie, "/api/db")).json()).docs, docs);
+		const up = await (await as(theirs, "/api/files", { method: "POST", headers: { "Content-Type": "text/plain", "X-Name": "mine.txt" }, body: "theirs" })).json();
+		assert.equal((await as(theirs, up.url)).status, 200);
+		assert.equal((await as(herCookie, up.url)).status, 404);
+		assert.equal((await as(herCookie, "/files/tester:" + up.id)).status, 404, "the first house's old key can't be aimed at another house");
+		assert.equal((await as(herCookie, "/api/files/" + up.id, { method: "DELETE" })).status, 200);
+		assert.equal((await as(theirs, up.url)).status, 200, "another user's delete does nothing");
+	});
+
+	test("drops a key, and lets an admin reset a password", async () => {
+		assert.equal((await as(theirs, "/api/keys/nope", { method: "DELETE" })).status, 404);
+		assert.equal((await as(theirs, "/api/keys/%E0%A4%A", { method: "DELETE" })).status, 404, "a broken escape is no key, not a crash");
+		assert.equal((await as(theirs, "/api/db/%E0%A4%A", { method: "DELETE" })).status, 400);
+		assert.equal((await as(theirs, "/api/files", { method: "POST", headers: { "Content-Type": "text/plain", "X-Name": "%E0%A4%A" }, body: "x" })).status, 200, "a broken name is just \"file\"");
+		assert.equal((await as(theirs, "/api/keys/laptop", { method: "DELETE" })).status, 200);
+		assert.equal((await fetch(base + "/mcp", { method: "POST", headers: KEY(key), body: "{}" })).status, 401, "a dropped key is dead");
+		assert.equal((await (await as(theirs, "/api/keys")).json()).keys.length, 1);
+		const reset = (cookie, id, password) => as(cookie, "/api/users/" + id, { method: "PUT", body: JSON.stringify({ password }) });
+		const NEW = "tester-new-password-" + randomBytes(4).toString("hex");
+		assert.equal((await fetch(base + "/api/users/charlotte", { method: "PUT", headers: KEY(TOKEN), body: JSON.stringify({ password: NEW }) })).status, 401, "never with a key");
+		assert.equal((await reset(theirs, "charlotte", NEW)).status, 403, "tester is no admin");
+		assert.equal((await reset(herCookie, "nobody", NEW)).status, 400);
+		assert.equal((await reset(herCookie, "tester", "short")).status, 400);
+		// a connector tester let in, and a key they minted, die with the reset too
+		const { access_token: theirConnector } = await signIn({ user: "tester", password: TESTER });
+		assert.ok((await tool(theirConnector, "list_agents")).agents);
+		const { key: another } = await (await as(theirs, "/api/keys", { method: "POST", body: JSON.stringify({ name: "phone" }) })).json();
+		const done = await reset(herCookie, "Tester", NEW);   // as an admin might type it: the grants are under "tester"
+		assert.equal(done.status, 200);
+		assert.ok((await done.json()).revoked >= 1, "the connector's grant is found under the handle as spelt in the registry");
+		assert.equal((await fetch(base + "/mcp", { method: "POST", headers: KEY(theirConnector), body: "{}" })).status, 401, "the grant is revoked");
+		assert.equal((await fetch(base + "/mcp", { method: "POST", headers: KEY(another), body: "{}" })).status, 401, "the key is dead");
+		assert.equal((await as(theirs, "/api/db")).status, 401, "a reset signs every browser out");
+		assert.equal((await login("tester", TESTER)).status, 401);
+		({ cookie: theirs } = await login("tester", NEW));
+		assert.ok(theirs);
+		assert.deepEqual((await (await as(theirs, "/api/keys")).json()).keys, [], "no keys survive a reset");
+		TESTER_NOW = NEW;
+	});
+
+	test("locks one user's sign-in, not another's", async () => {
+		assert.equal((await login("not a handle!", TESTER_NOW)).status, 401, "an impossible handle is refused without a hash");
+		// right sign-ins in flight together don't lock anyone
+		const fine = await Promise.all([0, 1, 2, 3, 4, 5].map(() => login("tester", TESTER_NOW)));
+		assert.deepEqual(fine.map((r) => r.status), [303, 303, 303, 303, 303, 303]);
+		// five guesses at once lock like five in a row: one handle's tries run in turn
+		const burst = await Promise.all([0, 1, 2, 3, 4, 5, 6].map((i) => login("tester", "wrong-password-" + i)));
+		assert.deepEqual(burst.map((r) => r.status).sort(), [401, 401, 401, 401, 401, 429, 429]);
+		assert.equal((await login("tester", TESTER_NOW)).status, 429);
+		assert.equal((await login("charlotte", PASSWORD)).status, 303);
+		// an admin's reset lets a locked-out user back in
+		assert.equal((await as(herCookie, "/api/users/tester", { method: "PUT", body: JSON.stringify({ password: TESTER_NOW }) })).status, 200);
+		assert.equal((await login("tester", TESTER_NOW)).status, 303);
+	});
+});
+
+// The queen of the house: Charlotte talks to her in the café; her runner (harness/runner) waits here with the
+// queen's own key, runs a turn, and streams what she says back to every open café.
+describe("the queen", () => {
+	let her, cookie;
+	const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+	const runner = (path, body) => fetch(base + path, { method: "POST", headers: { Authorization: "Bearer " + QUEEN, "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+	const wait = () => runner("/api/runner/wait").then((r) => r.json());
+	const say = (body) => runner("/api/runner/say", body);
+	const api = (path, init = {}) => fetch(base + path, { ...init, headers: { Cookie: cookie, "X-Catio": "1", ...(init.headers || {}) } });
+	const put = (path, data) => api("/api/db/" + path, { method: "PUT", body: JSON.stringify({ data }) });
+	const queen = async () => (await tool(her, "list_agents")).agents.find((a) => a.id === "queen");
+
+	before(async () => {
+		her = (await signIn()).access_token;
+		const r = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "charlotte", password: PASSWORD }), redirect: "manual" });
+		cookie = r.headers.get("set-cookie").split(";")[0];
+	});
+
+	test("hears what Charlotte says to her the moment she says it, with her own key only", async () => {
+		assert.equal((await fetch(base + "/api/runner/wait", { method: "POST", headers: { Authorization: "Bearer " + TOKEN } })).status, 401, "the agents' key");
+		assert.equal((await fetch(base + "/api/runner/wait", { method: "POST", headers: { Cookie: cookie, "X-Catio": "1" } })).status, 401, "her browser");
+		assert.equal((await put("queens/house", { name: "Duchesse", manner: "Elizabethan English, warm.", greeting: "Good morrow, my lady." })).status, 200);
+		assert.equal(await queen(), undefined, "no runner yet: no queen in the house");
+		const started = Date.now();
+		const waiting = wait();
+		await sleep(400);
+		assert.ok((await tool(her, "comment", { cat: "queen", text: "Who needs me today?" })).id);
+		const got = await waiting;
+		assert.ok(Date.now() - started < 5000, "the wait came back as she spoke, not at its timeout");
+		assert.deepEqual(got.notes.map((n) => [n.author, n.text]), [["charlotte", "Who needs me today?"]]);
+		assert.deepEqual([got.stop, got.routine], [false, null]);
+		assert.deepEqual(got.character, { name: "Duchesse", manner: "Elizabethan English, warm.", greeting: "Good morrow, my lady." });
+		assert.equal((await queen()).via, "runner", "her runner is present");
+		// each note is handed out once
+		const again = wait();
+		await sleep(300);
+		await tool(her, "comment", { cat: "queen", text: "And the shop?" });
+		assert.deepEqual((await again).notes.map((n) => n.text), ["And the shop?"]);
+	});
+
+	test("streams what she says to an open café, and keeps it when she is done", async () => {
+		const heard = [];
+		const ws = new WebSocket(base.replace("http", "ws") + "/ws", { headers: { Cookie: cookie, Origin: base } });
+		ws.onmessage = (e) => heard.push(JSON.parse(e.data));
+		await new Promise((ok, no) => { ws.onopen = ok; ws.onerror = no; });
+		assert.equal((await say({ turn: "t1", text: "Good morrow, my", done: false })).status, 200);
+		assert.equal((await queen()).mood, "busy");
+		assert.equal((await say({ turn: "t1", text: "Good morrow, my lady. Two cats need thee.", done: true })).status, 200);
+		assert.equal((await queen()).mood, "done");
+		await sleep(300);
+		ws.close();
+		assert.deepEqual(heard.filter((m) => m.type === "queen").map((m) => [m.turn, m.text, m.done]),
+			[["t1", "Good morrow, my", false], ["t1", "Good morrow, my lady. Two cats need thee.", true]]);
+		assert.deepEqual((await tool(her, "comments", { cat: "queen" })).notes.map((n) => [n.author, n.text]),
+			[["charlotte", "Who needs me today?"], ["charlotte", "And the shop?"], ["queen", "Good morrow, my lady. Two cats need thee."]]);
+		assert.equal((await say({ turn: "t1", text: "", done: true })).status, 200, "an empty turn stores nothing");
+		assert.equal((await tool(her, "comments", { cat: "queen" })).notes.length, 3);
+		assert.equal((await runner("/api/runner/say", { text: "x".repeat(70000), done: true })).status, 413);
+	});
+
+	test("stops the turn she is on when Charlotte says so", async () => {
+		const waiting = wait();
+		await sleep(300);
+		assert.equal((await api("/api/tools/manage", { method: "POST", body: JSON.stringify({ cat: "queen", action: "pause" }) })).status, 200);
+		assert.equal((await waiting).stop, true);
+		assert.match((await tool(her, "manage", { cat: "queen", action: "archive" })).refused, /only pause/);
+	});
+
+	test("speaks as the queen with her key, never as Charlotte, and the cats hear her", async () => {
+		const cat = "session_01Queen";
+		const env = { ...process.env, CATIO_URL: base, CATIO_TOKEN: TOKEN, CLAUDE_CODE_REMOTE_SESSION_ID: cat, NO_PROXY: "127.0.0.1", no_proxy: "127.0.0.1" };
+		const hook = (data) => execFileSync("python3", [REPORT], { input: JSON.stringify({ cwd: HERE, ...data }), env, encoding: "utf8" });
+		hook({ hook_event_name: "SessionStart", source: "startup" });
+		assert.equal((await tool(QUEEN, "comment", { cat, text: "x", author: "charlotte" })).refused, "only Charlotte writes as Charlotte");
+		assert.equal((await tool(TOKEN, "comment", { cat, text: "x", author: "queen" })).refused, "only the queen's runner writes as the queen");
+		assert.equal((await tool(TOKEN, "manage", { cat, action: "wrap_up" })).refused, "only Charlotte manages a cat");
+		assert.ok((await tool(QUEEN, "comment", { cat, text: "Prithee, push thy work." })).id);
+		assert.equal((await tool(QUEEN, "manage", { cat, action: "wrap_up" })).ok, true);
+		// the session's hook hands the queen's words in as hers, and her request with them
+		const held = JSON.parse(hook({ hook_event_name: "Stop", stop_hook_active: false }));
+		assert.match(held.reason, /\[Catio\] The queen says: Prithee, push thy work\./);
+		assert.match(held.reason, /\[Catio\] Request: wrap_up/);
+		// what the cat says last shows on it, for the page to carry to the queen
+		assert.equal((await tool(her, "list_agents")).agents.find((a) => a.id === cat).said, undefined);
+		execFileSync("python3", [REPORT, "say", "Pushed, your majesty."], { env });
+		const me = (await tool(her, "list_agents")).agents.find((a) => a.id === cat);
+		assert.equal(me.said.text, "Pushed, your majesty.");
+		assert.ok(me.said.at > 0);
+		assert.deepEqual((await tool(TOKEN, "comments", { cat })).notes.map((n) => n.author), ["queen", "session"]);
+	});
+
+	test("sets Charlotte homework whose answers unblock a cat", async () => {
+		const cat = "session_01Queen";
+		assert.match((await tool(TOKEN, "quiz", { for: cat, title: "x", questions: [{ q: "y" }] })).refused, /only the queen or Charlotte/);
+		assert.match((await tool(QUEEN, "quiz", { title: "x", questions: [] })).refused, /questions is a list/);
+		const { id } = await tool(QUEEN, "quiz", { for: cat, title: "The menu fix", questions: [{ q: "Merge it?", options: ["Yes, merge it", "Not yet"] }, { q: "A word for the cat?", free: true }] });
+		assert.ok(id);
+		const open = (await tool(her, "quizzes")).quizzes;
+		assert.deepEqual(open.map((z) => [z.id, z.for, z.title, z.status, z.by, z.questions.length]), [[id, cat, "The menu fix", "set", "queen", 2]]);
+		assert.deepEqual(open[0].questions[0], { q: "Merge it?", options: ["Yes, merge it", "Not yet"], free: false });
+		assert.equal(open[0].questions[1].free, true);
+		assert.match((await tool(TOKEN, "answer", { quiz: id, answers: ["Yes, merge it", "Thanks"] })).refused, /only Charlotte/);
+		assert.match((await tool(her, "answer", { quiz: id, answers: ["Yes, merge it"] })).refused, /one answer per question/);
+		const waiting = wait();   // her runner is waiting: handing in reaches the queen at once
+		await sleep(300);
+		assert.deepEqual(await tool(her, "answer", { quiz: id, answers: ["Yes, merge it", "Well done, thou good cat"] }), { ok: true, told: true });
+		assert.deepEqual((await tool(her, "quizzes")).quizzes, []);
+		assert.equal((await tool(her, "quizzes", { done: true })).quizzes[0].answers[1], "Well done, thou good cat");
+		const box = await tool(TOKEN, "inbox", { agent: cat, mark: true });
+		assert.equal(box.notes.at(-1).author, "charlotte");
+		assert.equal(box.notes.at(-1).text, "Homework handed in: The menu fix\n1. Merge it? \u2192 Yes, merge it\n2. A word for the cat? \u2192 Well done, thou good cat");
+		const got = await waiting;
+		assert.match(got.notes.at(-1).text, /^Homework handed in: The menu fix[\s\S]*\(for session_01Queen, told\)$/);
+		assert.match((await tool(her, "answer", { quiz: id, answers: ["a", "b"] })).refused, /already/);
+	});
+
+	test("runs a routine once when it comes due", async () => {
+		const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Paris", hourCycle: "h23", hour: "numeric", minute: "numeric" })
+			.formatToParts(new Date()).map((p) => [p.type, p.value]));
+		const time = `${String(+parts.hour % 24).padStart(2, "0")}:${parts.minute.padStart(2, "0")}`;
+		assert.equal((await put("routines/off", { name: "Off", time, days: [0, 1, 2, 3, 4, 5, 6], tz: "Europe/Paris", prompt: "Never", on: false, last: 0 })).status, 200);
+		assert.equal((await put("routines/round", { name: "Morning round", time, days: [0, 1, 2, 3, 4, 5, 6], tz: "Europe/Paris", prompt: "Who needs me?", on: true, last: 0 })).status, 200);
+		const got = await wait();
+		assert.deepEqual([got.routine.id, got.routine.name, got.routine.prompt], ["round", "Morning round", "Who needs me?"]);
+		assert.ok(got.routine.at <= Date.now() && got.routine.at > Date.now() - 2 * 60 * 1000, "fired at this minute");
+		const { docs } = await (await api("/api/db")).json();
+		assert.equal(docs["routines/round"].last, got.routine.at, "the café sees when it last ran");
+		// once: the next wait has no routine, and comes back only when she speaks
+		const again = wait();
+		await sleep(300);
+		await tool(her, "comment", { cat: "queen", text: "Thank you." });
+		assert.equal((await again).routine, null);
+		// what the queen says for a routine is kept with it
+		await say({ turn: "t2", text: "All quiet, my lady.", done: true, routine: { id: "round", name: "Morning round" } });
+		const last = (await tool(her, "comments", { cat: "queen" })).notes.at(-1);
+		assert.deepEqual([last.author, last.text, last.routine], ["queen", "All quiet, my lady.", { id: "round", name: "Morning round" }]);
+	});
+
+	test("her key is the CATIO_QUEEN secret, and a café can mint another with the role queen", async () => {
+		const keys = (await (await api("/api/keys")).json()).keys;
+		assert.deepEqual(keys.find((k) => k.name === "queen").role, "queen");
+		assert.equal(keys.find((k) => k.name === "bootstrap").role, "agent");
+		const minted = await (await api("/api/keys", { method: "POST", body: JSON.stringify({ name: "pc", role: "queen" }) })).json();
+		assert.equal(minted.role, "queen");
+		assert.equal((await fetch(base + "/api/runner/say", { method: "POST", headers: { Authorization: "Bearer " + minted.key, "Content-Type": "application/json" }, body: JSON.stringify({ turn: "t0", text: "", done: true }) })).status, 200);
+		assert.equal((await api("/api/keys", { method: "POST", body: JSON.stringify({ name: "odd", role: "king" }) })).status, 400);
+		assert.equal((await api("/api/keys/pc", { method: "DELETE" })).status, 200);
+		assert.equal((await fetch(base + "/api/runner/say", { method: "POST", headers: { Authorization: "Bearer " + minted.key }, body: "{}" })).status, 401, "a dropped key is dead");
+	});
+});
+
 describe("the gateway", () => {
 	test("tells strangers to sign in, and how", async () => {
 		const r = await fetch(base + "/mcp", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
@@ -127,7 +503,7 @@ describe("the gateway", () => {
 		assert.equal(init.result.serverInfo.name, "catio");
 		const { result } = await rpc(TOKEN, "tools/list", {});
 		assert.deepEqual(result.tools.map((t) => t.name),
-			["house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage"]);
+			["house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "answer"]);
 		const rules = await tool(TOKEN, "house_rules");
 		assert.ok(rules.rules.some((r) => r.id === "ship"));
 		assert.equal((await tool(TOKEN, "nope")).rpcError.code, -32602);
@@ -163,19 +539,21 @@ describe("the gateway", () => {
 		assert.equal((await register([CALLBACK, "http://localhost:4000/cb"])).status, 400);
 	});
 
-	test("signs Charlotte in with her password, never with a wrong one", async () => {
+	test("signs Charlotte in with her handle and password, never with a wrong one", async () => {
 		const { client_id } = await (await register([CALLBACK])).json();
 		const page = await openSignIn(client_id);
 		assert.equal(page.status, 200);
 		assert.ok(page.handle);
 		assert.match(page.html, /Let Claude into the Catio\?/);
+		assert.match(page.html, /name="user"/);
 		assert.match(page.html, /Access goes to <strong>claude\.ai<\/strong>/);
 		assert.equal(page.headers.get("x-frame-options"), "DENY");
 		assert.match(page.headers.get("content-security-policy"), /frame-ancestors 'none'/);
 
 		const wrong = await submit(page, { password: "not-her-password-123", decision: "allow" });
 		assert.equal(wrong.status, 401);
-		assert.match(await wrong.text(), /isn&#39;t right/);
+		assert.equal((await submit(page, { user: "someone-else", password: PASSWORD, decision: "allow" })).status, 401);
+		assert.match(await wrong.text(), /aren&#39;t right/);
 		const empty = await submit(page, { password: "", decision: "allow" });
 		assert.equal(empty.status, 400);
 
@@ -321,5 +699,31 @@ describe("the gateway", () => {
 		const locked = await submit(page, { password: PASSWORD, decision: "allow" });
 		assert.equal(locked.status, 429);
 		assert.match(await locked.text(), /Too many wrong passwords/);
+	});
+});
+
+// Last, because every suite above holds the bootstrap key: once she drops it, it is dead. Her café cookie was
+// taken in the accounts suite, before the gateway suite locked her handle; a lock keeps nobody already in out.
+describe("the bootstrap key", () => {
+	test("can be dropped like any other, and stays dropped", async () => {
+		assert.ok(herCookie, "her café cookie from the accounts suite");
+		const api = (path, init = {}) => fetch(base + path, { ...init, headers: { Cookie: herCookie, "X-Catio": "1", ...(init.headers || {}) } });
+		const names = async () => (await (await api("/api/keys")).json()).keys.map((k) => k.name);
+		assert.deepEqual(await names(), ["bootstrap", "queen"]);
+		assert.equal((await api("/api/keys/bootstrap", { method: "DELETE" })).status, 200);
+		const mcp = () => fetch(base + "/mcp", { method: "POST", headers: { Authorization: "Bearer " + TOKEN }, body: "{}" });
+		assert.equal((await mcp()).status, 401);
+		// a new isolate (here: wrangler again on the same state) finds the registry full: nothing is bootstrapped
+		// again, so the key does not come back, and nothing says "no account yet". The queen's key is the secret
+		// itself, so it is still there.
+		stop();
+		await new Promise((r) => setTimeout(r, 500));
+		await start();
+		assert.equal((await fetch(base + "/")).status, 200);
+		assert.equal((await mcp()).status, 401);
+		assert.deepEqual(await names(), ["queen"]);
+		assert.equal((await fetch(base + "/api/runner/say", { method: "POST", headers: { Authorization: "Bearer " + QUEEN, "Content-Type": "application/json" }, body: JSON.stringify({ turn: "t9", text: "", done: true }) })).status, 200);
+		const asHer = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "charlotte", password: PASSWORD }), redirect: "manual" });
+		assert.equal(asHer.status, 429, "the lock from the gateway suite is in the registry, not in the isolate");
 	});
 });

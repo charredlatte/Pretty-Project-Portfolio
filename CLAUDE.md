@@ -207,7 +207,8 @@ The artifact database, written by the page and seeded with `ArtifactData`:
 | `cats` | generated id | an adopted chat: `title`, `link`, `project`, `room`, `mood` (`needs` / `busy` / `done`), `note`, `name` |
 | `projects` | the project's slug (repo name, or an adopted chat's project) | `name`, `coat`: the look every cat of that project shares, set from a filing cabinet |
 | `graphs` | the repo's slug | its project map from graphify, saved by the catio skill's `graph_doc.py`: counts, the map, hubs, groups, surprises and questions a cat can be asked; shown in the filing cabinet |
-| `queens` | the room key | the room's queen: `name`, `notes[]` of `{text, pinned, at}`. A pinned note is one she says out loud in her room |
+| `queens` | `house` | the queen of the house: `name`, `coat`, `manner` (how she speaks; the runner reads it each turn), `greeting`, `voice: {on, name, rate, pitch, lang}`, `readAt` (when Charlotte last opened her card: older handoffs are read), `notes[]` of `{text, pinned, at}`. A pinned note is one she says out loud. Older `queens/<room>` documents are hers until her first save |
+| `routines` | generated id | one of her routines: `name`, `time` ("HH:MM"), `days` (0–6, Sunday 0), `tz`, `prompt`, `on`, `last` (when the gateway last handed it to her runner). Only the gateway's copy runs: the runner reads the House, not the artifact |
 | `layouts` | the room key | *(planned: Build mode, `docs/camera-and-minimap.md`)* the room's furniture, and `cabinet: {look, x, y}`: the piece its filing cabinet looks like (her choice per room) and where it stands. The cabinet never leaves its room and keeps its Files and review spot whatever it looks like. No document: `MANOR.layout` and the default look |
 | `snapshot` | `sessions` | `{at, savedBy, sessions[]}`: Claude's saved copy of `list_sessions`, shown when the live read is blocked. Written only by Claude, with `ArtifactData` |
 
@@ -215,13 +216,40 @@ Room **geometry** (where each room is on the art and where its cats sit) is code
 the page, because it is tied to the picture. Room **names and which projects live where** are
 data. Don't hardcode those.
 
-**Every room has a queen** — one cat who is not a session, never leaves, and keeps what matters
-in that room. She sits on `GEOM[room].queen`, the seat held back from `spots` for her, so adding
-one to a room means taking a seat out of `spots`, not inventing a coordinate. She is deliberately
-outside `allCats()`: she is never in `VIEW.cats`, never in a pile, never in the filing cabinets
-and never counted by the sign, because she is not work to be done. What she keeps is hers alone;
-a note she is *saying* (`pinned`) becomes her line in the menus and in her hover line. Keep her
-out of the counts if you touch this — a queen that inflates "3 need you" makes the sign a liar.
+**The house has one queen** (her call, 2 October 2026: "merge the queen cats to make one main character queen cat
+that you chat with that does everything for you"). She is not a session and never leaves: she sits on the hall's
+seat (`GEOM.hall.queen`, `queenRoom()`; where new cats come in when the hall is closed), she keeps what matters,
+and she is the one Charlotte talks to, like an NPC in a game. She is deliberately outside `allCats()`: never in
+`VIEW.cats`, a pile, a filing cabinet or the sign's count, and her runner's record (the agent `queen`) is
+skipped there too, because she is not work to be done. Keep her out of the counts if you touch this — a queen
+that inflates "3 need you" makes the sign a liar.
+
+- **Her brain is her runner** (`harness/runner/queen.py`, on Charlotte's PC): it waits on the gateway, runs one
+  Claude Code turn per thing she says or routine due, and streams the answer back. `queenState()` reads the agent
+  record `queen`: away (no runner for two minutes: asleep, "start her runner"), busy (answering) or here.
+- **Her conversation** is the gateway's notes for the cat `queen`: Charlotte's lines (`comment`, author
+  `charlotte`) and hers (author `queen`, which only the runner's key may write). In the gateway café a `{type:
+  "queen"}` push (`catio:queen`) grows her live bubble as she speaks and her voice says each sentence; in claude.ai
+  her card polls `comments` every 5 s. Stop is `manage {cat: "queen", action: "pause"}`.
+- **Her card** (`openQueen(section)`): her greeting until she has spoken, the thread (her replies, what the cats
+  brought her, Charlotte's lines), Speak (`webkitSpeechRecognition`, Chrome and Edge), Send, Stop while busy, and
+  her voice switch; then, folded, What she keeps, Her character (name, coat, greeting, how she speaks, the
+  browser's voice, rate, pitch, what she listens for) and Routines. `speak()` is the browser's `speechSynthesis`
+  (an en-GB voice unless she picks one): one function, so a paid voice could be a second branch.
+- **Handoffs.** A cat's `said` (its latest note by its session or agent, from `list_agents`) newer than
+  `queens/house.readAt` is something it brought her: `refreshAgents()` diffs `said.at` and a copy of the cat walks to
+  her seat (`toQueen`, the `toAttic` pattern, changing floor at the stair); her card shows it as "<cat> brought
+  you" with an Open button, and opening her card writes `readAt`. Nothing is drawn on the cats.
+- **Homework** (her ask, 2 October: "allow the queen to assign homework by prompting quizzes to unblock sessions,
+  chats or cats"). The queen (or Charlotte) sets a quiz with the `quiz` tool: a title, `for` the cat it unblocks,
+  1 to 5 questions each with concrete options or a written answer; kept as `quizzes/<id>` in the House, listed by
+  `quizzes`. The page shows the open ones first in her card (`#queenHomework`: tap an option or write, Hand it
+  in → `answer`), and her hover says "Homework: N to hand in" (mood `box`). Handing in posts the answers to the
+  cat as Charlotte's words (its hook hands them in, `Homework handed in: …`) and to the queen's conversation, so
+  she can see to the rest. Only Charlotte hands in; the agents' key sets nothing.
+- **What she keeps** is hers alone; a note she is *saying* (`pinned`) becomes her line in her menu and hover.
+  The room queens of before (`queens/<room>`) are read as hers until her first save, which writes `queens/house`
+  and deletes them.
 
 Adopted chats can hold anything she types, including legal matters. They live only in the
 artifact database, never in this repo. The adopt form says so. The same goes for what a queen
@@ -282,19 +310,36 @@ subdomain>.workers.dev`) with the Catio server's tools at `/mcp`. Every session 
 `harness/hooks/report.py`, which does nothing until `CATIO_URL` and `CATIO_TOKEN` are in the environment, and
 its Stop hook hands in what she sent. Workers Builds deploys it on every merge to `main`; never deploy it by hand.
 
-- **Two secrets, set only in Cloudflare:** `CATIO_TOKEN` (agents and hooks; also in her Claude environments) and
-  `CATIO_PASSWORD` (her sign-in, nowhere else). Never in the repo, the chat or a test.
-- **Only she speaks as herself.** OAuth (her password, through the `Catio` connector in claude.ai) may write as
-  `charlotte`, drop files and manage; the agents' key may not. Keep it that way: it is what stops a leaked key
-  from putting instructions in her mouth.
+- **Three secrets, set only in Cloudflare:** `CATIO_TOKEN` (agents and hooks; also in her Claude environments),
+  `CATIO_PASSWORD` (her sign-in, nowhere else) and `CATIO_QUEEN` (the queen's runner, on her PC). Never in the
+  repo, the chat or a test. With accounts (`src/registry.js`), the first two make the first account once; the
+  queen's is a registry key with the role `queen`, kept in step with the secret at every start.
+- **Only she speaks as herself, and only her runner as the queen.** OAuth (her password, through the `Catio`
+  connector in claude.ai) may write as `charlotte`, drop files and manage; the queen's key writes as `queen`,
+  tells cats and manages them for her; the agents' key may do neither. Keep it that way: it is what stops a
+  leaked key from putting instructions in her mouth, or in her assistant's, which the cats act on.
+- **The queen's routes:** `POST /api/runner/wait` (held up to 25 s: her notes, a routine due, a stop, her
+  character) and `POST /api/runner/say` (a turn as it streams; `done` stores her note), the queen's key only.
+  Routines are `routines/<id>` documents; the House's alarm wakes a waiting runner when one comes due, and a
+  missed one runs once when the runner is back. `list_agents` gives each cat its `said`; `inbox` hands a cat
+  what Charlotte and the queen say (`[Catio] The queen says: …` in the hook).
 - **Only Claude's connectors may register** (redirects to `claude.ai` or `claude.com`).
 - **Keep its tools in step with `catio_mcp.py`**: same names, arguments and results, so the page and agents
   use either.
 - **Test** with `cd harness/gateway && npm install && npm test` (workerd, the real hook included) and
-  `python3 -m unittest discover harness/test`.
+  `python3 -m unittest discover -s harness/test` (the hook, the runner against a stand-in gateway and a fake
+  `claude`, the rules' hooks).
 
 It is set up (2 October 2026): her connector is named `CATIO` in claude.ai, and the page reads it (phase 5 of
 `docs/plan.md`). Setting up another is the five steps in `harness/gateway/README.md`.
+
+**The café on its own address** (her choice, 2 October: "the catio as a UI for all of my Claude sessions", in
+OpenClaw's shape). The gateway's address serves the same `catio/index.html` behind her password, with
+`harness/gateway/cafe/runtime.js` as its `window.claude` (`catioGateway: true`, so the page's `VIA_GATEWAY` mode is
+honest about what only claude.ai can do). Its data lives in the gateway (`docs` in the house), apart from the
+artifact's: the two copies don't share changes. Its art is uploaded with `cafe/move-in.py` and served only to her,
+signed in: never commit it, never serve it without the sign-in. A change to the page reaches both: the artifact by a
+publish, the gateway by a merge. Check gateway mode with `?via=gateway` in the stub.
 
 ## Live sessions
 

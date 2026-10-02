@@ -1,5 +1,6 @@
 // MCP over Streamable HTTP at /mcp: JSON-RPC in a POST, JSON back, no server-sent stream and no sessions.
-// The OAuth provider has already checked the bearer token: ctx.props says who sent it.
+// The OAuth provider has already checked the bearer token: ctx.props says who sent it, and which house is theirs.
+import { whose } from "./houses.js";
 import { INSTRUCTIONS, TOOLS } from "./tools.js";
 
 const NAMES = new Set(TOOLS.map((t) => t.name));
@@ -12,8 +13,10 @@ export async function serveMcp(request, env, ctx) {
 	} catch {
 		return Response.json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "parse error" } }, { status: 400 });
 	}
-	const who = ctx.props && ctx.props.user === "charlotte" ? "charlotte" : "agent";
-	const house = env.HOUSE.get(env.HOUSE.idFromName("house"));
+	const { house: name, owner, role } = whose(ctx.props);
+	if (!name) return Response.json({ jsonrpc: "2.0", id: null, error: { code: -32001, message: "this token opens no house" } }, { status: 401 });
+	const house = env.HOUSE.get(env.HOUSE.idFromName(name));
+	const who = owner ? "charlotte" : role === "queen" ? "queen" : "agent";   // the house's owner, its queen's runner, or an agent
 	// a list is answered in order, so a hook can report and then collect what's waiting in one request
 	const many = Array.isArray(body);
 	const replies = [];
@@ -34,7 +37,7 @@ async function answer(msg, house, who) {
 	const params = msg.params || {};
 	if (method === "initialize") {
 		return ok({ protocolVersion: params.protocolVersion || "2025-06-18", capabilities: { tools: {} },
-			serverInfo: { name: "catio", version: "0.2.0" }, instructions: INSTRUCTIONS });
+			serverInfo: { name: "catio", version: "0.3.0" }, instructions: INSTRUCTIONS });
 	}
 	if (method === "ping") return ok({});
 	if (method === "tools/list") return ok({ tools: TOOLS });

@@ -18,6 +18,7 @@ Nothing in it is art: plain grey boxes and Figma's Inter. Nothing from `catio/da
 5. **Sessions.** What `list_sessions` found. **4b** is the blocked state, with the saved copy in one line.
 6. **Litter box.** What it is and a drop zone. (The frame's switch for holding pull requests was dropped in
    the build: holding is the merging rule's doing, `harness/README.md`, not a page setting.)
+6. **Litter box.** What it is, a drop zone, and the switch for holding pull requests there.
 7. **How it works.** The harness in five plain lines: sessions are cats, house rules are locks (hooks), skills
    are training, messages wait on the mat, the litter box holds loose ends.
 8. **Done.** The summary and "Open the doors".
@@ -38,3 +39,8 @@ Mind the quota: a Starter plan with a View seat gets six MCP calls a month.
   2 October 2026).
 - The build is in the page (`openSetup()` in `catio/index.html`, `rooms/<k>.closed`, `list_repos` in the
   capabilities) and in the public `catio` skill, which asks the same questions. CLAUDE.md, "Onboarding".
+- Where the litter box lives in the page: the brain's unsorted tray and the repo's `litterbox/`. This is a to-do.
+## Not decided yet
+
+- The build (`catio/index.html`, the `catio` skill, `rooms/<k>.closed`, `list_repos` in the capabilities) waits
+  for her review of these frames.

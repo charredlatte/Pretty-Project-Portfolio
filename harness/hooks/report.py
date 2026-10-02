@@ -98,9 +98,12 @@ def facts(data):
     return f
 
 
+SAYS = {"charlotte": "Charlotte says", "queen": "The queen says"}   # the queen of the house: her assistant (harness/runner)
+
+
 def handed_in(box):
     """What she sent, as the turn the session carries on with. Empty when nothing is waiting."""
-    lines = ["[Catio] Charlotte says: " + n["text"] for n in (box or {}).get("notes") or []]
+    lines = ["[Catio] " + SAYS.get(n.get("author"), "Charlotte says") + ": " + n["text"] for n in (box or {}).get("notes") or []]
     request = (box or {}).get("request")
     if request and request.get("action"):
         lines.append("[Catio] Request: " + request["action"])

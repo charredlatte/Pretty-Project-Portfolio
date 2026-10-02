@@ -1,7 +1,7 @@
 # What Charlotte has asked for
 
 Everything she has asked for across the Catio, the manor, this repo and the KittyChat Cafe, compiled and
-compressed. Read this before starting something new. Last updated 2 October 2026.
+compressed. Read this before starting something new. Last updated 2 October 2026 (evening).
 
 ## Where the project's information lives
 
@@ -58,7 +58,11 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 - **A saved copy of her sessions** shows when the live read is blocked. A Routine refreshes it every two
   hours, from 07:59 to 19:59 Paris time.
 - **A copy that runs off a USB stick**, on localhost.
-- **A queen in every room** keeps notes and can say one aloud. She is never counted.
+- **One queen of the house** (2 October: "merge the queen cats to make one main character queen cat that you
+  chat with that does everything for you. The way you would interact with a real harness"), in the entrance
+  hall: chat with her like an NPC in an RPG, voice to text, a voice that turns on and off, a proper Elizabethan
+  English accent, a character you customise and set routines with, and cats with handoffs visibly passing things
+  to her for you to read. She keeps notes and can say one aloud. She is never counted.
 - **The Sprout Lands interface everywhere**, in its pixel font, with French accents.
 - **A plugin** so other people can run their own Catio.
 
@@ -156,6 +160,12 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
   The answer is in `harness/README.md`: nothing outside claude.ai can wake a session; the gateway makes the cats
   live and hands a running session her message at the end of its turn.
 - **"Update plan and compile"** (2 October): `docs/plan.md` rewritten to where things stand, and this file.
+- **Issue #24, "Cafe reading the gateway"** (2 October): "The kittychat cafe is still not able to read live
+  sessions. Wait for the PonyTail Audit of the gateway's current state before continuing to work on the
+  gateway. When done, compile and sift my recent sessions using the litterbox and update the plan." The audit
+  found the gateway lean. The cause was that the gateway wasn't set up yet. She set it up that afternoon, and
+  version 21 reads it. Then **"put this through the litter box"**: the round's report, sifted into
+  `docs/from-the-litterbox.md`.
 - **No Claude co-author or session links** in commits on her public repos or forks (1 October, from another
   session; the rule is on `claude/cool-cannon-wh25u6`).
 
@@ -184,3 +194,12 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 ## Still waiting on her
 
 The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.
+
+## 2 October, evening
+
+- **Sell the KittyChat Café.** A Shopify wireframe for distributing it (`docs/kittychat-shop/`, drawn in Figma like
+  the onboarding frames), and a business plan grounded in French law and her legal status. The plan is private
+  (her status, ARE, VAT): a private artifact, linked from the Café's queen, never in git.
+- **The litter box quiz as a skill on GitHub**: `catio-plugin/skills/litterbox-quiz/`, with the licensed interface
+  art left out ("for the UI, just drop the assets that are licensed").
+

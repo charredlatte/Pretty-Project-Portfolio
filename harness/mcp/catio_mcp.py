@@ -117,7 +117,9 @@ def list_agents(args):
         if a.get("archived") and not args.get("archived"):
             continue
         waiting = sum(1 for f in s["files"] if f["for"] == a["id"] and f["status"] == "waiting")
-        out.append(dict({k: v for k, v in a.items() if k != "wake"}, waiting=waiting, wakes=bool(a.get("wake"))))
+        said = [n for n in s["notes"] if n["cat"] == a["id"] and n["author"] in ("session", "agent")]   # what it last said, for the queen
+        out.append(dict({k: v for k, v in a.items() if k != "wake"}, waiting=waiting, wakes=bool(a.get("wake")),
+                        **({"said": {"text": said[-1]["text"], "at": said[-1]["at"]}} if said else {})))
     return {"agents": sorted(out, key=lambda a: -a.get("updated", 0))}
 
 
@@ -132,7 +134,8 @@ def inbox(args):
         files = [f for f in s["files"] if f["for"] == args["agent"] and f["status"] == "waiting" and not (mark and f.get("handed"))]
         a_ = a or {}
         since = a_.get("handedNotes", a_.get("seenNotes", 0)) if mark else a_.get("seenNotes", 0)
-        notes = [n for n in s["notes"] if n["cat"] == args["agent"] and n["author"] == "charlotte" and n["at"] > since]
+        authors = ("charlotte",) if args["agent"] == "queen" else ("charlotte", "queen")   # a cat hears her and her assistant
+        notes = [n for n in s["notes"] if n["cat"] == args["agent"] and n["author"] in authors and n["at"] > since]
         request = (a or {}).get("request")
         if mark:
             if request and request.get("handed"):
@@ -186,17 +189,17 @@ def drop_file(args):
 def comment(args):
     need(args, "cat", "text")
     author = args.get("author") or "charlotte"
-    if author not in ("charlotte", "agent", "session"):
-        raise ValueError("author is charlotte, agent or session")
+    if author not in ("charlotte", "agent", "session", "queen"):
+        raise ValueError("author is charlotte, agent, session or queen")
     note = {"id": new_id(), "cat": args["cat"], "text": str(args["text"])[:4000], "author": author, "at": now()}
     with LOCK:
         s = load()
         s["notes"].append(note)
         a = s["agents"].get(args["cat"])
-        if a and author != "charlotte":
+        if a and author not in ("charlotte", "queen"):
             a["seenNotes"] = note["at"]
         store(s)
-    woke = author == "charlotte" and bool(a) and wake(a, "[Catio] Charlotte says: " + note["text"])
+    woke = author in ("charlotte", "queen") and bool(a) and wake(a, "[Catio] %s: %s" % ("Charlotte says" if author == "charlotte" else "The queen says", note["text"]))
     return {"id": note["id"], "woke": woke}
 
 
@@ -237,6 +240,66 @@ def manage(args):
     return {"ok": True, "woke": woke}
 
 
+QUIZ_MAX = 5
+
+
+def _quiz_of(args):
+    need(args, "title")
+    qs = args.get("questions")
+    if not isinstance(qs, list) or not qs or len(qs) > QUIZ_MAX:
+        raise ValueError("questions is a list of 1 to 5 {q, options, free}")
+    out = []
+    for x in qs:
+        q = x if isinstance(x, dict) else {"q": x}
+        text = str(q.get("q") or q.get("question") or "").strip()[:300]
+        if not text:
+            raise ValueError("every question needs its q")
+        options = [str(o).strip()[:300] for o in (q.get("options") if isinstance(q.get("options"), list) else [])][:6]
+        options = [o for o in options if o]
+        out.append({"q": text, "options": options, "free": q.get("free") is True or not options})
+    return str(args["title"]).strip()[:120], out
+
+
+def quiz(args):
+    """Homework the queen (or Charlotte) sets for Charlotte: a quiz whose answers unblock a cat."""
+    title, questions = _quiz_of(args)
+    rec = {"id": new_id(), "for": str(args.get("for") or "")[:200], "title": title, "questions": questions,
+           "by": "charlotte" if args.get("by") == "charlotte" else "queen", "at": now(), "status": "set"}
+    with LOCK:
+        s = load()
+        s.setdefault("quizzes", []).append(rec)
+        store(s)
+    return {"id": rec["id"]}
+
+
+def quizzes(args):
+    return {"quizzes": [q for q in load().get("quizzes", []) if args.get("done") is True or q.get("status") != "done"]}
+
+
+def answer(args):
+    """Charlotte hands homework in: her answers go to the cat, as her words, and to the queen."""
+    need(args, "quiz")
+    given = args.get("answers")
+    with LOCK:
+        s = load()
+        q = next((q for q in s.get("quizzes", []) if q["id"] == args["quiz"]), None)
+        if not q:
+            raise ValueError("no such quiz")
+        if q.get("status") == "done":
+            raise ValueError("that homework is handed in already")
+        given = [str(a if a is not None else "").strip()[:1000] for a in given] if isinstance(given, list) else []
+        if len(given) != len(q["questions"]) or any(not a for a in given):
+            raise ValueError("answers is one answer per question, in order")
+        q.update(status="done", answers=given, answeredAt=now())
+        store(s)
+        told = bool(q["for"]) and q["for"] in s["agents"]
+    text = "Homework handed in: " + q["title"] + "\n" + "\n".join("%d. %s \u2192 %s" % (i + 1, x["q"], given[i]) for i, x in enumerate(q["questions"]))
+    if told:
+        comment({"cat": q["for"], "text": text, "author": "charlotte"})
+    comment({"cat": "queen", "text": text + (("\n(for %s, %s)" % (q["for"], "told" if told else "not a cat here")) if q["for"] else ""), "author": "charlotte"})
+    return {"ok": True, "told": told}
+
+
 S = {"type": "string"}
 TOOLS = {
     "house_rules": (house_rules, "The KittyChat house rules every agent in the Catio follows. Read them when you start.", {}, []),
@@ -256,11 +319,20 @@ TOOLS = {
     "drop_file": (drop_file, "Give a file to an agent's cat (and wake it, if it can be woken).",
                   {"name": S, "type": S, "base64": S, "for": dict(S, description="The agent id"), "note": S}, ["name", "base64", "for"]),
     "comment": (comment, "Add to a cat's conversation. Agents answer Charlotte with author agent.",
-                {"cat": S, "text": S, "author": {"type": "string", "enum": ["charlotte", "agent", "session"]}}, ["cat", "text"]),
+                {"cat": S, "text": S, "author": {"type": "string", "enum": ["charlotte", "agent", "session", "queen"]}}, ["cat", "text"]),
     "comments": (comments, "A cat's conversation, oldest first.", {"cat": S, "limit": {"type": "integer"}}, ["cat"]),
     "manage": (manage, "Manage an agent's cat: rename, move (room key), archive, unarchive, pause, resume, wrap_up, message, done (clear a request).",
                {"cat": S, "action": {"type": "string", "enum": ["rename", "move", "archive", "unarchive", "pause", "resume", "wrap_up", "message", "done"]}, "value": S},
                ["cat", "action"]),
+    "quiz": (quiz, "Set Charlotte homework (the queen, or Charlotte): a short quiz whose answers unblock a cat. One quiz per cat, 1 to 5 "
+             "questions, each with 2 to 6 concrete options she can pick, or free for a written answer. She answers in the café; the "
+             "cat gets her answers as her words, and the queen is told.",
+             {"for": dict(S, description="The cat it unblocks (its agent id), or empty for the house"), "title": S,
+              "questions": {"type": "array", "items": {"type": "object", "properties": {"q": S, "options": {"type": "array", "items": S}, "free": {"type": "boolean"}}, "required": ["q"]}}},
+             ["title", "questions"]),
+    "quizzes": (quizzes, "The homework set for Charlotte: the open quizzes, oldest first (done: true lists the handed-in ones too).", {"done": {"type": "boolean"}}, []),
+    "answer": (answer, "Hand homework in (Charlotte only): one answer per question, in order. Her answers reach the cat, as her words, and the queen.",
+               {"quiz": S, "answers": {"type": "array", "items": S}}, ["quiz", "answers"]),
 }
 
 

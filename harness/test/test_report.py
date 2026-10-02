@@ -131,6 +131,14 @@ class Report(unittest.TestCase):
         self.assertEqual(r.stdout, "")
         self.assertEqual([n for n, _ in self.srv.calls], ["report_status"])
 
+    def test_stop_hands_in_what_the_queen_says_as_hers(self):
+        self.srv.box = {"notes": [{"id": "1", "cat": "session_01Abc", "text": "Prithee, push thy work.", "author": "queen", "at": 1},
+                                  {"id": "2", "cat": "session_01Abc", "text": "And then rest.", "author": "charlotte", "at": 2}],
+                        "request": None, "files": []}
+        out = json.loads(self.hook("Stop", stop_hook_active=False).stdout)
+        self.assertIn("[Catio] The queen says: Prithee, push thy work.", out["reason"])
+        self.assertIn("[Catio] Charlotte says: And then rest.", out["reason"])
+
     def test_session_end_puts_it_to_sleep(self):
         self.hook("SessionEnd", reason="prompt_input_exit")
         self.assertEqual(self.srv.calls[0][1]["mood"], "done")

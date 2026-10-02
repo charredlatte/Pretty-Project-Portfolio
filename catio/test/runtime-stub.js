@@ -95,14 +95,36 @@
   // does when a page may not use them; ?host=none has no Catio server on this device.
   T.tools = []; T.triggers = 0; T.goneTriggers = new Set();
   T.agents = params.get("agents") !== "1" ? [] : [{ id: "codex-shop", name: "Codex", provider: "openai", model: "gpt-5", mood: "needs", ask: "Which colour for the buttons?", title: "Shop theme", repo: "charredlatte/montfortoise-shopify", updated: now - 60e3, wakes: true }];
-  // ?gateway=1: the Catio's gateway answers through her CATIO connector, with a session that reports to it (blocked1,
+  // ?gateway=1 (or ?via=gateway): the Catio's gateway answers through her CATIO connector, with a session that reports to it (blocked1,
   // known there by its container id, and fresher there than in claude.ai's list) and one the list doesn't have yet.
   // ?gateway=ask asks before every call. Without it, she has no CATIO connector.
   T.gw = [
-    { id: "cse_blocked1", session: "cse_blocked1", via: "claude-code", provider: "anthropic", mood: "review", title: "Shop about page", repo: "charredlatte/montfortoise-shopify", branch: "claude/about", updated: now - 60e3 },
+    { id: "cse_blocked1", session: "cse_blocked1", via: "claude-code", provider: "anthropic", mood: "review", title: "Shop about page", repo: "charredlatte/montfortoise-shopify", branch: "claude/about", updated: now - 60e3,
+      said: { text: "The French text is in, ready for you.", at: now - 50e3 } },
     { id: "cse_fresh9", session: "cse_fresh9", via: "claude-code", provider: "anthropic", mood: "needs", ask: "Merge the menu fix?", title: "Menu fix", repo: "charredlatte/Intermarche-grocery-shopping-app", updated: now - 30e3 },
   ];
+  // the queen's runner is on (her cat "queen" is present), unless ?queen=away
+  if (params.get("queen") !== "away") T.gw.push({ id: "queen", name: "The queen", via: "runner", provider: "anthropic", mood: "done", updated: now - 5e3 });
   T.gwNotes = [{ id: "g1", cat: "cse_blocked1", author: "session", text: "The French text is in, ready for you.", at: now - 50e3 }];
+  // the queen speaking (what the gateway pushes to an open café), and a cat bringing her something new
+  T.queenSays = (text, done, turn) => {
+    const id = done ? "q" + Date.now() : null;
+    if (done) T.gwNotes.push({ id, cat: "queen", author: "queen", text, at: Date.now() });
+    dispatchEvent(new CustomEvent("catio:queen", { detail: { type: "queen", turn: turn || "t1", text, done: !!done, routine: null, id } }));
+  };
+  T.handoff = (cat, text) => { const a = T.gw.find((x) => x.id === cat); a.said = { text, at: Date.now() }; dispatchEvent(new Event("catio:agents")); };
+  // homework the queen set (what the gateway's quizzes tool lists), and her answers as the page hands them in
+  T.quizzes = [];
+  T.setQuiz = (z) => { T.quizzes.push(Object.assign({ id: "z" + (T.quizzes.length + 1), by: "queen", at: Date.now(), status: "set" }, z)); dispatchEvent(new Event("catio:agents")); };
+  // her voice: what she would have said aloud, without a sound; and the voices the browser would offer
+  T.spoken = [];
+  const VOICES = [{ name: "Google US English", lang: "en-US", default: true }, { name: "Microsoft Hazel - English (United Kingdom)", lang: "en-GB", default: false }];
+  if (window.speechSynthesis) {
+    speechSynthesis.getVoices = () => VOICES;
+    speechSynthesis.speak = (u) => T.spoken.push({ text: u.text, voice: u.voice && u.voice.name, lang: u.lang, rate: u.rate, pitch: u.pitch });
+    // an utterance that takes one of the voices above (the browser's own refuses anything but its own voices)
+    window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; this.voice = null; this.lang = ""; this.rate = 1; this.pitch = 1; this.volume = 1; } };
+  }
   const answer = (payload) => Promise.resolve({ content: [{ type: "text", text: JSON.stringify(payload) }], payload });
   const ccr = {
     create_trigger: (i) => ({ trigger: { id: "trig_" + (++T.triggers), name: i.name } }),
@@ -127,11 +149,13 @@
   mcp.callTool = async (server, tool, input) => {
     T.tools.push([server, tool, clone(input || {})]);
     if (server === "CATIO") {
-      const g = params.get("gateway");
+      const g = params.get("gateway") || (params.get("via") === "gateway" ? "1" : null);
       if (!g) throw { code: "server_not_connected", message: "no CATIO connector" };
       if (g === "ask") throw { code: "approval_required", message: "ask every time" };
       if (tool === "list_agents") return answer({ agents: clone(T.gw) });
       if (tool === "comments") return answer({ notes: clone(T.gwNotes.filter((n) => n.cat === input.cat)) });
+      if (tool === "quizzes") return answer({ quizzes: clone(T.quizzes.filter((z) => input.done || z.status !== "done")) });
+      if (tool === "answer") { const z = T.quizzes.find((x) => x.id === input.quiz); if (!z) throw { code: "tool_error", message: "no such quiz" }; z.status = "done"; z.answers = input.answers; return answer({ ok: true, told: true }); }
       return answer({ id: "g" + T.tools.length, woke: false });
     }
     if (server === "host:catio") {
@@ -151,6 +175,7 @@
   const sample = async (input) => { T.prompts.push(input); return { text: JSON.stringify(T.sampleAnswer), truncated: false }; };
   sample.json = async (input) => { T.prompts.push(input); if (T.sampleHang) return new Promise(() => {}); return clone(T.sampleAnswer); };   // sampleHang: a sorter that never answers
   const nodb = params.get("mode") === "nodb";
-  window.claude = { use: async (n) => (n === "mcp" ? mcp : n === "db" ? (nodb ? null : db) : n === "assets" ? (nodb ? null : assets) : n === "sample" ? sample
+  // ?via=gateway: the café served from the gateway's own address (harness/gateway/cafe/runtime.js says so)
+  window.claude = { catioGateway: params.get("via") === "gateway", use: async (n) => (n === "mcp" ? mcp : n === "db" ? (nodb ? null : db) : n === "assets" ? (nodb ? null : assets) : n === "sample" ? sample
     : n === "permissions" ? { request: async () => ({}), state: async () => "granted" } : null) };
 })();
