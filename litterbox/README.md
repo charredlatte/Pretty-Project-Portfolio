@@ -69,7 +69,8 @@ goes, so the quiz holds the notes of private projects without them entering this
 3. Delete the filed cards and their answers from the quiz.
 
 Piles of private projects aren't committed here: pass `--box <dir>` to both commands where they are kept.
-Tests: `python3 -m unittest litterbox/test_quiz.py`.
+Tests: `python3 -m unittest litterbox/test_quiz.py`. The whole round, publish included, is the `litterbox-quiz`
+skill in `catio-plugin/skills/`, installable from this repo's marketplace (`.claude-plugin/marketplace.json`).
 
 ## Held pull requests
 
