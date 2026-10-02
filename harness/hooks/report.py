@@ -44,8 +44,10 @@ def call(*calls, timeout=TIMEOUT):
         return [None] * len(calls)
     body = [{"jsonrpc": "2.0", "id": i, "method": "tools/call", "params": {"name": name, "arguments": args}}
             for i, (name, args) in enumerate(calls)]
+    # Cloudflare refuses Python's own User-Agent on workers.dev (error 1010), so the hook names itself
     req = urllib.request.Request(g[0], data=json.dumps(body).encode(), method="POST", headers={
-        "Content-Type": "application/json", "Accept": "application/json, text/event-stream", "Authorization": "Bearer " + g[1]})
+        "Content-Type": "application/json", "Accept": "application/json, text/event-stream", "Authorization": "Bearer " + g[1],
+        "User-Agent": "kittychat-report/1"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             replies = json.load(r)
