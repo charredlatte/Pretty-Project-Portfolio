@@ -1653,6 +1653,16 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
     expect((await page.locator('#cats .cat[aria-label*="Shop about page"]').getAttribute("data-room")) === "living", "session not in the lounge");
     expect((await page.locator('#cats .cat[aria-label^="Willow"]').getAttribute("data-room")) === "living", "chat not in the lounge");
   });
+  await T(page, () => { window.__catio.put("sessions/session_work1", { room: "bath" }); });
+  await page.waitForTimeout(300);
+  await closeMenu(page);
+  await page.locator('#cats .cat[aria-label*="Week tab editing"]').dispatchEvent("dblclick");
+  await settle(page);
+  await check("a session's card keeps the closed room she moved it to, so a save never moves it", async () => {
+    expect((await page.locator('#cats .cat[aria-label*="Week tab editing"]').getAttribute("data-room")) === "living", "not at the front door meanwhile");
+    expect((await page.locator("#catDlg #catRoom").inputValue()) === "bath", "room: " + await page.locator("#catDlg #catRoom").inputValue());
+  });
+  await page.keyboard.press("Escape"); await settle(page);
   await closeMenu(page);
   await page.locator('#cats .cat[aria-label^="Willow"]').dispatchEvent("dblclick");   // the card
   await settle(page);
@@ -1717,7 +1727,7 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
   await page.click("#houseBtn");
   await menuButton(page, "Set up again…").click();
   await settle(page);
-  await T(page, () => { const st = window.__catio.store; window.__catio.put("rooms/dining", Object.assign({}, st["rooms/dining"], { repos: ["recipes", "Snail-Mail-Trail"] })); window.__catio.put("rooms/study", Object.assign({}, st["rooms/study"], { repos: ["montfortoise-shopify", "Snail-Mail-Trail"] })); });
+  await T(page, () => { const st = window.__catio.store; window.__catio.put("rooms/dining", Object.assign({}, st["rooms/dining"], { repos: ["recipes", "Snail-Mail-Trail"] })); window.__catio.put("rooms/study", Object.assign({}, st["rooms/study"], { repos: ["montfortoise-shopify", "Snail-Mail-Trail", "upstream/recipes"] })); });
   await page.waitForTimeout(100);
   await check("Set up again is prefilled from the café as it is", async () => {
     expect((await page.locator("#setupName").inputValue()) === "Mochi's Café", "name");
@@ -1755,6 +1765,7 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
     expect(st["rooms/dining"].catchAll && !st["rooms/living"].catchAll, "the front door moved");
     expect(st["rooms/living"].repos.includes("charredlatte/recipes") && !st["rooms/dining"].repos.includes("recipes") && !st["rooms/kitchen"].repos.includes("charredlatte/recipes"), "recipes in two rooms or two spellings: " + JSON.stringify([st["rooms/living"].repos, st["rooms/dining"].repos, st["rooms/kitchen"].repos]));
     expect(st["rooms/dining"].repos.includes("Snail-Mail-Trail") && st["rooms/study"].repos.includes("Snail-Mail-Trail"), "a repository GitHub never listed was moved");
+    expect(st["rooms/study"].repos.includes("upstream/recipes"), "another owner's recipes taken for hers");
     expect(st["house/main"].name === "Mochi's Café", "name lost");
   });
   await check("no page errors through the first run", async () => expect(errors.length === 0, errors.join("; ")));

@@ -1881,7 +1881,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const r = el("div", "row");
     const nm = el("input"); nm.id = "catRename"; nm.maxLength = 30; nm.placeholder = c.name;
     nm.value = c.kind === "session" ? (S.tweaks[c.id] && S.tweaks[c.id].name) || "" : c.nameOverride;
-    r.append(field("Name", nm), field("Lives in", roomSelect("catRoom", c.roomKey)));
+    r.append(field("Name", nm), field("Lives in", roomSelect("catRoom", (S.tweaks[c.id] || {}).room || c.roomKey)));   // the room she gave it, even closed
     more.appendChild(r);
     let ti = null;
     if (c.kind === "session") { ti = el("input"); ti.id = "catTitle"; ti.value = c.title; ti.maxLength = 120; more.appendChild(field("The session's title", ti)); }
@@ -2322,15 +2322,17 @@ ul.gkey li > div.what { flex-basis: 100%; }
     // A.repos: the room chosen for each repository GitHub listed. A repository already filed stays where it is
     // unless GitHub listed it (matched by name, with or without its owner); then the select, prefilled with its
     // room, decides. The rest, duplicates and all, is left alone.
+    // the same repository: its exact name, or a bare name (no owner) that GitHub lists with one; another owner's is another's
     const tail = (r) => lower(r).split("/").pop();
+    const same = (r, name) => lower(r) === lower(name) || (!r.includes("/") && tail(r) === tail(name));
     const roomOfRepo = (name) => ORDER.find((k) => roomInfo(k).repos.some((r) => lower(r) === lower(name)))   // its exact name first
-      || ORDER.find((k) => roomInfo(k).repos.some((r) => tail(r) === tail(name)));
+      || ORDER.find((k) => roomInfo(k).repos.some((r) => same(r, name)));
     const open = () => OPENING.filter((k) => A.open.includes(k));
     const filed = () => {
       // only a repository she decided on in the GitHub step (a row she saw) leaves where it was filed
-      const decided = new Set(Object.keys(A.repos).map(tail)), out = {};
+      const decided = Object.keys(A.repos), out = {};
       for (const k of ORDER) {
-        const kept = again ? roomInfo(k).repos.filter((r) => !decided.has(tail(r))) : [];
+        const kept = again ? roomInfo(k).repos.filter((r) => !decided.some((n) => same(r, n))) : [];
         out[k] = [...new Set(kept.concat(Object.keys(A.repos).filter((n) => A.repos[n] === k)))];
       }
       return out;
