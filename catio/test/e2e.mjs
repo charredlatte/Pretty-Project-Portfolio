@@ -1653,6 +1653,17 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
     expect((await page.locator('#cats .cat[aria-label*="Shop about page"]').getAttribute("data-room")) === "living", "session not in the lounge");
     expect((await page.locator('#cats .cat[aria-label^="Willow"]').getAttribute("data-room")) === "living", "chat not in the lounge");
   });
+  await closeMenu(page);
+  await page.locator('#cats .cat[aria-label^="Willow"]').dispatchEvent("dblclick");   // the card
+  await settle(page);
+  await check("a cat's card keeps its closed room, named closed, so a save never moves it", async () => {
+    expect(await page.locator("#catDlg[open]").count() === 1, "card not open");
+    const sel = page.locator("#catDlg #adRoom");
+    expect((await sel.inputValue()) === "study", "room: " + await sel.inputValue());
+    expect((await sel.locator("option[value=study]").innerText()).includes("closed"), "not said closed");
+    expect(await sel.locator("option[value=bath]").count() === 0, "another closed room offered");
+  });
+  await page.keyboard.press("Escape"); await settle(page);
   await check("a closed room is dimmed, faint on the minimap, has no queen, and hovering it says closed", async () => {
     expect(await page.locator('.roomhit[data-room="study"][data-closed]').count() === 1, "not marked closed");
     expect(await page.locator('.roomhit[data-room="study"] .tag, #overlay .tag').count() === 0, "a sign");

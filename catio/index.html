@@ -1828,8 +1828,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
   function field(label, input) { const l = el("label", "field"); l.append(el("span", null, label), input); return l; }
   function roomSelect(id, value) {
     const s = el("select"); s.id = id;
-    const v = GEOM[value] && roomOpen(value) ? value : catchAllRoom();   // a closed room is never offered: the front door instead
-    for (const k of ORDER) { if (!roomOpen(k)) continue; const o = el("option", null, roomInfo(k).name); o.value = k; if (k === v) o.selected = true; s.appendChild(o); }
+    // open rooms, and the closed one a cat is already in (so a save never moves it): a closed room keeps what is filed in it
+    const v = GEOM[value] ? value : catchAllRoom();
+    for (const k of ORDER) { if (!roomOpen(k) && k !== v) continue; const o = el("option", null, roomInfo(k).name + (roomOpen(k) ? "" : " (closed)")); o.value = k; if (k === v) o.selected = true; s.appendChild(o); }
     return s;
   }
   function closeBtn(dlg, label) { const b = el("button", "btn", label || "Close"); b.type = "button"; b.addEventListener("click", () => dlg.close()); return b; }
@@ -2315,7 +2316,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     again = !!again && ORDER.some((k) => S.rooms[k]);
     dlg.dataset.again = again ? "1" : "";
     // open: the rooms open now (or the first four); + opens the next in the opening order, − closes the last
-    const A = { name: again ? (S.house.name || "") : "", open: again ? OPENING.filter(roomOpen) : OPENING.slice(0, 4), names: {}, repos: {}, gh: null, ghErr: null };
+    const A = { name: S.house.name || "", open: again ? OPENING.filter(roomOpen) : OPENING.slice(0, 4), names: {}, repos: {}, gh: null, ghErr: null };
     if (!A.open.length) A.open = [OPENING[0]];
     for (const k of ORDER) A.names[k] = again && S.rooms[k] && S.rooms[k].name && S.rooms[k].name !== GEOM[k].name ? S.rooms[k].name : "";
     // A.repos: the room chosen for each repository GitHub listed. A repository already filed stays where it is
