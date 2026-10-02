@@ -2310,7 +2310,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const acts = el("div", "actions");
     const back = el("button", "btn", "Back"); back.type = "button";
     const next = el("button", "btn green", "Next"); next.type = "submit";
-    acts.append(back, el("span", "spacer"), next);
+    acts.append(back, closeBtn(dlg, "Later"), el("span", "spacer"), next);   // Later: nothing is written; a café with no rooms asks again next time
     f.append(h, dots, where, body, acts);
     // the answers, prefilled from what is there when setting up again (a café with no rooms yet is a first run)
     again = !!again && ORDER.some((k) => S.rooms[k]);
@@ -2324,7 +2324,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     // room, decides. The rest, duplicates and all, is left alone.
     // the same repository: its exact name, or a bare name (no owner) that GitHub lists with one; another owner's is another's
     const tail = (r) => lower(r).split("/").pop();
-    const same = (r, name) => lower(r) === lower(name) || (!r.includes("/") && tail(r) === tail(name));
+    const same = (r, name) => lower(r) === lower(name) || (!String(r).includes("/") && tail(r) === tail(name));
     const roomOfRepo = (name) => ORDER.find((k) => roomInfo(k).repos.some((r) => lower(r) === lower(name)))   // its exact name first
       || ORDER.find((k) => roomInfo(k).repos.some((r) => same(r, name)));
     const open = () => OPENING.filter((k) => A.open.includes(k));
@@ -2381,7 +2381,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
       () => {
         const sec = el("div", "dlg");
         if (!S.mcp) {
-          sec.appendChild(el("p", "note", "On this computer the page can't ask GitHub for your repositories. List them under Edit rooms, when you have the page open in claude.ai or by hand."));
+          sec.appendChild(el("p", "note", local ? "On this computer the page can't ask GitHub for your repositories. List them under Edit rooms, when you have the page open in claude.ai or by hand."
+            : "The page can't reach Claude Code Remote in this view, so it can't list your repositories. File them under Edit rooms."));
           return sec;
         }
         sec.appendChild(el("p", "note", "Each repository lives in a room. Its sessions are that room's cats."));
@@ -2405,6 +2406,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
           row.append(again2, skip); sec.appendChild(row);
         } else if (!A.gh.length) sec.appendChild(el("p", "note", "GitHub lists no repositories for you yet. Rooms can be pointed at them later, under Edit rooms."));
         else {
+          if (A.gh.length >= 50) sec.appendChild(el("p", "note", "The first 50 GitHub lists. The rest can be filed under Edit rooms."));
           const fallback = door();
           A.gh.forEach((name, i) => {
             const row = el("div", "repo");
@@ -2427,7 +2429,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       () => {
         const sec = el("div", "dlg");
         const L = S.live;
-        if (!S.mcp) sec.appendChild(el("p", "note", "On this computer the cats are the saved copy of your sessions, data/sessions.json. Ask Claude to refresh it for newer cats."));
+        if (local) sec.appendChild(el("p", "note", "On this computer the cats are the saved copy of your sessions, data/sessions.json. Ask Claude to refresh it for newer cats."));
         else if (L.state === "loading") { sec.appendChild(el("p", "note", "Looking for your sessions…")); timer = setTimeout(() => { if (dlg.open && step === 3) goStep(3); }, 800); }
         else if (L.state === "ok") sec.appendChild(el("p", "note", sessions() + (sessions() === 1 ? " session" : " sessions") + " found. They'll move in when you open the doors."));
         else {

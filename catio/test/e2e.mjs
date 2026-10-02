@@ -1545,10 +1545,14 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
   const { page, ctx, errors } = await open("?mode=empty");
   const nextStep = async () => { await page.click("#setupDlg button[type=submit]"); await settle(page); };
   const title = () => page.locator("#setupTitle").innerText();
-  await check("a café with no rooms opens the wizard on Welcome, and Escape closes it without writing", async () => {
+  await check("a café with no rooms opens the wizard on Welcome, and Later or Escape closes it without writing", async () => {
     await wizard(page);
     expect(await page.locator("#setupDlg[open]").count() === 1, "wizard not open");
     expect((await title()) === "Welcome", await title());
+    await page.click("#setupDlg button:has-text('Later')"); await settle(page);
+    expect(await page.locator("#setupDlg[open]").count() === 0, "Later left it open");
+    await page.click("#houseBtn");
+    await menuButton(page, "Set up again…").click(); await settle(page);
     await page.keyboard.press("Escape"); await settle(page);
     expect(await page.locator("#setupDlg[open]").count() === 0, "still open");
     expect((await T(page, () => window.__catio.writes.length)) === 0, "wrote something");
