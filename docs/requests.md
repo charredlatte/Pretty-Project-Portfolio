@@ -1,7 +1,7 @@
 # What Charlotte has asked for
 
 Everything she has asked for across the Catio, the manor, this repo and the KittyChat Cafe, compiled and
-compressed. Read this before starting something new. Last updated 1 October 2026.
+compressed. Read this before starting something new. Last updated 2 October 2026.
 
 ## Where the project's information lives
 
@@ -139,6 +139,25 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 - **She will draw every asset herself in Aseprite** before publishing the working project, replacing the
   downloaded packs, and adding new pieces: a litterbox, café tables and more. The list and the scale are in
   `docs/drawing-plan.md`.
+
+## Making it honest, and the house rules everywhere (1 and 2 October)
+
+- **"Audit the project and revise the plan"**, with renovation mode in it: `docs/audit-2026-10-01.md`, and the
+  roadmap in `docs/plan.md`. Then **"go ahead and get started in order"** and **"push as you go"**: phase 0.
+- **Publish phase 0** (version 17): it stopped the stray sessions.
+- **Yes to the `send_message` test** on a test session (version 18): claude.ai refused it, so a page can't post
+  into a session.
+- **Yes to deleting the 14 old branches**; she deleted them herself, since this session's git access can't.
+- **"Use the house-rules plugin on all of the repos"**, then **"merge the 7 PRs"**: on in all seven since
+  1 October.
+- **`intermarche-grocery-data` is deleted**: "there is no need for a private repo", it was surface-level grocery
+  data. The Kitchen lists only the grocery app.
+- **"Update the READMEs with the correct information, and tell me again why it isn't an MCP or some server."**
+  The answer is in `harness/README.md`: nothing outside claude.ai can wake a session; the gateway makes the cats
+  live and hands a running session her message at the end of its turn.
+- **"Update plan and compile"** (2 October): `docs/plan.md` rewritten to where things stand, and this file.
+- **No Claude co-author or session links** in commits on her public repos or forks (1 October, from another
+  session; the rule is on `claude/cool-cannon-wh25u6`).
 
 ## Still waiting on her
 

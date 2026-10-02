@@ -4,167 +4,207 @@ Issue #3: "An AI harness that presents itself as a cat cafe." The KittyChat Caf�
 private artifact) is the harness. Every Claude Code session and every other agent is a cat in a two-floor
 manor. Files dropped on the page go to the right cat, and cats can be talked to and managed.
 
-Last revised 1 October 2026, after the audit in `docs/audit-2026-10-01.md`. How it got here, version by
-version, is in `docs/history.md`. What she has asked for is in `docs/requests.md`.
+Last revised 2 October 2026. How it got here, version by version, is in `docs/history.md`; what she has asked
+for, in `docs/requests.md`; the audit behind phase 0, in `docs/audit-2026-10-01.md`.
 
 ## Where it stands
 
-- **Live:** version 18, published 1 October from `claude/dreamy-goldberg-iu6w6l`: phase 0 and the
-  `send_message` trial on top of the KittyChat Café:
-  - the brand is the House button;
-  - quiet maps and short menus;
-  - Game UI Pastel pixel icons;
-  - the map panel and minimap.
-- **Tests:** e2e 158 passed; harness 20 passed; the litter box's sifter 12 passed; `furniture.check()` empty.
-- **`main`** has version 16 (PR #7), the digest of her sessions (PR #8), and the litter box's sifter with the
-  Catio server's POST hole closed (PRs #10 to #13). Phase 0 is on `claude/dreamy-goldberg-iu6w6l`, with `main`
-  merged in, waiting for PR #9.
-- **Phase 0** is done and live. The old branches are deleted (1 October). The `send_message` trial answered: a
-  page can't post into a session (below).
+- **Live:** version 18 (1 October): the KittyChat Café, made honest.
+  - The brand is the House button; quiet maps and short menus; the Game UI Pastel map panel and minimap.
+  - Posts go to the outbox: the page tries `send_message`, claude.ai refuses it, and the page says so.
+  - Counts show only what really waits on her.
+- **`main`** has everything live, plus:
+  - the house rules, on in all seven repos;
+  - the litter box's sifter;
+  - the digest of her sessions;
+  - the drawing plan.
+- **Tests:**
+  - e2e: 158 passed;
+  - harness: 20 passed;
+  - the sifter: 12 passed;
+  - `furniture.check()` empty.
+- **Built, not merged:**
+  - the gateway (`claude/eloquent-thompson-e9b2uh`);
+  - the no-attribution rule for public repos (`claude/cool-cannon-wh25u6`).
+
+## How what she sends reaches a session
+
+- **The page can't post into a session.**
+  - A Routine bound to the session started a stray new session (30 September).
+  - `send_message` from the page is refused, `blocked_by_policy` (1 October, version 18). The page still
+    calls it first, so it works the day claude.ai allows it.
+- **So everything is saved first, then waits in `outbox/`:** the file in `brain/`, the message in `notes/`,
+  the request on `sessions/<id>`. The session collects it at its next start: the house-rules plugin's
+  `catio` skill handles it, answers on the cat and marks it delivered.
+- **The gateway (phase 5) makes it sooner and the cats live:**
+  - a running session gets her message when its turn ends, from a hook;
+  - every session reports its state to the gateway, so the page needn't ask claude.ai for the list.
+- **What nothing can do: wake an idle session.** Only claude.ai can. Why is in `harness/README.md`.
 
 ## The roadmap, in order
 
-Each phase ends with the e2e test green, screenshots at 1440×900 and 390×844 in light and dark, a commit, and
-(when she says so) a publish by the checklist below.
+Each phase ends with:
+- the tests green;
+- screenshots at 1440×900 and 390×844, in light and dark;
+- a pull request;
+- a publish by the checklist below, when she says so.
 
-### Phase 0: make what's there honest (from the audit). Done, live in version 17
+### Phase 0: make what's there honest. Done (versions 17 and 18)
 
-The page shouldn't say "Sent." when nothing arrived, or "3 need you" when they don't. This comes before
-anything new.
+From the audit:
+- no stray sessions;
+- honest counts (old review-ready cats nap in the attic; the warm-start session isn't a cat);
+- errors that stay until dismissed;
+- a sorter with a time limit;
+- bubbles out of the Tab order;
+- a Still cats switch;
+- darker placeholders;
+- the credits on phones;
+- the plugin and the READMEs brought up to the manor;
+- the old branches deleted;
+- the `send_message` trial.
 
-1. **Posting into sessions** (audit finding 1). Today it creates stray sessions and never delivers.
-   - Done: Routines are no longer bound. Every post goes to `outbox/` with `why: "no_route"`, and the
-     toast says it's waiting.
-   - Tried (her OK, 1 October, version 18): `postToSession()` calls `send_message`, declared in the page's
-     capabilities. claude.ai refused it, `blocked_by_policy` ("tool is not available on this connector or is
-     blocked by your organization"), and refused `describeTool` too. So **a page cannot post into a session**:
-     the code stays (it starts working the day the policy allows it), and the outbox is the way in. Delivering
-     the outbox is phase 5's work.
-   - Done: the e2e checks expect the outbox.
-2. **Honest counts** (finding 2). Done.
-   - Review-ready cats older than `STALE_DAYS` nap in the attic.
-   - Sessions tagged `cowork-warm-start` are not cats.
-3. **The UI audit's leftovers** (finding 3). Done, except the small Nunito text, which waits for phase 4's
-   look at the bubbles.
-   - Errors and "queued" messages stay until dismissed (`role="alert"`).
-   - The sorter times out after about 8 s, Send turns on as soon as the keyword guesses are in, and skipped
-     files are named.
-   - Bubbles leave the Tab order.
-   - A "Still cats" switch in the House menu.
-   - Darker placeholders.
-   - The credits line also at the foot of the House menu, so phones show it (finding 6).
-4. **Housekeeping** (findings 4, 5, 10). Done, except deleting the old branches.
-   - A pull request from this branch to `main` (versions 13 to 16 went in with PR #7). Then, with her OK,
-     delete the 14 old branches, so none can publish over the live page again.
-   - Bring `catio-plugin/` and the README up to the manor (ten zips, no `cabin.py`).
-   - Small fixes:
-     - add graphify's `LICENSE-MIT`;
-     - `save-sessions.py` keeps `environment_id` and the model;
-     - `bundle.py` ships the Catio MCP server;
-     - put the litter box with the missing art (`docs/from-the-litterbox.md`).
+Left: the small Nunito text (10 to 12.8 px), which waits for her own art (phase 4).
 
 ### Phase 1: the map panel and minimap. Done (version 15)
 
-The smooth Game UI Pastel panel, top right: zoom, whole house, the fold (M), the minimap (click, drag,
-double-click, wheel) and the floor tabs. See `docs/camera-and-minimap.md`, iteration 1.
+`docs/camera-and-minimap.md`, iteration 1.
 
 ### Phase 2: the camera
 
-The Sims build-mode camera, from `docs/camera-and-minimap.md`, iteration 2:
-- WASD and the arrow keys pan, with acceleration (the arrows still walk between rooms after a Tab);
+The Sims build-mode camera, `docs/camera-and-minimap.md` iteration 2:
+- WASD and the arrow keys pan, with acceleration (after a Tab, the arrows still walk between rooms);
 - zoom settles on crisp steps;
 - a flick glides;
-- `F` frames the selection and `Home` shows the whole house;
+- `F` frames the selection, and `Home` shows the whole house;
 - a switch in the House menu turns off the letter keys.
 
-It comes before renovation mode, which needs it: in renovation mode a drag moves furniture, so the keys are
-how she pans.
+It comes before renovation mode, where a drag moves furniture and the keys are how she pans.
 
 ### Phase 3: renovation mode
 
 Move the furniture, add and remove the decorative pieces, and choose what each room's filing cabinet looks
-like. The full spec is **`docs/renovation-mode.md`**. In short:
+like. The spec is `docs/renovation-mode.md`. In short:
 
-- **Getting in and out.** A Live / Build switch on the map panel, or Renovate in the House menu. Leaving
-  Build saves nothing new; every change was saved when it was made.
+- **Getting in and out:** a Live / Build switch on the map panel. Each change is saved when it is made.
 - **While it's on:**
-  - cats step aside and menus and bubbles are off;
+  - cats step aside, and menus and bubbles are off;
   - a 16 px grid shows;
   - Game UI Pastel's catalogue bar runs along the bottom.
-- **Moving furniture.** Drag a piece; it snaps to the grid and is saved on the drop.
-  - Without dragging: select a piece, move it with the arrows, or choose Move to… (WCAG 2.5.7).
-  - A piece can't be dropped on another piece's footprint, outside its room's floor, or where it would
-    cover a doorway.
-- **What can move, by kind** (`furniture.py`):
-  - **essential** pieces never move: the stair, the front door mat, the brain's desk;
-  - **connected** pieces (those with a station: desks, cushions, armchairs, rugs) move but can't be removed;
-  - **decor** pieces move, and can be stored in the catalogue and brought back.
-- **Filing cabinets** (her decision): one per room. It moves only within its room, and she picks what it
-  looks like from any floor piece. It keeps its Files and its review spot whatever it looks like.
-- **Undo and redo** for the session in Build; **Reset room** puts back `MANOR.layout`.
-- **Cats follow the furniture.** Stations and free floor are worked out again from the new layout, so no
-  cat sits in furniture. Queens keep their seat's piece.
-- **Data:** `layouts/<room>` in the database (`{pieces: [[key, x, y], …], cabinet: {look, x, y}}`), in the
-  stub, in `localRuntime()` and in `data/`. No document means `MANOR.layout`.
+- **Moving:**
+  - drag and snap;
+  - or select a piece and use the arrows, or Move to… (WCAG 2.5.7);
+  - nothing lands on another piece, off its floor, or across a doorway.
+- **What may move, by kind (`furniture.py`):**
+  - essential pieces never move;
+  - connected pieces (they carry a cat's station) move but can't be stored;
+  - decor moves, and can be stored and brought back.
+- **The filing cabinet** stays in its room, and she picks its look from any floor piece. It keeps its Files
+  and its review spot.
+- **Undo, redo and Reset room.** Cats and queens follow the furniture.
+- **Data:** `layouts/<room>`, in the database, the stub, `localRuntime()` and `data/`.
 - **Steps:**
-  1. Layouts as data, read from the database (no editing yet).
-  2. The mode with move, snap, undo and the keyboard.
-  3. The catalogue with store and bring back, and the cabinet's "Looks like…".
-  4. Phones: editing inside a zoomed-in room only.
+  1. layouts as data, read only;
+  2. moving;
+  3. the catalogue and the cabinet's look;
+  4. phones.
 
-  Each step is its own commit with its checks.
+### Phase 4: her own art
 
-### Phase 4: art and sound
+She draws every asset herself in Aseprite, replacing the downloaded packs, before the working project is
+published (1 October). `docs/drawing-plan.md` is the list:
+- the scale: 1×, on a 16 px tile;
+- every piece with its size and the file it replaces;
+- the new pieces: a litter box, café tables and more;
+- the order to draw in.
 
-From `docs/from-the-litterbox.md` (Ideas not built), as she buys, finds or approves:
-- a walk cycle (ToffeeCraft's paid Pochi pack), which also brings real coat colours;
-- a litter box;
-- Baroque pieces (shutters, a balustrade, cobbles);
-- café props (an espresso machine, cakes, a chalkboard);
-- sounds once she has found them.
+Each piece drops in where its pack's piece was. As the packs go, so do their licences and credits.
 
-Each pack's licence is checked before it goes in, and credited in the footer and `CREDITS.md`.
+- Sounds, once she has found them (`docs/from-the-litterbox.md`).
+- The small text raised to 14 px with the new bubbles.
 
-### Phase 5: the rest of the harness
+### Phase 5: the gateway, and the rest of the harness
 
-- **The house-rules plugin is on** in all seven of her repos (1 October). Sessions write `audits/<repo>` and,
-  on catch-up, handle and mark delivered what waits for them in `outbox/`.
-- **Delivering the outbox.** A page can't call `send_message` (version 18's trial), and the Claude Code
-  sessions here don't have it either, so nothing can push a post into a session from outside. The way in is
-  the session's own catch-up: the catio skill reads `outbox/` for its own session id when the session next
-  runs, with the house-rules plugin (on since 1 October). A concierge Routine is the fallback, and the
-  Routines are paused at her request.
-- **Agent cats in claude.ai** need `host:catio` declared, which only the Claude desktop app can do.
-- **List `catio-plugin/` in the marketplace** next to `kittychat-house-rules`.
+The gateway is built on `claude/eloquent-thompson-e9b2uh` (`harness/gateway/`, with `harness/hooks/report.py`):
+- a Cloudflare Worker on the free plan;
+- the Catio server's tools at `/mcp`;
+- her sign-in by password, through claude.ai's connector;
+- an agents' key for the hooks, which can't write as her.
+
+Its tests pass: the gateway in workerd, 9; the harness, 33.
+
+1. **Review and merge** the branch. It replaces `claude/catio-gateway-plan`, whose plan it builds.
+2. **She sets it up once** (`harness/gateway/README.md`):
+   - deploy the Worker from this repo;
+   - two secrets;
+   - `CATIO_URL` and `CATIO_TOKEN` in each Claude environment, with the Worker allowed in the network policy;
+   - the `Catio` connector in claude.ai, its tools set to Always allow.
+3. **The page reads the gateway.**
+   - Declare the `Catio` connector in the page's capabilities. First check that an artifact may name a custom
+     connector.
+   - Show the gateway's cats next to the sessions, live.
+   - Send through it, so a running session gets the message at its next Stop.
+4. **Later:**
+   - agent cats in claude.ai through `host:catio` (only the Claude desktop app can declare it);
+   - `catio-plugin/` listed in the marketplace beside `kittychat-house-rules`.
 
 ## Waiting on Charlotte
 
-1. Rotate the MCPmarket token in her plugin zip's `.mcp.json`.
-2. ~~Turn the house-rules plugin on~~: on in all seven of her repos, merged 1 October.
-3. ~~The `send_message` trial~~: done 1 October, blocked by policy.
-4. ~~Delete the 14 old merged branches~~: done 1 October.
-5. Who made `plants.zip`, for the credits.
-6. Whether "Rename" should also rename the real session.
-7. Whether cats napping in the attic should sit on the stairs instead.
-8. Whether to delete the `download` files (`.DS_Store`) in the Drive folder.
+1. **Merge, or say no to, the two built branches:**
+   - the gateway (`claude/eloquent-thompson-e9b2uh`);
+   - the no-attribution rule for public repos (`claude/cool-cannon-wh25u6`).
+2. **Set up the gateway** once it is merged: the five steps above.
+3. **Which comes first:** phase 2 (the camera) or phase 5 (the gateway).
+4. **The posts waiting since 30 September**, which a session collects only when it next runs:
+   - two messages to Clafoutis;
+   - one to Matcha;
+   - Nougat's "yes";
+   - an archive request for another Nougat session, which Claude can do on her word.
+5. **Rotate the MCPmarket token** in her plugin zip's `.mcp.json`.
+6. **Small questions:**
+   - who made `plants.zip`;
+   - whether Rename should rename the real session;
+   - whether attic cats should sit on the stairs;
+   - whether to delete the Drive folder's `download` files.
+7. **Merged branches she may delete:**
+   - `claude/digest-moves`;
+   - `claude/elegant-edison-cnmcq7`;
+   - `claude/exciting-bardeen-9vehk0`;
+   - `claude/friendly-shannon-ykj7u1`;
+   - `claude/kittychat-digest`;
+   - `claude/openexecutive-repo-eval-lbilmm`.
+
+   This session's git access can't delete them.
 
 ## Publishing
 
 1. `sh catio/test/run.sh`: everything passes.
 2. Read the live artifact in full (`Artifact` read, then every line of the saved file), and compare it with
-   the branch's page. If it's newer, merge it first, never overwrite it.
+   the branch's page. If the live one is newer, merge it first; never overwrite it.
 3. Publish `catio/index.html` to `artifacts.json`'s URL with only the files that changed, and **omit
-   `capabilities`** to keep the stored set (Claude Code Remote's nine tools, `db`, `assets`, `sample`). Pass
-   `capabilities` only to add a tool on purpose, as phase 0 will for `send_message`.
+   `capabilities`** to keep the stored set:
+   - Claude Code Remote's eight tools: `list_sessions`, `send_message`, `delete_trigger`, `create_session`,
+     `set_session_title`, `archive_session`, `unarchive_session` and `interrupt_session`;
+   - `db`, `assets` and `sample`.
+
+   Pass `capabilities` only to add something on purpose (the `Catio` connector, in phase 5), and then pass
+   the whole set.
 4. Afterwards: list the files, list `rooms`, and create, update and delete one probe in `cats`.
 5. Add a line to `docs/history.md`.
 
+## Rules worth repeating
+
+- **No Claude attribution lines** (`Co-Authored-By: Claude`, `Claude-Session:`) in commits on her public
+  repos or forks: this one, the grocery app, Snail-Mail-Trail and the LibreSprite fork. She asked on
+  1 October; the gate hook enforces it once `claude/cool-cannon-wh25u6` is merged.
+- Never commit `art/licensed/`, `catio/data/sessions.json`, `catio/dist/` or anything from her sessions.
+
 ## Known limits
 
-- claude.ai may refuse the page's Claude Code Remote calls. Claude Code Remote is built in, so there is no
-  switch in her Connectors list. Refused posts wait in `outbox/`.
-- The Drive connector hands over files up to about 10 MB. Bigger zips (Game UI Pastel, 12.5 MB) are attached
-  in the chat.
-- `host:catio` works only in the Claude desktop app, and only for the artifact's owner.
-- Write-tool failures that come back as `server_unavailable` or `upstream_error` may have run anyway. The page
+- **claude.ai refuses the page's Claude Code Remote calls**, except reading sessions, and sometimes that too.
+  It is built in, so her Connectors list has no switch for it.
+- **Nothing outside claude.ai can wake an idle session.** Messages to one wait for its next turn.
+- **The Drive connector hands over files up to about 10 MB.** Bigger zips are attached in the chat.
+- **`host:catio` works only in the Claude desktop app**, and only for the artifact's owner.
+- **A write tool that fails with `server_unavailable` or `upstream_error` may have run anyway.** The page
   queues these rather than retrying.
