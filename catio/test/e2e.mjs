@@ -1365,6 +1365,52 @@ async function dropFiles(page, sel, files) {
   });
   await ctx.close();
 }
+// The café on the gateway's own address (her choice, 2 October: "the catio as a UI for all of my Claude sessions"):
+// live through the gateway, and honest about what only claude.ai can do.
+{
+  const { page, ctx, errors } = await open("?via=gateway&mode=blocked");
+  await page.waitForTimeout(300);
+  await check("on its own address the café is live through the gateway, with no warning sign", async () => {
+    expect(!(await page.locator("#status").isVisible()), "the sign shows");
+    await openHouse(page);
+    expect((await menuText(page)).includes("Live through your gateway"), await menuText(page));
+    expect(!(await tools(page)).some((t) => t[0] === "Claude Code Remote"), "it asked claude.ai for sessions");
+  });
+  await openCat(page, "Shop about page");
+  await menuButton(page, "Talk").click();
+  await manage(page);
+  await check("a session that reports can be asked to wrap up; only claude.ai pauses or archives", async () => {
+    const t = await page.locator("#catMore").innerText();
+    expect(/wrap up/i.test(t) && !/archive|pause/i.test(t), t);
+    expect(await page.locator("#catTitle").count() === 0, "the title can't change from here");
+  });
+  await page.fill("#sayTo", "Bien reçu");
+  await page.click("#saySend");
+  await page.waitForTimeout(200);
+  await check("writing to it goes through the gateway", async () => {
+    const c = (await tools(page, "comment")).pop();
+    expect(c && c[0] === "CATIO" && c[2].cat === "cse_blocked1", JSON.stringify(c));
+  });
+  await page.keyboard.press("Escape");
+  await openCat(page, "Week tab editing");
+  await menuButton(page, "Talk").click();
+  await page.fill("#sayTo", "Are you done?");
+  await page.click("#saySend");
+  await page.waitForTimeout(200);
+  await check("a session that doesn't report says it can't be told from here, and nothing waits in an outbox", async () => {
+    expect((await toast(page)).includes("open it in claude.ai"), await toast(page));
+    expect(!(await outbox(page)).length, "an outbox nobody collects");
+    expect((await page.locator("#thread").innerText()).includes("not delivered"), await page.locator("#thread").innerText());
+  });
+  await page.keyboard.press("Escape");
+  await openRoom(page, "kitchen");
+  if (await menuButton(page, "Add a cat").count()) await menuButton(page, "Add a cat").click();
+  await check("no New session button: starting one needs claude.ai (or, later, her runner)", async () => {
+    expect(await menuButton(page, "New session").count() === 0, await menuText(page));
+  });
+  await check("no page errors on the gateway's address", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
 // When send_message works, a post goes straight into the session; when it fails, it waits with the reason.
 {
   const { page, ctx, errors } = await open("?send=ok");

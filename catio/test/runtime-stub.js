@@ -95,7 +95,7 @@
   // does when a page may not use them; ?host=none has no Catio server on this device.
   T.tools = []; T.triggers = 0; T.goneTriggers = new Set();
   T.agents = params.get("agents") !== "1" ? [] : [{ id: "codex-shop", name: "Codex", provider: "openai", model: "gpt-5", mood: "needs", ask: "Which colour for the buttons?", title: "Shop theme", repo: "charredlatte/montfortoise-shopify", updated: now - 60e3, wakes: true }];
-  // ?gateway=1: the Catio's gateway answers through her CATIO connector, with a session that reports to it (blocked1,
+  // ?gateway=1 (or ?via=gateway): the Catio's gateway answers through her CATIO connector, with a session that reports to it (blocked1,
   // known there by its container id, and fresher there than in claude.ai's list) and one the list doesn't have yet.
   // ?gateway=ask asks before every call. Without it, she has no CATIO connector.
   T.gw = [
@@ -121,7 +121,7 @@
   mcp.callTool = async (server, tool, input) => {
     T.tools.push([server, tool, clone(input || {})]);
     if (server === "CATIO") {
-      const g = params.get("gateway");
+      const g = params.get("gateway") || (params.get("via") === "gateway" ? "1" : null);
       if (!g) throw { code: "server_not_connected", message: "no CATIO connector" };
       if (g === "ask") throw { code: "approval_required", message: "ask every time" };
       if (tool === "list_agents") return answer({ agents: clone(T.gw) });
@@ -145,6 +145,7 @@
   const sample = async (input) => { T.prompts.push(input); return { text: JSON.stringify(T.sampleAnswer), truncated: false }; };
   sample.json = async (input) => { T.prompts.push(input); if (T.sampleHang) return new Promise(() => {}); return clone(T.sampleAnswer); };   // sampleHang: a sorter that never answers
   const nodb = params.get("mode") === "nodb";
-  window.claude = { use: async (n) => (n === "mcp" ? mcp : n === "db" ? (nodb ? null : db) : n === "assets" ? (nodb ? null : assets) : n === "sample" ? sample
+  // ?via=gateway: the café served from the gateway's own address (harness/gateway/cafe/runtime.js says so)
+  window.claude = { catioGateway: params.get("via") === "gateway", use: async (n) => (n === "mcp" ? mcp : n === "db" ? (nodb ? null : db) : n === "assets" ? (nodb ? null : assets) : n === "sample" ? sample
     : n === "permissions" ? { request: async () => ({}), state: async () => "granted" } : null) };
 })();
