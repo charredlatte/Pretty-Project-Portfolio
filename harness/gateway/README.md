@@ -54,8 +54,8 @@ Two kinds of caller, told apart by how they sign in:
    doesn't have, and the reason the page's live read is refused today.
 5. Tell Claude it's done. The page is then republished to read the `Catio` connector (docs/plan.md, phase 5).
 
-To check: the address alone answers "The Catio's gateway." That page never changes, so it only says the Worker
-is up. The sign-in page says when `CATIO_PASSWORD` is missing. The key is right when an agent's call to `/mcp`
+To check: the address alone opens the café (`CAFE_URL` in `wrangler.jsonc`, the page's address from
+`artifacts.json`), so it only says the Worker is up. The sign-in page says when `CATIO_PASSWORD` is missing. The key is right when an agent's call to `/mcp`
 gets an answer instead of a 401 `invalid_token`. Once a session has started in an environment with the two
 variables and the plugin, it is in `list_agents`.
 

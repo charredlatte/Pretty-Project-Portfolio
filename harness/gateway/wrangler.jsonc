@@ -10,6 +10,8 @@
 	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["House"] }],
 	// The OAuth library's grants and tokens (hashed). No id: the first deploy creates it.
 	"kv_namespaces": [{ "binding": "OAUTH_KV" }],
+	// The KittyChat Café (artifacts.json): the gateway's own address opens it.
+	"vars": { "CAFE_URL": "https://claude.ai/artifact/KHiWnmr2e3iYHGXiUX8yDe" },
 	"observability": { "enabled": true }
 	// Secrets, set in the dashboard (Settings > Variables and Secrets), never here:
 	//   CATIO_TOKEN     the key agents and the session hooks send; also in Claude's environment settings

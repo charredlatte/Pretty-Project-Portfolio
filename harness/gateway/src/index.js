@@ -16,7 +16,9 @@ const DAY = 24 * 3600;
 async function site(request, env) {
 	const { pathname } = new URL(request.url);
 	if (pathname === "/authorize") return authorize(request, env);
-	if (pathname === "/") return new Response("The Catio's gateway. Charlotte's agents report here.\n", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+	// her address opens the café, which lives in claude.ai: only there can the page read her rooms and sessions
+	if (pathname === "/") return env.CAFE_URL ? Response.redirect(env.CAFE_URL, 302)
+		: new Response("The Catio's gateway. Charlotte's agents report here.\n", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
 	return new Response("Not found\n", { status: 404 });
 }
 
