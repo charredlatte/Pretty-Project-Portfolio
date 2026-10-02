@@ -109,6 +109,12 @@ async function signIn() {
 
 // ---------- the tests ----------
 describe("the gateway", () => {
+	test("opens the café at its own address", async () => {
+		const r = await fetch(base + "/", { redirect: "manual" });
+		assert.equal(r.status, 302);
+		assert.match(r.headers.get("location"), /^https:\/\/claude\.ai\/artifact\//);
+	});
+
 	test("tells strangers to sign in, and how", async () => {
 		const r = await fetch(base + "/mcp", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
 		assert.equal(r.status, 401);
