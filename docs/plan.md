@@ -141,13 +141,15 @@ merge to `main`.
    - two secrets;
    - `CATIO_URL` and `CATIO_TOKEN` in each Claude environment, with the Worker allowed in the network policy;
    - the `Catio` connector in claude.ai, its tools set to Always allow.
-2. **The page reads the gateway.**
-   - Declare the `Catio` connector (`list_agents`, `comment`, `comments`, `manage`, `drop_file`) beside
-     `host:catio`. First check that an artifact may name a custom connector.
-   - Show its cats next to the sessions, live.
-   - Match a gateway cat (`via: claude-code`, `session`) to the session it is, so no session shows twice.
-     Compare the ids after their prefix, in case one is `cse_…` and the other `session_…`.
-   - Send to a gateway cat through the gateway, not the outbox, so a running session gets it at its next Stop.
+2. **The page reads the gateway. Done (2 October):**
+   - it declares her `CATIO` connector (`list_agents`, `comment`, `comments`, `manage`, `drop_file`): a page may
+     name any of her claude.ai connectors by its display name. Without it, `host:catio`, as before;
+   - its cats are read every 30 s, next to the sessions;
+   - a gateway cat (`via: claude-code`, `session`) is the session it reports for, matched after the id's prefix
+     (`cse_…` there, `session_…` in the list), so no session shows twice, and it wears the newer of the two moods;
+   - what she writes or drops on it goes through the gateway, not the outbox, so a running session gets it at its
+     next Stop; its answers there (`report.py say`) show in its conversation;
+   - when CATIO asks before every call or needs signing in again, the House menu says so.
 3. **Later:**
    - agents the gateway runs itself (the rest of OpenClaw), which would need a machine;
    - a Telegram channel;

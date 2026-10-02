@@ -1,6 +1,7 @@
 // Look at the page before touching a test: screenshots of the floors or rooms named, with the stub's invented cats.
 //   sh catio/test/run.sh look [ground|upper|<room key>…]   (default: both floors, whole)
 // Writes catio/test/.look/<name>.png and prints each path, for the agent to open and set beside her words.
+// LOOK_QUERY passes the stub's options, e.g. LOOK_QUERY="?gateway=1&mode=blocked".
 import { mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
@@ -11,7 +12,7 @@ const out = join(here, ".look");
 mkdirSync(out, { recursive: true });
 const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
-await page.goto("file://" + join(here, ".page.html"));
+await page.goto("file://" + join(here, ".page.html") + (process.env.LOOK_QUERY || ""));
 await page.waitForTimeout(800);
 const UPPER = new Set(["upper", "brain", "bath", "bedroom"]);
 for (const name of process.argv.length > 2 ? process.argv.slice(2) : ["ground", "upper"]) {
