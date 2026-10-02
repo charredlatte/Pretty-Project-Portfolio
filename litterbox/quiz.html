@@ -1,0 +1,485 @@
+<title>Litter Box Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:ital,wght@0,500;0,700;0,800;1,500&display=swap">
+<style>
+/* The litter box quiz: the piles waiting for Charlotte's check, one note a card, like a Quizlet round.
+   Each card asks which project the note belongs to; her answer is saved to answers/<card>, and Claude files the
+   answered notes with litterbox/quiz.py and sort.py. The look is the KittyChat Café's: Cup Nooble's Sprout Lands
+   panels and buttons (art/licensed/ui/, copied from the café's published files), its pixel font at 18px, on the
+   café's meadow. Without the art, each piece's own face colour keeps it readable.
+   Layout: one column on the meadow, a flashcard over a two-by-two grid of answers. */
+@font-face { font-family: "Sprout"; src: url(art/licensed/ui/sprout.ttf) format("truetype"); font-display: swap; }
+:root {
+  --ground: #5E8F34;       /* the café's meadow */
+  --ground-tile: #598830;
+  --on-ground: #FFF6DF;
+  --on-ground-soft: #E3EDC4;
+  --ink: #3F2A20;          /* the Sprout panels' outline, deepened for reading */
+  --ink-soft: #654535;
+  --tan: #DCB98A;          /* the panel's face */
+  --cream: #E8CFA6;        /* the button's face */
+  --green: #C0D470;
+  --pink: #EBB7AE;
+  --pixel: "Sprout", "Fredoka", ui-rounded, system-ui, sans-serif;   /* 18px: one font pixel to a screen pixel */
+  --body: "Nunito", ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --u: 2px;                /* one art pixel on screen */
+  --paw: url(art/licensed/ui/cursor.png) 9 5, default;
+  --point: url(art/licensed/ui/cursor-point.png) 9 3, pointer;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --ground: #22331F; --ground-tile: #1F2F1C; --on-ground: #F3E7C9; --on-ground-soft: #BCC89D; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --ground: #22331F; --ground-tile: #1F2F1C; --on-ground: #F3E7C9; --on-ground-soft: #BCC89D; color-scheme: dark; }
+@media (max-width: 560px) { :root { --u: 1px; } }
+
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { margin: 0; color: var(--on-ground); font: 500 1rem/1.5 var(--body); cursor: var(--paw);
+  background: repeating-conic-gradient(var(--ground) 0 25%, var(--ground-tile) 0 50%) 0 0 / 32px 32px, var(--ground); }
+button { font: inherit; color: inherit; cursor: var(--point); }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; box-shadow: 0 0 0 7px var(--on-ground); }
+[tabindex="-1"]:focus { outline: none; box-shadow: none; }
+.wrap { max-width: 700px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 28px; display: grid; gap: 14px; }
+
+/* the Sprout Lands pieces, each a 9-slice scaled by --u */
+.panel { border: calc(6 * var(--u)) solid transparent; border-image: url(art/licensed/ui/panel.png) 6 fill / calc(6 * var(--u)) stretch;
+  background: var(--tan) padding-box; image-rendering: pixelated; color: var(--ink); }
+.btn { font: 18px/22px var(--pixel); color: var(--ink); background: var(--cream) padding-box; border-style: solid; border-color: transparent;
+  border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u));
+  border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u)) stretch;
+  image-rendering: pixelated; padding: 2px calc(3 * var(--u)); text-align: left; }
+.btn:hover { border-image-source: url(art/licensed/ui/button-hover.png); background-color: #F1E0C3; }
+.btn:active:not(:disabled) { border-image: url(art/licensed/ui/button-down.png) 4 fill / calc(4 * var(--u)) stretch; translate: 0 calc(2 * var(--u)); }
+.btn.green, .btn.green:hover { border-image-source: url(art/licensed/ui/button-green.png); background-color: var(--green); }
+.btn.pink, .btn.pink:hover { border-image-source: url(art/licensed/ui/button-pink.png); background-color: var(--pink); }
+.btn:disabled { cursor: var(--paw); }
+.rule { border: 0; border-top: calc(4 * var(--u)) solid transparent; margin: 4px 0;
+  border-image: url(art/licensed/ui/divider.png) 4 1 0 1 / calc(4 * var(--u)) var(--u) 0 var(--u) stretch; image-rendering: pixelated; }
+.px { font: 18px/22px var(--pixel); }
+
+/* the top: the brand plate, the count, and the round as a strip of pixels */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: inline-flex; align-items: center; gap: 8px; }
+.brand .logo { width: 21px; height: 18px; flex: none; background: url(art/licensed/ui/logo.png) no-repeat; image-rendering: pixelated; }
+.count { font: 18px/22px var(--pixel); color: var(--on-ground); font-variant-numeric: tabular-nums; }
+.strip { display: flex; gap: 3px; height: 10px; }
+.strip i { flex: 1; min-width: 3px; background: var(--on-ground); opacity: .28; }
+.strip i.file { background: var(--green); opacity: 1; }
+.strip i.drop { background: var(--pink); opacity: 1; }
+.strip i.now { background: var(--on-ground); opacity: 1; }
+
+/* the flashcard: the note in front, the sifter's guess on the back */
+.scene { perspective: 1400px; }
+.card { display: grid; transition: transform .5s cubic-bezier(.3, .7, .2, 1); transform-style: preserve-3d; }
+.card.flipped { transform: rotateY(180deg); }
+.face { grid-area: 1 / 1; backface-visibility: hidden; -webkit-backface-visibility: hidden; padding: 6px 10px 8px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.face.front { grid-template-rows: auto 1fr auto; }
+.face.back { transform: rotateY(180deg); align-content: center; text-align: center; }
+.card .meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.card .from { font-size: .8rem; line-height: 1.35; color: var(--ink-soft); min-width: 0; }
+.chip { font: 18px/18px var(--pixel); padding: 1px 6px; background: var(--cream); white-space: nowrap; }
+.note { font-size: 1.02rem; line-height: 1.55; min-width: 0; overflow-wrap: anywhere; }
+.note p { margin: 0 0 .5em; }
+.note ul { margin: 0 0 .5em; padding-left: 1.2em; display: grid; gap: .25em; }
+.note b { font-weight: 800; }
+.note code { font: .88em/1.3 ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace; background: rgba(63, 42, 32, .1); padding: 0 .25em; }
+.card .peek { justify-self: end; }
+.back .label { font: 18px/22px var(--pixel); color: var(--ink-soft); }
+.back .guess { font: 36px/40px var(--pixel); }
+.back .repo, .back .src { font-size: .85rem; color: var(--ink-soft); overflow-wrap: anywhere; }
+
+/* the question and its answers */
+.ask { margin: 2px 0 0; font: 18px/22px var(--pixel); color: var(--on-ground); font-weight: normal; }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.choice { position: relative; display: flex; align-items: center; gap: 10px; min-height: 58px; padding-left: 22px; min-width: 0; }
+.choice::before { content: ""; position: absolute; left: 6px; top: 50%; margin-top: -6px; width: 7px; height: 12px;
+  background: url(art/licensed/ui/pointer.png) no-repeat; image-rendering: pixelated; visibility: hidden; }
+.choice:hover::before, .choice:focus-visible::before { visibility: visible; }
+.choice .key { flex: none; width: 22px; text-align: center; color: var(--ink-soft); }
+.choice .name { display: grid; min-width: 0; }
+.choice .repo { font: 500 .78rem/1.3 var(--body); color: var(--ink-soft); overflow-wrap: anywhere; }
+.choice.was { outline: 3px dashed var(--on-ground); outline-offset: 3px; }
+.choice .was-tag { position: absolute; right: 8px; top: -12px; font: 18px/18px var(--pixel); color: var(--ink); background: var(--on-ground); padding: 0 4px; }
+.answered .choice:not(.green):not(.was) { opacity: .7; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions .btn { padding-inline: calc(4 * var(--u)); }
+.actions .k { color: var(--ink-soft); }
+.all { padding: 6px 8px; display: grid; gap: 8px; }
+.all .list { display: flex; flex-wrap: wrap; gap: 8px; }
+.said { margin: 0; min-height: 1.5em; font-weight: 800; color: var(--on-ground); }
+
+/* the end of a round, and the quiet states */
+.sheet { padding: 8px 12px 12px; display: grid; gap: 12px; }
+.sheet h1 { margin: 0; font: 36px/40px var(--pixel); font-weight: normal; text-wrap: balance; }
+.sheet h2 { margin: 0; font: 18px/22px var(--pixel); font-weight: normal; }
+.sheet p { margin: 0; }
+.tally { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.tally li { display: flex; justify-content: space-between; gap: 12px; font: 18px/22px var(--pixel); font-variant-numeric: tabular-nums; }
+.recap { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.recap li { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: baseline; font-size: .92rem; }
+.recap .what { min-width: 0; overflow-wrap: anywhere; }
+.recap .to { font: 18px/18px var(--pixel); padding: 1px 6px; background: var(--cream); white-space: nowrap; }
+.recap .to.file { background: var(--green); }
+.recap .to.drop { background: var(--pink); }
+.tell { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+.tell output { flex: 1 1 220px; padding: 8px 10px; background: #F4E6CD; font-weight: 700; user-select: all; }
+.foot { display: grid; gap: 6px; font-size: .78rem; line-height: 1.4; color: var(--on-ground-soft); }
+.foot kbd { font: 18px/18px var(--pixel); color: var(--on-ground); }
+
+@media (max-width: 480px) { .choices { grid-template-columns: 1fr; } .back .guess { font: 18px/22px var(--pixel); } .sheet h1 { font: 18px/22px var(--pixel); } }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } .btn:active:not(:disabled) { translate: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="brand btn px" role="img" aria-label="Litter box quiz"><span class="logo" aria-hidden="true"></span>LITTER BOX QUIZ</span>
+    <span class="count" id="count" aria-live="polite"></span>
+  </header>
+  <div class="strip" id="strip" aria-hidden="true"></div>
+
+  <section class="panel sheet" id="vWait">
+    <h1>OPENING THE BOX</h1>
+    <p id="waitWhy">The piles waiting for your check load here, one note to a card. You pick the project each note belongs to, or settle it.</p>
+  </section>
+
+  <section class="panel sheet" id="vEmpty" hidden>
+    <h1>NOTHING TO SORT</h1>
+    <p>No pile is waiting for your check. When Claude sifts new notes and can only guess their project, they show up here as cards.</p>
+  </section>
+
+  <section id="vQuiz" hidden>
+    <div class="wrap" style="padding: 0;">
+      <div class="scene">
+        <div class="card" id="card">
+          <article class="face front panel" id="front" aria-label="The note">
+            <div class="meta"><span class="from" id="title"></span><span class="chip" id="section"></span></div>
+            <div class="note" id="note"></div>
+            <button class="btn peek" id="peek" type="button">PEEK AT THE GUESS <span class="k">␣</span></button>
+          </article>
+          <article class="face back panel" id="back" aria-label="The sifter's guess" aria-hidden="true">
+            <div class="label">THE SIFTER GUESSED</div>
+            <div class="guess" id="guess"></div>
+            <div class="repo" id="guessRepo"></div>
+            <hr class="rule">
+            <div class="src" id="src"></div>
+            <button class="btn" id="unpeek" type="button" style="justify-self: center;">BACK TO THE NOTE <span class="k">␣</span></button>
+          </article>
+        </div>
+      </div>
+      <h2 class="ask" id="ask">WHICH PROJECT IS THIS FOR?</h2>
+      <div class="choices" id="choices" role="group" aria-labelledby="ask"></div>
+      <div class="actions">
+        <button class="btn" id="none" type="button" aria-expanded="false" aria-controls="all">NONE OF THESE <span class="k">0</span></button>
+        <button class="btn pink" id="drop" type="button">SETTLED: DROP IT <span class="k">D</span></button>
+        <button class="btn" id="skip" type="button">SKIP <span class="k">S</span></button>
+        <button class="btn" id="prev" type="button">BACK <span class="k">←</span></button>
+      </div>
+      <div class="panel all" id="all" hidden>
+        <h2 class="px" style="margin: 0; font-weight: normal;">EVERY PROJECT</h2>
+        <div class="list" id="allList"></div>
+      </div>
+      <p class="said" id="said" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="panel sheet" id="vDone" hidden>
+    <h1 id="doneTitle">ALL SORTED</h1>
+    <p id="doneSub"></p>
+    <ul class="tally" id="tally"></ul>
+    <hr class="rule">
+    <h2>CARD BY CARD</h2>
+    <ul class="recap" id="recap"></ul>
+    <hr class="rule">
+    <h2>THEN TELL CLAUDE</h2>
+    <div class="tell">
+      <output id="tellText">File my litter box quiz answers.</output>
+      <button class="btn" id="copy" type="button">COPY</button>
+    </div>
+    <div class="actions">
+      <button class="btn green" id="rest" type="button" hidden>ANSWER THE REST</button>
+      <button class="btn" id="again" type="button">GO THROUGH AGAIN</button>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div><kbd>1</kbd>–<kbd>4</kbd> choose · <kbd>0</kbd> every project · <kbd>D</kbd> settled · <kbd>S</kbd> skip · <kbd>␣</kbd> peek · <kbd>←</kbd> back</div>
+    <div>Your answers are saved as you go. Claude files the notes into each project's own repo when you ask. Interface by Cup Nooble (Sprout Lands UI) · Logo by ToffeeCraft.</div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const S = {
+    db: null, state: "loading",          // loading | none | ok
+    got: { cards: false, answers: false },
+    cards: [], answers: {}, projects: [],
+    round: [], i: 0, flipped: false, more: false, busy: false, timer: 0, readOnly: false, note: "",
+  };
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- the note's markdown: paragraphs, one level of bullets, bold, italics and code ---------- */
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => "&#" + c.charCodeAt(0) + ";");
+  const inline = (s) => String(s).split("`").map((p, k) => k % 2 ? "<code>" + esc(p) + "</code>"
+    : esc(p).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\*(.+?)\*/g, "<i>$1</i>")).join("");
+  function md(text) {
+    let lines = String(text || "").split("\n");
+    lines[0] = lines[0].replace(/^\s*[-*+]\s+/, "");
+    lines = lines.map((l, k) => (k && l.startsWith("  ") ? l.slice(2) : l));
+    const out = [];
+    let para = null, list = null;
+    const endPara = () => { if (para) out.push("<p>" + inline(para.join(" ")) + "</p>"); para = null; };
+    const endList = () => { if (list) out.push("<ul>" + list.map((x) => "<li>" + inline(x.join(" ")) + "</li>").join("") + "</ul>"); list = null; };
+    for (const raw of lines) {
+      const l = raw.trim();
+      if (!l) { endPara(); endList(); continue; }
+      const m = raw.match(/^\s*[-*+]\s+(.*)$/);
+      if (m) { endPara(); (list ||= []).push([m[1]]); continue; }
+      if (list) { list[list.length - 1].push(l); continue; }
+      (para ||= []).push(l);
+    }
+    endPara(); endList();
+    return out.join("");
+  }
+  const gist = (text) => {
+    const b = String(text || "").match(/\*\*(.+?)\*\*/);
+    const t = (b ? b[1] : String(text || "").replace(/^\s*[-*+]\s+/, "")).replace(/[*`]/g, "").trim();
+    return t.length > 110 ? t.slice(0, 108) + "…" : t;
+  };
+
+  /* ---------- projects and the four answers a card offers ---------- */
+  function project(repo) {
+    return S.projects.find((p) => p.repo === repo) || { repo, label: repo, words: [] };
+  }
+  function projectList() {
+    const list = S.projects.slice();
+    for (const c of S.cards) if (c.guess && !list.some((p) => p.repo === c.guess)) list.push(project(c.guess));
+    return list;
+  }
+  function optionsFor(c) {
+    const text = (c.text + " " + (c.title || "")).toLowerCase();
+    const scored = projectList().map((p, k) => ({
+      p, k, s: (p.repo === c.guess ? 100 : 0) + (p.words || []).filter((w) => text.includes(String(w).toLowerCase())).length,
+    }));
+    scored.sort((a, b) => b.s - a.s || a.k - b.k);
+    const four = scored.slice(0, 4).map((x) => x.p);
+    let h = 7;   // the same order every time this card comes up
+    for (const ch of c.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    for (let i = four.length - 1; i > 0; i--) { h = (Math.imul(h, 1103515245) + 12345) >>> 0; const j = h % (i + 1); [four[i], four[j]] = [four[j], four[i]]; }
+    return four;
+  }
+
+  /* ---------- the round ---------- */
+  const byId = (id) => S.cards.find((c) => c.id === id);
+  const current = () => byId(S.round[S.i]);
+  const unanswered = () => S.cards.filter((c) => !S.answers[c.id]).map((c) => c.id);
+  function startRound(ids) { S.round = ids; S.i = 0; S.flipped = false; S.more = false; S.note = ""; }
+  function syncRound() {
+    if (!S.round.length && S.i === 0) { startRound(unanswered()); return; }
+    const ids = new Set(S.cards.map((c) => c.id));
+    const keep = S.round.filter((id) => ids.has(id));
+    const before = S.round.slice(0, S.i).filter((id) => ids.has(id)).length;
+    for (const id of unanswered()) if (!keep.includes(id)) keep.push(id);
+    S.round = keep; S.i = Math.min(before, keep.length);
+  }
+  function go(step) {
+    clearTimeout(S.timer);
+    S.i = Math.max(0, Math.min(S.round.length, S.i + step));
+    S.flipped = false; S.more = false; S.note = "";
+    paint(true);
+  }
+
+  async function answer(verdict, repo) {
+    const c = current();
+    if (!c || S.busy || S.readOnly) return;
+    clearTimeout(S.timer);
+    const data = { verdict, project: verdict === "file" ? repo : null, guess: c.guess || null, at: Date.now() };
+    const before = S.answers[c.id];
+    S.answers[c.id] = data; S.busy = true; S.more = false; S.note = "";
+    paint(false);
+    try {
+      await S.db.collection("answers").doc(c.id).set(data);
+    } catch (e) {
+      if (before) S.answers[c.id] = before; else delete S.answers[c.id];
+      S.busy = false;
+      const code = (e && e.code) || "error";
+      if (code === "invalid_argument") { S.readOnly = true; S.note = "This view can read the piles but not save answers. Open it as yourself in claude.ai to sort them."; }
+      else S.note = "That answer didn't save (" + code + "). Choose again to retry.";
+      paint(false);
+      return;
+    }
+    S.busy = false;
+    S.timer = setTimeout(() => go(1), reduced ? 700 : 1000);
+  }
+
+  function skip() {
+    const c = current();
+    if (!c) return;
+    if (S.i < S.round.length - 1 && !S.answers[c.id]) { S.round.splice(S.i, 1); S.round.push(c.id); S.flipped = false; S.more = false; S.note = ""; paint(true); }
+    else go(1);
+  }
+
+  /* ---------- drawing ---------- */
+  function show(view) { for (const v of ["vWait", "vEmpty", "vQuiz", "vDone"]) $(v).hidden = v !== view; }
+  function said(c) {
+    if (S.note) return S.note;
+    const a = c && S.answers[c.id];
+    if (!a) return "";
+    if (a.verdict === "drop") return "Settled. It leaves the box when Claude files your answers.";
+    if (a.project === c.guess) return "Same as the sifter's guess.";
+    return "The sifter guessed " + project(c.guess).label + ". Your answer wins.";
+  }
+  function strip() {
+    $("strip").replaceChildren(...S.round.map((id, k) => {
+      const i = document.createElement("i"), a = S.answers[id];
+      i.className = k === S.i ? "now" : a ? a.verdict : "";
+      return i;
+    }));
+  }
+  function choiceButton(p, key, c) {
+    const a = S.answers[c.id];
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn choice";
+    b.dataset.repo = p.repo;
+    if (a && a.verdict === "file" && a.project === p.repo) b.classList.add("green");
+    else if (a && a.verdict === "file" && p.repo === c.guess) b.classList.add("was");
+    b.innerHTML = (key ? '<span class="key">' + key + "</span>" : "") + '<span class="name"><span>' + esc((p.label || p.repo).toUpperCase()) + '</span><span class="repo">' + esc(p.repo) + "</span></span>" +
+      (b.classList.contains("was") ? '<span class="was-tag">GUESS</span>' : "");
+    b.setAttribute("aria-pressed", String(b.classList.contains("green")));
+    b.disabled = S.readOnly;
+    b.addEventListener("click", () => answer("file", p.repo));
+    return b;
+  }
+  function paint(moved) {
+    if (S.state === "none") { show("vWait"); $("count").textContent = ""; strip(); return; }
+    if (S.state === "loading" || !S.got.cards || !S.got.answers) { show("vWait"); return; }
+    if (!S.cards.length) { show("vEmpty"); $("count").textContent = ""; $("strip").replaceChildren(); return; }
+    strip();
+    const c = current();
+    if (!c) return paintDone(moved);
+    show("vQuiz");
+    $("count").textContent = "CARD " + (S.i + 1) + " OF " + S.round.length;
+    $("title").textContent = (c.title || "").replace(/\s*\(sifted\)$/, "");
+    $("section").textContent = (c.section || "Findings").toUpperCase();
+    $("section").hidden = !c.section;
+    $("note").innerHTML = md(c.text);
+    const g = project(c.guess);
+    $("guess").textContent = (g.label || "No guess").toUpperCase();
+    $("guessRepo").textContent = c.guess ? "Pile: litterbox/" + (c.pile || c.guess + ".md") : "";
+    $("src").textContent = c.from ? "The note came from " + c.from + "." : "";
+    $("card").classList.toggle("flipped", S.flipped);
+    $("front").setAttribute("aria-hidden", String(S.flipped));
+    $("back").setAttribute("aria-hidden", String(!S.flipped));
+    $("peek").tabIndex = S.flipped ? -1 : 0;
+    $("unpeek").tabIndex = S.flipped ? 0 : -1;
+    const a = S.answers[c.id];
+    const opts = optionsFor(c);
+    $("choices").classList.toggle("answered", !!a);
+    $("choices").replaceChildren(...opts.map((p, k) => choiceButton(p, k + 1, c)));
+    const chosenElsewhere = a && a.verdict === "file" && !opts.some((p) => p.repo === a.project);
+    if (chosenElsewhere) S.more = true;
+    $("all").hidden = !S.more;
+    $("none").setAttribute("aria-expanded", String(S.more));
+    if (S.more) $("allList").replaceChildren(...projectList().map((p) => choiceButton(p, "", c)));
+    $("drop").disabled = $("none").disabled = S.readOnly;
+    $("drop").setAttribute("aria-pressed", String(!!a && a.verdict === "drop"));
+    $("drop").textContent = a && a.verdict === "drop" ? "SETTLED ✓" : "SETTLED: DROP IT ";
+    if (!(a && a.verdict === "drop")) $("drop").insertAdjacentHTML("beforeend", '<span class="k">D</span>');
+    $("prev").disabled = S.i === 0;
+    $("said").textContent = said(c);
+    if (moved && document.activeElement && document.activeElement !== document.body && !$("vQuiz").contains(document.activeElement)) $("choices").firstElementChild?.focus({ preventScroll: true });
+  }
+  function paintDone(moved) {
+    show("vDone");
+    const done = S.cards.filter((c) => S.answers[c.id]);
+    const left = S.cards.length - done.length;
+    $("count").textContent = done.length + " OF " + S.cards.length + " SORTED";
+    $("doneTitle").textContent = left ? "ROUND OVER" : "ALL SORTED";
+    $("doneSub").textContent = left
+      ? left + (left === 1 ? " card is" : " cards are") + " still waiting. Your other answers are saved."
+      : "Every card has an answer, saved as you went. Nothing is filed until you tell Claude.";
+    const counts = new Map();
+    for (const c of done) {
+      const a = S.answers[c.id];
+      const k = a.verdict === "drop" ? "Settled, dropped" : project(a.project).label;
+      counts.set(k, (counts.get(k) || 0) + 1);
+    }
+    if (left) counts.set("Not answered yet", left);
+    $("tally").replaceChildren(...[...counts].map(([k, n]) => {
+      const li = document.createElement("li");
+      li.innerHTML = "<span>" + esc(k.toUpperCase()) + "</span><span>" + n + "</span>";
+      return li;
+    }));
+    $("recap").replaceChildren(...S.cards.map((c) => {
+      const a = S.answers[c.id], li = document.createElement("li");
+      const to = !a ? "NOT YET" : a.verdict === "drop" ? "SETTLED" : project(a.project).label.toUpperCase();
+      li.innerHTML = '<span class="what">' + esc(gist(c.text)) + '</span><span class="to ' + (a ? a.verdict : "") + '">' + esc(to) + "</span>";
+      return li;
+    }));
+    $("rest").hidden = !left;
+    if (moved) $("doneTitle").focus({ preventScroll: true });
+  }
+
+  /* ---------- controls ---------- */
+  const flip = (on) => { if (!current()) return; S.flipped = on === undefined ? !S.flipped : on; paint(false); (S.flipped ? $("unpeek") : $("peek")).focus({ preventScroll: true }); };
+  $("peek").addEventListener("click", () => flip(true));
+  $("unpeek").addEventListener("click", () => flip(false));
+  $("card").addEventListener("click", (e) => { if (!e.target.closest("button")) flip(); });
+  $("none").addEventListener("click", () => { S.more = !S.more; paint(false); if (S.more) $("allList").firstElementChild?.focus({ preventScroll: true }); });
+  $("drop").addEventListener("click", () => answer("drop"));
+  $("skip").addEventListener("click", skip);
+  $("prev").addEventListener("click", () => go(-1));
+  $("again").addEventListener("click", () => { startRound(S.cards.map((c) => c.id)); paint(true); });
+  $("rest").addEventListener("click", () => { startRound(unanswered()); paint(true); });
+  $("doneTitle").tabIndex = -1;
+  $("copy").addEventListener("click", () => {
+    const text = $("tellText").textContent, done = () => { $("copy").textContent = "COPIED"; setTimeout(() => { $("copy").textContent = "COPY"; }, 1600); };
+    const select = () => { const r = document.createRange(); r.selectNodeContents($("tellText")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); };
+    try { navigator.clipboard.writeText(text).then(done, select); } catch (e) { select(); }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || $("vQuiz").hidden) return;
+    const k = e.key.toLowerCase();
+    if (/^[1-4]$/.test(k)) { const b = $("choices").children[+k - 1]; if (b && !b.disabled) { e.preventDefault(); b.click(); } }
+    else if (k === "0" || k === "n") { e.preventDefault(); $("none").click(); }
+    else if (k === "d") { e.preventDefault(); if (!$("drop").disabled) answer("drop"); }
+    else if (k === "s") { e.preventDefault(); skip(); }
+    else if (k === " " && !(e.target.closest && e.target.closest("button"))) { e.preventDefault(); flip(); }
+    else if (k === "arrowleft" || k === "backspace") { if (S.i > 0) { e.preventDefault(); go(-1); } }
+    else if (k === "arrowright" || k === "enter") { if (S.answers[current()?.id] && !(e.target.closest && e.target.closest("button"))) { e.preventDefault(); go(1); } }
+    else if (k === "escape" && S.more) { S.more = false; paint(false); $("none").focus(); }
+  });
+
+  /* ---------- the store: cards from Claude, answers from her, the projects to choose from ---------- */
+  async function start() {
+    let db = null;
+    try { db = window.claude && (await window.claude.use("db")); } catch (e) { db = null; }
+    if (!db) {
+      S.state = "none";
+      $("waitWhy").textContent = "The piles are kept in this page's storage, which opens when you're signed in to claude.ai. Open the page there to sort them.";
+      paint(false);
+      return;
+    }
+    S.db = db; S.state = "ok";
+    const fail = (e) => { S.note = "The box stopped updating (" + ((e && e.code) || "error") + "). Reload the page to carry on."; paint(false); };
+    db.collection("cards").orderBy("order").onSnapshot((snap) => {
+      S.cards = snap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+      S.got.cards = true;
+      if (S.got.answers) syncRound();
+      paint(false);
+    }, fail);
+    db.collection("answers").onSnapshot((snap) => {
+      const a = {};
+      for (const d of snap.docs) a[d.id] = d.data();
+      S.answers = a;
+      if (!S.got.answers) { S.got.answers = true; if (S.got.cards) syncRound(); }
+      paint(false);
+    }, fail);
+    db.doc("meta/projects").onSnapshot((d) => { S.projects = (d.exists && d.data().list) || []; paint(false); }, fail);
+  }
+  paint(false);
+  start();
+})();
+</script>

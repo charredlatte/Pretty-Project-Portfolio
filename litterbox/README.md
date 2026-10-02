@@ -54,6 +54,24 @@ date: 2026-10-01
 ---
 ```
 
+### Or as a quiz
+
+The litter box quiz (`quiz.html`, published at `artifacts.json`'s `litter-box-quiz`) asks about one note at a
+time: which project it is for, or whether it is settled. Her answers are saved in the quiz's own database as she
+goes, so the quiz holds the notes of private projects without them entering this public repo.
+
+1. **Deal the cards:** `python3 litterbox/quiz.py cards <dir>` writes one card per note on a pile still marked as
+   a guess. Write each to `cards/<id>` with `ArtifactData` (a `batch` of `set`s, `file_path` each), and the projects
+   to choose from to `meta/projects`, `{list: [{repo, label, words}]}`.
+2. **When she says to file them:** save `answers` with `ArtifactData` (`list` with `out_dir`), then
+   `python3 litterbox/quiz.py apply <out_dir>`. Settled notes go. The rest leave their piles for
+   `<date>-sorted-<project>.md`, checked, which the next `sort.py --write` files. Unanswered notes stay put.
+3. Delete the filed cards and their answers from the quiz.
+
+Piles of private projects aren't committed here: pass `--box <dir>` to both commands, and to `sort.py --write`, where they are kept.
+Tests: `python3 -m unittest litterbox/test_quiz.py`. The whole round, publish included, is the `litterbox-quiz`
+skill in `catio-plugin/skills/`, installable from this repo's marketplace (`.claude-plugin/marketplace.json`).
+
 ## Held pull requests
 
 When the house rules hold a merge for her (semi-automatic merging, `harness/README.md`), they drop
