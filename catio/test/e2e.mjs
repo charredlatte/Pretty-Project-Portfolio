@@ -1625,6 +1625,14 @@ if (LOCAL) {
   await T(page, () => { window.__catio.put("rooms/study", { name: "Craft room", blurb: "", repos: ["montfortoise-shopify"], catchAll: false, closed: true, model: "claude-opus-5-5" }); });
   await T(page, () => { window.__catio.put("cats/willow", { title: "Willow", room: "study", mood: "busy", name: "Willow" }); });
   await page.waitForTimeout(300);
+  await check("the adopt form offers open rooms only, starting at the front door", async () => {
+    await openRoom(page, "living");
+    await menuButton(page, "Add a cat").click(); await settle(page);
+    await menuButton(page, "Adopt a chat").click(); await settle(page);
+    expect((await page.locator("#adRoom").inputValue()) === "living", "not the front door: " + await page.locator("#adRoom").inputValue());
+    expect(await page.locator("#adRoom option[value=study]").count() === 0 && await page.locator("#adRoom option[value=bath]").count() === 0, "a closed room offered");
+    await page.keyboard.press("Escape"); await settle(page);
+  });
   await check("a session whose repo a closed room lists, and a chat moved there, sit at the front door", async () => {
     expect((await page.locator('#cats .cat[aria-label*="Shop about page"]').getAttribute("data-room")) === "living", "session not in the lounge");
     expect((await page.locator('#cats .cat[aria-label^="Willow"]').getAttribute("data-room")) === "living", "chat not in the lounge");
@@ -1688,13 +1696,21 @@ if (LOCAL) {
     expect((await page.locator("#roomsN").innerText()) === "3", "open rooms: " + await page.locator("#roomsN").innerText());
     expect((await page.locator("#sn-living").inputValue()) === "Lounge", "the lounge's name");
   });
+  await page.click("#roomsMore"); await settle(page);
+  await check("+ opens the next room in the opening order, and keeps the focus on the button", async () => {
+    expect((await page.locator("#roomsN").innerText()) === "4", "not 4");
+    expect(await page.locator('.roomgrid [data-room="kitchen"][aria-pressed="true"]').count() === 1, "the kitchen, next in order, not opened");
+    expect(await page.locator('.roomgrid [data-room="study"][aria-pressed="true"]').count() === 1, "the craft room closed");
+    expect((await page.evaluate(() => document.activeElement.id)) === "roomsMore", "focus: " + await page.evaluate(() => document.activeElement.id));
+  });
   for (let i = 0; i < 6; i++) await nextStep();
   await page.waitForTimeout(300);
-  await check("opening the doors again keeps what Edit rooms looks after", async () => {
+  await check("opening the doors again keeps what Edit rooms looks after, and the rooms she had open", async () => {
     const st = await T(page, () => window.__catio.store);
     expect(await page.locator("#setupDlg[open]").count() === 0, "still open");
     expect(st["rooms/kitchen"].closed === false && st["rooms/kitchen"].blurb === "Weekly meals" && st["rooms/kitchen"].model === "claude-opus-5-5", JSON.stringify(st["rooms/kitchen"]));
-    expect(st["rooms/study"].closed === true, "the craft room, past the first three, stayed open");
+    expect(st["rooms/study"].closed === false && st["rooms/study"].repos.includes("montfortoise-shopify"), "the craft room lost its state or its repo: " + JSON.stringify(st["rooms/study"]));
+    expect(st["rooms/bath"].closed === true, "the ensuite opened");
     expect(st["house/main"].name === "Mochi's Café", "name lost");
   });
   await check("no page errors through the first run", async () => expect(errors.length === 0, errors.join("; ")));

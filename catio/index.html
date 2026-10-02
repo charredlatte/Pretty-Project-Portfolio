@@ -1798,6 +1798,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     db.collection("rooms").onSnapshot((snap) => {
       const r = {}; for (const d of snap.docs) r[d.id] = d.data(); S.rooms = r; render();
       if (first && !(snap.metadata && snap.metadata.fromCache)) { first = false; if (!snap.docs.length) openSetup(false); }
+      else if (snap.docs.length && $("setupDlg").open && !$("setupDlg").dataset.again) { $("setupDlg").close(); toast("The rooms are here: the café is set up."); }
     }, fail);
     db.doc("house/main").onSnapshot((d) => { S.house = d.exists ? d.data() : {}; render(); }, fail);
     db.collection("sessions").onSnapshot((snap) => { const t = {}; for (const d of snap.docs) t[d.id] = d.data(); S.tweaks = t; render(); }, fail);
@@ -1827,7 +1828,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
   function field(label, input) { const l = el("label", "field"); l.append(el("span", null, label), input); return l; }
   function roomSelect(id, value) {
     const s = el("select"); s.id = id;
-    for (const k of ORDER) { if (!roomOpen(k) && k !== value) continue; const o = el("option", null, roomInfo(k).name); o.value = k; if (k === value) o.selected = true; s.appendChild(o); }
+    const v = GEOM[value] && roomOpen(value) ? value : catchAllRoom();   // a closed room is never offered: the front door instead
+    for (const k of ORDER) { if (!roomOpen(k)) continue; const o = el("option", null, roomInfo(k).name); o.value = k; if (k === v) o.selected = true; s.appendChild(o); }
     return s;
   }
   function closeBtn(dlg, label) { const b = el("button", "btn", label || "Close"); b.type = "button"; b.addEventListener("click", () => dlg.close()); return b; }
@@ -1993,7 +1995,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const known = el("datalist"); known.id = "adProjects";
     for (const n of new Set(allCats(true).cats.map((x) => x.project.name))) { const o = el("option"); o.value = n; known.appendChild(o); }
     f.append(field("What's the chat about?", title), field("Link to the chat", link), field("Project (cats of one project look alike)", project), known);
-    const r = el("div", "row"); r.append(field("Lives in", roomSelect("adRoom", d.room || (c ? c.roomKey : room || "dining"))), field("Mood", mood)); f.appendChild(r);
+    const r = el("div", "row"); r.append(field("Lives in", roomSelect("adRoom", d.room || (c ? c.roomKey : room || catchAllRoom()))), field("Mood", mood)); f.appendChild(r);
     f.append(field("Note", note), field("Cat's name", name));
     f.appendChild(el("p", "note", "Saved in this page: anyone you share it with can read it, so keep sensitive details in the chat itself."));
     const acts = el("div", "actions");
@@ -2311,11 +2313,13 @@ ul.gkey li > div.what { flex-basis: 100%; }
     f.append(h, dots, where, body, acts);
     // the answers, prefilled from what is there when setting up again (a café with no rooms yet is a first run)
     again = !!again && ORDER.some((k) => S.rooms[k]);
-    const openNow = ORDER.filter(roomOpen);
-    const A = { name: again ? (S.house.name || "") : "", n: again ? Math.max(1, openNow.length) : 4, names: {}, repos: {}, gh: null, ghErr: null };
+    dlg.dataset.again = again ? "1" : "";
+    // open: the rooms open now (or the first four); + opens the next in the opening order, − closes the last
+    const A = { name: again ? (S.house.name || "") : "", open: again ? OPENING.filter(roomOpen) : OPENING.slice(0, 4), names: {}, repos: {}, gh: null, ghErr: null };
+    if (!A.open.length) A.open = [OPENING[0]];
     for (const k of ORDER) A.names[k] = again && S.rooms[k] && S.rooms[k].name && S.rooms[k].name !== GEOM[k].name ? S.rooms[k].name : "";
     if (again) for (const k of ORDER) for (const r of roomInfo(k).repos) A.repos[r] = k;
-    const open = () => OPENING.slice(0, A.n);
+    const open = () => OPENING.filter((k) => A.open.includes(k));
     const nameOf = (k) => A.names[k].trim() || GEOM[k].name;
     const sessions = () => (S.liveSessions || []).filter((s) => !isWarmStart(s)).length;
     let step = 0, timer = null;
@@ -2336,11 +2340,11 @@ ul.gkey li > div.what { flex-basis: 100%; }
         const ctr = el("div", "counter");
         const less = el("button", "btn", "−"); less.type = "button"; less.id = "roomsLess"; less.setAttribute("aria-label", "One room fewer");
         const more = el("button", "btn", "+"); more.type = "button"; more.id = "roomsMore"; more.setAttribute("aria-label", "One room more");
-        const n = el("b", null, String(A.n)); n.id = "roomsN";
-        ctr.append(less, n, more, el("span", "note", A.n === 1 ? "room open" : "rooms open"));
-        less.disabled = A.n <= 1; more.disabled = A.n >= 10;
-        less.addEventListener("click", () => { A.n--; goStep(1); });
-        more.addEventListener("click", () => { A.n++; goStep(1); });
+        const n = el("b", null, String(A.open.length)); n.id = "roomsN";
+        ctr.append(less, n, more, el("span", "note", A.open.length === 1 ? "room open" : "rooms open"));
+        less.disabled = A.open.length <= 1; more.disabled = A.open.length >= 10;
+        less.addEventListener("click", () => { A.open = open().slice(0, -1); goStep(1, A.open.length > 1 ? "roomsLess" : "roomsMore"); });
+        more.addEventListener("click", () => { A.open = open().concat(OPENING.find((k) => !A.open.includes(k))); goStep(1, A.open.length < 10 ? "roomsMore" : "roomsLess"); });
         const grid = el("div", "roomgrid");
         for (const k of OPENING) { const b = el("span", "btn", GEOM[k].name); b.setAttribute("aria-pressed", String(open().includes(k))); b.dataset.room = k; grid.appendChild(b); }
         sec.append(ctr, grid);
@@ -2363,7 +2367,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
           b.addEventListener("click", askGitHub);
           sec.appendChild(b);
         } else if (A.ghErr) {
-          sec.appendChild(el("p", "note", problem(A.ghErr).message));
+          const code = A.ghErr.code || "error";
+          sec.appendChild(el("p", "note", ["server_not_connected", "server_not_found", "selection_required", "needs_reauth", "approval_required", "blocked_by_policy"].includes(code)
+            ? problem(A.ghErr).message : "The page can't ask Claude Code Remote for your repositories here (" + code + ")."));
           sec.appendChild(el("p", "note", "Connect GitHub in claude.ai and install the Claude GitHub App on your repositories, then check again."));
           const row = el("div", "row");
           const again2 = el("button", "btn", "Check again"); again2.type = "button"; again2.id = "ghRetry"; again2.addEventListener("click", askGitHub);
@@ -2434,7 +2440,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
         const sec = el("div", "dlg");
         const ul = el("ul", "sum");
         const repos = Object.keys(A.repos).filter((r) => open().includes(A.repos[r])).length;
-        for (const t of [A.name.trim() || "KittyChat Café", A.n + (A.n === 1 ? " room open" : " rooms open"),
+        for (const t of [A.name.trim() || "KittyChat Café", A.open.length + (A.open.length === 1 ? " room open" : " rooms open"),
           repos + (repos === 1 ? " repository filed" : " repositories filed"), S.mcp && S.live.state === "ok" ? sessions() + (sessions() === 1 ? " cat at the door" : " cats at the door") : null].filter(Boolean)) ul.appendChild(el("li", null, t));
         sec.appendChild(ul);
         return sec;
@@ -2442,6 +2448,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     ];
     async function askGitHub() {
       A.ghBusy = true; A.ghErr = null; goStep(2);
+      if (S.perms) { try { await S.perms.request(["mcp:" + SERVER]); } catch (e) {} }   // the first visit asks to use Claude Code Remote
       try {
         const p = payloadOf(await S.mcp.callTool(SERVER, "list_repos", { limit: 50 }));
         const list = Array.isArray(p) ? p : (p && (p.repos || p.repositories || p.data)) || [];
@@ -2450,7 +2457,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       A.ghBusy = false;
       if (dlg.open && step === 2) goStep(2);
     }
-    function goStep(i) {
+    function goStep(i, focusId) {
       clearTimeout(timer);
       step = i;
       h.textContent = STEPS[i];
@@ -2460,20 +2467,20 @@ ul.gkey li > div.what { flex-basis: 100%; }
       back.hidden = i === 0;
       next.textContent = i === STEPS.length - 1 ? "Open the doors" : "Next";
       next.classList.toggle("green", true);
-      const first = body.querySelector("input, select, button");
-      if (first && i !== 2 && i !== 3 && i !== 4) first.focus();
+      const first = focusId ? $(focusId) : body.querySelector("input");
+      if (first && (focusId || i < 2)) first.focus();
     }
     back.addEventListener("click", () => goStep(step - 1));
     f.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (step < STEPS.length - 1) { goStep(step + 1); return; }
       const rooms = open(), byRoom = {};
-      for (const [r, k] of Object.entries(A.repos)) (byRoom[rooms.includes(k) ? k : rooms[0]] = byRoom[rooms.includes(k) ? k : rooms[0]] || []).push(r);
+      for (const [r, k] of Object.entries(A.repos)) (byRoom[GEOM[k] ? k : rooms[0]] = byRoom[GEOM[k] ? k : rooms[0]] || []).push(r);
       const ok = await save(async (db) => {
         await db.doc("house/main").set({ name: A.name.trim() || "KittyChat Café", onboarded: Date.now() });
         for (const k of ORDER) {
           const d = { name: nameOf(k), repos: byRoom[k] || [], catchAll: k === rooms[0], closed: !rooms.includes(k) };
-          if (again && S.rooms[k]) await db.doc("rooms/" + k).update(d);
+          if (S.rooms[k]) await db.doc("rooms/" + k).update(d);
           else await db.doc("rooms/" + k).set(Object.assign({ blurb: "", model: "claude-opus-5-5" }, d));
         }
       }, "The doors are open.");
