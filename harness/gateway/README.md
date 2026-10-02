@@ -33,13 +33,15 @@ Two kinds of caller, told apart by how they sign in:
    - Deploy. The first deploy creates the KV namespace and the Durable Object. Its address is on the Worker's page:
      `https://catio-gateway.<subdomain>.workers.dev`. If Cloudflare asks for a workers.dev subdomain, pick one.
    - From then on every merge to `main` redeploys it.
-2. **Two secrets.** On the Worker, go to Settings → Variables and Secrets → Add, type *Secret*, under
+2. **Three secrets.** On the Worker, go to Settings → Variables and Secrets → Add, type *Secret*, under
    *Production*, then Deploy:
    - `CATIO_TOKEN`: the agents' key, 32 random characters or more.
    - `CATIO_PASSWORD`: a different one, the password she signs in with (16 characters or more). It goes into her
      password manager and nowhere else.
+   - `CATIO_QUEEN`: the queen's runner's own key (below), 32 random characters or more; also on the PC that runs
+     her.
 
-   Never paste either into a chat.
+   Never paste any of them into a chat.
 3. **Claude's environments.** In a cloud session, open the environment menu in the session's title bar → Edit. In
    each environment her sessions use:
    - add two environment variables, `CATIO_URL` = the address above and `CATIO_TOKEN` = the agents' key;
@@ -80,8 +82,29 @@ page (`src/cafe.js` serves both).
 - **The sessions:** the cats come from the gateway, live, and from Claude's saved copy (`snapshot/sessions`). What
   only claude.ai can do says so: opening a session's full conversation, pausing, archiving, renaming it, starting
   one, and posting into a session that doesn't report. A session that reports is told through the gateway.
-- **Not here (yet):** the file sorter (Claude in claude.ai) and starting sessions; the runner (docs/plan.md, phase 6)
-  brings the second.
+- **Not here (yet):** the file sorter (Claude in claude.ai) and starting sessions.
+
+## The queen and her runner
+
+The queen of the house is the cat in the entrance hall that Charlotte talks to, like a character in a game: she
+speaks or types to her in the café, and the queen answers aloud, looks after the cats for her (who needs her, what
+first, the short version), tells them things and manages them. Her brain is `harness/runner/queen.py`, on
+Charlotte's own PC (`harness/runner/README.md`), holding the third secret, `CATIO_QUEEN`:
+
+- `POST /api/runner/wait` is held up to 25 seconds and comes back with what Charlotte said to her (the cat
+  `queen`'s notes, each handed out once), a routine come due, a stop, and her character (`queens/house`: name,
+  manner, greeting).
+- `POST /api/runner/say` `{turn, text, done, routine}` streams her answer: every open café gets a `queen` push
+  as she speaks, and `done` stores it as her note (author `queen`, with the routine that asked it).
+- With her key on `/mcp`, the queen uses the same tools as everyone, as `queen`: she may `comment` as `queen`
+  (a cat's hook hands it in as `[Catio] The queen says: …`), `manage` and `drop_file`, never write as `charlotte`.
+  The agents' key may do none of it: the cats act on what she says.
+- `manage {cat: "queen", action: "pause"}` (Stop in the café) ends the turn she is on.
+- **Routines** are `routines/<id>` documents written by the café (`name`, `time`, `days`, `tz`, `prompt`, `on`,
+  `last`). One is due when its latest firing is newer than `last`; the House's alarm wakes a waiting runner on
+  time, and a missed one runs once when the runner is back.
+- `list_agents` gives every cat its `said`, the last thing its session or agent said: the café shows a cat
+  carrying it to the queen, and her card lists it.
 
 ## How a session uses it
 
@@ -113,7 +136,8 @@ or finish, and check `inbox` between tasks.
 
 - **Wake commands.** It can't run commands, so a `wake` is ignored: an agent finds what's waiting in `inbox`.
 - **Files** are capped at 1 MiB. A free Worker gets 10 ms of CPU a request, so bigger files go through the brain.
-- **Who writes.** Only Charlotte writes as `charlotte`, drops files and manages cats.
+- **Who writes.** Only Charlotte writes as `charlotte`; she and the queen's runner (as `queen`) drop files and
+  manage cats.
 - **`inbox` takes `mark`**, which returns only what hasn't been handed over yet and counts it as handed over.
   The server on her computer takes it too.
 - **Sign-in.** Only Claude's connectors can register: a redirect to anywhere but `claude.ai` or `claude.com` is

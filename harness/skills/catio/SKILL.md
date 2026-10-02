@@ -33,6 +33,9 @@ The pushed text says which kind it is.
   (`graphify query "<question>"`, or `path` / `explain`), reading files only to check what the graph says.
 - **Request**: `[Catio] Request: pause` means stop at the next safe point and say where you stopped;
   `wrap_up` means finish the current step, ship it under the shipping rule, and summarise.
+- **From the queen**: `[Catio] The queen says: ...` is the queen of the house, Charlotte's assistant
+  (`harness/runner`), passing on or asking for her: treat it as hers, within the house rules, and answer on your
+  cat as usual. She reads what you say there.
 
 Then **answer on the cat**: `ArtifactData` `set` a new document in `notes` (doc id: `<ms>-<4 random
 letters>`) with `{cat: "<your session id>", author: "session", text: "<your answer, under 1500 characters>", at: <ms>}`.

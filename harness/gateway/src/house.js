@@ -1,7 +1,8 @@
 // The house: every cat the gateway knows, their conversations and the files waiting for them, in one
 // SQLite-backed Durable Object. The tools behave as harness/mcp/catio_mcp.py's do, with two differences:
-// nothing here can run a wake command, and only Charlotte (signed in through claude.ai) speaks as herself,
-// drops files and manages cats. Agents and session hooks, which hold CATIO_TOKEN, report and answer.
+// nothing here can run a wake command, and only Charlotte (signed in through claude.ai) speaks as herself.
+// Agents and session hooks, which hold CATIO_TOKEN, report and answer. The queen of the house, whose runner
+// holds CATIO_QUEEN (harness/runner), answers Charlotte as "queen", tells cats and manages them for her.
 import { DurableObject } from "cloudflare:workers";
 import RULES from "../../rules.json";
 import { MOODS } from "./tools.js";
@@ -12,6 +13,12 @@ const KEEP_PICKED = 7 * 24 * 3600 * 1000;   // a picked-up file keeps its bytes 
 const LOCK_AFTER = 5;   // wrong passwords before the sign-in waits
 const LOCK_FOR = 15 * 60 * 1000;
 const ACTIONS = ["rename", "move", "archive", "unarchive", "pause", "resume", "wrap_up", "message", "done"];
+const QUEEN = "queen";          // the queen's cat: her conversation with Charlotte, and her runner's presence
+const HOLD = 25 * 1000;         // how long the runner's wait is held before it comes back empty
+const AWAY = 90 * 1000;         // a runner silent this long is back when it next waits: the cafés are told
+const DAY = 24 * 3600 * 1000;
+const DEFAULT_TZ = "Europe/Paris";
+const SAYS = ["charlotte", "queen"];   // whose notes a cat's hook is handed: hers, and her assistant's
 
 class Refusal extends Error {}   // bad arguments: the caller is told, nothing breaks
 const CHANGES = new Set(["report_status", "comment", "drop_file", "pick_up", "manage"]);   // tools that change what a café shows
@@ -20,6 +27,58 @@ function need(args, ...keys) {
 	for (const k of keys) if (!String(args[k] ?? "").trim()) throw new Refusal(k + " is required");
 }
 const newId = () => Date.now() + "-" + crypto.randomUUID().slice(0, 6);
+const parseNote = (r) => (r.routine ? { ...r, routine: JSON.parse(r.routine) } : (delete r.routine, r));
+
+// ---- routines: "HH:MM on these days, in this time zone", read with Intl so a Worker needs no zone table ----
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+function zoneOf(tz) {
+	try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return tz; } catch { return DEFAULT_TZ; }
+}
+// the wall clock in a zone at an instant
+function zoned(tz, t) {
+	const parts = {};
+	for (const p of new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", weekday: "short", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric" }).formatToParts(new Date(t))) parts[p.type] = p.value;
+	return { y: +parts.year, m: +parts.month, d: +parts.day, wd: WEEKDAYS.indexOf(parts.weekday), h: +parts.hour % 24, mi: +parts.minute };
+}
+// the instant a zone's wall clock shows y-m-d h:mi (a guess, corrected twice for the zone's offset and its changes)
+function instantOf(tz, y, m, d, h, mi) {
+	const want = Date.UTC(y, m - 1, d, h, mi);
+	let t = want;
+	for (let i = 0; i < 2; i++) {
+		const p = zoned(tz, t);
+		t -= Date.UTC(p.y, p.m - 1, p.d, p.h, p.mi) - want;
+	}
+	return t;
+}
+function routineTime(r) {
+	const m = /^(\d{1,2}):(\d{2})$/.exec(String(r.time || ""));
+	if (!m || +m[1] > 23 || +m[2] > 59) return null;
+	const days = Array.isArray(r.days) && r.days.length ? r.days.map(Number).filter((d) => d >= 0 && d <= 6) : [0, 1, 2, 3, 4, 5, 6];
+	return { h: +m[1], mi: +m[2], days, tz: zoneOf(r.tz) };
+}
+// the routine's latest firing at or before now (within a week), and its next one after now
+function lastFire(r, now) {
+	const t = routineTime(r);
+	if (!t) return null;
+	for (let back = 0; back <= 7; back++) {
+		const p = zoned(t.tz, now - back * DAY);
+		if (!t.days.includes(p.wd)) continue;
+		const at = instantOf(t.tz, p.y, p.m, p.d, t.h, t.mi);
+		if (at <= now) return at;
+	}
+	return null;
+}
+function nextFire(r, now) {
+	const t = routineTime(r);
+	if (!t) return null;
+	for (let ahead = 0; ahead <= 7; ahead++) {
+		const p = zoned(t.tz, now + ahead * DAY);
+		if (!t.days.includes(p.wd)) continue;
+		const at = instantOf(t.tz, p.y, p.m, p.d, t.h, t.mi);
+		if (at > now) return at;
+	}
+	return null;
+}
 
 const TOOLS = {
 	house_rules() {
@@ -40,17 +99,22 @@ const TOOLS = {
 		return { ok: true, waiting: TOOLS.inbox(h, { agent: id }) };
 	},
 
+	// Every cat, with what it last said (its latest note by its session or agent): the page shows a cat handing
+	// that to the queen when it is newer than what Charlotte has read.
 	list_agents(h, args) {
 		const waiting = new Map(h.sql.exec("SELECT cat, COUNT(*) AS n FROM files WHERE status = 'waiting' GROUP BY cat").toArray().map((r) => [r.cat, r.n]));
+		const said = new Map(h.sql.exec("SELECT cat, text, MAX(at) AS at FROM notes WHERE author IN ('session', 'agent') GROUP BY cat").toArray()
+			.map((r) => [r.cat, { text: r.text, at: r.at }]));
 		const agents = h.sql.exec("SELECT data FROM agents ORDER BY updated DESC").toArray().map((r) => JSON.parse(r.data))
 			.filter((a) => !a.archived || args.archived)
-			.map((a) => ({ ...a, waiting: waiting.get(a.id) || 0, wakes: false }));
+			.map((a) => ({ ...a, waiting: waiting.get(a.id) || 0, wakes: false, ...(said.has(a.id) ? { said: said.get(a.id) } : {}) }));
 		return { agents };
 	},
 
 	// With mark, only what hasn't been handed over yet, and now it has: a session's Stop hook hands her notes,
 	// requests and files in once each. Handing over keeps its own place (handedNotes), apart from what an answer
 	// counts as read (seenNotes), so a note she sends while the session is answering still gets handed in.
+	// A cat is handed what Charlotte and the queen say; the queen herself only what Charlotte says.
 	inbox(h, args) {
 		need(args, "agent");
 		const id = String(args.agent);
@@ -59,8 +123,9 @@ const TOOLS = {
 		const files = h.sql.exec("SELECT id, name, type, size, note, at FROM files WHERE cat = ? AND status = 'waiting'" +
 			(mark ? " AND handed IS NULL" : "") + " ORDER BY at", id).toArray();
 		const since = (a && (mark ? a.handedNotes ?? a.seenNotes : a.seenNotes)) || 0;
-		const notes = h.sql.exec("SELECT id, cat, text, author, at FROM notes WHERE cat = ? AND author = 'charlotte' AND at > ? ORDER BY at",
-			id, since).toArray();
+		const authors = id === QUEEN ? ["charlotte"] : SAYS;
+		const notes = h.sql.exec("SELECT id, cat, text, author, at FROM notes WHERE cat = ? AND author IN (" + authors.map(() => "?").join(", ") +
+			") AND at > ? ORDER BY at", id, ...authors, since).toArray();
 		let request = (a && a.request) || null;
 		if (mark) {
 			if (request && request.handed) request = null;
@@ -87,8 +152,8 @@ const TOOLS = {
 		return { name: f.name, type: f.type, base64: f.base64 };
 	},
 
-	drop_file(h, args, charlotte) {
-		if (!charlotte) throw new Refusal("only Charlotte drops files on a cat");
+	drop_file(h, args, who) {
+		if (who !== "charlotte" && who !== QUEEN) throw new Refusal("only Charlotte drops files on a cat");
 		need(args, "name", "base64", "for");
 		const b64 = String(args.base64);
 		if (b64.length % 4 || !/^[A-Za-z0-9+/]*={0,2}$/.test(b64)) throw new Refusal("base64 isn't valid");
@@ -102,35 +167,47 @@ const TOOLS = {
 		return { id, woke: false };
 	},
 
-	comment(h, args, charlotte) {
+	// Who speaks: only Charlotte as charlotte, only the queen's runner as queen. What she says to the queen
+	// wakes a waiting runner; what the queen says is kept with the routine that asked it, if one did.
+	comment(h, args, who) {
 		need(args, "cat", "text");
-		const author = args.author || (charlotte ? "charlotte" : "agent");
-		if (!["charlotte", "agent", "session"].includes(author)) throw new Refusal("author is charlotte, agent or session");
-		if (author === "charlotte" && !charlotte) throw new Refusal("only Charlotte writes as Charlotte");
+		const author = args.author || (who === "charlotte" ? "charlotte" : who === QUEEN ? QUEEN : "agent");
+		if (!["charlotte", "agent", "session", QUEEN].includes(author)) throw new Refusal("author is charlotte, agent, session or queen");
+		if (author === "charlotte" && who !== "charlotte") throw new Refusal("only Charlotte writes as Charlotte");
+		if (author === QUEEN && who !== QUEEN) throw new Refusal("only the queen's runner writes as the queen");
 		const note = { id: newId(), cat: String(args.cat), text: String(args.text).slice(0, 4000), author, at: h.stamp() };
 		h.sql.exec("INSERT INTO notes (id, cat, author, text, at) VALUES (?, ?, ?, ?, ?)", note.id, note.cat, note.author, note.text, note.at);
 		const a = h.agent(note.cat);
-		if (a && author !== "charlotte") {
+		if (a && !SAYS.includes(author)) {
 			a.seenNotes = note.at;   // an answer means everything she said before it was read
 			h.save(a);
 		}
+		if (note.cat === QUEEN && author === "charlotte") h.wake();
 		return { id: note.id, woke: false };
 	},
 
 	comments(h, args) {
 		need(args, "cat");
 		const limit = Math.min(Math.max(parseInt(args.limit, 10) || 50, 1), 500);
-		const notes = h.sql.exec("SELECT id, cat, text, author, at FROM notes WHERE cat = ? ORDER BY at DESC LIMIT ?", String(args.cat), limit).toArray();
+		const notes = h.sql.exec("SELECT id, cat, text, author, at, routine FROM notes WHERE cat = ? ORDER BY at DESC LIMIT ?", String(args.cat), limit).toArray().map(parseNote);
 		return { notes: notes.reverse() };
 	},
 
-	manage(h, args, charlotte) {
-		if (!charlotte) throw new Refusal("only Charlotte manages a cat");
+	// Charlotte or the queen manages a cat. On the queen herself, pause means stop the turn she is on: her
+	// runner is told, and nothing is stored.
+	manage(h, args, who) {
+		if (who !== "charlotte" && who !== QUEEN) throw new Refusal("only Charlotte manages a cat");
 		need(args, "cat", "action");
-		const a = h.agent(String(args.cat));
-		if (!a) throw new Refusal("no such agent");
 		const act = args.action;
 		if (!ACTIONS.includes(act)) throw new Refusal("action is " + ACTIONS.slice(0, -1).join(", ") + " or done");
+		if (String(args.cat) === QUEEN) {
+			if (act !== "pause") throw new Refusal("the queen is set up in her card: only pause (stop her turn) goes through here");
+			h.flag("queenStop", "1");
+			h.wake();
+			return { ok: true, woke: false };
+		}
+		const a = h.agent(String(args.cat));
+		if (!a) throw new Refusal("no such agent");
 		if (["rename", "move", "message"].includes(act)) need(args, "value");
 		if (act === "rename") a.name = String(args.value).slice(0, 60);
 		else if (act === "move") a.room = String(args.value).slice(0, 40);
@@ -138,7 +215,7 @@ const TOOLS = {
 		else if (["pause", "resume", "wrap_up"].includes(act)) a.request = { action: act, at: Date.now() };
 		else if (act === "done") delete a.request;
 		h.save(a);
-		if (act === "message") TOOLS.comment(h, { cat: a.id, text: args.value, author: "charlotte" }, true);
+		if (act === "message") TOOLS.comment(h, { cat: a.id, text: args.value, author: who }, who);
 		return { ok: true, woke: false };
 	},
 };
@@ -160,21 +237,145 @@ export class House extends DurableObject {
 			"CREATE TABLE IF NOT EXISTS docs (path TEXT PRIMARY KEY, data TEXT NOT NULL, at INTEGER NOT NULL)",
 			// browsers she signed in to the café, by the hash of their cookie
 			"CREATE TABLE IF NOT EXISTS logins (hash TEXT PRIMARY KEY, until INTEGER NOT NULL)",
+			// small flags that must outlive the object: whether the queen's turn is to stop
+			"CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
 		]) this.sql.exec(q);
+		// the routine that asked for a note of the queen's, on houses built before she had any
+		if (!this.sql.exec("PRAGMA table_info(notes)").toArray().some((c) => c.name === "routine")) this.sql.exec("ALTER TABLE notes ADD COLUMN routine TEXT");
+		this.waiters = [];   // the runner's held waits: resolved when there is something for the queen to do
 	}
 
-	/** One tool call. `who` is "charlotte" (signed in through claude.ai or the café) or "agent" (holds CATIO_TOKEN). */
+	/** One tool call. `who` is "charlotte" (signed in through claude.ai or the café), "queen" (her runner, holding
+	 * CATIO_QUEEN) or "agent" (holds CATIO_TOKEN). */
 	call(name, args, who) {
 		const tool = Object.hasOwn(TOOLS, name) && TOOLS[name];
 		if (!tool) return { unknown: true };
 		try {
-			const ok = tool(this, args && typeof args === "object" && !Array.isArray(args) ? args : {}, who === "charlotte");
+			const ok = tool(this, args && typeof args === "object" && !Array.isArray(args) ? args : {}, who === "charlotte" || who === QUEEN ? who : "agent");
 			if (CHANGES.has(name)) this.tell({ type: "agents" });   // an open café redraws its cats now, not at its next look
 			return { ok };
 		} catch (e) {
 			if (e instanceof Refusal) return { error: e.message };
 			throw e;
 		}
+	}
+
+	// ---- the queen: her runner waits here for what to do, and streams what she says back ----
+
+	/** Held until Charlotte writes to the queen, a routine comes due or her turn is to stop, or HOLD passes:
+	 * {notes, routine, stop, character}. Each note and routine is handed out once. */
+	async waitForQueen() {
+		const a = this.agent(QUEEN);
+		const back = !a || Date.now() - (a.updated || 0) > AWAY;
+		if (this.presence(a && a.mood === "busy" ? "busy" : "done") || back) this.tell({ type: "agents" });   // she is back: the cafés show her
+		this.armAlarm();
+		let out = this.queenReady();
+		if (!out) {
+			await new Promise((resolve) => {
+				const done = () => { this.waiters = this.waiters.filter((w) => w !== done); resolve(); };
+				this.waiters.push(done);
+				setTimeout(done, HOLD);
+			});
+			out = this.queenReady() || { notes: [], routine: null, stop: false };
+		}
+		return { ...out, character: this.character() };
+	}
+
+	queenReady() {
+		if (this.flagged("queenStop")) {
+			this.flag("queenStop", null);
+			return { notes: [], routine: null, stop: true };
+		}
+		const { notes } = TOOLS.inbox(this, { agent: QUEEN, mark: true });
+		const routine = this.dueRoutine();
+		return notes.length || routine ? { notes, routine, stop: false } : null;
+	}
+
+	/** What the runner streams: a turn in progress reaches every open café; done, it is the queen's note. */
+	queenSays(m) {
+		m = m && typeof m === "object" ? m : {};
+		const text = String(m.text || "").slice(0, 8000);
+		const done = m.done === true;
+		const routine = m.routine && typeof m.routine === "object" && m.routine.id
+			? { id: String(m.routine.id).slice(0, 100), name: String(m.routine.name || "").slice(0, 100) } : null;
+		const changed = this.presence(done ? "done" : "busy");
+		let id = null;
+		if (done && text.trim()) {
+			id = newId();
+			this.sql.exec("INSERT INTO notes (id, cat, author, text, at, routine) VALUES (?, ?, ?, ?, ?, ?)", id, QUEEN, QUEEN, text, this.stamp(),
+				routine ? JSON.stringify(routine) : null);
+		}
+		this.tell({ type: "queen", turn: String(m.turn || "").slice(0, 60), text, done, routine, id });
+		if (changed || id) this.tell({ type: "agents" });
+		return { ok: true, id };
+	}
+
+	/** The queen's presence: the agent record "queen", kept by her runner's calls (the page keeps it out of the
+	 * cats). True when her mood changed. */
+	presence(mood) {
+		const a = this.agent(QUEEN) || { id: QUEEN, name: "The queen", via: "runner", provider: "anthropic", since: Date.now() };
+		const changed = a.mood !== mood;
+		a.mood = mood;
+		a.updated = Date.now();
+		this.save(a);
+		return changed;
+	}
+
+	character() {
+		const row = this.sql.exec("SELECT data FROM docs WHERE path = 'queens/house'").toArray()[0];
+		const d = row ? JSON.parse(row.data) : {};
+		const s = (k, n) => (typeof d[k] === "string" && d[k].trim() ? d[k].trim().slice(0, n) : null);
+		return { name: s("name", 60), manner: s("manner", 2000), greeting: s("greeting", 500) };
+	}
+
+	wake() {
+		const waiting = this.waiters.splice(0);
+		for (const resolve of waiting) resolve();
+	}
+
+	flag(key, value) {
+		if (value == null) this.sql.exec("DELETE FROM state WHERE key = ?", key);
+		else this.sql.exec("INSERT INTO state (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value", key, String(value));
+	}
+
+	flagged(key) {
+		return this.sql.exec("SELECT COUNT(*) AS n FROM state WHERE key = ?", key).one().n > 0;
+	}
+
+	// Routines are documents, routines/<id> {name, time: "HH:MM", days: [0-6], tz, prompt, on, last}, written by
+	// the page. One is due when its latest firing is newer than the last it was handed out at: a missed one runs
+	// once when the runner is back, never twice. The alarm wakes a waiting runner at the next firing.
+	routines() {
+		return this.sql.exec("SELECT path, data FROM docs WHERE path LIKE 'routines/%'").toArray().map((r) => [r.path.slice("routines/".length), JSON.parse(r.data)]);
+	}
+
+	dueRoutine(now = Date.now()) {
+		for (const [id, r] of this.routines()) {
+			if (!r.on) continue;
+			const at = lastFire(r, now);
+			if (at && at > (Number(r.last) || 0)) {
+				this.putDoc("routines/" + id, { last: at }, true);
+				return { id, name: String(r.name || id).slice(0, 100), prompt: String(r.prompt || "").slice(0, 4000), at };
+			}
+		}
+		return null;
+	}
+
+	armAlarm() {
+		const now = Date.now();
+		let next = null;
+		for (const [, r] of this.routines()) {
+			if (!r.on) continue;
+			const at = nextFire(r, now);
+			if (at && (!next || at < next)) next = at;
+		}
+		if (next) this.ctx.storage.setAlarm(next);
+		else this.ctx.storage.deleteAlarm();
+	}
+
+	async alarm() {
+		this.wake();
+		this.armAlarm();
 	}
 
 	// ---- the café, served from here: its documents, who is signed in, and the live line to each open café ----
@@ -196,12 +397,14 @@ export class House extends DurableObject {
 		this.sql.exec("INSERT INTO docs (path, data, at) VALUES (?, ?, ?) ON CONFLICT (path) DO UPDATE SET data = excluded.data, at = excluded.at",
 			path, JSON.stringify(next), Date.now());
 		this.tell({ type: "doc", path, data: next });
+		if (path.startsWith("routines/")) { this.armAlarm(); this.wake(); }   // a routine added or switched on may be due
 		return true;
 	}
 
 	dropDoc(path) {
 		this.sql.exec("DELETE FROM docs WHERE path = ?", path);
 		this.tell({ type: "doc", path, data: null });
+		if (path.startsWith("routines/")) this.armAlarm();
 	}
 
 	/** The café's data, moved from claude.ai once: refused when the café already has any. */

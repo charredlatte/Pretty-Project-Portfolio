@@ -46,9 +46,11 @@ function provider(origin) {
 				return { code: "invalid_redirect_uri", description: "Only Claude's connectors can sign in to the Catio." };
 			}
 		},
-		// agents and the session hooks send the shared key itself
+		// agents and the session hooks send the shared key itself; the queen's runner sends hers (harness/runner)
 		async resolveExternalToken({ token, env }) {
-			return (await sameSecret(token, env.CATIO_TOKEN)) ? { props: { user: "agent" }, audience: resource } : null;
+			if (await sameSecret(token, env.CATIO_TOKEN)) return { props: { user: "agent" }, audience: resource };
+			if (await sameSecret(token, env.CATIO_QUEEN)) return { props: { user: "queen" }, audience: resource };
+			return null;
 		},
 	}));
 	return providers.get(origin);

@@ -16,4 +16,5 @@
 	// Secrets, set in the dashboard (Settings > Variables and Secrets), never here:
 	//   CATIO_TOKEN     the key agents and the session hooks send; also in Claude's environment settings
 	//   CATIO_PASSWORD  Charlotte's sign-in password, for adding the gateway as a connector in claude.ai
+	//   CATIO_QUEEN     the queen's runner's own key (harness/runner), the only one that speaks as the queen
 }

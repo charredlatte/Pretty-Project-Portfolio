@@ -22,19 +22,22 @@ export const TOOLS = [
 			wake: { type: ["array", "null"], items: S, description: "Ignored here: the gateway can't run commands. Check inbox instead." },
 		},
 		["agent"]),
-	tool("list_agents", "Every agent cat in the Catio.", { archived: { type: "boolean" } }),
+	tool("list_agents", "Every agent cat in the Catio: who works where, what each needs, and what it last said (said). " +
+		"The queen of the house is the cat \"queen\": her runner is present when it is there.", { archived: { type: "boolean" } }),
 	tool("inbox",
-		"Files, notes from Charlotte, and any request (pause, resume, wrap_up) waiting for an agent. With mark, only " +
-		"what hasn't been handed over yet, and it counts as handed over.",
+		"Files, notes from Charlotte or the queen, and any request (pause, resume, wrap_up) waiting for an agent. With mark, " +
+		"only what hasn't been handed over yet, and it counts as handed over.",
 		{ agent: S, mark: { type: "boolean" } }, ["agent"]),
 	tool("pick_up", "Take a file from your inbox: returns it as base64 and marks it picked up.", { id: S, agent: S }, ["id"]),
-	tool("drop_file", "Give a file to an agent's cat (Charlotte only; up to 1 MiB).",
+	tool("drop_file", "Give a file to an agent's cat (Charlotte or the queen; up to 1 MiB).",
 		{ name: S, type: S, base64: S, for: said("The agent id"), note: S }, ["name", "base64", "for"]),
-	tool("comment", "Add to a cat's conversation. Agents answer Charlotte with author agent (or session).",
-		{ cat: S, text: S, author: { type: "string", enum: ["charlotte", "agent", "session"] } }, ["cat", "text"]),
+	tool("comment", "Add to a cat's conversation. Agents answer Charlotte with author agent (or session); the queen tells a cat " +
+		"as queen, which it hears when its turn ends.",
+		{ cat: S, text: S, author: { type: "string", enum: ["charlotte", "agent", "session", "queen"] } }, ["cat", "text"]),
 	tool("comments", "A cat's conversation, oldest first.", { cat: S, limit: { type: "integer" } }, ["cat"]),
 	tool("manage",
-		"Manage an agent's cat (Charlotte only): rename, move (room key), archive, unarchive, pause, resume, wrap_up, message, done (clear a request).",
+		"Manage an agent's cat (Charlotte or the queen): rename, move (room key), archive, unarchive, pause, resume, wrap_up, message, " +
+		"done (clear a request). On the cat \"queen\", pause stops the turn she is on.",
 		{ cat: S, action: { type: "string", enum: ["rename", "move", "archive", "unarchive", "pause", "resume", "wrap_up", "message", "done"] }, value: S },
 		["cat", "action"]),
 ];

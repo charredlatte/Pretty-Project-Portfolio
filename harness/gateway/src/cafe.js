@@ -42,10 +42,10 @@ function fromCafe(request) {
 	return request.headers.get("X-Catio") === "1" && (!origin || origin === new URL(request.url).origin);
 }
 
-async function agentKey(request, env) {
-	const m = /^Bearer\s+(\S+)$/i.exec(request.headers.get("Authorization") || "");
-	return !!m && sameSecret(m[1], env.CATIO_TOKEN);
-}
+const bearer = (request) => (/^Bearer\s+(\S+)$/i.exec(request.headers.get("Authorization") || "") || [])[1];
+const agentKey = (request, env) => sameSecret(bearer(request), env.CATIO_TOKEN);
+const queenKey = (request, env) => sameSecret(bearer(request), env.CATIO_QUEEN);   // her runner's own key, never the agents'
+const MAX_SAY = 64 * 1024;
 
 function signInPage(problem = "", status = 200) {
 	return page("The KittyChat Café", `<h1>The KittyChat Café</h1>
@@ -123,6 +123,22 @@ export async function cafe(request, env) {
 		}
 		if (!(await houseOf(env).importDocs(docs))) return refuse(409, "not_empty", "The café already has its data: an import happens once.");
 		return json({ ok: true, count: Object.keys(docs).length });
+	}
+
+	// the queen's runner (harness/runner/queen.py), with her own key: it waits here for what to do, and streams what she says
+	if (path.startsWith("/api/runner/") && method === "POST") {
+		if (!env.CATIO_QUEEN || env.CATIO_QUEEN.length < MIN_SECRET) return refuse(503, "no_queen", "The gateway has no queen's key yet: add CATIO_QUEEN in Cloudflare.");
+		if (!(await queenKey(request, env))) return refuse(401, "unauthorized", "The queen's key is needed.");
+		const house = houseOf(env);
+		if (path === "/api/runner/wait") return json(await house.waitForQueen());
+		if (path === "/api/runner/say") {
+			const text = await request.text();
+			if (text.length > MAX_SAY) return refuse(413, "too_big", "A turn is 64 KB at most.");
+			let body;
+			try { body = JSON.parse(text); } catch { return refuse(400, "bad_request", "The body is JSON: {turn, text, done, routine}."); }
+			return json(await house.queenSays(body));
+		}
+		return refuse(404, "not_found", "The runner waits and says; nothing else is here.");
 	}
 
 	if (path === "/runtime.js") return new Response(RUNTIME, { headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store" } });

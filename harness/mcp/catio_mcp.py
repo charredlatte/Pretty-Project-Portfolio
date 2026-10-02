@@ -117,7 +117,9 @@ def list_agents(args):
         if a.get("archived") and not args.get("archived"):
             continue
         waiting = sum(1 for f in s["files"] if f["for"] == a["id"] and f["status"] == "waiting")
-        out.append(dict({k: v for k, v in a.items() if k != "wake"}, waiting=waiting, wakes=bool(a.get("wake"))))
+        said = [n for n in s["notes"] if n["cat"] == a["id"] and n["author"] in ("session", "agent")]   # what it last said, for the queen
+        out.append(dict({k: v for k, v in a.items() if k != "wake"}, waiting=waiting, wakes=bool(a.get("wake")),
+                        **({"said": {"text": said[-1]["text"], "at": said[-1]["at"]}} if said else {})))
     return {"agents": sorted(out, key=lambda a: -a.get("updated", 0))}
 
 
@@ -132,7 +134,8 @@ def inbox(args):
         files = [f for f in s["files"] if f["for"] == args["agent"] and f["status"] == "waiting" and not (mark and f.get("handed"))]
         a_ = a or {}
         since = a_.get("handedNotes", a_.get("seenNotes", 0)) if mark else a_.get("seenNotes", 0)
-        notes = [n for n in s["notes"] if n["cat"] == args["agent"] and n["author"] == "charlotte" and n["at"] > since]
+        authors = ("charlotte",) if args["agent"] == "queen" else ("charlotte", "queen")   # a cat hears her and her assistant
+        notes = [n for n in s["notes"] if n["cat"] == args["agent"] and n["author"] in authors and n["at"] > since]
         request = (a or {}).get("request")
         if mark:
             if request and request.get("handed"):
@@ -186,17 +189,17 @@ def drop_file(args):
 def comment(args):
     need(args, "cat", "text")
     author = args.get("author") or "charlotte"
-    if author not in ("charlotte", "agent", "session"):
-        raise ValueError("author is charlotte, agent or session")
+    if author not in ("charlotte", "agent", "session", "queen"):
+        raise ValueError("author is charlotte, agent, session or queen")
     note = {"id": new_id(), "cat": args["cat"], "text": str(args["text"])[:4000], "author": author, "at": now()}
     with LOCK:
         s = load()
         s["notes"].append(note)
         a = s["agents"].get(args["cat"])
-        if a and author != "charlotte":
+        if a and author not in ("charlotte", "queen"):
             a["seenNotes"] = note["at"]
         store(s)
-    woke = author == "charlotte" and bool(a) and wake(a, "[Catio] Charlotte says: " + note["text"])
+    woke = author in ("charlotte", "queen") and bool(a) and wake(a, "[Catio] %s: %s" % ("Charlotte says" if author == "charlotte" else "The queen says", note["text"]))
     return {"id": note["id"], "woke": woke}
 
 
@@ -256,7 +259,7 @@ TOOLS = {
     "drop_file": (drop_file, "Give a file to an agent's cat (and wake it, if it can be woken).",
                   {"name": S, "type": S, "base64": S, "for": dict(S, description="The agent id"), "note": S}, ["name", "base64", "for"]),
     "comment": (comment, "Add to a cat's conversation. Agents answer Charlotte with author agent.",
-                {"cat": S, "text": S, "author": {"type": "string", "enum": ["charlotte", "agent", "session"]}}, ["cat", "text"]),
+                {"cat": S, "text": S, "author": {"type": "string", "enum": ["charlotte", "agent", "session", "queen"]}}, ["cat", "text"]),
     "comments": (comments, "A cat's conversation, oldest first.", {"cat": S, "limit": {"type": "integer"}}, ["cat"]),
     "manage": (manage, "Manage an agent's cat: rename, move (room key), archive, unarchive, pause, resume, wrap_up, message, done (clear a request).",
                {"cat": S, "action": {"type": "string", "enum": ["rename", "move", "archive", "unarchive", "pause", "resume", "wrap_up", "message", "done"]}, "value": S},

@@ -12,6 +12,7 @@ The gateway (`harness/gateway/`) already has every piece an account needs, each 
 | Sign-in | `@cloudflare/workers-oauth-provider`, one password secret, `userId: "charlotte"` | email and password per user; the token carries `props.user` |
 | Data | one SQLite Durable Object, `HOUSE.idFromName("house")` | one `House` per user, `idFromName(user)`. `house.js` doesn't change |
 | Agents' key | one `CATIO_TOKEN` secret, `props.user: "agent"` | a key per account, stored hashed; `resolveExternalToken` looks it up |
+| The queen's key | one `CATIO_QUEEN` secret, `props.user: "queen"` (her runner, `harness/runner`) | one more key per account, role `queen`, stored the same way; the runner routes (`/api/runner/*`) look it up like the tools do |
 
 The page needs nothing new: the `Catio` connector is OAuth per claude.ai user, so each person's page reads
 their own house. GitHub needs nothing either: `list_repos` is Claude Code Remote's, per claude.ai user.
@@ -48,7 +49,9 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
    there (`docs/onboarding/`).
 3. **Later: a hosted page per account.** The Worker serves `catio/index.html` and the `/api/*` the page
    already speaks (`S.host = "api"`, built for `catio_mcp.py --serve`), behind a cookie session. Then a café
-   needs no artifact at all. Not needed for the onboarding.
+   needs no artifact at all. Not needed for the onboarding. Built for one account on 2 October
+   (`src/cafe.js`, PR #32): the sign-in cookie, the café's documents and files in the house, the page with
+   `cafe/runtime.js`; per account it is the same with `idFromName(user)`.
 
 ## Sources
 
