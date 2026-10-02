@@ -1533,6 +1533,8 @@ if (LOCAL) {
 }
 
 /* ---------- 10. the first run: the wizard over an empty café, and closed rooms ---------- */
+// the wizard gives the rooms a second to arrive before it opens
+const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000 }).then(() => settle(page));
 {
   const { page, ctx } = await open("");
   await check("a café with rooms never sees the wizard", async () => expect(await page.locator("#setupDlg[open]").count() === 0, "wizard open"));
@@ -1543,6 +1545,7 @@ if (LOCAL) {
   const nextStep = async () => { await page.click("#setupDlg button[type=submit]"); await settle(page); };
   const title = () => page.locator("#setupTitle").innerText();
   await check("a café with no rooms opens the wizard on Welcome, and Escape closes it without writing", async () => {
+    await wizard(page);
     expect(await page.locator("#setupDlg[open]").count() === 1, "wizard not open");
     expect((await title()) === "Welcome", await title());
     await page.keyboard.press("Escape"); await settle(page);
@@ -1690,6 +1693,8 @@ if (LOCAL) {
   await page.click("#houseBtn");
   await menuButton(page, "Set up again…").click();
   await settle(page);
+  await T(page, () => { const st = window.__catio.store; window.__catio.put("rooms/dining", Object.assign({}, st["rooms/dining"], { repos: ["recipes", "Snail-Mail-Trail"] })); window.__catio.put("rooms/study", Object.assign({}, st["rooms/study"], { repos: ["montfortoise-shopify", "Snail-Mail-Trail"] })); });
+  await page.waitForTimeout(100);
   await check("Set up again is prefilled from the café as it is", async () => {
     expect((await page.locator("#setupName").inputValue()) === "Mochi's Café", "name");
     await nextStep();
@@ -1698,6 +1703,13 @@ if (LOCAL) {
     const t = await page.locator("#setupDlg").innerText().then((x) => x.toUpperCase());
     expect(t.includes("CAFÉ · NEW CATS COME IN HERE") && !t.includes("CAT LOUNGE · NEW CATS"), "the front door she flagged (the café) not kept: " + t);
   });
+  await nextStep();
+  await page.click("#ghConnect"); await page.waitForTimeout(300);
+  await check("a repository GitHub lists by owner and name is the one filed by name alone: its room is prefilled", async () => {
+    expect((await page.locator("#sr-1").inputValue()) === "dining", "recipes' room: " + await page.locator("#sr-1").inputValue());
+  });
+  await page.selectOption("#sr-1", "living");
+  await page.click("#setupDlg button:has-text('Back')"); await settle(page);
   await page.click("#roomsMore"); await settle(page);
   await check("+ opens the next room in the opening order, and keeps the focus on the button", async () => {
     expect((await page.locator("#roomsN").innerText()) === "4", "not 4");
@@ -1714,6 +1726,8 @@ if (LOCAL) {
     expect(st["rooms/study"].closed === false && st["rooms/study"].repos.includes("montfortoise-shopify"), "the craft room lost its state or its repo: " + JSON.stringify(st["rooms/study"]));
     expect(st["rooms/bath"].closed === true, "the ensuite opened");
     expect(st["rooms/dining"].catchAll && !st["rooms/living"].catchAll, "the front door moved");
+    expect(st["rooms/living"].repos.includes("charredlatte/recipes") && !st["rooms/dining"].repos.includes("recipes") && !st["rooms/kitchen"].repos.includes("charredlatte/recipes"), "recipes in two rooms or two spellings: " + JSON.stringify([st["rooms/living"].repos, st["rooms/dining"].repos, st["rooms/kitchen"].repos]));
+    expect(st["rooms/dining"].repos.includes("Snail-Mail-Trail") && st["rooms/study"].repos.includes("Snail-Mail-Trail"), "a repository GitHub never listed was moved");
     expect(st["house/main"].name === "Mochi's Café", "name lost");
   });
   await check("no page errors through the first run", async () => expect(errors.length === 0, errors.join("; ")));
@@ -1722,6 +1736,7 @@ if (LOCAL) {
 {
   const { page, ctx } = await open("?mode=empty&repos=none");
   const nextStep = async () => { await page.click("#setupDlg button[type=submit]"); await settle(page); };
+  await wizard(page);
   await nextStep(); await nextStep();
   await page.click("#ghConnect");
   await page.waitForTimeout(300);
@@ -1746,6 +1761,7 @@ if (LOCAL) {
 {
   const { page, ctx } = await open("?mode=empty&repos=denied");
   const nextStep = async () => { await page.click("#setupDlg button[type=submit]"); await settle(page); };
+  await wizard(page);
   await nextStep(); await nextStep();
   await page.click("#ghConnect");
   await page.waitForTimeout(300);
@@ -1760,6 +1776,7 @@ if (LOCAL) {
 {
   const { page, ctx } = await open("?mode=empty", { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   await check("on a phone the wizard fits, and a tap moves it on", async () => {
+    await wizard(page);
     const dlg = await page.locator("#setupDlg").boundingBox();
     expect(dlg && dlg.x >= 0 && dlg.x + dlg.width <= 390, JSON.stringify(dlg));
     await page.locator("#setupDlg button[type=submit]").tap(); await settle(page);

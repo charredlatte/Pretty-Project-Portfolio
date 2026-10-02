@@ -1797,8 +1797,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
     let first = true;
     db.collection("rooms").onSnapshot((snap) => {
       const r = {}; for (const d of snap.docs) r[d.id] = d.data(); S.rooms = r; render();
-      if (first && !(snap.metadata && snap.metadata.fromCache)) { first = false; if (!snap.docs.length) openSetup(false); }
-      else if (snap.docs.length && $("setupDlg").open && !$("setupDlg").dataset.again && !$("setupDlg").dataset.saving) { $("setupDlg").close(); toast("The rooms are here: the café is set up."); }
+      if (first && !(snap.metadata && snap.metadata.fromCache)) { first = false; if (!snap.docs.length) setTimeout(() => { if (!ORDER.some((k) => S.rooms[k])) openSetup(false); }, 1000); }
+      else if (snap.docs.length && $("setupDlg").open && !$("setupDlg").dataset.again) { $("setupDlg").close(); toast("The rooms are here: the café is set up."); }
     }, fail);
     db.doc("house/main").onSnapshot((d) => { S.house = d.exists ? d.data() : {}; render(); }, fail);
     db.collection("sessions").onSnapshot((snap) => { const t = {}; for (const d of snap.docs) t[d.id] = d.data(); S.tweaks = t; render(); }, fail);
@@ -2318,8 +2318,20 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const A = { name: again ? (S.house.name || "") : "", open: again ? OPENING.filter(roomOpen) : OPENING.slice(0, 4), names: {}, repos: {}, gh: null, ghErr: null };
     if (!A.open.length) A.open = [OPENING[0]];
     for (const k of ORDER) A.names[k] = again && S.rooms[k] && S.rooms[k].name && S.rooms[k].name !== GEOM[k].name ? S.rooms[k].name : "";
-    if (again) for (const k of ORDER) for (const r of roomInfo(k).repos) A.repos[r] = k;
+    // A.repos: the room chosen for each repository GitHub listed. A repository already filed stays where it is
+    // unless GitHub listed it (matched by name, with or without its owner); then the select, prefilled with its
+    // room, decides. The rest, duplicates and all, is left alone.
+    const tail = (r) => lower(r).split("/").pop();
+    const roomOfRepo = (name) => ORDER.find((k) => roomInfo(k).repos.some((r) => tail(r) === tail(name)));
     const open = () => OPENING.filter((k) => A.open.includes(k));
+    const filed = () => {
+      const listed = new Set((A.gh || []).map(tail)), out = {};
+      for (const k of ORDER) {
+        const kept = again ? roomInfo(k).repos.filter((r) => !listed.has(tail(r))) : [];
+        out[k] = [...new Set(kept.concat((A.gh || []).filter((n) => A.repos[n] === k)))];
+      }
+      return out;
+    };
     A.door = again ? catchAllRoom() : null;   // the front door she flagged stays while its room is open
     const door = () => (A.door && A.open.includes(A.door) ? A.door : open()[0]);
     const nameOf = (k) => A.names[k].trim() || GEOM[k].name;
@@ -2389,7 +2401,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
             const row = el("div", "repo");
             const sel = el("select"); sel.id = "sr-" + i; sel.setAttribute("aria-label", "Room for " + name);
             for (const k of open()) { const o = el("option", null, nameOf(k)); o.value = k; sel.appendChild(o); }
-            sel.value = open().includes(A.repos[name]) ? A.repos[name] : fallback;
+            const was = A.repos[name] || roomOfRepo(name);
+            sel.value = open().includes(was) ? was : fallback;
             A.repos[name] = sel.value;
             sel.addEventListener("change", () => { A.repos[name] = sel.value; });
             const fld = el("label", "field"); fld.append(el("span", "sr", "Room"), sel);
@@ -2446,7 +2459,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       () => {
         const sec = el("div", "dlg");
         const ul = el("ul", "sum");
-        const repos = Object.keys(A.repos).filter((r) => GEOM[A.repos[r]]).length;
+        const repos = Object.values(filed()).reduce((n, v) => n + v.length, 0);
         for (const t of [A.name.trim() || "KittyChat Café", A.open.length + (A.open.length === 1 ? " room open" : " rooms open"),
           repos + (repos === 1 ? " repository filed" : " repositories filed"), S.mcp && S.live.state === "ok" ? sessions() + (sessions() === 1 ? " cat at the door" : " cats at the door") : null].filter(Boolean)) ul.appendChild(el("li", null, t));
         sec.appendChild(ul);
@@ -2481,9 +2494,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
     f.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (step < STEPS.length - 1) { goStep(step + 1); return; }
-      const rooms = open(), byRoom = {}, front = door();
-      for (const [r, k] of Object.entries(A.repos)) (byRoom[GEOM[k] ? k : front] = byRoom[GEOM[k] ? k : front] || []).push(r);
-      dlg.dataset.saving = "1";   // the rooms snapshot these writes fire is not someone else setting the café up
+      const rooms = open(), byRoom = filed(), front = door();
+      dlg.dataset.again = "1";   // from here the café has rooms of its own making: no snapshot closes the wizard, a retry updates
       const ok = await save(async (db) => {
         await db.doc("house/main").set({ name: A.name.trim() || "KittyChat Café", onboarded: Date.now() });
         for (const k of ORDER) {
@@ -2492,7 +2504,6 @@ ul.gkey li > div.what { flex-basis: 100%; }
           else await db.doc("rooms/" + k).set(Object.assign({ blurb: "", model: "claude-opus-5-5" }, d));
         }
       }, "The doors are open.");
-      delete dlg.dataset.saving;
       if (ok) dlg.close();
     });
     dlg.addEventListener("close", () => clearTimeout(timer), { once: true });
