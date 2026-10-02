@@ -1537,6 +1537,7 @@ if (LOCAL) {
 const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000 }).then(() => settle(page));
 {
   const { page, ctx } = await open("");
+  await page.waitForTimeout(1500);   // past the second the wizard gives the rooms
   await check("a café with rooms never sees the wizard", async () => expect(await page.locator("#setupDlg[open]").count() === 0, "wizard open"));
   await ctx.close();
 }
@@ -1580,6 +1581,17 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
     expect(await page.locator("#sr-0 option").count() === 3, "closed rooms offered");
     expect((await page.locator("#sr-0 option").first().innerText()) === "Lounge", "the name she typed");
   });
+  await page.selectOption("#sr-1", "kitchen");
+  await page.click("#setupDlg button:has-text('Back')"); await settle(page);
+  await page.click("#roomsLess"); await settle(page);
+  await nextStep();
+  await check("a pick for a room closed afterwards falls back to the front door on a first run", async () => {
+    expect((await page.locator("#sr-1").inputValue()) === "living", "recipes' room: " + await page.locator("#sr-1").inputValue());
+    expect(await page.locator("#sr-1 option").count() === 2, "a closed room offered");
+  });
+  await page.click("#setupDlg button:has-text('Back')"); await settle(page);
+  await page.click("#roomsMore"); await settle(page);
+  await nextStep();
   await page.selectOption("#sr-1", "kitchen");
   await nextStep();
   await check("Sessions: what the live read found, with no new call", async () => {
@@ -1669,7 +1681,7 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
   await settle(page);
   await check("Edit rooms has an Open switch per room, and a closed room's option is off the front-door list", async () => {
     expect((await page.locator("#ro-living").getAttribute("aria-pressed")) === "true" && (await page.locator("#ro-bath").getAttribute("aria-pressed")) === "false", "switches");
-    expect(await page.locator("#catchAll option[value=bath]").isHidden(), "a closed room offered as the front door");
+    expect(await page.locator("#catchAll option[value=bath]").evaluate((o) => o.hidden && o.disabled), "a closed room offered as the front door");
     expect(await page.locator("#rt-bath.closed").count() === 1, "plan tab not dimmed");
   });
   await page.click("#rt-living");

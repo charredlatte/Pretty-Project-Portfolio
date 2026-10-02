@@ -2251,11 +2251,11 @@ ul.gkey li > div.what { flex-basis: 100%; }
         const on = !isOpen[k];
         if (!on && ca.value === k) { const next = ORDER.find((k2) => k2 !== k && isOpen[k2]); if (!next) return; ca.value = next; ca.dispatchEvent(new Event("change")); }
         isOpen[k] = on; op.setAttribute("aria-pressed", String(on)); op.lastChild.textContent = on ? "Open" : "Closed"; op.firstChild.classList.toggle("on", on);
-        t.classList.toggle("closed", !on); o.hidden = !on;
+        t.classList.toggle("closed", !on); o.hidden = o.disabled = !on;
       });
       p.appendChild(op);
       f.appendChild(p);
-      const o = el("option", null, r.name); o.value = k; o.hidden = !!r.closed; ca.appendChild(o);
+      const o = el("option", null, r.name); o.value = k; o.hidden = o.disabled = !!r.closed; ca.appendChild(o);
       // the plan, the card and the front-door choice follow the name as she types it
       nm.addEventListener("input", () => { const v = nm.value.trim() || GEOM[k].name; sign.textContent = v; o.textContent = v; title.firstChild.textContent = v; tabName(k); });
     }
@@ -2274,7 +2274,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     f.appendChild(acts);
     f.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const chosen = GEOM[ca.value] ? ca.value : "living";
+      const chosen = GEOM[ca.value] && isOpen[ca.value] ? ca.value : ORDER.find((k) => isOpen[k]) || "living";   // never a closed room
       const ok = await save(async (db) => {
         for (const k of ORDER) {
           const repos = $("rr-" + k).value.split(",").map((x) => x.trim()).filter(Boolean);
@@ -2405,9 +2405,11 @@ ul.gkey li > div.what { flex-basis: 100%; }
           A.gh.forEach((name, i) => {
             const row = el("div", "repo");
             const sel = el("select"); sel.id = "sr-" + i; sel.setAttribute("aria-label", "Room for " + name);
-            const was = A.repos[name] || roomOfRepo(name);
+            // her pick this run while that room is open; else the room it was filed in before, which keeps it even closed
+            const prior = roomOfRepo(name), pick = A.repos[name];
+            const was = pick && open().includes(pick) ? pick : prior;
             for (const k of open()) { const o = el("option", null, nameOf(k)); o.value = k; sel.appendChild(o); }
-            if (GEOM[was] && !open().includes(was)) { const o = el("option", null, nameOf(was) + " (closed)"); o.value = was; sel.appendChild(o); }   // where it is: a closed room keeps it
+            if (GEOM[was] && !open().includes(was)) { const o = el("option", null, nameOf(was) + " (closed)"); o.value = was; sel.appendChild(o); }
             sel.value = GEOM[was] ? was : fallback;
             A.repos[name] = sel.value;
             sel.addEventListener("change", () => { A.repos[name] = sel.value; });
