@@ -159,10 +159,33 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 - **Issue #24, "Cafe reading the gateway"** (2 October): "The kittychat cafe is still not able to read live
   sessions. Wait for the PonyTail Audit of the gateway's current state before continuing to work on the
   gateway. When done, compile and sift my recent sessions using the litterbox and update the plan." The audit
-  found the gateway lean. Why the café can't read live sessions is in `docs/plan.md`: the gateway isn't set up
-  yet. The sift is in `docs/from-the-litterbox.md`. It puts the page reading the gateway before the camera.
+  found the gateway lean. The cause was that the gateway wasn't set up yet. She set it up that afternoon, and
+  version 21 reads it. Then **"put this through the litter box"**: the round's report, sifted into
+  `docs/from-the-litterbox.md`.
 - **No Claude co-author or session links** in commits on her public repos or forks (1 October, from another
   session; the rule is on `claude/cool-cannon-wh25u6`).
+
+## Semi-automatic merging (2 October)
+
+- **"Audit the KittyChat Cafe House Rules."** Done in this round: the house rules weren't running in cloud
+  sessions at all, and "no merge", "never the default branch" and "no force-push" were only words. The audit is
+  in the PR's description.
+- **"A semi-automatic mode in the plugin that allows merges and pushes to be semi-automatic. Merge and delete
+  after audits when the model has a very high confidence and is using a strong model for the task at hand.
+  Anything that is guess work gets sifted through the litterbox for human review."** The merging rule
+  (`harness/README.md`, "Semi-automatic merging"), on in this repo and the grocery app.
+- **"This line confuses me: Your house rules forbid me from merging, so the merge is yours to do."** It came from
+  the old shipping rule ("never … merge"). A session now says "PR #N is ready for you to merge", or "PR #N is
+  waiting for your review" with the reason, and nothing about rules.
+## Nothing on the cats (2 October)
+
+- **"I don't like the letters over the cats. Remove all icons on top of the moving cats. Only show menus on
+  hover."** Asked, she chose: hovering a cat shows what it needs, a click still opens its menu, and "remove
+  everything. The crowns, the letters etc." So no model letters, file counts, faces, bubbles, pile numbers,
+  crowns or "z Z" on the map.
+- **"I hate the cat food."** The bowls and the food bag are gone from the kitchen, and the bowls from the catio.
+- **Her local copy lives in Google Drive**, My Drive › Claude › KittyChat Cafe (local copy): "my google drive,
+  which is where I tell you to save everything".
 
 ## Still waiting on her
 

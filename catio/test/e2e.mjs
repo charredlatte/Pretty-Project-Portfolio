@@ -99,6 +99,17 @@ async function openCat(page, label) {
   await page.mouse.click(pt.x, pt.y);
   await settle(page);
 }
+// rest the pointer on a cat, as she would, and read the line that names it
+async function hoverCat(page, label) {
+  await closeMenu(page);
+  const pt = await catPoint(page, label);
+  await page.mouse.move(8, 8);
+  await page.mouse.move(pt.x, pt.y, { steps: 3 });
+  await settle(page);
+  return (await page.locator("#tip").isVisible()) ? await page.locator("#tip").innerText() : "";
+}
+// nothing is drawn on a cat but the cat (her call, 2 October 2026): whatever it would be called
+const ON_CATS = "#cats .cat > :not(.spr)";
 async function openHouse(page) {
   await closeMenu(page);
   await page.click("#houseBtn");
@@ -355,8 +366,6 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await check("every room has a queen, and she is nobody's session", async () => {
     const n = await page.locator("#cats .cat.queen").count();
     expect(n === 10, "queens drawn: " + n);
-    const crowns = await page.locator("#cats .cat.queen .crown").count();
-    expect(crowns === 10, "crowns: " + crowns);
   });
   await check("she is never counted among the cats that need you", async () => {
     const before = await page.locator("#tally").textContent();
@@ -403,11 +412,14 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   await page.evaluate(() => document.querySelector('.roomhit[data-room="kitchen"]').dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
   await page.waitForTimeout(800);
-  await check("in her room she says it out loud, and it opens her menu", async () => {
-    const bub = page.locator("#overlay .bub.queenb");
-    expect(await bub.count() === 1, "bubbles: " + (await bub.count()));
-    expect((await bub.innerText()).includes("The Drive order"), await bub.innerText());
-    await bub.click();
+  await check("hovering her says what she's keeping, with no bubble over her, and a click opens her menu", async () => {
+    expect(await page.locator(ON_CATS).count() === 0, "something is drawn over the cats");
+    await page.mouse.move(8, 8);
+    await queen("kitchen").hover();
+    await settle(page);
+    const t = await page.locator("#tip").innerText();
+    expect(t.includes("The Drive order"), t);
+    await queen("kitchen").click();
     await settle(page);
     expect((await menuText(page)).includes("Queen of the Kitchen"), "her menu did not open: " + (await menuText(page)));
   });
@@ -424,7 +436,10 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await check("taking it back stops her saying it", async () => {
     const d = await T(page, () => window.__catio.store["queens/kitchen"]);
     expect(d.notes.every((n) => !n.pinned), JSON.stringify(d.notes));
-    expect(await page.locator("#overlay .bub.queenb").count() === 0, "still saying it");
+    await page.mouse.move(8, 8);
+    await queen("kitchen").hover();
+    await settle(page);
+    expect(!(await page.locator("#tip").innerText()).includes("The Drive order"), "still saying it");
   });
   await queen("kitchen").dblclick();
   await settle(page);
@@ -461,8 +476,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(words.includes("The cat art isn't here") && words.includes("neither the house nor its cats can draw"), words);
     expect(words.includes("build-art.py"), "it does not say how to fix it: " + words);
     expect(await page.locator("#status.warn").count() === 1, "the sign is not flagging it");
-    // her crown, her menu and what she keeps still work without the packs to draw them
-    expect(await page.locator("#cats .cat.queen .crown").count() === 10, "crowns went missing");
+    // her menu and what she keeps still work without the packs to draw them
     await toFloor(page, "upper");
     await page.locator('#cats .cat[data-queen="bedroom"]').click();
     await settle(page);
@@ -488,8 +502,10 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
       expect(await page.locator("#overlay .tag").count() === 0, f + " signs: " + await page.locator("#overlay .tag").count());
     }
   });
-  await check("the one cat that needs you shows its face over its head, and the brand counts it", async () => {
-    expect(await page.locator("#overlay .bub.need").count() === 1, "faces: " + await page.locator("#overlay .bub").count());
+  await check("nothing sits over the one cat that needs you: hovering it says what it needs, and the brand counts it", async () => {
+    expect(await page.locator(ON_CATS).count() === 0, "something is drawn over the cats");
+    const t = await hoverCat(page, "Shop about page");
+    expect(t.includes("review the French text"), "hover: " + t);
     expect((await page.locator("#houseBtn .badge .n").innerText()) === "1", "brand badge");
     expect(await page.locator("#houseBtn .badge.need .face-ico").count() === 1, "no meowing face");
   });
@@ -710,9 +726,9 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await page.mouse.move(st.x, st.y);
   for (let i = 0; i < 6; i++) { await page.mouse.wheel(0, -300); await page.waitForTimeout(60); }
   await page.waitForTimeout(500);
-  await check("zoomed in until one room fills the view, you're in that room, and its cats' bubbles speak", async () => {
+  await check("zoomed in until one room fills the view, you're in that room, and still nothing sits over its cats", async () => {
     expect(await page.locator('.roomhit.here[data-room="study"]').count() === 1, "not in the craft room");
-    expect(await page.locator("#overlay .bub:not(.icon)").count() >= 1, "no words in the bubbles");
+    expect(await page.locator(ON_CATS).count() === 0, "something is drawn over the cats");
   });
   await page.keyboard.press("0");
   await page.waitForTimeout(700);
@@ -1044,12 +1060,16 @@ async function dropFiles(page, sel, files) {
 {
   const { page, ctx, errors } = await open("?agents=1");
   await page.waitForTimeout(300);
-  await check("every session cat wears its model's breed, and agents from other makers join the house", async () => {
-    const tag = await page.locator('#cats .cat[aria-label*="Shop about page"] .breed').textContent();
-    expect(tag === "O", "breed " + tag);
+  await check("no letters on the cats, the model is in the card, and agents from other makers join the house", async () => {
+    expect(await page.locator(ON_CATS).count() === 0, "something is drawn over the cats");
+    await page.locator('#cats .cat[aria-label*="Shop about page"]').dblclick();
+    await settle(page);
+    const card = await page.locator("#catDlg").textContent();
+    expect(card.includes("Opus"), "no model in the card: " + card.slice(0, 300));
+    await page.keyboard.press("Escape");
+    await settle(page);
     const agent = page.locator('#cats .cat[aria-label*="Shop theme"]');
     expect(await agent.count() === 1, "no agent cat");
-    expect((await agent.locator(".breed").textContent()) === "OPE", "agent breed");
     expect((await agent.getAttribute("aria-label")).includes("Meowing"), "agent should need her");
   });
 
@@ -1078,8 +1098,9 @@ async function dropFiles(page, sel, files) {
     expect(!(st["sessions/session_blocked1"] || {}).trigger, "a trigger was kept");
     expect((await toast(page)).includes("outbox"), await toast(page));
   });
-  await check("the cat carries its file, and its menu says so", async () => {
-    expect((await page.locator('#cats .cat[aria-label*="Shop about page"] .fcount').textContent()) === "1", "no count");
+  await check("hovering the cat says its file is waiting, and its menu says so", async () => {
+    const t = await hoverCat(page, "Shop about page");
+    expect(t.includes("1 file waiting"), "hover: " + t);
     await openCat(page, "Shop about page");
     expect((await menuText(page)).includes("1 file from the brain"), await menuText(page));
   });
@@ -1286,6 +1307,110 @@ async function dropFiles(page, sel, files) {
   });
   await ctx.close();
 }
+// The gateway, through her CATIO connector (phase 5): every session reports there, so the cats are live even when
+// claude.ai refuses the page its list, and what she sends reaches a running session when its turn ends.
+{
+  const { page, ctx, errors } = await open("?gateway=1&mode=blocked");
+  await page.waitForTimeout(300);
+  await check("a session that reports to the gateway is one cat, with what it last said there", async () => {
+    const shop = page.locator('#cats .cat[aria-label*="Shop about page"]');
+    expect(await shop.count() === 1, "the session shows " + (await shop.count()) + " times");
+    expect((await shop.getAttribute("aria-label")).includes("review"), "the saved copy's mood, not the gateway's: " + (await shop.getAttribute("aria-label")));
+    const fresh = page.locator('#cats .cat[aria-label*="Menu fix"]');
+    expect(await fresh.count() === 1 && (await fresh.getAttribute("aria-label")).includes("Meowing"), "a session only the gateway knows yet");
+    expect((await hoverCat(page, "Menu fix")).includes("Merge the menu fix?"), "its ask, on hover");
+    await openHouse(page);
+    expect((await menuText(page)).includes("Gateway live"), await menuText(page));
+  });
+  await openCat(page, "Shop about page");
+  await menuButton(page, "Talk").click();
+  await page.waitForTimeout(200);
+  await check("what a session said through the gateway is in its conversation", async () => {
+    const t = await page.locator("#thread").innerText();
+    expect(t.includes("The French text is in, ready for you."), t);
+  });
+  await page.fill("#sayTo", "Merci, I'll read it tonight");
+  await page.click("#saySend");
+  await page.waitForTimeout(200);
+  await check("writing to it goes through the gateway, not the outbox, and says when it arrives", async () => {
+    const c = (await tools(page, "comment")).pop();
+    expect(c && c[0] === "CATIO" && c[2].cat === "cse_blocked1" && c[2].text === "Merci, I'll read it tonight" && c[2].author === "charlotte", JSON.stringify(c));
+    expect(!(await outbox(page)).length, "it went to the outbox");
+    expect((await toast(page)).includes("when its turn ends"), await toast(page));
+    expect((await page.getAttribute("#sayTo", "placeholder")).includes("turn ends"), "the box promises it goes straight in");
+  });
+  await page.keyboard.press("Escape");
+  await openCat(page, "Menu fix");
+  await menuButton(page, "Talk").click();
+  await page.fill("#sayTo", "Yes, merge it");
+  await page.click("#saySend");
+  await page.waitForTimeout(200);
+  await check("a session only the gateway knows is written to through it too", async () => {
+    const c = (await tools(page, "comment")).pop();
+    expect(c && c[0] === "CATIO" && c[2].cat === "cse_fresh9" && c[2].text === "Yes, merge it", JSON.stringify(c));
+  });
+  await check("no page errors with the gateway", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+// When CATIO asks before every call, the page can't read it: the House menu says what to change, and the agents on
+// her computer still come in.
+{
+  const { page, ctx, errors } = await open("?gateway=ask&agents=1");
+  await page.waitForTimeout(300);
+  await check("a gateway that asks every time is named in the House menu, with the fix", async () => {
+    await openHouse(page);
+    expect((await menuText(page)).includes("Always allow"), await menuText(page));
+    expect(await page.locator('#cats .cat[aria-label*="Shop theme"]').count() === 1, "the agents on her computer");
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
+// The café on the gateway's own address (her choice, 2 October: "the catio as a UI for all of my Claude sessions"):
+// live through the gateway, and honest about what only claude.ai can do.
+{
+  const { page, ctx, errors } = await open("?via=gateway&mode=blocked");
+  await page.waitForTimeout(300);
+  await check("on its own address the café is live through the gateway, with no warning sign", async () => {
+    expect(!(await page.locator("#status").isVisible()), "the sign shows");
+    await openHouse(page);
+    expect((await menuText(page)).includes("Live through your gateway"), await menuText(page));
+    expect(!(await tools(page)).some((t) => t[0] === "Claude Code Remote"), "it asked claude.ai for sessions");
+  });
+  await openCat(page, "Shop about page");
+  await menuButton(page, "Talk").click();
+  await manage(page);
+  await check("a session that reports can be asked to wrap up; only claude.ai pauses or archives", async () => {
+    const t = await page.locator("#catMore").innerText();
+    expect(/wrap up/i.test(t) && !/archive|pause/i.test(t), t);
+    expect(await page.locator("#catTitle").count() === 0, "the title can't change from here");
+  });
+  await page.fill("#sayTo", "Bien reçu");
+  await page.click("#saySend");
+  await page.waitForTimeout(200);
+  await check("writing to it goes through the gateway", async () => {
+    const c = (await tools(page, "comment")).pop();
+    expect(c && c[0] === "CATIO" && c[2].cat === "cse_blocked1", JSON.stringify(c));
+  });
+  await page.keyboard.press("Escape");
+  await openCat(page, "Week tab editing");
+  await menuButton(page, "Talk").click();
+  await page.fill("#sayTo", "Are you done?");
+  await page.click("#saySend");
+  await page.waitForTimeout(200);
+  await check("a session that doesn't report says it can't be told from here, and nothing waits in an outbox", async () => {
+    expect((await toast(page)).includes("open it in claude.ai"), await toast(page));
+    expect(!(await outbox(page)).length, "an outbox nobody collects");
+    expect((await page.locator("#thread").innerText()).includes("not delivered"), await page.locator("#thread").innerText());
+  });
+  await page.keyboard.press("Escape");
+  await openRoom(page, "kitchen");
+  if (await menuButton(page, "Add a cat").count()) await menuButton(page, "Add a cat").click();
+  await check("no New session button: starting one needs claude.ai (or, later, her runner)", async () => {
+    expect(await menuButton(page, "New session").count() === 0, await menuText(page));
+  });
+  await check("no page errors on the gateway's address", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
 // When send_message works, a post goes straight into the session; when it fails, it waits with the reason.
 {
   const { page, ctx, errors } = await open("?send=ok");
@@ -1392,7 +1517,10 @@ if (LOCAL) {
   await check("on localhost a queen keeps what you give her, across a reload", async () => {
     const label = await page.locator('#cats .cat[data-queen="kitchen"]').getAttribute("aria-label");
     expect(label.includes("Off a USB stick"), label);
-    expect(await page.locator("#overlay .bub.queenb").count() === 1, "she stopped saying it after the reload");
+    await page.mouse.move(8, 8);
+    await page.locator('#cats .cat[data-queen="kitchen"]').hover();
+    await settle(page);
+    expect((await page.locator("#tip").innerText()).includes("Off a USB stick"), "she stopped saying it after the reload");
     expect(errors.length === 0, errors.join("; "));
   });
   await ctx.close();
@@ -1401,9 +1529,8 @@ if (LOCAL) {
 /* ---------- 9. the UI audit's leftovers (phase 0): alerts that stay, the sorter's time limit, Still cats ---------- */
 {
   const { page, ctx, errors } = await open();
-  await check("speech bubbles aren't Tab stops: the map stays one stop", async () => {
-    const stops = await page.evaluate(() => [...document.querySelectorAll("#overlay .bub")].map((b) => b.tabIndex));
-    expect(stops.length > 0 && stops.every((t) => t === -1), JSON.stringify(stops));
+  await check("nothing is drawn over the cats: no letters, counts, crowns, piles' numbers or bubbles", async () => {
+    expect(await page.locator(ON_CATS).count() === 0, "something is drawn over the cats");
   });
   await openHouse(page);
   await check("the House menu carries the credits, so a phone shows them too", async () =>

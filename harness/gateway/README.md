@@ -25,13 +25,16 @@ Two kinds of caller, told apart by how they sign in:
 ## Setting it up (once)
 
 1. **Cloudflare.** Workers & Pages → Create → Import a repository → `charredlatte/Pretty-Project-Portfolio`.
-   - Name it `catio-gateway` (it must match `wrangler.jsonc`).
+   - Name it `catio-gateway`. Cloudflare fills in the repo's name, `pretty-project-portfolio`: replace it, because
+     the Worker's name must match `wrangler.jsonc` or later deploys fail. A Worker made under the wrong name is
+     simplest deleted (Settings → Danger zone) and imported again; delete its leftover KV namespace too.
    - Set the root directory to `harness/gateway` and the production branch to `main`. Leave the build command
      empty, and keep the deploy command as `npx wrangler deploy`.
    - Deploy. The first deploy creates the KV namespace and the Durable Object. Its address is on the Worker's page:
      `https://catio-gateway.<subdomain>.workers.dev`. If Cloudflare asks for a workers.dev subdomain, pick one.
    - From then on every merge to `main` redeploys it.
-2. **Two secrets.** On the Worker, go to Settings → Variables and Secrets → Add, type *Secret*:
+2. **Two secrets.** On the Worker, go to Settings → Variables and Secrets → Add, type *Secret*, under
+   *Production*, then Deploy:
    - `CATIO_TOKEN`: the agents' key, 32 random characters or more.
    - `CATIO_PASSWORD`: a different one, the password she signs in with (16 characters or more). It goes into her
      password manager and nowhere else.
@@ -40,7 +43,9 @@ Two kinds of caller, told apart by how they sign in:
 3. **Claude's environments.** In a cloud session, open the environment menu in the session's title bar → Edit. In
    each environment her sessions use:
    - add two environment variables, `CATIO_URL` = the address above and `CATIO_TOKEN` = the agents' key;
-   - under Network access, add `catio-gateway.<subdomain>.workers.dev` to the allowed domains.
+   - under Network access, add `catio-gateway.<subdomain>.workers.dev` to the allowed domains;
+   - install the house-rules plugin in its setup script (`harness/README.md`, *In cloud sessions*): the hook that
+     reports is in it, and a cloud session doesn't install it by itself.
 
    On her PC, the same two variables go under `"env"` in `~/.claude/settings.json`, for local sessions.
 4. **claude.ai.** Customize → Connectors → Add → Custom → Web. Name it `Catio`, with the URL `<address>/mcp`. A
@@ -49,8 +54,34 @@ Two kinds of caller, told apart by how they sign in:
    doesn't have, and the reason the page's live read is refused today.
 5. Tell Claude it's done. The page is then republished to read the `Catio` connector (docs/plan.md, phase 5).
 
-To check: the address alone answers "The Catio's gateway." Once a session has started in an environment with the
-two variables, it is in `list_agents`.
+To check: the address alone asks for her password (the café's sign-in), so it says the Worker is up. Both sign-ins
+say when `CATIO_PASSWORD` is missing. The key is right when an agent's call to `/mcp`
+gets an answer instead of a 401 `invalid_token`. Once a session has started in an environment with the two
+variables and the plugin, it is in `list_agents`.
+
+## The café on its own address
+
+The gateway's own address is the KittyChat Café, the way OpenClaw's gateway serves its Control UI: the same page as
+in claude.ai (`catio/index.html`), behind her password, with `cafe/runtime.js` standing in for what claude.ai gives a
+page (`src/cafe.js` serves both).
+
+- **Sign-in:** `CATIO_PASSWORD`, with the same lock as the connector's (five wrong in a quarter of an hour). A
+  browser stays signed in for a month (`__Host-catio`, `HttpOnly`, `SameSite=Strict`; only its hash is kept).
+- **Her data:** the café's documents (rooms, renames, adopted chats, looks, queens, the brain, notes) live in the
+  house (`docs`), and every change reaches an open café over a WebSocket at once. Her browser writes them only with
+  the `X-Catio` header and from the café's own address.
+- **Files:** the brain's files and the licensed art live in the `FILES` KV namespace. Art is served only once she is
+  signed in, so the packs are never public; a brain file opens in a sandbox (`Content-Security-Policy: sandbox`),
+  where nothing in it can run as the café.
+- **Moving in (once):** `CATIO_URL=… CATIO_TOKEN=… python3 harness/gateway/cafe/move-in.py docs.json` uploads the art
+  from a checkout that has it (`catio/art/licensed`, never committed) and imports the claude.ai artifact's database,
+  which Claude exports with `ArtifactData`. The import is taken only while the café is empty. Re-run it without
+  `docs.json` after rebuilding the art.
+- **The sessions:** the cats come from the gateway, live, and from Claude's saved copy (`snapshot/sessions`). What
+  only claude.ai can do says so: opening a session's full conversation, pausing, archiving, renaming it, starting
+  one, and posting into a session that doesn't report. A session that reports is told through the gateway.
+- **Not here (yet):** the file sorter (Claude in claude.ai) and starting sessions; the runner (docs/plan.md, phase 6)
+  brings the second.
 
 ## How a session uses it
 

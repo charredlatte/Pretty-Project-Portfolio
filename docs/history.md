@@ -129,6 +129,26 @@ connector's limit, so she attached it in the chat. e2e 125 passed.
 
 ## What went live, version by version
 
+**Version 21** went live on 2 October 2026: the page reads the gateway through her `CATIO` connector (phase 5).
+A session that reports there is one cat with its claude.ai session, wearing the newer mood; what she writes or
+drops on it goes through the gateway, and its replies show in its conversation. The declaration was passed in
+full to add `CATIO` (`list_agents`, `comment`, `comments`, `drop_file`, `manage`) beside Claude Code Remote's
+eight tools, `db`, `assets` and `sample`; claude.ai accepted the custom connector by its display name. The live
+page was version 20, read in full and identical to `main`'s. No art changed. Looked at first with the stub
+playing the gateway; e2e 164 passed. Checked after publishing: the ten `rooms` intact; a probe in `cats`
+created, updated and deleted.
+
+**Version 20** went live on 2 October 2026: version 19 with what it left dead cut out (the bubbles' face
+selectors, the breed letters, the overlay's positions) and `bubble-tail.png` removed from the published files.
+Before it, the change was looked at with `sh catio/test/run.sh look`, the new first step of "Checking a change"
+in CLAUDE.md: no bowls, no z Z, nothing on any cat. The live `pochi.png` was read back and checked too. The
+capabilities were carried over unchanged. e2e 158 passed. Checked after publishing: the ten `rooms` intact; a
+probe in `cats` created, updated and deleted.
+
+**Version 19** went live on 2 October 2026: nothing on the cats (no letters, counts, faces, bubbles, pile
+numbers or crowns; what a cat needs is in its hover line) and no "z Z" over a sleeping one (`unz()` in
+`build-art.py`, so `pochi.png` was rebuilt); the cat food out of the kitchen and the catio. PR #22.
+
 **Version 18** went live on 1 October 2026: the `send_message` trial. `postToSession()` calls Claude Code
 Remote's `send_message` (argument names from its schema), and what it can't post waits in `outbox/` with the
 error. The declaration was passed in full for the first time since version 8: Claude Code Remote's

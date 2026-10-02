@@ -14,12 +14,12 @@ Publish `catio/index.html` with:
   `house-upper.png`, `decor.png`, `furniture.png`, `meadow.png`, `mochi-idle.png`, `mochi-box.png`,
   `pochi.png`) and the interface
   in `art/licensed/ui/` (`panel`, `button`, `button-hover`, `button-down`, `button-green`,
-  `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `bubble-tail`, `corners`,
+  `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `corners`,
   `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point`, `pointer`, `logo`, `pastel` `.png`,
   and `sprout.ttf`), and the map panel in `art/licensed/pastel/` (`panel`, `panel-dark`, `frame`, `button`,
   `button-hover`, `button-down`, `icons` `.png`);
-- `capabilities`: omit it on a republish to keep what's stored: Claude Code Remote's eight tools (below),
-  `db`, `assets` and `sample`. Pass it only to add a tool on purpose, and then pass the whole set.
+- `capabilities`: omit it on a republish to keep what's stored: Claude Code Remote's eight tools and the
+  gateway's five (below), `db`, `assets` and `sample`. Pass it only to add a tool on purpose, and then pass the whole set.
 
 `catio/data/` is **not** published: it is for the localhost copy (below).
 
@@ -104,8 +104,13 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
   called the KittyChat Cafe"). The Catio is the page's old name and the code's; the catio is still the
   fenced deck outside.
 - **No signs on the map** (she hates them): no room names, badges or stair sign on the art. A room is
-  named on hover (`#tip`); a cat that needs her shows its face over its head; the other floor's button
-  carries its badge; the brand carries the house's.
+  named on hover (`#tip`); the other floor's button carries its badge; the brand carries the house's.
+- **Nothing on the cats** ("I don't like the letters over the cats. Remove all icons on top of the moving
+  cats", 2 October 2026, and "remove everything, the crowns, the letters"): no model letters, file counts,
+  faces, speech bubbles, pile numbers or crowns on the map, and no "z Z" over sleeping cats (`unz()` in
+  `build-art.py` erases them from the sheet). Hovering a cat or a queen says what it needs in `#tip`: its
+  name and mood, then its ask, its waiting files, or the note a queen is saying. Keep it that way: a new
+  fact about a cat goes in its hover line, menu or card, never on the sprite.
 - **Floors**: the stair, the floor buttons and Page Up / Page Down go between them. The tally counts both
   floors.
 - **Controls**: two things sit on screen, and nothing else should:
@@ -121,10 +126,9 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
     the rest (the Sims-style camera and Build) is `docs/camera-and-minimap.md`.
 - **The status sign** under the brand shows only when something is wrong. When Claude's saved copy fills
   in for a blocked live read, it is one line ("Saved copy · 17:02") and the why shows on hover or focus.
-- **Breeds and file counts** on cats show only inside a room (`.stage.inroom`).
 - **Room controls**: a control for one room or cat goes in its menu.
 - **The camera is free**: drag to pan (left, right or middle button, or Space), wheel or pinch to zoom,
-  + / − / 0 and Shift+arrows. `S.focus` is the room that fills the view, and bubbles speak there.
+  + / − / 0 and Shift+arrows. `S.focus` is the room that fills the view.
 - **Hover names a thing** in a line (`#tip`). **A click opens its menu** beside it, pinned until a click
   elsewhere or Escape (`toggleMenu`); a tap does the same. Keyboard focus opens a menu only when
   `:focus-visible`, and a click never closes a menu keyboard focus opened.
@@ -149,21 +153,20 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
 The interface is Cup Nooble's Sprout Lands UI pack, cut by `build-art.py` into
 `art/licensed/ui/`. Menus, dialogs, the sign and the screen's frame are its tan panel; buttons are
 its cream square button (white on hover, pressed in when held; `green` and `pink` are recoloured
-copies); inputs are its grey pressed-in button; speech bubbles and a cat's ask are its grey bubble;
+copies); inputs are its grey pressed-in button; a cat's ask and the replies in its thread are its grey bubble;
 a filing cabinet's project sits in its pressed cream well; rooms and cabinets light up with its
 white selection brackets (on a room they stay one size on screen at any zoom), and so does the
 chosen room on the Edit rooms plan, which sits in its picture frame with its arrow, on its white
 button, pointing into the room new cats come in to. Each is a 9-slice `border-image`. The mood faces are its cat emoji
 (`faces.png`, in `MOODS` order, then a queen's heart eyes), the sound control is its toggle, the
-sign's tick and cross are its own, a queen's crown is its crown icon gilded, what she keeps is
+sign's tick and cross are its own, a queen's crown (in her menu and card, never on the map) is its crown icon gilded, what she keeps is
 starred with its stars, and the pointer is its cat paw. Keep it that way: a new control should
 reuse one of these pieces rather than a CSS border or gradient. The controls' icons are SC_siosio's Game UI
 Pack (Pastel Edition), pixelated (`pastel.png`: up, down, plus, minus, Sprout Lands' house recoloured to match,
 pause, play, check, lock, unlock; also on a cat's Manage buttons and enforced house rules), the menus'
 cursor is its cream triangle (`pointer.png`), and the logo is ToffeeCraft's Cat UI cat-face bubble
 (`logo.png`). `--u` is one art pixel on screen
-(2px, or 1px on phones); the scene's overlay (room tags, bubbles) is drawn at one art pixel a
-pixel.
+(2px, or 1px on phones); room tags and the hover line are drawn at one art pixel a pixel.
 
 **The second pack.** SC_siosio's Game UI Pack, Pastel Edition (Charlotte's choice, 30 September 2026) dresses
 what works the camera and what builds the house: the map panel and minimap, its icon buttons (zoom, whole
@@ -202,18 +205,26 @@ in that room. She sits on `GEOM[room].queen`, the seat held back from `spots` fo
 one to a room means taking a seat out of `spots`, not inventing a coordinate. She is deliberately
 outside `allCats()`: she is never in `VIEW.cats`, never in a pile, never in the filing cabinets
 and never counted by the sign, because she is not work to be done. What she keeps is hers alone;
-a note she is *saying* (`pinned`) becomes her line in the menus and a bubble in her room. Keep her
+a note she is *saying* (`pinned`) becomes her line in the menus and in her hover line. Keep her
 out of the counts if you touch this — a queen that inflates "3 need you" makes the sign a liar.
 
 Adopted chats can hold anything she types, including legal matters. They live only in the
 artifact database, never in this repo. The adopt form says so. The same goes for what a queen
 keeps: her card carries the same warning.
 
+## Shipping
+
+Sessions here commit, push and open pull requests without asking, and **merge their own pull requests,
+semi-automatically** (Charlotte's call, 2 October 2026): the house rules' merging rule (`harness/README.md`,
+"Semi-automatic merging") merges only when a strong model did the work, the audits and a review of the last
+commit ran and nothing is a guess, and holds the rest for her with a note in the litter box. A change under
+`harness/` or `.claude/` always waits for her: those are the rules themselves, and the gateway deploys on merge.
+
 ## The harness (KittyChat)
 
 `harness/` is the harness behind the page (see `harness/README.md`): the `kittychat-house-rules`
 plugin (hooks: preflight before any browser, a read-only ponytail audit to open a session, a nudge to
-ship unpushed work; the `catio` skill) and `harness/mcp/catio_mcp.py`, the Catio MCP server other
+ship unpushed work, the gate on pushes and merges; the `catio` skill) and `harness/mcp/catio_mcp.py`, the Catio MCP server other
 agents join through. The rules are `harness/rules.json`; Claude seeds them into the `rules` collection.
 
 The page now **writes** through Claude Code Remote, always on an explicit action:
@@ -233,15 +244,19 @@ The page now **writes** through Claude Code Remote, always on an explicit action
 - **Talking**: `notes/<id>` `{cat, text, author: charlotte|session|agent, at, via}`; replies show live.
 - **Managing**: `set_session_title`, `interrupt_session`, `archive_session` (+ `delete_trigger`),
   `unarchive_session`, `create_session` (New cat, model from `rooms/<k>.model`).
-- **Agents**: `host:catio` `list_agents`, `comment`, `drop_file`, `manage` (on localhost, `/api/*` when
-  served by `catio_mcp.py --serve`). Breeds: the model's letter on each cat.
+- **Agents, and the sessions that report**: the gateway through her `CATIO` connector (`GATEWAY` in the page),
+  else `host:catio` (on localhost, `/api/*` when served by `catio_mcp.py --serve`): `list_agents` every 30 s,
+  `comments`, `comment`, `drop_file`, `manage`. A session that reports to the gateway is one cat with its
+  claude.ai session (`fromGateway()`: the ids match after their prefix, `cse_…` there, `session_…` in the list),
+  wearing the gateway's mood when it is newer; what she writes or drops on it goes through the gateway, not the
+  outbox, and its replies there show in its conversation. Breeds: the model, in the cat's card.
 - `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet.
 
-Capabilities for the next publish (full set, replacing the stored one):
-`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "host:catio", tools: ["list_agents","drop_file","comment","comments","manage"] }] }, db: {}, assets: {}, sample: {} }`
+The stored capabilities (the full set, to pass whole if a tool is ever added):
+`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "CATIO", tools: ["list_agents","comment","comments","drop_file","manage"] }] }, db: {}, assets: {}, sample: {} }`
 
-`host:catio` can only be declared from the Claude desktop app, so the stored set has Claude Code Remote,
-`db`, `assets` and `sample` only. `delete_trigger` stays only to clean up the Routines older versions bound. Posting into a session through a bound Routine doesn't reach the session
+`host:catio` (the same five tools) can only be declared from the Claude desktop app, so it isn't in the stored
+set. `delete_trigger` stays only to clean up the Routines older versions bound. Posting into a session through a bound Routine doesn't reach the session
 (it starts a new one): see `docs/audit-2026-10-01.md` and phase 0 of `docs/plan.md` before touching
 `postToSession()`. What's next, renovation mode included, is `docs/plan.md`.
 
@@ -263,8 +278,16 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
 - **Test** with `cd harness/gateway && npm install && npm test` (workerd, the real hook included) and
   `python3 -m unittest discover harness/test`.
 
-Setting it up is hers: the five steps in `harness/gateway/README.md`. After that the page reads the `Catio`
-connector (phase 5 of `docs/plan.md`).
+It is set up (2 October 2026): her connector is named `CATIO` in claude.ai, and the page reads it (phase 5 of
+`docs/plan.md`). Setting up another is the five steps in `harness/gateway/README.md`.
+
+**The café on its own address** (her choice, 2 October: "the catio as a UI for all of my Claude sessions", in
+OpenClaw's shape). The gateway's address serves the same `catio/index.html` behind her password, with
+`harness/gateway/cafe/runtime.js` as its `window.claude` (`catioGateway: true`, so the page's `VIA_GATEWAY` mode is
+honest about what only claude.ai can do). Its data lives in the gateway (`docs` in the house), apart from the
+artifact's: the two copies don't share changes. Its art is uploaded with `cafe/move-in.py` and served only to her,
+signed in: never commit it, never serve it without the sign-in. A change to the page reaches both: the artifact by a
+publish, the gateway by a merge. Check gateway mode with `?via=gateway` in the stub.
 
 ## Live sessions
 
@@ -311,13 +334,21 @@ are the saved copy.
 
 ## Checking a change
 
-Run the end-to-end test before every publish:
+Look first, test second. A test rewritten to match the code only proves the two agree; looking is what
+proves the page does what she asked. In this order:
 
-```bash
-sh catio/test/run.sh
-```
+1. **Change it.** Art too: re-run `build-art.py` (or `furniture.py`).
+2. **Look at it before touching a test.** `sh catio/test/run.sh look kitchen study` (`ground`, `upper` or any
+   room key; a few seconds) writes `catio/test/.look/<name>.png`: the page in the publish skeleton, with the
+   stub's invented cats. Open each and hold it against her words, one ask at a time ("no z Z": find a
+   sleeping cat). A sprite sheet isn't in the DOM and no test can see it: open the sheet too. Not what she
+   asked for? Back to 1.
+3. **Run the test unchanged:** `sh catio/test/run.sh` (about two minutes). Every failure should be something
+   she asked to change. One she didn't is a regression: fix the page, not the test.
+4. **Rewrite only those checks, from her words:** what must be true now, not which class names went away
+   (`#cats .cat > :not(.spr)`, not a list of deleted classes). Then the whole suite: all checks must pass.
 
-It loads the page in the same skeleton the Artifact tool publishes, against `runtime-stub.js`
+The suite loads the page in the same skeleton the Artifact tool publishes, against `runtime-stub.js`
 (an in-memory db with live snapshots and the real path rules, plus a sessions feed the test
 changes as it runs), and walks: adopting a chat, through in progress and done, to letting it
 go; a session going blocked, working, finished, archived and failed; renaming and moving a
@@ -329,5 +360,6 @@ served on port 8791 with its own `data/`. All checks must pass.
 
 Its example data is invented. Never paste her real session list into the stub or the page.
 
-After publishing, check the real database with `ArtifactData`: list `rooms`, and create,
-update and delete one probe document in `cats` the way the page does.
+After publishing, read back every art file you changed (`Artifact` read with `path`) and look at it: a
+republish keeps the old copy of any file it wasn't given. Then check the real database with `ArtifactData`:
+list `rooms`, and create, update and delete one probe document in `cats` the way the page does.

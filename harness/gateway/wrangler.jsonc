@@ -8,8 +8,10 @@
 	// The house: cats, notes, files and the sign-in lock, in one SQLite-backed Durable Object.
 	"durable_objects": { "bindings": [{ "name": "HOUSE", "class_name": "House" }] },
 	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["House"] }],
-	// The OAuth library's grants and tokens (hashed). No id: the first deploy creates it.
-	"kv_namespaces": [{ "binding": "OAUTH_KV" }],
+	// The OAuth library's grants and tokens (hashed), and the café's art and brain files. No ids: a deploy creates them.
+	"kv_namespaces": [{ "binding": "OAUTH_KV" }, { "binding": "FILES" }],
+	// The café (catio/index.html) and its runtime (cafe/runtime.js) go into the Worker as text.
+	"rules": [{ "type": "Text", "globs": ["**/*.html", "**/cafe/*.js"], "fallthrough": true }],
 	"observability": { "enabled": true }
 	// Secrets, set in the dashboard (Settings > Variables and Secrets), never here:
 	//   CATIO_TOKEN     the key agents and the session hooks send; also in Claude's environment settings

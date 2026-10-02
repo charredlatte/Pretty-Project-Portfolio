@@ -16,7 +16,7 @@ export function fromClaude(uri) {
 	}
 }
 
-const esc = (v) => String(v).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+export const esc = (v) => String(v).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 const HEADERS = {
 	"Content-Type": "text/html; charset=utf-8",
@@ -27,7 +27,7 @@ const HEADERS = {
 	"Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https://claude.ai https://claude.com; frame-ancestors 'none'; base-uri 'none'",
 };
 
-function page(title, body, status = 200, headers = new Headers()) {
+export function page(title, body, status = 200, headers = new Headers()) {
 	for (const [k, v] of Object.entries(HEADERS)) headers.set(k, v);
 	return new Response(`<!doctype html>
 <html lang="en">

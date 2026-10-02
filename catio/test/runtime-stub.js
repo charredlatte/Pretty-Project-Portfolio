@@ -95,6 +95,14 @@
   // does when a page may not use them; ?host=none has no Catio server on this device.
   T.tools = []; T.triggers = 0; T.goneTriggers = new Set();
   T.agents = params.get("agents") !== "1" ? [] : [{ id: "codex-shop", name: "Codex", provider: "openai", model: "gpt-5", mood: "needs", ask: "Which colour for the buttons?", title: "Shop theme", repo: "charredlatte/montfortoise-shopify", updated: now - 60e3, wakes: true }];
+  // ?gateway=1 (or ?via=gateway): the Catio's gateway answers through her CATIO connector, with a session that reports to it (blocked1,
+  // known there by its container id, and fresher there than in claude.ai's list) and one the list doesn't have yet.
+  // ?gateway=ask asks before every call. Without it, she has no CATIO connector.
+  T.gw = [
+    { id: "cse_blocked1", session: "cse_blocked1", via: "claude-code", provider: "anthropic", mood: "review", title: "Shop about page", repo: "charredlatte/montfortoise-shopify", branch: "claude/about", updated: now - 60e3 },
+    { id: "cse_fresh9", session: "cse_fresh9", via: "claude-code", provider: "anthropic", mood: "needs", ask: "Merge the menu fix?", title: "Menu fix", repo: "charredlatte/Intermarche-grocery-shopping-app", updated: now - 30e3 },
+  ];
+  T.gwNotes = [{ id: "g1", cat: "cse_blocked1", author: "session", text: "The French text is in, ready for you.", at: now - 50e3 }];
   const answer = (payload) => Promise.resolve({ content: [{ type: "text", text: JSON.stringify(payload) }], payload });
   const ccr = {
     create_trigger: (i) => ({ trigger: { id: "trig_" + (++T.triggers), name: i.name } }),
@@ -112,6 +120,14 @@
   };
   mcp.callTool = async (server, tool, input) => {
     T.tools.push([server, tool, clone(input || {})]);
+    if (server === "CATIO") {
+      const g = params.get("gateway") || (params.get("via") === "gateway" ? "1" : null);
+      if (!g) throw { code: "server_not_connected", message: "no CATIO connector" };
+      if (g === "ask") throw { code: "approval_required", message: "ask every time" };
+      if (tool === "list_agents") return answer({ agents: clone(T.gw) });
+      if (tool === "comments") return answer({ notes: clone(T.gwNotes.filter((n) => n.cat === input.cat)) });
+      return answer({ id: "g" + T.tools.length, woke: false });
+    }
     if (server === "host:catio") {
       if (params.get("host") === "none") throw { code: "server_not_connected", message: "no host" };
       if (tool === "list_agents") return answer({ agents: clone(T.agents) });
@@ -129,6 +145,7 @@
   const sample = async (input) => { T.prompts.push(input); return { text: JSON.stringify(T.sampleAnswer), truncated: false }; };
   sample.json = async (input) => { T.prompts.push(input); if (T.sampleHang) return new Promise(() => {}); return clone(T.sampleAnswer); };   // sampleHang: a sorter that never answers
   const nodb = params.get("mode") === "nodb";
-  window.claude = { use: async (n) => (n === "mcp" ? mcp : n === "db" ? (nodb ? null : db) : n === "assets" ? (nodb ? null : assets) : n === "sample" ? sample
+  // ?via=gateway: the café served from the gateway's own address (harness/gateway/cafe/runtime.js says so)
+  window.claude = { catioGateway: params.get("via") === "gateway", use: async (n) => (n === "mcp" ? mcp : n === "db" ? (nodb ? null : db) : n === "assets" ? (nodb ? null : assets) : n === "sample" ? sample
     : n === "permissions" ? { request: async () => ({}), state: async () => "granted" } : null) };
 })();

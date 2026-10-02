@@ -9,36 +9,9 @@ In a cloud session (CLAUDE_CODE_REMOTE) every repo checked out beside this one i
 is the session's own, and is thrown away with anything left unpushed in it (litterbox/sort.py writes there).
 """
 import json
-import os
-import subprocess
 from pathlib import Path
 
-from common import enforced, hook_input, merges
-
-
-def git(*args, cwd=None):
-    r = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
-    return r.stdout.strip() if r.returncode == 0 else None
-
-
-def default_branch(cwd):
-    head = git("symbolic-ref", "--short", "refs/remotes/origin/HEAD", cwd=cwd)
-    if head:
-        return head.split("/", 1)[-1]
-    for name in ("main", "master"):
-        if git("rev-parse", "--verify", "--quiet", "refs/remotes/origin/" + name, cwd=cwd) is not None:
-            return name
-    return "main"
-
-
-def repos(cwd):
-    """This repo and, in a cloud session, every repo beside it (or under cwd, when cwd isn't one)."""
-    top = git("rev-parse", "--show-toplevel", cwd=cwd)
-    if os.environ.get("CLAUDE_CODE_REMOTE") != "true":
-        return [top] if top else []
-    here = Path(top).parent if top else Path(cwd or ".")
-    beside = sorted(str(d) for d in here.iterdir() if (d / ".git").exists() and str(d) != top)
-    return ([top] if top else []) + beside
+from common import default_branch, enforced, git, hook_input, merges, repos
 
 
 def unshipped(repo):
@@ -68,10 +41,12 @@ def main():
     top = git("rev-parse", "--show-toplevel", cwd=cwd)
     what = "; ".join(w if r == top else f"{Path(r).name}'s {w}" for r, w in found)
     merging = [Path(r).name for r, _ in found if merges(r)]
-    merge = (f" {', '.join(merging)} {'merges' if len(merging) == 1 else 'merge'} its own pull requests: merge the "
-             "pull request once its checks pass. Never push to the "
-             "default branch, no force-push, and no merge anywhere else." if merging else
-             " Never the default branch, no force-push, no merge.")
+    merge = (f" {', '.join(merging)} {'merges' if len(merging) == 1 else 'merge'} its own pull requests: when the work "
+             "is finished, run the code-review skill on the pull request and merge it as the merging rule says (the "
+             "house rules merge it or hold it for her)." if merging else "")
+    if len(merging) < len(found):
+        merge += (" Anywhere else, a" if merging else " A") + " finished pull request is hers to merge: tell her it's ready."
+    merge += " Never the default branch, no force-push."
     print(json.dumps({
         "decision": "block",
         "reason": f"House rule (KittyChat, semi-automatic shipping): {what}. If the change is done and "

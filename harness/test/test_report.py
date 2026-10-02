@@ -28,6 +28,8 @@ class Gateway(BaseHTTPRequestHandler):
     def do_POST(self):
         s = self.server
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        if self.headers.get("User-Agent", "").startswith("Python-urllib"):   # Cloudflare's bot check: error 1010
+            self.send_response(403); self.end_headers(); return
         if self.headers.get("Authorization") != "Bearer " + KEY:
             self.send_response(401); self.end_headers(); return
         s.paths.append(self.path)

@@ -2,11 +2,13 @@
 // asking claude.ai for a list. MCP at /mcp, for two kinds of caller:
 //   - Charlotte, through claude.ai: the gateway is a custom connector, signed in with her password (OAuth);
 //   - agents and the session hooks: they send CATIO_TOKEN as their bearer token.
-// See README.md for setting it up, and harness/hooks/report.py for the sessions' side.
+// Its own address serves the KittyChat Café to her, behind her password (src/cafe.js), as OpenClaw's gateway serves
+// its Control UI. See README.md for setting it up, and harness/hooks/report.py for the sessions' side.
 import { OAuthProvider } from "@cloudflare/workers-oauth-provider";
 import { House } from "./house.js";
 import { serveMcp } from "./mcp.js";
 import { sameSecret } from "./secret.js";
+import { cafe } from "./cafe.js";
 import { authorize, fromClaude } from "./signin.js";
 
 export { House };
@@ -16,8 +18,8 @@ const DAY = 24 * 3600;
 async function site(request, env) {
 	const { pathname } = new URL(request.url);
 	if (pathname === "/authorize") return authorize(request, env);
-	if (pathname === "/") return new Response("The Catio's gateway. Charlotte's agents report here.\n", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
-	return new Response("Not found\n", { status: 404 });
+	// her own address opens the café, behind her password (src/cafe.js)
+	return (await cafe(request, env)) || new Response("Not found\n", { status: 404 });
 }
 
 // The token's audience is the gateway's own /mcp address, which the code can't know before it is deployed:

@@ -9,17 +9,11 @@ for, in `docs/requests.md`; the audit behind phase 0, in `docs/audit-2026-10-01.
 
 ## Where it stands
 
-- **Live:** version 20 (2 October): nothing on the cats, and no cat food. It is in PR #22, not yet merged.
+- **Live:** version 18 (1 October): the KittyChat Café, made honest.
   - The brand is the House button; quiet maps and short menus; the Game UI Pastel map panel and minimap.
-  - What a cat needs shows when the pointer is over it; a click opens its menu.
   - Posts go to the outbox: the page tries `send_message`, claude.ai refuses it, and the page says so.
-  - Live sessions don't load: claude.ai refuses that read too. The page shows Claude's saved copy instead
-    (see "Why the café can't read live sessions yet").
-- **Open pull requests:**
-  - PR #22: versions 19 and 20;
-  - PR #25: the house rules' audit and semi-automatic merging. It is held for her, because it changes the
-    rules themselves.
-- **`main`** has version 18, plus:
+  - Counts show only what really waits on her.
+- **`main`** has everything live, plus:
   - the house rules, on in all seven repos, with the rule against Claude attribution in commits on her public
     repos and forks (PR #18);
   - the gateway, built and tested, waiting for her setup (PR #19);
@@ -28,7 +22,7 @@ for, in `docs/requests.md`; the audit behind phase 0, in `docs/audit-2026-10-01.
   - the drawing plan.
 - **Tests:**
   - e2e: 158 passed;
-  - harness: 34 passed;
+  - harness: 44 passed;
   - the gateway in workerd, with the real hook: 9 passed;
   - the sifter: 12 passed;
   - `furniture.check()` empty.
@@ -47,33 +41,7 @@ for, in `docs/requests.md`; the audit behind phase 0, in `docs/audit-2026-10-01.
   - every session reports its state to the gateway, so the page needn't ask claude.ai for the list.
 - **What nothing can do: wake an idle session.** Only claude.ai can. Why is in `harness/README.md`.
 
-## Why the café can't read live sessions yet (issue #24)
-
-Checked on 2 October:
-
-1. **claude.ai refuses the page's `list_sessions`** (`approval_required` or `blocked_by_policy`). Claude Code
-   Remote is built in, so she has no switch for it.
-2. **The saved copy had stopped.** The page falls back on `snapshot/sessions`, which the "Refresh the catio"
-   Routine kept fresh. The Routine has been off since 30 September, after its last run failed, so the copy
-   was a day old. Claude refreshed it by hand on 2 October (50 sessions).
-3. **The gateway isn't set up.** Her Cloudflare account has no Workers, and claude.ai has no `Catio`
-   connector. Setting them up is the five steps in `harness/gateway/README.md`.
-4. **The gateway lists only sessions that report to it.** They report through the house-rules plugin, which
-   cloud sessions don't load yet. The two setup-script lines in `harness/README.md` fix that (PR #25).
-
-So nothing can show live cats until she does steps 3 and 4. Until then, any session can refresh the saved
-copy (CLAUDE.md, "Live sessions"), and the Routine can be turned back on, at the cost of her weekly limit.
-Before asking her, a session can check what's done: the Cloudflare connector's `workers_list` shows the
-Worker, and `ListConnectors` shows the `Catio` connector.
-
-The gateway's ponytail audit (2 October, before any more work on it) found it lean: four small cuts, about 15
-lines, in `docs/from-the-litterbox.md` under Findings. They ride along with the next change to the gateway.
-
 ## The roadmap, in order
-
-**Next: phase 5, step 2, the page reading the gateway.** Her issue #24 (2 October) chose it before phase 2,
-the camera.
-
 
 Each phase ends with:
 - the tests green;
@@ -168,43 +136,58 @@ Every session reports itself through `report.py`, and its Stop hook hands in her
 its turn ends. It does nothing until `CATIO_URL` and `CATIO_TOKEN` are set. Workers Builds deploys it on every
 merge to `main`.
 
-1. **She sets it up once** (`harness/gateway/README.md`). Not started on 2 October:
+1. **She sets it up once** (`harness/gateway/README.md`):
    - deploy the Worker from this repo;
    - two secrets;
    - `CATIO_URL` and `CATIO_TOKEN` in each Claude environment, with the Worker allowed in the network policy;
-   - the house-rules plugin's two setup-script lines in each environment (`harness/README.md`), or cloud
-     sessions never report;
    - the `Catio` connector in claude.ai, its tools set to Always allow.
-2. **The page reads the gateway.** Build it on version 20 (PR #22 merged first). The page already reads other
-   agents through `host:catio` (`HOST`, `hostCall()`, `refreshAgents()`), and the gateway has the same tools,
-   so it is a second server: try `Catio`, then `host:catio`. Test it against the stub with a `Catio` server,
-   and publish once `ListConnectors` shows her connector.
-   - Declare the `Catio` connector (`list_agents`, `comment`, `comments`, `manage`, `drop_file`) beside
-     `host:catio`. A page names a connector by its display name in claude.ai, so a custom one should be
-     accepted. The first publish confirms it.
-   - Show its cats next to the sessions, live.
-   - Match a gateway cat (`via: claude-code`, `session`) to the session it is, so no session shows twice.
-     Compare the ids after their prefix, in case one is `cse_…` and the other `session_…`.
-   - Send to a gateway cat through the gateway, not the outbox, so a running session gets it at its next Stop.
+2. **The page reads the gateway. Done (2 October):**
+   - it declares her `CATIO` connector (`list_agents`, `comment`, `comments`, `manage`, `drop_file`): a page may
+     name any of her claude.ai connectors by its display name. Without it, `host:catio`, as before;
+   - its cats are read every 30 s, next to the sessions;
+   - a gateway cat (`via: claude-code`, `session`) is the session it reports for, matched after the id's prefix
+     (`cse_…` there, `session_…` in the list), so no session shows twice, and it wears the newer of the two moods;
+   - what she writes or drops on it goes through the gateway, not the outbox, so a running session gets it at its
+     next Stop; its answers there (`report.py say`) show in its conversation;
+   - when CATIO asks before every call or needs signing in again, the House menu says so.
 3. **Later:**
-   - agents the gateway runs itself (the rest of OpenClaw), which would need a machine;
+   - agents the gateway runs itself: phase 6;
    - a Telegram channel;
    - agent cats through `host:catio` (only the Claude desktop app can declare it). Agents that report to the
      gateway show up anywhere, through the `Catio` connector;
    - `catio-plugin/` listed in the marketplace beside `kittychat-house-rules`.
+   - accounts, one café per person: the recommendation is `docs/accounts.md`.
+
+### Phase 6: the Catio as the UI for all her sessions, in OpenClaw's shape
+
+Her ask (2 October): "I want to be able to use the catio as a UI for all of my Claude sessions", not an artifact,
+and "Open session" not sending her back into claude.ai. OpenClaw's gateway serves its Control UI from its own
+address and runs the sessions itself, so the UI is where you chat (`chat.send`, `chat.history`, `chat.abort`); a
+coding agent such as Claude Code runs on "the machine that runs the coding agent", which dials out to the gateway.
+Claude Code sessions in claude.ai stay claude.ai's: their full conversation opens only there.
+
+1. **The café on the gateway's address.** Built (this branch): sign-in, the page with `cafe/runtime.js`, her data
+   in the house with live pushes over a WebSocket, art and brain files in KV, `cafe/move-in.py` to move in.
+   Go-live: she merges, Workers Builds deploys, Claude runs `move-in.py` with the artifact's database.
+2. **Chat in the café:** the gateway keeps each runner session's conversation; she sends, watches the reply
+   stream, and can stop a run.
+3. **The runner:** a small program that starts Claude Code sessions for the café, signed in with her Claude plan
+   (`claude setup-token`), dialling out to the gateway. On her Windows PC first (her choice: free, while it's on).
+   Always-on homes, if she wants one later (prices of October 2026): Cloudflare Containers next to the gateway
+   ($5/month Workers Paid, sleeps when idle, about 7¢ a working hour at 4 GB), Hetzner CAX11 (€5.99 + €0.50 a month),
+   Oracle's Always Free ARM machine (2 cores, 12 GB since June 2026), a Raspberry Pi. Claude Code needs 4 GB.
 
 ## Waiting on Charlotte
 
-1. **Set up the gateway:** the five steps in `harness/gateway/README.md`, and the setup-script lines in
-   `harness/README.md`. Until then, should "Refresh the catio" run again? It keeps the saved copy fresh, but it
-   spends her weekly limit.
-2. **Merge PR #22** (versions 19 and 20, live), and look at PR #25, which is held for her. Four sessions wait on
-   questions that are now settled, and can be archived (`docs/from-the-litterbox.md`, 2 October).
+1. **The gateway is set up** (2 October): the Worker, both secrets, `CATIO_URL` and `CATIO_TOKEN` in her
+   environment, the setup script that installs the plugin, and the connector, signed in. A session reported
+   through the hook and showed in `list_agents`, once PR #26 gave the hook its own User-Agent (Cloudflare refuses
+   Python's). Left for her: set the connector's tools to Always allow, if she hasn't.
+2. **Which comes first:** phase 2 (the camera) or the page reading the gateway (phase 5).
 3. **The posts waiting since 30 September**, which a session collects only when it next runs:
    - two messages to Clafoutis;
    - one to Matcha;
-   - Nougat's "yes", to letting the adopted chat that duplicates a session go. Claude can delete it on her
-     word;
+   - Nougat's "yes";
    - an archive request for another Nougat session, which Claude can do on her word.
 4. **Rotate the MCPmarket token** in her plugin zip's `.mcp.json`.
 5. **Small questions:**
@@ -212,7 +195,13 @@ merge to `main`.
    - whether Rename should rename the real session;
    - whether attic cats should sit on the stairs;
    - whether to delete the Drive folder's `download` files.
-6. **Branches she may delete:**
+6. **Turn the house rules on in the cloud:** the two lines in `harness/README.md`, "In cloud sessions", go in
+   the environment's setup script. Until then no house rule runs in a cloud session, merging gate included.
+7. **Turn on *Automatically delete head branches*** in each repo (Settings → General → Pull Requests), so a
+   merge deletes its branch.
+8. **Opt the other repos in to semi-automatic merging**, if she wants: `{"merge": true}` in their
+   `.claude/catio-rules.json`. montfortoise-shopify should hold whatever its theme deploys from.
+9. **Branches she may delete:**
    - `claude/digest-moves`;
    - `claude/elegant-edison-cnmcq7`;
    - `claude/exciting-bardeen-9vehk0`;
@@ -227,7 +216,7 @@ merge to `main`.
 
 ## Publishing
 
-1. `sh catio/test/run.sh`: everything passes.
+1. CLAUDE.md's "Checking a change": looked at against her words, then `sh catio/test/run.sh`, everything passing.
 2. Read the live artifact in full (`Artifact` read, then every line of the saved file), and compare it with
    the branch's page. If the live one is newer, merge it first; never overwrite it.
 3. Publish `catio/index.html` to `artifacts.json`'s URL with only the files that changed, and **omit
@@ -238,7 +227,8 @@ merge to `main`.
 
    Pass `capabilities` only to add something on purpose (the `Catio` connector, in phase 5), and then pass
    the whole set.
-4. Afterwards: list the files, list `rooms`, and create, update and delete one probe in `cats`.
+4. Afterwards: list the files, read back and look at any art that changed, list `rooms`, and create, update
+   and delete one probe in `cats`.
 5. Add a line to `docs/history.md`.
 
 ## Rules worth repeating

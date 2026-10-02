@@ -2,8 +2,8 @@
 
 **The KittyChat Café** (the Catio page) is one page where every Claude project Charlotte has on the go lives as a cat in a
 little pixel-art manor with a fenced catio. Each Claude Code session is a cat that plays while it
-works, sleeps when it's done, and **meows**, with a speech bubble saying what it needs, when it's
-waiting on her. Chats on claude.ai, like business plans and legal questions, can't be read by any
+works, sleeps when it's done, and **meows** when it's
+waiting on her: point at it and it says what it needs. Chats on claude.ai, like business plans and legal questions, can't be read by any
 connector, so she adopts those as cats by hand.
 
 The page is a private claude.ai artifact; its link is in [`artifacts.json`](artifacts.json).
@@ -13,14 +13,13 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
 - **The manor fills the screen**, seen from above in a meadow, **one floor at a time**. Downstairs
   is the cat café; upstairs are her own rooms, with the ground floor faded underneath. Each room is
   a space for one kind of work. There are no signs on the map: a room says its name when you point
-  at it, and a cat that needs you shows its face over its head.
+  at it. Nothing is drawn on the cats: point at one and it says what it needs.
 - **The stair** in the entrance hall goes up and down, and so do the floor tabs under the minimap
   and Page Up / Page Down. The other floor's tab carries a badge when cats there need you, so nothing
   hides upstairs.
 - **Moving around**: drag the house to pan it (with the left, right or middle button), and use the
   wheel or a pinch to zoom around the pointer. The map panel's buttons zoom in, out and back to the
-  whole house. Zoom in until one room fills the screen and you're in that room: its cats' bubbles say what
-  they need.
+  whole house. Zoom in until one room fills the screen and you're in that room.
 - **Hover over a room or a cat** and it lights up and says its name. **Click it** for its menu,
   beside it, until you click elsewhere or press Escape. On a phone a tap does the same. Every menu is
   short: the name and one line, who needs you (and the queen, when she has something to say), then a
@@ -45,7 +44,7 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
   brackets and a green sign show which) to rename it, say what lives there and list the repositories
   whose cats move in. Choose once which room new cats come in to; it's marked on the plan with an
   arrow.
-- **Every room has a queen**, a cat in a crown who is nobody's session and never leaves.
+- **Every room has a queen**, a cat who is nobody's session and never leaves.
   - Click her for the room in one line: who needs you and why, or the thing she is keeping for you.
   - Open her to give her something to keep, take it back, or have her say it out loud in her room
     until you take it.
@@ -100,7 +99,7 @@ archway with its wooden doors open. Parterres, a bench and a signpost to the cat
 
 | Mood | Session state | Cat |
 |---|---|---|
-| Meowing | blocked, or its last turn asked for input | Pochi meowing, with a bubble |
+| Meowing | blocked, or its last turn asked for input | Pochi meowing |
 | Upset | failed | Pochi crying |
 | Something to review | review ready | Mochi in a box |
 | Working | working or running | Mochi, tail swishing |

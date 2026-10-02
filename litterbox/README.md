@@ -54,6 +54,13 @@ date: 2026-10-01
 ---
 ```
 
+## Held pull requests
+
+When the house rules hold a merge for her (semi-automatic merging, `harness/README.md`), they drop
+`held-<repo>-<number>.md` in here: the pull request, and each reason it is held, under *Waiting on Charlotte*. Its
+`project:` is the repo, not a guess, so the next run files it straight into that repo. Tick it there once the
+pull request is merged or closed.
+
 ## Shipping
 
 **It ships what it files**, as the house rule for semi-automatic shipping says (`harness/rules.json`): in each

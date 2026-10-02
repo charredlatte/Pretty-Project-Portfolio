@@ -41,9 +41,8 @@ from pathlib import Path
 BOX = Path(__file__).resolve().parent
 sys.path.insert(0, str(BOX.parent / "catio" / "tools"))
 sys.path.insert(0, str(BOX.parent / "harness" / "hooks"))
-from common import enforced  # noqa: E402
+from common import default_branch, enforced, git  # noqa: E402
 from digest import BELONGS, home_of  # noqa: E402
-from ship_check import default_branch, git  # noqa: E402
 
 HOME = {"montfortoise-shopify": "admin/from-the-litterbox.md"}
 GUESSED = "# a guess by litterbox/sort.py: check it, then delete this comment to file these notes"

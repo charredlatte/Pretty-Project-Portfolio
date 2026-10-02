@@ -167,6 +167,9 @@ of those counts.
 - `sh catio/test/run.sh` runs the end-to-end suite in headless Chromium, against a stand-in for the
   artifact runtime and against the local bundle on a real server. Run it after every change; it
   builds the bundle as part of the run, so a broken bundler fails the suite.
+- Look before you touch a test: `sh catio/test/run.sh look <room>` screenshots the page in a few seconds.
+  Hold each one against what was asked; then run the suite unchanged, and rewrite only the checks the ask
+  meant to break, from the ask's words rather than the code's.
 - `catio/tools/manor.py` is the floor plan (two floors on one grid) and `catio/tools/furniture.py`
   places the furniture and the cats' stations and writes the page's `MANOR` block, from which `GEOM`
   comes. Change them together, re-run `furniture.py`, and check that `furniture.check()` is empty — a cat
