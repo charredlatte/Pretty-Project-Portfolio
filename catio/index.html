@@ -2326,10 +2326,11 @@ ul.gkey li > div.what { flex-basis: 100%; }
       || ORDER.find((k) => roomInfo(k).repos.some((r) => tail(r) === tail(name)));
     const open = () => OPENING.filter((k) => A.open.includes(k));
     const filed = () => {
-      const listed = new Set((A.gh || []).map(tail)), out = {};
+      // only a repository she decided on in the GitHub step (a row she saw) leaves where it was filed
+      const decided = new Set(Object.keys(A.repos).map(tail)), out = {};
       for (const k of ORDER) {
-        const kept = again ? roomInfo(k).repos.filter((r) => !listed.has(tail(r))) : [];
-        out[k] = [...new Set(kept.concat((A.gh || []).filter((n) => A.repos[n] === k)))];
+        const kept = again ? roomInfo(k).repos.filter((r) => !decided.has(tail(r))) : [];
+        out[k] = [...new Set(kept.concat(Object.keys(A.repos).filter((n) => A.repos[n] === k)))];
       }
       return out;
     };
