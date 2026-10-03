@@ -450,17 +450,18 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 .qstage::before { content: ""; position: absolute; inset: 0; background: rgba(28, 22, 16, .3); pointer-events: none; }
 .qstage::after { content: ""; position: absolute; inset: 0; pointer-events: none; filter: var(--scene); }
 .qstage > * { position: relative; min-width: 0; min-height: 0; }
-/* zoom, not a transform: it scales the figure's own pixel offsets too, so the crown stays on her head. What it
-   multiplies has to land on a whole number of art pixels, so each step below sets the crown's own scale to suit
-   (.8 × 2.5 and .6 × 10/3 are both 2): drawn on a fraction of a pixel, the pack's art blurs. */
-.owner, .qchar { zoom: .8; }
+/* zoom, not a transform: it scales the figure's own pixel offsets too, so the crown stays on her head. A step
+   narrower than this only changes --fz; the crown's own scale is derived from it, so it is always drawn on two
+   whole art pixels rather than a fraction of one, which blurs the pack's art. (The cat sheet keeps the scales it
+   was tuned at, 2.6 and 5, which were never whole either.) */
+.owner, .qchar { --fz: .8; zoom: var(--fz); }
 .owner { align-self: end; justify-self: start; margin: 0 0 -2px 4px; }
 .owner svg { display: block; width: 150px; height: auto; }
 .ownerprev svg { display: block; width: 112px; height: auto; }
 .qchar { align-self: end; justify-self: end; width: 150px; height: 190px; margin-right: 4px; }
 .qchar .spr { position: absolute; left: 50%; bottom: 2px; transform-origin: 50% 100%; transform: translateX(-50%) scale(2.6); }   /* the sheets face left: toward her */
 .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(5); }
-.qchar .crown { position: absolute; left: 50%; top: 22px; transform: translateX(-50%) scale(2.5); transform-origin: 50% 0; }   /* × the .8 zoom: 2 whole art pixels */
+.qchar .crown { position: absolute; left: 50%; top: 22px; transform: translateX(-50%) scale(calc(2 / var(--fz))); transform-origin: 50% 0; }   /* × the zoom: 2 whole art pixels, whatever the step */
 .qchar[data-mood="meow"] .crown, .qchar[data-mood="cry"] .crown { top: 54px; }   /* on her head, for each pose */
 .qchar[data-mood="idle"] .crown { top: 58px; }
 .qchar[data-mood="box"] .crown { top: 40px; }
@@ -468,10 +469,9 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 .qchar.talking { animation: talk .5s steps(2) infinite; }
 @keyframes talk { 50% { translate: 0 -3px; } }
 .qchar .nameplate, .owner .nameplate { position: absolute; bottom: 4px; white-space: nowrap; }
-/* her homework over the talk. Both columns are stated, never left to the content: an auto column grows to the
-   longest word in a bubble or a quiz, and the words then scroll sideways instead of wrapping. */
-/* her homework takes what a card needs and no more, down to a floor of talk under it: a flat share of the scene
-   cut the card off above its Hand it in on a short screen */
+/* her homework over the talk, taking what a card needs and no more, down to a floor of talk under it: a flat share
+   of the scene cut the card off above its Hand it in on a short screen. The column is stated, never left to the
+   content: an auto column grows to the longest word in a bubble or a quiz, and her words then scroll sideways. */
 .qtalk { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(calc(100% - 96px)) minmax(0, 1fr); gap: 6px; padding: 8px 4px 10px; }
 .qtalk .homework { min-width: 0; overflow: auto; }   /* the row is what caps her homework: max-height: 46% on it resolved against nothing, so homework took the lot and left the talk no height at all */
 #queenThread { grid-row: 2; min-width: 0; height: 100%; overflow-y: auto; overflow-x: clip; display: flex; flex-direction: column; gap: 6px; padding: 0 2px; overscroll-behavior: contain; }
@@ -479,7 +479,7 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 #queenThread li .open { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }   /* .btn is nowrap: a cat with a long name would run off the side, and clip has nothing to scroll */
 #queenThread li.me { align-self: flex-start; }
 #queenThread li.them { align-self: flex-end; }
-#queenThread li.handoff { align-self: center; max-width: 92%; }
+#queenThread li.handoff { align-self: center; max-width: min(92%, 500px); }
 #queenThread > li:first-child { margin-top: auto; }   /* a short conversation sits at the bottom, by the speakers */
 .saybar { align-items: end; }
 .saybar > .field { flex: 1 1 220px; }
@@ -492,21 +492,21 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 /* a card this narrow has no width to spare for them: drawn smaller, they leave the words two thirds of the scene
    instead of half. Without this step the talk is back to the strip this whole change is about. */
 @media (max-width: 780px) {
-  .owner, .qchar { zoom: .6; }
-  .qchar .crown { transform: translateX(-50%) scale(3.3333); }   /* × the .6 zoom: 2 whole art pixels again */
+  .owner, .qchar { --fz: .6; }
 }
 @media (max-width: 560px) {
   /* a phone is tall and narrow, so the two of them stand side by side along the foot of the scene and the
      words take its whole width: flanking her they left a strip under 200 px wide */
-  .qstage { height: min(58vh, 520px); grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
-  .qtalk { grid-area: 1 / 1; grid-template-rows: fit-content(calc(100% - 56px)) minmax(0, 1fr); }   /* a smaller floor: a phone has barely the height for a whole quiz card */
-  .owner, .qchar { grid-area: 2 / 1; zoom: 1; }
+  /* dvh, like the card's own cap: with vh the card outgrew a short phone, and Speak and Send went under the fold */
+  .qstage { height: min(50dvh, 480px); min-height: 200px; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .qtalk { grid-area: 1 / 1; }
+  .owner, .qchar { grid-area: 2 / 1; --fz: 1; }
   .qhead h2 { font: 18px/24px var(--pixel); }   /* the pack's font draws at 18 or 36: at 36 her name broke mid-word beside Settings and Close */
   .owner svg { width: 62px; }
   .qchar { width: 76px; height: 110px; }
   .qchar .spr { transform: translateX(-50%) scale(1.4); }
   .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(2.6); }
-  .qchar .crown, .qchar[data-mood] .crown { top: auto; bottom: 74px; transform: translateX(-50%) scale(2); }
+  .qchar .crown, .qchar[data-mood] .crown { top: auto; bottom: 74px; transform: translateX(-50%) scale(calc(2 / var(--fz))); }
   .qchar[data-mood="sleep"] .crown { bottom: 44px; }
   .ownerprev { grid-template-columns: minmax(0, 1fr); justify-items: start; }
 }

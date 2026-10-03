@@ -798,16 +798,22 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await check("nothing she says runs off the side, and the talk gets most of the scene, at any width", async () => {
     // every width down to the phone layout, not only this one: in between, the two of them used to leave the words
     // a strip under half the scene
-    for (const [w, least] of [[1440, .6], [900, .6], [811, .6], [700, .6], [600, .55], [561, .55]]) {
-      await page.setViewportSize({ width: w, height: 900 });
-      await page.waitForTimeout(150);
-      const s = await page.locator("#queenThread").evaluate((u) => ({ over: u.scrollWidth - u.clientWidth, w: u.clientWidth }));
-      expect(s.over <= 0, "at " + w + " her words scroll sideways: " + JSON.stringify(s));
-      const stage = await page.locator(".qstage").evaluate((e) => e.clientWidth);   // inside the frame: what there is to share
-      expect(s.w > stage * least, "at " + w + " the talk gets too little of the scene: " + s.w + " of " + stage);
+    try {
+      for (const [w, least] of [[1440, .6], [900, .6], [811, .6], [700, .6], [600, .55], [561, .55]]) {
+        await page.setViewportSize({ width: w, height: 900 });
+        await page.locator("#queenDlg").evaluate((d, w) => new Promise((ok) => {   // the card has taken the new width, rather than a guess at how long that takes
+          const seen = () => d.getBoundingClientRect().width <= w - 24 + 1 && requestAnimationFrame(() => ok());
+          (function wait() { seen() || requestAnimationFrame(wait); })();
+        }), w);
+        const s = await page.locator("#queenThread").evaluate((u) => ({ over: u.scrollWidth - u.clientWidth, w: u.clientWidth }));
+        expect(s.over <= 0, "at " + w + " her words scroll sideways: " + JSON.stringify(s));
+        const stage = await page.locator(".qstage").evaluate((e) => e.clientWidth);   // inside the frame: what there is to share
+        expect(s.w > stage * least, "at " + w + " the talk gets too little of the scene: " + s.w + " of " + stage);
+      }
+    } finally {   // whatever happened, the checks after this one see the viewport they were written for
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await settle(page);
     }
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.waitForTimeout(150);
   });
   await check("every other setting is in an overlay, out of the scene until Settings", async () => {
     for (const sel of ["#queenVoice", "#queenKeeps", "#queenCharacter", "#queenYou"]) expect(await page.locator(sel).isHidden(), sel + " shows in the scene");
@@ -1514,6 +1520,36 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(await page.locator("#rn-bath").isVisible(), "bath card");
     expect(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), "horizontal scroll");
   });
+  await ctx.close();
+}
+
+/* ---------- 7b. her card on a phone ("make this window useable", 3 October) ---------- */
+// Flanking her on a phone the two of them left the words a strip under 200 px wide, and nothing in the walk
+// opened her card at that size, so the rules that only apply there went unchecked.
+{
+  const { page, ctx, errors } = await open("?via=gateway&mode=blocked", { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  await page.locator("#cats .cat.queen").dispatchEvent("dblclick");
+  await settle(page);
+  await check("on a phone her card fits the screen, the two of them at its foot and the words across the whole scene", async () => {
+    const dlg = page.locator("#queenDlg");
+    expect(await dlg.evaluate((d) => d.scrollHeight - d.clientHeight) <= 1, "her card is taller than the screen: " + await dlg.evaluate((d) => d.scrollHeight - d.clientHeight));
+    expect(await page.locator("#queenSay").evaluate((s) => s.getBoundingClientRect().bottom <= innerHeight + 1), "Send is under the fold");
+    const you = await page.locator("#queenOwnerFig").boundingBox(), her = await page.locator("#queenFig").boundingBox(), talk = await page.locator("#queenThread").boundingBox();
+    expect(you.x + you.width <= her.x + 2, "they aren't side by side: " + JSON.stringify({ you, her }));
+    expect(talk.y + talk.height <= you.y + 2, "the words aren't above them: " + JSON.stringify({ talk, you }));
+    const stage = await page.locator(".qstage").evaluate((e) => e.clientWidth);
+    expect(talk.width > stage * .9, "the words don't cross the scene: " + Math.round(talk.width) + " of " + stage);
+    expect(await page.locator("#queenThread").evaluate((u) => u.scrollWidth - u.clientWidth) <= 0, "her words scroll sideways");
+  });
+  await T(page, () => window.__catio.setQuiz({ for: "cse_blocked1", title: "Unblock Caramel", questions: [{ q: "Which project is this one for?", options: ["montfortoise-shopify", "Pretty-Project-Portfolio"] }] }));
+  await page.waitForTimeout(500);
+  await check("on a phone her homework still leaves the talk room under it, inside the screen", async () => {
+    expect(await page.locator("#queenHomework .quiz").count() > 0, "no homework drawn");
+    const h = await page.locator("#queenThread").evaluate((u) => u.clientHeight);
+    expect(h > 80, "her homework left the talk no height: " + h);
+    expect(await page.locator("#queenDlg").evaluate((d) => d.scrollHeight - d.clientHeight) <= 1, "her card grew past the screen with homework open");
+  });
+  await check("no page errors in her card on a phone", async () => expect(errors.length === 0, errors.join("; ")));
   await ctx.close();
 }
 
