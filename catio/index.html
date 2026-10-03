@@ -789,7 +789,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
   // What the cats brought her that you haven't read: each cat's latest word, newer than when you last opened her card.
   const unreadHandoffs = (q) => S.agents.filter((a) => a.id !== QUEEN_ID && a.said && (a.said.at || 0) > q.readAt).length;
   // The homework she set you and you haven't handed in: a quiz per blocked cat (quizzes, from the gateway).
-  const openQuizzes = () => (S.quizzes || []).filter((z) => z && z.status !== "done");
+  const HANDED = new Set();   // homework she handed in this visit: a list read that began before it can't bring it back
+  const openQuizzes = () => (S.quizzes || []).filter((z) => z && z.status !== "done" && !HANDED.has(z.id));
   // Asleep while her runner is away; sitting up with something for you; speaking up when she is saying a note.
   function queenMood(q) {
     const st = q.state || queenState();
@@ -2143,6 +2144,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
       const sig = open.map((z) => z.id + ":" + (z.at || 0) + ":" + (z.questions || []).length + ":" + (catOf(z) || {}).name).join("|");
       if (sig === drawn) return;
       drawn = sig;
+      const act = document.activeElement;   // the answer she is typing keeps its focus and caret through the rebuild
+      const keep = act && hw.contains(act) && act.dataset.q ? { q: act.dataset.q, s: act.selectionStart, e: act.selectionEnd } : null;
       hw.replaceChildren();
       hw.hidden = !open.length;
       for (const z of open) {
@@ -2161,7 +2164,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
           const row = el("div", "opts");
           const mark = (idx) => { [...row.children].forEach((x, j) => { x.classList.toggle("green", j === idx); x.setAttribute("aria-pressed", String(j === idx)); }); };
           const free = el("input"); free.maxLength = 1000; free.placeholder = qq.options && qq.options.length ? "Something else…" : "Your answer";
-          free.value = d.text;
+          free.value = d.text; free.dataset.q = z.id + ":" + i;
           (qq.options || []).forEach((o, j) => {
             const b = plainBtn(o, "tiny", () => { d.pick = o; d.idx = j; d.text = ""; free.value = ""; mark(j); });
             b.setAttribute("aria-pressed", "false");
@@ -2184,7 +2187,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
           try {
             await hostCall("answer", { quiz: z.id, answers });
             drafts.delete(z.id);
-            for (const x of S.quizzes || []) if (x && x.id === z.id) x.status = "done";   // off her desk now, whatever the next read says
+            HANDED.add(z.id);   // off her desk now, whatever the next list read says
             toast("Handed in." + (cat ? " " + cat.name + " has your answers." : ""));
             render(); if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); }   // her card may have closed meanwhile
             await refreshQuizzes();
@@ -2198,6 +2201,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
         f.appendChild(acts);
         hw.appendChild(f);
       }
+      if (keep) { const again = hw.querySelector('input[data-q="' + keep.q + '"]'); if (again) { again.focus(); try { again.setSelectionRange(keep.s, keep.e); } catch (e) { /* no caret to put back */ } } }
     };
     drawHomework();
     talk.appendChild(hw);
