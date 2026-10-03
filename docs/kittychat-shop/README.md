@@ -34,8 +34,9 @@ the business plan's figures go once she has chosen them. The plan itself is priv
 ## Redrawing
 
 `frames.js` is the whole drawing, in Figma's Plugin API. Run it with the Figma MCP server's `use_figma` on the
-file, or in Figma desktop as a development plugin (Plugins → Development → Import plugin from manifest, with a
-manifest whose `main` is `frames.js`). Each run draws a fresh row of frames.
+file, which wraps it in an async function. In Figma desktop as a development plugin (Plugins → Development → Import
+plugin from manifest, with a manifest whose `main` is `frames.js`), wrap the file yourself:
+`(async () => { … ; figma.closePlugin(); })()` in place of the final `return`. Each run draws a fresh row of frames.
 
 Mind the quota: a Starter plan with a View seat gets six MCP calls a month.
 

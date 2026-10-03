@@ -64,12 +64,14 @@ def apply(answers_dir, box):
         keep = []
         for n in notes:
             a = answers.get(card_id(pile, n)) or {}
-            project = a.get("project") or ""
-            if a.get("verdict") == "file" and project and "/" not in project and "\\" not in project:
+            project = (a.get("project") or "").rsplit("/", 1)[-1]   # owner/repo: the pile is named after the repo
+            if a.get("verdict") == "file" and project and project not in (".", "..") and "\\" not in project:
                 sorted_.setdefault(project, []).append(n)
             elif a.get("verdict") == "drop":
                 dropped += 1
-            else:   # unanswered, or an answer that says nothing (or names a path): the note stays
+            else:   # unanswered, or an answer that says nothing: the note stays
+                if a:
+                    print(f"{pile.name}: an answer names no project, note kept: {a}")
                 keep.append(n)
         if len(keep) < len(notes):   # an untouched pile is left byte for byte
             rewrite[pile] = (front, keep, len(notes))

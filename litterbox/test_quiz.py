@@ -61,7 +61,7 @@ class Quiz(unittest.TestCase):
         ids = sorted(self.cards(), key=lambda i: self.cards()[i]["order"])
         answers = Path(self.tmp.name) / "saved" / "answers"
         answers.mkdir(parents=True)
-        (answers / f"{ids[0]}.json").write_text(json.dumps({"verdict": "file", "project": "LibreSprite-on-iPad"}))
+        (answers / f"{ids[0]}.json").write_text(json.dumps({"verdict": "file", "project": "charredlatte/LibreSprite-on-iPad"}))
         (answers / f"{ids[1]}.json").write_text(json.dumps({"verdict": "drop", "project": None}))
         with contextlib.redirect_stdout(io.StringIO()):
             quiz.apply(answers.parent, self.box)
@@ -82,7 +82,7 @@ class Quiz(unittest.TestCase):
         answers.mkdir(parents=True)
         (answers / f"{ids[0]}.json").write_text(json.dumps({"verdict": "file", "project": ""}))
         (answers / f"{ids[1]}.json").write_text(json.dumps({"verdict": "maybe"}))
-        (answers / f"{ids[2]}.json").write_text(json.dumps({"verdict": "file", "project": "../etc"}))
+        (answers / f"{ids[2]}.json").write_text(json.dumps({"verdict": "file", "project": ".."}))
         with contextlib.redirect_stdout(io.StringIO()):
             quiz.apply(answers.parent, self.box)
         self.assertEqual((self.box / "LibreSprite.md").read_text(encoding="utf-8"), PILE, "untouched, byte for byte")
