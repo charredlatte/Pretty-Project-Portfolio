@@ -465,6 +465,10 @@ proves the page does what she asked. In this order:
    asked for? Back to 1.
 3. **Run the test unchanged:** `sh catio/test/run.sh` (about two minutes). Every failure should be something
    she asked to change. One she didn't is a regression: fix the page, not the test.
+   **The suite needs `art/licensed/`.** It is gitignored, so a fresh clone or cloud session hasn't got it,
+   and without it the page correctly draws its no-art warning on the status sign: the check that wants no
+   warning sign then fails, and that is the missing art, not the page. `run.sh` says so when it starts.
+   Get the art back the two ways under "Republishing" before trusting a red run.
 4. **Rewrite only those checks, from her words:** what must be true now, not which class names went away
    (`#cats .cat > :not(.spr)`, not a list of deleted classes). Then the whole suite: all checks must pass.
 
