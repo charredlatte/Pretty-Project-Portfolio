@@ -48,6 +48,21 @@ for (const name of names) {
     console.log(join(out, name + ".png"));
     continue;
   }
+  // "maps": the project maps dashboard, from the House menu, with two invented maps
+  if (name === "maps") {
+    await page.evaluate(() => {
+      const map = (k) => ({ n: [{ t: "Core", g: 0, d: 9, x: 150, y: 80 }, { t: "Edge " + k, g: 1, d: 4, x: 60, y: 40 }, { t: "Leaf", g: 2, d: 1, x: 250, y: 130 }, { t: "Hub", g: 0, d: 7, x: 200, y: 50 }], l: [0, 1, 0, 2, 0, 3, 3, 2] });
+      window.__catio.put("graphs/montfortoise-shopify", { repo: "example/montfortoise-shopify", at: Date.now() - 6e5, nodes: 120, edges: 210, communities: 6, gods: [{ label: "CartDrawer", degree: 14, file: "src/cart.js" }], groups: [{ name: "Checkout", size: 40 }, { name: "Theme", size: 30 }, { name: "Admin", size: 12 }], surprises: [{ a: "Shipping notes", rel: "references", b: "CartDrawer", how: "INFERRED", where: "docs/shipping.md → src/cart.js" }], questions: ["Why does CartDrawer connect Checkout to Theme?"], map: map("A") });
+      window.__catio.put("graphs/intermarche-grocery-shopping-app", { repo: "example/Intermarche-grocery-shopping-app", at: Date.now() - 36e5, nodes: 64, edges: 98, communities: 4, gods: [{ label: "Basket", degree: 11, file: "src/basket.js" }], groups: [{ name: "Basket", size: 20 }, { name: "Menus", size: 18 }, { name: "Drive", size: 9 }], surprises: [], questions: ["Where does the basket get its prices?"], map: map("B") });
+    });
+    await page.waitForTimeout(300);
+    await page.click("#houseBtn");
+    await page.locator("#menu .mi", { hasText: "Project maps" }).click();
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: join(out, "maps.png") });
+    console.log(join(out, "maps.png"));
+    continue;
+  }
   const floor = UPPER.has(name) ? "upper" : "ground";
   if ((await page.locator("#world").getAttribute("data-floor")) !== floor) await page.click("#floor-" + floor);
   await page.keyboard.press("0");   // the whole house, then into the room named
