@@ -71,6 +71,10 @@ goes, so the quiz holds the notes of private projects without them entering this
 Piles of private projects aren't committed here: pass `--box <dir>` to both commands where they are kept.
 Tests: `python3 -m unittest litterbox/test_quiz.py`.
 
+The same page deals any deck whose cards bring their own choices (`options` on a card, its words in `meta/deck`):
+the decisions waiting on Charlotte are one, published as `decisions-quiz` in `artifacts.json`. The skill
+`catio-plugin/skills/litterbox-quiz/SKILL.md` says how to deal and file it.
+
 ## Held pull requests
 
 When the house rules hold a merge for her (semi-automatic merging, `harness/README.md`), they drop

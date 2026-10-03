@@ -129,6 +129,14 @@ connector's limit, so she attached it in the chat. e2e 125 passed.
 
 ## What went live, version by version
 
+**The decisions quiz** went up on 3 October 2026 (`decisions-quiz` in `artifacts.json`): the litter box quiz's
+page, now deck-aware (`meta/deck` for its words, a card's own `options`, `guess` and `why` for the recommendation on
+the back), dealt with the twelve decisions waiting on her from the plan and the litter box. Its art was copied
+server side from the litter box quiz. The litter box quiz was republished from the same file; its cards and answers
+were listed before and after and are intact. The page on `main` had two merge leftovers (a duplicated line that made
+its script a syntax error, and `quiz.py`'s sorted-file loop written twice, which the unchanged test caught): both
+fixed.
+
 **Version 21** went live on 2 October 2026: the page reads the gateway through her `CATIO` connector (phase 5).
 A session that reports there is one cat with its claude.ai session, wearing the newer mood; what she writes or
 drops on it goes through the gateway, and its replies show in its conversation. The declaration was passed in
