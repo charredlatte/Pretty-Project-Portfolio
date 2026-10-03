@@ -62,7 +62,8 @@ artifact) are the reference; the onboarding follows them.
 - **Nothing credits Claude** in what the onboarding writes or publishes (her rule, CLAUDE.md "Shipping").
 
 Frames 2 and 7 are redrawn in `frames.js`, and the Welcome and How-it-works steps of `openSetup()` in
-`catio/index.html` say the same, word for word (3 October). The other five steps are unchanged: they instruct,
+`catio/index.html` say the same (3 October). How it works is word for word the same in both; Welcome differs by
+its last sentence alone, because the wireframe ends on the name field and the page counts its seven steps. The other five steps are unchanged: they instruct,
 so they still name the real tools and commands. The suite passes; the look is `sh catio/test/run.sh look setup`.
 
 ## Still to build
