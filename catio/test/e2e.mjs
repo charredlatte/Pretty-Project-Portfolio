@@ -569,13 +569,68 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await check("it isn't handed in half done", async () => expect((await toast(page)).includes("Answer every question"), await toast(page)));
   await page.locator('#queenHomework button:has-text("Yes, merge it")').click();
   await page.fill('#queenHomework input[aria-label^="Your answer"]', "Well done, thou good cat");
-  await page.locator('#queenHomework button:has-text("Hand it in")').click();
+  // while she answers, a cat reports and a second quiz arrives (her words, 3 October: "everything refreshed and
+  // greyed out while I was typing"): her pick and her typing stay where they are
+  await T(page, () => { dispatchEvent(new Event("catio:agents")); window.__catio.setQuiz({ for: "", title: "The French text", questions: [{ q: "Ship it?", options: ["Ship it", "Hold it"] }] }); });
+  await page.waitForTimeout(500);
+  await check("a cat reporting, or more homework arriving, never wipes what she has answered so far", async () => {
+    expect(await page.locator('#queenHomework form[data-quiz="z1"] button[aria-pressed="true"]:has-text("Yes, merge it")').count() === 1, "her pick was lost");
+    expect((await page.inputValue('#queenHomework form[data-quiz="z1"] input[aria-label^="Your answer"]')) === "Well done, thou good cat", "her typing was lost");
+    expect(await page.locator('#queenHomework form[data-quiz="z2"]').count() === 1, "the second quiz didn't show");
+    expect((await T(page, () => (document.activeElement && document.activeElement.getAttribute("aria-label")) || "")).startsWith("Your answer"), "her typing lost its place");
+  });
+  // nor does closing her card and coming back
+  await page.keyboard.press("Escape");
   await settle(page);
-  await check("handing it in sends your answers, in order, and the homework is done", async () => {
+  await queen().dblclick();
+  await settle(page);
+  await check("closing her card and opening it again finds her answers so far where she left them", async () => {
+    expect(await page.locator('#queenHomework form[data-quiz="z1"] button[aria-pressed="true"]:has-text("Yes, merge it")').count() === 1, "her pick was lost");
+    expect((await page.inputValue('#queenHomework form[data-quiz="z1"] input[aria-label^="Your answer"]')) === "Well done, thou good cat", "her typing was lost");
+  });
+  await page.locator('#queenHomework form[data-quiz="z1"] button:has-text("Hand it in")').click();
+  await settle(page);
+  await check("handing it in sends your answers, in order", async () => {
     const a = await T(page, () => window.__catio.tools.filter((t) => t[1] === "answer").pop());
     expect(a && a[2].quiz === "z1" && JSON.stringify(a[2].answers) === JSON.stringify(["Yes, merge it", "Well done, thou good cat"]), JSON.stringify(a));
-    expect(!(await page.locator("#queenHomework").isVisible()), "the homework is still there");
     expect((await toast(page)).includes("Handed in"), await toast(page));
+    expect(await page.locator('#queenHomework form[data-quiz="z1"]').count() === 0, "the handed-in quiz is still there");
+  });
+  await page.locator('#queenHomework form[data-quiz="z2"] button:has-text("Ship it")').click();
+  // a slow hand-in the gateway then refuses, while she closes her card and opens it again: the reopened card
+  // shows it on its way, and gets its Hand it in back when the refusal comes
+  await T(page, () => { window.__catio.answerFail = 1; window.__catio.answerHold = new Promise((go) => { window.__catio.answerGo = go; }); });
+  await page.locator('#queenHomework form[data-quiz="z2"] button:has-text("Hand it in")').click();
+  await page.keyboard.press("Escape");
+  await settle(page);
+  await queen().dblclick();
+  await settle(page);
+  await check("a reopened card shows a hand-in on its way as greyed, so it isn't sent twice", async () => {
+    expect(await page.locator('#queenHomework form[data-quiz="z2"] .hand:disabled').count() === 1, "no greyed Hand it in");
+  });
+  await T(page, () => window.__catio.answerGo());
+  await settle(page);
+  await check("when the gateway refuses it, the card that is open gets its Hand it in back, her pick with it", async () => {
+    expect(await page.locator('#queenHomework form[data-quiz="z2"] .hand:not(:disabled)').count() === 1, "Hand it in stayed greyed out");
+    expect(await page.locator('#queenHomework form[data-quiz="z2"] button[aria-pressed="true"]:has-text("Ship it")').count() === 1, "her pick was lost");
+  });
+  // a cat reports just before she hands the last quiz in, so a read of the list that still shows it is on its
+  // way; the gateway takes her answers, the read after fails, then that old list lands: the handed-in quiz leaves
+  // her card and never comes back, and nothing stays greyed out
+  await T(page, () => { window.__catio.quizzesHold = new Promise((go) => { window.__catio.quizzesGo = go; }); dispatchEvent(new Event("catio:agents")); });
+  await page.waitForTimeout(150);
+  await T(page, () => { window.__catio.quizzesFail = 1; });
+  await page.locator('#queenHomework form[data-quiz="z2"] button:has-text("Hand it in")').click();
+  await settle(page);
+  await T(page, () => window.__catio.quizzesGo());
+  await settle(page);
+  await check("with the last quiz handed in, the homework is done, whatever the list reads say meanwhile", async () => {
+    const a = await T(page, () => window.__catio.tools.filter((t) => t[1] === "answer").pop());
+    expect(a && a[2].quiz === "z2" && JSON.stringify(a[2].answers) === JSON.stringify(["Ship it"]), JSON.stringify(a));
+    expect(await T(page, () => window.__catio.quizzesFail) === 0, "the quizzes list was never read back");
+    expect(await T(page, () => window.__catio.quizzesHold) === null, "the old list never landed");
+    expect(!(await page.locator("#queenHomework").isVisible()), "the homework is still there");
+    expect(await page.locator("#queenHomework button:disabled").count() === 0, "a greyed-out Hand it in is left behind");
   });
   await page.keyboard.press("Escape");
   await settle(page);
