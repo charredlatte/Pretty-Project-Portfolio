@@ -296,7 +296,10 @@ The page now **writes** through Claude Code Remote, always on an explicit action
 - `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet.
 
 The stored capabilities (the full set, to pass whole if a tool is ever added):
-`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","list_repos","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "CATIO", tools: ["list_agents","comment","comments","drop_file","manage"] }] }, db: {}, assets: {}, sample: {} }`
+`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","list_repos","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "CATIO", tools: ["list_agents","comment","comments","drop_file","manage","decide"] }] }, db: {}, assets: {}, sample: {} }`
+
+`decide` joined the set on 3 October (the decider, below): the first republish after it must pass the whole set, or in claude.ai the
+page cannot ask the decider and the brain simply keeps sorting the old way.
 
 `host:catio` (the same five tools) can only be declared from the Claude desktop app, so it isn't in the stored
 set. `delete_trigger` stays only to clean up the Routines older versions bound. Posting into a session through a bound Routine doesn't reach the session
@@ -326,6 +329,14 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
 - **Only Claude's connectors may register** (redirects to `claude.ai` or `claude.com`).
 - **Keep its tools in step with `catio_mcp.py`**: same names, arguments and results, so the page and agents
   use either.
+- **The decider** (`src/decide.js`, the tool `decide`): a typed decision from a System One model, a state and named
+  questions (`noul` yes/no, `choice`, `score`) answered with probabilities, no prose. Workers AI through the Worker's
+  `AI` binding, Clef (`@cf/cloudflare/clef-flash`, free plan) by default or `DECIDE_MODEL` (`typesafe/jev` is Jev
+  itself, paid from AI Gateway credits); or `DECIDE_URL`, any System One server such as `laya-serve`. `preset: easy`
+  is the easy-task rubric of `docs/delegation.md`. With `kind`, the decision is logged as `decisions/<id>` beside
+  `old`, what the old path chose, and `agree`. The page asks it where a dropped file goes (`decideSort`):
+  `house/main.decide` unset or `"observe"` logs beside the sorter's pick and changes nothing; `"on"` lets it sort
+  first above `DECIDE_FLOOR`. Switch it on only after a week of the log agrees. The plan is `docs/delegation.md`.
 - **Test** with `cd harness/gateway && npm install && npm test` (workerd, the real hook included) and
   `python3 -m unittest discover -s harness/test` (the hook, the runner against a stand-in gateway and a fake
   `claude`, the rules' hooks).

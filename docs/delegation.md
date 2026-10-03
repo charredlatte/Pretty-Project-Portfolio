@@ -248,7 +248,15 @@ Charlotte:
 Not for a System One model: writing anything, the merge itself, "nothing is a guess" (the model's own
 self-report; a probability that it was guessing would be guessing twice), and anything under `hold`.
 
-**The step.** One function, `decide(state, questions)`, in `harness/gateway/src/decide.js`, with two backends behind
+**Built (3 October, this branch): the `decide` tool.** `harness/gateway/src/decide.js` and the House's `decide` tool, the
+same tool in `catio_mcp.py` behind `CATIO_DECIDE_URL`, the `AI` binding in `wrangler.jsonc`, the `easy` preset, the
+`decisions/` log with `old` and `agree`, and the page's `decideSort()`: in observe mode (the default) the brain asks the
+decider the same question it asks the sorter and logs both; `house/main.decide = "on"` lets it sort first above a 0.6
+confidence. Tests: the gateway against a stand-in System One server, the MCP server likewise, and the page's e2e for
+observe, on and unsure. Not yet: the switch (after a week of the log), the rubric's caller (phase B's queen), and
+`decide` in the artifact's stored capabilities (the next republish passes the whole set, CLAUDE.md).
+
+**The step, as planned.** One function, `decide(state, questions)`, in `harness/gateway/src/decide.js`, with two backends behind
 one switch: `env.AI` with a model id (`@cf/cloudflare/clef-flash` by default, `typesafe/jev` when wanted; nothing to
 install), or `DECIDE_URL` pointing at a System One endpoint such as `laya-serve` on her PC for what runs there (the runner and the hooks call it directly; the Worker
 can't reach her PC). The same request body for both, since all three speak the System One API. A confidence floor per

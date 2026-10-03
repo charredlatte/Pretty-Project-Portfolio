@@ -6,6 +6,7 @@
 import { DurableObject } from "cloudflare:workers";
 import RULES from "../../rules.json";
 import { MOODS } from "./tools.js";
+import { BadQuestion, NoAnswer, decide, verdict } from "./decide.js";
 
 const FIELDS = ["name", "model", "provider", "title", "project", "repo", "branch", "ask", "link", "session", "via", "cwd", "room"];
 const MAX_FILE = 1024 * 1024;   // a free Worker gets 10 ms of CPU a request: bigger files go through the brain
@@ -20,6 +21,7 @@ const SAYS = ["charlotte", "queen"];   // whose notes a cat's hook is handed: he
 
 class Refusal extends Error {}   // bad arguments: the caller is told, nothing breaks
 const CHANGES = new Set(["report_status", "comment", "drop_file", "pick_up", "manage", "quiz", "answer"]);   // tools that change what a café shows
+const KEEP_DECISIONS = 500;    // the observe log: the latest decisions, beside what the old path chose
 const QUIZ = { questions: 5, options: 6, text: 300, title: 120, answer: 1000 };
 
 // Homework, as the queen sets it: a title and 1 to 5 questions, each with concrete options or a written answer
@@ -266,6 +268,32 @@ const TOOLS = {
 		TOOLS.comment(h, { cat: QUEEN, text: text + (z.for ? "\n(for " + z.for + (told ? ", told)" : ", not a cat here)") : ""), author: "charlotte" }, "charlotte");
 		return { ok: true, told };
 	},
+	// A typed decision from a System One model (src/decide.js), for the one-bit questions the café asks: where a file
+	// goes, whether a task is easy, who needs her first. Anyone in the house may ask. With kind, the decision is
+	// logged as decisions/<id> beside old (what the old path chose), so a week of the two side by side says whether
+	// to switch; agree compares the first question's verdict with old.
+	async decide(h, args, who) {
+		let out;
+		try {
+			out = await decide(h.env, args);
+		} catch (e) {
+			if (e instanceof BadQuestion) throw new Refusal(e.message);
+			if (e instanceof NoAnswer) throw new Refusal(e.message);
+			throw e;
+		}
+		if (args.kind) {
+			const first = Object.keys(out.answers)[0];
+			const got = verdict(out.answers[first]);
+			const old = args.old == null ? null : String(args.old).slice(0, 200);
+			const id = newId();
+			h.sql.exec("INSERT INTO docs (path, data, at) VALUES (?, ?, ?)", "decisions/" + id, JSON.stringify({
+				at: Date.now(), kind: String(args.kind).slice(0, 40), by: who, model: out.model, preset: args.preset ? String(args.preset) : undefined,
+				questions: Object.keys(out.answers), answers: out.answers, old, agree: old == null ? null : got === old, usage: out.usage,
+			}), Date.now());
+			h.sql.exec("DELETE FROM docs WHERE path LIKE 'decisions/%' AND path NOT IN (SELECT path FROM docs WHERE path LIKE 'decisions/%' ORDER BY at DESC LIMIT ?)", KEEP_DECISIONS);
+		}
+		return out;
+	},
 };
 
 export class House extends DurableObject {
@@ -295,11 +323,11 @@ export class House extends DurableObject {
 
 	/** One tool call. `who` is "charlotte" (the house's owner, signed in through claude.ai or the café), "queen" (the
 	 * house's queen runner, holding a key with that role) or "agent" (holds an agents' key). */
-	call(name, args, who) {
+	async call(name, args, who) {
 		const tool = Object.hasOwn(TOOLS, name) && TOOLS[name];
 		if (!tool) return { unknown: true };
 		try {
-			const ok = tool(this, args && typeof args === "object" && !Array.isArray(args) ? args : {}, who === "charlotte" || who === QUEEN ? who : "agent");
+			const ok = await tool(this, args && typeof args === "object" && !Array.isArray(args) ? args : {}, who === "charlotte" || who === QUEEN ? who : "agent");
 			if (CHANGES.has(name)) this.tell({ type: "agents" });   // an open café redraws its cats now, not at its next look
 			return { ok };
 		} catch (e) {
