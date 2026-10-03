@@ -1837,7 +1837,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       hw.length && mi("Homework", () => { hideMenu(); openQueen("homework"); }, { aside: hw.length + " waiting" }),
       mi("The brain", () => { hideMenu(); openBrain(); }, { aside: tray ? tray + " on the tray" : "" }),
       mi("House rules", () => { hideMenu(); openRules(); }),
-      S.db && maps().length && mi("Project maps", () => { hideMenu(); try { openMaps(); } catch (e) { toast("A project map couldn't be drawn (" + (e && e.message || "error") + ").", "alert"); } }, { aside: mapCount() || "" }),
+      S.db && maps().length && mi("Project maps", () => { hideMenu(); MAPS.visit++; try { openMaps(); } catch (e) { toast("A project map couldn't be drawn (" + (e && e.message || "error") + ").", "alert"); } }, { aside: mapCount() || "" }),
       mi("Edit rooms", () => { hideMenu(); openRooms(curRoom()); }),
       S.db && mi("Set up again…", () => { hideMenu(); openSetup(true); }),
       (VIEW.attic || S.showOld) && mi(S.showOld ? "Send them back up" : "Bring them down", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }),
@@ -2883,8 +2883,13 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const d = doc || S.dashboard || {}, list = (k) => (Array.isArray(d[k]) ? d[k] : []);
     return { order: list("order"), hidden: list("hidden"), pinned: list("pinned"), wide: list("wide") };
   }
-  const MAPS = { busy: false, folded: new Set(), managing: new Set() };   // a save on its way; cards folded or managed
-  const maps = () => Object.entries(S.graphs).filter(([, g]) => g && g.map && Array.isArray(g.map.n));   // the real maps: a graph with a map drawn
+  const MAPS = { busy: false, visit: 0, folded: new Set(), managing: new Set() };   // a save on its way; which opening of the page this is; cards folded or managed
+  // the real maps: a graph whose map can be drawn (nodes with places, its lists lists); anything else is left out, never half-drawn
+  const drawable = (g) => !!g && !!g.map && Array.isArray(g.map.n) && g.map.n.length > 0
+    && g.map.n.every((x) => x && typeof x === "object" && Number.isFinite(x.x) && Number.isFinite(x.y))
+    && ["groups", "gods", "surprises", "questions"].every((k) => g[k] == null || (Array.isArray(g[k]) && g[k].every((v) => v != null)))
+    && (g.map.l == null || Array.isArray(g.map.l)) && (g.commit == null || typeof g.commit === "string");
+  const maps = () => Object.entries(S.graphs).filter(([, g]) => drawable(g));
   const mapsSig = () => maps().map(([id, g]) => id + ":" + (g.at || 0)).sort().join("|");
   const mapCount = () => { const L = mapsLayout(); return maps().filter(([id]) => !L.hidden.includes(id)).length; };
   // where focus is in the dashboard, so a redraw can put it back: an action on a card, else the same words in the same card
@@ -2917,9 +2922,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
       if (MAPS.busy) return;
       MAPS.busy = true;
       for (const b of dlg.querySelectorAll(".mapcard .tools button, #mapsHidden button")) b.disabled = true;
-      const before = S.dashboard;
+      const before = S.dashboard, visit = MAPS.visit;
       let stored = null, nothing = false;
-      const saving = save(async (db) => {
+      await save(async (db) => {
         const ref = db.doc("dashboard/maps"), snap = await ref.get();
         const doc = snap.exists ? snap.data() : {}, base = mapsLayout(doc), diff = change(base);
         if (!Object.keys(diff).length) { nothing = true; return; }   // nothing to change after all: nothing is written
@@ -2928,12 +2933,10 @@ ul.gkey li > div.what { flex-basis: 100%; }
         else await ref.set(Object.assign({}, base, diff, at));
         stored = Object.assign({}, doc, base, diff, at);   // only once it is in the database
       }, ok);
-      // a save that never settles (a stalled network) gives the buttons back after a while rather than locking them for good
-      await Promise.race([saving, new Promise((done) => setTimeout(done, 15000))]);
       if (stored && S.dashboard === before) S.dashboard = stored;   // a newer snapshot that came meanwhile wins
       if (nothing) toast("It changed on another device meanwhile, so nothing moved.");
       MAPS.busy = false;
-      if (dlg.open) { try { openMaps(again); } catch (e) { /* the page as it was stays up */ } }
+      if (dlg.open) openMaps(visit === MAPS.visit ? again : null);   // reopened meanwhile: redraw, but leave her focus where it is
     };
     const box = el("div", "dlg");
     const h = el("h2", null, "Project maps"); h.id = "mapsTitle"; h.tabIndex = -1;
@@ -2949,9 +2952,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       head.appendChild(t);
       if (pinned) { const st = el("span", "star"); st.setAttribute("role", "img"); st.setAttribute("aria-label", "Pinned"); head.prepend(st); }
       // what she came for first: the map; how it sits on the page folds under Manage, after it
-      let map;
-      try { map = projectMap(gm, cat); } catch (e) { return; }   // a map that can't be drawn skips its own card, never the page
-      map.open = !MAPS.folded.has(id);
+      const map = projectMap(gm, cat); map.open = !MAPS.folded.has(id);
       map.addEventListener("toggle", () => { if (map.open) MAPS.folded.delete(id); else MAPS.folded.add(id); });
       const manage = el("details", "manage-tools"); manage.open = MAPS.managing.has(id);
       manage.appendChild(el("summary", null, "Manage"));
