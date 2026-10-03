@@ -256,7 +256,7 @@ The repository ships four skills. What is Charlotte's and what is not:
 | `catio-plugin/skills/litterbox-quiz/` | Hers. Loose notes piled by project, each pile a guess until it is checked as a round of flashcards in a private page, and the answers filed back into each project's repository. Flashcard skills and inbox-triage skills exist on their own; this joins the two. The litter box itself (`litterbox/`) is her concept too. |
 
 The house rules (`harness/rules.json`) are hers, but three of the skills they call are not in this repository and
-are not hers: [ponytail](https://github.com/DietrichGebert/ponytail) and `ponytail-audit` (Dietrich Gebert, MIT),
+are not hers: `ponytail-audit` (from [ponytail](https://github.com/DietrichGebert/ponytail), Dietrich Gebert, MIT),
 `browser-agent-preflight` (a community skill) and `code-review` (Claude Code's own). Hooks that gate edits and
 merges are a common pattern; the particular rules here, the Checks and Guesses trailer, the strong-model
 condition and the hold list, are her own writing.
