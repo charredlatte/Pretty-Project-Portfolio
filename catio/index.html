@@ -2189,7 +2189,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
             render(); if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); }   // her card may have closed meanwhile
             await refreshQuizzes();
             loadQueenThread();
-          } catch (e) { toast(gatewayProblem(e), "alert"); const again = hw.querySelector('form[data-quiz="' + z.id + '"] .hand'); if (again) again.disabled = false; }
+          } catch (e) { toast(gatewayProblem(e), "alert"); const again = document.querySelector('#queenHomework form[data-quiz="' + z.id + '"] .hand'); if (again) again.disabled = false; }   // in whichever card is open now
           finally { sending.delete(z.id); }
         });
         hand.disabled = sending.has(z.id);

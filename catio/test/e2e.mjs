@@ -596,6 +596,23 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(await page.locator('#queenHomework form[data-quiz="z1"]').count() === 0, "the handed-in quiz is still there");
   });
   await page.locator('#queenHomework form[data-quiz="z2"] button:has-text("Ship it")').click();
+  // a slow hand-in the gateway then refuses, while she closes her card and opens it again: the reopened card
+  // shows it on its way, and gets its Hand it in back when the refusal comes
+  await T(page, () => { window.__catio.answerFail = 1; window.__catio.answerHold = new Promise((go) => { window.__catio.answerGo = go; }); });
+  await page.locator('#queenHomework form[data-quiz="z2"] button:has-text("Hand it in")').click();
+  await page.keyboard.press("Escape");
+  await settle(page);
+  await queen().dblclick();
+  await settle(page);
+  await check("a reopened card shows a hand-in on its way as greyed, so it isn't sent twice", async () => {
+    expect(await page.locator('#queenHomework form[data-quiz="z2"] .hand:disabled').count() === 1, "no greyed Hand it in");
+  });
+  await T(page, () => window.__catio.answerGo());
+  await settle(page);
+  await check("when the gateway refuses it, the card that is open gets its Hand it in back, her pick with it", async () => {
+    expect(await page.locator('#queenHomework form[data-quiz="z2"] .hand:not(:disabled)').count() === 1, "Hand it in stayed greyed out");
+    expect(await page.locator('#queenHomework form[data-quiz="z2"] button[aria-pressed="true"]:has-text("Ship it")').count() === 1, "her pick was lost");
+  });
   // the gateway takes her answers but its list is away for a moment after: the handed-in quiz still leaves her
   // card, and nothing stays greyed out
   await T(page, () => { window.__catio.quizzesFail = 1; });
