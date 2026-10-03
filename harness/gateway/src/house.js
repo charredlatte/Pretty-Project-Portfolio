@@ -39,7 +39,8 @@ function quizOf(args) {
 		const options = (Array.isArray(q.options) ? q.options : []).map((o) => String(o).trim().slice(0, QUIZ.text)).filter(Boolean).slice(0, QUIZ.options);
 		return { q: text, options, free: q.free === true || !options.length };
 	});
-	const kind = QUIZ_KINDS.includes(args.kind) ? args.kind : "unblock";
+	if (args.kind && !QUIZ_KINDS.includes(args.kind)) throw new Refusal("kind is unblock, litterbox or decision");
+	const kind = args.kind || "unblock";
 	if (kind !== "unblock" && (questions.length !== 1 || questions[0].options.length < 2)) throw new Refusal("a " + kind + " card is one question with 2 to 12 options");
 	const clip = (k, n) => (args[k] ? String(args[k]).slice(0, n) : "");
 	return { kind, title: String(args.title).trim().slice(0, QUIZ.title), questions, note: clip("note", QUIZ.note), from: clip("from", 200), hint: clip("hint", QUIZ.text), ref: clip("ref", 80).replace(/[^A-Za-z0-9_-]/g, "") };
@@ -251,11 +252,10 @@ const TOOLS = {
 		if (who !== OWNER && who !== QUEEN) throw new Refusal("only the queen or the owner sets homework");
 		const { ref, ...z } = quizOf(args);
 		const id = ref ? z.kind + "-" + ref : newId();
-		if (ref) {
-			const row = h.sql.exec("SELECT data FROM docs WHERE path = ?", "quizzes/" + id).toArray()[0];
-			if (row && JSON.parse(row.data).status === "done") return { id, done: true };
-		}
-		h.putDoc("quizzes/" + id, { for: args.for ? String(args.for).slice(0, 200) : "", ...z, by: who, at: Date.now(), status: "set" });
+		const was = ref ? h.getDoc("quizzes/" + id) : null;
+		if (was && was.status === "done") return { id, done: true };
+		// dealt again while open: it keeps its place in the deck
+		h.putDoc("quizzes/" + id, { for: args.for ? String(args.for).slice(0, 200) : "", ...z, by: who, at: was ? was.at : Date.now(), status: "set" });
 		return { id };
 	},
 
@@ -270,10 +270,8 @@ const TOOLS = {
 		const ids = (Array.isArray(args.quizzes) ? args.quizzes : []).map(String).slice(0, 500);
 		let gone = 0;
 		for (const id of ids) {
-			const row = h.sql.exec("SELECT data FROM docs WHERE path = ?", "quizzes/" + id).toArray()[0];
-			if (!row) continue;
-			const z = JSON.parse(row.data);
-			if ((z.kind || "unblock") === "unblock" && z.status !== "done") continue;   // a cat still waits on it
+			const z = h.getDoc("quizzes/" + id);
+			if (!z || ((z.kind || "unblock") === "unblock" && z.status !== "done")) continue;   // an open quiz: a cat still waits on it
 			h.dropDoc("quizzes/" + id); gone++;
 		}
 		return { forgotten: gone };
@@ -506,6 +504,11 @@ export class House extends DurableObject {
 		this.tell({ type: "doc", path, data: next });
 		if (path.startsWith("routines/")) { this.armAlarm(); this.wake(); }   // a routine added or switched on may be due
 		return true;
+	}
+
+	getDoc(path) {
+		const row = this.sql.exec("SELECT data FROM docs WHERE path = ?", path).toArray()[0];
+		return row ? JSON.parse(row.data) : null;
 	}
 
 	dropDoc(path) {

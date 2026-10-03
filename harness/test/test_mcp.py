@@ -102,7 +102,12 @@ class Stdio(unittest.TestCase):
                 "questions": [{"q": "Which project is it for?", "options": ["kittychat", "Settled: drop it"]}]}
         c = self.tool("quiz", **card)
         self.assertEqual(c, {"id": "litterbox-abc123def456"})
+        at = self.tool("quizzes", kind="litterbox")["quizzes"][0]["at"]
+        time.sleep(0.01)
         self.tool("quiz", **dict(card, note="dealt again"))
+        self.assertEqual(self.tool("quizzes", kind="litterbox")["quizzes"][0]["at"], at)
+        with self.assertRaises(Exception):
+            self.tool("quiz", **dict(card, kind="decisions"))
         self.assertEqual([(q["id"], q["note"]) for q in self.tool("quizzes", kind="litterbox")["quizzes"]], [("litterbox-abc123def456", "dealt again")])
         heard = len(self.tool("comments", cat="queen")["notes"])
         self.assertEqual(self.tool("answer", quiz=c["id"], answers=["Settled: drop it"]), {"ok": True, "told": False})

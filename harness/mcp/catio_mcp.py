@@ -274,7 +274,9 @@ def _quiz_of(args):
 def quiz(args):
     """Homework the queen (or Charlotte) sets for Charlotte, a card in her quest log (as the gateway's quiz)."""
     title, questions = _quiz_of(args)
-    kind = args.get("kind") if args.get("kind") in QUIZ_KINDS else "unblock"
+    if args.get("kind") and args["kind"] not in QUIZ_KINDS:
+        raise ValueError("kind is unblock, litterbox or decision")
+    kind = args.get("kind") or "unblock"
     if kind != "unblock" and (len(questions) != 1 or len(questions[0]["options"]) < 2):
         raise ValueError("a %s card is one question with 2 to 12 options" % kind)
     clip = lambda k, n: str(args.get(k) or "")[:n]
@@ -288,9 +290,11 @@ def quiz(args):
         old = next((q for q in qs if q["id"] == rec["id"]), None)
         if old and old.get("status") == "done":   # dealt again after she answered: her answer stands
             return {"id": rec["id"], "done": True}
-        if old:
-            qs.remove(old)
-        qs.append(rec)
+        if old:   # dealt again while open: it keeps its place in the deck
+            rec["at"] = old.get("at", rec["at"])
+            qs[qs.index(old)] = rec
+        else:
+            qs.append(rec)
         store(s)
     return {"id": rec["id"]}
 

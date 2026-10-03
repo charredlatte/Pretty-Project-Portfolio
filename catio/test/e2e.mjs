@@ -661,6 +661,15 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     T.setQuiz({ kind: "decision", title: "The roadmap", note: "Which comes first?", hint: "The camera", questions: [{ q: "Which first?", options: ["The camera", "Build mode"] }] });
   });
   await page.waitForTimeout(400);
+  await check("what a cat brought her comes before notes to sort in her line", async () => {
+    await page.mouse.move(8, 8);
+    await page.locator("#cats .cat.queen").hover();
+    await settle(page);
+    const t = await page.locator("#tip").innerText();
+    expect(t.includes("Holding 1 thing for you"), t);
+  });
+  await T(page, () => window.__catio.put("queens/house", { readAt: Date.now() + 864e5 }));   // the handoff read
+  await page.waitForTimeout(300);
   await check("everything waiting on her is homework: the queen's line counts each kind", async () => {
     await page.mouse.move(8, 8);
     await page.locator("#cats .cat.queen").hover();

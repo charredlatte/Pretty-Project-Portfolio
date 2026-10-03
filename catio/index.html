@@ -440,6 +440,7 @@ ul.thread li.handoff.new .who::after { content: " · new"; color: var(--ink); }
 .homework .quiz .opts { display: flex; flex-wrap: wrap; gap: 6px; }
 .homework .quiz .actions { margin-top: 2px; }
 /* a deck in her quest log: one litter box note or decision at a time, its text scrolling inside the card */
+.homework .card:focus:not(:focus-visible) { outline: 0; }
 .homework .card .note-text { white-space: pre-wrap; max-height: 30vh; overflow: auto; font-size: .9rem; margin: 0; }
 .days { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: .9rem; }
 .days label { display: inline-flex; align-items: center; gap: 3px; }
@@ -818,7 +819,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
     if (q.pinned.length && st !== "busy") return q.pinned[0].text;
     if (st === "away") return "Away: start her runner on your PC to talk to her.";
     if (st === "busy") return "Answering\u2026";
-    if (q.homework) return "Homework: " + homeworkWords(openQuizzes()) + ".";
+    // a cat waiting on your answer comes first, then what the cats brought her, then the notes and decisions to get through
+    const unblock = openQuizzes().some((z) => kindOf(z) === "unblock");
+    if (q.homework && (unblock || !q.unread)) return "Homework: " + homeworkWords(openQuizzes()) + ".";
     if (q.unread) return "Holding " + q.unread + (q.unread === 1 ? " thing" : " things") + " for you.";
     return "Here. Talk to her.";
   }
@@ -1529,7 +1532,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     node.addEventListener("pointerenter", (e) => { if (e.pointerType !== "mouse" || pan) return; if (moved(e)) showTip(kind, key, node); else waiting = true; });
     node.addEventListener("pointermove", (e) => { if (waiting && e.pointerType === "mouse" && moved(e) && !pan) { waiting = false; showTip(kind, key, node); } });
     node.addEventListener("pointerleave", () => { waiting = false; hideTip(node); });
-    node.addEventListener("focus", () => { if (node.matches(":focus-visible") && kind !== "stairs") { showMenu(kind, key, node); MENU.src = "focus"; } });   // keyboard only
+    node.addEventListener("focus", () => { if (node.matches(":focus-visible") && kind !== "stairs" && kind !== "litter") { showMenu(kind, key, node); MENU.src = "focus"; } });   // keyboard only
   }
   let tipFor = null;
   function showTip(kind, key, node) {
@@ -2179,7 +2182,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       const catOf = (z) => (z.for ? cats.find((c) => c.agentId === z.for) : null);
       const subOf = (z, cat) => "Homework from " + (z.by === QUEEN_ID ? q.name : "you") + (cat ? ", to unblock " + cat.name : z.for ? ", for " + z.for : "") + " · " + ago(z.at);
       const sig = open.map((z) => z.id + ":" + (z.at || 0) + ":" + (z.questions || []).length + ":" + (catOf(z) || {}).name).join("|")
-        + "#" + decks.map((d) => d.kind + ":" + d.z.id + ":" + (d.z.at || 0) + ":" + d.at + "/" + d.cards.length + ":" + sending.has(d.z.id)).join("|");
+        + "#" + decks.map((d) => d.kind + ":" + d.at + ":" + sending.has(d.z.id) + ":" + d.cards.map((z) => z.id + "@" + (z.at || 0)).join(",")).join("|");
       if (sig === drawn) {   // nothing to rebuild: only the "· N minutes ago" moves on
         for (const z of open) { const sub = hw.querySelector('form[data-quiz="' + z.id + '"] p.sub'); if (sub) sub.textContent = subOf(z, catOf(z)); }
         return;
@@ -2249,7 +2252,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       // the litter box and the decisions: a card at a time, a tap hands it in, Skip puts it at the back of the deck
       for (const d of decks) {
         const z = d.z, qq = (z.questions || [])[0] || { q: "", options: [] };
-        const f = el("section", "quiz card"); f.dataset.deck = d.kind; f.dataset.quiz = z.id;
+        const f = el("section", "quiz card"); f.dataset.deck = d.kind; f.dataset.quiz = z.id; f.tabIndex = -1;
         f.setAttribute("aria-label", d.name);
         f.appendChild(el("h3", null, d.name));
         const sub = el("p", "sub", [z.title, (d.at + 1) + " of " + d.cards.length].filter(Boolean).join(" · "));
@@ -2288,7 +2291,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
         f.appendChild(fs);
         if (d.cards.length > 1) {
           const acts = el("div", "actions");
-          acts.append(el("span", "spacer"), plainBtn("Skip", "", () => { next(); drawHomework(); const first = hw.querySelector('[data-deck="' + d.kind + '"] .opts button'); if (first) first.focus(); }));
+          acts.append(el("span", "spacer"), plainBtn("Skip", "", () => { next(); drawHomework(); const card = hw.querySelector('[data-deck="' + d.kind + '"]'); if (card) card.focus(); }));
           f.appendChild(acts);
         }
         hw.appendChild(f);
@@ -2483,7 +2486,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     show(dlg);
     // opened at her homework (the House menu) or the litter box (on the map): that deck, else the first card
     const desk = section === "homework" || section === "litterbox" || section === "decision" ? hw.querySelector(section === "homework" ? ".quiz" : '[data-deck="' + section + '"]') || hw.querySelector(".quiz") : null;
-    if (desk) { desk.scrollIntoView({ block: "nearest" }); const first = desk.querySelector(".opts button, input"); if (first) first.focus(); }
+    if (desk) { desk.scrollIntoView({ block: "nearest" }); (desk.matches(".card") ? desk : desk.querySelector(".opts button, input") || desk).focus(); }   // never onto an answer that a held key would hand in
     else if (section === "talk" || !section) say.focus();
     if (q.unread) save((db) => db.doc("queens/house").set(Object.assign({}, S.queens.house || {}, { readAt: opened })));   // read: one write, on her action
     if (voiceOn) speak(q.greeting, currentVoice());

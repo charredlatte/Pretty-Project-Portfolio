@@ -493,7 +493,11 @@ describe("the queen", () => {
 		const open = await tool(QUEEN, "quiz", { for: "session_01Queen", title: "Still waiting", questions: [{ q: "Merge it?", options: ["Yes", "No"] }] });
 		const { id } = await tool(her, "quiz", card);
 		assert.equal(id, "litterbox-abc123def456");
+		const at = (await tool(her, "quizzes", { kind: "litterbox" })).quizzes[0].at;
+		await sleep(5);
 		assert.deepEqual(await tool(her, "quiz", { ...card, note: "Rename her Mochi, dealt again" }), { id });   // open: replaced, not doubled
+		assert.equal((await tool(her, "quizzes", { kind: "litterbox" })).quizzes[0].at, at, "a card dealt again moved in the deck");
+		assert.match((await tool(her, "quiz", { ...card, kind: "decisions" })).refused, /kind is unblock, litterbox or decision/);
 		await tool(her, "quiz", { kind: "decision", ref: "camera", title: "Which comes first?", hint: "The camera", questions: [{ q: "Which first?", options: ["The camera", "The gateway"] }] });
 		const lb = (await tool(her, "quizzes", { kind: "litterbox" })).quizzes;
 		assert.deepEqual(lb.map((z) => [z.id, z.kind, z.note, z.from, z.hint]), [[id, "litterbox", "Rename her Mochi, dealt again", "litterbox/loose-ends.md", "pretty-project-portfolio"]]);

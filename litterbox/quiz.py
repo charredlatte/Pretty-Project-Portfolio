@@ -5,7 +5,7 @@
     python3 litterbox/quiz.py cards OUT_DIR [--box DIR]      one JSON file per card, for litterbox/quiz.html's database: cards/<id>
     python3 litterbox/quiz.py apply ANSWERS [--box DIR]      her answers: the gateway's quizzes result saved as a .json file,
                                                              or the directory ArtifactData saves quiz.html's answers/ into
-    python3 litterbox/quiz.py stale QUIZZES [--box DIR]      the open litter box cards whose note no longer waits: to forget
+    python3 litterbox/quiz.py stale QUIZZES [--box DIR]      the litter box cards whose note no longer waits: to forget
 
 A card is one note on a pile whose header is still a guess. Its id comes from the pile's name and the note's words,
 so an answer finds its note again after the pile has changed. `apply` takes every answered note off its pile:
@@ -74,7 +74,10 @@ def deal(out, box):
     """Each card as the arguments of the gateway's quiz tool: a litter box card in the queen's quest log."""
     fresh(out)
     bare = lambda r: r.rsplit("/", 1)[-1].lower()   # owner/repo and repo are one project
-    repos = list({bare(r): r for r in reversed(list(projects(root_of(box))))}.values())[::-1]
+    repos, seen = [], set()
+    for r in projects(root_of(box)):
+        if bare(r) not in seen:
+            seen.add(bare(r)); repos.append(r)
     n = 0
     for cid, card in notes_of(box):
         guess = next((r for r in repos if bare(r) == bare(card["guess"])), card["guess"])
@@ -97,9 +100,9 @@ def saved_quizzes(path):
 
 
 def stale(where, box):
-    """The open litter box cards whose note is no longer on a pile waiting for a check: forget them."""
+    """The litter box cards whose note is no longer on a pile waiting for a check (filed, or checked by hand): forget them."""
     waiting_now = {cid for cid, _ in notes_of(box)}
-    gone = [z["id"] for z in saved_quizzes(Path(where)) if z.get("kind") == "litterbox" and z.get("status") != "done"
+    gone = [z["id"] for z in saved_quizzes(Path(where)) if z.get("kind") == "litterbox"
             and z.get("id", "").removeprefix("litterbox-") not in waiting_now]
     print("stale cards: " + " ".join(gone) if gone else "no stale cards")
 
