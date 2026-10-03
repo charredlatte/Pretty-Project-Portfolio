@@ -12,9 +12,10 @@ the business plan's figures go once she has chosen them. The plan itself is priv
 1. **Home.** One line on what the café is, a screenshot box, "Start free: self-host" and "Join the café: early
    access", the three ways to get it (self-host, hosted, set up for you), and the legal footer every page carries
    (mentions légales, CGV, confidentialité, rétractation, contact).
-2. **Pricing.** Three columns from her paywall (2 October): Free (one repository, the page), Early access (unlimited
-   repositories, requests into sessions, the gateway's calls, the brain's sorter, new features until the app ships)
-   and Support, which is not a tier but two buttons: "Buy me a coffee" (one-off coffees and small memberships, thanks
+2. **Pricing.** Four columns from her paywall (2 and 3 October): Free (one repository, the page), Basic (up to five
+   repositories, requests and gateway calls capped at `[cap]` a month, no sorter, quiz or homework: files dropped on a
+   cat arrive unsorted), Early access (unlimited repositories, uncapped, the brain's sorter, the litter box quiz, the
+   queen's homework, new features until the app ships) and Support, which is not a tier but two buttons: "Buy me a coffee" (one-off coffees and small memberships, thanks
    and a name in the credits, no promise) and "Back the app" (a crowdfunding campaign whose rewards are a year of
    Early access). No lifetime seat (her call, 3 October: no lifetime guarantee sale, an in-between instead). Prices
    HT with "TVA non applicable, art. 293 B du CGI", a grid of what each column unlocks, and the "in development"
@@ -45,7 +46,9 @@ Mind the quota: a Starter plan with a View seat gets six MCP calls a month.
 
 ## Undecided
 
-- **The prices.** The business plan proposes them; the frames show placeholders until she picks.
+- **The prices, and Basic's cap.** The business plan proposes them (`[basic]`, `[monthly]`, `[cap]`); the frames show
+  placeholders until she picks. The polling calls (`list_agents`, `comments`) are never metered; which others count is
+  the plan's list.
 - **The store's name and domain.** A separate store from Montfortoise (her choice, 2 October). Shopify's domain
   check on "KittyChat Café" (2 October) offered no kittychat domain; it suggested purrchat.store, whiskerchat.com
   and meowmingle.store, each available that day. An INPI search for "KittyChat" is still to do.
