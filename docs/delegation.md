@@ -1,7 +1,8 @@
 # Delegating the easy work to smaller models
 
-**Status (3 October 2026): the café has no automatic delegation.** Every cat runs on the model it was started with,
-chosen by hand. This is the plan to add it, cheapest step first, each one useful on its own.
+**Status (3 October 2026): the café has no automatic delegation, to sub agents or to anything else.** Every cat runs on
+the model it was started with, chosen by hand, and no house rule or agent definition makes a session hand its easy
+steps to a sub agent on a smaller model. Phase A below is that piece; B and C go further. This is the plan to add it, cheapest step first, each one useful on its own.
 
 ## What exists today
 
