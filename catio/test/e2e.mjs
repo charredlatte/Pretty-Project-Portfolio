@@ -578,6 +578,15 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect((await page.inputValue('#queenHomework form[data-quiz="z1"] input[aria-label^="Your answer"]')) === "Well done, thou good cat", "her typing was lost");
     expect(await page.locator('#queenHomework form[data-quiz="z2"]').count() === 1, "the second quiz didn't show");
   });
+  // nor does closing her card and coming back
+  await page.keyboard.press("Escape");
+  await settle(page);
+  await queen().dblclick();
+  await settle(page);
+  await check("closing her card and opening it again finds her answers so far where she left them", async () => {
+    expect(await page.locator('#queenHomework form[data-quiz="z1"] button[aria-pressed="true"]:has-text("Yes, merge it")').count() === 1, "her pick was lost");
+    expect((await page.inputValue('#queenHomework form[data-quiz="z1"] input[aria-label^="Your answer"]')) === "Well done, thou good cat", "her typing was lost");
+  });
   await page.locator('#queenHomework form[data-quiz="z1"] button:has-text("Hand it in")').click();
   await settle(page);
   await check("handing it in sends your answers, in order", async () => {

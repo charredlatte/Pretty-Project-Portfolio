@@ -2106,6 +2106,10 @@ ul.gkey li > div.what { flex-basis: 100%; }
   // said), her answer as she speaks it, Speak / Send / Stop and her voice; then, folded, what she keeps, her
   // character (name, coat, manner, greeting, voice) and her routines. Opening it counts the handoffs as read.
   let QUEEN_UI = null, QUEEN_POLL = null;
+  // Her homework answers in progress, by quiz, so they survive every redraw (a cat reporting, a quiz arriving)
+  // and closing her card; and the quizzes on their way in, so no second Hand it in posts while one is.
+  const DRAFTS = new Map();   // quiz id -> one {pick, idx, text} per question
+  const SENDING = new Set();
   function openQueen(section) {
     const dlg = $("queenDlg"); dlg.replaceChildren();
     const q = queenOf();
@@ -2128,10 +2132,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
     // ---- the talk: her homework first, when she set some ----
     const talk = el("section", "talk");
     const hw = el("div", "homework"); hw.id = "queenHomework";
-    // Her answers in progress live here, by quiz, so they survive every redraw (a cat reporting, a quiz arriving);
-    // and a redraw that would change nothing is skipped, so the forms never move under her fingers.
-    const drafts = new Map();   // quiz id -> one {pick, idx, text} per question
-    const sending = new Set();  // quizzes on their way in: no second Hand it in while one is
+    // A redraw that would change nothing is skipped, so the forms never move under her fingers; one that must
+    // happen puts her answers so far (DRAFTS) back.
+    const drafts = DRAFTS, sending = SENDING;
     let drawn = null;
     const drawHomework = () => {
       const open = openQuizzes();
