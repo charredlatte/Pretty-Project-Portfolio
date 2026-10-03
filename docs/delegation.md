@@ -181,14 +181,24 @@ though, and that shape is what the café can use.
 **Can it run locally? Jev itself, no.** It is a closed, hosted API; nothing to download. Four ways round it, in order
 of fit for the café:
 
-1. **Clef on the gateway's own Worker.** Cloudflare released Clef on 1 October 2026: two decision models in Jev's
-   family, `@cf/cloudflare/clef` (27B) and `@cf/cloudflare/clef-flash` (9B), **drop-in compatible with the System One
-   API**, weights Apache 2.0 on Hugging Face, hosted on Workers AI. The gateway is already a Worker: an `AI` binding
-   in `wrangler.jsonc` and `env.AI.run("@cf/cloudflare/clef-flash", { model, state, questions })` is the whole
-   integration, up to 64 questions a call, 64K tokens of state. Workers AI is in the free plan: 10,000 neurons a day
-   at no charge, then $0.011 per 1,000; Clef-flash is priced at $0.09 per million input tokens. Clef-flash is 13×
-   faster than Jev at the median on Cloudflare's runs. Not her PC, but her own account, no new vendor, no key, no
-   process to keep running, and deployed by the same merge as everything else.
+1. **Jev itself, or Clef, through the gateway's own Worker.** Both are in Cloudflare's model catalogue and both
+   answer to the same `env.AI` binding with the same System One request (`state`, `questions` of `noul`, `choice`
+   and `score`), so **the model id is the only switch**:
+   - `typesafe/jev` (the page she found): Jev as a third-party model, zero data retention, 32K tokens of state,
+     $0.042 per million input tokens, output and cached input free. Third-party models are paid from prepaid AI
+     Gateway credits (unified billing, a 5 % fee on the top-up, the provider's own rate otherwise), not from the
+     free neurons. At a few hundred tokens a decision, a $5 top-up is tens of thousands of decisions.
+   - `@cf/cloudflare/clef-flash` (9B) and `@cf/cloudflare/clef` (27B): Cloudflare's own decision models, released
+     1 October 2026, Jev-compatible, weights Apache 2.0 on Hugging Face, 64K tokens of state, up to 64 questions a
+     call, Clef-flash 13× faster than Jev at the median on Cloudflare's runs. These are Workers AI models, so they
+     run on the **free plan's 10,000 neurons a day** and cost $0.09 per million input tokens past that.
+
+   The integration is an `ai` binding in `wrangler.jsonc` and one `env.AI.run(model, { state, questions })`.
+   Jev's reply, as the page shows it: `answers.<q>.noul` (a probability), `answers.<q>.choice` with `confidence`
+   and `probabilities` per option, `answers.<q>.score` with a `legend` and `probabilities` per level, plus
+   `usage.input_tokens`. Not her PC, but her own account, no new vendor account, no key in the repo, no process to
+   keep running, and deployed by the same merge as everything else. Start on Clef-flash (free); switch the string
+   to `typesafe/jev` for a decision where Jev's calibration is worth paying for.
 2. **Laya on her PC** (ConvAI Innovations, Apache 2.0): the open model that tops JevBench's open entries. `pip install
    laya`; ONNX Runtime on CPU, CUDA or Apple Silicon; three checkpoints of 322M to 421M parameters, well under a
    gigabyte; a multilingual one (French included) with up to 8,192 tokens of state. `laya-serve` speaks Jev's
@@ -239,8 +249,8 @@ Not for a System One model: writing anything, the merge itself, "nothing is a gu
 self-report; a probability that it was guessing would be guessing twice), and anything under `hold`.
 
 **The step.** One function, `decide(state, questions)`, in `harness/gateway/src/decide.js`, with two backends behind
-one switch: `env.AI` running Clef-flash (the default; nothing to install), or `DECIDE_URL` pointing at a System One
-endpoint such as `laya-serve` on her PC for what runs there (the runner and the hooks call it directly; the Worker
+one switch: `env.AI` with a model id (`@cf/cloudflare/clef-flash` by default, `typesafe/jev` when wanted; nothing to
+install), or `DECIDE_URL` pointing at a System One endpoint such as `laya-serve` on her PC for what runs there (the runner and the hooks call it directly; the Worker
 can't reach her PC). The same request body for both, since all three speak the System One API. A confidence floor per
 decision; below it, the old path: the strong model, or Charlotte. Start with the two that cost Opus turns today, the
 sorter and the easy-task rubric, log every decision beside what the old path would have done for a week (the routers'
@@ -252,6 +262,8 @@ to apply it.
 
 ### Sources for phase D
 
+- Cloudflare's model page for `typesafe/jev` (binding usage, reply shape, 32K context, $0.042 per million input,
+  zero data retention) and Workers AI unified billing (third-party models on prepaid AI Gateway credits).
 - Cloudflare changelog, 1 October 2026: Clef and Clef-flash on Workers AI, Jev-compatible, Apache 2.0; the model
   page for `@cf/cloudflare/clef-flash` (usage, 64K context, $0.09 per million input tokens); Workers AI pricing
   (10,000 free neurons a day).
