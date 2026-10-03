@@ -2908,7 +2908,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const everyId = orderOf(L, allIds);
     const shown = everyId.filter((id) => !L.hidden.includes(id)).sort((a, b) => L.pinned.includes(b) - L.pinned.includes(a)).map((id) => [id, S.graphs[id]]);
     const nameOf = (id) => String((S.graphs[id] || {}).repo || id).split("/").pop();
-    const flip = (list, id) => (list.includes(id) ? list.filter((x) => x !== id) : list.concat(id));
+    const put = (list, id, on) => (on ? (list.includes(id) ? list : list.concat(id)) : list.filter((x) => x !== id));   // the state the button showed, not a toggle
     // one save at a time, even across a close and a reopen: change(layout) says what to change, applied to the layout as
     // stored when the save starts, so another device's change that hasn't reached this tab is kept (the database is
     // last-writer-wins, so two saves in the same instant can still cross); a refused save changes nothing on the page;
@@ -2917,17 +2917,23 @@ ul.gkey li > div.what { flex-basis: 100%; }
       if (MAPS.busy) return;
       MAPS.busy = true;
       for (const b of dlg.querySelectorAll(".mapcard .tools button, #mapsHidden button")) b.disabled = true;
-      let stored = null;
-      await save(async (db) => {
+      const before = S.dashboard;
+      let stored = null, nothing = false;
+      const saving = save(async (db) => {
         const ref = db.doc("dashboard/maps"), snap = await ref.get();
-        const doc = snap.exists ? snap.data() : {}, base = mapsLayout(doc);
-        const wrote = Object.assign({}, doc, base, change(base), { updatedAt: Date.now() });
-        await ref.set(wrote);
-        stored = wrote;   // only once it is in the database
+        const doc = snap.exists ? snap.data() : {}, base = mapsLayout(doc), diff = change(base);
+        if (!Object.keys(diff).length) { nothing = true; return; }   // nothing to change after all: nothing is written
+        const at = { updatedAt: Date.now() };
+        if (snap.exists) await ref.update(Object.assign({}, diff, at));   // only the field it changes, so another device's other fields stand
+        else await ref.set(Object.assign({}, base, diff, at));
+        stored = Object.assign({}, doc, base, diff, at);   // only once it is in the database
       }, ok);
-      if (stored) S.dashboard = stored;
+      // a save that never settles (a stalled network) gives the buttons back after a while rather than locking them for good
+      await Promise.race([saving, new Promise((done) => setTimeout(done, 15000))]);
+      if (stored && S.dashboard === before) S.dashboard = stored;   // a newer snapshot that came meanwhile wins
+      if (nothing) toast("It changed on another device meanwhile, so nothing moved.");
       MAPS.busy = false;
-      if (dlg.open) openMaps(again);
+      if (dlg.open) { try { openMaps(again); } catch (e) { /* the page as it was stays up */ } }
     };
     const box = el("div", "dlg");
     const h = el("h2", null, "Project maps"); h.id = "mapsTitle"; h.tabIndex = -1;
@@ -2943,7 +2949,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
       head.appendChild(t);
       if (pinned) { const st = el("span", "star"); st.setAttribute("role", "img"); st.setAttribute("aria-label", "Pinned"); head.prepend(st); }
       // what she came for first: the map; how it sits on the page folds under Manage, after it
-      const map = projectMap(gm, cat); map.open = !MAPS.folded.has(id);
+      let map;
+      try { map = projectMap(gm, cat); } catch (e) { return; }   // a map that can't be drawn skips its own card, never the page
+      map.open = !MAPS.folded.has(id);
       map.addEventListener("toggle", () => { if (map.open) MAPS.folded.delete(id); else MAPS.folded.add(id); });
       const manage = el("details", "manage-tools"); manage.open = MAPS.managing.has(id);
       manage.appendChild(el("summary", null, "Manage"));
@@ -2954,21 +2962,21 @@ ul.gkey li > div.what { flex-basis: 100%; }
         b.dataset.act = act; b.setAttribute("aria-label", (aria || label) + ": " + nameOf(id)); tools.appendChild(b); return b;
       };
       const here = (act) => ({ act, card: id });   // after the save, focus goes back to the same action on this card
-      tool("pin", pinned ? "Unpin" : "Pin", () => keep((B) => ({ pinned: flip(B.pinned, id) }), null, here("pin")));
+      tool("pin", pinned ? "Unpin" : "Pin", () => keep((B) => ({ pinned: put(B.pinned, id, !pinned) }), null, here("pin")));
       // a move swaps her with the next card in her group (pinned or not), in her order over every map, hidden ones kept
       const next = (d) => { const o = shown[i + d]; return o && L.pinned.includes(o[0]) === pinned ? o[0] : null; };
       const move = (d, act) => {
         const other = next(d); if (!other) return;
         keep((B) => {
-          if (B.pinned.includes(id) !== B.pinned.includes(other)) return {};   // pinned or unpinned elsewhere meanwhile: no move across
+          if (B.pinned.includes(id) !== B.pinned.includes(other)) return {};   // pinned or unpinned elsewhere meanwhile: no move across (keep says so)
           const o = orderOf(B, allIds), a = o.indexOf(id), b = o.indexOf(other); [o[a], o[b]] = [o[b], o[a]]; return { order: o };
         }, null, here(act));
       };
       tool("earlier", "", () => move(-1, "earlier"), "up", "Earlier").disabled = !next(-1);
       tool("later", "", () => move(1, "later"), "down", "Later").disabled = !next(1);
-      tool("wide", wide ? "Narrow" : "Wide", () => keep((B) => ({ wide: flip(B.wide, id) }), null, here("wide")));
+      tool("wide", wide ? "Narrow" : "Wide", () => keep((B) => ({ wide: put(B.wide, id, !wide) }), null, here("wide")));
       const after = (shown[i + 1] || shown[i - 1] || [])[0];
-      tool("hide", "Hide", () => keep((B) => ({ hidden: flip(B.hidden, id) }), nameOf(id) + " is hidden. It waits at the foot of the page.", { card: after }));
+      tool("hide", "Hide", () => keep((B) => ({ hidden: put(B.hidden, id, true) }), nameOf(id) + " is hidden. It waits at the foot of the page.", { card: after }));
       if (MAPS.busy) for (const b of tools.children) b.disabled = true;   // a save from before a close is still on its way
       manage.appendChild(tools);
       card.append(head, map, manage);
@@ -2979,7 +2987,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     if (gone.length) {
       const row = el("div", "manage"); row.id = "mapsHidden";
       row.appendChild(el("span", "note", "Hidden:"));
-      for (const x of gone) { const b = plainBtn("Show " + nameOf(x), "tiny", () => keep((B) => ({ hidden: B.hidden.filter((y) => y !== x) }), null, { card: x })); row.appendChild(b); }
+      for (const x of gone) { const b = plainBtn("Show " + nameOf(x), "tiny", () => keep((B) => ({ hidden: put(B.hidden, x, false) }), null, { card: x })); b.disabled = MAPS.busy; row.appendChild(b); }
       box.appendChild(row);
     }
     const acts = el("div", "actions"); acts.append(el("span", "spacer"), closeBtn(dlg));
@@ -2988,9 +2996,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
     show(dlg);
     if (focus) {
       const card = focus.card && dlg.querySelector('.mapcard[data-map="' + CSS.escape(focus.card) + '"]');
-      const scope = card || dlg, ok = (b) => !b.disabled;
-      const back = (focus.act && [...scope.querySelectorAll("[data-act]")].find((b) => b.dataset.act === focus.act && ok(b)))
-        || (focus.text && [...scope.querySelectorAll("button, summary, a")].find((b) => b.textContent === focus.text && ok(b)))
+      const scope = focus.card ? card : dlg, ok = (b) => !b.disabled;   // her card gone: the title, never the same button on another card
+      const back = (scope && focus.act && [...scope.querySelectorAll("[data-act]")].find((b) => b.dataset.act === focus.act && ok(b)))
+        || (scope && focus.text && [...scope.querySelectorAll("button, summary, a")].find((b) => b.textContent === focus.text && ok(b)))
         || (card && card.querySelector(".manage-tools > summary")) || h;
       back.focus({ preventScroll: true });
     }
