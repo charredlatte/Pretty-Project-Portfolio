@@ -401,14 +401,14 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     const a = S.answers[c.id];
     const opts = optionsFor(c);
     $("choices").classList.toggle("answered", !!a);
+    $("none").hidden = !!(c.options && c.options.length <= 4);   // the grid already shows every choice
     $("choices").replaceChildren(...opts.map((p, k) => choiceButton(p, k + 1, c)));
-    const chosenElsewhere = a && a.verdict === "file" && !opts.some((p) => p.repo === a.project);
+    const chosenElsewhere = a && a.verdict === "file" && !opts.some((p) => p.repo === a.project) && !$("none").hidden;   // an old answer a re-dealt card no longer offers has nowhere to open
     if (chosenElsewhere) S.more = true;
     $("all").hidden = !S.more;
     $("none").setAttribute("aria-expanded", String(S.more));
     if (S.more) $("allList").replaceChildren(...projectList(c).filter((p) => !c.options || !opts.some((o) => o.repo === p.repo)).map((p) => choiceButton(p, "", c)));   // a deck card: only the choices past the grid
     $("drop").disabled = $("none").disabled = S.readOnly;
-    $("none").hidden = !!(c.options && c.options.length <= 4);   // the grid already shows every choice
     $("drop").setAttribute("aria-pressed", String(!!a && a.verdict === "drop"));
     $("drop").textContent = a && a.verdict === "drop" ? D("dropped") + " ✓" : D("drop") + " ";
     if (!(a && a.verdict === "drop")) $("drop").insertAdjacentHTML("beforeend", '<span class="k">D</span>');
