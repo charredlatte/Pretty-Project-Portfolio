@@ -164,6 +164,110 @@ With B in place, delegation needs no asking. Small steps, each a few hours.
 4. **The brain's tray.** A file dropped with a note that reads like a task ("summarise this", "check these
    against the catalogue") is offered to the queen for delegation, with her confirmation, not before.
 
+## Phase D: the yes/no decisions on a System One model (Jev, or an open twin)
+
+Her ask (3 October): save tokens by running Jev locally, "even if that means giving Jev decisions that require only
+probability outcomes". Researched the same day; the sources are at the end.
+
+**What Jev is.** TypeSafe AI's System One model (early access 15 September 2026). It writes no text: it takes a
+*state* (any text or JSON) and a schema of typed *questions*, and returns a probability for every allowed answer, in
+one parallel pass, in 70 to 500 ms. Three question types: `noul` (yes/no, the probability of yes), `choice` (one of
+up to 255 options, a probability each and a confidence), `score` (an ordered rubric, a probability-weighted score).
+Price: $0.042 per million input tokens, output free, because there is no output to speak of. It is not the "stage
+one" of Claude Code's own permission classifier (a fast yes/no filter tuned to err toward blocking, with a reasoning
+pass behind it): that is Anthropic's, inside auto mode, and not something the café can call. Same shape of idea,
+though, and that shape is what the café can use.
+
+**Can it run locally? Jev itself, no.** It is a closed, hosted API; nothing to download. Four ways round it, in order
+of fit for the café:
+
+1. **Clef on the gateway's own Worker.** Cloudflare released Clef on 1 October 2026: two decision models in Jev's
+   family, `@cf/cloudflare/clef` (27B) and `@cf/cloudflare/clef-flash` (9B), **drop-in compatible with the System One
+   API**, weights Apache 2.0 on Hugging Face, hosted on Workers AI. The gateway is already a Worker: an `AI` binding
+   in `wrangler.jsonc` and `env.AI.run("@cf/cloudflare/clef-flash", { model, state, questions })` is the whole
+   integration, up to 64 questions a call, 64K tokens of state. Workers AI is in the free plan: 10,000 neurons a day
+   at no charge, then $0.011 per 1,000; Clef-flash is priced at $0.09 per million input tokens. Clef-flash is 13×
+   faster than Jev at the median on Cloudflare's runs. Not her PC, but her own account, no new vendor, no key, no
+   process to keep running, and deployed by the same merge as everything else.
+2. **Laya on her PC** (ConvAI Innovations, Apache 2.0): the open model that tops JevBench's open entries. `pip install
+   laya`; ONNX Runtime on CPU, CUDA or Apple Silicon; three checkpoints of 322M to 421M parameters, well under a
+   gigabyte; a multilingual one (French included) with up to 8,192 tokens of state. `laya-serve` speaks Jev's
+   `POST /v1/systemone`, so anything written for Jev or Clef points at `localhost` unchanged. Published numbers: 33 to
+   40 ms a question on a T4, 7 ms each in a batch; typed-decision accuracy 0.766 against Jev's 0.727; calibration
+   error 0.081 against 0.246. Caveats from its own README: over-confident as shipped (run
+   `fit_abstention_thresholds()` on real decisions before trusting a confidence gate), option order biases answers,
+   and options share a token budget of about 200, so twenty short options, not 255. Truly local, truly free, and the
+   runner (`queen.py`) and the hooks on her PC are the natural callers.
+3. **Jevstiller** (Apache 2.0): a proxy in front of Jev that learns a tiny local model (a sentence encoder and a
+   logistic regression) from Jev's own answers, and takes over the confident share at about 16 ms on a CPU, with a
+   2 % audit slice still going to Jev and a Clopper-Pearson bound on the agreement you set (98 % by default). It
+   needs about 5,000 answers of one repeated question before it carries most of the load. The café will not make
+   5,000 of any one decision for a long while: not for us yet.
+4. **jev-local** (MIT): mimics Jev with a 7B chat model on Ollama or llama.cpp, JSON-parsed, 200 to 800 ms on a GPU
+   and 3 to 10 s on a CPU, no measured accuracy. A chat model pretending to be a decision model: not recommended.
+
+**What the documentation says about token efficiency.** The claim, consistently, is not that Jev is a cheaper
+LLM but that it removes LLM calls whose answer was always one bit or one label:
+
+- TypeSafe: input at $0.042 per million, output free, 70 to 500 ms; one call carries many questions, "evaluated
+  independently against the same state, so batching is nearly free" (jev-harness).
+- A Claude Code permission gate on Jev measured over 90 live decisions: 264 ms median against about 4 s for an
+  LLM judge, $0.0000227 a decision against about $0.0022 on a frontier model (99 % lower), and zero Claude quota
+  used. The same README warns that adding Jev *on top of* an existing fast path only adds its 264 ms.
+- The Jev model routers for Claude Code (half a dozen on GitHub, all the same shape) send about 400 tokens per
+  sub agent spawn, ask four to six `noul` questions ("root-cause investigation?", "architecture decision?",
+  "mechanical edit with a named target?", "scope stated?"), weight them into a score, and pick Haiku, Sonnet or
+  Opus. They route **only sub agents**, never the main conversation, because switching the main model invalidates
+  its prompt cache, which costs more than the routing saves. They cap a read-only sub agent at the cheap tier before
+  asking anything, demand a higher margin before downgrading one that can edit, and fail open to a tier you set.
+- Cloudflare on Clef: "no free-form output to parse and no reasoning tokens to wait for".
+
+**Where the café has decisions that are only probabilities.** Each is a Claude turn today, or a keyword score, or
+Charlotte:
+
+| Decision today | Who makes it | As System One questions |
+|---|---|---|
+| Is this task easy? (the rubric above) | the queen's Opus turn, or Charlotte | six `noul`: spelled out, checkable, one file, touches a held path, private, needs a browser; the router pattern |
+| Which model for a new cat | `rooms/<k>.model`, by hand | `choice` over Haiku, Sonnet, Opus, from the task text |
+| Where a dropped file goes (the brain's `route()`) | keyword score, then a chat model as sorter | `choice` over the open rooms and the cats with a brief; Clef reads images too, so a screenshot sorts itself |
+| Which cat needs her first (the queen's priority list) | the queen's turn, reading every `ask` | `score` of urgency per cat, batched in one call |
+| Is this `said` a handoff she must read now | `refreshAgents` diffs timestamps | `noul` on the note's text |
+| Is a tray note a task (phase C4) | nobody | `noul`, with her confirmation after |
+| Is this command destructive (the gates) | regex in `gates.py` | keep the regex; a `noul` only as a second gate on what the regex passes, low confidence meaning "ask" |
+
+Not for a System One model: writing anything, the merge itself, "nothing is a guess" (the model's own
+self-report; a probability that it was guessing would be guessing twice), and anything under `hold`.
+
+**The step.** One function, `decide(state, questions)`, in `harness/gateway/src/decide.js`, with two backends behind
+one switch: `env.AI` running Clef-flash (the default; nothing to install), or `DECIDE_URL` pointing at a System One
+endpoint such as `laya-serve` on her PC for what runs there (the runner and the hooks call it directly; the Worker
+can't reach her PC). The same request body for both, since all three speak the System One API. A confidence floor per
+decision; below it, the old path: the strong model, or Charlotte. Start with the two that cost Opus turns today, the
+sorter and the easy-task rubric, log every decision beside what the old path would have done for a week (the routers'
+"observe mode"), then switch. Add a `decide` tool to `catio_mcp.py` and the gateway, same name and arguments, so the
+queen and the cats can ask a one-bit question without spending a turn on it.
+
+Order: after A0 and A1, before B. The rubric is the first thing B needs, and this is how B's queen stops paying Opus
+to apply it.
+
+### Sources for phase D
+
+- Cloudflare changelog, 1 October 2026: Clef and Clef-flash on Workers AI, Jev-compatible, Apache 2.0; the model
+  page for `@cf/cloudflare/clef-flash` (usage, 64K context, $0.09 per million input tokens); Workers AI pricing
+  (10,000 free neurons a day).
+- TypeSafe AI: "Introducing System One Models & Jev" and the API reference (`POST /v1/systemone`, the three question
+  types, $0.042 per million input, output free, 70 to 500 ms). Read through search summaries: the site is blocked
+  from this session's network.
+- Laya (github.com/NandhaKishorM/laya): README, benchmarks against Jev 1.13, `laya-serve`, limitations.
+- Jevstiller (github.com/tomerglick57/Jevstiller): the cascade, the agreement bound, Banking77 numbers.
+- jev-local (github.com/tapsin/jev-local).
+- claude-jev-model-router (github.com/andrei10k/claude-jev-model-router): the six questions, the weights, the
+  tiers, prompt-cache reasoning, tool-set gating, fail-open.
+- claude-code-jev (github.com/RahulBalakavi/claude-code-jev): the permission gate and its 90-decision benchmark.
+- jev-harness (github.com/Talya1412/jev-harness): fail-open gating, batching, the destructive-gate holdout.
+- Simon Willison, 21 September 2026, "Jev introduces a new shape of LLM"; The Register, 29 September 2026, on
+  Jevstiller. Both read through search summaries only.
+
 ## What never delegates
 
 - Merging, pushing to a default branch, anything under `hold`: the gates refuse these whoever the model is.
@@ -180,6 +284,6 @@ spends her PC's time, not money: the runner is signed in with her plan.
 
 ## Order
 
-A0, then A1 to A4, then C1 (routines on a small model), then B, then C2 to C4. A and C1 need no new secrets, no deploy and
+A0, then A1 to A4, then D (Clef on the Worker, the sorter and the rubric first), then C1 (routines on a small model), then B, then C2 to C4. A and C1 need no new secrets, no deploy and
 no change to the page's stored capabilities (A0 is one variable in her Claude environments). B changes the gateway (deployed by Workers Builds on merge) and the
 runner (she restarts it), so it waits for a quiet day.
