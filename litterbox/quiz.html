@@ -390,7 +390,7 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     $("backLabel").textContent = D("back");
     $("peek").innerHTML = esc(D("peek")) + ' <span class="k">␣</span>';
     const g = project(c.guess, c);
-    $("guess").textContent = (c.guess ? g.label : D("noGuess")).toUpperCase();
+    $("guess").textContent = (c.guess ? g.label || g.repo : D("noGuess")).toUpperCase();
     $("guessRepo").textContent = c.why ? c.why : c.guess && !c.options ? "Pile: litterbox/" + (c.pile || c.guess + ".md") : "";
     $("src").textContent = c.from ? D("src").replace("{from}", c.from) : "";
     $("card").classList.toggle("flipped", S.flipped);
@@ -406,7 +406,7 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     if (chosenElsewhere) S.more = true;
     $("all").hidden = !S.more;
     $("none").setAttribute("aria-expanded", String(S.more));
-    if (S.more) $("allList").replaceChildren(...projectList(c).map((p) => choiceButton(p, "", c)));
+    if (S.more) $("allList").replaceChildren(...projectList(c).filter((p) => !c.options || !opts.some((o) => o.repo === p.repo)).map((p) => choiceButton(p, "", c)));   // a deck card: only the choices past the grid
     $("drop").disabled = $("none").disabled = S.readOnly;
     $("none").hidden = !!(c.options && c.options.length <= 4);   // the grid already shows every choice
     $("drop").setAttribute("aria-pressed", String(!!a && a.verdict === "drop"));
