@@ -8,6 +8,41 @@ connector, so she adopts those as cats by hand.
 
 The page is a private claude.ai artifact; its link is in [`artifacts.json`](artifacts.json).
 
+## In plain words
+
+**All your Claude chats, in one cozy café.** Using AI means a dozen chats open at once, and you forget which one is
+waiting for you. KittyChat Café turns each chat into a cat in a little café. You see who is busy, who is done and who
+needs you, and one friendly queen cat helps you run the place. You never need to know what's under the hood.
+
+| In real life | In the café |
+|---|---|
+| A Claude chat or coding session | A cat |
+| A project (a website, a shop, a legal file) | A room, with a filing cabinet |
+| A chat waiting for your answer | A cat that meows; point at it and it says what it needs |
+| A chat that has finished | A cat asleep |
+| Your main assistant | The queen, who sits in the entrance hall and does the errands |
+| You | The owner of the café |
+
+How it connects, start to finish:
+
+1. You work with Claude as usual. Each chat becomes a cat, and its project decides its room.
+2. Each cat checks in at a small always-on online front desk (the gateway) with a short note: working, finished, or
+   stuck and needs you.
+3. The café page shows what the front desk knows. Busy cats look busy, sleeping cats sleep, and a badge counts the
+   ones that need you.
+4. You answer from the same page: click a cat, type a line or drop a file on it. The cat finds it the next time it
+   checks in.
+5. The queen handles the rest: she keeps what you give her, runs your routines, and can set a stuck cat's homework as a
+   short quiz. She thinks on your own computer.
+
+Your private chats stay in your own account, never in this repository.
+
+**Where it stands.** The code is open source and you can run your own café today (see [Running your own](#running-your-own)).
+A hosted café with nothing to install is planned and not open yet. The pixel art comes from third-party packs that
+cannot be shared, so check each pack's terms before posting screenshots.
+
+Everything below is the detail.
+
 ## What's on the page
 
 - **The manor fills the screen**, seen from above in a meadow, **one floor at a time**. Downstairs
