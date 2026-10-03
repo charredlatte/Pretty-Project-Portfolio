@@ -12,10 +12,13 @@ the business plan's figures go once she has chosen them. The plan itself is priv
 1. **Home.** One line on what the café is, a screenshot box, "Start free: self-host" and "Join the café: early
    access", the three ways to get it (self-host, hosted, set up for you), and the legal footer every page carries
    (mentions légales, CGV, confidentialité, rétractation, contact).
-2. **Pricing.** Three tiers from her paywall (2 October): Free (one repository, the page), Early access (unlimited
+2. **Pricing.** Three columns from her paywall (2 October): Free (one repository, the page), Early access (unlimited
    repositories, requests into sessions, the gateway's calls, the brain's sorter, new features until the app ships)
-   and Founder (yearly at ten months, or lifetime, capped). Prices HT with "TVA non applicable, art. 293 B du CGI",
-   a grid of which gateway calls each tier unlocks, and the "in development" note: the subscription funds the app.
+   and Support, which is not a tier but two buttons: "Buy me a coffee" (one-off coffees and small memberships, thanks
+   and a name in the credits, no promise) and "Back the app" (a crowdfunding campaign whose rewards are a year of
+   Early access). No lifetime seat (her call, 3 October: no lifetime guarantee sale, an in-between instead). Prices
+   HT with "TVA non applicable, art. 293 B du CGI", a grid of what each column unlocks, and the "in development"
+   note: the subscription and the campaign fund the app.
 3. **Product page.** The Early access plan as one Shopify product: a selling-plan selector (monthly or yearly,
    Shopify's own Subscriptions app), "what you need first" (claude.ai with Claude Code, GitHub, the buyer's own cat
    art), and the FAQ (the café never reads code or resells Claude; cancelling; whose data).
@@ -47,4 +50,6 @@ Mind the quota: a Starter plan with a View seat gets six MCP calls a month.
   check on "KittyChat Café" (2 October) offered no kittychat domain; it suggested purrchat.store, whiskerchat.com
   and meowmingle.store, each available that day. An INPI search for "KittyChat" is still to do.
 - **Monthly or yearly first.** Shopify Subscriptions handles both; the wireframe shows both selling plans.
+- **Ulule or Kickstarter** for the campaign, and whether the coffee page is Buy Me a Coffee or Ko-fi. The business plan
+  weighs them; the frame only links out.
 - **The invite code's shape** and whether the Thank-you page or the gateway mints it: phase 2 of `docs/accounts.md`.
