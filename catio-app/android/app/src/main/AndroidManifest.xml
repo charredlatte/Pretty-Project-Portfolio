@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DRAFT: never built. See docs/mobile-app.md.
+
+     allowBackup is off on purpose: the sign-in cookie is a 30-day bearer of full owner rights, and the
+     fetched pack art is not ours to copy anywhere. Neither should ride out in a backup. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The only permission the app needs: it talks to her gateway and to nothing else. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:label="KittyChat Cafe"
+        android:hardwareAccelerated="true"
+        android:supportsRtl="false"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleInstance"
+            android:screenOrientation="fullUser"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
+            android:preferMinimalPostProcessing="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
