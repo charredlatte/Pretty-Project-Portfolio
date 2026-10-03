@@ -553,6 +553,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
     sunroom: "Terrace", study: "Craft room", bedroom: "Bedroom", bath: "Ensuite", hall: "Entrance hall" };
   // the cat café on the ground floor, her own rooms upstairs
   const ORDER = ["dining", "kitchen", "living", "study", "hall", "sunroom", "garden", "brain", "bath", "bedroom"];
+  // a note of hers: "owner" on the wire, "charlotte" in the ones written before accounts (read both, write owner)
+  const fromOwner = (n) => n.author === "owner" || n.author === "charlotte";
   const FLOORS = { ground: "Ground floor", upper: "Upstairs" };
   const levelOf = (k) => (k === "landing" ? "upper" : MANOR.level[k] || "ground");
   const other = (f) => (f === "upper" ? "ground" : "upper");
@@ -1752,7 +1754,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const out = [head(h, [c.project.name, roomInfo(c.roomKey).name, ago(c.updated)].filter(Boolean).join(" · "))];
     out.push(el("div", c.ask ? "ask-box " + m.kind : "sub", c.ask || c.doing || c.title));
     const nf = waitingFor(c.id), last = notesFor(c).pop();
-    if (nf || last) out.push(el("p", "sub", [nf && nf + (nf === 1 ? " file" : " files") + " from the brain", last && (last.author === "charlotte" ? "You" : c.name) + ": " + last.text.slice(0, 60)].filter(Boolean).join(" · ")));
+    if (nf || last) out.push(el("p", "sub", [nf && nf + (nf === 1 ? " file" : " files") + " from the brain", last && (fromOwner(last) ? "You" : c.name) + ": " + last.text.slice(0, 60)].filter(Boolean).join(" · ")));
     if (c.kind === "chat") {
       const moods = el("div", "moods");
       for (const [v, label, mk] of [["needs", "Needs me", "meow"], ["busy", "In progress", "idle"], ["done", "Done", "sleep"]]) {
@@ -2217,13 +2219,13 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const drawThreadQ = () => {
       ul.replaceChildren();
       const cats = allCats(true).cats;
-      const items = (S.queenNotes || []).filter((n) => n.author === "charlotte" || n.author === QUEEN_ID).map((n) => ({ kind: n.author, text: n.text, at: n.at || 0, routine: n.routine }))
+      const items = (S.queenNotes || []).filter((n) => fromOwner(n) || n.author === QUEEN_ID).map((n) => ({ kind: fromOwner(n) ? "owner" : n.author, text: n.text, at: n.at || 0, routine: n.routine }))
         .concat(cats.filter((c) => c.said && c.said.text).map((c) => ({ kind: "handoff", cat: c, text: c.said.text, at: c.said.at || 0 })))
         .sort((a, b) => a.at - b.at).slice(-20);
       if (!items.some((it) => it.kind !== "handoff")) { const li = el("li", "them greet"); li.append(el("span", "who", q.name), document.createTextNode(q.greeting)); ul.appendChild(li); }   // nothing said yet: her greeting
       for (const it of items) {
-        const li = el("li", it.kind === "charlotte" ? "me" : it.kind === "handoff" ? "them handoff" + (it.at > q.readAt ? " new" : "") : "them");
-        const who = it.kind === "charlotte" ? "You" : it.kind === "handoff" ? it.cat.name + " brought you" : q.name + (it.routine && it.routine.name ? " · " + it.routine.name : "");
+        const li = el("li", it.kind === "owner" ? "me" : it.kind === "handoff" ? "them handoff" + (it.at > q.readAt ? " new" : "") : "them");
+        const who = it.kind === "owner" ? "You" : it.kind === "handoff" ? it.cat.name + " brought you" : q.name + (it.routine && it.routine.name ? " · " + it.routine.name : "");
         li.append(el("span", "who", who + " · " + ago(it.at)), document.createTextNode(it.text));
         if (it.kind === "handoff" && VIEW.cats.some((x) => x.id === it.cat.id)) { const o = plainBtn("Open " + it.cat.name, "tiny open", () => { dlg.close(); openCat(it.cat.id); }); li.appendChild(o); }
         ul.appendChild(li);
@@ -2239,9 +2241,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
       if (!text) { say.focus(); return; }
       send.disabled = true;
       try {
-        await hostCall("comment", { cat: QUEEN_ID, text, author: "charlotte" });
+        await hostCall("comment", { cat: QUEEN_ID, text, author: "owner" });
         say.value = "";
-        S.queenNotes = (S.queenNotes || []).concat([{ id: "me" + Date.now(), cat: QUEEN_ID, author: "charlotte", text, at: Date.now() }]);
+        S.queenNotes = (S.queenNotes || []).concat([{ id: "me" + Date.now(), cat: QUEEN_ID, author: "owner", text, at: Date.now() }]);
         drawThreadQ();
         if (queenState() === "away") toast("Kept for her: she answers once her runner is on.");
       } catch (e) { toast(gatewayProblem(e), "alert"); }
@@ -2559,7 +2561,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const text = "Ask the project map: " + q, id = gid();
     b.disabled = true;
     await save(async (db) => {
-      await db.doc("notes/" + id).set({ cat: c.id, text, author: "charlotte", at: Date.now() });
+      await db.doc("notes/" + id).set({ cat: c.id, text, author: "owner", at: Date.now() });
       const via = await tell(c, "[Catio] Charlotte says: " + text, { kind: "message", note: id, say: text });
       await db.doc("notes/" + id).update({ via });
       toast(saidAs[via]);
@@ -2993,7 +2995,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   // Say something to a cat: through the gateway or to its agent, into its session, or (an adopted chat) onto its card only.
   async function tell(cat, text, item) {
     if (cat.agentId) {
-      await hostCall(item.kind === "request" ? "manage" : "comment", item.kind === "request" ? { cat: cat.agentId, action: item.action } : { cat: cat.agentId, text: item.say || text, author: "charlotte" });
+      await hostCall(item.kind === "request" ? "manage" : "comment", item.kind === "request" ? { cat: cat.agentId, action: item.action } : { cat: cat.agentId, text: item.say || text, author: "owner" });
       return cat.kind === "session" ? "gateway" : "pushed";
     }
     if (cat.kind === "session") return postToSession(cat, text, item);
@@ -3297,7 +3299,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   /* ---------- the harness: talking to a cat, and managing it ---------- */
   // What she said is in the Catio's notes; what a cat said back through the gateway (report.py say) is in the gateway's.
   const notesFor = (c) => S.notes.filter((n) => n.cat === c.id)
-    .concat(((c.agentId && S.agentNotes[c.agentId]) || []).filter((n) => n.author !== "charlotte"))
+    .concat(((c.agentId && S.agentNotes[c.agentId]) || []).filter((n) => !fromOwner(n)))
     .sort((a, b) => (a.at || 0) - (b.at || 0));
   async function loadThread(c) {
     if (!c.agentId || !S.host) return;
@@ -3317,7 +3319,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       send.disabled = true;
       const id = gid();
       const ok = await save(async (db) => {
-        await db.doc("notes/" + id).set({ cat: c.id, text, author: "charlotte", at: Date.now() });
+        await db.doc("notes/" + id).set({ cat: c.id, text, author: "owner", at: Date.now() });
         const via = await tell(c, "[Catio] Charlotte says: " + text, { kind: "message", note: id, say: text });
         await db.doc("notes/" + id).update({ via });
         toast(saidAs[via]);
@@ -3336,8 +3338,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const notes = notesFor(c).slice(-12);
     ul.hidden = !notes.length;
     for (const n of notes) {
-      const li = el("li", n.author === "charlotte" ? "me" : "them");
-      li.append(el("span", "who", (n.author === "charlotte" ? "You" : c.name) + " · " + ago(n.at) + (n.via === "queued" ? " · queued" : n.via === "unreachable" ? " · not delivered" : "")), document.createTextNode(n.text));
+      const li = el("li", fromOwner(n) ? "me" : "them");
+      li.append(el("span", "who", (fromOwner(n) ? "You" : c.name) + " · " + ago(n.at) + (n.via === "queued" ? " · queued" : n.via === "unreachable" ? " · not delivered" : "")), document.createTextNode(n.text));
       ul.appendChild(li);
     }
   }

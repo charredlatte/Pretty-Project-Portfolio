@@ -83,7 +83,11 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
   `file:<id>` from before accounts), so a delete needs no read. `src/houses.js` is what every part agrees on:
   the first house's name, whose a token is, where a house's files are; plain JavaScript, so
   `test/houses.test.mjs` checks the upgrade paths outside workerd.
-- On the wire the owner is still `charlotte` (the notes' `author`, "Charlotte only" in the tools): shared with
+- On the wire the owner is `owner` since 3 October (the notes' `author`, the tools' `who`, "the owner only" in the
+  tools' wording); `charlotte` is still taken on write as the old name and stored as `owner`, the gateway's house
+  and `catio_mcp.py`'s state rename old notes once, and the page reads both. **Order of shipping:** the gateway
+  first (the merge deploys it, and it takes both names), the artifact's republish after: a page that writes
+  `owner` to a gateway that doesn't take it yet is refused on every message. Before that it was `charlotte`: shared with
   the page and `catio_mcp.py`, so renaming it to `owner` everywhere is its own change.
 
 ## Sources

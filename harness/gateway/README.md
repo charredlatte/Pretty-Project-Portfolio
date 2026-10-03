@@ -20,7 +20,8 @@ their own cats and café. Two kinds of caller, told apart by how they sign in:
 - **A user, through claude.ai.** The gateway is a custom connector, signed in once with their handle and password
   (OAuth). They read every cat in their house, write as its owner, drop files and manage cats.
 - **Agents and the sessions' hooks.** They send one of the user's agents' keys as a bearer token. They report,
-  read and answer, but never as the owner: only the owner writes as `charlotte` (the owner's name on the wire),
+  read and answer, but never as the owner: only the owner writes as `owner` (`charlotte` is still taken as the
+  owner's old name, and stored as `owner`),
   drops files and manages. So a key that leaks out of a session can't put words in her mouth to another one.
 
 The first account is `charlotte`'s, made from the two secrets below the first time the gateway runs with accounts;
@@ -135,7 +136,7 @@ queen runner acts in that account's house:
 - `POST /api/runner/say` `{turn, text, done, routine}` streams her answer: every open café gets a `queen` push
   as she speaks, and `done` stores it as her note (author `queen`, with the routine that asked it).
 - With her key on `/mcp`, the queen uses the same tools as everyone, as `queen`: she may `comment` as `queen`
-  (a cat's hook hands it in as `[Catio] The queen says: …`), `manage` and `drop_file`, never write as `charlotte`.
+  (a cat's hook hands it in as `[Catio] The queen says: …`), `manage` and `drop_file`, never write as `owner`.
   The agents' key may do none of it: the cats act on what she says.
 - `manage {cat: "queen", action: "pause"}` (Stop in the café) ends the turn she is on.
 - **Homework.** `quiz` (the queen, or Charlotte) sets Charlotte a quiz to unblock a cat: a title, `for` the cat, 1 to
@@ -178,7 +179,7 @@ or finish, and check `inbox` between tasks.
 
 - **Wake commands.** It can't run commands, so a `wake` is ignored: an agent finds what's waiting in `inbox`.
 - **Files** are capped at 1 MiB. A free Worker gets 10 ms of CPU a request, so bigger files go through the brain.
-- **Who writes.** Only Charlotte writes as `charlotte`; she and the queen's runner (as `queen`) drop files and
+- **Who writes.** Only the owner writes as `owner`; the owner and the queen's runner (as `queen`) drop files and
   manage cats.
 - **`inbox` takes `mark`**, which returns only what hasn't been handed over yet and counts it as handed over.
   The server on her computer takes it too.
