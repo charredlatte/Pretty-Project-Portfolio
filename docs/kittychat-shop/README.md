@@ -20,7 +20,8 @@ the business plan's figures go once she has chosen them. The plan itself is priv
    Early access). No lifetime seat (her call, 3 October: no lifetime guarantee sale, an in-between instead). Prices
    HT with "TVA non applicable, art. 293 B du CGI", a grid of what each column unlocks, and the "in development"
    note: the subscription and the campaign fund the app.
-3. **Product page.** The Early access plan as one Shopify product: a selling-plan selector (monthly or yearly,
+3. **Product page.** The Early access plan as one Shopify product (Basic is a second product with the same page: the
+   same selling plans, its own "what you get" list, and "Choose Basic" lands here): a selling-plan selector (monthly or yearly,
    Shopify's own Subscriptions app), "what you need first" (claude.ai with Claude Code, GitHub, the buyer's own cat
    art), and the FAQ (the café never reads code or resells Claude; cancelling; whose data).
 4. **Checkout.** Shopify's checkout as the fields it owns: email, billing address, Shopify Payments, and the two
