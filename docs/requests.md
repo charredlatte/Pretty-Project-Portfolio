@@ -209,3 +209,5 @@ The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.
   and a cap on the calls to the MCP. Between Free and Early access.
 - **Set up for you, from 90 €** (3 October): no "sur devis". A one-time payment that is a lifetime subscription and the
   plugin's customizable features taught as a DIY Claude customization course; the afternoon of setup on top.
+- **Two audiences** (3 October): developers who lose track of sessions, and "small business owners looking to use AI for
+  the first time. This should be like a video game accessible coding environment." The home page speaks to the second.

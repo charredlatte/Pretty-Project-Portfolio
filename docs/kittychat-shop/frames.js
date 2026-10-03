@@ -55,8 +55,8 @@ function page(name, width = 1280, height = 900) {
 
 // 1. Home.
 { const { body, w } = page("1 Home");
-  body.appendChild(text("Every Claude Code session is a cat. The café is where you see them all.", 32, BOLD, INK, w));
-  body.appendChild(text("A pixel-art manor for your sessions and chats: who's working, who's blocked, who needs you. Your own claude.ai, your own machine; the café only shows and talks to them.", 16, REG, GREY, 640));
+  body.appendChild(text("Your projects as a cat café. Every task is a cat; it meows when it needs you.", 32, BOLD, INK, w));
+  body.appendChild(text("No terminal required. A pixel-art manor where a room is a project and a cat is a task: who's working, who's blocked, who needs you. Your own claude.ai does the work; the café shows it and talks to it.", 16, REG, GREY, 640));
   const cta = row(12, "calls"); cta.appendChild(button("Start free: self-host", true)); cta.appendChild(button("Join the café: early access")); body.appendChild(cta);
   body.appendChild(box(w, 360, BOX, "screenshot: the manor, ground floor"));
   const ways = row(16, "three ways");
@@ -154,8 +154,8 @@ function page(name, width = 1280, height = 900) {
 
 // 8 and 9. The phone: home and pricing at 390 wide.
 { const { body, w } = page("8 Home (phone)", 390, 900);
-  body.appendChild(text("Every Claude Code session is a cat.", 24, BOLD, INK, w));
-  body.appendChild(text("See them all in one café: who's working, who's blocked, who needs you.", 14, REG, GREY, w));
+  body.appendChild(text("Your projects as a cat café.", 24, BOLD, INK, w));
+  body.appendChild(text("Every task is a cat; it meows when it needs you. No terminal required.", 14, REG, GREY, w));
   body.appendChild(button("Start free: self-host", true)); body.appendChild(button("Join the café"));
   body.appendChild(box(w, 240, BOX, "screenshot")); }
 { const { body, w } = page("9 Pricing (phone)", 390, 1240);
