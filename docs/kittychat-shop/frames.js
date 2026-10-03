@@ -72,15 +72,16 @@ function page(name, width = 1280, height = 900) {
   for (const [t, p, lines, primary] of [
     ["Free", "0 €", ["Self-host or hosted", "One repository, one room", "Hover, menus, the saved copy", "Community help"], false],
     ["Early access", "[monthly] €/month", ["Everything in Free", "Unlimited repositories and rooms", "Requests: pause, wrap up, messages, New cat", "The gateway: comment, drop files, manage, agents", "The brain's sorter", "New features as they land, until the app ships"], true],
-    ["Founder", "[annual] €/year · or lifetime, 50 seats", ["Everything in Early access", "Ten months for twelve", "Your name in the café's credits", "A say in what's built next"], false]]) {
+    ["Support", "A coffee, or back the app", ["No subscription, no promise", "One-off coffees and small memberships", "Your name in the café's credits", "The campaign funds the app: a year of Early access as its reward"], false]]) {
     const c = card(336, 20, "tier " + t); c.appendChild(text(t, 18, BOLD)); c.appendChild(text(p, 22, BOLD, primary ? INK : GREY, 296));
     for (const l of lines) c.appendChild(text("✓  " + l, 13, REG, INK, 296));
-    c.appendChild(button(t === "Free" ? "Clone the repo" : "Choose " + t, primary)); tiers.appendChild(c); }
+    if (t === "Support") { const r = row(8, "support buttons"); r.appendChild(button("Buy me a coffee")); r.appendChild(button("Back the app")); c.appendChild(r); }
+    else c.appendChild(button(t === "Free" ? "Clone the repo" : "Choose " + t, primary)); tiers.appendChild(c); }
   body.appendChild(tiers);
   body.appendChild(text("What each tier unlocks at the gateway", 16, BOLD));
   const grid = col(0, "feature grid");
-  const rows = [["", "Free", "Early access", "Founder"], ["Repositories", "1", "unlimited", "unlimited"], ["Requests into a session (pause, wrap up, message, New cat)", "–", "✓", "✓"],
-    ["Gateway calls: comment, drop_file, manage, list_agents", "–", "✓", "✓"], ["The brain's sorter and the litter box quiz", "–", "✓", "✓"], ["Hosted café (accounts, keys, your own address)", "–", "✓", "✓"], ["The app, when it ships", "–", "included", "included"]];
+  const rows = [["", "Free", "Early access", "Support"], ["Repositories", "1", "unlimited", "as Free, or as Early access with a campaign reward"], ["Requests into a session (pause, wrap up, message, New cat)", "–", "✓", "with a reward"],
+    ["Gateway calls: comment, drop_file, manage, list_agents", "–", "✓", "with a reward"], ["The brain's sorter and the litter box quiz", "–", "✓", "with a reward"], ["Hosted café (accounts, keys, your own address)", "–", "✓", "with a reward"], ["The app, when it ships", "–", "included", "funded by the campaign"]];
   rows.forEach((r, i) => { const rr = row(0, "row"); r.forEach((cell, k) => { const t = text(cell, 12, i === 0 || k === 0 ? BOLD : REG, i === 0 ? GREY : INK, k === 0 ? 520 : 170); rr.appendChild(t); }); grid.appendChild(rr); });
   body.appendChild(grid);
   body.appendChild(text("In development: the subscription funds the app. Cancel any month from your account.", 12, REG, GREY, w)); }
@@ -156,7 +157,9 @@ function page(name, width = 1280, height = 900) {
 { const { body, w } = page("9 Pricing (phone)", 390, 1100);
   body.appendChild(text("Pricing", 24, BOLD));
   body.appendChild(text("Prices HT · TVA non applicable, art. 293 B du CGI", 12, REG, GREY, w));
-  for (const [t, p, primary] of [["Free", "0 €", false], ["Early access", "[monthly] €/month", true], ["Founder", "[annual] €/year", false]]) {
-    const c = card(w, 16, "tier " + t); c.appendChild(text(t, 16, BOLD)); c.appendChild(text(p, 18, BOLD, primary ? INK : GREY, w - 32)); c.appendChild(button(t === "Free" ? "Clone the repo" : "Choose " + t, primary)); body.appendChild(c); } }
+  for (const [t, p, primary] of [["Free", "0 €", false], ["Early access", "[monthly] €/month", true], ["Support", "A coffee, or back the app", false]]) {
+    const c = card(w, 16, "tier " + t); c.appendChild(text(t, 16, BOLD)); c.appendChild(text(p, 18, BOLD, primary ? INK : GREY, w - 32));
+    if (t === "Support") { const r = row(8); r.appendChild(button("Buy me a coffee")); r.appendChild(button("Back the app")); c.appendChild(r); }
+    else c.appendChild(button(t === "Free" ? "Clone the repo" : "Choose " + t, primary)); body.appendChild(c); } }
 
 return { createdNodeIds: ids };

@@ -202,4 +202,6 @@ The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.
   (her status, ARE, VAT): a private artifact, linked from the Café's queen, never in git.
 - **The litter box quiz as a skill on GitHub**: `catio-plugin/skills/litterbox-quiz/`, with the licensed interface
   art left out ("for the UI, just drop the assets that are licensed").
-
+- **No lifetime seat** (3 October): "Instead of relying on a lifetime guarantee sale, maybe there could be an in between
+  and I could set myself up on Kickstarter or buy me a coffee." The pricing's third column is Support: a coffee page and a
+  campaign to fund the app.
