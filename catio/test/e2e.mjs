@@ -415,7 +415,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await settle(page);
   await check("what you say goes to her through the gateway, as you", async () => {
     const c = await T(page, () => window.__catio.tools.filter((t) => t[1] === "comment").pop());
-    expect(c && c[0] === "CATIO" && c[2].cat === "queen" && c[2].text === "Who needs me today?" && c[2].author === "charlotte", JSON.stringify(c));
+    expect(c && c[0] === "CATIO" && c[2].cat === "queen" && c[2].text === "Who needs me today?" && c[2].author === "owner", JSON.stringify(c));
     expect((await page.locator("#queenThread li.me").innerText()).includes("Who needs me today?"), "not in her thread");
   });
   await T(page, () => { const a = window.__catio.gw.find((x) => x.id === "queen"); a.mood = "busy"; dispatchEvent(new Event("catio:agents")); window.__catio.queenSays("Good morrow, my lady. Two cats need thee: ", false, "t1"); });
@@ -1494,13 +1494,21 @@ async function dropFiles(page, sel, files) {
     const q = (await outbox(page)).pop();
     expect(q.text === "[Catio] Charlotte says: Is the French text ready?" && q.kind === "message", JSON.stringify(q));
     const n = Object.entries(await T(page, () => window.__catio.store)).find(([p]) => p.startsWith("notes/"));
-    expect(n && n[1].author === "charlotte" && n[1].cat === "session_blocked1" && n[1].via === "queued", JSON.stringify(n));
+    expect(n && n[1].author === "owner" && n[1].cat === "session_blocked1" && n[1].via === "queued", JSON.stringify(n));
     expect((await page.locator("#thread").innerText()).includes("queued"), "the conversation doesn't say it's waiting");
   });
   await T(page, () => window.__catio.put("notes/r1", { cat: "session_blocked1", author: "session", text: "Yes: it's in the PR.", at: Date.now() }));
   await page.waitForTimeout(200);
   await check("the session's answer shows in the conversation", async () => {
     expect((await page.locator("#thread").innerText()).includes("Yes: it's in the PR."), await page.locator("#thread").innerText());
+  });
+  // a note of hers from before accounts, written as "charlotte": still hers
+  await T(page, () => window.__catio.put("notes/old1", { cat: "session_blocked1", author: "charlotte", text: "Old one, from before.", at: Date.now() - 1 }));
+  await page.waitForTimeout(200);
+  await check("a note written as charlotte before accounts still reads as hers", async () => {
+    const li = page.locator("#thread li.me", { hasText: "Old one, from before." });
+    expect(await li.count() === 1, await page.locator("#thread").innerText());
+    expect((await li.innerText()).startsWith("You"), await li.innerText());
   });
 
   // managing it
@@ -1650,7 +1658,7 @@ async function dropFiles(page, sel, files) {
   await page.waitForTimeout(200);
   await check("writing to it goes through the gateway, not the outbox, and says when it arrives", async () => {
     const c = (await tools(page, "comment")).pop();
-    expect(c && c[0] === "CATIO" && c[2].cat === "cse_blocked1" && c[2].text === "Merci, I'll read it tonight" && c[2].author === "charlotte", JSON.stringify(c));
+    expect(c && c[0] === "CATIO" && c[2].cat === "cse_blocked1" && c[2].text === "Merci, I'll read it tonight" && c[2].author === "owner", JSON.stringify(c));
     expect(!(await outbox(page)).length, "it went to the outbox");
     expect((await toast(page)).includes("when its turn ends"), await toast(page));
     expect((await page.getAttribute("#sayTo", "placeholder")).includes("turn ends"), "the box promises it goes straight in");

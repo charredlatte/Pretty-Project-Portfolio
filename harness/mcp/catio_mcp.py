@@ -45,6 +45,9 @@ def load():
         s = {}
     for k in ("agents", "files", "notes"):
         s.setdefault(k, {} if k == "agents" else [])
+    for n in s["notes"]:   # the owner's notes from before accounts were written as "charlotte"
+        if n.get("author") == "charlotte":
+            n["author"] = "owner"
     return s
 
 
@@ -139,7 +142,7 @@ def inbox(args):
         files = [f for f in s["files"] if f["for"] == args["agent"] and f["status"] == "waiting" and not (mark and f.get("handed"))]
         a_ = a or {}
         since = a_.get("handedNotes", a_.get("seenNotes", 0)) if mark else a_.get("seenNotes", 0)
-        authors = ("charlotte",) if args["agent"] == "queen" else ("charlotte", "queen")   # a cat hears her and her assistant
+        authors = ("owner",) if args["agent"] == "queen" else ("owner", "queen")   # a cat hears the owner and her assistant
         notes = [n for n in s["notes"] if n["cat"] == args["agent"] and n["author"] in authors and n["at"] > since]
         request = (a or {}).get("request")
         if mark:
@@ -193,18 +196,20 @@ def drop_file(args):
 
 def comment(args):
     need(args, "cat", "text")
-    author = args.get("author") or "charlotte"
-    if author not in ("charlotte", "agent", "session", "queen"):
-        raise ValueError("author is charlotte, agent, session or queen")
+    author = args.get("author") or "owner"
+    if author == "charlotte":   # the owner's name on the wire before accounts: still taken, stored as owner
+        author = "owner"
+    if author not in ("owner", "agent", "session", "queen"):
+        raise ValueError("author is owner, agent, session or queen")
     note = {"id": new_id(), "cat": args["cat"], "text": str(args["text"])[:4000], "author": author, "at": now()}
     with LOCK:
         s = load()
         s["notes"].append(note)
         a = s["agents"].get(args["cat"])
-        if a and author not in ("charlotte", "queen"):
+        if a and author not in ("owner", "queen"):
             a["seenNotes"] = note["at"]
         store(s)
-    woke = author in ("charlotte", "queen") and bool(a) and wake(a, "[Catio] %s: %s" % ("Charlotte says" if author == "charlotte" else "The queen says", note["text"]))
+    woke = author in ("owner", "queen") and bool(a) and wake(a, "[Catio] %s: %s" % ("Charlotte says" if author == "owner" else "The queen says", note["text"]))
     return {"id": note["id"], "woke": woke}
 
 
@@ -240,7 +245,7 @@ def manage(args):
     if act in ("pause", "resume", "wrap_up"):
         woke = wake(a, "[Catio] Request: " + act)
     elif act == "message":
-        comment({"cat": args["cat"], "text": value, "author": "charlotte"})
+        comment({"cat": args["cat"], "text": value, "author": "owner"})
         woke = bool(a.get("wake"))
     return {"ok": True, "woke": woke}
 
@@ -274,7 +279,7 @@ def quiz(args):
     ref = re.sub(r"[^A-Za-z0-9_-]", "", clip("ref", 80))
     rec = {"id": kind + "-" + ref if ref else new_id(), "for": clip("for", 200), "kind": kind, "title": title, "questions": questions,
            "note": clip("note", 4000), "from": clip("from", 200), "hint": clip("hint", 300),
-           "by": "charlotte" if args.get("by") == "charlotte" else "queen", "at": now(), "status": "set"}
+           "by": "owner" if args.get("by") in ("owner", "charlotte") else "queen", "at": now(), "status": "set"}
     with LOCK:
         s = load()
         qs = s.setdefault("quizzes", [])
@@ -325,8 +330,8 @@ def answer(args):
         told = bool(q["for"]) and q["for"] in s["agents"]
     text = "Homework handed in: " + q["title"] + "\n" + "\n".join("%d. %s \u2192 %s" % (i + 1, x["q"], given[i]) for i, x in enumerate(q["questions"]))
     if told:
-        comment({"cat": q["for"], "text": text, "author": "charlotte"})
-    comment({"cat": "queen", "text": text + (("\n(for %s, %s)" % (q["for"], "told" if told else "not a cat here")) if q["for"] else ""), "author": "charlotte"})
+        comment({"cat": q["for"], "text": text, "author": "owner"})
+    comment({"cat": "queen", "text": text + (("\n(for %s, %s)" % (q["for"], "told" if told else "not a cat here")) if q["for"] else ""), "author": "owner"})
     return {"ok": True, "told": told}
 
 # ---------- decisions: the one-bit questions, answered by a System One model (same as the gateway's src/decide.js) ----------
@@ -425,40 +430,40 @@ S = {"type": "string"}
 KIND = {"type": "string", "enum": list(QUIZ_KINDS)}
 TOOLS = {
     "house_rules": (house_rules, "The KittyChat house rules every agent in the Catio follows. Read them when you start.", {}, []),
-    "report_status": (report_status, "Join the Catio as a cat, or update your cat: what you're working on and whether you need Charlotte. "
-                      "Call it when you start, when you need her, and when you finish. Returns what's waiting for you.",
+    "report_status": (report_status, "Join the Catio as a cat, or update your cat: what you're working on and whether you need the owner. "
+                      "Call it when you start, when you need them, and when you finish. Returns what's waiting for you.",
                       {"agent": dict(S, description="Your stable id, e.g. codex-montfortoise"), "name": S, "model": dict(S, description="e.g. gpt-5, gemini-2.5-pro"),
                        "provider": dict(S, description="openai, google, anthropic, local..."), "title": S, "project": S, "repo": dict(S, description="owner/repo"),
-                       "branch": S, "mood": {"type": "string", "enum": list(MOODS)}, "ask": dict(S, description="What you need from her, when mood is needs"),
+                       "branch": S, "mood": {"type": "string", "enum": list(MOODS)}, "ask": dict(S, description="What you need from the owner, when mood is needs"),
                        "link": S, "session": dict(S, description="Your own session id, for the wake command"),
                        "via": dict(S, description="What you run in, e.g. claude-code"), "cwd": S,
                        "wake": {"type": ["array", "null"], "items": S, "description": "Command that wakes you with a message; placeholders {message} {session} {agent}"}},
                       ["agent"]),
     "list_agents": (list_agents, "Every agent cat in the Catio.", {"archived": {"type": "boolean"}}, []),
-    "inbox": (inbox, "Files, notes from Charlotte, and any request (pause, resume, wrap_up) waiting for an agent. With mark, only "
+    "inbox": (inbox, "Files, notes from the owner, and any request (pause, resume, wrap_up) waiting for an agent. With mark, only "
               "what hasn't been handed over yet, and it counts as handed over.", {"agent": S, "mark": {"type": "boolean"}}, ["agent"]),
     "pick_up": (pick_up, "Take a file from your inbox: returns it as base64 and marks it picked up.", {"id": S, "agent": S}, ["id"]),
     "drop_file": (drop_file, "Give a file to an agent's cat (and wake it, if it can be woken).",
                   {"name": S, "type": S, "base64": S, "for": dict(S, description="The agent id"), "note": S}, ["name", "base64", "for"]),
-    "comment": (comment, "Add to a cat's conversation. Agents answer Charlotte with author agent.",
-                {"cat": S, "text": S, "author": {"type": "string", "enum": ["charlotte", "agent", "session", "queen"]}}, ["cat", "text"]),
+    "comment": (comment, "Add to a cat's conversation. Agents answer the owner with author agent.",
+                {"cat": S, "text": S, "author": {"type": "string", "enum": ["owner", "agent", "session", "queen"]}}, ["cat", "text"]),
     "comments": (comments, "A cat's conversation, oldest first.", {"cat": S, "limit": {"type": "integer"}}, ["cat"]),
     "manage": (manage, "Manage an agent's cat: rename, move (room key), archive, unarchive, pause, resume, wrap_up, message, done (clear a request).",
                {"cat": S, "action": {"type": "string", "enum": ["rename", "move", "archive", "unarchive", "pause", "resume", "wrap_up", "message", "done"]}, "value": S},
                ["cat", "action"]),
-    "quiz": (quiz, "Set Charlotte homework (the queen, or Charlotte): a card in the queen's quest log. kind unblock (the default): a short quiz "
-             "whose answers unblock a cat, one per cat, 1 to 5 questions, each with up to 12 concrete options she can pick, or free for a "
-             "written answer; the cat gets her answers as her words, and the queen is told. kind litterbox (a sifted note: which project "
-             "is it for?) or decision (one decision waiting on her): one question, the card's text in note, where it came from in from, "
-             "the guess or recommendation in hint; her answer is only kept, for filing. With ref, the card is dealt once: dealing it "
+    "quiz": (quiz, "Set the owner homework (the queen, or the owner): a card in the queen's quest log. kind unblock (the default): a short quiz "
+             "whose answers unblock a cat, one per cat, 1 to 5 questions, each with up to 12 concrete options to pick, or free for a "
+             "written answer; the cat gets the answers as the owner's words, and the queen is told. kind litterbox (a sifted note: which project "
+             "is it for?) or decision (one decision waiting on the owner): one question, the card's text in note, where it came from in from, "
+             "the guess or recommendation in hint; the answer is only kept, for filing. With ref, the card is dealt once: dealing it "
              "again replaces it while open and leaves it alone once answered.",
              {"for": dict(S, description="The cat it unblocks (its agent id), or empty for the house"), "title": S,
               "questions": {"type": "array", "items": {"type": "object", "properties": {"q": S, "options": {"type": "array", "items": S}, "free": {"type": "boolean"}}, "required": ["q"]}},
               "kind": KIND, "note": S, "from": S, "hint": S, "ref": S},
              ["title", "questions"]),
-    "quizzes": (quizzes, "The homework set for Charlotte: the open quizzes, oldest first (done: true lists the handed-in ones too; kind lists one kind).",
+    "quizzes": (quizzes, "The homework set for the owner: the open quizzes, oldest first (done: true lists the handed-in ones too; kind lists one kind).",
                 {"done": {"type": "boolean"}, "kind": KIND}, []),
-    "forget": (forget, "Clear homework from the house (the queen or Charlotte): the cards already filed, by id.", {"quizzes": {"type": "array", "items": S}}, ["quizzes"]),
+    "forget": (forget, "Clear homework from the house (the queen or the owner): the cards already filed, by id.", {"quizzes": {"type": "array", "items": S}}, ["quizzes"]),
     "decide": (decide, "A typed decision from a System One model (laya-serve on this computer, or Jev): a state and named questions of type noul "
                "(yes/no: a probability), choice (criteria: {option: meaning}; the option, a probability each and a confidence) or score "
                "(criteria: ordered levels; a weighted score). No prose, milliseconds. preset easy asks the six questions of the easy-task "
@@ -466,7 +471,7 @@ TOOLS = {
                {"state": {"description": "The text or JSON the questions are about"}, "questions": {"type": "object"}, "preset": {"type": "string", "enum": ["easy"]},
                 "model": S, "kind": dict(S, description="A label for the log, e.g. sort"), "old": dict(S, description="What the old path chose, for the log")},
                ["state"]),
-    "answer": (answer, "Hand homework in (Charlotte only): one answer per question, in order. Her answers reach the cat, as her words, and the queen.",
+    "answer": (answer, "Hand homework in (the owner only): one answer per question, in order. The answers reach the cat, as the owner's words, and the queen.",
                {"quiz": S, "answers": {"type": "array", "items": S}}, ["quiz", "answers"]),
 }
 
@@ -485,7 +490,7 @@ def handle(msg):
     if method == "initialize":
         ver = (msg.get("params") or {}).get("protocolVersion") or "2025-06-18"
         result = {"protocolVersion": ver, "capabilities": {"tools": {}}, "serverInfo": {"name": "catio", "version": "0.1.0"},
-                  "instructions": "The Catio is Charlotte's harness. Read house_rules, report_status when you start, need her, or finish, and check inbox."}
+                  "instructions": "The Catio is its owner's harness. Read house_rules, report_status when you start, need them, or finish, and check inbox."}
     elif method == "ping":
         result = {}
     elif method == "tools/list":
@@ -578,6 +583,8 @@ def serve(folder, port):
 
 
 if __name__ == "__main__":
+    with LOCK:   # notes from before accounts are renamed once, here, so load() has nothing left to rename
+        store(load())
     if "--serve" in sys.argv:
         i = sys.argv.index("--serve")
         folder = sys.argv[i + 1] if len(sys.argv) > i + 1 and not sys.argv[i + 1].startswith("--") else "."
