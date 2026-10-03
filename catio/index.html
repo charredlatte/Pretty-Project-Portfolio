@@ -2890,7 +2890,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
   const MAPS = { busy: false, visit: 0, folded: new Set(), managing: new Set() };   // a save on its way; which opening of the page this is; cards folded or managed
   // the real maps: a graph whose map can be drawn (nodes with places, its lists lists); anything else is left out, never half-drawn
-  const drawable = (g) => !!g && !!g.map && Array.isArray(g.map.n) && g.map.n.length > 0
+  const drawable = (g) => !!g && !!g.map && Array.isArray(g.map.n)
     && g.map.n.every((x) => x && typeof x === "object" && Number.isFinite(x.x) && Number.isFinite(x.y) && Number.isFinite(x.d) && x.t != null)
     && ["groups", "gods", "surprises", "questions"].every((k) => g[k] == null || (Array.isArray(g[k]) && g[k].every((v) => v != null)))
     && (g.map.l == null || Array.isArray(g.map.l)) && (g.commit == null || typeof g.commit === "string");
@@ -2974,7 +2974,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
         const other = next(d); if (!other) return;
         keep((B) => {
           if (B.pinned.includes(id) !== B.pinned.includes(other)) return {};   // pinned or unpinned elsewhere meanwhile: no move across (keep says so)
-          const o = orderOf(B, allIds), a = o.indexOf(id), b = o.indexOf(other); [o[a], o[b]] = [o[b], o[a]]; return { order: o };
+          // every id the stored order knows stays in it, a map this tab can't draw yet included
+          const o = orderOf(B, [...new Set([...B.order, ...allIds])]), a = o.indexOf(id), b = o.indexOf(other); [o[a], o[b]] = [o[b], o[a]]; return { order: o };
         }, null, here(act));
       };
       tool("earlier", "", () => move(-1, "earlier"), "up", "Earlier").disabled = !next(-1);
