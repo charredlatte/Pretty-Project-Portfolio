@@ -61,20 +61,41 @@ class Quiz(unittest.TestCase):
         ids = sorted(self.cards(), key=lambda i: self.cards()[i]["order"])
         answers = Path(self.tmp.name) / "saved" / "answers"
         answers.mkdir(parents=True)
-        (answers / f"{ids[0]}.json").write_text(json.dumps({"verdict": "file", "project": "LibreSprite-on-iPad"}))
+        (answers / f"{ids[0]}.json").write_text(json.dumps({"verdict": "file", "project": "charredlatte/LibreSprite-on-iPad"}))
         (answers / f"{ids[1]}.json").write_text(json.dumps({"verdict": "drop", "project": None}))
         with contextlib.redirect_stdout(io.StringIO()):
             quiz.apply(answers.parent, self.box)
         sorted_ = next(self.box.glob("*-sorted-LibreSprite-on-iPad.md")).read_text(encoding="utf-8")
         self.assertIn("project: LibreSprite-on-iPad\n", sorted_)
         self.assertNotIn("guess", sorted_)
-        self.assertIn("The deployment session is waiting", sorted_)
+        self.assertEqual(sorted_.count("The deployment session is waiting"), 1)
         self.assertIn("*— litterbox/round.md*", sorted_)
         self.assertNotIn("Emscripten", sorted_)
         left = (self.box / "LibreSprite.md").read_text(encoding="utf-8")
-        self.assertIn("A third note", left)
+        self.assertEqual(left.count("A third note"), 1)
         self.assertNotIn("Emscripten", left)
         self.assertNotIn("deployment session", left)
+
+    def test_an_answer_that_says_nothing_leaves_the_note(self):
+        ids = sorted(self.cards(), key=lambda i: self.cards()[i]["order"])
+        answers = Path(self.tmp.name) / "saved" / "answers"
+        answers.mkdir(parents=True)
+        (answers / f"{ids[0]}.json").write_text(json.dumps({"verdict": "file", "project": ""}))
+        (answers / f"{ids[1]}.json").write_text(json.dumps({"verdict": "maybe"}))
+        (answers / f"{ids[2]}.json").write_text(json.dumps({"verdict": "file", "project": ".."}))
+        with contextlib.redirect_stdout(io.StringIO()):
+            quiz.apply(answers.parent, self.box)
+        self.assertEqual((self.box / "LibreSprite.md").read_text(encoding="utf-8"), PILE, "untouched, byte for byte")
+        self.assertEqual(list(self.box.glob("*-sorted-*")), [])
+
+    def test_a_new_deal_clears_the_old_cards(self):
+        out = Path(self.tmp.name) / "cards"
+        out.mkdir()
+        (out / "0123456789ab.json").write_text("{}")
+        (out / "artifacts.json").write_text("{}")
+        self.cards()
+        self.assertFalse((out / "0123456789ab.json").exists())
+        self.assertTrue((out / "artifacts.json").exists(), "only its own cards go")
 
 
 if __name__ == "__main__":

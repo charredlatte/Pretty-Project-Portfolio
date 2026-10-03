@@ -20,12 +20,17 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.request
 import uuid
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
 HOME = Path(os.environ.get("CATIO_HOME") or Path.home() / ".catio")
+DECIDE_URL = os.environ.get("CATIO_DECIDE_URL", "").rstrip("/")   # a System One server (laya-serve on this PC, or Jev); none: decide refuses
+DECIDE_KEY = os.environ.get("CATIO_DECIDE_KEY", "")
+DECIDE_TIMEOUT = 8
+KEEP_DECISIONS = 500
 RULES = Path(os.environ.get("CATIO_RULES") or Path(__file__).resolve().parent.parent / "rules.json")
 MAX_FILE = 20 * 1024 * 1024
 MOODS = ("needs", "busy", "review", "failed", "done")
@@ -304,6 +309,97 @@ def answer(args):
     comment({"cat": "queen", "text": text + (("\n(for %s, %s)" % (q["for"], "told" if told else "not a cat here")) if q["for"] else ""), "author": "owner"})
     return {"ok": True, "told": told}
 
+# ---------- decisions: the one-bit questions, answered by a System One model (same as the gateway's src/decide.js) ----------
+TYPES = ("noul", "choice", "score")
+PRESETS = {
+    "easy": {   # the rubric of docs/delegation.md as six yes/no questions about a task's text
+        "spelled_out": {"type": "noul", "instructions": "Does the task name exactly what to produce or change (a file, a test, an output), with no design judgement left open?"},
+        "checkable": {"type": "noul", "instructions": "Would a test, a build or a diff show whether the task is done?"},
+        "small": {"type": "noul", "instructions": "Is the task confined to one file, or read-only across several?"},
+        "held_path": {"type": "noul", "instructions": "Does the task touch harness/, .claude/, the house rules, merging, pushing, or a default branch?"},
+        "private": {"type": "noul", "instructions": "Does the task involve legal, money, health or other private personal matters?"},
+        "browser": {"type": "noul", "instructions": "Does the task need a web browser, a login, or a key?"},
+    },
+}
+
+
+def _shape(args):
+    qs = PRESETS.get(args.get("preset")) if args.get("preset") else args.get("questions")
+    if args.get("preset") and not qs:
+        raise ValueError("preset is one of " + ", ".join(PRESETS))
+    if not isinstance(qs, dict) or not qs or len(qs) > 64:
+        raise ValueError("questions is an object of 1 to 64 named typed questions")
+    out = {}
+    for name, q in qs.items():
+        if not isinstance(q, dict) or q.get("type") not in TYPES:
+            raise ValueError("%s: type is noul, choice or score" % name)
+        clean = {"type": q["type"]}
+        if q.get("instructions") is not None:
+            clean["instructions"] = str(q["instructions"])[:1000]
+        c = q.get("criteria")
+        if q["type"] == "choice":
+            if not isinstance(c, dict) or not 2 <= len(c) <= 64:
+                raise ValueError("%s: a choice needs criteria, 2 to 64 named options" % name)
+            clean["criteria"] = {str(k)[:100]: str(v)[:500] for k, v in c.items()}
+        elif q["type"] == "score":
+            if not isinstance(c, list) or not 2 <= len(c) <= 64:
+                raise ValueError("%s: a score needs criteria, an ordered list of 2 or more levels" % name)
+            clean["criteria"] = [str(v)[:500] for v in c]
+        elif isinstance(c, dict):
+            clean["criteria"] = {"true": str(c.get("true", "yes"))[:500], "false": str(c.get("false", "no"))[:500]}
+        out[name] = clean
+    state = args.get("state")
+    if state is None or not isinstance(state, (str, dict, list)):
+        raise ValueError("state is the text or JSON the questions are about")
+    text = state if isinstance(state, str) else json.dumps(state)
+    if not text.strip():
+        raise ValueError("state is empty")
+    if len(text) > 60000:
+        raise ValueError("state is over 60000 characters")
+    return {"state": state, "questions": out}
+
+
+def _verdict(a):
+    if not isinstance(a, dict):
+        return None
+    if a.get("type") == "choice" or "choice" in a:
+        return a.get("choice")
+    if a.get("type") == "noul" or isinstance(a.get("noul"), (int, float)):
+        return "yes" if (a.get("noul") or 0) >= 0.5 else "no"
+    if isinstance(a.get("score"), (int, float)):
+        return str(round(a["score"]))
+    return None
+
+
+def decide(args):
+    """A typed decision from a System One model at CATIO_DECIDE_URL. With kind, logged beside old (what the old path chose)."""
+    body = _shape(args)
+    if not DECIDE_URL:
+        raise ValueError("no decider: set CATIO_DECIDE_URL to a System One server (laya-serve on this computer, or Jev)")
+    if args.get("model"):
+        body["model"] = str(args["model"])
+    req = urllib.request.Request(DECIDE_URL + "/v1/systemone", data=json.dumps(body).encode(), method="POST",
+                                 headers=dict({"Content-Type": "application/json"}, **({"Authorization": "Bearer " + DECIDE_KEY} if DECIDE_KEY else {})))
+    try:
+        with urllib.request.urlopen(req, timeout=DECIDE_TIMEOUT) as r:
+            reply = json.loads(r.read().decode("utf-8"))
+    except (OSError, ValueError) as e:
+        raise ValueError("the decider failed: %s" % e)
+    if not isinstance(reply, dict) or not isinstance(reply.get("answers"), dict):
+        raise ValueError("the decider answered without answers")
+    out = {"model": str(reply.get("model") or args.get("model") or "system-one"), "answers": reply["answers"], "usage": reply.get("usage")}
+    if args.get("kind"):
+        first = next(iter(out["answers"]), None)
+        old = None if args.get("old") is None else str(args["old"])[:200]
+        with LOCK:
+            s = load()
+            log = s.setdefault("decisions", [])
+            log.append({"id": new_id(), "at": now(), "kind": str(args["kind"])[:40], "model": out["model"], "questions": list(out["answers"]),
+                        "answers": out["answers"], "old": old, "agree": None if old is None else _verdict(out["answers"].get(first)) == old})
+            del log[:-KEEP_DECISIONS]
+            store(s)
+    return out
+
 
 S = {"type": "string"}
 TOOLS = {
@@ -336,6 +432,13 @@ TOOLS = {
               "questions": {"type": "array", "items": {"type": "object", "properties": {"q": S, "options": {"type": "array", "items": S}, "free": {"type": "boolean"}}, "required": ["q"]}}},
              ["title", "questions"]),
     "quizzes": (quizzes, "The homework set for the owner: the open quizzes, oldest first (done: true lists the handed-in ones too).", {"done": {"type": "boolean"}}, []),
+    "decide": (decide, "A typed decision from a System One model (laya-serve on this computer, or Jev): a state and named questions of type noul "
+               "(yes/no: a probability), choice (criteria: {option: meaning}; the option, a probability each and a confidence) or score "
+               "(criteria: ordered levels; a weighted score). No prose, milliseconds. preset easy asks the six questions of the easy-task "
+               "rubric about state. With kind, the decision is logged beside old (what you would have chosen).",
+               {"state": {"description": "The text or JSON the questions are about"}, "questions": {"type": "object"}, "preset": {"type": "string", "enum": ["easy"]},
+                "model": S, "kind": dict(S, description="A label for the log, e.g. sort"), "old": dict(S, description="What the old path chose, for the log")},
+               ["state"]),
     "answer": (answer, "Hand homework in (the owner only): one answer per question, in order. The answers reach the cat, as the owner's words, and the queen.",
                {"quiz": S, "answers": {"type": "array", "items": S}}, ["quiz", "answers"]),
 }

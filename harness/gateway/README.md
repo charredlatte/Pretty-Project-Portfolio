@@ -191,6 +191,34 @@ or finish, and check `inbox` between tasks.
 
 It costs nothing on the Workers free plan: 100,000 requests a day, against a few hundred.
 
+## Decisions: the `decide` tool
+
+The café has questions whose answer was always one bit or one label: which cat a dropped file belongs to, whether a
+task is easy enough for a small cat, who needs her first. `decide` (`src/decide.js`) hands them to a System One
+model, which takes a *state* (text or JSON) and named typed questions, and returns a probability for every allowed
+answer in milliseconds, with no prose to parse:
+
+- `noul`: yes/no, the probability of yes;
+- `choice`: `criteria: {option: what it means}`, the chosen option, a probability each and a confidence;
+- `score`: `criteria: [ordered levels]`, a probability-weighted score.
+
+Where it is answered is one switch, none of it required:
+
+| | |
+|---|---|
+| nothing set | `@cf/cloudflare/clef-flash` through the Worker's `AI` binding: Cloudflare's own System One model, open weights, inside the free plan's 10,000 neurons a day |
+| `DECIDE_MODEL` | another Workers AI model id: `@cf/cloudflare/clef` (27B), or `typesafe/jev`, Jev itself, paid from prepaid AI Gateway credits |
+| `DECIDE_URL` (+ `DECIDE_KEY`) | any server speaking the System One API (`POST /v1/systemone`): `laya-serve` on a machine of hers, or Jev's own endpoint |
+
+Anyone in the house may ask. `preset: "easy"` asks the six yes/no questions of the easy-task rubric
+(`docs/delegation.md`) about a task's text. With `kind` (a label) and `old` (what the caller would have chosen
+without it), the decision is kept as `decisions/<id>` in the house's documents with `agree`, the latest 500: the
+observe log, read with `/api/db`, that says after a week whether to trust it. A refused question costs nothing; a
+decider that doesn't answer in 8 s is a tool error, and the caller does what it did before.
+
+The tests don't reach Workers AI (wrangler dev would need a Cloudflare sign-in for it): they run the Worker from a
+copy of `wrangler.jsonc` without the binding, with `DECIDE_URL` pointing at a stand-in System One server in the test.
+
 ## Working on it
 
 ```sh

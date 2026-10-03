@@ -11,6 +11,11 @@
 	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["House"] }, { "tag": "v2", "new_sqlite_classes": ["Registry"] }],
 	// The OAuth library's grants and tokens (hashed), and the café's art and brain files. No ids: a deploy creates them.
 	"kv_namespaces": [{ "binding": "OAUTH_KV" }, { "binding": "FILES" }],
+	// Workers AI, for the decide tool (src/decide.js): Clef, Cloudflare's System One model, inside the free plan's neurons.
+	// Variables (Settings > Variables and Secrets, type Text) change where decisions are answered, none required:
+	//   DECIDE_MODEL  another Workers AI model id, e.g. typesafe/jev (paid from AI Gateway credits) or @cf/cloudflare/clef
+	//   DECIDE_URL    a System One server instead of Workers AI, e.g. a laya-serve she exposes; DECIDE_KEY its bearer key
+	"ai": { "binding": "AI" },
 	// The café (catio/index.html) and its runtime (cafe/runtime.js) go into the Worker as text.
 	"rules": [{ "type": "Text", "globs": ["**/*.html", "**/cafe/*.js"], "fallthrough": true }],
 	"observability": { "enabled": true }

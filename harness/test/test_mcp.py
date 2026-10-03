@@ -45,7 +45,7 @@ class Stdio(unittest.TestCase):
         self.assertEqual(init["result"]["serverInfo"]["name"], "catio")
         self.rpc("notifications/initialized", notify=True)
         names = {t["name"] for t in self.rpc("tools/list")["result"]["tools"]}
-        self.assertEqual(names, {"house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "answer"})
+        self.assertEqual(names, {"house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "answer", "decide"})
         self.assertIn("preflight", [r["id"] for r in self.tool("house_rules")["rules"]])
 
         # an agent joins, with a wake command that records what it was woken with
@@ -116,6 +116,12 @@ class Stdio(unittest.TestCase):
         self.tool("comment", cat="codex-shop", text="Still me.", author="charlotte")
         self.assertEqual([n["author"] for n in self.tool("comments", cat="codex-shop")["notes"]], ["owner", "owner"])
 
+    def test_decide_refuses_without_a_decider(self):
+        r = self.rpc("tools/call", {"name": "decide", "arguments": {"state": "run the tests", "preset": "easy"}})["result"]
+        self.assertTrue(r.get("isError")); self.assertIn("CATIO_DECIDE_URL", r["content"][0]["text"])
+        r = self.rpc("tools/call", {"name": "decide", "arguments": {"state": "x", "questions": {"q": {"type": "guess"}}}})["result"]
+        self.assertTrue(r.get("isError")); self.assertIn("noul, choice or score", r["content"][0]["text"])
+
     def test_errors_are_tool_errors(self):
         self.rpc("initialize", {})
         r = self.rpc("tools/call", {"name": "report_status", "arguments": {"agent": "x", "mood": "grumpy"}})["result"]
@@ -161,3 +167,58 @@ class Serve(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Decider(unittest.TestCase):
+    """decide against a stand-in System One server (the shape laya-serve, Clef and Jev share): the request it gets,
+    the answers it returns, and the log of decisions beside what the old path chose."""
+
+    def setUp(self):
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+        import threading
+        seen = self.seen = []
+
+        class One(BaseHTTPRequestHandler):
+            def log_message(self, *a): pass
+            def do_POST(self):
+                body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                seen.append((self.path, self.headers.get("Authorization"), body))
+                answers = {}
+                for name, q in body["questions"].items():
+                    if q["type"] == "noul": answers[name] = {"type": "noul", "noul": 0.9 if name != "held_path" else 0.1}
+                    elif q["type"] == "choice":
+                        first = next(iter(q["criteria"]))
+                        answers[name] = {"type": "choice", "choice": first, "confidence": 0.8, "probabilities": {k: (0.8 if k == first else 0.2 / max(1, len(q["criteria"]) - 1)) for k in q["criteria"]}}
+                    else: answers[name] = {"type": "score", "score": 1.0, "confidence": 0.7, "probabilities": {"0": 0.1, "1": 0.9}}
+                data = json.dumps({"model": "stand-in", "answers": answers, "usage": {"input_tokens": 42}}).encode()
+                self.send_response(200); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(data))); self.end_headers(); self.wfile.write(data)
+
+        self.srv = HTTPServer(("127.0.0.1", 0), One)
+        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
+        self.home = tempfile.mkdtemp()
+        self.p = subprocess.Popen([sys.executable, str(SERVER)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
+                                  env=dict(os.environ, CATIO_HOME=self.home, CATIO_DECIDE_URL="http://127.0.0.1:%d/" % self.srv.server_port, CATIO_DECIDE_KEY="k1"))
+        self.n = 0
+
+    def tearDown(self):
+        self.p.stdin.close(); self.p.wait(5); self.p.stdout.close(); self.srv.shutdown()
+
+    def tool(self, tool, **args):
+        self.n += 1
+        self.p.stdin.write(json.dumps({"jsonrpc": "2.0", "id": self.n, "method": "tools/call", "params": {"name": tool, "arguments": args}}) + "\n"); self.p.stdin.flush()
+        r = json.loads(self.p.stdout.readline())["result"]
+        return r["content"][0]["text"] if r.get("isError") else r["structuredContent"]
+
+    def test_asks_logs_and_compares(self):
+        out = self.tool("decide", state={"file": "notes.md", "cats": ["shop", "catio"]}, kind="sort", old="catio",
+                        questions={"cat": {"type": "choice", "instructions": "Which cat?", "criteria": {"shop": "the shop", "catio": "the café"}}})
+        self.assertEqual(out["answers"]["cat"]["choice"], "shop"); self.assertEqual(out["model"], "stand-in")
+        path, auth, body = self.seen[0]
+        self.assertEqual(path, "/v1/systemone"); self.assertEqual(auth, "Bearer k1")
+        self.assertEqual(body["state"], {"file": "notes.md", "cats": ["shop", "catio"]}); self.assertEqual(body["questions"]["cat"]["criteria"]["catio"], "the café")
+        easy = self.tool("decide", state="Add a test for parse_time in utils.py", preset="easy")
+        self.assertEqual(set(easy["answers"]), {"spelled_out", "checkable", "small", "held_path", "private", "browser"})
+        self.assertEqual(self.seen[1][2]["questions"]["held_path"]["type"], "noul")
+        log = json.loads(Path(self.home, "state.json").read_text())["decisions"]
+        self.assertEqual(len(log), 1)   # the easy call had no kind: not logged
+        self.assertEqual((log[0]["kind"], log[0]["old"], log[0]["agree"]), ("sort", "catio", False))

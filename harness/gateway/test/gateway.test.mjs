@@ -7,7 +7,8 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
-import { mkdtempSync, readdirSync, rmSync, statSync } from "node:fs";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { createServer as createHttpServer } from "node:http";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -27,14 +28,45 @@ const freePort = () => new Promise((done) => {
 
 let base, wrangler, state, log = "", herCookie = "";
 
+// A stand-in System One server (the shape laya-serve, Clef and Jev share), in place of the Worker's AI binding,
+// which wrangler dev can only reach signed in to Cloudflare. It keeps every request it was asked.
+const CONFIG = join(HERE, ".wrangler.test.jsonc");
+const asked = [];
+let decider;
+function startDecider() {
+	return new Promise((done) => {
+		decider = createHttpServer((req, res) => {
+			let data = "";
+			req.on("data", (d) => { data += d; });
+			req.on("end", () => {
+				const body = JSON.parse(data);
+				asked.push({ path: req.url, auth: req.headers.authorization || null, body });
+				const answers = {};
+				for (const [name, q] of Object.entries(body.questions)) {
+					if (q.type === "noul") answers[name] = { type: "noul", noul: name === "held_path" ? 0.1 : 0.9 };
+					else if (q.type === "choice") {
+						const keys = Object.keys(q.criteria), first = keys[0];
+						answers[name] = { type: "choice", choice: first, confidence: 0.8, probabilities: Object.fromEntries(keys.map((k) => [k, k === first ? 0.8 : 0.2 / Math.max(1, keys.length - 1)])) };
+					} else answers[name] = { type: "score", score: 1, confidence: 0.7, probabilities: { 0: 0.1, 1: 0.9 } };
+				}
+				res.setHeader("Content-Type", "application/json");
+				res.end(JSON.stringify({ model: "stand-in", answers, usage: { input_tokens: 42 } }));
+			});
+		}).listen(0, "127.0.0.1", () => done(decider.address().port));
+	});
+}
+
 // wrangler dev on a fresh state; again on the same state, at the end, as a deploy would start a new isolate
 async function start() {
 	const [port, inspector] = [await freePort(), await freePort()];
 	base = `http://127.0.0.1:${port}`;
 	log = "";
-	wrangler = spawn(process.execPath, [join(HERE, "node_modules/wrangler/bin/wrangler.js"), "dev", "--ip", "127.0.0.1",
+	// the real config without its AI binding (remote, needs a Cloudflare sign-in): decisions go to the stand-in instead
+	writeFileSync(CONFIG, readFileSync(join(HERE, "wrangler.jsonc"), "utf8").replace(/^\s*"ai":.*\n/m, ""));
+	wrangler = spawn(process.execPath, [join(HERE, "node_modules/wrangler/bin/wrangler.js"), "dev", "--config", CONFIG, "--ip", "127.0.0.1",
 		"--port", String(port), "--inspector-port", String(inspector), "--persist-to", state,
-		"--var", "CATIO_TOKEN:" + TOKEN, "--var", "CATIO_PASSWORD:" + PASSWORD, "--var", "CATIO_QUEEN:" + QUEEN], {
+		"--var", "CATIO_TOKEN:" + TOKEN, "--var", "CATIO_PASSWORD:" + PASSWORD, "--var", "CATIO_QUEEN:" + QUEEN,
+		"--var", "DECIDE_URL:http://127.0.0.1:" + deciderPort + "/", "--var", "DECIDE_KEY:k1"], {
 		cwd: HERE, env: { ...process.env, WRANGLER_SEND_METRICS: "false", NO_COLOR: "1" }, stdio: ["ignore", "pipe", "pipe"],
 		detached: true,   // its own process group, so workerd goes with it
 	});
@@ -49,14 +81,18 @@ async function start() {
 }
 const stop = () => { try { process.kill(-wrangler.pid, "SIGTERM"); } catch { /* already gone */ } };
 
+let deciderPort;
 before(async () => {
 	state = mkdtempSync(join(tmpdir(), "catio-gateway-"));
+	deciderPort = await startDecider();
 	await start();
 });
 
 after(() => {
 	stop();
+	decider.close();
 	rmSync(state, { recursive: true, force: true });
+	rmSync(CONFIG, { force: true });
 });
 
 // ---------- helpers ----------
@@ -503,7 +539,7 @@ describe("the gateway", () => {
 		assert.equal(init.result.serverInfo.name, "catio");
 		const { result } = await rpc(TOKEN, "tools/list", {});
 		assert.deepEqual(result.tools.map((t) => t.name),
-			["house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "answer"]);
+			["house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "decide", "answer"]);
 		const rules = await tool(TOKEN, "house_rules");
 		assert.ok(rules.rules.some((r) => r.id === "ship"));
 		assert.equal((await tool(TOKEN, "nope")).rpcError.code, -32602);
@@ -665,6 +701,39 @@ describe("the gateway", () => {
 		assert.ok((await tool(her, "list_agents", { archived: true })).agents.some((a) => a.id === cat));
 		assert.equal((await tool(her, "manage", { cat, action: "rename", value: "Biscuit" })).ok, true);
 		assert.equal((await tool(her, "list_agents", { archived: true })).agents.find((a) => a.id === cat).name, "Biscuit");
+	});
+
+	test("answers a typed decision from the System One server, and logs it beside the old path's choice", async () => {
+		const { access_token: her } = await signIn();
+		// anyone in the house may ask; the questions and state reach the decider as sent, with its key
+		const out = await tool(TOKEN, "decide", { state: { file: "notes.md", cats: ["shop", "catio"] }, kind: "sort", old: "catio",
+			questions: { cat: { type: "choice", instructions: "Which cat?", criteria: { shop: "the shop", catio: "the café" } } } });
+		assert.equal(out.model, "stand-in");
+		assert.equal(out.answers.cat.choice, "shop");
+		assert.equal(out.answers.cat.confidence, 0.8);
+		const last = asked.at(-1);
+		assert.equal(last.path, "/v1/systemone");
+		assert.equal(last.auth, "Bearer k1");
+		assert.deepEqual(last.body.state, { file: "notes.md", cats: ["shop", "catio"] });
+		assert.equal(last.body.questions.cat.criteria.catio, "the café");
+		// the easy-task rubric, as a preset: six yes/no questions about the task's text
+		const easy = await tool(her, "decide", { state: "Add a test for parse_time in utils.py", preset: "easy" });
+		assert.deepEqual(Object.keys(easy.answers).sort(), ["browser", "checkable", "held_path", "private", "small", "spelled_out"]);
+		assert.equal(asked.at(-1).body.questions.held_path.type, "noul");
+		// bad questions are refused before anything is asked
+		const n = asked.length;
+		assert.match((await tool(TOKEN, "decide", { state: "x", questions: { q: { type: "guess" } } })).refused, /noul, choice or score/);
+		assert.match((await tool(TOKEN, "decide", { state: "", preset: "easy" })).refused, /state is empty/);
+		assert.match((await tool(TOKEN, "decide", { state: "x", preset: "hard" })).refused, /preset is one of easy/);
+		assert.equal(asked.length, n);
+		// the log: only the call with a kind, with old and whether the two agreed; the café's database shows it
+		const docs = (await (await fetch(base + "/api/db", { headers: { Cookie: herCookie } })).json()).docs;
+		const log = Object.entries(docs).filter(([p]) => p.startsWith("decisions/"));
+		assert.equal(log.length, 1);
+		assert.equal(log[0][1].kind, "sort");
+		assert.equal(log[0][1].old, "catio");
+		assert.equal(log[0][1].agree, false);
+		assert.equal(log[0][1].answers.cat.choice, "shop");
 	});
 
 	test("takes a session's reports from its hook, and hands her messages in at its Stop", async () => {

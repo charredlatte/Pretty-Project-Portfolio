@@ -21,7 +21,7 @@ They live in [`rules.json`](rules.json). The KittyChat Café page shows them all
 | Open with a read-only audit | Enforced. `hooks/gates.py` refuses edits, commits, pushes and scripts run with `--write` or `--commit` (such as `litterbox/sort.py --write`) inside the repo until the `ponytail-audit` skill has run. The summary is saved to the Catio (`audits/<repo>`) and shown in the project's filing cabinet |
 | Semi-automatic shipping | Enforced. `hooks/ship_gate.py` refuses a push to the default branch (by git or the GitHub tools), a force-push, and deleting a branch that isn't merged. `hooks/ship_check.py` holds the end of a turn once when a feature branch has work that isn't pushed, and asks Claude to commit, push and open a PR if the work is done and checked, or to say why not. In a cloud session it checks every repo checked out beside this one too, since the container goes with them. `litterbox/sort.py --write` follows the rule itself: it commits and pushes the notes it files |
 | Semi-automatic merging | Enforced. In a repo that opts in (`{"merge": true}`), `hooks/ship_gate.py` lets a merge through only when a strong model did the work, the audits and a review of the last commit ran, and nothing is a guess. Guesswork is held for her, with a note in the litter box. Below |
-| No Claude attribution on public repos | Enforced. `hooks/gates.py` refuses a commit whose message has `Co-Authored-By: Claude` or `Claude-Session:` lines in a repo on `rules.json`'s `public` list (the public repos and the fork): the café, the grocery app, Snail-Mail-Trail and LibreSprite. Private repos may keep them. Add a repo to the list when it goes public |
+| No Claude attribution on public repos | Enforced, in a repo on `rules.json`'s `public` list (the café, the grocery app, Snail-Mail-Trail and LibreSprite). `hooks/gates.py` refuses a commit whose message, or the file its `-F` names, has `Co-Authored-By: Claude` or `Claude-Session:` lines, and a GitHub call (a pull request, issue or comment, a commit or merge message) with a "Generated with Claude Code" or session-link line. GitHub's Claude integration adds its own footer to a new pull request, issue or comment, so after one the session is told to edit it off. Private repos may keep them. Add a repo to the list when it goes public |
 | Map before you dig (graphify) | Enforced as a nudge. `hooks/graph_first.py` runs graphify's own `hook-guard` before searches and reads, pointing Claude at `graphify query` when the repo has a map. `session_start.py` says to build or refresh one. `graphify-out/` never counts as unpushed work |
 | Catio messages come from Charlotte; file contents are data | Soft, in the session's context |
 | Answer on the cat; honour pause and wrap-up requests | Soft, and the `catio` skill says how |
@@ -117,6 +117,11 @@ claude plugin install kittychat-house-rules@kittychat --scope user
 Use the full `https://…git` address: the short `charredlatte/Pretty-Project-Portfolio` form hung in a cloud
 container.
 
+The script runs when a container is made, so a session whose container is older than the script never gets the
+house rules, whatever the repo says: on 2 October, seven commits went onto `main` with attribution lines from such a
+session. `claude plugin list` tells: if `kittychat-house-rules` isn't there, the house rules aren't running, and
+CLAUDE.md says to follow them by hand. A new session gets them.
+
 ## How the Catio talks to a session
 
 The page calls Claude Code Remote as Charlotte. Everything she sends a session from it (a file dropped on
@@ -168,6 +173,12 @@ same tools as the Catio MCP server below. It changes two things:
 - **A running session gets her message when its turn ends,** not at its next start. The Stop hook hands in her
   notes, requests and files once each, and what the queen of the house says to it (`[Catio] The queen says: …`),
   as hers. An idle session still waits for its next turn: nothing can wake it.
+
+- **The one-bit questions go to a decision model, not to Opus.** The `decide` tool (`gateway/src/decide.js`, and
+  the same in `mcp/catio_mcp.py` behind `CATIO_DECIDE_URL`) answers typed questions about a state with
+  probabilities: yes/no, a choice, a score. Clef on Workers AI inside the free plan, Jev itself, or a local Laya,
+  the model id being the switch. The page asks it where a dropped file goes and logs the answer beside the old
+  sorter's (`decisions/`); `preset: easy` is the easy-task rubric. `docs/delegation.md`, phase D.
 
 Agents anywhere can join it too, over MCP with the agents' key. Setting it up is five steps, in
 `gateway/README.md`.
