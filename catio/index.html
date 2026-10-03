@@ -2141,8 +2141,12 @@ ul.gkey li > div.what { flex-basis: 100%; }
       const open = openQuizzes();
       const cats = allCats(true).cats;
       const catOf = (z) => (z.for ? cats.find((c) => c.agentId === z.for) : null);
+      const subOf = (z, cat) => "Homework from " + (z.by === QUEEN_ID ? q.name : "you") + (cat ? ", to unblock " + cat.name : z.for ? ", for " + z.for : "") + " · " + ago(z.at);
       const sig = open.map((z) => z.id + ":" + (z.at || 0) + ":" + (z.questions || []).length + ":" + (catOf(z) || {}).name).join("|");
-      if (sig === drawn) return;
+      if (sig === drawn) {   // nothing to rebuild: only the "· N minutes ago" moves on
+        for (const z of open) { const sub = hw.querySelector('form[data-quiz="' + z.id + '"] p.sub'); if (sub) sub.textContent = subOf(z, catOf(z)); }
+        return;
+      }
       drawn = sig;
       const act = document.activeElement;   // the answer she is typing keeps its focus and caret through the rebuild
       const keep = act && hw.contains(act) && act.dataset.q ? { q: act.dataset.q, s: act.selectionStart, e: act.selectionEnd } : null;
@@ -2155,7 +2159,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
         f.addEventListener("submit", (e) => e.preventDefault());
         const cat = catOf(z);
         f.appendChild(el("h3", null, z.title));
-        f.appendChild(el("p", "sub", "Homework from " + (z.by === QUEEN_ID ? q.name : "you") + (cat ? ", to unblock " + cat.name : z.for ? ", for " + z.for : "") + " · " + ago(z.at)));
+        f.appendChild(el("p", "sub", subOf(z, cat)));
         const picks = [];
         (z.questions || []).forEach((qq, i) => {
           const d = draft[i] || (draft[i] = { pick: null, idx: -1, text: "" });
@@ -2192,7 +2196,11 @@ ul.gkey li > div.what { flex-basis: 100%; }
             render(); if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); }   // her card may have closed meanwhile
             await refreshQuizzes();
             loadQueenThread();
-          } catch (e) { toast(gatewayProblem(e), "alert"); const again = document.querySelector('#queenHomework form[data-quiz="' + z.id + '"] .hand'); if (again) again.disabled = false; }   // in whichever card is open now
+          } catch (e) {
+            toast(gatewayProblem(e), "alert");
+            const again = document.querySelector('#queenHomework form[data-quiz="' + z.id + '"] .hand'); if (again) again.disabled = false;   // in whichever card is open now
+            refreshQuizzes();   // refused because it was handed in elsewhere? then the list says so and it goes
+          }
           finally { sending.delete(z.id); }
         });
         hand.disabled = sending.has(z.id);
