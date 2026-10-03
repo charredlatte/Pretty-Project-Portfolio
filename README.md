@@ -161,6 +161,26 @@ panels and nothing else — the page says so on its own sign, and tells you the 
 `catio/tools/build-art.py` over your own zips. Only Cosy Cabin, whose licence allows it, is in this
 repository.
 
+## Open source, and what stays behind the paywall
+
+The code is open source: the page, the harness, the gateway and the queen's runner, under the
+[GNU AGPL-3.0](LICENSE). Anyone with GitHub can run their own café, free, with the three lines above and a
+Cloudflare Worker for the gateway (`harness/gateway/README.md`). The licence asks one thing back: whoever runs a
+changed gateway as a service publishes the change.
+
+What is not open is the art, and what the hosted café sells is the running. The custom assets, the cat breeds, the
+house and the interface drawn for the café, are Charlotte's, all rights reserved, and ship only to the hosted cafés
+(the packs the page is built from today have their own terms, below); the hosted café adds accounts, keys, an address
+of your own, and the calls that reach your sessions without a terminal. The repository is the developers' door; the
+hosted café is everyone else's.
+
+**Support the work.** The café is built by one person, in the open, while it is in development:
+
+- **Buy me a coffee**: https://buymeacoffee.com/[handle] *(page coming)*. One-off coffees and small memberships;
+  they pay for the gateway's hosting and the médiateur, and put your name in the café's credits.
+- **Back the app on Ulule**: https://ulule.com/[campaign] *(campaign coming, once the first cafés are open)*. It funds
+  the app; the rewards are a year of the hosted café and a drawn cat of your own.
+
 ## Made from ten asset packs
 
 Every piece of the picture and the interface comes from packs Charlotte chose. The interface is
@@ -218,3 +238,8 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 
 The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harness/test` and
 `python3 -m unittest litterbox/test_sort.py`.
+
+## Licence
+
+The code is © 2026 Charlotte Badot, under the [GNU Affero General Public License v3.0](LICENSE). The art is not
+covered: the packs keep their own terms (`catio/art/CREDITS.md`), and the café's own drawings are all rights reserved.
