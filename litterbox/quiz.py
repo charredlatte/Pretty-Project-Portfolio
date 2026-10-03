@@ -78,13 +78,14 @@ def deal(out, box):
     for r in projects(root_of(box)):
         if bare(r) not in seen:
             seen.add(bare(r)); repos.append(r)
-    if len(repos) > 11:   # the gateway takes 12 options: the guess, ten more and Settled
-        print(f"warning: {len(repos)} projects; a card lists its guess and ten others, so a note for one of the rest "
-              "can't be filed from the café: Skip it and file it by hand", file=sys.stderr)
     n = 0
     for cid, card in notes_of(box):
         guess = next((r for r in repos if bare(r) == bare(card["guess"])), card["guess"])
-        options = [guess] + [r for r in repos if bare(r) != bare(guess)][:10] + [SETTLED]
+        others = [r for r in repos if bare(r) != bare(guess)]
+        if len(others) > 10:   # the gateway takes 12 options: the guess, ten more and Settled
+            print(f"warning: card {cid} leaves out {', '.join(others[10:])}: a note for one of those is filed by hand",
+                  file=sys.stderr)
+        options = [guess] + others[:10] + [SETTLED]
         args = {"kind": "litterbox", "ref": cid, "title": card["title"] or card["pile"].removesuffix(".md"), "note": card["text"],
                 "from": card["from"], "hint": guess, "questions": [{"q": "Which project is it for?", "options": options}]}
         (out / f"{cid}.json").write_text(json.dumps(args, ensure_ascii=False, indent=1), encoding="utf-8")
