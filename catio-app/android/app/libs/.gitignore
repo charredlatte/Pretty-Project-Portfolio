@@ -1,0 +1,3 @@
+# SDL's official Android archives land here (tools/fetch-sdl-android.sh): about 20 MB of binary, and
+# not ours to commit.
+*.aar

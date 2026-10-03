@@ -249,7 +249,7 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `catio/tools/manor.py`: the two floor plans, meaning rooms on one grid, walls, doorways and glass,
   and the grounds.
 - `catio/tools/furniture.py`: the furniture catalogue, where each piece stands, and where cats go;
-  it writes the page's MANOR block.
+  it writes the page's MANOR block, and the same plan as `catio-app/generated/manor.json`.
 - `catio/tools/build-art.py`: draws both floors from the plan, the furniture atlases and the grounds,
   and cuts the UI pieces, from the ten zips (`pip install pillow fonttools`, then see the script's
   docstring).
@@ -270,6 +270,11 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
   and files a pile into that project's repo once it has been checked. See [its README](litterbox/README.md).
 - `docs/`: the plan, her requests compiled, the camera and minimap plan, renovation mode's constraints,
   the drawing plan for her own art, and what the litter box filed here.
+- `catio-app/`: a **draft** of the café as a native C++ app for a phone, for her to judge: nine headers
+  of declarations, the generated floor plan, and build files for desktop, Android and iOS. Nothing
+  compiles into an app yet, and it ships with no pack art — the app fetches that from her gateway on
+  first run, because the packs may not be redistributed. The case for it and the whole design are in
+  [`docs/mobile-app.md`](docs/mobile-app.md).
 
 The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harness/test` and
 `python3 -m unittest litterbox/test_sort.py`.

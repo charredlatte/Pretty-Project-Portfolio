@@ -1,0 +1,2542 @@
+{
+ "atlases": {
+  "cc": [
+   512,
+   99
+  ],
+  "lic": [
+   512,
+   110
+  ]
+ },
+ "doors": [
+  [
+   "dining",
+   "kitchen",
+   [
+    264,
+    146
+   ],
+   [
+    284,
+    146
+   ]
+  ],
+  [
+   "kitchen",
+   "living",
+   [
+    504,
+    146
+   ],
+   [
+    524,
+    146
+   ]
+  ],
+  [
+   "dining",
+   "study",
+   [
+    173,
+    200
+   ],
+   [
+    173,
+    252
+   ]
+  ],
+  [
+   "kitchen",
+   "hall",
+   [
+    316,
+    200
+   ],
+   [
+    316,
+    252
+   ]
+  ],
+  [
+   "kitchen",
+   "hall",
+   [
+    472,
+    200
+   ],
+   [
+    472,
+    252
+   ]
+  ],
+  [
+   "living",
+   "sunroom",
+   [
+    600,
+    200
+   ],
+   [
+    600,
+    252
+   ]
+  ],
+  [
+   "study",
+   "hall",
+   [
+    264,
+    315
+   ],
+   [
+    284,
+    315
+   ]
+  ],
+  [
+   "hall",
+   "sunroom",
+   [
+    504,
+    315
+   ],
+   [
+    524,
+    315
+   ]
+  ],
+  [
+   "brain",
+   "landing",
+   [
+    264,
+    146
+   ],
+   [
+    284,
+    146
+   ]
+  ],
+  [
+   "landing",
+   "bedroom",
+   [
+    504,
+    146
+   ],
+   [
+    524,
+    146
+   ]
+  ],
+  [
+   "bedroom",
+   "bath",
+   [
+    600,
+    144
+   ],
+   [
+    620,
+    144
+   ]
+  ],
+  [
+   "hall",
+   "landing",
+   [
+    394,
+    299
+   ],
+   [
+    394,
+    205
+   ]
+  ],
+  [
+   "sunroom",
+   "garden",
+   [
+    680,
+    320
+   ],
+   [
+    704,
+    320
+   ]
+  ],
+  [
+   "hall",
+   null,
+   [
+    394,
+    378
+   ],
+   [
+    394,
+    404
+   ]
+  ]
+ ],
+ "face": 32,
+ "floors": {
+  "bath": [
+   613,
+   85,
+   688,
+   208
+  ],
+  "bedroom": [
+   517,
+   85,
+   608,
+   208
+  ],
+  "brain": [
+   101,
+   85,
+   272,
+   208
+  ],
+  "dining": [
+   101,
+   85,
+   272,
+   208
+  ],
+  "garden": [
+   696,
+   192,
+   908,
+   456
+  ],
+  "hall": [
+   277,
+   245,
+   512,
+   384
+  ],
+  "kitchen": [
+   277,
+   85,
+   512,
+   208
+  ],
+  "living": [
+   517,
+   85,
+   688,
+   208
+  ],
+  "study": [
+   101,
+   245,
+   272,
+   384
+  ],
+  "sunroom": [
+   517,
+   245,
+   688,
+   384
+  ]
+ },
+ "landing": [
+  272,
+  48,
+  245,
+  341
+ ],
+ "layout": {
+  "bath": [
+   [
+    "mirror_small",
+    648,
+    56
+   ],
+   [
+    "basin",
+    647,
+    76
+   ],
+   [
+    "shower",
+    670,
+    56
+   ],
+   [
+    "bath_mat",
+    668,
+    96
+   ],
+   [
+    "toilet",
+    668,
+    130
+   ],
+   [
+    "plant_bath",
+    618,
+    180
+   ],
+   [
+    "cushion_white",
+    640,
+    186
+   ]
+  ],
+  "bedroom": [
+   [
+    "nightstand",
+    542,
+    72
+   ],
+   [
+    "bed",
+    560,
+    62
+   ],
+   [
+    "nightstand",
+    592,
+    72
+   ],
+   [
+    "filing_cabinet",
+    522,
+    66
+   ],
+   [
+    "rug_blue_diamond",
+    540,
+    150
+   ],
+   [
+    "armchair_pink",
+    580,
+    168
+   ],
+   [
+    "cushion_orange",
+    524,
+    184
+   ]
+  ],
+  "brain": [
+   [
+    "bookcase_dark_books",
+    102,
+    48
+   ],
+   [
+    "bookcase_red_books",
+    214,
+    48
+   ],
+   [
+    "armchair_blue",
+    110,
+    120
+   ],
+   [
+    "lamp_floor",
+    136,
+    114
+   ],
+   [
+    "brain_desk",
+    160,
+    120
+   ],
+   [
+    "chair_back",
+    178,
+    146
+   ],
+   [
+    "brain_chest",
+    224,
+    150
+   ],
+   [
+    "filing_cabinet",
+    250,
+    120
+   ],
+   [
+    "rug_blue_diamond",
+    120,
+    170
+   ],
+   [
+    "cushion_green",
+    236,
+    186
+   ]
+  ],
+  "dining": [
+   [
+    "filing_cabinet",
+    106,
+    72
+   ],
+   [
+    "sideboard",
+    226,
+    72
+   ],
+   [
+    "sunflower",
+    256,
+    66
+   ],
+   [
+    "dining_table",
+    140,
+    120
+   ],
+   [
+    "chair_front_decor",
+    147,
+    102
+   ],
+   [
+    "chair_front_decor",
+    169,
+    102
+   ],
+   [
+    "chair_right",
+    124,
+    123
+   ],
+   [
+    "chair_left_queen",
+    192,
+    123
+   ],
+   [
+    "chair_back_work",
+    147,
+    146
+   ],
+   [
+    "chair_back_work",
+    169,
+    146
+   ],
+   [
+    "writing_desk",
+    226,
+    130
+   ],
+   [
+    "chair_front_decor",
+    235,
+    114
+   ],
+   [
+    "runner_yellow",
+    112,
+    186
+   ],
+   [
+    "cushion_green",
+    240,
+    190
+   ]
+  ],
+  "garden": [
+   [
+    "catio_chest",
+    704,
+    200
+   ],
+   [
+    "cat_tree",
+    850,
+    200
+   ],
+   [
+    "cushion_white",
+    780,
+    240
+   ],
+   [
+    "runner_blue",
+    710,
+    280
+   ],
+   [
+    "garden_table",
+    760,
+    330
+   ],
+   [
+    "garden_chair",
+    805,
+    350
+   ],
+   [
+    "cushion_orange",
+    860,
+    400
+   ],
+   [
+    "fern",
+    880,
+    420
+   ]
+  ],
+  "hall": [
+   [
+    "stairs",
+    362,
+    213
+   ],
+   [
+    "door_mat",
+    379,
+    372
+   ],
+   [
+    "rug_red_diamond",
+    370,
+    310
+   ],
+   [
+    "lamp_floor",
+    345,
+    258
+   ],
+   [
+    "lamp_floor",
+    432,
+    258
+   ],
+   [
+    "plant_pampas",
+    284,
+    250
+   ],
+   [
+    "plant_snake",
+    284,
+    350
+   ],
+   [
+    "writing_desk",
+    300,
+    330
+   ],
+   [
+    "armchair_pink",
+    336,
+    334
+   ],
+   [
+    "filing_cabinet",
+    480,
+    334
+   ],
+   [
+    "cushion_blue",
+    450,
+    300
+   ],
+   [
+    "cushion_orange",
+    455,
+    345
+   ]
+  ],
+  "kitchen": [
+   [
+    "fridge",
+    330,
+    58
+   ],
+   [
+    "counter_drawers",
+    346,
+    73
+   ],
+   [
+    "counter",
+    362,
+    73
+   ],
+   [
+    "counter_door",
+    378,
+    73
+   ],
+   [
+    "hob",
+    394,
+    73
+   ],
+   [
+    "counter",
+    410,
+    73
+   ],
+   [
+    "pantry",
+    428,
+    56
+   ],
+   [
+    "filing_cabinet",
+    450,
+    73
+   ],
+   [
+    "sink",
+    364,
+    75
+   ],
+   [
+    "island",
+    370,
+    140
+   ],
+   [
+    "island",
+    386,
+    140
+   ],
+   [
+    "island",
+    402,
+    140
+   ],
+   [
+    "chair_front",
+    340,
+    136
+   ],
+   [
+    "runner_blue",
+    290,
+    184
+   ],
+   [
+    "cushion_orange",
+    300,
+    110
+   ]
+  ],
+  "landing": [
+   [
+    "plant_pampas",
+    285,
+    88
+   ],
+   [
+    "plant_snake",
+    495,
+    95
+   ],
+   [
+    "lamp_floor",
+    300,
+    300
+   ],
+   [
+    "rug_red_diamond",
+    370,
+    320
+   ],
+   [
+    "runner_blue",
+    380,
+    150
+   ]
+  ],
+  "living": [
+   [
+    "fireplace",
+    586,
+    53
+   ],
+   [
+    "rug_red_diamond",
+    578,
+    120
+   ],
+   [
+    "armchair_blue_r",
+    540,
+    124
+   ],
+   [
+    "armchair_blue_l",
+    616,
+    124
+   ],
+   [
+    "sofa_blue_back",
+    582,
+    156
+   ],
+   [
+    "cat_tree",
+    646,
+    112
+   ],
+   [
+    "filing_cabinet",
+    522,
+    73
+   ],
+   [
+    "cushion_white",
+    524,
+    180
+   ],
+   [
+    "cushion_blue",
+    560,
+    190
+   ]
+  ],
+  "study": [
+   [
+    "bookcase_filled",
+    104,
+    213
+   ],
+   [
+    "shelves_supplies",
+    200,
+    222
+   ],
+   [
+    "filing_cabinet",
+    250,
+    222
+   ],
+   [
+    "worktable",
+    140,
+    280
+   ],
+   [
+    "yarn_red",
+    148,
+    290
+   ],
+   [
+    "yarn_blue",
+    162,
+    292
+   ],
+   [
+    "tin_buttons",
+    178,
+    289
+   ],
+   [
+    "writing_desk",
+    220,
+    300
+   ],
+   [
+    "chair_right_queen",
+    116,
+    300
+   ],
+   [
+    "supply_chest",
+    240,
+    350
+   ],
+   [
+    "runner_green",
+    110,
+    360
+   ],
+   [
+    "trailing_ivy",
+    160,
+    396
+   ],
+   [
+    "cushion_blue",
+    196,
+    398
+   ]
+  ],
+  "sunroom": [
+   [
+    "palm",
+    522,
+    232
+   ],
+   [
+    "monstera",
+    650,
+    230
+   ],
+   [
+    "scratching_post",
+    650,
+    258
+   ],
+   [
+    "garden_table",
+    560,
+    262
+   ],
+   [
+    "garden_chair",
+    604,
+    282
+   ],
+   [
+    "writing_desk",
+    620,
+    336
+   ],
+   [
+    "fiddle_fig",
+    664,
+    338
+   ],
+   [
+    "fern",
+    530,
+    300
+   ],
+   [
+    "runner_green",
+    560,
+    350
+   ],
+   [
+    "cushion_white",
+    525,
+    362
+   ]
+  ]
+ },
+ "level": {
+  "bath": "upper",
+  "bedroom": "upper",
+  "brain": "upper",
+  "dining": "ground",
+  "garden": "ground",
+  "hall": "ground",
+  "kitchen": "ground",
+  "living": "ground",
+  "study": "ground",
+  "sunroom": "ground"
+ },
+ "pieces": {
+  "armchair_blue": {
+   "at": [
+    389,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    8,
+    22,
+    22
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    22,
+    30
+   ],
+   "stations": [
+    [
+     "queen",
+     11,
+     36
+    ]
+   ]
+  },
+  "armchair_blue_l": {
+   "at": [
+    412,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    8,
+    22,
+    22
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    22,
+    30
+   ],
+   "stations": [
+    [
+     "queen",
+     11,
+     36
+    ]
+   ]
+  },
+  "armchair_blue_r": {
+   "at": [
+    435,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    8,
+    22,
+    22
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    22,
+    30
+   ],
+   "stations": []
+  },
+  "armchair_green": {
+   "at": [
+    458,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    8,
+    24,
+    22
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    24,
+    30
+   ],
+   "stations": [
+    [
+     "queen",
+     12,
+     36
+    ]
+   ]
+  },
+  "armchair_pink": {
+   "at": [
+    483,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    8,
+    24,
+    22
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    24,
+    30
+   ],
+   "stations": [
+    [
+     "queen",
+     12,
+     36
+    ]
+   ]
+  },
+  "basin": {
+   "at": [
+    122,
+    84
+   ],
+   "atlas": "cc",
+   "foot": null,
+   "kind": "decor",
+   "layer": "wall",
+   "size": [
+    14,
+    14
+   ],
+   "stations": []
+  },
+  "bath_mat": {
+   "at": [
+    210,
+    84
+   ],
+   "atlas": "cc",
+   "foot": null,
+   "kind": "connected",
+   "layer": "rug",
+   "size": [
+    16,
+    10
+   ],
+   "stations": [
+    [
+     "queen",
+     8,
+     8
+    ]
+   ]
+  },
+  "bed": {
+   "at": [
+    47,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    8,
+    32,
+    39
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    32,
+    47
+   ],
+   "stations": [
+    [
+     "sleep",
+     16,
+     34
+    ]
+   ]
+  },
+  "bookcase_dark_books": {
+   "at": [
+    148,
+    0
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    34,
+    52,
+    24
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    52,
+    58
+   ],
+   "stations": []
+  },
+  "bookcase_filled": {
+   "at": [
+    0,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    30,
+    46,
+    22
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    46,
+    52
+   ],
+   "stations": []
+  },
+  "bookcase_red_books": {
+   "at": [
+    201,
+    0
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    34,
+    52,
+    24
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    52,
+    58
+   ],
+   "stations": []
+  },
+  "bowl_food": {
+   "at": [
+    69,
+    89
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    4,
+    22,
+    14
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    22,
+    18
+   ],
+   "stations": []
+  },
+  "bowl_water": {
+   "at": [
+    92,
+    89
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    4,
+    22,
+    14
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    22,
+    18
+   ],
+   "stations": []
+  },
+  "brain_chest": {
+   "at": [
+    0,
+    89
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    5,
+    22,
+    16
+   ],
+   "kind": "essential",
+   "layer": "floor",
+   "size": [
+    22,
+    21
+   ],
+   "stations": []
+  },
+  "brain_desk": {
+   "at": [
+    225,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    6,
+    50,
+    26
+   ],
+   "kind": "essential",
+   "layer": "floor",
+   "size": [
+    50,
+    32
+   ],
+   "stations": []
+  },
+  "cat_tree": {
+   "at": [
+    0,
+    0
+   ],
+   "atlas": "lic",
+   "foot": [
+    4,
+    60,
+    36,
+    28
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    42,
+    88
+   ],
+   "stations": [
+    [
+     "work",
+     22,
+     92
+    ]
+   ]
+  },
+  "catio_chest": {
+   "at": [
+    23,
+    89
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    5,
+    22,
+    16
+   ],
+   "kind": "essential",
+   "layer": "floor",
+   "size": [
+    22,
+    21
+   ],
+   "stations": [
+    [
+     "review",
+     11,
+     28
+    ]
+   ]
+  },
+  "chair_back": {
+   "at": [
+    383,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    14,
+    22
+   ],
+   "stations": [
+    [
+     "work",
+     7,
+     22
+    ]
+   ]
+  },
+  "chair_back_work": {
+   "at": [
+    398,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    14,
+    22
+   ],
+   "stations": [
+    [
+     "work",
+     7,
+     22
+    ]
+   ]
+  },
+  "chair_front": {
+   "at": [
+    112,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    7,
+    14,
+    21
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    14,
+    28
+   ],
+   "stations": [
+    [
+     "queen",
+     7,
+     32
+    ]
+   ]
+  },
+  "chair_front_decor": {
+   "at": [
+    127,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    14,
+    28
+   ],
+   "stations": []
+  },
+  "chair_left_queen": {
+   "at": [
+    142,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    14,
+    27
+   ],
+   "stations": [
+    [
+     "queen",
+     7,
+     30
+    ]
+   ]
+  },
+  "chair_right": {
+   "at": [
+    157,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    14,
+    27
+   ],
+   "stations": []
+  },
+  "chair_right_queen": {
+   "at": [
+    172,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    14,
+    27
+   ],
+   "stations": [
+    [
+     "queen",
+     7,
+     30
+    ]
+   ]
+  },
+  "counter": {
+   "at": [
+    187,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    10,
+    16,
+    17
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    16,
+    27
+   ],
+   "stations": []
+  },
+  "counter_door": {
+   "at": [
+    204,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    10,
+    16,
+    17
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    16,
+    27
+   ],
+   "stations": []
+  },
+  "counter_drawers": {
+   "at": [
+    221,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    10,
+    16,
+    17
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    16,
+    27
+   ],
+   "stations": []
+  },
+  "cushion_blue": {
+   "at": [
+    137,
+    84
+   ],
+   "atlas": "cc",
+   "foot": null,
+   "kind": "connected",
+   "layer": "rug",
+   "size": [
+    14,
+    14
+   ],
+   "stations": [
+    [
+     "sleep",
+     7,
+     10
+    ]
+   ]
+  },
+  "cushion_green": {
+   "at": [
+    152,
+    84
+   ],
+   "atlas": "cc",
+   "foot": null,
+   "kind": "connected",
+   "layer": "rug",
+   "size": [
+    14,
+    14
+   ],
+   "stations": [
+    [
+     "sleep",
+     7,
+     10
+    ]
+   ]
+  },
+  "cushion_orange": {
+   "at": [
+    167,
+    84
+   ],
+   "atlas": "cc",
+   "foot": null,
+   "kind": "connected",
+   "layer": "rug",
+   "size": [
+    14,
+    14
+   ],
+   "stations": [
+    [
+     "sleep",
+     7,
+     10
+    ]
+   ]
+  },
+  "cushion_white": {
+   "at": [
+    182,
+    84
+   ],
+   "atlas": "cc",
+   "foot": null,
+   "kind": "connected",
+   "layer": "rug",
+   "size": [
+    14,
+    14
+   ],
+   "stations": [
+    [
+     "sleep",
+     7,
+     10
+    ]
+   ]
+  },
+  "dining_table": {
+   "at": [
+    276,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    6,
+    50,
+    26
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    50,
+    32
+   ],
+   "stations": []
+  },
+  "door_mat": {
+   "at": [
+    227,
+    84
+   ],
+   "atlas": "cc",
+   "foot": null,
+   "kind": "essential",
+   "layer": "rug",
+   "size": [
+    30,
+    10
+   ],
+   "stations": [
+    [
+     "needs",
+     9,
+     8
+    ],
+    [
+     "needs",
+     22,
+     8
+    ]
+   ]
+  },
+  "dresser": {
+   "at": [
+    238,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    10,
+    32,
+    17
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    32,
+    27
+   ],
+   "stations": []
+  },
+  "fern": {
+   "at": [
+    432,
+    0
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    6,
+    22,
+    20
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    22,
+    26
+   ],
+   "stations": []
+  },
+  "fiddle_fig": {
+   "at": [
+    313,
+    0
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    10,
+    19,
+    28
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    19,
+    38
+   ],
+   "stations": []
+  },
+  "filing_cabinet": {
+   "at": [
+    271,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    7,
+    16,
+    20
+   ],
+   "kind": "essential",
+   "layer": "floor",
+   "size": [
+    16,
+    27
+   ],
+   "stations": [
+    [
+     "review",
+     8,
+     36
+    ]
+   ]
+  },
+  "fireplace": {
+   "at": [
+    96,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    30,
+    32,
+    12
+   ],
+   "kind": "essential",
+   "layer": "floor",
+   "size": [
+    32,
+    42
+   ],
+   "stations": []
+  },
+  "food_bag": {
+   "at": [
+    415,
+    0
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    8,
+    16,
+    23
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    16,
+    31
+   ],
+   "stations": []
+  },
+  "foot_chest": {
+   "at": [
+    46,
+    89
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    5,
+    22,
+    16
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    22,
+    21
+   ],
+   "stations": []
+  },
+  "fridge": {
+   "at": [
+    146,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    20,
+    16,
+    20
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    16,
+    40
+   ],
+   "stations": []
+  },
+  "garden_chair": {
+   "at": [
+    362,
+    0
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    28,
+    36
+   ],
+   "stations": [
+    [
+     "queen",
+     14,
+     38
+    ]
+   ]
+  },
+  "garden_table": {
+   "at": [
+    108,
+    0
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    20,
+    39,
+    46
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    39,
+    66
+   ],
+   "stations": []
+  },
+  "hob": {
+   "at": [
+    288,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    10,
+    16,
+    17
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    16,
+    27
+   ],
+   "stations": []
+  },
+  "island": {
+   "at": [
+    305,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    10,
+    16,
+    17
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    16,
+    27
+   ],
+   "stations": [
+    [
+     "work",
+     8,
+     32
+    ]
+   ]
+  },
+  "lamp_floor": {
+   "at": [
+    0,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    8,
+    13,
+    22
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    13,
+    30
+   ],
+   "stations": []
+  },
+  "mirror_small": {
+   "at": [
+    471,
+    53
+   ],
+   "atlas": "cc",
+   "foot": null,
+   "kind": "decor",
+   "layer": "wall",
+   "size": [
+    12,
+    21
+   ],
+   "stations": []
+  },
+  "monstera": {
+   "at": [
+    477,
+    0
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    6,
+    24,
+    19
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    24,
+    25
+   ],
+   "stations": []
+  },
+  "nightstand": {
+   "at": [
+    413,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    8,
+    16,
+    14
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    16,
+    22
+   ],
+   "stations": []
+  },
+  "palm": {
+   "at": [
+    391,
+    0
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    8,
+    23,
+    26
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    23,
+    34
+   ],
+   "stations": []
+  },
+  "pantry": {
+   "at": [
+    129,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    22,
+    16,
+    20
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    16,
+    42
+   ],
+   "stations": []
+  },
+  "plant_bath": {
+   "at": [
+    368,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    6,
+    14,
+    18
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    14,
+    24
+   ],
+   "stations": []
+  },
+  "plant_pampas": {
+   "at": [
+    80,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    11,
+    15,
+    32
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    15,
+    43
+   ],
+   "stations": []
+  },
+  "plant_snake": {
+   "at": [
+    360,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    8,
+    11,
+    23
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    11,
+    31
+   ],
+   "stations": []
+  },
+  "rug_blue_diamond": {
+   "at": [
+    14,
+    53
+   ],
+   "atlas": "cc",
+   "foot": null,
+   "kind": "connected",
+   "layer": "rug",
+   "size": [
+    48,
+    30
+   ],
+   "stations": [
+    [
+     "fail",
+     24,
+     18
+    ]
+   ]
+  },
+  "rug_red_diamond": {
+   "at": [
+    63,
+    53
+   ],
+   "atlas": "cc",
+   "foot": null,
+   "kind": "connected",
+   "layer": "rug",
+   "size": [
+    48,
+    30
+   ],
+   "stations": [
+    [
+     "fail",
+     24,
+     18
+    ]
+   ]
+  },
+  "runner_blue": {
+   "at": [
+    0,
+    84
+   ],
+   "atlas": "cc",
+   "foot": null,
+   "kind": "connected",
+   "layer": "rug",
+   "size": [
+    30,
+    15
+   ],
+   "stations": [
+    [
+     "fail",
+     15,
+     10
+    ]
+   ]
+  },
+  "runner_green": {
+   "at": [
+    31,
+    84
+   ],
+   "atlas": "cc",
+   "foot": null,
+   "kind": "connected",
+   "layer": "rug",
+   "size": [
+    30,
+    15
+   ],
+   "stations": [
+    [
+     "fail",
+     15,
+     10
+    ]
+   ]
+  },
+  "runner_yellow": {
+   "at": [
+    62,
+    84
+   ],
+   "atlas": "cc",
+   "foot": null,
+   "kind": "connected",
+   "layer": "rug",
+   "size": [
+    30,
+    15
+   ],
+   "stations": [
+    [
+     "fail",
+     15,
+     10
+    ]
+   ]
+  },
+  "scratching_post": {
+   "at": [
+    333,
+    0
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    10,
+    28,
+    28
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    28,
+    38
+   ],
+   "stations": [
+    [
+     "work",
+     14,
+     44
+    ]
+   ]
+  },
+  "shelves_supplies": {
+   "at": [
+    178,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    16,
+    46,
+    20
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    46,
+    36
+   ],
+   "stations": []
+  },
+  "shower": {
+   "at": [
+    355,
+    53
+   ],
+   "atlas": "cc",
+   "foot": null,
+   "kind": "decor",
+   "layer": "wall",
+   "size": [
+    12,
+    25
+   ],
+   "stations": []
+  },
+  "sideboard": {
+   "at": [
+    322,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    10,
+    32,
+    17
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    32,
+    27
+   ],
+   "stations": []
+  },
+  "sink": {
+   "at": [
+    93,
+    84
+   ],
+   "atlas": "cc",
+   "foot": null,
+   "kind": "decor",
+   "layer": "top",
+   "size": [
+    28,
+    15
+   ],
+   "stations": []
+  },
+  "sofa_blue_back": {
+   "at": [
+    430,
+    53
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    40,
+    22
+   ],
+   "stations": [
+    [
+     "sleep",
+     20,
+     16
+    ]
+   ]
+  },
+  "stairs": {
+   "at": [
+    43,
+    0
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    0,
+    64,
+    80
+   ],
+   "kind": "essential",
+   "layer": "floor",
+   "size": [
+    64,
+    80
+   ],
+   "stations": [
+    [
+     "upstairs",
+     32,
+     78
+    ],
+    [
+     "upstairs",
+     32,
+     54
+    ],
+    [
+     "upstairs",
+     32,
+     30
+    ],
+    [
+     "upstairs",
+     32,
+     6
+    ]
+   ]
+  },
+  "sunflower": {
+   "at": [
+    163,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    10,
+    14,
+    30
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    14,
+    40
+   ],
+   "stations": []
+  },
+  "supply_chest": {
+   "at": [
+    455,
+    0
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    6,
+    21,
+    20
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    21,
+    26
+   ],
+   "stations": []
+  },
+  "tin_buttons": {
+   "at": [
+    163,
+    89
+   ],
+   "atlas": "lic",
+   "foot": null,
+   "kind": "decor",
+   "layer": "top",
+   "size": [
+    9,
+    9
+   ],
+   "stations": []
+  },
+  "toilet": {
+   "at": [
+    372,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    10,
+    16,
+    21
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    16,
+    31
+   ],
+   "stations": []
+  },
+  "towel": {
+   "at": [
+    197,
+    84
+   ],
+   "atlas": "cc",
+   "foot": null,
+   "kind": "decor",
+   "layer": "wall",
+   "size": [
+    12,
+    14
+   ],
+   "stations": []
+  },
+  "trailing_ivy": {
+   "at": [
+    115,
+    89
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    4,
+    23,
+    13
+   ],
+   "kind": "decor",
+   "layer": "floor",
+   "size": [
+    23,
+    17
+   ],
+   "stations": []
+  },
+  "worktable": {
+   "at": [
+    254,
+    0
+   ],
+   "atlas": "lic",
+   "foot": [
+    0,
+    8,
+    58,
+    42
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    58,
+    50
+   ],
+   "stations": [
+    [
+     "work",
+     29,
+     58
+    ]
+   ]
+  },
+  "writing_desk": {
+   "at": [
+    327,
+    0
+   ],
+   "atlas": "cc",
+   "foot": [
+    0,
+    8,
+    32,
+    24
+   ],
+   "kind": "connected",
+   "layer": "floor",
+   "size": [
+    32,
+    32
+   ],
+   "stations": [
+    [
+     "work",
+     16,
+     42
+    ]
+   ]
+  },
+  "yarn_blue": {
+   "at": [
+    139,
+    89
+   ],
+   "atlas": "lic",
+   "foot": null,
+   "kind": "decor",
+   "layer": "top",
+   "size": [
+    11,
+    10
+   ],
+   "stations": []
+  },
+  "yarn_red": {
+   "at": [
+    151,
+    89
+   ],
+   "atlas": "lic",
+   "foot": null,
+   "kind": "decor",
+   "layer": "top",
+   "size": [
+    11,
+    10
+   ],
+   "stations": []
+  }
+ },
+ "rooms": {
+  "bath": [
+   608,
+   48,
+   85,
+   165
+  ],
+  "bedroom": [
+   512,
+   48,
+   101,
+   165
+  ],
+  "brain": [
+   96,
+   48,
+   181,
+   165
+  ],
+  "dining": [
+   96,
+   48,
+   181,
+   165
+  ],
+  "garden": [
+   688,
+   176,
+   224,
+   288
+  ],
+  "hall": [
+   272,
+   208,
+   245,
+   181
+  ],
+  "kitchen": [
+   272,
+   48,
+   245,
+   165
+  ],
+  "living": [
+   512,
+   48,
+   181,
+   165
+  ],
+  "study": [
+   96,
+   208,
+   181,
+   181
+  ],
+  "sunroom": [
+   512,
+   208,
+   181,
+   181
+  ]
+ },
+ "stairs": [
+  362,
+  213,
+  64,
+  80
+ ],
+ "world": [
+  960,
+  576
+ ]
+}
