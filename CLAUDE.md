@@ -237,7 +237,7 @@ that inflates "3 need you" makes the sign a liar.
   Claude Code turn per thing she says or routine due, and streams the answer back. `queenState()` reads the agent
   record `queen`: away (no runner for two minutes: asleep, "start her runner"), busy (answering) or here.
 - **Her conversation** is the gateway's notes for the cat `queen`: Charlotte's lines (`comment`, author
-  `charlotte`) and hers (author `queen`, which only the runner's key may write). In the gateway café a `{type:
+  `owner`) and hers (author `queen`, which only the runner's key may write). In the gateway café a `{type:
   "queen"}` push (`catio:queen`) grows her live bubble as she speaks and her voice says each sentence; in claude.ai
   her card polls `comments` every 5 s. Stop is `manage {cat: "queen", action: "pause"}`.
 - **Her card is a scene** (`openQueen(section)`, her ask of 3 October, like an RPG's dialogue): the owner of the house
@@ -260,6 +260,20 @@ that inflates "3 need you" makes the sign a liar.
   in → `answer`), and her hover says "Homework: N to hand in" (mood `box`). Handing in posts the answers to the
   cat as Charlotte's words (its hook hands them in, `Homework handed in: …`) and to the queen's conversation, so
   she can see to the rest. Only Charlotte hands in; the agents' key sets nothing.
+- **Her quest log** (3 October: "where do I take the litter box quiz in the cafe UI?", then her pick: the queen's
+  quest log, the cards kept in the gateway). Everything waiting on Charlotte is homework, one `quizzes/<id>` each,
+  with a `kind`: `unblock` (above), `litterbox` (one sifted note: which project is it for, or *Settled: drop it*) or
+  `decision` (one decision waiting on her, Claude's recommendation in `hint`). A card carries its `note` (markdown),
+  `from` and `hint`, and a `ref` deals it once (its id is `<kind>-<ref>`; dealt again it is replaced while open, and
+  her answer stands once given). Her card shows the unblock quizzes first, then a deck per kind, a card at a time
+  (`DECKS`, `DECKAT`): a tap on an option hands it in, Skip puts the next on top. A card's answer is only kept, never
+  told to the queen (each line Charlotte says to her is a turn of her runner). Her hover counts each kind
+  ("Homework: 2 notes to sort, 1 decision"); the House menu leads with Homework when anything waits; the library's
+  chest is the litter box (`.cabinet.litter`, no sign): hovering says what waits, a click opens her card at its
+  notes, or the brain's tray when there are none. Dealing and filing: `litterbox/README.md` and
+  `catio-plugin/skills/litterbox-quiz/`; `forget` clears filed and stale cards, never an open unblock quiz. A
+  litterbox or decision card is one question with 2 to 12 options (the gateway refuses others: the café couldn't answer them). `litterbox/quiz.html` stays for a café with no
+  gateway; her two quiz pages are retired.
 - **What she keeps** is hers alone; a note she is *saying* (`pinned`) becomes her line in her menu and hover.
   The room queens of before (`queens/<room>`) are read as hers until her first save, which writes `queens/house`
   and deletes them.
@@ -306,6 +320,9 @@ The page now **writes** through Claude Code Remote, always on an explicit action
   (tried 30 September).
 - **Talking**: `notes/<id>` `{cat, text, author: charlotte|session|agent, at, via}`; replies show live.
 - **Managing**: `set_session_title` (a cat's new name retitles its session too, her call on 3 October), `interrupt_session`, `archive_session` (+ `delete_trigger`),
+- **Talking**: `notes/<id>` `{cat, text, author: owner|session|agent, at, via}` (`charlotte` in notes from before
+  accounts: the page reads both, writes `owner`); replies show live.
+- **Managing**: `set_session_title`, `interrupt_session`, `archive_session` (+ `delete_trigger`),
   `unarchive_session`, `create_session` (New cat, model from `rooms/<k>.model`).
 - **Agents, and the sessions that report**: the gateway through her `CATIO` connector (`GATEWAY` in the page),
   else `host:catio` (on localhost, `/api/*` when served by `catio_mcp.py --serve`): `list_agents` every 30 s,
@@ -316,10 +333,11 @@ The page now **writes** through Claude Code Remote, always on an explicit action
 - `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet.
 
 The stored capabilities (the full set, to pass whole if a tool is ever added):
-`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","list_repos","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "CATIO", tools: ["list_agents","comment","comments","drop_file","manage","decide"] }] }, db: {}, assets: {}, sample: {} }`
+`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","list_repos","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "CATIO", tools: ["list_agents","comment","comments","drop_file","manage","decide","quizzes","answer"] }] }, db: {}, assets: {}, sample: {} }`
 
 `decide` joined the set on 3 October (the decider, below): the first republish after it must pass the whole set, or in claude.ai the
-page cannot ask the decider and the brain simply keeps sorting the old way.
+page cannot ask the decider and the brain simply keeps sorting the old way. `quizzes` and `answer` joined it the same evening (her
+quest log): until a republish passes the whole set, the claude.ai café shows no homework; the café on the gateway's address does.
 
 `host:catio` (the same five tools) can only be declared from the Claude desktop app, so it isn't in the stored
 set. `delete_trigger` stays only to clean up the Routines older versions bound. Posting into a session through a bound Routine doesn't reach the session
@@ -338,7 +356,7 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
   repo, the chat or a test. With accounts (`src/registry.js`), the first two make the first account once; the
   queen's is a registry key with the role `queen`, kept in step with the secret at every start.
 - **Only she speaks as herself, and only her runner as the queen.** OAuth (her password, through the `Catio`
-  connector in claude.ai) may write as `charlotte`, drop files and manage; the queen's key writes as `queen`,
+  connector in claude.ai) may write as `owner`, drop files and manage; the queen's key writes as `queen`,
   tells cats and manages them for her; the agents' key may do neither. Keep it that way: it is what stops a
   leaked key from putting instructions in her mouth, or in her assistant's, which the cats act on.
 - **The queen's routes:** `POST /api/runner/wait` (held up to 25 s: her notes, a routine due, a stop, her

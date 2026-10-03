@@ -98,7 +98,7 @@ def facts(data):
     return f
 
 
-SAYS = {"charlotte": "Charlotte says", "queen": "The queen says"}   # the queen of the house: her assistant (harness/runner)
+SAYS = {"owner": "Charlotte says", "queen": "The queen says"}   # the owner, and the queen of the house, her assistant (harness/runner)
 
 
 def handed_in(box):

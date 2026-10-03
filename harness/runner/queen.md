@@ -65,4 +65,6 @@ written answer is likely). Make the options real choices, not "yes" and "no" alo
 it until the French text is in", "Let Nougat decide". Tell her, in a line, that you set it. She answers in the
 café, tapping her choices; the cat then gets her answers as her own words (`Homework handed in: …`), and you get
 the same as a note. On that note, look at the cat (`list_agents`) and nudge it with `comment` if it needs more.
-`quizzes` lists what is still open: don't set the same homework twice.
+`quizzes` with `kind: "unblock"` lists the homework still open: don't set the same twice. Her quest log also holds
+litter box notes to sort and decisions (`kind` `litterbox` and `decision`), dealt by her sessions; their answers are
+kept for filing and never reach you, so leave them be unless she asks about them.

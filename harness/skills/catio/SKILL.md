@@ -39,7 +39,7 @@ The pushed text says which kind it is.
 
 Then **answer on the cat**: `ArtifactData` `set` a new document in `notes` (doc id: `<ms>-<4 random
 letters>`) with `{cat: "<your session id>", author: "session", text: "<your answer, under 1500 characters>", at: <ms>}`.
-Keep it to what she needs to read on her phone.
+Keep it to what she needs to read on her phone. Her own notes carry `author: "owner"` (older ones `"charlotte"`).
 
 ### From the gateway
 

@@ -45,7 +45,7 @@ class Stdio(unittest.TestCase):
         self.assertEqual(init["result"]["serverInfo"]["name"], "catio")
         self.rpc("notifications/initialized", notify=True)
         names = {t["name"] for t in self.rpc("tools/list")["result"]["tools"]}
-        self.assertEqual(names, {"house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "answer", "decide"})
+        self.assertEqual(names, {"house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "answer", "decide"})
         self.assertIn("preflight", [r["id"] for r in self.tool("house_rules")["rules"]])
 
         # an agent joins, with a wake command that records what it was woken with
@@ -70,7 +70,7 @@ class Stdio(unittest.TestCase):
         self.assertEqual(len(self.tool("inbox", agent="codex-shop")["notes"]), 1)
         self.tool("comment", cat="codex-shop", text="Nearly done", author="agent")
         self.assertEqual(self.tool("inbox", agent="codex-shop")["notes"], [])
-        self.assertEqual([n["author"] for n in self.tool("comments", cat="codex-shop")["notes"]], ["charlotte", "agent"])
+        self.assertEqual([n["author"] for n in self.tool("comments", cat="codex-shop")["notes"]], ["owner", "agent"])
         self.tool("manage", cat="codex-shop", action="pause")
         self.assertEqual(self.tool("inbox", agent="codex-shop")["request"]["action"], "pause")
 
@@ -97,6 +97,28 @@ class Stdio(unittest.TestCase):
         handed = self.tool("inbox", agent="codex-shop", mark=True)["notes"]
         self.assertEqual(handed[-1]["text"], "Homework handed in: The theme\n1. Ship it? \u2192 Yes\n2. A word for the cat? \u2192 Good work")
         self.assertIn("(for codex-shop, told)", self.tool("comments", cat="queen")["notes"][-1]["text"])
+        # a litter box note is a card in the same quest log: dealt once, answered, kept for filing, then cleared
+        card = {"kind": "litterbox", "ref": "abc123def456", "title": "loose-ends.md", "note": "Rename her Mochi", "hint": "kittychat",
+                "questions": [{"q": "Which project is it for?", "options": ["kittychat", "Settled: drop it"]}]}
+        c = self.tool("quiz", **card)
+        self.assertEqual(c, {"id": "litterbox-abc123def456"})
+        at = self.tool("quizzes", kind="litterbox")["quizzes"][0]["at"]
+        time.sleep(0.01)
+        self.tool("quiz", **dict(card, note="dealt again"))
+        self.assertEqual(self.tool("quizzes", kind="litterbox")["quizzes"][0]["at"], at)
+        with self.assertRaises(Exception):
+            self.tool("quiz", **dict(card, kind="decisions"))
+        self.assertEqual([(q["id"], q["note"]) for q in self.tool("quizzes", kind="litterbox")["quizzes"]], [("litterbox-abc123def456", "dealt again")])
+        heard = len(self.tool("comments", cat="queen")["notes"])
+        self.assertEqual(self.tool("answer", quiz=c["id"], answers=["Settled: drop it"]), {"ok": True, "told": False})
+        self.assertEqual(len(self.tool("comments", cat="queen")["notes"]), heard)
+        self.assertEqual(self.tool("quiz", **card), {"id": c["id"], "done": True})
+        with self.assertRaises(Exception):   # a card the café couldn't answer
+            self.tool("quiz", **dict(card, questions=[{"q": "Which?", "free": True}]))
+        waiting = self.tool("quiz", title="Still waiting", questions=[{"q": "Merge?", "options": ["Yes", "No"]}], **{"for": "codex-shop"})
+        self.assertEqual(self.tool("forget", quizzes=[c["id"], waiting["id"]]), {"forgotten": 1})
+        self.assertIn(waiting["id"], [q["id"] for q in self.tool("quizzes")["quizzes"]])
+        self.assertEqual(self.tool("quizzes", done=True, kind="litterbox")["quizzes"], [])
         self.tool("manage", cat="codex-shop", action="rename", value="Biscotte")
         self.tool("manage", cat="codex-shop", action="archive")
         self.assertEqual(self.tool("list_agents")["agents"], [])
@@ -107,6 +129,14 @@ class Stdio(unittest.TestCase):
         self.assertTrue(any(l.startswith("[Catio] Delivery for you: brief.md") for l in lines), lines)
         self.assertIn("[Catio] Charlotte says: How's the theme?", lines)
         self.assertIn("[Catio] Request: pause", lines)
+
+    def test_renames_the_owners_old_notes(self):
+        # notes written before accounts said "charlotte": they read as the owner's, and the old name is still taken on write
+        Path(self.home, "state.json").write_text(json.dumps({"agents": {}, "files": [], "notes": [
+            {"id": "1", "cat": "codex-shop", "author": "charlotte", "text": "Old note.", "at": 1}]}), encoding="utf-8")
+        self.assertEqual([n["author"] for n in self.tool("comments", cat="codex-shop")["notes"]], ["owner"])
+        self.tool("comment", cat="codex-shop", text="Still me.", author="charlotte")
+        self.assertEqual([n["author"] for n in self.tool("comments", cat="codex-shop")["notes"]], ["owner", "owner"])
 
     def test_decide_refuses_without_a_decider(self):
         r = self.rpc("tools/call", {"name": "decide", "arguments": {"state": "run the tests", "preset": "easy"}})["result"]
