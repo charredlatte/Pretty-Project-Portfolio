@@ -433,6 +433,25 @@ are the saved copy.
 - `catio/data/sessions.json` and `catio/dist/` are gitignored. Her session titles and the
   licensed art are in them: **never commit either**.
 
+## The app draft
+
+`catio-app/` is a **draft** of the café as a native C++ app for a phone (`docs/mobile-app.md`), written
+3 October. It is not an app: the nine headers in `catio-app/include/catio/` are declarations, `src/` is
+empty, and `android/` and `ios/` have never been configured. What builds is the header check,
+`cmake -S catio-app -B build && cmake --build build`, which needs neither SDL nor libcurl because no
+public header names a type from either.
+
+Two things to keep if you touch it:
+
+- **The plan is generated.** `write_page()` in `catio/tools/furniture.py` writes the page's `MANOR`
+  block **and** `catio-app/generated/manor.json` from one `page_data()` call, so the page and the app
+  can never hold different plans. Never hand-copy those numbers into C++. `manor.json` is committed:
+  generated from committed code, and no art in it.
+- **The app ships with no pack art, and never will.** It fetches the art from the gateway's
+  `GET /art/*` on first run, behind her sign-in, into app-private storage. An APK or IPA on a store
+  would redistribute packs that forbid it, so a store release waits for her own art
+  (`docs/drawing-plan.md`). Nothing under `catio-app/` is ever a place to put a pack file.
+
 ## Checking a change
 
 Look first, test second. A test rewritten to match the code only proves the two agree; looking is what
