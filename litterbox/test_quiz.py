@@ -68,11 +68,11 @@ class Quiz(unittest.TestCase):
         sorted_ = next(self.box.glob("*-sorted-LibreSprite-on-iPad.md")).read_text(encoding="utf-8")
         self.assertIn("project: LibreSprite-on-iPad\n", sorted_)
         self.assertNotIn("guess", sorted_)
-        self.assertIn("The deployment session is waiting", sorted_)
+        self.assertEqual(sorted_.count("The deployment session is waiting"), 1)
         self.assertIn("*— litterbox/round.md*", sorted_)
         self.assertNotIn("Emscripten", sorted_)
         left = (self.box / "LibreSprite.md").read_text(encoding="utf-8")
-        self.assertIn("A third note", left)
+        self.assertEqual(left.count("A third note"), 1)
         self.assertNotIn("Emscripten", left)
         self.assertNotIn("deployment session", left)
 

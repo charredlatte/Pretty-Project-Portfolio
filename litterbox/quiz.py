@@ -86,6 +86,12 @@ def apply(answers_dir, box):
             pile.write_text(text, encoding="utf-8")
         else:
             pile.unlink()
+        print(f"{pile.name}: {len(notes) - len(keep)} answered, {len(keep)} left")
+    for project, notes in sorted_.items():
+        dest = box / f"{today}-sorted-{project}.md"
+        before = dest.read_text(encoding="utf-8") if dest.exists() else f"---\nproject: {project}\ndate: {today}\n---\n"
+        dest.write_text(before.rstrip() + "\n\n" + leftover("", notes), encoding="utf-8")
+        print(f"{dest.name}: {len(notes)} checked for {project}")
         print(f"{pile.name}: {had - len(keep)} answered, {len(keep)} left")
     print(f"dropped as settled: {dropped}. Next: python3 litterbox/sort.py --write" + (f" --box {box}" if box != BOX.resolve() else ""))
 

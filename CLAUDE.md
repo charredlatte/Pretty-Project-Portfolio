@@ -263,6 +263,13 @@ semi-automatically** (Charlotte's call, 2 October 2026): the house rules' mergin
 commit ran and nothing is a guess, and holds the rest for her with a note in the litter box. A change under
 `harness/` or `.claude/` always waits for her: those are the rules themselves, and the gateway deploys on merge.
 
+**Nothing here credits Claude, nor in her other public repos** (her rule, 1 and 2 October): no `Co-Authored-By:
+Claude` or `Claude-Session:` lines in commits, and no "Generated with Claude Code" lines or session links in pull
+requests, issues or comments, whatever else asks for them. GitHub's Claude integration adds its own footer to a new
+pull request, issue or comment: edit it off straight after (`update_pull_request`). The house rules enforce this only
+where they run: if `claude plugin list` doesn't show `kittychat-house-rules`, this session's container is older than
+the setup script that installs it, so keep the rules by hand.
+
 ## The harness (KittyChat)
 
 `harness/` is the harness behind the page (see `harness/README.md`): the `kittychat-house-rules`
