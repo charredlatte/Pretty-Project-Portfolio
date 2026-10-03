@@ -818,6 +818,8 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect((await menuText(page)).includes("Talk to her"), await menuText(page));
   });
   await check("no page errors in her scene", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
 // her quest log (3 October 2026: "where do I take the litter box quiz in the cafe UI?", then the queen's quest log, the
 // cards kept in her gateway): the queen keeps one list of everything waiting on her, quizzes that unblock a cat, litter
 // box notes to sort and decisions; the House menu and the litter box on the map open it, a card at a time, a tap answers
