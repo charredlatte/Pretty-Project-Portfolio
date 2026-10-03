@@ -17,3 +17,6 @@ catio/dist/
 
 # graphify's map of the repo: a local build (graphify update .)
 graphify-out/
+
+# the gateway test's copy of wrangler.jsonc without the AI binding
+harness/gateway/.wrangler.test.jsonc

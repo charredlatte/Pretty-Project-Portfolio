@@ -48,6 +48,14 @@ export const TOOLS = [
 			questions: { type: "array", items: { type: "object", properties: { q: S, options: { type: "array", items: S }, free: { type: "boolean" } }, required: ["q"] } } },
 		["title", "questions"]),
 	tool("quizzes", "The homework set for Charlotte: the open quizzes, oldest first (done: true lists the handed-in ones too).", { done: { type: "boolean" } }),
+	tool("decide",
+		"A typed decision from a System One model (Clef on Workers AI, Jev, or laya-serve): a state and named questions of type noul " +
+		"(yes/no: a probability), choice (criteria: {option: meaning}; the option, a probability each and a confidence) or score " +
+		"(criteria: ordered levels; a weighted score). No prose, milliseconds, a fraction of a cent. preset easy asks the six " +
+		"questions of the easy-task rubric about state. With kind, the decision is logged beside old (what you would have chosen).",
+		{ state: { description: "The text or JSON the questions are about" }, questions: { type: "object" }, preset: { type: "string", enum: ["easy"] },
+			model: said("@cf/cloudflare/clef-flash (default), @cf/cloudflare/clef, typesafe/jev"), kind: said("A label for the log, e.g. sort"), old: said("What the old path chose, for the log") },
+		["state"]),
 	tool("answer", "Hand homework in (Charlotte only): one answer per question, in order. Her answers reach the cat, as her words, and the queen.",
 		{ quiz: S, answers: { type: "array", items: S } }, ["quiz", "answers"]),
 ];

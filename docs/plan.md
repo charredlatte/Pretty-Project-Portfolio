@@ -151,7 +151,8 @@ merge to `main`.
      next Stop; its answers there (`report.py say`) show in its conversation;
    - when CATIO asks before every call or needs signing in again, the House menu says so.
 3. **Later:**
-   - agents the gateway runs itself: phase 6;
+   - agents the gateway runs itself: phase 6; small cats on Haiku and Sonnet for the easy work, and the queen
+     delegating to them: `docs/delegation.md`;
    - a Telegram channel;
    - agent cats through `host:catio` (only the Claude desktop app can declare it). Agents that report to the
      gateway show up anywhere, through the `Catio` connector;
