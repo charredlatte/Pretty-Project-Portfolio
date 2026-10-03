@@ -2767,7 +2767,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const steps = [
       () => {
         const sec = el("div", "dlg");
-        sec.appendChild(el("p", "note", "Every Claude Code session is a cat, in the room of its repository. Seven short steps, and the doors open."));
+        sec.appendChild(el("p", "note", "All your Claude chats, in one cozy café. Each chat becomes a cat, each project a room. Seven short steps, and the doors open."));
         if (S.art === "missing") sec.appendChild(el("p", "note", NOART));
         const nm = el("input"); nm.id = "setupName"; nm.value = A.name; nm.maxLength = 40; nm.placeholder = "KittyChat Café";
         nm.addEventListener("input", () => { A.name = nm.value; });
@@ -2876,11 +2876,11 @@ ul.gkey li > div.what { flex-basis: 100%; }
       () => {
         const sec = el("div", "dlg");
         const ul = el("ul", "how");
-        for (const [t, d] of [["Sessions are cats.", "The café asks Claude who's awake. Each one walks into its repository's room."],
-          ["House rules are locks, not reminders.", "Small programs Claude Code runs on its own: no edits before the opening check, no pushing straight to main. Claude can't talk its way past them."],
-          ["Skills are training.", "Written instructions a cat reads when they apply, like catching up on what you sent."],
-          ["Messages wait on the mat.", "The café can't wake a session. What you send is kept, and picked up when the cat next looks."],
-          ["The litter box holds loose ends.", "Notes and held pull requests wait there until you check them."]]) {
+        for (const [t, d] of [["Chats are cats.", "Each Claude chat or coding session walks into the room of its project."],
+          ["Cats check in at the front desk.", "A short note: working, finished, or stuck and needs you. The badge beside the café's name counts who needs you."],
+          ["Some rules can't be talked around.", "Small checks run on their own before a cat may change or publish anything. Claude can't skip them."],
+          ["Messages wait on the mat.", "The café can't wake a cat. What you send is kept, and the cat picks it up the next time it checks in."],
+          ["The queen and the litter box.", "The queen keeps what you give her and runs your routines. Loose notes and held pull requests wait in the litter box until you check them."]]) {
           const li = el("li"); li.append(el("b", null, t), document.createTextNode(d)); ul.appendChild(li);
         }
         sec.appendChild(ul);

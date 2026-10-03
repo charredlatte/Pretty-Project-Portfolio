@@ -58,8 +58,10 @@ artifact) are the reference; the onboarding follows them.
   so the first step says the cats are the person's to bring, before anything else.
 - **Nothing credits Claude** in what the onboarding writes or publishes (her rule, CLAUDE.md "Shipping").
 
+Frames 2 and 7 are redrawn in `frames.js`, and `openSetup()` in `catio/index.html` says the same (3 October).
+The suite passes on it; the look is `sh catio/test/run.sh look setup`.
+
 ## Still to build
 
-- Frames 2 and 7 are redrawn in `frames.js`; `openSetup()` in `catio/index.html` still has the old Welcome and
-  How-it-works wording. Change it to match, run `sh catio/test/run.sh`, and republish to the one artifact.
+- Republish the page to its one artifact, so the wizard's new wording reaches the café in claude.ai.
 - Where the litter box lives in the page: the brain's unsorted tray and the repo's `litterbox/`.
