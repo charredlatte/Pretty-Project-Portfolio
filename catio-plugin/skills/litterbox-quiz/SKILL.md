@@ -1,6 +1,6 @@
 ---
 name: litterbox-quiz
-description: Check the litter box's piles one note at a time, as a quiz - a private artifact where each card asks which project a sifted note belongs to, or whether it is settled, and the answers are filed by litterbox/quiz.py and sort.py. The same page deals any deck with choices, such as the decisions waiting on Charlotte. Use when someone wants to sort or check the piles the sifter guessed, publish or republish the litter box quiz, deal its cards, says "file my litter box quiz answers", asks for a quiz of decisions, or says "file my decisions".
+description: Check the litter box's piles one note at a time, as a quiz - a private artifact where each card asks which project a sifted note belongs to, or whether it is settled, and the answers are filed by litterbox/quiz.py and sort.py. The same page deals any deck with choices, such as the decisions waiting on Charlotte. With a KittyChat gateway, the cards go into the queen's quest log in the café instead. Use when someone wants to sort or check the piles the sifter guessed, publish or republish the litter box quiz, deal its cards, says "file my litter box quiz answers", asks for a quiz of decisions, or says "file my decisions".
 ---
 
 # The litter box quiz
@@ -10,6 +10,24 @@ description: Check the litter box's piles one note at a time, as a quiz - a priv
 project it belongs to as four choices (or every project), *Settled: drop it*, *Skip* and *Back*, and a peek
 at the sifter's guess on the card's back. Every answer is saved as it is given, to the quiz's own database,
 so piles of private projects never enter a public repository. Nothing is filed until the person says so.
+
+## With a gateway: the queen's quest log
+
+When the KittyChat Café has a gateway (the `CATIO` connector, with its `quiz` tool), the cards don't need a page of
+their own: they are homework in the queen's quest log, taken in the café from the House menu's Homework or the litter
+box on the map, a tap a card. Nothing to publish.
+
+1. **Deal:** `python3 litterbox/quiz.py deal <dir>` (with `--box` as below) writes each card as the `quiz` tool's
+   arguments (`kind: "litterbox"`, `ref`, `title`, `note`, `from`, `hint`, one question). Call `quiz` with each.
+   Dealing again is safe: an open card is replaced, an answered one left alone.
+2. **File,** on "file my litter box": save `quizzes` with `{done: true, kind: "litterbox"}` to a `.json` file, run
+   `python3 litterbox/quiz.py apply <file>`, then `sort.py --write` as in step 3 below, and `forget` the ids `apply`
+   prints as filed.
+3. **Decisions:** one `quiz` call each, `kind: "decision"`, the decision and its context in `note`, its options in the
+   one question, the recommended option in `hint`, a short key in `ref`. On "file my decisions", read `quizzes` with
+   `{done: true, kind: "decision"}` and file them as under "A deck of decisions" below, then `forget` them.
+
+The rest of this skill is the page for a café with no gateway.
 
 Three parts, all in the repository:
 

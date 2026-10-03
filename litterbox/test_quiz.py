@@ -98,5 +98,40 @@ class Quiz(unittest.TestCase):
         self.assertTrue((out / "artifacts.json").exists(), "only its own cards go")
 
 
+    def deal(self):
+        out = Path(self.tmp.name) / "deal"
+        with contextlib.redirect_stdout(io.StringIO()):
+            quiz.deal(out, self.box)
+        return {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorted(out.glob("*.json"))}
+
+    def test_a_deal_is_the_quest_logs_cards(self):
+        dealt, cards = self.deal(), self.cards()
+        self.assertEqual(sorted(dealt), sorted(cards), "the same ids as the quiz page's cards")
+        cid, first = min(dealt.items(), key=lambda kv: cards[kv[0]]["order"])
+        self.assertEqual((first["kind"], first["ref"], first["hint"], first["from"]), ("litterbox", cid, "LibreSprite", "litterbox/round.md"))
+        self.assertEqual(first["note"], cards[cid]["text"])
+        options = first["questions"][0]["options"]
+        self.assertEqual((options[0], options[-1]), ("LibreSprite", quiz.SETTLED), "her guess first, settled last")
+        self.assertLessEqual(len(options), 12)
+        self.assertEqual(len(options), len(set(options)))
+
+    def test_answers_from_the_quest_log_file_settle_or_leave_each_note(self):
+        ids = sorted(self.cards(), key=lambda i: self.cards()[i]["order"])
+        saved = Path(self.tmp.name) / "quizzes.json"
+        saved.write_text(json.dumps({"quizzes": [
+            {"id": f"litterbox-{ids[0]}", "kind": "litterbox", "status": "done", "answers": ["Pretty-Project-Portfolio"]},
+            {"id": f"litterbox-{ids[1]}", "kind": "litterbox", "status": "done", "answers": [quiz.SETTLED]},
+            {"id": f"litterbox-{ids[2]}", "kind": "litterbox", "status": "set"},
+            {"id": "z1", "kind": "unblock", "status": "done", "answers": ["Yes"]}]}))
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            quiz.apply(saved, self.box)
+        self.assertIn("The deployment session is waiting", next(self.box.glob("*-sorted-Pretty-Project-Portfolio.md")).read_text(encoding="utf-8"))
+        left = (self.box / "LibreSprite.md").read_text(encoding="utf-8")
+        self.assertNotIn("Emscripten", left)
+        self.assertEqual(left.count("A third note"), 1, "an open card leaves its note")
+        self.assertIn(f"filed cards: litterbox-{ids[0]} litterbox-{ids[1]}", out.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

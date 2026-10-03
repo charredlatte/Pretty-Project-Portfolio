@@ -54,26 +54,30 @@ date: 2026-10-01
 ---
 ```
 
-### Or as a quiz
+### Or in the café, as homework
 
-The litter box quiz (`quiz.html`, published at `artifacts.json`'s `litter-box-quiz`) asks about one note at a
-time: which project it is for, or whether it is settled. Her answers are saved in the quiz's own database as she
-goes, so the quiz holds the notes of private projects without them entering this public repo.
+The KittyChat Café's queen keeps a quest log of everything waiting on Charlotte, and the litter box is in it: one
+note a card, which project it is for, or *Settled: drop it*. She takes it in the café, from the House menu's
+Homework or the litter box on the map (the library's chest), a tap a card. The cards and her answers live in her
+gateway (`quizzes/<id>`, kind `litterbox`), so the notes of private projects never enter this public repo.
 
-1. **Deal the cards:** `python3 litterbox/quiz.py cards <dir>` writes one card per note on a pile still marked as
-   a guess. Write each to `cards/<id>` with `ArtifactData` (a `batch` of `set`s, `file_path` each), and the projects
-   to choose from to `meta/projects`, `{list: [{repo, label, words}]}`.
-2. **When she says to file them:** save `answers` with `ArtifactData` (`list` with `out_dir`), then
-   `python3 litterbox/quiz.py apply <out_dir>`. Settled notes go. The rest leave their piles for
+1. **Deal the cards:** `python3 litterbox/quiz.py deal <dir>` writes one file per note on a pile still marked as a
+   guess: the arguments of the gateway's `quiz` tool (the `CATIO` connector). Call `quiz` with each. A card is dealt
+   once (its `ref` is the note's id): dealing again replaces the open ones and leaves the answered ones alone.
+2. **When she says to file them:** save the result of `quizzes` with `{done: true, kind: "litterbox"}` as a `.json`
+   file, then `python3 litterbox/quiz.py apply <that file>`. Settled notes go. The rest leave their piles for
    `<date>-sorted-<project>.md`, checked, which the next `sort.py --write` files. Unanswered notes stay put.
-3. Delete the filed cards and their answers from the quiz.
+3. `forget` the cards `apply` lists as filed, so the next round starts clean.
 
 Piles of private projects aren't committed here: pass `--box <dir>` to both commands where they are kept.
 Tests: `python3 -m unittest litterbox/test_quiz.py`.
 
-The same page deals any deck whose cards bring their own choices (`options` on a card, its words in `meta/deck`):
-the decisions waiting on Charlotte are one, published as `decisions-quiz` in `artifacts.json`. The skill
-`catio-plugin/skills/litterbox-quiz/SKILL.md` says how to deal and file it.
+The decisions waiting on her are the same: one `quiz` call each, kind `decision`, the decision in `note`, the options
+in its one question, Claude's recommendation in `hint`, a short key in `ref`.
+
+A café with no gateway uses `quiz.html` instead, a page of its own: `quiz.py cards` deals into its database and
+`apply` takes the directory its `answers` are saved into. The skill `catio-plugin/skills/litterbox-quiz/SKILL.md`
+says how to deal and file both.
 
 ## Held pull requests
 

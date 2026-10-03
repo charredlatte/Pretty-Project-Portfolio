@@ -20,9 +20,11 @@ const DEFAULT_TZ = "Europe/Paris";
 const SAYS = ["charlotte", "queen"];   // whose notes a cat's hook is handed: hers, and her assistant's
 
 class Refusal extends Error {}   // bad arguments: the caller is told, nothing breaks
-const CHANGES = new Set(["report_status", "comment", "drop_file", "pick_up", "manage", "quiz", "answer"]);   // tools that change what a café shows
+const CHANGES = new Set(["report_status", "comment", "drop_file", "pick_up", "manage", "quiz", "answer", "forget"]);   // tools that change what a café shows
 const KEEP_DECISIONS = 500;    // the observe log: the latest decisions, beside what the old path chose
-const QUIZ = { questions: 5, options: 6, text: 300, title: 120, answer: 1000 };
+const QUIZ = { questions: 5, options: 12, text: 300, title: 120, answer: 1000, note: 4000 };
+// What a quiz is for: unblocking a cat (her homework), sorting a litter box note, or a decision waiting on her
+const QUIZ_KINDS = ["unblock", "litterbox", "decision"];
 
 // Homework, as the queen sets it: a title and 1 to 5 questions, each with concrete options or a written answer
 function quizOf(args) {
@@ -36,7 +38,9 @@ function quizOf(args) {
 		const options = (Array.isArray(q.options) ? q.options : []).map((o) => String(o).trim().slice(0, QUIZ.text)).filter(Boolean).slice(0, QUIZ.options);
 		return { q: text, options, free: q.free === true || !options.length };
 	});
-	return { title: String(args.title).trim().slice(0, QUIZ.title), questions };
+	const kind = QUIZ_KINDS.includes(args.kind) ? args.kind : "unblock";
+	const clip = (k, n) => (args[k] ? String(args[k]).slice(0, n) : "");
+	return { kind, title: String(args.title).trim().slice(0, QUIZ.title), questions, note: clip("note", QUIZ.note), from: clip("from", 200), hint: clip("hint", QUIZ.text), ref: clip("ref", 80).replace(/[^A-Za-z0-9_-]/g, "") };
 }
 
 function need(args, ...keys) {
@@ -235,20 +239,38 @@ const TOOLS = {
 		return { ok: true, woke: false };
 	},
 
-	// Homework: a quiz the queen (or Charlotte) sets for Charlotte, whose answers unblock a cat. Kept as quizzes/<id>
-	// documents, so an open café shows them at once. Handing one in posts her answers to the cat, as her words
-	// (its hook hands them in), and tells the queen, who sees to the rest.
+	// Homework: a quiz the queen (or Charlotte) sets for Charlotte, kept as quizzes/<id> documents, so an open café
+	// shows them at once in the queen's quest log. An unblock quiz's answers go to the cat, as her words (its hook
+	// hands them in), and to the queen, who sees to the rest. A litter box note or a decision (kind) is one card with
+	// its note; her answer is only kept, for whoever files them (litterbox/quiz.py apply). A card with a ref is dealt
+	// once: dealing it again replaces it while it is open, and leaves her answer alone once she has given it.
 	quiz(h, args, who) {
 		if (who !== "charlotte" && who !== QUEEN) throw new Refusal("only the queen or Charlotte sets homework");
-		const { title, questions } = quizOf(args);
-		const id = newId();
-		h.putDoc("quizzes/" + id, { for: args.for ? String(args.for).slice(0, 200) : "", title, questions, by: who, at: Date.now(), status: "set" });
+		const { ref, ...z } = quizOf(args);
+		const id = ref ? z.kind + "-" + ref : newId();
+		if (ref) {
+			const row = h.sql.exec("SELECT data FROM docs WHERE path = ?", "quizzes/" + id).toArray()[0];
+			if (row && JSON.parse(row.data).status === "done") return { id, done: true };
+		}
+		h.putDoc("quizzes/" + id, { for: args.for ? String(args.for).slice(0, 200) : "", ...z, by: who, at: Date.now(), status: "set" });
 		return { id };
 	},
 
 	quizzes(h, args) {
 		const all = h.sql.exec("SELECT path, data FROM docs WHERE path LIKE 'quizzes/%'").toArray().map((r) => ({ id: r.path.slice("quizzes/".length), ...JSON.parse(r.data) }));
-		return { quizzes: all.filter((z) => args.done === true || z.status !== "done").sort((a, b) => (a.at || 0) - (b.at || 0)) };
+		return { quizzes: all.filter((z) => (args.done === true || z.status !== "done") && (!args.kind || (z.kind || "unblock") === args.kind)).sort((a, b) => (a.at || 0) - (b.at || 0)) };
+	},
+
+	// Cards she has answered and that have been filed: gone from the house (the queen or Charlotte, as for quiz)
+	forget(h, args, who) {
+		if (who !== "charlotte" && who !== QUEEN) throw new Refusal("only the queen or Charlotte clears homework");
+		const ids = (Array.isArray(args.quizzes) ? args.quizzes : []).map(String).slice(0, 500);
+		let gone = 0;
+		for (const id of ids) {
+			if (!h.sql.exec("SELECT 1 FROM docs WHERE path = ?", "quizzes/" + id).toArray().length) continue;
+			h.dropDoc("quizzes/" + id); gone++;
+		}
+		return { forgotten: gone };
 	},
 
 	answer(h, args, who) {
@@ -262,6 +284,7 @@ const TOOLS = {
 		const given = Array.isArray(args.answers) ? args.answers.map((a) => String(a == null ? "" : a).trim().slice(0, QUIZ.answer)) : [];
 		if (given.length !== z.questions.length || given.some((a) => !a)) throw new Refusal("answers is one answer per question, in order");
 		h.putDoc(path, { status: "done", answers: given, answeredAt: Date.now() }, true);
+		if ((z.kind || "unblock") !== "unblock") return { ok: true, told: false };   // a card is kept for filing, not told
 		const text = "Homework handed in: " + z.title + "\n" + z.questions.map((q, i) => (i + 1) + ". " + q.q + " → " + given[i]).join("\n");
 		const told = !!(z.for && h.agent(z.for));
 		if (told) TOOLS.comment(h, { cat: z.for, text, author: "charlotte" }, "charlotte");

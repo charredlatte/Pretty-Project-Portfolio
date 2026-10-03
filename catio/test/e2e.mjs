@@ -649,6 +649,85 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await check("no page errors while working the queen", async () => expect(errors.length === 0, errors.join("; ")));
   await ctx.close();
 }
+// her quest log (3 October 2026: "where do I take the litter box quiz in the cafe UI?", then the queen's quest log, the
+// cards kept in her gateway): the queen keeps one list of everything waiting on her, quizzes that unblock a cat, litter
+// box notes to sort and decisions; the House menu and the litter box on the map open it, a card at a time, a tap answers
+{
+  const { page, ctx, errors } = await open("?via=gateway&mode=blocked");
+  await T(page, () => {
+    const T = window.__catio;
+    T.setQuiz({ kind: "litterbox", title: "Loose ends", note: "- **Rename the grey cat** in the craft room.", from: "litterbox/loose-ends.md", hint: "Pretty-Project-Portfolio", questions: [{ q: "Which project is it for?", options: ["Pretty-Project-Portfolio", "tiktok-saves", "Settled: drop it"] }] });
+    T.setQuiz({ kind: "litterbox", title: "Loose ends", note: "The shop's photos need a white background.", hint: "montfortoise-shopify", questions: [{ q: "Which project is it for?", options: ["montfortoise-shopify", "Pretty-Project-Portfolio", "Settled: drop it"] }] });
+    T.setQuiz({ kind: "decision", title: "The roadmap", note: "Which comes first?", hint: "The camera", questions: [{ q: "Which first?", options: ["The camera", "Build mode"] }] });
+  });
+  await page.waitForTimeout(400);
+  await check("everything waiting on her is homework: the queen's line counts each kind", async () => {
+    await page.mouse.move(8, 8);
+    await page.locator("#cats .cat.queen").hover();
+    await settle(page);
+    const t = await page.locator("#tip").innerText();
+    expect(t.includes("Homework: 2 notes to sort, 1 decision"), t);
+  });
+  await openHouse(page);
+  await check("the House menu leads with Homework, saying how many wait", async () => {
+    const first = page.locator("#menu .list .mi").first();
+    expect((await first.innerText()).startsWith("Homework") && (await first.innerText()).includes("3 waiting"), await first.innerText());
+  });
+  await page.locator('#menu .mi:has-text("Homework")').click();
+  await settle(page);
+  await check("Homework opens her card on the cards, a deck at a time, the note's words with no markdown marks", async () => {
+    expect(await page.locator("#queenDlg").isVisible(), "her card didn't open");
+    expect(await page.locator('#queenHomework [data-deck="litterbox"]').count() === 1 && await page.locator('#queenHomework [data-deck="decision"]').count() === 1, "not one card per deck");
+    const t = await page.locator('#queenHomework [data-deck="litterbox"]').innerText();
+    expect(t.includes("1 of 2") && t.includes("Rename the grey cat") && !t.includes("**") && t.includes("The sifter guessed Pretty-Project-Portfolio"), t);
+    expect(await page.locator('#queenHomework [data-deck="litterbox"] strong:has-text("Rename the grey cat")').count() === 1, "the bold is lost");
+  });
+  await page.locator('#queenHomework [data-deck="litterbox"] button:has-text("Skip")').click();
+  await settle(page);
+  await check("Skip puts the next note on top, without answering", async () => {
+    const t = await page.locator('#queenHomework [data-deck="litterbox"]').innerText();
+    expect(t.includes("2 of 2") && t.includes("white background"), t);
+    expect(!(await T(page, () => window.__catio.tools.some((x) => x[1] === "answer"))), "Skip answered");
+  });
+  await page.locator('#queenHomework [data-deck="litterbox"] button:has-text("montfortoise-shopify")').click();
+  await settle(page);
+  await check("a tap hands the card in, and the deck moves on to the one left", async () => {
+    const a = await T(page, () => window.__catio.tools.filter((x) => x[1] === "answer").pop());
+    expect(a && a[2].quiz === "z2" && JSON.stringify(a[2].answers) === JSON.stringify(["montfortoise-shopify"]), JSON.stringify(a));
+    const t = await page.locator('#queenHomework [data-deck="litterbox"]').innerText();
+    expect(t.includes("1 of 1") && t.includes("Rename the grey cat"), t);
+    expect(!t.includes("Skip"), "Skip with one card left");
+  });
+  await page.keyboard.press("Escape");
+  await settle(page);
+  await page.click("#floor-upper");
+  await page.keyboard.press("0");
+  await settle(page);
+  const litter = page.locator(".cabinet.litter");
+  await check("the litter box is on the map with no sign: hovering it says what waits", async () => {
+    expect(await litter.isVisible(), "no litter box upstairs");
+    expect((await litter.innerText()).trim() === "", "a sign on the litter box");
+    await page.mouse.move(8, 8);
+    await litter.hover();
+    await settle(page);
+    const t = await page.locator("#tip").innerText();
+    expect(t.includes("The litter box") && t.includes("1 note to sort"), t);
+  });
+  await litter.click();
+  await settle(page);
+  await check("clicking the litter box opens her card at the litter box", async () => {
+    expect(await page.locator("#queenDlg").isVisible(), "her card didn't open");
+    expect(await page.evaluate(() => !!document.activeElement.closest('[data-deck="litterbox"]')), "not at the litter box");
+  });
+  await page.locator('#queenHomework [data-deck="litterbox"] button:has-text("Settled: drop it")').click();
+  await settle(page);
+  await check("with the litter box empty its deck goes, and the decision stays", async () => {
+    expect(await page.locator('#queenHomework [data-deck="litterbox"]').count() === 0, "the litter box deck is still there");
+    expect(await page.locator('#queenHomework [data-deck="decision"]').count() === 1, "the decision went too");
+  });
+  await check("no page errors in her quest log", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
 // without her runner she is away; with the cats moving, a cat with news walks a copy of itself to her
 {
   const { page, ctx, errors } = await open("?via=gateway&mode=blocked&queen=away");

@@ -45,7 +45,7 @@ class Stdio(unittest.TestCase):
         self.assertEqual(init["result"]["serverInfo"]["name"], "catio")
         self.rpc("notifications/initialized", notify=True)
         names = {t["name"] for t in self.rpc("tools/list")["result"]["tools"]}
-        self.assertEqual(names, {"house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "answer", "decide"})
+        self.assertEqual(names, {"house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "answer", "decide"})
         self.assertIn("preflight", [r["id"] for r in self.tool("house_rules")["rules"]])
 
         # an agent joins, with a wake command that records what it was woken with
@@ -97,6 +97,19 @@ class Stdio(unittest.TestCase):
         handed = self.tool("inbox", agent="codex-shop", mark=True)["notes"]
         self.assertEqual(handed[-1]["text"], "Homework handed in: The theme\n1. Ship it? \u2192 Yes\n2. A word for the cat? \u2192 Good work")
         self.assertIn("(for codex-shop, told)", self.tool("comments", cat="queen")["notes"][-1]["text"])
+        # a litter box note is a card in the same quest log: dealt once, answered, kept for filing, then cleared
+        card = {"kind": "litterbox", "ref": "abc123def456", "title": "loose-ends.md", "note": "Rename her Mochi", "hint": "kittychat",
+                "questions": [{"q": "Which project is it for?", "options": ["kittychat", "Settled: drop it"]}]}
+        c = self.tool("quiz", **card)
+        self.assertEqual(c, {"id": "litterbox-abc123def456"})
+        self.tool("quiz", **dict(card, note="dealt again"))
+        self.assertEqual([(q["id"], q["note"]) for q in self.tool("quizzes", kind="litterbox")["quizzes"]], [("litterbox-abc123def456", "dealt again")])
+        heard = len(self.tool("comments", cat="queen")["notes"])
+        self.assertEqual(self.tool("answer", quiz=c["id"], answers=["Settled: drop it"]), {"ok": True, "told": False})
+        self.assertEqual(len(self.tool("comments", cat="queen")["notes"]), heard)
+        self.assertEqual(self.tool("quiz", **card), {"id": c["id"], "done": True})
+        self.assertEqual(self.tool("forget", quizzes=[c["id"]]), {"forgotten": 1})
+        self.assertEqual(self.tool("quizzes", done=True, kind="litterbox")["quizzes"], [])
         self.tool("manage", cat="codex-shop", action="rename", value="Biscotte")
         self.tool("manage", cat="codex-shop", action="archive")
         self.assertEqual(self.tool("list_agents")["agents"], [])
