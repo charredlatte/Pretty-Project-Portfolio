@@ -10,7 +10,7 @@ Nothing in it is art: plain grey boxes and Figma's Inter. Nothing from `catio/da
 
 1. **Layout.** The shell: the house filling the screen, the brand and House button top left, the map panel top
    right. The wizard sits centred over the dimmed house.
-2. **Welcome.** Name your café.
+2. **Welcome.** The tagline, then name your café.
 3. **Rooms.** How many rooms (− N +). The manor's ten rooms as a grid: N open from the front of the house, the rest
    closed, and a name field per open room. The house itself never changes: a closed room is dimmed and gets no
    cats, and opens later under Edit rooms.
@@ -18,9 +18,8 @@ Nothing in it is art: plain grey boxes and Figma's Inter. Nothing from `catio/da
 5. **Sessions.** What `list_sessions` found. **4b** is the blocked state, with the saved copy in one line.
 6. **Litter box.** What it is and a drop zone. (The frame's switch for holding pull requests was dropped in
    the build: holding is the merging rule's doing, `harness/README.md`, not a page setting.)
-6. **Litter box.** What it is, a drop zone, and the switch for holding pull requests there.
-7. **How it works.** The harness in five plain lines: sessions are cats, house rules are locks (hooks), skills
-   are training, messages wait on the mat, the litter box holds loose ends.
+7. **How it works.** The harness in five plain lines: chats are cats, cats check in at the front desk, some rules
+   can't be talked around, messages wait on the mat, the queen and the litter box.
 8. **Done.** The summary and "Open the doors".
 
 Every wizard frame has the same skeleton: step dots, title, content, Back and Next.
@@ -39,8 +38,28 @@ Mind the quota: a Starter plan with a View seat gets six MCP calls a month.
   2 October 2026).
 - The build is in the page (`openSetup()` in `catio/index.html`, `rooms/<k>.closed`, `list_repos` in the
   capabilities) and in the public `catio` skill, which asks the same questions. CLAUDE.md, "Onboarding".
-- Where the litter box lives in the page: the brain's unsorted tray and the repo's `litterbox/`. This is a to-do.
-## Not decided yet
 
-- The build (`catio/index.html`, the `catio` skill, `rooms/<k>.closed`, `list_repos` in the capabilities) waits
-  for her review of these frames.
+## Decided 3 October 2026: plain words first
+
+Someone arriving for the first time may not know what MCP, an API or an LLM is, and the wizard must not
+need them to. The README's "In plain words" section and the explainer page ("What is KittyChat Café", a private
+artifact) are the reference; the onboarding follows them.
+
+- **Say it like the café.** Chat or session: a cat. Project: a room. A chat waiting on you: a cat that meows.
+  Assistant: the queen. The gateway is "the front desk", the runner "the queen's brain on your computer".
+  The wizard's own words never include MCP, API, gateway, runner, hooks or LLM.
+- **The Welcome step opens with the tagline:** "All your Claude chats, in one cozy café."
+- **How it works says the connection start to finish** in the five lines of frame 7 (chats are cats, cats check in
+  at the front desk, rules can't be talked around, messages wait on the mat, the queen and the litter box).
+  Hooks and skills stay behind the House menu, for the people who ask.
+- **Be honest about where it stands.** Running your own café is open today (a clone, the public `catio` skill, a
+  Cloudflare Worker for the front desk). A hosted café with nothing to install is planned and not open yet:
+  nothing in the onboarding says "sign in" or "create an account" until it is. The art packs cannot be shared,
+  so the first step says the cats are the person's to bring, before anything else.
+- **Nothing credits Claude** in what the onboarding writes or publishes (her rule, CLAUDE.md "Shipping").
+
+## Still to build
+
+- Frames 2 and 7 are redrawn in `frames.js`; `openSetup()` in `catio/index.html` still has the old Welcome and
+  How-it-works wording. Change it to match, run `sh catio/test/run.sh`, and republish to the one artifact.
+- Where the litter box lives in the page: the brain's unsorted tray and the repo's `litterbox/`.

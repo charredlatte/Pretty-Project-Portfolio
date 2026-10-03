@@ -193,6 +193,10 @@ A café with no rooms opens a seven-step wizard (`docs/onboarding/`): name, room
 through `list_repos`, sessions, the litter box, how it works, done. The public `catio` skill asks the same
 questions. Closed rooms are dimmed, queenless and get no cats. CLAUDE.md, "Onboarding".
 
+3 October: the wording went plain (`docs/onboarding/README.md`, "Decided 3 October"). The wizard's Welcome and How it
+works steps use the café's words, not MCP, API or hooks, and the README opens with "In plain words". The wizard copy
+in `openSetup()` is still to change. A hosted café is planned, not open: the onboarding offers running your own.
+
 ## Waiting on Charlotte
 
 The decisions below are dealt as cards in the decisions quiz (`decisions-quiz` in `artifacts.json`): answer them there

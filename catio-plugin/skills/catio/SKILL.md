@@ -17,6 +17,14 @@ The page is one private artifact per person. Sessions come live from the Claude 
 connector; rooms, renames, adopted chats and what the queens keep live in the artifact's own
 database, so they follow the person between phone and computer.
 
+## Speak plainly
+
+The person may never have heard of MCP, an API or an LLM. Do not use those words with them. Say it the café's
+way: each Claude chat or session is a cat, each project a room, a chat waiting on them is a cat that meows, and
+the assistant is the queen. The repository's README has the short version ("In plain words"); use it.
+Be straight about where it stands: running your own café works today; a hosted café with nothing to install is
+planned and not open yet.
+
 ## Say this first: the art is theirs to bring
 
 **The cats are not in the repository and cannot be, and nor is the interface.** Eight of the ten
