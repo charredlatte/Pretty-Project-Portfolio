@@ -325,6 +325,10 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(d && d.pinned.includes("intermarche-grocery-shopping-app") && d.wide.includes("montfortoise-shopify"), JSON.stringify(d));
     expect((await page.locator('#mapsDlg .mapcard[data-map="montfortoise-shopify"]').getAttribute("class")).includes("wide"), "not wide");
   });
+  await check("a map moves within its group: an unpinned one can't be moved above a pinned one", async () => {
+    expect(await mapTool("montfortoise-shopify", "Earlier").isDisabled(), "Earlier would cross the pinned map");
+    expect(await mapTool("intermarche-grocery-shopping-app", "Later").isDisabled(), "Later would cross into the unpinned ones");
+  });
   await mapTool("intermarche-grocery-shopping-app", "Unpin").click();
   await settle(page);
   await mapTool("intermarche-grocery-shopping-app", "Earlier").click();

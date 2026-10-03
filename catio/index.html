@@ -1837,7 +1837,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       hw.length && mi("Homework", () => { hideMenu(); openQueen("homework"); }, { aside: hw.length + " waiting" }),
       mi("The brain", () => { hideMenu(); openBrain(); }, { aside: tray ? tray + " on the tray" : "" }),
       mi("House rules", () => { hideMenu(); openRules(); }),
-      mi("Project maps", () => { hideMenu(); openMaps(); }, { aside: Object.values(S.graphs).filter((g) => g && g.map).length || "" }),
+      mi("Project maps", () => { hideMenu(); openMaps(); }, { aside: mapCount() || "" }),
       mi("Edit rooms", () => { hideMenu(); openRooms(curRoom()); }),
       S.db && mi("Set up again…", () => { hideMenu(); openSetup(true); }),
       (VIEW.attic || S.showOld) && mi(S.showOld ? "Send them back up" : "Bring them down", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }),
@@ -2051,7 +2051,10 @@ ul.gkey li > div.what { flex-basis: 100%; }
     list("outbox", (v) => { S.outbox = v; });
     list("rules", (v) => { S.rules = Object.fromEntries(v.map((r) => [r.id, r])); });
     list("audits", (v) => { S.audits = Object.fromEntries(v.map((a) => [a.id, a])); });
-    list("graphs", (v) => { S.graphs = Object.fromEntries(v.map((g) => [g.id, g])); });
+    list("graphs", (v) => {
+      S.graphs = Object.fromEntries(v.map((g) => [g.id, g]));
+      if ($("mapsDlg").open && !MAPS.busy) openMaps();   // a map a session just saved shows at once
+    });
   }
   async function save(fn, ok) {
     if (!S.db) { toast("Saving isn't available in this view.", "alert"); return false; }
@@ -2875,46 +2878,71 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const d = S.dashboard || {}, list = (k) => (Array.isArray(d[k]) ? d[k] : []);
     return { order: list("order"), hidden: list("hidden"), pinned: list("pinned"), wide: list("wide") };
   }
-  function openMaps() {
+  const MAPS = { busy: false, folded: new Set() };   // a save on its way; the cards she folded, kept through a redraw
+  const mapCount = () => Object.entries(S.graphs).filter(([id, g]) => g && g.map && !mapsLayout().hidden.includes(id)).length;
+  function openMaps(focus) {
     const dlg = $("mapsDlg"); dlg.replaceChildren();
     const L = mapsLayout();
     const all = Object.entries(S.graphs).filter(([, g]) => g && g.map);
     const rank = (id) => { const i = L.order.indexOf(id); return i < 0 ? 1e6 : i; };
-    const shown = all.filter(([id]) => !L.hidden.includes(id))
-      .sort(([a, ga], [b, gb]) => (L.pinned.includes(b) - L.pinned.includes(a)) || rank(a) - rank(b) || (gb.at || 0) - (ga.at || 0));
-    const ids = shown.map(([id]) => id);
+    const byOrder = ([a, ga], [b, gb]) => rank(a) - rank(b) || (gb.at || 0) - (ga.at || 0);
+    const pinnedFirst = (x, y) => (L.pinned.includes(y[0]) - L.pinned.includes(x[0])) || byOrder(x, y);
+    const everyId = all.slice().sort(byOrder).map(([id]) => id);   // her order over every map, hidden ones in their places
+    const shown = all.filter(([id]) => !L.hidden.includes(id)).sort(pinnedFirst);
     const nameOf = (id) => String((S.graphs[id] || {}).repo || id).split("/").pop();
     const flip = (list, id) => (list.includes(id) ? list.filter((x) => x !== id) : list.concat(id));
-    const keep = async (next, ok) => {
-      S.dashboard = Object.assign(mapsLayout(), next, { updatedAt: Date.now() });   // shown at once; the snapshot agrees
-      if (await save((db) => db.doc("dashboard/maps").set(S.dashboard), ok)) openMaps();
+    // one save at a time: the buttons wait while it is on its way, a refusal leaves the layout as it was, and the redraw
+    // puts focus back on the button she used
+    const keep = async (next, ok, again) => {
+      if (MAPS.busy) return;
+      MAPS.busy = true;
+      for (const b of dlg.querySelectorAll(".mapcard .tools button, #mapsHidden button")) b.disabled = true;
+      const was = S.dashboard, now = Object.assign(mapsLayout(), next, { updatedAt: Date.now() });
+      S.dashboard = now;
+      const saved = await save((db) => db.doc("dashboard/maps").set(now), ok);
+      if (!saved) S.dashboard = was;
+      MAPS.busy = false;
+      if (dlg.open) openMaps(again);
     };
     const box = el("div", "dlg");
     const h = el("h2", null, "Project maps"); h.id = "mapsTitle";
     box.append(h, el("p", "note", "Every project's map from graphify: what its code is made of, its hubs, its surprises, and questions a cat can answer from it. Pin, move, widen or hide each one; the café keeps how you set them."));
     if (!all.length) box.appendChild(el("p", "empty", "No project maps yet. A session makes one with the graphify skill and saves it to the café (graphs/<repo>), and it shows here."));
+    const cats = allCats().cats;
     const grid = el("div", "mapgrid");
     shown.forEach(([id, gm], i) => {
       const pinned = L.pinned.includes(id), wide = L.wide.includes(id);
-      const cat = allCats().cats.find((c) => c.project.key === id && c.kind === "session") || null;
+      const cat = cats.find((c) => c.project.key === id && c.kind === "session") || null;
       const card = el("section", "proj mapcard" + (wide ? " wide" : "") + (pinned ? " pinned" : "")); card.dataset.map = id;
       const head = el("div", "mt"), t = el("h3", null, nameOf(id));
       head.appendChild(t);
       if (pinned) { const st = el("span", "star"); st.setAttribute("role", "img"); st.setAttribute("aria-label", "Pinned"); head.prepend(st); }
       const tools = el("div", "tools");
-      const tool = (label, run, icon, aria) => { const b = plainBtn(label, "tiny", run); if (icon) b.prepend(el("span", "pi p-" + icon)); b.setAttribute("aria-label", (aria || label) + ": " + nameOf(id)); tools.appendChild(b); return b; };
-      tool(pinned ? "Unpin" : "Pin", () => keep({ pinned: flip(L.pinned, id) }));
-      const move = (d) => { const o = ids.slice(); [o[i], o[i + d]] = [o[i + d], o[i]]; keep({ order: o }); };
-      tool("", () => move(-1), "up", "Earlier").disabled = i === 0;
-      tool("", () => move(1), "down", "Later").disabled = i === shown.length - 1;
-      tool(wide ? "Narrow" : "Wide", () => keep({ wide: flip(L.wide, id) }));
+      const tool = (label, run, icon, aria) => {
+        const name = (aria || label) + ": " + nameOf(id);
+        const b = plainBtn(label, "tiny", () => run(name)); if (icon) b.prepend(el("span", "pi p-" + icon));
+        b.setAttribute("aria-label", name); tools.appendChild(b); return b;
+      };
+      tool(pinned ? "Unpin" : "Pin", () => keep({ pinned: flip(L.pinned, id) }, null, (pinned ? "Pin" : "Unpin") + ": " + nameOf(id)));
+      // a move swaps her with the next card in her group (pinned or not), in the order over every map, hidden ones kept
+      const next = (d) => { const o = shown[i + d]; return o && L.pinned.includes(o[0]) === pinned ? o[0] : null; };
+      const move = (d, name) => {
+        const other = next(d); if (!other) return;
+        const o = everyId.slice(), a = o.indexOf(id), b = o.indexOf(other);
+        [o[a], o[b]] = [o[b], o[a]];
+        keep({ order: o }, null, name);
+      };
+      tool("", (name) => move(-1, name), "up", "Earlier").disabled = !next(-1);
+      tool("", (name) => move(1, name), "down", "Later").disabled = !next(1);
+      tool(wide ? "Narrow" : "Wide", () => keep({ wide: flip(L.wide, id) }, null, (wide ? "Wide" : "Narrow") + ": " + nameOf(id)));
       tool("Hide", () => keep({ hidden: flip(L.hidden, id) }, nameOf(id) + " is hidden. It waits at the foot of the page."));
-      const map = projectMap(gm, cat); map.open = true;
+      const map = projectMap(gm, cat); map.open = !MAPS.folded.has(id);
+      map.addEventListener("toggle", () => { if (map.open) MAPS.folded.delete(id); else MAPS.folded.add(id); });
       card.append(head, tools, map);
       grid.appendChild(card);
     });
     box.appendChild(grid);
-    const gone = L.hidden.filter((id) => S.graphs[id]);
+    const gone = L.hidden.filter((id) => S.graphs[id] && S.graphs[id].map);
     if (gone.length) {
       const row = el("div", "manage"); row.id = "mapsHidden";
       row.appendChild(el("span", "note", "Hidden:"));
@@ -2925,6 +2953,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
     box.appendChild(acts);
     dlg.appendChild(box);
     show(dlg);
+    const back = focus && [...dlg.querySelectorAll(".mapcard .tools button")].find((b) => b.getAttribute("aria-label") === focus);
+    if (back) back.focus({ preventScroll: true });
   }
   async function askMap(c, q, b) {
     const text = "Ask the project map: " + q, id = gid();

@@ -61,6 +61,7 @@ for (const name of names) {
     await page.waitForTimeout(500);
     await page.screenshot({ path: join(out, "maps.png") });
     console.log(join(out, "maps.png"));
+    await page.evaluate(() => document.getElementById("mapsDlg").close());   // the looks after it see the house, not the dialog
     continue;
   }
   const floor = UPPER.has(name) ? "upper" : "ground";
