@@ -262,22 +262,23 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     empty: "No pile is waiting for your check. When Claude sifts new notes and can only guess their project, they show up here as cards.",
   };
   const D = (k) => (S.deck && typeof S.deck[k] === "string" ? S.deck[k] : WORDS[k]);
+  const own = (c) => !!(c && Array.isArray(c.options) && c.options.length);   // a card with choices of its own
 
   /* ---------- projects and the four answers a card offers ---------- */
   function project(repo, c) {   // a card's own option first, then the project list
-    const o = c && c.options && c.options.find((x) => x.key === repo);
+    const o = own(c) && c.options.find((x) => x.key === repo);
     if (o) return { repo: o.key, label: o.label || o.key, sub: o.why || "", words: [] };
     const p = S.projects.find((x) => x.repo === repo);
     return p ? Object.assign({}, p, { label: p.label || p.repo }) : { repo, label: repo, words: [] };   // always a label
   }
   function projectList(c) {
-    if (c && c.options) return c.options.map((o) => project(o.key, c));
+    if (own(c)) return c.options.map((o) => project(o.key, c));
     const list = S.projects.slice();
     for (const c of S.cards) if (c.guess && !list.some((p) => p.repo === c.guess)) list.push(project(c.guess));
     return list;
   }
   function optionsFor(c) {
-    if (c.options) return projectList(c).slice(0, 4);   // the card's own choices, in its order
+    if (own(c)) return projectList(c).slice(0, 4);   // the card's own choices, in its order
     const text = (c.text + " " + (c.title || "")).toLowerCase();
     const scored = projectList().map((p, k) => ({
       p, k, s: (p.repo === c.guess ? 100 : 0) + (p.words || []).filter((w) => text.includes(String(w).toLowerCase())).length,
@@ -349,7 +350,7 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     if (a.verdict === "drop") return D("droppedSaid");
     if (!c.guess) return "";
     if (a.project === c.guess) return D("same");
-    return D("differs").replace("{guess}", project(c.guess, c).label);
+    return D("differs").replace("{guess}", () => project(c.guess, c).label);
   }
   function strip() {
     $("strip").replaceChildren(...S.round.map((id, k) => {
@@ -392,8 +393,8 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     $("peek").innerHTML = esc(D("peek")) + ' <span class="k">␣</span>';
     const g = project(c.guess, c);
     $("guess").textContent = (c.guess ? g.label : D("noGuess")).toUpperCase();
-    $("guessRepo").textContent = c.why ? c.why : c.guess && !c.options ? "Pile: litterbox/" + (c.pile || c.guess + ".md") : "";
-    $("src").textContent = c.from ? D("src").replace("{from}", c.from) : "";
+    $("guessRepo").textContent = c.why ? c.why : c.guess && !own(c) ? "Pile: litterbox/" + (c.pile || c.guess + ".md") : "";
+    $("src").textContent = c.from ? D("src").replace("{from}", () => c.from) : "";
     $("card").classList.toggle("flipped", S.flipped);
     $("front").setAttribute("aria-hidden", String(S.flipped));
     $("back").setAttribute("aria-hidden", String(!S.flipped));
@@ -402,14 +403,14 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     const a = S.answers[c.id];
     const opts = optionsFor(c);
     $("choices").classList.toggle("answered", !!a);
-    $("none").hidden = !!(c.options && c.options.length <= 4);   // the grid already shows every choice
+    $("none").hidden = own(c) && c.options.length <= 4;   // the grid already shows every choice
     $("choices").replaceChildren(...opts.map((p, k) => choiceButton(p, k + 1, c)));
     const chosenElsewhere = a && a.verdict === "file" && !opts.some((p) => p.repo === a.project) && !$("none").hidden;   // an old answer a re-dealt card no longer offers has nowhere to open
     if (chosenElsewhere) S.more = true;
     if ($("none").hidden) S.more = false;   // a card with every choice on the grid has no panel to keep open
     $("all").hidden = !S.more;
     $("none").setAttribute("aria-expanded", String(S.more));
-    if (S.more) $("allList").replaceChildren(...projectList(c).filter((p) => !c.options || !opts.some((o) => o.repo === p.repo)).map((p) => choiceButton(p, "", c)));   // a deck card: only the choices past the grid
+    if (S.more) $("allList").replaceChildren(...projectList(c).filter((p) => !own(c) || !opts.some((o) => o.repo === p.repo)).map((p) => choiceButton(p, "", c)));   // a deck card: only the choices past the grid
     $("drop").disabled = $("none").disabled = S.readOnly;
     $("drop").setAttribute("aria-pressed", String(!!a && a.verdict === "drop"));
     $("drop").textContent = a && a.verdict === "drop" ? D("dropped") + " ✓" : D("drop") + " ";
