@@ -256,6 +256,8 @@ decider the same question it asks the sorter and logs both; `house/main.decide =
 confidence. Tests: the gateway against a stand-in System One server, the MCP server likewise, and the page's e2e for
 observe, on and unsure. Not yet: the switch (after a week of the log), the rubric's caller (phase B's queen), and
 `decide` in the artifact's stored capabilities (the next republish passes the whole set, CLAUDE.md).
+The log was tightened the same evening: the page passes `floor` (agreement counts only the picks "on" would act on),
+`ref` (the file's brain id, to check a pick against where she sent it) and no `old` when the sorter didn't answer.
 
 **The step, as planned.** One function, `decide(state, questions)`, in `harness/gateway/src/decide.js`, with two backends behind
 one switch: `env.AI` with a model id (`@cf/cloudflare/clef-flash` by default, `typesafe/jev` when wanted; nothing to

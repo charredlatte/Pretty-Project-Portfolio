@@ -244,3 +244,8 @@ class Decider(unittest.TestCase):
         log = json.loads(Path(self.home, "state.json").read_text())["decisions"]
         self.assertEqual(len(log), 1)   # the easy call had no kind: not logged
         self.assertEqual((log[0]["kind"], log[0]["old"], log[0]["agree"]), ("sort", "catio", False))
+        # under the caller's floor the decider hasn't decided: it neither agrees nor disagrees, and ref names the file
+        self.tool("decide", state={"file": "notes.md"}, kind="sort", old="shop", floor=0.9, ref="b-1",
+                  questions={"cat": {"type": "choice", "criteria": {"shop": "the shop", "catio": "the café"}}})
+        last = json.loads(Path(self.home, "state.json").read_text())["decisions"][-1]
+        self.assertEqual((last["verdict"], last["sure"], last["agree"], last["ref"]), ("shop", False, None, "b-1"))
