@@ -1837,7 +1837,12 @@ ul.gkey li > div.what { flex-basis: 100%; }
       hw.length && mi("Homework", () => { hideMenu(); openQueen("homework"); }, { aside: hw.length + " waiting" }),
       mi("The brain", () => { hideMenu(); openBrain(); }, { aside: tray ? tray + " on the tray" : "" }),
       mi("House rules", () => { hideMenu(); openRules(); }),
-      S.db && maps().length && mi("Project maps", () => { hideMenu(); MAPS.visit++; try { openMaps(); } catch (e) { toast("A project map couldn't be drawn (" + (e && e.message || "error") + ").", "alert"); } }, { aside: mapCount() || "" }),
+      (() => {   // any map at all, hidden ones too: the page is where a hidden one comes back
+        const all = S.db ? maps() : [];
+        if (!all.length) return null;
+        const L = mapsLayout(), shown = all.filter(([id]) => !L.hidden.includes(id)).length;
+        return mi("Project maps", () => { hideMenu(); MAPS.visit++; try { openMaps(); } catch (e) { toast("A project map couldn't be drawn (" + (e && e.message || "error") + ").", "alert"); } }, { aside: shown || "" });
+      })(),
       mi("Edit rooms", () => { hideMenu(); openRooms(curRoom()); }),
       S.db && mi("Set up again…", () => { hideMenu(); openSetup(true); }),
       (VIEW.attic || S.showOld) && mi(S.showOld ? "Send them back up" : "Bring them down", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }),
@@ -2805,7 +2810,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       const au = S.audits[slug(p.name)];
       if (au && au.summary) { const d = el("details"); d.append(el("summary", null, "Latest audit, " + ago(au.at)), el("p", "audit", au.summary)); card.appendChild(d); }
       const gm = S.graphs[slug(p.name)];
-      if (gm && gm.map) card.appendChild(projectMap(gm, cats.find((c) => !c.away && c.kind === "session")));
+      if (drawable(gm)) card.appendChild(projectMap(gm, cats.find((c) => !c.away && c.kind === "session")));
       if (cats.length) {
         const ul = el("ul", "pilelist");
         for (const c of cats) {
@@ -2886,12 +2891,11 @@ ul.gkey li > div.what { flex-basis: 100%; }
   const MAPS = { busy: false, visit: 0, folded: new Set(), managing: new Set() };   // a save on its way; which opening of the page this is; cards folded or managed
   // the real maps: a graph whose map can be drawn (nodes with places, its lists lists); anything else is left out, never half-drawn
   const drawable = (g) => !!g && !!g.map && Array.isArray(g.map.n) && g.map.n.length > 0
-    && g.map.n.every((x) => x && typeof x === "object" && Number.isFinite(x.x) && Number.isFinite(x.y))
+    && g.map.n.every((x) => x && typeof x === "object" && Number.isFinite(x.x) && Number.isFinite(x.y) && Number.isFinite(x.d) && x.t != null)
     && ["groups", "gods", "surprises", "questions"].every((k) => g[k] == null || (Array.isArray(g[k]) && g[k].every((v) => v != null)))
     && (g.map.l == null || Array.isArray(g.map.l)) && (g.commit == null || typeof g.commit === "string");
   const maps = () => Object.entries(S.graphs).filter(([, g]) => drawable(g));
   const mapsSig = () => maps().map(([id, g]) => id + ":" + (g.at || 0)).sort().join("|");
-  const mapCount = () => { const L = mapsLayout(); return maps().filter(([id]) => !L.hidden.includes(id)).length; };
   // where focus is in the dashboard, so a redraw can put it back: an action on a card, else the same words in the same card
   function mapsFocus() {
     const dlg = $("mapsDlg"), a = document.activeElement;
@@ -2934,9 +2938,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
         stored = Object.assign({}, doc, base, diff, at);   // only once it is in the database
       }, ok);
       if (stored && S.dashboard === before) S.dashboard = stored;   // a newer snapshot that came meanwhile wins
-      if (nothing) toast("It changed on another device meanwhile, so nothing moved.");
+      if (nothing) toast("The maps changed meanwhile, so nothing moved.");
       MAPS.busy = false;
-      if (dlg.open) openMaps(visit === MAPS.visit ? again : null);   // reopened meanwhile: redraw, but leave her focus where it is
+      if (dlg.open) { try { openMaps(visit === MAPS.visit ? again : mapsFocus()); } catch (e) { /* the page as it was stays up */ } }   // reopened meanwhile: her focus stays where it is now
     };
     const box = el("div", "dlg");
     const h = el("h2", null, "Project maps"); h.id = "mapsTitle"; h.tabIndex = -1;
