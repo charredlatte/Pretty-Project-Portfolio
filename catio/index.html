@@ -2183,7 +2183,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
             drafts.delete(z.id);
             for (const x of S.quizzes || []) if (x && x.id === z.id) x.status = "done";   // off her desk now, whatever the next read says
             toast("Handed in." + (cat ? " " + cat.name + " has your answers." : ""));
-            render(); QUEEN_UI.state(); drawHomework();
+            render(); if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); }   // her card may have closed meanwhile
             await refreshQuizzes();
             loadQueenThread();
           } catch (e) { toast(gatewayProblem(e), "alert"); const again = hw.querySelector('form[data-quiz="' + z.id + '"] .hand'); if (again) again.disabled = false; }
