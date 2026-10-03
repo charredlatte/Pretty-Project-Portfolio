@@ -215,6 +215,13 @@ class Box(unittest.TestCase):
         self.run_sort()   # already filed: dropped
         self.assertEqual(self.snapshot(), after)
 
+    def test_a_box_kept_outside_any_checkout_uses_this_repos_rooms(self):
+        box = Path(self.tmp.name) / "private"
+        box.mkdir()
+        (box / "a.md").write_text("# A\n\n- The catio needs a gate.\n", encoding="utf-8")
+        sort.run(box, write=True, say=self.said.append)
+        self.assertTrue((box / "Pretty-Project-Portfolio.md").exists(), self.said)
+
 
 if __name__ == "__main__":
     unittest.main()

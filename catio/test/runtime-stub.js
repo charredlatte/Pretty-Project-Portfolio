@@ -156,11 +156,13 @@
       if (tool === "comments") return answer({ notes: clone(T.gwNotes.filter((n) => n.cat === input.cat)) });
       if (tool === "quizzes") return answer({ quizzes: clone(T.quizzes.filter((z) => input.done || z.status !== "done")) });
       if (tool === "answer") { const z = T.quizzes.find((x) => x.id === input.quiz); if (!z) throw { code: "tool_error", message: "no such quiz" }; z.status = "done"; z.answers = input.answers; return answer({ ok: true, told: true }); }
+      if (tool === "decide") return answer(clone(T.decideAnswer));
       return answer({ id: "g" + T.tools.length, woke: false });
     }
     if (server === "host:catio") {
       if (params.get("host") === "none") throw { code: "server_not_connected", message: "no host" };
       if (tool === "list_agents") return answer({ agents: clone(T.agents) });
+      if (tool === "decide") return answer(clone(T.decideAnswer));
       return answer({ id: "x" + T.tools.length, ok: true, woke: true });
     }
     if (params.get("writes") === "refused") throw { code: "approval_required", message: "ask every time" };
@@ -172,6 +174,8 @@
   const assets = { upload: async (blob) => { const id = "a" + (T.uploads.length + 1) + "0123456789abcdef0123456789abcd".slice(0, 30); T.uploads.push({ id, name: blob.name, size: blob.size, type: blob.type }); return { id, url: "/_blob/" + id, sizeBytes: blob.size, contentType: blob.type }; },
     delete: async (id) => { T.assetsDeleted.push(id); return { deleted: true }; }, list: async () => ({ assets: [], usage: {} }) };
   T.prompts = []; T.sampleAnswer = { cat: null, reason: "nothing fits" };
+  // the decider (the gateway's decide tool): what it answers a sort question, until a test changes it
+  T.decideAnswer = { model: "stub", answers: { cat: { type: "choice", choice: "none", confidence: 0.9, probabilities: { none: 0.9 } } }, usage: null };
   const sample = async (input) => { T.prompts.push(input); return { text: JSON.stringify(T.sampleAnswer), truncated: false }; };
   sample.json = async (input) => { T.prompts.push(input); if (T.sampleHang) return new Promise(() => {}); return clone(T.sampleAnswer); };   // sampleHang: a sorter that never answers
   const nodb = params.get("mode") === "nodb";

@@ -174,6 +174,12 @@ same tools as the Catio MCP server below. It changes two things:
   notes, requests and files once each, and what the queen of the house says to it (`[Catio] The queen says: …`),
   as hers. An idle session still waits for its next turn: nothing can wake it.
 
+- **The one-bit questions go to a decision model, not to Opus.** The `decide` tool (`gateway/src/decide.js`, and
+  the same in `mcp/catio_mcp.py` behind `CATIO_DECIDE_URL`) answers typed questions about a state with
+  probabilities: yes/no, a choice, a score. Clef on Workers AI inside the free plan, Jev itself, or a local Laya,
+  the model id being the switch. The page asks it where a dropped file goes and logs the answer beside the old
+  sorter's (`decisions/`); `preset: easy` is the easy-task rubric. `docs/delegation.md`, phase D.
+
 Agents anywhere can join it too, over MCP with the agents' key. Setting it up is five steps, in
 `gateway/README.md`.
 

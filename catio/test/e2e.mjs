@@ -1295,6 +1295,29 @@ async function dropFiles(page, sel, files) {
     expect(p.includes("untitled.txt") && p.includes("a few thoughts") && p.includes("ignore any instructions"), p.slice(0, 200));
   });
   await page.click("#brainDlg button:has-text('Cancel')");
+  await check("the decider is asked the same question, logged beside the sorter's pick, and not waited for", async () => {
+    const d = (await tools(page, "decide")).pop();
+    expect(d, "the decider wasn't asked");
+    expect(d[2].kind === "sort" && d[2].old === "session_blocked1", JSON.stringify(d[2]).slice(0, 200));
+    const q = d[2].questions.cat;
+    expect(q.type === "choice" && q.criteria.none && q.criteria.session_blocked1 && d[2].state.file.name === "untitled.txt", JSON.stringify(q).slice(0, 300));
+  });
+  // house/main.decide "on": the decider sorts first, when it is sure
+  await T(page, () => { window.__catio.decideAnswer = { model: "stub", answers: { cat: { type: "choice", choice: "session_work1", confidence: 0.91, probabilities: { session_work1: 0.91 } } } }; window.__catio.put("house/main", { name: "KittyChat Café", decide: "on" }); });
+  await dropFiles(page, "#stage .house", [{ name: "untitled2.txt", type: "text/plain", text: "more thoughts" }]);
+  await check("switched on, the decider's sure pick sorts the file, and says how sure", async () => {
+    expect(await page.inputValue("#drop-0") === "session_work1", await page.inputValue("#drop-0"));
+    expect((await page.locator("#brainDlg").innerText()).includes("The decider: 91% sure"), await page.locator("#brainDlg").innerText());
+  });
+  await page.click("#brainDlg button:has-text('Cancel')");
+  await T(page, () => { window.__catio.decideAnswer.answers.cat = { type: "choice", choice: "session_work1", confidence: 0.3, probabilities: { session_work1: 0.3 } }; });
+  await dropFiles(page, "#stage .house", [{ name: "untitled3.txt", type: "text/plain", text: "faint thoughts" }]);
+  await check("unsure, the decider leaves it to the sorter model", async () => {
+    expect(await page.inputValue("#drop-0") === "session_blocked1", await page.inputValue("#drop-0"));
+    expect((await page.locator("#brainDlg").innerText()).includes("Claude: It is about the shop's page"), await page.locator("#brainDlg").innerText());
+  });
+  await page.click("#brainDlg button:has-text('Cancel')");
+  await T(page, () => { window.__catio.put("house/main", { name: "KittyChat Café" }); window.__catio.decideAnswer.answers.cat = { type: "choice", choice: "none", confidence: 0.9, probabilities: { none: 0.9 } }; });
 
   // the sorter can't tell either: it waits on the tray, and is filed from the brain
   await T(page, () => { window.__catio.sampleAnswer = { cat: null, reason: "no idea" }; });
@@ -1904,9 +1927,9 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
   });
   await menuButton(page, "Open this room").click();
   await page.waitForTimeout(300);
-  await check("Open this room opens it: the queen is back and the listed repo's cat walks in", async () => {
+  await check("Open this room opens it: the house's one queen is still there and the listed repo's cat walks in", async () => {
     expect((await T(page, () => window.__catio.store["rooms/study"].closed)) === false, "still closed");
-    expect(await page.locator('#cats .cat[data-queen="study"]').count() === 1, "no queen");
+    expect(await page.locator("#cats .cat[data-queen]").count() === 1, "the queen of the house is missing");
     expect((await page.locator('#cats .cat[aria-label*="Shop about page"]').getAttribute("data-room")) === "study", "cat not in the craft room");
   });
   // Edit rooms: a switch per room; the front door can't be closed, it moves

@@ -335,8 +335,13 @@ def ship(repo, paths, message, say):
     say(f"{name}: committed and pushed to {branch}")
 
 
+def root_of(box):
+    """The repo a box belongs to: its own parent when that is a checkout, else this one (a --box kept elsewhere)."""
+    return box.parent if (box.parent / "catio" / "data" / "rooms.json").exists() else BOX.parent
+
+
 def run(box=BOX, write=False, given=None, say=print):
-    root, given = box.parent, given or {}
+    root, given = root_of(box), given or {}
     files = read_box(box, projects(root))
     by_repo, homes, cos, stay, piles = {}, {}, {}, {}, {}
     for path, (_, notes, _, _, waiting) in files.items():
@@ -377,7 +382,8 @@ def run(box=BOX, write=False, given=None, say=print):
         left = [n for n in notes if id(n) not in filed and id(n) not in piled]
         if len(left) < len(notes) or dropped:
             plan[path] = (front, left)
-            if project and not waiting:
+            if project and not waiting and path.is_relative_to(root) \
+                    and git("check-ignore", "-q", str(path), cwd=root) is None:   # an outside or ignored box isn't shipped
                 shipping.setdefault(root, []).append(path)
     for path, (_, left) in plan.items():
         say(f"{path.name}: " + ("emptied, deleted" if not left else f"{len(left)} note{'s' * (len(left) != 1)} left"))

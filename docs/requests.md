@@ -202,4 +202,15 @@ The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.
   (her status, ARE, VAT): a private artifact, linked from the Café's queen, never in git.
 - **The litter box quiz as a skill on GitHub**: `catio-plugin/skills/litterbox-quiz/`, with the licensed interface
   art left out ("for the UI, just drop the assets that are licensed").
-
+- **No lifetime seat** (3 October): "Instead of relying on a lifetime guarantee sale, maybe there could be an in between
+  and I could set myself up on Kickstarter or buy me a coffee." The pricing's third column is Support: a coffee page and a
+  campaign to fund the app.
+- **A Basic plan** (3 October): "without the automatic litter box (quiz and easy unblocking handling)", up to 5 repos,
+  and a cap on the calls to the MCP. Between Free and Early access.
+- **Set up for you, from 90 €** (3 October): no "sur devis". A one-time payment that is a lifetime subscription and the
+  plugin's customizable features taught as a DIY Claude customization course; the afternoon of setup on top.
+- **Two audiences** (3 October): developers who lose track of sessions, and "small business owners looking to use AI for
+  the first time. This should be like a video game accessible coding environment." The home page speaks to the second.
+- **Open source, with a paywall on the hosted café and the art** (3 October): the gateway's code "is open source for
+  anyone with GitHub to use" (AGPL-3.0, her choice); "certain features should stay behind the paywall like certain
+  breeds of cats (or all custom assets)"; the Buy Me a Coffee and Ulule links in the README, to help with crowdfunding.

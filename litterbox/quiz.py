@@ -14,16 +14,17 @@ Standard library only.
 import argparse
 import hashlib
 import json
+import re
 import sys
 import time
 from pathlib import Path
 
-from sort import BOX, TAG, leftover, norm, projects, read_box
+from sort import BOX, TAG, leftover, norm, projects, read_box, root_of
 
 
 def waiting(box):
     """[(pile, its frontmatter, the guessed project, its notes)] for each pile still waiting for a check."""
-    files = read_box(box, projects(BOX.parent))
+    files = read_box(box, projects(root_of(box)))
     return [(path, front, project, notes) for path, (front, notes, _, project, guess) in files.items() if guess and notes]
 
 
@@ -34,7 +35,8 @@ def card_id(pile, note):
 def cards(out, box):
     out.mkdir(parents=True, exist_ok=True)
     for stale in out.glob("*.json"):   # a previous deal: its cards may be filed or dropped by now
-        stale.unlink()
+        if re.fullmatch(r"[0-9a-f]{12}", stale.stem):
+            stale.unlink()
     order = 0
     for pile, _, guess, notes in waiting(box):
         for n in notes:
@@ -57,19 +59,28 @@ def apply(answers_dir, box):
         a = json.loads(path.read_text(encoding="utf-8"))
         answers[path.stem] = a.get("data", a)
     today = time.strftime("%Y-%m-%d")
-    sorted_, dropped = {}, 0
+    sorted_, rewrite, dropped = {}, {}, 0
     for pile, front, _, notes in waiting(box):
         keep = []
         for n in notes:
             a = answers.get(card_id(pile, n)) or {}
-            if a.get("verdict") == "file" and a.get("project"):
-                sorted_.setdefault(a["project"], []).append(n)
+            project = (a.get("project") or "").rsplit("/", 1)[-1]   # owner/repo: the pile is named after the repo
+            if a.get("verdict") == "file" and project and project not in (".", "..") and "\\" not in project:
+                sorted_.setdefault(project, []).append(n)
             elif a.get("verdict") == "drop":
                 dropped += 1
             else:   # unanswered, or an answer that says nothing: the note stays
+                if a:
+                    print(f"{pile.name}: an answer names no project, note kept: {a}")
                 keep.append(n)
-        if len(keep) == len(notes):
-            continue   # untouched: leave the pile byte for byte
+        if len(keep) < len(notes):   # an untouched pile is left byte for byte
+            rewrite[pile] = (front, keep, len(notes))
+    for project, notes in sorted_.items():   # the sorted files first: a note is never taken off its pile before it has landed
+        dest = box / f"{today}-sorted-{project}.md"
+        before = dest.read_text(encoding="utf-8") if dest.exists() else f"---\nproject: {project}\ndate: {today}\n---\n"
+        dest.write_text(before.rstrip() + "\n\n" + leftover("", notes), encoding="utf-8")
+        print(f"{dest.name}: {len(notes)} checked for {project}")
+    for pile, (front, keep, had) in rewrite.items():
         text = leftover(front, keep)
         if text:
             pile.write_text(text, encoding="utf-8")
@@ -81,6 +92,7 @@ def apply(answers_dir, box):
         before = dest.read_text(encoding="utf-8") if dest.exists() else f"---\nproject: {project}\ndate: {today}\n---\n"
         dest.write_text(before.rstrip() + "\n\n" + leftover("", notes), encoding="utf-8")
         print(f"{dest.name}: {len(notes)} checked for {project}")
+        print(f"{pile.name}: {had - len(keep)} answered, {len(keep)} left")
     print(f"dropped as settled: {dropped}. Next: python3 litterbox/sort.py --write" + (f" --box {box}" if box != BOX.resolve() else ""))
 
 
