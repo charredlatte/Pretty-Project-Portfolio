@@ -368,6 +368,15 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(m.includes("tiktok-saves") && !m.includes("half-saved"), JSON.stringify(m));
     expect(await page.locator("#mapsDlg .mapcard").count() === 3, "the page lost its cards");
   });
+  await T(page, () => { window.__catio.readOnly = true; });
+  await manageMaps();
+  await mapTool("tiktok-saves", "Pin").click();
+  await settle(page);
+  await check("a refused save changes nothing on the page", async () => {
+    expect(await page.locator('#mapsDlg .mapcard[data-map="tiktok-saves"] .star').count() === 0, "shown pinned though nothing was saved");
+    expect(!((await T(page, () => window.__catio.store["dashboard/maps"])).pinned || []).includes("tiktok-saves"), "saved anyway");
+  });
+  await T(page, () => { window.__catio.readOnly = false; });
   await page.keyboard.press("Escape");
   await settle(page);
   await openRoom(page, "study");

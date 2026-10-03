@@ -1837,7 +1837,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       hw.length && mi("Homework", () => { hideMenu(); openQueen("homework"); }, { aside: hw.length + " waiting" }),
       mi("The brain", () => { hideMenu(); openBrain(); }, { aside: tray ? tray + " on the tray" : "" }),
       mi("House rules", () => { hideMenu(); openRules(); }),
-      S.db && maps().length && mi("Project maps", () => { hideMenu(); openMaps(); }, { aside: mapCount() || "" }),
+      S.db && maps().length && mi("Project maps", () => { hideMenu(); try { openMaps(); } catch (e) { toast("A project map couldn't be drawn (" + (e && e.message || "error") + ").", "alert"); } }, { aside: mapCount() || "" }),
       mi("Edit rooms", () => { hideMenu(); openRooms(curRoom()); }),
       S.db && mi("Set up again…", () => { hideMenu(); openSetup(true); }),
       (VIEW.attic || S.showOld) && mi(S.showOld ? "Send them back up" : "Bring them down", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }),
@@ -2037,7 +2037,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     db.doc("dashboard/maps").onSnapshot((d) => {
       const was = JSON.stringify(mapsLayout());
       S.dashboard = d.exists ? d.data() : {};
-      if (JSON.stringify(mapsLayout()) !== was) redrawMaps();   // set from another tab or device: show it
+      if (JSON.stringify(mapsLayout()) !== was) { redrawMaps(); render(); }   // set from another tab or device: show it, and the menu's count
     }, fail);
     db.collection("sessions").onSnapshot((snap) => { const t = {}; for (const d of snap.docs) t[d.id] = d.data(); S.tweaks = t; render(); }, fail);
     db.collection("cats").onSnapshot((snap) => { S.adopted = snap.docs.map((d) => Object.assign({ id: d.id }, d.data())); render(); }, fail);
@@ -2870,7 +2870,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     keyList(cat ? "Ask " + cat.name : "Questions it can answer", (gm.questions || []).map((q) => {
       const li = el("li");
       if (!cat) { li.textContent = q; return li; }
-      const b = el("button", "item ask", q); b.type = "button"; b.disabled = ASKING.has(cat.id + "\n" + q);
+      const b = el("button", "item ask", q); b.type = "button"; b.dataset.ask = cat.id + "\n" + q; b.disabled = ASKING.has(b.dataset.ask);
       b.addEventListener("click", () => askMap(cat, q, b));
       li.appendChild(b); return li;
     }));
@@ -2879,11 +2879,11 @@ ul.gkey li > div.what { flex-basis: 100%; }
   // The project maps (her ask, 3 October: "a customizable dashboard built on Graphify", the graphify of her house
   // rules): every project's map (graphs/<repo>) as a card, pinned ones first, then in the order she set, the newest map
   // after that. She pins, hides, moves and widens each; dashboard/maps keeps the layout.
-  function mapsLayout() {
-    const d = S.dashboard || {}, list = (k) => (Array.isArray(d[k]) ? d[k] : []);
+  function mapsLayout(doc) {
+    const d = doc || S.dashboard || {}, list = (k) => (Array.isArray(d[k]) ? d[k] : []);
     return { order: list("order"), hidden: list("hidden"), pinned: list("pinned"), wide: list("wide") };
   }
-  const MAPS = { busy: 0, folded: new Set(), managing: new Set() };   // the save on its way (a token, 0 for none); cards folded or managed
+  const MAPS = { busy: false, folded: new Set(), managing: new Set() };   // a save on its way; cards folded or managed
   const maps = () => Object.entries(S.graphs).filter(([, g]) => g && g.map && Array.isArray(g.map.n));   // the real maps: a graph with a map drawn
   const mapsSig = () => maps().map(([id, g]) => id + ":" + (g.at || 0)).sort().join("|");
   const mapCount = () => { const L = mapsLayout(); return maps().filter(([id]) => !L.hidden.includes(id)).length; };
@@ -2903,32 +2903,30 @@ ul.gkey li > div.what { flex-basis: 100%; }
     return ids.slice().sort((a, b) => rank(a) - rank(b) || ((S.graphs[b] || {}).at || 0) - ((S.graphs[a] || {}).at || 0)); };
   function openMaps(focus) {
     const dlg = $("mapsDlg");
-    if (!dlg.dataset.wired) { dlg.dataset.wired = "1"; dlg.addEventListener("close", () => { MAPS.busy = 0; }); }   // a save still on its way never locks the next visit
     const L = mapsLayout();
     const all = maps(), allIds = all.map(([id]) => id);
     const everyId = orderOf(L, allIds);
     const shown = everyId.filter((id) => !L.hidden.includes(id)).sort((a, b) => L.pinned.includes(b) - L.pinned.includes(a)).map((id) => [id, S.graphs[id]]);
     const nameOf = (id) => String((S.graphs[id] || {}).repo || id).split("/").pop();
     const flip = (list, id) => (list.includes(id) ? list.filter((x) => x !== id) : list.concat(id));
-    // one save at a time: change(layout) says what to change, applied to the layout as stored when the save starts, so a
-    // change from another tab that hasn't reached this one survives; a refusal leaves the page as the database has it;
+    // one save at a time, even across a close and a reopen: change(layout) says what to change, applied to the layout as
+    // stored when the save starts, so another device's change that hasn't reached this tab is kept (the database is
+    // last-writer-wins, so two saves in the same instant can still cross); a refused save changes nothing on the page;
     // the redraw puts focus back where she was
     const keep = async (change, ok, again) => {
       if (MAPS.busy) return;
-      const token = MAPS.busy = Date.now() + Math.random();
-      for (const b of dlg.querySelectorAll(".mapcard button, #mapsHidden button")) b.disabled = true;
-      let wrote = null;
+      MAPS.busy = true;
+      for (const b of dlg.querySelectorAll(".mapcard .tools button, #mapsHidden button")) b.disabled = true;
+      let stored = null;
       await save(async (db) => {
         const ref = db.doc("dashboard/maps"), snap = await ref.get();
-        const stored = snap.exists ? snap.data() : {};
-        const base = { order: [], hidden: [], pinned: [], wide: [] };
-        for (const k of Object.keys(base)) if (Array.isArray(stored[k])) base[k] = stored[k];
-        wrote = Object.assign({}, stored, base, change(base), { updatedAt: Date.now() });
+        const doc = snap.exists ? snap.data() : {}, base = mapsLayout(doc);
+        const wrote = Object.assign({}, doc, base, change(base), { updatedAt: Date.now() });
         await ref.set(wrote);
+        stored = wrote;   // only once it is in the database
       }, ok);
-      if (MAPS.busy !== token) return;   // she closed the page meanwhile: this save is no longer hers to redraw
-      if (wrote) S.dashboard = wrote;
-      MAPS.busy = 0;
+      if (stored) S.dashboard = stored;
+      MAPS.busy = false;
       if (dlg.open) openMaps(again);
     };
     const box = el("div", "dlg");
@@ -2961,13 +2959,17 @@ ul.gkey li > div.what { flex-basis: 100%; }
       const next = (d) => { const o = shown[i + d]; return o && L.pinned.includes(o[0]) === pinned ? o[0] : null; };
       const move = (d, act) => {
         const other = next(d); if (!other) return;
-        keep((B) => { const o = orderOf(B, allIds), a = o.indexOf(id), b = o.indexOf(other); [o[a], o[b]] = [o[b], o[a]]; return { order: o }; }, null, here(act));
+        keep((B) => {
+          if (B.pinned.includes(id) !== B.pinned.includes(other)) return {};   // pinned or unpinned elsewhere meanwhile: no move across
+          const o = orderOf(B, allIds), a = o.indexOf(id), b = o.indexOf(other); [o[a], o[b]] = [o[b], o[a]]; return { order: o };
+        }, null, here(act));
       };
       tool("earlier", "", () => move(-1, "earlier"), "up", "Earlier").disabled = !next(-1);
       tool("later", "", () => move(1, "later"), "down", "Later").disabled = !next(1);
       tool("wide", wide ? "Narrow" : "Wide", () => keep((B) => ({ wide: flip(B.wide, id) }), null, here("wide")));
       const after = (shown[i + 1] || shown[i - 1] || [])[0];
       tool("hide", "Hide", () => keep((B) => ({ hidden: flip(B.hidden, id) }), nameOf(id) + " is hidden. It waits at the foot of the page.", { card: after }));
+      if (MAPS.busy) for (const b of tools.children) b.disabled = true;   // a save from before a close is still on its way
       manage.appendChild(tools);
       card.append(head, map, manage);
       grid.appendChild(card);
@@ -3005,7 +3007,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       toast(saidAs[via]);
     });
     ASKING.delete(key);
-    for (const x of document.querySelectorAll("button.item.ask")) if (x.textContent === q) x.disabled = false;
+    for (const x of document.querySelectorAll("button.item.ask")) if (x.dataset.ask === key) x.disabled = false;
   }
 
   function openAdopt(room) {
