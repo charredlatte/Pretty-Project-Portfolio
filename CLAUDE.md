@@ -17,7 +17,8 @@ Publish `catio/index.html` with:
   `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `corners`,
   `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point`, `pointer`, `logo`, `pastel` `.png`,
   and `sprout.ttf`), and the map panel in `art/licensed/pastel/` (`panel`, `panel-dark`, `frame`, `button`,
-  `button-hover`, `button-down`, `icons` `.png`);
+  `button-hover`, `button-down`, `icons` `.png`); and, once she has pieces of her own in `art/skin/`,
+  `art/skin.json` and each file it lists (below, "Plug-and-play art");
 - `capabilities`: omit it on a republish to keep what's stored: Claude Code Remote's nine tools and the
   gateway's five (below), `db`, `assets` and `sample`. Pass it only to add a tool on purpose, and then pass the whole set
   (the first republish after PR #31 must, to add `list_repos`: until it has, the wizard's GitHub step says the page
@@ -203,6 +204,36 @@ It has capitals only (small letters draw as capitals), so body text stays in Nun
 `build-art.py` adds the accents French names need (à â ä ç é è ê ë î ï ô ö ù û ü ÿ, a middle
 dot, an ellipsis, curly quotes); other symbols fall back to Fredoka.
 
+## Plug-and-play art
+
+Her ask of 3 October: "Allow all assets to be plug-n-plays". **Every piece of art is a slot** (`ART` in the page,
+42 of them, named as `docs/drawing-plan.md` names her files: `panel`, `button`, `cat-meow`, `house`, `font`…).
+The CSS and the code name the slot, never the file: a 9-slice is `var(--art-panel) var(--panel-s) fill /
+var(--panel-w)`, a sheet `var(--art-faces)`, the house `<img data-art="house">`, the furniture
+`srcOf(ATLAS[…])`. So any piece swaps for her own drawing, or another pack's, with no code change. Keep it that way:
+**a new piece of art is a new slot** (a line in `ART`, a `--art-<slot>` default in `:root`), never a `url(art/…)` in a
+rule. A check walks the page for one.
+
+A skin says which pieces are hers, from two places; the second wins:
+
+- **`art/skin.json`** beside the page: `{ "panel": { "file": "art/skin/panel.png", "slice": [8, 8, 8, 8] }, … }`.
+  `python3 catio/tools/skin.py` writes it from whatever is in `catio/art/skin/` (each file named after its
+  slot) and says what each fills or why it can't. Her own drawings may be committed there; **never put a
+  pack's file in `art/skin/`**. The bundle carries it; a publish needs `art/skin.json` and its files in `files`.
+- **The art** in the House menu (`openArt()`): every slot, what it is and the size to draw it at; Replace… checks
+  her file, asks a 9-slice drawn at another size for its border and a cat for its frames, keeps it with `assets`
+  and writes `skin/<slot>`; Put back deletes it. It works in claude.ai, on the gateway and on localhost (there the
+  file stays in the browser).
+
+What a slot takes, checked before it is drawn (`misfit()`): **exact** (the house, upstairs, the grounds, both
+furniture sheets, the two cursors) only its own size, because the rooms are measured on it; a **sheet** (faces,
+icons, meadow, logo…) any size of the same shape; a **slice** any size, with its border in its own pixels (a
+family shares its head's: the button's hover, green and pink take the button's; a map piece can be drawn as pixel
+art, `pixel: true`, or smooth at a `scale`); a **cat** one row of frames, any frame size, its feet at the bottom
+middle unless `anchor` says, its loop in `secs` (the generated rules go in `#skinCss`, and `SPR` takes its frame
+size); `cat-walk-side` is a new slot, empty until she draws a walk: then every walking cat uses it, drawn facing
+right and mirrored going left. A piece that doesn't fit isn't used, and The art says why.
+
 ## Data
 
 The artifact database, written by the page and seeded with `ArtifactData`:
@@ -215,6 +246,7 @@ The artifact database, written by the page and seeded with `ArtifactData`:
 | `cats` | generated id | an adopted chat: `title`, `link`, `project`, `room`, `mood` (`needs` / `busy` / `done`), `note`, `name` |
 | `projects` | the project's slug (repo name, or an adopted chat's project) | `name`, `coat`: the look every cat of that project shares, set from a filing cabinet |
 | `graphs` | the repo's slug | its project map from graphify, saved by the catio skill's `graph_doc.py`: counts, the map, hubs, groups, surprises and questions a cat can be asked; shown in the filing cabinet |
+| `skin` | one per art slot (`panel`, `cat-meow`, `house`…) | her own piece for that slot: `src` (`/_blob/<asset>`, a gateway `/files/` path or `local:` in a browser), `asset`, `name`, `w`, `h`, and what it needs: `slice` [t, r, b, l], `frames`, `secs`, `pixel` or `scale`. No document: the pack's piece |
 | `dashboard` | `maps` | how she set the Project maps page: `order[]`, `pinned[]`, `hidden[]`, `wide[]` (graph slugs) |
 | `queens` | `house` | the queen of the house: `name`, `coat`, `manner` (how she speaks; the runner reads it each turn), `greeting`, `voice: {on, name, rate, pitch, lang}`, `readAt` (when Charlotte last opened her card: older handoffs are read), `notes[]` of `{text, pinned, at}`. A pinned note is one she says out loud. Older `queens/<room>` documents are hers until her first save |
 | `routines` | generated id | one of her routines: `name`, `time` ("HH:MM"), `days` (0–6, Sunday 0), `tz`, `prompt`, `on`, `last` (when the gateway last handed it to her runner). Only the gateway's copy runs: the runner reads the House, not the artifact |

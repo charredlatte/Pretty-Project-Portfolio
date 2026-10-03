@@ -119,6 +119,8 @@ published (1 October). `docs/drawing-plan.md` is the list:
 - the order to draw in.
 
 Each piece drops in where its pack's piece was. As the packs go, so do their licences and credits.
+That part is built (3 October, "Allow all assets to be plug-n-plays"): every piece is a slot, swapped from The art
+in the House menu or `art/skin.json`, with no code change (`CLAUDE.md`, "Plug-and-play art").
 
 - Sounds, once she has found them (`docs/from-the-litterbox.md`).
 - The small text raised to 14 px with the new bubbles.

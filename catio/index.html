@@ -24,8 +24,56 @@
   --night: rgba(8, 20, 34, 0);
   --scene: none;
   --u: 2px;                /* one art pixel on screen */
-  --paw: url(art/licensed/ui/cursor.png) 9 5, default;
-  --point: url(art/licensed/ui/cursor-point.png) 9 3, pointer;
+  /* The art. Every piece is a slot (ART in the script lists them, with their sizes): the rules below name the
+     slot, never the file, so a skin swaps any piece without touching the CSS (art/skin.json beside the page, or
+     The art in the House menu). A 9-slice keeps its border here too, top right bottom left in its own pixels,
+     and pieces of one family (the button and its hover, green and pink) share their head's. */
+  --art-panel: url(art/licensed/ui/panel.png);
+  --art-button: url(art/licensed/ui/button.png); --art-button-hover: url(art/licensed/ui/button-hover.png);
+  --art-button-green: url(art/licensed/ui/button-green.png); --art-button-pink: url(art/licensed/ui/button-pink.png);
+  --art-button-down: url(art/licensed/ui/button-down.png); --art-field: url(art/licensed/ui/field.png); --art-bubble: url(art/licensed/ui/bubble.png);
+  --art-frame: url(art/licensed/ui/frame.png); --art-corners: url(art/licensed/ui/corners.png); --art-divider: url(art/licensed/ui/divider.png);
+  --art-arrow: url(art/licensed/ui/arrow.png); --art-pointer: url(art/licensed/ui/pointer.png); --art-toggle: url(art/licensed/ui/toggle.png);
+  --art-status: url(art/licensed/ui/status.png); --art-faces: url(art/licensed/ui/faces.png); --art-crown: url(art/licensed/ui/crown.png);
+  --art-stars: url(art/licensed/ui/stars.png); --art-logo: url(art/licensed/ui/logo.png); --art-pastel: url(art/licensed/ui/pastel.png);
+  --art-cursor: url(art/licensed/ui/cursor.png); --art-cursor-point: url(art/licensed/ui/cursor-point.png);
+  --art-map-panel: url(art/licensed/pastel/panel.png); --art-map-panel-dark: url(art/licensed/pastel/panel-dark.png);
+  --art-map-button: url(art/licensed/pastel/button.png); --art-map-button-hover: url(art/licensed/pastel/button-hover.png);
+  --art-map-button-down: url(art/licensed/pastel/button-down.png); --art-map-frame: url(art/licensed/pastel/frame.png);
+  --art-map-icons: url(art/licensed/pastel/icons.png);
+  --art-meadow: url(art/licensed/meadow.png); --art-house: url(art/licensed/house.png);
+  --art-cat-work: url(art/licensed/mochi-idle.png); --art-cat-review: url(art/licensed/mochi-box.png);
+  --art-cat-cry: url(art/licensed/pochi.png); --art-cat-meow: url(art/licensed/pochi.png); --art-cat-sleep: url(art/licensed/pochi.png);
+  --panel-t: 6; --panel-r: 6; --panel-b: 6; --panel-l: 6; --panel-s: var(--panel-t) var(--panel-r) var(--panel-b) var(--panel-l);
+  --panel-w: calc(var(--panel-t) * var(--u)) calc(var(--panel-r) * var(--u)) calc(var(--panel-b) * var(--u)) calc(var(--panel-l) * var(--u));
+  --btn-t: 4; --btn-r: 4; --btn-b: 6; --btn-l: 4; --btn-s: var(--btn-t) var(--btn-r) var(--btn-b) var(--btn-l);
+  --btn-w: calc(var(--btn-t) * var(--u)) calc(var(--btn-r) * var(--u)) calc(var(--btn-b) * var(--u)) calc(var(--btn-l) * var(--u));
+  --btn-px: calc(var(--btn-t) * 1px) calc(var(--btn-r) * 1px) calc(var(--btn-b) * 1px) calc(var(--btn-l) * 1px);
+  --down-t: 4; --down-r: 4; --down-b: 4; --down-l: 4; --down-s: var(--down-t) var(--down-r) var(--down-b) var(--down-l);
+  --down-w: calc(var(--down-t) * var(--u)) calc(var(--down-r) * var(--u)) calc(var(--down-b) * var(--u)) calc(var(--down-l) * var(--u));
+  --down-px: calc(var(--down-t) * 1px) calc(var(--down-r) * 1px) calc(var(--down-b) * 1px) calc(var(--down-l) * 1px);
+  --field-t: 4; --field-r: 4; --field-b: 5; --field-l: 4; --field-s: var(--field-t) var(--field-r) var(--field-b) var(--field-l);
+  --field-w: calc(var(--field-t) * var(--u)) calc(var(--field-r) * var(--u)) calc(var(--field-b) * var(--u)) calc(var(--field-l) * var(--u));
+  --bubble-t: 5; --bubble-r: 5; --bubble-b: 6; --bubble-l: 5; --bubble-s: var(--bubble-t) var(--bubble-r) var(--bubble-b) var(--bubble-l);
+  --bubble-w: calc(var(--bubble-t) * var(--u)) calc(var(--bubble-r) * var(--u)) calc(var(--bubble-b) * var(--u)) calc(var(--bubble-l) * var(--u));
+  --bubble-px: calc(var(--bubble-t) * 1px) calc(var(--bubble-r) * 1px) calc(var(--bubble-b) * 1px) calc(var(--bubble-l) * 1px);
+  --frame-t: 7; --frame-r: 7; --frame-b: 7; --frame-l: 7; --frame-s: var(--frame-t) var(--frame-r) var(--frame-b) var(--frame-l);
+  --frame-w: calc(var(--frame-t) * var(--u)) calc(var(--frame-r) * var(--u)) calc(var(--frame-b) * var(--u)) calc(var(--frame-l) * var(--u));
+  --corners-t: 9; --corners-r: 8; --corners-b: 9; --corners-l: 8; --corners-s: var(--corners-t) var(--corners-r) var(--corners-b) var(--corners-l);
+  --corners-w: calc(var(--corners-t) * var(--u)) calc(var(--corners-r) * var(--u)) calc(var(--corners-b) * var(--u)) calc(var(--corners-l) * var(--u));
+  --corners-px: calc(var(--corners-t) * 1px) calc(var(--corners-r) * 1px) calc(var(--corners-b) * 1px) calc(var(--corners-l) * 1px);
+  --divider-t: 4; --divider-r: 1; --divider-b: 0; --divider-l: 1; --divider-s: var(--divider-t) var(--divider-r) var(--divider-b) var(--divider-l);
+  --divider-w: calc(var(--divider-t) * var(--u)) calc(var(--divider-r) * var(--u)) calc(var(--divider-b) * var(--u)) calc(var(--divider-l) * var(--u));
+  /* the map panel's pieces are smooth art drawn at twice their size or more: -k is one of its pixels on screen */
+  --mpanel-k: .5px; --mbtn-k: .5px; --mframe-k: calc(6px / 28); --map-render: auto;
+  --mpanel-t: 28; --mpanel-r: 28; --mpanel-b: 28; --mpanel-l: 28; --mpanel-s: var(--mpanel-t) var(--mpanel-r) var(--mpanel-b) var(--mpanel-l);
+  --mpanel-w: calc(var(--mpanel-t) * var(--mpanel-k)) calc(var(--mpanel-r) * var(--mpanel-k)) calc(var(--mpanel-b) * var(--mpanel-k)) calc(var(--mpanel-l) * var(--mpanel-k));
+  --mbtn-t: 20; --mbtn-r: 22; --mbtn-b: 24; --mbtn-l: 22; --mbtn-s: var(--mbtn-t) var(--mbtn-r) var(--mbtn-b) var(--mbtn-l);
+  --mbtn-w: calc(var(--mbtn-t) * var(--mbtn-k)) calc(var(--mbtn-r) * var(--mbtn-k)) calc(var(--mbtn-b) * var(--mbtn-k)) calc(var(--mbtn-l) * var(--mbtn-k));
+  --mframe-t: 28; --mframe-r: 28; --mframe-b: 28; --mframe-l: 28; --mframe-s: var(--mframe-t) var(--mframe-r) var(--mframe-b) var(--mframe-l);
+  --mframe-w: calc(var(--mframe-t) * var(--mframe-k)) calc(var(--mframe-r) * var(--mframe-k)) calc(var(--mframe-b) * var(--mframe-k)) calc(var(--mframe-l) * var(--mframe-k));
+  --paw: var(--art-cursor) 9 5, default;
+  --point: var(--art-cursor-point) 9 3, pointer;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -47,27 +95,27 @@ a { color: var(--ink); }
 /* the Sprout Lands pieces, each a 9-slice scaled by --u. The plain colour under each is the piece's
    own face: the art paints over it, and a copy without the licensed art is still readable. */
 .menu, dialog, .toast, .stage-msg {
-  border: calc(6 * var(--u)) solid transparent; border-image: url(art/licensed/ui/panel.png) 6 fill / calc(6 * var(--u)) stretch; background: var(--tan) padding-box; image-rendering: pixelated; }
+  border: solid transparent; border-width: var(--panel-w); border-image: var(--art-panel) var(--panel-s) fill / var(--panel-w) stretch; background: var(--tan) padding-box; image-rendering: pixelated; }
 .btn { font: 18px/22px var(--pixel); color: var(--ink); padding: 0 calc(2 * var(--u)); text-decoration: none; display: inline-block; background: var(--cream) padding-box; white-space: nowrap;
-  border-style: solid; border-color: transparent; border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u));
-  border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u)) stretch; }
-.btn:hover { border-image-source: url(art/licensed/ui/button-hover.png); }
-.btn.green { border-image-source: url(art/licensed/ui/button-green.png); background-color: #C0D470; }
-.btn.pink { border-image-source: url(art/licensed/ui/button-pink.png); background-color: #EBB7AE; }
+  border-style: solid; border-color: transparent; border-width: var(--btn-w);
+  border-image: var(--art-button) var(--btn-s) fill / var(--btn-w) stretch; }
+.btn:hover { border-image-source: var(--art-button-hover); }
+.btn.green { border-image-source: var(--art-button-green); background-color: #C0D470; }
+.btn.pink { border-image-source: var(--art-button-pink); background-color: #EBB7AE; }
 .btn.green:hover, .btn.pink:hover { filter: brightness(1.06); }
-.btn:active { border-image: url(art/licensed/ui/button-down.png) 4 fill / calc(4 * var(--u)) stretch; translate: 0 calc(2 * var(--u)); filter: none; }
-.field input, .field select, .field textarea { border: calc(4 * var(--u)) solid transparent; border-image: url(art/licensed/ui/field.png) 4 4 5 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(5 * var(--u)) stretch;
+.btn:active { border-image: var(--art-button-down) var(--down-s) fill / var(--down-w) stretch; translate: 0 calc(2 * var(--u)); filter: none; }
+.field input, .field select, .field textarea { border: solid transparent; border-width: calc(var(--field-t) * var(--u)); border-image: var(--art-field) var(--field-s) fill / var(--field-w) stretch;
   background: #C1C8B9 padding-box; padding: 1px 4px; width: 100%; min-width: 0; image-rendering: pixelated; }
-.field select { appearance: none; -webkit-appearance: none; padding-right: calc(14 * var(--u)); border-image-slice: 4 4 5 4;   /* no fill: the arrow is a background, under the frame */
-  background: url(art/licensed/ui/arrow.png) right calc(2 * var(--u)) center / calc(10 * var(--u)) calc(9 * var(--u)) no-repeat, #C1C8B9 padding-box; }
+.field select { appearance: none; -webkit-appearance: none; padding-right: calc(14 * var(--u)); border-image-slice: var(--field-s);   /* no fill: the arrow is a background, under the frame */
+  background: var(--art-arrow) right calc(2 * var(--u)) center / calc(10 * var(--u)) calc(9 * var(--u)) no-repeat, #C1C8B9 padding-box; }
 .field input::placeholder, .field textarea::placeholder { color: #4E574D; }   /* 4.6:1 on the field */
 .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--ink); outline-offset: 1px; }
 /* a divider: the pack's underline, capped at both ends */
-.rule, .bar { border-top: calc(4 * var(--u)) solid transparent; border-image: url(art/licensed/ui/divider.png) 4 1 0 1 / calc(4 * var(--u)) var(--u) 0 var(--u) stretch; }
+.rule, .bar { border-top: calc(var(--divider-t) * var(--u)) solid transparent; border-image: var(--art-divider) var(--divider-s) / var(--divider-w) stretch; }
 
 /* the mood faces: the pack's cat emoji, one 32 px cell per mood (--f follows MOODS: cry, meow, box, idle, sleep; then a queen's heart eyes) */
 .face-ico { --f: 3; display: inline-block; flex: none; width: 30px; height: 30px; image-rendering: pixelated;
-  background: url(art/licensed/ui/faces.png) calc(var(--f) * -32px - 1px) -1px / 192px 32px no-repeat; }
+  background: var(--art-faces) calc(var(--f) * -32px - 1px) -1px / 192px 32px no-repeat; }
 .fail > .face-ico { --f: 0; }
 .need > .face-ico { --f: 1; }
 .gift > .face-ico { --f: 2; }
@@ -77,17 +125,17 @@ a { color: var(--ink); }
 .status { font-size: .8rem; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; }
 .status.warn { color: var(--ink); font-weight: 700; }
 .status .words { flex: 1 1 200px; min-width: 0; }
-.status .dot { width: 12px; height: 12px; flex: none; align-self: flex-start; margin-top: 4px; display: inline-block; background: url(art/licensed/ui/status.png) 0 0 / 24px 12px no-repeat; }
+.status .dot { width: 12px; height: 12px; flex: none; align-self: flex-start; margin-top: 4px; display: inline-block; background: var(--art-status) 0 0 / 24px 12px no-repeat; }
 .status.warn .dot { background-position: -12px 0; }
 .status .dot.wait { opacity: .45; }
 
 /* the stage: the whole screen, the meadow tiled to follow the camera, the frame laid over the edge */
 .stage { position: absolute; inset: 0; overflow: clip; touch-action: none; background: #8FBF4F; }
 .stage.panning, .stage.panning * { cursor: grabbing !important; }
-.meadow { position: absolute; inset: 0; background: url(art/licensed/meadow.png) repeat; image-rendering: pixelated; filter: var(--scene);
+.meadow { position: absolute; inset: 0; background: var(--art-meadow) repeat; image-rendering: pixelated; filter: var(--scene);
   transition: background-size .55s cubic-bezier(.3,.7,.2,1), background-position .55s cubic-bezier(.3,.7,.2,1); }
 .stage.instant .meadow { transition: none; }
-.trim { position: fixed; inset: 0; pointer-events: none; z-index: 30; border: calc(6 * var(--u)) solid transparent; border-image: url(art/licensed/ui/panel.png) 6 / calc(6 * var(--u)) stretch; }
+.trim { position: fixed; inset: 0; pointer-events: none; z-index: 30; border: solid transparent; border-width: var(--panel-w); border-image: var(--art-panel) var(--panel-s) / var(--panel-w) stretch; }
 /* the brand, top left: ToffeeCraft's cat-face bubble and the name on the pack's cream button. It is the House
    button: its menu holds what belongs to the whole house. When cats need you it carries a badge; the status
    sign under it shows only when something is wrong, and says how to fix it. */
@@ -95,11 +143,11 @@ a { color: var(--ink); }
   display: grid; gap: 6px; justify-items: start; }
 .hud h1 { margin: 0; font: inherit; }
 .brand { display: inline-flex; align-items: center; gap: 6px; font: 18px/22px var(--pixel); color: var(--ink); padding: 0 calc(3 * var(--u)) 0 0; background: var(--cream) padding-box; white-space: nowrap;
-  border-style: solid; border-color: transparent; border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u));
-  border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u)) stretch; image-rendering: pixelated; }
-.brand:hover { border-image-source: url(art/licensed/ui/button-hover.png); }
-.brand[aria-expanded="true"] { border-image: url(art/licensed/ui/button-down.png) 4 fill / calc(4 * var(--u)) stretch; translate: 0 calc(2 * var(--u)); background-color: #CDB793; }
-.brand .logo { width: 21px; height: 18px; flex: none; margin: -2px 0 -2px -2px; background: url(art/licensed/ui/logo.png) no-repeat; image-rendering: pixelated; }
+  border-style: solid; border-color: transparent; border-width: var(--btn-w);
+  border-image: var(--art-button) var(--btn-s) fill / var(--btn-w) stretch; image-rendering: pixelated; }
+.brand:hover { border-image-source: var(--art-button-hover); }
+.brand[aria-expanded="true"] { border-image: var(--art-button-down) var(--down-s) fill / var(--down-w) stretch; translate: 0 calc(2 * var(--u)); background-color: #CDB793; }
+.brand .logo { width: 21px; height: 18px; flex: none; margin: -2px 0 -2px -2px; background: var(--art-logo) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; }
 @media (min-width: 561px) { .brand .logo { width: 42px; height: 36px; background-size: 42px 36px; margin: -8px 0 -10px -8px; } }
 #tally { display: inline-flex; }
 #tally:empty { display: none; }
@@ -108,7 +156,7 @@ a { color: var(--ink); }
 .hud .status .words { flex: 0 1 auto; }
 .hud .status .more { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .hud .status:hover .more, .hud .status:focus-within .more { position: static; width: auto; height: auto; clip-path: none; white-space: normal; }
-.hud .status.warn { padding: 0 calc(2 * var(--u)); border: calc(6 * var(--u)) solid transparent; border-image: url(art/licensed/ui/panel.png) 6 fill / calc(6 * var(--u)) stretch; background: var(--tan) padding-box; image-rendering: pixelated; }
+.hud .status.warn { padding: 0 calc(2 * var(--u)); border: solid transparent; border-width: var(--panel-w); border-image: var(--art-panel) var(--panel-s) fill / var(--panel-w) stretch; background: var(--tan) padding-box; image-rendering: pixelated; }
 .credits { position: fixed; z-index: 19; left: calc(6 * var(--u) + 8px); bottom: calc(6 * var(--u) + 4px + env(safe-area-inset-bottom, 0px)); margin: 0; font-size: .66rem; color: #FFF8EA; opacity: .75;
   text-shadow: 0 1px 0 #2C4A18, 1px 0 0 #2C4A18, -1px 0 0 #2C4A18, 0 -1px 0 #2C4A18; max-width: calc(100vw - 12 * var(--u) - 16px); }
 .btn.sq { width: 40px; height: 40px; padding: 0; display: grid; place-items: center; }
@@ -117,7 +165,7 @@ a { color: var(--ink); }
 /* icons from SC_siosio's Game UI Pack (Pastel Edition), pixelated onto the page's grid by build-art.py: one
    20 px cell each, in PASTEL order (up, down, plus, minus, house, pause, play, check, lock, unlock) */
 .pi { --i: 0; display: inline-block; flex: none; width: 20px; height: 20px; vertical-align: middle; image-rendering: pixelated;
-  background: url(art/licensed/ui/pastel.png) calc(var(--i) * -20px) 0 / 200px 20px no-repeat; }
+  background: var(--art-pastel) calc(var(--i) * -20px) 0 / 200px 20px no-repeat; }
 .p-down { --i: 1; } .p-plus { --i: 2; } .p-minus { --i: 3; } .p-house { --i: 4; } .p-pause { --i: 5; } .p-play { --i: 6; }
 .p-check { --i: 7; } .p-lock { --i: 8; } .p-unlock { --i: 9; }
 .btn .pi { margin: -2px 4px -2px -2px; }
@@ -129,19 +177,19 @@ a { color: var(--ink); }
    so a copy without the licensed art is still a panel of buttons. */
 .mappanel { position: fixed; z-index: 31; top: calc(6 * var(--u) + 8px + env(safe-area-inset-top, 0px)); right: calc(6 * var(--u) + 8px);
   display: grid; gap: 6px; padding: 4px; border: 6px solid transparent; border-radius: 12px; background: #FBF3E4;
-  border-image: url(art/licensed/pastel/panel.png) 28 fill / 14px stretch; image-rendering: auto; }
+  border-image: var(--art-map-panel) var(--mpanel-s) fill / var(--mpanel-w) stretch; image-rendering: var(--map-render); }
 .mp-row { display: flex; gap: 4px; align-items: center; }
 .mp-row .pbtn { flex: 1; }
 .floors { display: flex; gap: 4px; }
 .floors .pbtn { flex: 1; }
 .pbtn { font: 18px/18px var(--pixel); color: var(--ink); height: 40px; padding: 0 2px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;
-  border-style: solid; border-color: transparent; border-width: 10px 11px 12px; border-radius: 8px; background: #F3D08A;
-  border-image: url(art/licensed/pastel/button.png) 20 22 24 fill / 10px 11px 12px stretch; image-rendering: auto; }
-.pbtn:hover { border-image-source: url(art/licensed/pastel/button-hover.png); background-color: #F7DCAB; }
-.pbtn:active, .pbtn[aria-checked="true"], .pbtn[aria-expanded="true"]:not(.fold) { border-image-source: url(art/licensed/pastel/button-down.png); background-color: #E3BC6F; }
+  border-style: solid; border-color: transparent; border-width: var(--mbtn-w); border-radius: 8px; background: #F3D08A;
+  border-image: var(--art-map-button) var(--mbtn-s) fill / var(--mbtn-w) stretch; image-rendering: var(--map-render); }
+.pbtn:hover { border-image-source: var(--art-map-button-hover); background-color: #F7DCAB; }
+.pbtn:active, .pbtn[aria-checked="true"], .pbtn[aria-expanded="true"]:not(.fold) { border-image-source: var(--art-map-button-down); background-color: #E3BC6F; }
 .pbtn:disabled { opacity: .5; cursor: default; }
 .pbtn.sq { width: 40px; padding: 0; }
-.pbtn .ico { --i: 0; width: 18px; height: 18px; flex: none; background: url(art/licensed/pastel/icons.png) calc(var(--i) * -18px) 0 / 90px 18px no-repeat; }
+.pbtn .ico { --i: 0; width: 18px; height: 18px; flex: none; background: var(--art-map-icons) calc(var(--i) * -18px) 0 / 90px 18px no-repeat; }
 .pbtn svg { width: 14px; height: 14px; fill: currentColor; shape-rendering: crispEdges; }
 /* a floor with cats that need you: a pink pip and how many (red if one is upset) */
 .pip { display: inline-grid; place-items: center; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; font: 800 11px/1 var(--body); color: var(--ink);
@@ -157,7 +205,7 @@ a { color: var(--ink); }
 .mm-room.here { background: #B8D799; }
 .mm-room .pip { position: absolute; right: 2px; top: 2px; min-width: 8px; height: 8px; padding: 0; }
 .mm-stairs { position: absolute; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(105, 85, 34, .45) 0 1px, transparent 1px 3px); }
-.mm-view { position: absolute; pointer-events: none; border: 2px solid #3F2A20; border-radius: 6px; border-image: url(art/licensed/pastel/frame.png) 28 / 6px stretch;
+.mm-view { position: absolute; pointer-events: none; border: 2px solid #3F2A20; border-radius: 6px; border-image: var(--art-map-frame) var(--mframe-s) / var(--mframe-w) stretch;
   transition: left .55s cubic-bezier(.3,.7,.2,1), top .55s cubic-bezier(.3,.7,.2,1), width .55s cubic-bezier(.3,.7,.2,1), height .55s cubic-bezier(.3,.7,.2,1); }
 .minimap.instant .mm-view { transition: none; }
 @media (max-width: 560px) {
@@ -166,11 +214,11 @@ a { color: var(--ink); }
   .pbtn { height: 44px; } .pbtn.sq { width: 44px; }
   .credits { display: none; }
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mappanel { border-image-source: url(art/licensed/pastel/panel-dark.png); background-color: #1E2937; } }
-:root[data-theme="dark"] .mappanel { border-image-source: url(art/licensed/pastel/panel-dark.png); background-color: #1E2937; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mappanel { border-image-source: var(--art-map-panel-dark); background-color: #1E2937; } }
+:root[data-theme="dark"] .mappanel { border-image-source: var(--art-map-panel-dark); background-color: #1E2937; }
 @media (prefers-reduced-motion: reduce) { .mm-view { transition: none; } }
 .world { position: absolute; left: 0; top: 0; width: 1920px; height: 1152px; transform-origin: 0 0; transition: transform .55s cubic-bezier(.3,.7,.2,1);
-  background: url(art/licensed/meadow.png) 0 0 / 224px 64px repeat; image-rendering: pixelated; filter: var(--scene); }
+  background: var(--art-meadow) 0 0 / 224px 64px repeat; image-rendering: pixelated; filter: var(--scene); }
 .stage.instant .world { transition: none; }
 /* two floors, one shown at a time. Upstairs, the ground floor stays underneath, faded and out of reach, and
    the upper floor's pieces sit above everything on it (their z-index is lifted by 4000). */
@@ -181,7 +229,7 @@ a { color: var(--ink); }
 .house.upper { z-index: 3900; }
 /* the stair: the way between the floors, lit like a room */
 .stairs { position: absolute; z-index: 4990; background: transparent; border: 0; padding: 0; cursor: var(--point); }
-.stairs:hover, .stairs:focus-visible, .stairs.lit { outline: 0; background: rgba(255, 250, 225, .14); border: 9px solid transparent; border-image: url(art/licensed/ui/corners.png) 9 8 / calc(9px / var(--cs, 1)) calc(8px / var(--cs, 1)) stretch; }
+.stairs:hover, .stairs:focus-visible, .stairs.lit { outline: 0; background: rgba(255, 250, 225, .14); border: solid transparent; border-width: calc(var(--corners-t) * 1px); border-image: var(--art-corners) var(--corners-s) / calc(var(--corners-t) * 1px / var(--cs, 1)) calc(var(--corners-r) * 1px / var(--cs, 1)) calc(var(--corners-b) * 1px / var(--cs, 1)) calc(var(--corners-l) * 1px / var(--cs, 1)) stretch; }
 /* what's under the pointer, named in a line */
 .tip { pointer-events: none; z-index: 21; transform: translate(-50%, -100%); font: 18px/18px var(--pixel); gap: 6px; flex-wrap: wrap; max-width: 240px; }
 .tip small { font: 700 .74rem var(--body); color: var(--ink-soft); }
@@ -196,12 +244,12 @@ a { color: var(--ink); }
    with keyboard focus, or whose menu is open. A room's brackets keep one size on screen at any zoom
    (--cs is the camera scale). */
 .roomhit, .cabinet, .cat { position: absolute; background: transparent; border: 0; padding: 0; cursor: var(--point); }
-.roomhit { --by: calc(var(--u) * 9 / var(--cs, 1)); --bx: calc(var(--u) * 8 / var(--cs, 1)); }
+.roomhit { --bw: calc(var(--u) * var(--corners-t) / var(--cs, 1)) calc(var(--u) * var(--corners-r) / var(--cs, 1)) calc(var(--u) * var(--corners-b) / var(--cs, 1)) calc(var(--u) * var(--corners-l) / var(--cs, 1)); }
 .roomhit:hover, .roomhit.lit, .roomhit:focus-visible { background: rgba(255, 250, 225, .12); outline: 0; border: 0 solid transparent;
-  border-image: url(art/licensed/ui/corners.png) 9 8 / var(--by) var(--bx) stretch; }
+  border-image: var(--art-corners) var(--corners-s) / var(--bw) stretch; }
 .roomhit.here { cursor: var(--paw); background: transparent; border: 0; }
 .roomhit.here:focus-visible { border-style: solid; }
-.cabinet:hover, .cabinet:focus-visible, .cat:focus-visible { outline: 0; border: 9px solid transparent; border-image: url(art/licensed/ui/corners.png) 9 8 / 9px 8px stretch; border-image-outset: 5px; }
+.cabinet:hover, .cabinet:focus-visible, .cat:focus-visible { outline: 0; border: solid transparent; border-width: calc(var(--corners-t) * 1px); border-image: var(--art-corners) var(--corners-s) / var(--corners-px) stretch; border-image-outset: 5px; }
 .cat:focus-visible { border-width: 0; }
 /* a cat in the line is close to the next: only its own body answers the pointer */
 .cat[data-line] { clip-path: inset(0 14px 0 6px); }
@@ -209,29 +257,29 @@ a { color: var(--ink); }
 .cat .spr { display: block; }
 /* a count: the pack's white button at one pixel a pixel */
 .badge .n { font: 800 11px/1 var(--body); color: var(--ink); padding: 0 1px;
-  border-style: solid; border-color: transparent; border-width: 3px 3px 5px; border-image: url(art/licensed/ui/button-hover.png) 4 4 6 4 fill / 3px 3px 5px stretch; }
+  border-style: solid; border-color: transparent; border-width: calc(var(--btn-t) * 1px - 1px) calc(var(--btn-r) * 1px - 1px) calc(var(--btn-b) * 1px - 1px) calc(var(--btn-l) * 1px - 1px); border-image: var(--art-button-hover) var(--btn-s) fill / calc(var(--btn-t) * 1px - 1px) calc(var(--btn-r) * 1px - 1px) calc(var(--btn-b) * 1px - 1px) calc(var(--btn-l) * 1px - 1px) stretch; }
 /* a queen's crown: the pack's crown icon, gilded */
-.crown { position: absolute; width: 14px; height: 13px; pointer-events: none; image-rendering: pixelated; background: url(art/licensed/ui/crown.png) no-repeat; }
+.crown { position: absolute; width: 14px; height: 13px; pointer-events: none; image-rendering: pixelated; background: var(--art-crown) 0 0 / 100% 100% no-repeat; }
 .crown.inline { position: static; display: inline-block; flex: none; }
 .crown.corner { right: 8px; bottom: 8px; transform: scale(2); transform-origin: 100% 100%; }
 /* what a queen keeps: a brown star each, gold for the one she says */
 ul.keeps { list-style: none; margin: 2px 0 6px; padding: 0; display: flex; flex-direction: column; gap: 5px; }
 ul.keeps .kept { display: flex; align-items: center; gap: 6px; font-size: .88rem; }
 ul.keeps .kept .t { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-ul.keeps .dot { flex: none; width: 10px; height: 8px; image-rendering: pixelated; background: url(art/licensed/ui/stars.png) -10px 0 / 20px 8px no-repeat; }
+ul.keeps .dot { flex: none; width: 10px; height: 8px; image-rendering: pixelated; background: var(--art-stars) -10px 0 / 20px 8px no-repeat; }
 ul.keeps .pin { font-weight: 700; }
 ul.keeps .pin .dot { background-position: 0 0; }
-.btn.tiny { border-width: 4px 4px 6px; border-image-width: 4px 4px 6px; padding: 0 2px; }
-.btn.tiny:active { border-image-width: 4px; translate: 0 2px; }
+.btn.tiny { border-width: var(--btn-px); border-image-width: var(--btn-px); padding: 0 2px; }
+.btn.tiny:active { border-image-width: var(--down-px); translate: 0 2px; }
 .queen-line { margin-top: 2px; }
 .dlg > p.sub { margin: 0; font: 18px/22px var(--pixel); }
 
 /* sprite sheets: one step() animation per mood */
-.s-idle  { width: 32px; height: 32px; background-image: url(art/licensed/mochi-idle.png); animation: a-idle 1.25s steps(10) infinite; }
-.s-box   { width: 32px; height: 32px; background-image: url(art/licensed/mochi-box.png); animation: a-box .8s steps(4) infinite; }
-.s-cry   { width: 64px; height: 64px; background-image: url(art/licensed/pochi.png); background-position: 0 0; animation: a-cry .7s steps(4) infinite; }
-.s-meow  { width: 64px; height: 64px; background-image: url(art/licensed/pochi.png); background-position: 0 -64px; animation: a-meow .5s steps(2) infinite; }
-.s-sleep { width: 64px; height: 64px; background-image: url(art/licensed/pochi.png); background-position: 0 -128px; animation: a-sleep 2.4s steps(4) infinite; }
+.s-idle  { width: 32px; height: 32px; background-image: var(--art-cat-work); animation: a-idle 1.25s steps(10) infinite; }
+.s-box   { width: 32px; height: 32px; background-image: var(--art-cat-review); animation: a-box .8s steps(4) infinite; }
+.s-cry   { width: 64px; height: 64px; background-image: var(--art-cat-cry); background-position: 0 0; animation: a-cry .7s steps(4) infinite; }
+.s-meow  { width: 64px; height: 64px; background-image: var(--art-cat-meow); background-position: 0 -64px; animation: a-meow .5s steps(2) infinite; }
+.s-sleep { width: 64px; height: 64px; background-image: var(--art-cat-sleep); background-position: 0 -128px; animation: a-sleep 2.4s steps(4) infinite; }
 @keyframes a-idle  { from { background-position: 0 0; } to { background-position: -320px 0; } }
 @keyframes a-box   { from { background-position: 0 0; } to { background-position: -128px 0; } }
 @keyframes a-cry   { from { background-position: 0 0; } to { background-position: -256px 0; } }
@@ -246,7 +294,7 @@ ul.keeps .pin .dot { background-position: 0 0; }
 @keyframes hop { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
 
 .tag { position: absolute; font: 18px/18px var(--pixel); padding: 0 2px; white-space: nowrap; display: flex; gap: 5px; align-items: center; color: var(--ink); background: var(--cream) padding-box;
-  border-style: solid; border-color: transparent; border-width: 4px 4px 6px; border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / 4px 4px 6px stretch; image-rendering: pixelated; }
+  border-style: solid; border-color: transparent; border-width: var(--btn-px); border-image: var(--art-button) var(--btn-s) fill / var(--btn-px) stretch; image-rendering: pixelated; }
 /* a badge: the face of the most urgent cat that needs you, and how many */
 .badge { flex: none; display: inline-flex; align-items: center; gap: 0; }
 .badge .face-ico { margin: -7px -2px -7px 0; }
@@ -268,7 +316,7 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .menu .list { display: grid; margin: 0 calc(-1 * var(--u)); }
 .mi { position: relative; display: flex; align-items: center; gap: 6px; width: 100%; min-height: 28px; padding: 2px 6px 2px 18px; background: none; border: 0;
   font: 18px/22px var(--pixel); color: var(--ink); text-align: left; text-decoration: none; white-space: nowrap; }
-.mi::before { content: ""; position: absolute; left: 5px; top: 50%; margin-top: -6px; width: 7px; height: 12px; background: url(art/licensed/ui/pointer.png) no-repeat; image-rendering: pixelated; visibility: hidden; }
+.mi::before { content: ""; position: absolute; left: 5px; top: 50%; margin-top: -6px; width: 7px; height: 12px; background: var(--art-pointer) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; visibility: hidden; }
 .mi:hover, .mi:focus-visible { background: rgba(255, 248, 228, .5); outline: 0; }
 .mi:hover::before, .mi:focus-visible::before, .list:not(:hover):not(:focus-within) .mi.primary::before { visibility: visible; }
 .mi .aside { margin-left: auto; padding-left: 8px; font: 800 .75rem var(--body); color: var(--ink-soft); }
@@ -284,17 +332,17 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .menu .moods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
 .menu .moods .btn { width: 100%; text-align: center; padding: 0; overflow: hidden; text-overflow: ellipsis; }
 .menu .keys { margin: 0; font-size: .75rem; color: var(--ink-soft); }
-.menu .moods .btn[aria-pressed="true"] { border-image-source: url(art/licensed/ui/button-green.png); background-color: #C0D470; }
+.menu .moods .btn[aria-pressed="true"] { border-image-source: var(--art-button-green); background-color: #C0D470; }
 /* the sound switch: the pack's toggle, off or on */
 .sound { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; font: 18px/22px var(--pixel); color: var(--ink); }
-.sound .switch { width: 28px; height: 18px; flex: none; background: url(art/licensed/ui/toggle.png) 0 0 / 56px 18px no-repeat; }
+.sound .switch { width: 28px; height: 18px; flex: none; background: var(--art-toggle) 0 0 / 56px 18px no-repeat; }
 .sound .switch.on { background-position: -28px 0; }
 .item { position: relative; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; align-items: start; width: 100%; height: 100%; text-align: left; color: inherit;
-  background: var(--cream) padding-box; padding: 0 34px 0 0; border-style: solid; border-color: transparent; border-width: calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u));
-  border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(6 * var(--u)) stretch; image-rendering: pixelated; }
-.item:hover { border-image-source: url(art/licensed/ui/button-hover.png); }
+  background: var(--cream) padding-box; padding: 0 34px 0 0; border-style: solid; border-color: transparent; border-width: var(--btn-w);
+  border-image: var(--art-button) var(--btn-s) fill / var(--btn-w) stretch; image-rendering: pixelated; }
+.item:hover { border-image-source: var(--art-button-hover); }
 .item > .face-ico { position: absolute; right: 0; top: 0; }
-.item .thumb { width: 48px; height: 48px; position: relative; overflow: hidden; background: url(art/licensed/meadow.png) 0 0 / 112px 32px; }
+.item .thumb { width: 48px; height: 48px; position: relative; overflow: hidden; background: var(--art-meadow) 0 0 / 112px 32px; }
 .thumb .spr, .portrait .spr { position: absolute; left: 50%; bottom: 0; transform-origin: 50% 100%; }
 .item .thumb .spr { transform: translateX(-50%) scale(.72); }
 .item .thumb .spr.s-idle, .item .thumb .spr.s-box { transform: translateX(-50%) scale(1.4); }
@@ -323,7 +371,7 @@ ul.how { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-
 ul.how b { display: block; font: 18px/22px var(--pixel); font-weight: normal; }
 /* the install lines and the drop zone: the pack's pressed-in field */
 .dlg pre, .dropzone { margin: 0; padding: 8px 10px; font-size: .8rem; white-space: pre-wrap; overflow-wrap: anywhere; background: #DCE0D2 padding-box;
-  border: calc(4 * var(--u)) solid transparent; border-image: url(art/licensed/ui/field.png) 4 4 5 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(5 * var(--u)) stretch; }
+  border: solid transparent; border-width: calc(var(--field-t) * var(--u)); border-image: var(--art-field) var(--field-s) fill / var(--field-w) stretch; }
 .dropzone { text-align: center; color: var(--ink-soft); font: 18px/22px var(--pixel); padding: 18px 10px; }
 .dropzone.drop-on { background-color: #C0D470; }
 .dlg ul.sum { margin: 0; padding: 0 0 0 18px; font-size: .9rem; }
@@ -334,13 +382,13 @@ dialog::backdrop { background: rgba(18, 36, 20, .55); }
 .dlg h2 { font: 36px/44px var(--pixel); margin: 0; text-wrap: balance; overflow-wrap: anywhere; }
 .dlg h2.long { font-size: 18px; line-height: 24px; }
 .dlg .head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: end; }
-.portrait { width: calc(112px + 14 * var(--u)); height: calc(96px + 14 * var(--u)); position: relative; overflow: hidden; background: url(art/licensed/meadow.png) 0 0 / 224px 64px padding-box;
-  border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; }
+.portrait { width: calc(112px + 14 * var(--u)); height: calc(96px + 14 * var(--u)); position: relative; overflow: hidden; background: var(--art-meadow) 0 0 / 224px 64px padding-box;
+  border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
 .portrait .spr { bottom: 2px; transform: translateX(-50%) scale(1.4); }
 .portrait .spr.s-idle, .portrait .spr.s-box { transform: translateX(-50%) scale(2.4); }
 .mood { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; font-weight: 800; }
 .ask-box { display: flex; gap: 8px; align-items: center; padding: 0 4px; overflow-wrap: anywhere; font-weight: 700; background: #DCE0D2 padding-box;
-  border-style: solid; border-color: transparent; border-width: calc(5 * var(--u)) calc(5 * var(--u)) calc(6 * var(--u)); border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / calc(5 * var(--u)) calc(5 * var(--u)) calc(6 * var(--u)) stretch; }
+  border-style: solid; border-color: transparent; border-width: var(--bubble-w); border-image: var(--art-bubble) var(--bubble-s) fill / var(--bubble-w) stretch; }
 div.ask-box:not(:has(.face-ico)) { font-weight: 600; }
 dl.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: .9rem; }
 dl.facts dt { color: var(--ink-soft); font-weight: 700; }
@@ -356,7 +404,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 /* a folded section (Manage on a card, a project's map and audit): the pack's triangle turns down when open */
 .dlg details > summary { display: flex; align-items: center; gap: 8px; width: max-content; max-width: 100%; list-style: none; font: 18px/22px var(--pixel); cursor: var(--point); }
 .dlg details > summary::-webkit-details-marker { display: none; }
-.dlg details > summary::before { content: ""; flex: none; width: 7px; height: 12px; background: url(art/licensed/ui/pointer.png) no-repeat; image-rendering: pixelated; }
+.dlg details > summary::before { content: ""; flex: none; width: 7px; height: 12px; background: var(--art-pointer) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; }
 .dlg details[open] > summary::before { transform: rotate(90deg); }
 .dlg details > summary:focus-visible { outline-offset: 2px; }
 details.more > * + * { margin-top: 10px; }
@@ -365,25 +413,25 @@ details.more > * + * { margin-top: 10px; }
    sign when chosen, the arrow on the room new cats come in to), then the chosen room's card */
 dialog.wide { width: min(600px, calc(100vw - 24px)); }
 .plan { position: relative; box-sizing: content-box; overflow: clip; background: #8FBF4F padding-box;
-  border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; image-rendering: pixelated; }
+  border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; image-rendering: pixelated; }
 .plan-art { position: absolute; filter: var(--scene); }
 .plan-art img { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
 .plan[data-floor="ground"] .plan-art .upper { display: none; }
 .planfloors { display: flex; gap: 6px; }
 .planfloors .fl { display: flex; align-items: center; gap: 6px; }
-.planfloors .fl[aria-checked="true"] { border-image-source: url(art/licensed/ui/button-down.png); border-image-slice: 4 fill; translate: 0 calc(2 * var(--u)); background-color: #CDB793; }
+.planfloors .fl[aria-checked="true"] { border-image-source: var(--art-button-down); border-image-slice: var(--down-s) fill; translate: 0 calc(2 * var(--u)); background-color: #CDB793; }
 .rt { position: absolute; padding: 0; background: transparent; border: 0 solid transparent; }
 .rt:hover { background: rgba(255, 250, 225, .16); }
 .rt[aria-selected="true"], .rt:focus-visible { outline: 0; background: rgba(255, 250, 225, .2);
-  border-image: url(art/licensed/ui/corners.png) 9 8 / calc(9 * var(--u)) calc(8 * var(--u)) stretch; }
+  border-image: var(--art-corners) var(--corners-s) / var(--corners-w) stretch; }
 .rt .tag { left: calc(8 * var(--u)); top: calc(9 * var(--u)); max-width: calc(100% - 16 * var(--u)); display: block; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .rt:not([aria-selected="true"]):not(:hover):not(:focus-visible) .tag { display: none; }
 .rt[aria-selected="true"] { z-index: 1; }
-.rt[aria-selected="true"] .tag { border-image-source: url(art/licensed/ui/button-green.png); max-width: none; }
+.rt[aria-selected="true"] .tag { border-image-source: var(--art-button-green); max-width: none; }
 /* the front door: the pack's arrow on its white button, pointing in */
 .rt .door { position: absolute; right: calc(8 * var(--u)); bottom: calc(9 * var(--u)); width: 32px; height: 30px; image-rendering: pixelated;
-  border-style: solid; border-color: transparent; border-width: 4px 4px 6px; border-image: url(art/licensed/ui/button-hover.png) 4 4 6 4 fill / 4px 4px 6px stretch; }
-.rt .door::after { content: ""; position: absolute; inset: 0; background: url(art/licensed/ui/arrow.png) center / 20px 18px no-repeat; }
+  border-style: solid; border-color: transparent; border-width: var(--btn-px); border-image: var(--art-button-hover) var(--btn-s) fill / var(--btn-px) stretch; }
+.rt .door::after { content: ""; position: absolute; inset: 0; background: var(--art-arrow) center / 20px 18px no-repeat; }
 .rt.closed .tag { opacity: .55; }
 .rcard { display: grid; gap: 8px; }
 .rcard .open { justify-self: start; }
@@ -395,10 +443,10 @@ dialog.wide { width: min(600px, calc(100vw - 24px)); }
 .pilelist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 /* a project in a cabinet: the pack's pressed-in button, a well in the panel */
 .proj { display: grid; gap: 8px; padding: 2px 4px;
-  border-style: solid; border-color: transparent; border-width: calc(4 * var(--u)); border-image: url(art/licensed/ui/button-down.png) 4 fill / calc(4 * var(--u)) stretch; image-rendering: pixelated; }
+  border-style: solid; border-color: transparent; border-width: var(--down-w); border-image: var(--art-button-down) var(--down-s) fill / var(--down-w) stretch; image-rendering: pixelated; }
 .proj-head { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; align-items: center; }
 .proj-head h3 { margin: 0; font: 18px/22px var(--pixel); overflow-wrap: anywhere; }
-.proj-pic { width: 56px; height: 48px; position: relative; overflow: hidden; background: url(art/licensed/meadow.png) 0 0 / 112px 32px; }
+.proj-pic { width: 56px; height: 48px; position: relative; overflow: hidden; background: var(--art-meadow) 0 0 / 112px 32px; }
 .proj-pic .spr { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%) scale(1.3); transform-origin: 50% 100%; }
 .item.file { padding-right: 4px; text-decoration: none; }
 .item .branch { font: 600 .75rem/1.3 ui-monospace, "Cascadia Mono", monospace; }
@@ -408,7 +456,7 @@ dialog.wide { width: min(600px, calc(100vw - 24px)); }
 /* the brain: a veil while files are dragged over the house, the cat or room they'd go to lit up */
 .veil { position: absolute; inset: 0; z-index: 25; pointer-events: none; background: rgba(40, 24, 10, .28); display: grid; place-items: start center; padding-top: calc(10 * var(--u) + 40px); }
 .veil .tag { position: static; font-size: 18px; }
-.cat.drop-on, .roomhit.drop-on { outline: 0; border: 9px solid transparent; border-image: url(art/licensed/ui/corners.png) 9 8 / 9px 8px stretch; border-image-outset: 5px; background: rgba(255, 250, 225, .18); }
+.cat.drop-on, .roomhit.drop-on { outline: 0; border: solid transparent; border-width: calc(var(--corners-t) * 1px); border-image: var(--art-corners) var(--corners-s) / var(--corners-px) stretch; border-image-outset: 5px; background: rgba(255, 250, 225, .18); }
 .roomhit.drop-on { border-image-outset: 0; }
 .cat.dragging { opacity: .35; }
 .ghost { position: fixed; z-index: 45; pointer-events: none; transform: translate(-50%, -85%) scale(1.6); transform-origin: 50% 100%; }
@@ -419,8 +467,8 @@ ul.files .nm { overflow-wrap: anywhere; font-weight: 700; }
 ul.files .why { grid-column: 1 / -1; font-size: .78rem; color: var(--ink-soft); }
 ul.files select { max-width: 190px; }
 ul.thread li { padding: 0 4px; font-size: .88rem; overflow-wrap: anywhere; white-space: pre-wrap; background: var(--cream) padding-box;
-  border-style: solid; border-color: transparent; border-width: 4px 4px 6px; border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / 4px 4px 6px stretch; }
-ul.thread li.them { background-color: #DCE0D2; border-image-source: url(art/licensed/ui/bubble.png); border-image-slice: 5 5 6 5 fill; border-width: 5px 5px 6px; margin-right: 24px; }
+  border-style: solid; border-color: transparent; border-width: var(--btn-px); border-image: var(--art-button) var(--btn-s) fill / var(--btn-px) stretch; }
+ul.thread li.them { background-color: #DCE0D2; border-image-source: var(--art-bubble); border-image-slice: var(--bubble-s) fill; border-width: var(--bubble-px); margin-right: 24px; }
 ul.thread li.me { margin-left: 24px; }
 ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-soft); }
 /* the queen's card: her dialogue, like an NPC's */
@@ -445,8 +493,8 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 /* they take only as much width as they are drawn at, and the talk has the rest: the fixed 168 and 160 px columns
    left the words a strip too narrow to read on her screen */
 .qstage { position: relative; height: min(62vh, 520px); min-height: 300px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
-  overflow: hidden; image-rendering: pixelated; background: #7D8579 url(art/licensed/house.png) no-repeat; background-size: 3840px 2304px;
-  background-position: -1120px -1010px; border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; }
+  overflow: hidden; image-rendering: pixelated; background: #7D8579 var(--art-house) no-repeat; background-size: 3840px 2304px;
+  background-position: -1120px -1010px; border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
 .qstage::before { content: ""; position: absolute; inset: 0; background: rgba(28, 22, 16, .3); pointer-events: none; }
 .qstage::after { content: ""; position: absolute; inset: 0; pointer-events: none; filter: var(--scene); }
 .qstage > * { position: relative; min-width: 0; min-height: 0; }
@@ -484,11 +532,11 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 .saybar { align-items: end; }
 .saybar > .field { flex: 1 1 220px; }
 .qsettings { position: absolute; inset: 0; z-index: 5; overflow: auto; display: grid; gap: 12px; align-content: start; padding: 6px calc(4 * var(--u));
-  border: calc(6 * var(--u)) solid transparent; border-image: url(art/licensed/ui/panel.png) 6 fill / calc(6 * var(--u)) stretch; background: var(--tan) padding-box; }
+  border: solid transparent; border-width: var(--panel-w); border-image: var(--art-panel) var(--panel-s) fill / var(--panel-w) stretch; background: var(--tan) padding-box; }
 .qsettings .shead { display: flex; align-items: center; gap: 8px; }
 .qsettings .shead h3 { margin: 0; flex: 1; font: 36px/44px var(--pixel); }
 .ownerprev { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: end; }
-.ownerprev .pic { padding: 6px 8px 0; background: #7D8579 padding-box; border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; }
+.ownerprev .pic { padding: 6px 8px 0; background: #7D8579 padding-box; border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
 /* a card this narrow has no width to spare for them: drawn smaller, they leave the words two thirds of the scene
    instead of half. Without this step the talk is back to the strip this whole change is about. */
 @media (max-width: 780px) {
@@ -512,7 +560,7 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 }
 /* her homework: a quiz a blocked cat, answered by tapping */
 .homework { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }   /* stated, so a long option can't widen the card and scroll her card sideways */
-.homework .quiz { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 4px 6px 6px; background: #DCE0D2 padding-box; border: 5px solid transparent; border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / 5px 5px 6px stretch; }
+.homework .quiz { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 4px 6px 6px; background: #DCE0D2 padding-box; border: solid transparent; border-width: calc(var(--bubble-t) * 1px); border-image: var(--art-bubble) var(--bubble-s) fill / var(--bubble-px) stretch; }
 .homework .quiz h3 { margin: 0; font: 18px/22px var(--pixel); }
 .homework .quiz fieldset { border: 0; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; }   /* a fieldset is min-content wide by default: without this one option sets the card's width */
 .homework .quiz legend { padding: 0; font-weight: 700; font-size: .9rem; }
@@ -539,11 +587,11 @@ dialog.maps { width: min(1120px, calc(100vw - 24px)); }
 .mapcard.wide { grid-column: 1 / -1; }   /* the whole row, however many columns fit */
 .mapcard .mt { display: flex; align-items: center; gap: 6px; }
 .mapcard .mt h3 { flex: 1; margin: 0; font: 18px/22px var(--pixel); overflow-wrap: anywhere; }
-.mapcard .star { flex: none; width: 10px; height: 8px; transform: scale(2); margin: 0 6px; image-rendering: pixelated; background: url(art/licensed/ui/stars.png) 0 0 / 20px 8px no-repeat; }
+.mapcard .star { flex: none; width: 10px; height: 8px; transform: scale(2); margin: 0 6px; image-rendering: pixelated; background: var(--art-stars) 0 0 / 20px 8px no-repeat; }
 .mapcard .tools { display: flex; flex-wrap: wrap; gap: 4px; }
 .mapcard .tools .btn .pi { margin: -2px 0; }
 .mapcard .manage-tools > summary { font-size: 18px; }
-.gart { background: #F4E6C8 padding-box; border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; image-rendering: pixelated; }
+.gart { background: #F4E6C8 padding-box; border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; image-rendering: pixelated; }
 .gart svg { display: block; width: 100%; height: auto; }
 .gart line { stroke: var(--ink-soft); stroke-opacity: .35; stroke-width: 1; }
 ul.gkey { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: .82rem; overflow-wrap: anywhere; }
@@ -566,16 +614,37 @@ ul.gkey li > div.what { flex-basis: 100%; }
   .spr, .cat.m-meow { animation: none !important; }
   .world, .meadow { transition: none; }
 }
+/* The art: a slot a row, its picture in the pack's pressed-in well, hers marked green */
+.artgroup > summary { font: 18px/22px var(--pixel); cursor: var(--point); display: flex; gap: 6px; align-items: center; padding: 2px 0; }
+ul.art { list-style: none; margin: 4px 0 8px; padding: 0; display: grid; gap: 8px; }
+ul.art > li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; }
+ul.art .pic { width: 64px; height: 48px; display: grid; place-items: center; overflow: hidden; background: #DCE0D2 padding-box;
+  border: solid transparent; border-width: var(--down-px); border-image: var(--art-button-down) var(--down-s) fill / var(--down-px) stretch; image-rendering: pixelated; }
+ul.art .pic img { max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: pixelated; }
+ul.art .pic .aa { font: 18px/18px var(--pixel); }
+ul.art .txt { display: grid; min-width: 0; font-size: .8rem; line-height: 1.35; }
+ul.art .txt b { font: 18px/22px var(--pixel); font-weight: normal; }
+ul.art .what, ul.art .size { color: var(--ink-soft); }
+ul.art .from { font-weight: 800; }
+ul.art .from.mine { color: #3D5A1E; }
+ul.art .problem, .swap .problem { color: #8A2B1F; font-weight: 700; margin: 0; }
+ul.art .acts { display: grid; gap: 4px; justify-items: end; }
+.swap { grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 6px; background: #DCE0D2 padding-box;
+  border: solid transparent; border-width: var(--bubble-px); border-image: var(--art-bubble) var(--bubble-s) fill / var(--bubble-px) stretch; }
+.swap img { max-width: 120px; max-height: 96px; image-rendering: pixelated; background: #C1C8B9; }
+.swap .fields { display: grid; gap: 6px; min-width: 0; }
+@media (max-width: 560px) { ul.art > li { grid-template-columns: 48px minmax(0, 1fr); } ul.art .pic { width: 48px; height: 40px; } ul.art .acts { grid-column: 2; justify-items: start; grid-auto-flow: column; } .swap { grid-template-columns: minmax(0, 1fr); } }
 </style>
+<style id="skinCss">/* her art: the cats a skin redraws, written by applySkin() */</style>
 
 <main class="screen">
   <section class="stage" id="stage" data-floor="ground" aria-label="KittyChat Café: point at a room or a cat">
     <div class="meadow" id="meadow"></div>
     <div class="world" id="world" data-floor="ground">
-      <img class="house ground" src="art/licensed/decor.png" alt="" width="1920" height="1152">
-      <img class="house ground" src="art/licensed/house.png" alt="" width="1920" height="1152">
+      <img class="house ground" data-art="decor" src="art/licensed/decor.png" alt="" width="1920" height="1152">
+      <img class="house ground" data-art="house" src="art/licensed/house.png" alt="" width="1920" height="1152">
       <div class="dim upper" aria-hidden="true"></div>
-      <img class="house upper" src="art/licensed/house-upper.png" alt="" width="1920" height="1152">
+      <img class="house upper" data-art="house-upper" src="art/licensed/house-upper.png" alt="" width="1920" height="1152">
       <div id="props"></div>
       <div id="hits"></div>
       <div id="cats"></div>
@@ -616,6 +685,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
 <dialog id="brainDlg" aria-labelledby="brainTitle"></dialog>
 <dialog id="setupDlg" aria-labelledby="setupTitle"></dialog>
 <dialog id="mapsDlg" class="maps" aria-labelledby="mapsTitle"></dialog>
+<dialog id="artDlg" aria-labelledby="artTitle"></dialog>
 <input type="file" id="picker" multiple hidden>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
@@ -757,6 +827,183 @@ ul.gkey li > div.what { flex-basis: 100%; }
   };
   try { S.sound = localStorage.getItem("catio.sound") === "on"; S.showOld = localStorage.getItem("catio.showOld") === "on"; S.still = localStorage.getItem("catio.still") === "on"; } catch (e) {}
   document.documentElement.classList.toggle("still", !!S.still);
+
+  /* ---------- the art: every piece a slot ---------- */
+  // Every piece of art is a slot, named as docs/drawing-plan.md names her files. The CSS and the code name the
+  // slot, never the file, so any piece can be swapped for her own drawing, or another pack's, with no change to the
+  // code: plug and play. A skin says which. It comes from art/skin.json beside the page (a folder copy, the bundle or
+  // a publish: tools/skin.py writes it from art/skin/), then from the skin collection, one document a slot, which
+  // The art in the House menu writes; the collection wins. A slot says what it is and the size it is drawn at, so a
+  // swap is checked before it is used:
+  //   slice  a 9-slice: any size, with its border (top, right, bottom, left, in its own pixels). A family (the
+  //          button and its hover, green and pink) shares the head's border;
+  //   sheet  cells, or a picture drawn into a set box: any size of the same shape;
+  //   exact  that size exactly: the house, the grounds and the furniture (the rooms are measured on them), cursors;
+  //   cat    a mood's sheet: one row of frames, any frame size, the feet at the bottom middle unless it says;
+  //   font   the pixel font.
+  const LIC = "art/licensed/";
+  const ART = {
+    "cat-work":      { group: "Cats", kind: "cat", name: "Working cat", file: LIC + "mochi-idle.png", size: [320, 32], mood: "idle", frames: 10, secs: 1.25, what: "A busy cat: at a laptop, a desk or yarn." },
+    "cat-review":    { group: "Cats", kind: "cat", name: "Cat to review", file: LIC + "mochi-box.png", size: [128, 32], mood: "box", frames: 4, secs: 0.8, what: "Brought something to review: a parcel, or in a box." },
+    "cat-meow":      { group: "Cats", kind: "cat", name: "Meowing cat", file: LIC + "pochi.png", size: [256, 435], mood: "meow", frames: 2, secs: 0.5, what: "Needs her: sitting up, mouth open." },
+    "cat-cry":       { group: "Cats", kind: "cat", name: "Upset cat", file: LIC + "pochi.png", size: [256, 435], mood: "cry", frames: 4, secs: 0.7, what: "The last run failed: hunched, ears flat." },
+    "cat-sleep":     { group: "Cats", kind: "cat", name: "Sleeping cat", file: LIC + "pochi.png", size: [256, 435], mood: "sleep", frames: 4, secs: 2.4, what: "Nothing to do: curled up, breathing." },
+    "cat-walk-side": { group: "Cats", kind: "cat", name: "Walking cat", file: null, mood: "walk", frames: 6, secs: 0.6, what: "Every walk, drawn facing right. Until there is one, a walking cat is the working cat, hopping." },
+    "house":         { group: "The house", kind: "exact", name: "Ground floor", file: LIC + "house.png", size: [960, 576], what: "Floors, walls, glass and the facade, downstairs." },
+    "house-upper":   { group: "The house", kind: "exact", name: "Upstairs", file: LIC + "house-upper.png", size: [960, 576], what: "Her own rooms, over the back of the house." },
+    "decor":         { group: "The house", kind: "exact", name: "The grounds", file: LIC + "decor.png", size: [960, 576], what: "The catio, the drive, the forest and the garden." },
+    "meadow":        { group: "The house", kind: "sheet", name: "Meadow", file: LIC + "meadow.png", size: [112, 32], what: "The grass the house stands on, tiled." },
+    "furniture":     { group: "The house", kind: "exact", name: "Furniture", file: LIC + "furniture.png", size: [512, 110], what: "Every licensed piece, one cell each (tools/furniture.py has the cells)." },
+    "furniture-cabin": { group: "The house", kind: "exact", name: "Cosy Cabin furniture", file: "art/furniture.png", size: [512, 99], what: "The cabin's pieces, one cell each." },
+    "panel":         { group: "Interface", kind: "slice", fam: "panel", name: "Panel", file: LIC + "ui/panel.png", size: [106, 122], slice: [6, 6, 6, 6], what: "Every menu, dialog and the sign." },
+    "button":        { group: "Interface", kind: "slice", fam: "btn", name: "Button", file: LIC + "ui/button.png", size: [26, 28], slice: [4, 4, 6, 4], what: "The cream button; the bottom border is its raised edge." },
+    "button-hover":  { group: "Interface", kind: "slice", fam: "btn", name: "Button, lit", file: LIC + "ui/button-hover.png", size: [26, 28], what: "Under the pointer. Its border is the button's." },
+    "button-green":  { group: "Interface", kind: "slice", fam: "btn", name: "Green button", file: LIC + "ui/button-green.png", size: [26, 28], what: "The one that goes ahead. Its border is the button's." },
+    "button-pink":   { group: "Interface", kind: "slice", fam: "btn", name: "Pink button", file: LIC + "ui/button-pink.png", size: [26, 28], what: "The one that lets go. Its border is the button's." },
+    "button-down":   { group: "Interface", kind: "slice", fam: "down", name: "Button, pressed", file: LIC + "ui/button-down.png", size: [26, 26], slice: [4, 4, 4, 4], what: "Pressed in, and the wells things sit in." },
+    "field":         { group: "Interface", kind: "slice", fam: "field", name: "Field", file: LIC + "ui/field.png", size: [26, 26], slice: [4, 4, 5, 4], what: "Where she types." },
+    "bubble":        { group: "Interface", kind: "slice", fam: "bubble", name: "Bubble", file: LIC + "ui/bubble.png", size: [42, 42], slice: [5, 5, 6, 5], what: "A cat's ask, and the replies in its thread." },
+    "frame":         { group: "Interface", kind: "slice", fam: "frame", name: "Picture frame", file: LIC + "ui/frame.png", size: [30, 30], slice: [7, 7, 7, 7], what: "Portraits, the queen's scene and the Edit rooms plan." },
+    "corners":       { group: "Interface", kind: "slice", fam: "corners", name: "Brackets", file: LIC + "ui/corners.png", size: [20, 20], slice: [9, 8, 9, 8], what: "The four corners a room or a cat lights up with; the middle stays empty." },
+    "divider":       { group: "Interface", kind: "slice", fam: "divider", name: "Divider", file: LIC + "ui/divider.png", size: [58, 4], slice: [4, 1, 0, 1], what: "The line between parts of a menu." },
+    "faces":         { group: "Interface", kind: "sheet", name: "Mood faces", file: LIC + "ui/faces.png", size: [192, 32], what: "Six cells: upset, needs you, to review, working, asleep, a queen's heart eyes." },
+    "pastel":        { group: "Interface", kind: "sheet", name: "Icons", file: LIC + "ui/pastel.png", size: [200, 20], what: "Ten cells: up, down, plus, minus, house, pause, play, check, lock, unlock." },
+    "status":        { group: "Interface", kind: "sheet", name: "Tick and cross", file: LIC + "ui/status.png", size: [24, 12], what: "The sign's tick and cross." },
+    "toggle":        { group: "Interface", kind: "sheet", name: "Switch", file: LIC + "ui/toggle.png", size: [56, 18], what: "Two cells: off, on." },
+    "stars":         { group: "Interface", kind: "sheet", name: "Stars", file: LIC + "ui/stars.png", size: [20, 8], what: "Two cells: what the queen says, what she keeps." },
+    "arrow":         { group: "Interface", kind: "sheet", name: "Arrow", file: LIC + "ui/arrow.png", size: [10, 9], what: "A list's arrow, and the front door on the plan." },
+    "pointer":       { group: "Interface", kind: "sheet", name: "Menu pointer", file: LIC + "ui/pointer.png", size: [7, 12], what: "The triangle beside the chosen menu item." },
+    "crown":         { group: "Interface", kind: "sheet", name: "Crown", file: LIC + "ui/crown.png", size: [14, 13], what: "The queen's, in her menu and card." },
+    "logo":          { group: "Interface", kind: "sheet", name: "Logo", file: LIC + "ui/logo.png", size: [21, 18], what: "The brand: a cat face in a bubble." },
+    "cursor":        { group: "Interface", kind: "exact", name: "Paw", file: LIC + "ui/cursor.png", size: [32, 32], what: "The pointer: a cursor isn't scaled, so draw it at 16 and save it doubled." },
+    "cursor-point":  { group: "Interface", kind: "exact", name: "Pointing paw", file: LIC + "ui/cursor-point.png", size: [32, 32], what: "The pointer over something to click." },
+    "font":          { group: "Interface", kind: "font", name: "Pixel font", file: LIC + "ui/sprout.ttf", what: "Titles, labels and buttons, at 18 px." },
+    "map-panel":     { group: "Map panel", kind: "slice", fam: "mpanel", name: "Map panel", file: LIC + "pastel/panel.png", size: [300, 150], slice: [28, 28, 28, 28], scale: 0.5, what: "The camera's panel, top right." },
+    "map-panel-dark": { group: "Map panel", kind: "slice", fam: "mpanel", name: "Map panel, at night", file: LIC + "pastel/panel-dark.png", size: [300, 150], what: "The same in the dark theme. Its border is the panel's." },
+    "map-button":    { group: "Map panel", kind: "slice", fam: "mbtn", name: "Map button", file: LIC + "pastel/button.png", size: [270, 81], slice: [20, 22, 24, 22], scale: 0.5, what: "Zoom, the whole house, the floors and the fold." },
+    "map-button-hover": { group: "Map panel", kind: "slice", fam: "mbtn", name: "Map button, lit", file: LIC + "pastel/button-hover.png", size: [270, 81], what: "Its border is the map button's." },
+    "map-button-down": { group: "Map panel", kind: "slice", fam: "mbtn", name: "Map button, pressed", file: LIC + "pastel/button-down.png", size: [270, 81], what: "And the floor on screen. Its border is the map button's." },
+    "map-frame":     { group: "Map panel", kind: "slice", fam: "mframe", name: "View frame", file: LIC + "pastel/frame.png", size: [300, 150], slice: [28, 28, 28, 28], scale: 6 / 28, what: "The camera's view on the minimap: a border, empty in the middle." },
+    "map-icons":     { group: "Map panel", kind: "sheet", name: "Map icons", file: LIC + "pastel/icons.png", size: [180, 36], what: "Five cells: plus, minus, up, down, the whole house." },
+  };
+  const SPR0 = JSON.parse(JSON.stringify(SPR));   // the pack's frames, for putting a cat back
+  const SKIN = { file: {}, db: {}, live: {}, problems: {}, set: [], seq: 0, blobs: {} };
+  // a source the page made or wrote: the art beside it, an asset, a gateway file or one kept in this browser
+  const safeSrc = (v) => typeof v === "string" && /^(?:art\/[\w./-]+|\/_blob\/[\w-]+|\/files\/[\w.-]+|local:[\w-]+|blob:[^\s"'()\\]+)$/.test(v) && !v.includes("..");
+  const num = (v, lo, hi) => (typeof v === "number" && isFinite(v) && v >= lo && v <= hi ? v : null);
+  const cssUrl = (src) => 'url("' + src + '")';
+  // one skin entry, from art/skin.json or the collection, made safe: what isn't understood is left out
+  function skinEntry(key, v) {
+    const a = ART[key];
+    if (!a) return null;
+    const e = typeof v === "string" ? { src: v } : v && typeof v === "object" ? { src: v.src || v.file } : {};
+    if (!safeSrc(e.src)) return null;
+    const out = { src: e.src, w: num(v.w, 1, 8192), h: num(v.h, 1, 8192), at: num(v.at, 0, 1e14), asset: typeof v.asset === "string" ? v.asset : null, name: typeof v.name === "string" ? v.name.slice(0, 120) : "" };
+    if (Array.isArray(v.slice) && v.slice.length === 4 && v.slice.every((n) => num(n, 0, 1024) !== null && Number.isInteger(n))) out.slice = v.slice.slice();
+    if (num(v.scale, 0.05, 8) !== null) out.scale = v.scale;
+    if (v.pixel === true) out.pixel = true;
+    if (num(v.frames, 1, 64) !== null && Number.isInteger(v.frames)) out.frames = v.frames;
+    if (num(v.secs, 0.1, 20) !== null) out.secs = v.secs;
+    if (Array.isArray(v.anchor) && v.anchor.length === 2 && v.anchor.every((n) => num(n, 0, 1024) !== null)) out.anchor = v.anchor.slice();
+    return out;
+  }
+  // what a slot draws with now: hers, or the pack's
+  const skinOf = (key) => SKIN.live[key] || null;
+  const srcOf = (key) => (SKIN.live[key] ? SKIN.live[key].url : ART[key].file);
+  async function natural(url) {
+    const i = new Image();
+    i.src = url;
+    await i.decode();
+    return [i.naturalWidth, i.naturalHeight];
+  }
+  // a local: source lives in this browser's IndexedDB: open it as a blob URL, once
+  async function resolved(src) {
+    if (!src.startsWith("local:")) return src;
+    if (SKIN.blobs[src]) return SKIN.blobs[src];
+    const href = S.assets && S.assets.href ? await S.assets.href(src.slice(6)) : null;
+    if (!href) throw new Error("not in this browser");
+    return (SKIN.blobs[src] = href);
+  }
+  // Is this picture right for the slot? null if it is, else why not, in her words.
+  function misfit(key, w, h) {
+    const a = ART[key];
+    if (a.kind === "exact" && (w !== a.size[0] || h !== a.size[1])) return "It is " + w + " × " + h + ": the " + a.name.toLowerCase() + " must be " + a.size[0] + " × " + a.size[1] + (/house|grounds|Upstairs|Ground|urniture/.test(a.name) ? ", as the rooms are measured on it." : ".");
+    if (a.kind === "sheet" && Math.abs(w / h - a.size[0] / a.size[1]) > 0.02) return "It is " + w + " × " + h + ": draw it the shape of " + a.size[0] + " × " + a.size[1] + " (any size of that shape fits).";
+    return null;
+  }
+  // Read the skin and draw with it: every variable, picture and sheet it touches, and nothing it doesn't.
+  async function applySkin() {
+    const seq = ++SKIN.seq, want = {}, problems = {};
+    for (const [k, v] of Object.entries(SKIN.file)) want[k] = Object.assign({ from: "file" }, v);
+    for (const [k, v] of Object.entries(SKIN.db)) want[k] = Object.assign({ from: "db" }, v);
+    const live = {};
+    await Promise.all(Object.entries(want).map(async ([k, e]) => {
+      try {
+        const url = await resolved(e.src);
+        if (ART[k].kind !== "font") {
+          const [w, h] = await natural(url);
+          const why = misfit(k, w, h);
+          if (why) { problems[k] = why; return; }
+          Object.assign(e, { w, h });
+        }
+        live[k] = Object.assign(e, { url });
+      } catch (err) { problems[k] = "It couldn't be read (" + ((err && err.message) || "error") + ")."; }
+    }));
+    if (seq !== SKIN.seq) return;   // a newer skin came in while this one loaded
+    SKIN.live = live; SKIN.problems = problems;
+    const root = document.documentElement.style;
+    for (const p of SKIN.set) root.removeProperty(p);
+    SKIN.set = [];
+    const put = (p, v) => { root.setProperty(p, v); SKIN.set.push(p); };
+    const css = [];
+    Object.assign(SPR, JSON.parse(JSON.stringify(SPR0)));
+    for (const [k, e] of Object.entries(live)) {
+      const a = ART[k];
+      if (a.kind === "slice" || a.kind === "sheet" || a.kind === "exact") put("--art-" + k, cssUrl(e.url));
+      if (a.kind === "slice" && a.slice && e.slice) e.slice.forEach((n, i) => put("--" + a.fam + "-" + "trbl"[i], String(n)));
+      if (a.kind === "slice" && a.scale && (e.scale || e.pixel)) {
+        put("--" + a.fam + "-k", e.scale ? e.scale + "px" : "var(--u)");
+        if (e.pixel) put("--map-render", "pixelated");
+      }
+      if (a.kind === "cat") {
+        const n = e.frames || a.frames, fw = Math.round(e.w / n), fh = e.h, [ax, ay] = e.anchor || [Math.round(fw / 2), fh], secs = e.secs || a.secs;
+        const play = "a-skin-" + a.mood + " " + secs + "s steps(" + n + ") infinite";
+        const sheet = "background: " + cssUrl(e.url) + " 0 0 / " + n * fw + "px " + fh + "px no-repeat; width: " + fw + "px; height: " + fh + "px;";
+        css.push("@keyframes a-skin-" + a.mood + " { from { background-position: 0 0; } to { background-position: " + -n * fw + "px 0; } }");
+        if (a.mood === "walk") {
+          // drawn facing right, so it is mirrored going left: .flip is set going right
+          css.push(".cat.walking .spr, .walker .spr { position: absolute; left: calc(var(--ax) - " + ax + "px); top: calc(var(--ay) - " + ay + "px); " + sheet + " animation: " + play + "; transform: scaleX(-1); }",
+            ".cat.walking.flip .spr, .walker.flip .spr { transform: none; }");
+        } else {
+          SPR[a.mood] = Object.assign({}, SPR[a.mood], { w: fw, h: fh, ax, ay });
+          css.push(".s-" + a.mood + " { " + sheet + " animation: " + play + "; }");
+          if (a.mood === "idle" && !live["cat-walk-side"]) css.push(".cat.walking .spr, .walker .spr { animation: " + play + ", step .32s steps(2) infinite; }");
+        }
+      }
+      if (a.kind === "font") {
+        try { const f = new FontFace("KittySkin", cssUrl(e.url)); await f.load(); document.fonts.add(f); put("--pixel", '"KittySkin", "Sprout", "Fredoka", ui-rounded, system-ui, sans-serif'); }
+        catch (err) { problems[k] = "The font couldn't be read."; delete live[k]; }
+      }
+    }
+    if (seq !== SKIN.seq) return;
+    $("skinCss").textContent = css.join("\n");
+    for (const i of document.querySelectorAll("img[data-art]")) i.src = srcOf(i.dataset.art);
+    drawFurniture();
+    render();
+    checkArt();
+    if ($("artDlg").open) drawArt();
+  }
+  // art/skin.json beside the page: her own pieces, dropped in a folder and listed (tools/skin.py lists them)
+  async function loadSkinFile() {
+    try {
+      const r = await fetch("art/skin.json", { cache: "no-store" });
+      if (!r.ok) return;
+      const j = await r.json(), out = {};
+      for (const [k, v] of Object.entries(j || {})) { const e = skinEntry(k, v); if (e) out[k] = e; }
+      SKIN.file = out;
+      applySkin();
+    } catch (e) {}   // none, or not readable here: the pack's art
+  }
 
   /* ---------- turning sessions into cats ---------- */
   const lower = (v) => String(v || "").toLowerCase();
@@ -978,6 +1225,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   /* ---------- drawing ---------- */
   function sprite(mood, coat) {
     const s = el("span", "spr px " + SPR[mood].cls);
+    s.style.setProperty("--ax", SPR[mood].ax + "px"); s.style.setProperty("--ay", SPR[mood].ay + "px");   // the feet, for a walk drawn to its own size
     if (coat && coat !== "none") s.style.setProperty("--tint", coat);
     return s;
   }
@@ -1007,7 +1255,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   // The furniture: each piece a cell of its atlas, drawn at 2x. Rugs lie under everything, wall pieces on
   // the back wall, and the rest share the cats' z-space by their bottom edge, so a cat is in front of a
   // table it stands before and behind one it stands behind. Upstairs, all of it is lifted above the ground.
-  const ATLAS = { cc: "art/furniture.png", lic: "art/licensed/furniture.png" };
+  const ATLAS = { cc: "furniture-cabin", lic: "furniture" };   // the art slots the two sheets fill
   const zOf = (k) => (levelOf(k) === "upper" ? ZUP : 0);
   function drawFurniture() {
     const box = $("props"); box.replaceChildren();
@@ -1017,7 +1265,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       d.dataset.piece = q.key; d.dataset.room = k; d.dataset.floor = levelOf(k);
       const z = zOf(k) + (q.p.layer === "rug" ? 900 : q.p.layer === "wall" ? 950 : q.p.layer === "top" ? 1001 + (q.y + h) * 2 : 1000 + (q.y + h) * 2);
       Object.assign(d.style, { left: q.x * 2 + "px", top: q.y * 2 + "px", width: w * 2 + "px", height: h * 2 + "px", zIndex: z,
-        backgroundImage: "url(" + ATLAS[q.p.atlas] + ")", backgroundSize: aw * 2 + "px " + ah * 2 + "px", backgroundPosition: -ax * 2 + "px " + -ay * 2 + "px" });
+        backgroundImage: cssUrl(srcOf(ATLAS[q.p.atlas])), backgroundSize: aw * 2 + "px " + ah * 2 + "px", backgroundPosition: -ax * 2 + "px " + -ay * 2 + "px" });
       box.appendChild(d);
     }
   }
@@ -1866,6 +2114,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
         return mi("Project maps", () => { hideMenu(); MAPS.visit++; try { openMaps(); } catch (e) { toast("A project map couldn't be drawn (" + (e && e.message || "error") + ").", "alert"); } }, { aside: shown || "" });
       })(),
       mi("Edit rooms", () => { hideMenu(); openRooms(curRoom()); }),
+      mi("The art", () => { hideMenu(); openArt(); }, { aside: Object.keys(SKIN.live).length ? Object.keys(SKIN.live).length + " yours" : "" }),
       S.db && mi("Set up again…", () => { hideMenu(); openSetup(true); }),
       (VIEW.attic || S.showOld) && mi(S.showOld ? "Send them back up" : "Bring them down", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }),
       S.mcp && mi("Check now", () => watch(true)),
@@ -1941,7 +2190,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const img = new Image();
     img.addEventListener("load", () => { S.art = "ok"; renderStatus(); });
     img.addEventListener("error", () => { S.art = "missing"; renderStatus(); });
-    img.src = "art/licensed/pochi.png";
+    img.src = srcOf("cat-cry");
   }
 
   const NOART = "The cat art isn't here: art/licensed/ is licensed and never shipped, so neither the house nor its cats can draw. Buy the packs in catio/art/CREDITS.md, drop the zips in, and run catio/tools/build-art.py.";
@@ -2073,6 +2322,12 @@ ul.gkey li > div.what { flex-basis: 100%; }
     db.collection("queens").onSnapshot((snap) => { const q = {}; for (const d of snap.docs) q[d.id] = d.data(); S.queens = q; render(); }, fail);
     db.collection("routines").onSnapshot((snap) => { const r = {}; for (const d of snap.docs) r[d.id] = d.data(); S.routines = r; if (QUEEN_UI) QUEEN_UI.routines(); }, fail);
     const list = (name, into) => db.collection(name).onSnapshot((snap) => { into(snap.docs.map((d) => Object.assign({ id: d.id }, d.data()))); render(); }, fail);
+    // her own art, one document a slot: what The art writes, drawn as soon as it lands
+    db.collection("skin").onSnapshot((snap) => {
+      const out = {};
+      for (const d of snap.docs) { const e = skinEntry(d.id, d.data()); if (e) out[d.id] = e; }
+      if (JSON.stringify(out) !== JSON.stringify(SKIN.db)) { SKIN.db = out; applySkin(); }
+    }, fail);
     list("brain", (v) => { S.brain = v; });
     list("notes", (v) => {
       S.notes = v;
@@ -3089,7 +3344,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const plan = el("div", "plan"), art = el("div", "plan-art"), tabs = el("div");
     plan.style.aspectRatio = PLAN[2] + " / " + PLAN[3];
     Object.assign(art.style, { left: -PLAN[0] / PLAN[2] * 100 + "%", top: -PLAN[1] / PLAN[3] * 100 + "%", width: 1920 / PLAN[2] * 100 + "%", height: 1152 / PLAN[3] * 100 + "%" });
-    for (const [src, cls] of [["art/licensed/decor.png", "ground"], ["art/licensed/house.png", "ground"], ["art/licensed/house-upper.png", "upper"]]) { const i = el("img", cls); i.src = src; i.alt = ""; art.appendChild(i); }
+    for (const [k, cls] of [["decor", "ground"], ["house", "ground"], ["house-upper", "upper"]]) { const i = el("img", cls); i.dataset.art = k; i.src = srcOf(k); i.alt = ""; art.appendChild(i); }
     art.insertBefore(el("div", "dim upper"), art.lastChild);   // upstairs, the ground floor fades under it
     tabs.setAttribute("role", "tablist"); tabs.setAttribute("aria-label", "Rooms on the plan");
     plan.append(art, tabs);
@@ -3857,6 +4112,170 @@ ul.gkey li > div.what { flex-basis: 100%; }
     }
     return bar;
   }
+  /* ---------- The art: her own pieces, a slot at a time ---------- */
+  // The House menu's card for the skin: every slot, what it is and the size it is drawn at, hers in place of the
+  // pack's where she gave one. Replace… takes a file and checks it against the slot, asks for a 9-slice's border or
+  // a cat's frames, keeps it with assets and writes skin/<slot>; Put back deletes that document. A reader sees the
+  // list and changes nothing.
+  const ARTPICK = {};   // slot -> the file she picked and hasn't used yet: { file, url, w, h, why }
+  function openArt() { $("artDlg").replaceChildren(); drawArt(); show($("artDlg")); }
+  const headOf = (k) => Object.keys(ART).find((x) => ART[x].fam === ART[k].fam && ART[x].slice);
+  const borderOf = (k) => { const h = headOf(k), e = skinOf(h); return (e && e.slice) || ART[h].slice; };
+  function artLine(k) {
+    const a = ART[k], e = skinOf(k);
+    if (a.kind === "font") return "A font file: .ttf, .otf or .woff.";
+    if (a.kind === "cat") {
+      if (e) { const n = e.frames || a.frames; return n + " frames of " + Math.round(e.w / n) + " × " + e.h + ", " + (e.secs || a.secs) + " s a loop."; }
+      return a.file ? a.frames + " frames of " + SPR0[a.mood].w + " × " + SPR0[a.mood].h + ". Yours: one row of frames, the feet at the bottom middle." : "One row of " + a.frames + " frames, the feet at the bottom middle.";
+    }
+    if (a.kind === "slice") return (e ? e.w + " × " + e.h : a.size[0] + " × " + a.size[1]) + ", border " + borderOf(k).join(" ") + ": the corners stay as drawn, the rest stretches.";
+    if (a.kind === "exact") return "Exactly " + a.size[0] + " × " + a.size[1] + ".";
+    return (e ? e.w + " × " + e.h : a.size[0] + " × " + a.size[1]) + ", or any size of that shape.";
+  }
+  function artPic(k) {
+    const a = ART[k], e = skinOf(k), pic = el("span", "pic");
+    if (a.kind === "font") { pic.appendChild(el("span", "aa", "Aé")); return pic; }
+    if (a.kind === "cat" && a.mood !== "walk") { pic.appendChild(sprite(a.mood)); return pic; }
+    const src = e ? e.url : a.file;
+    if (src) { const i = el("img"); i.src = src; i.alt = ""; pic.appendChild(i); }
+    return pic;
+  }
+  // "4 4 6 4", "6" or "9 8": a border as CSS writes one, to four whole numbers
+  function border(text) {
+    const n = String(text).trim().split(/[\s,]+/).map(Number);
+    if (!n.length || n.length > 4 || n.some((x) => !Number.isInteger(x) || x < 0 || x > 1024)) return null;
+    const [t, r = t, b = t, l = r] = n;
+    return [t, r, b, l];
+  }
+  function drawArt() {
+    const dlg = $("artDlg"), top = dlg.scrollTop, open = new Set([...dlg.querySelectorAll("details[open]")].map((d) => d.dataset.group));
+    dlg.replaceChildren(); dlg.classList.add("wide");
+    const box = el("div", "dlg");
+    const h = el("h2", null, "The art"); h.id = "artTitle";
+    const mine = Object.values(SKIN.live).filter((e) => e.from === "db").length;
+    box.append(h, el("p", "note", "Every piece is a slot: give one your own drawing and the whole café draws with it. Draw at the size shown; docs/drawing-plan.md lists them all."));
+    const groups = [...new Set(Object.values(ART).map((a) => a.group))];
+    for (const g of groups) {
+      const keys = Object.keys(ART).filter((k) => ART[k].group === g);
+      const yours = keys.filter((k) => skinOf(k)).length;
+      const det = el("details", "artgroup"); det.dataset.group = g;   // redrawn as the skin changes: what she had open stays open
+      det.open = (open.size ? open.has(g) : g === groups[0] || keys.some((k) => SKIN.problems[k])) || keys.some((k) => ARTPICK[k]);   // first, a piece of hers that isn't used shows
+      det.appendChild(el("summary", null, g + (yours ? " · " + yours + " yours" : "")));
+      const ul = el("ul", "art");
+      for (const k of keys) ul.appendChild(artRow(k));
+      det.appendChild(ul); box.appendChild(det);
+    }
+    const acts = el("div", "actions");
+    if (mine && S.assets) {
+      const all = el("button", "btn pink", "Put every piece back"); all.type = "button"; all.id = "artResetAll";
+      all.addEventListener("click", () => putBack(Object.keys(SKIN.db)));
+      acts.appendChild(all);
+    }
+    acts.append(el("span", "spacer"), closeBtn(dlg));
+    box.appendChild(acts);
+    dlg.appendChild(box);
+    dlg.scrollTop = top;
+  }
+  function artRow(k) {
+    const a = ART[k], e = skinOf(k), li = el("li"); li.dataset.slot = k;
+    const txt = el("div", "txt");
+    txt.append(el("b", null, a.name), el("span", "what", a.what), el("span", "size", artLine(k)));
+    const from = e ? (e.from === "db" ? "Yours" : "From art/skin.json") : a.file ? "The pack's" : "None yet";
+    txt.appendChild(el("span", "from" + (e ? " mine" : ""), from));
+    if (SKIN.problems[k]) txt.appendChild(el("span", "problem", "Yours isn't used: " + SKIN.problems[k]));
+    const acts = el("div", "acts");
+    if (S.assets) {
+      const input = el("input"); input.type = "file"; input.hidden = true; input.id = "artFile-" + k;
+      input.accept = a.kind === "font" ? ".ttf,.otf,.woff,.woff2,font/*" : "image/png,image/gif,image/webp";
+      input.addEventListener("change", () => { const f = input.files && input.files[0]; if (f) pickArt(k, f); });
+      const rp = el("button", "btn tiny", "Replace…"); rp.type = "button"; rp.addEventListener("click", () => input.click());
+      acts.append(input, rp);
+      if (SKIN.db[k]) { const pb = el("button", "btn tiny", "Put back"); pb.type = "button"; pb.addEventListener("click", () => putBack([k])); acts.appendChild(pb); }
+    }
+    li.append(artPic(k), txt, acts);
+    if (ARTPICK[k]) li.appendChild(artForm(k));
+    return li;
+  }
+  async function pickArt(k, file) {
+    const a = ART[k], p = { file, url: URL.createObjectURL(file) };
+    if (file.size > 20 * 1024 * 1024) { toast(file.name + " is over 20 MB.", "alert"); return; }
+    if (a.kind !== "font") {
+      try { [p.w, p.h] = await natural(p.url); } catch (e) { toast(file.name + " isn't a picture the browser can read.", "alert"); return; }
+      p.why = misfit(k, p.w, p.h);
+    }
+    if (ARTPICK[k]) URL.revokeObjectURL(ARTPICK[k].url);
+    ARTPICK[k] = p;
+    drawArt();
+    const f = $("artDlg").querySelector('li[data-slot="' + k + '"] .swap input, li[data-slot="' + k + '"] .swap .btn.green');
+    if (f) f.focus();
+  }
+  // what she picked, before it is kept: the picture, what it needs, and Use it
+  function artForm(k) {
+    const a = ART[k], p = ARTPICK[k], f = el("form", "swap");
+    if (a.kind !== "font") { const i = el("img"); i.src = p.url; i.alt = "Your " + a.name.toLowerCase(); f.appendChild(i); }
+    const fields = el("div", "fields");
+    f.appendChild(fields);
+    if (p.why) fields.appendChild(el("p", "problem", p.why));
+    let bd, px, frames, secs;
+    if (!p.why && a.kind === "slice" && a.slice) {
+      // the same size as the pack's keeps its border; another size needs hers
+      bd = el("input"); bd.id = "artBorder"; bd.value = (p.w === a.size[0] && p.h === a.size[1] ? borderOf(k) : a.scale ? borderOf(k).map((n) => Math.max(1, Math.round(n * p.w / a.size[0]))) : borderOf(k)).join(" ");
+      fields.appendChild(field("Border, in its pixels: top right bottom left", bd));
+      if (a.scale) {
+        px = el("select"); px.id = "artPixel";
+        for (const [v, l] of [["pixel", "Pixel art, two screen pixels to one"], ["smooth", "Smooth, drawn at twice its size"]]) { const o = el("option", null, l); o.value = v; px.appendChild(o); }
+        px.value = p.w < a.size[0] / 2 ? "pixel" : "smooth";
+        fields.appendChild(field("Drawn as", px));
+      }
+    }
+    if (!p.why && a.kind === "cat") {
+      frames = el("input"); frames.id = "artFrames"; frames.type = "number"; frames.min = 1; frames.max = 64;
+      frames.value = p.w % p.h === 0 ? p.w / p.h : a.frames;
+      secs = el("input"); secs.id = "artSecs"; secs.type = "number"; secs.min = 0.1; secs.max = 20; secs.step = 0.05; secs.value = a.secs;
+      const row = el("div", "row"); row.append(field("Frames", frames), field("Seconds a loop", secs)); fields.appendChild(row);
+    }
+    const acts = el("div", "actions");
+    const no = el("button", "btn", "Cancel"); no.type = "button";
+    no.addEventListener("click", () => { URL.revokeObjectURL(p.url); delete ARTPICK[k]; drawArt(); });
+    acts.append(no, el("span", "spacer"));
+    if (!p.why) { const go = el("button", "btn green", "Use it"); go.type = "submit"; acts.appendChild(go); }
+    fields.appendChild(acts);
+    f.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      if (p.why || f.dataset.busy) return;
+      const doc = { name: p.file.name, at: Date.now() };
+      if (p.w) Object.assign(doc, { w: p.w, h: p.h });
+      if (bd) { doc.slice = border(bd.value); if (!doc.slice) { toast("A border is one to four whole numbers, like 4 4 6 4.", "alert"); bd.focus(); return; } }
+      if (px) { if (px.value === "pixel") doc.pixel = true; else doc.scale = a.scale * a.size[0] / p.w; }
+      if (frames) {
+        doc.frames = Number(frames.value); doc.secs = Number(secs.value);
+        if (!Number.isInteger(doc.frames) || doc.frames < 1 || doc.frames > 64 || p.w % doc.frames) { toast("The frames must split its " + p.w + " pixels evenly.", "alert"); frames.focus(); return; }
+        if (!(doc.secs >= 0.1 && doc.secs <= 20)) { toast("A loop takes between 0.1 and 20 seconds.", "alert"); secs.focus(); return; }
+      }
+      f.dataset.busy = "1";
+      try {
+        const up = await S.assets.upload(p.file, { type: p.file.type || undefined });
+        doc.asset = up.id;
+        doc.src = /^\/files\/|^local:/.test(up.url || "") ? up.url : "/_blob/" + up.id;   // claude.ai serves an asset at /_blob/<id> in every view
+        const old = SKIN.db[k] && SKIN.db[k].asset;
+        if (await save((db) => db.doc("skin/" + k).set(doc), a.name + ": yours now.")) {
+          URL.revokeObjectURL(p.url); delete ARTPICK[k];
+          if (old && old !== up.id) S.assets.delete(old).catch(() => {});
+          SKIN.db[k] = skinEntry(k, doc); applySkin();
+        }
+      } catch (e) { toast("Couldn't keep " + p.file.name + " (" + ((e && e.code) || "error") + ").", "alert"); }
+      finally { delete f.dataset.busy; }
+    });
+    return f;
+  }
+  async function putBack(keys) {
+    const olds = keys.map((k) => SKIN.db[k] && SKIN.db[k].asset).filter(Boolean);
+    const ok = await save(async (db) => { for (const k of keys) await db.doc("skin/" + k).delete(); }, keys.length > 1 ? "Every piece is the pack's again." : ART[keys[0]].name + ": the pack's again.");
+    if (!ok) return;
+    for (const k of keys) delete SKIN.db[k];
+    for (const id of olds) S.assets.delete(id).catch(() => {});
+    applySkin();
+  }
   function openRules() {
     const dlg = $("brainDlg"); dlg.replaceChildren();
     const box = el("div", "dlg");
@@ -4186,6 +4605,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   layout(true);
   render();
   checkArt();
+  loadSkinFile();
   new ResizeObserver(() => { hideMenu(); hideTip(); layout(true); }).observe($("stage"));
   // Clicking or tapping the open meadow closes the menu.
   // The path is taken when the event is dispatched, so a button the menu replaced while handling
@@ -4294,6 +4714,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       upload: async (blob) => { const id = "local-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); await tx("readwrite", (st) => st.put(blob, id)); return { id, url: "local:" + id, sizeBytes: blob.size, contentType: blob.type }; },
       delete: async (id) => { await tx("readwrite", (st) => st.delete(id)); return { deleted: true }; },
       open: async (id) => { const b = await tx("readonly", (st) => st.get(id)); if (b) window.open(URL.createObjectURL(b), "_blank", "noopener"); },
+      href: async (id) => { const b = await tx("readonly", (st) => st.get(id)); return b ? URL.createObjectURL(b) : null; },   // her art, drawn from this browser
     };
     return async (n) => { await ready; return n === "db" ? db : n === "assets" ? ((await idb) ? assets : null) : null; };
   }

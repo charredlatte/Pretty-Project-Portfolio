@@ -2458,6 +2458,134 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
   await ctx.close();
 }
 
+// Her words (3 October 2026): "Allow all assets to be plug-n-plays". Every piece of art is a slot: the page names the
+// slot, never the file, so a piece of her own (or another pack's) drops in where the pack's was, with no code change,
+// from The art in the House menu or art/skin.json beside the page. These swaps use pieces of the packs themselves, so
+// no new file is needed: what matters is that the slot takes them, and that a piece that doesn't fit is refused.
+await check("no piece of art is named by its file outside the list of slots", async () => {
+  const src = readFileSync(join(here, "..", "index.html"), "utf8");
+  const css = src.slice(src.indexOf("<style>"), src.indexOf("</style>"));
+  const rootEnd = css.indexOf("color-scheme: light;");
+  const outside = (css.slice(0, css.indexOf(":root {")) + css.slice(rootEnd)).match(/url\(art\/[^)]*\)/g) || [];
+  expect(outside.length === 1 && outside[0].includes("sprout.ttf"), outside.join(" "));   // the @font-face, swapped by FontFace
+  const js = src.slice(src.indexOf("<script>"));
+  const named = (js.slice(0, js.indexOf("the art: every piece a slot")) + js.slice(js.indexOf("const SPR0"))).match(/["'(]art\/licensed\/[^"')]*/g) || [];
+  expect(!named.length, named.join(" "));
+});
+{
+  const { page, ctx, errors } = await open();
+  const rootVar = (n) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), n);
+  const openArt = async () => { await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The art" }).click(); await settle(page); };
+  await check("The art lists every slot, in groups, each with the size to draw it at", async () => {
+    await openArt();
+    const rows = await page.locator("#artDlg li[data-slot]").count();
+    const slots = await page.evaluate(() => [...document.querySelectorAll("#artDlg li[data-slot]")].map((l) => l.dataset.slot));
+    expect(rows >= 40 && new Set(slots).size === rows, rows + " rows");
+    for (const k of ["cat-meow", "cat-walk-side", "house", "decor", "furniture", "panel", "button", "faces", "font", "map-panel", "map-icons"]) expect(slots.includes(k), "no " + k);
+    const t = await page.locator("#artDlg").textContent();
+    expect(/Exactly 960 × 576/.test(t) && /border 4 4 6 4/.test(t) && /CATS/i.test(t) && /MAP PANEL/i.test(t), t.slice(0, 300));
+    expect(await page.locator("#artDlg li[data-slot='panel'] button", { hasText: "Replace" }).count() === 1, "no Replace");
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
+  await check("a 9-slice in the skin draws every panel, with its own border", async () => {
+    await page.evaluate(() => window.__catio.put("skin/panel", { src: "art/licensed/ui/button-green.png", slice: [5, 4, 7, 4], at: 1 }));
+    await page.waitForTimeout(600);
+    expect((await rootVar("--art-panel")).includes("button-green.png"), await rootVar("--art-panel"));
+    expect((await rootVar("--panel-t")) === "5" && (await rootVar("--panel-b")) === "7", "border not set");
+    await page.click("#houseBtn"); await settle(page);
+    const m = await page.evaluate(() => { const c = getComputedStyle(document.getElementById("menu")); return [c.borderImageSource, c.borderImageSlice, c.borderTopWidth, c.borderBottomWidth]; });
+    expect(m[0].includes("button-green.png") && /^5 4 7( 4)? fill$/.test(m[1]) && m[2] === "10px" && m[3] === "14px", m.join(" | "));
+    await page.keyboard.press("Escape");
+  });
+  await check("a cat's sheet in the skin draws its mood, frames and feet from the sheet", async () => {
+    await page.evaluate(() => window.__catio.put("skin/cat-work", { src: "art/licensed/mochi-box.png", frames: 4, secs: 0.8, at: 1 }));
+    await page.waitForTimeout(600);
+    // reduced motion stills every sheet here, so its loop is read from the rule the skin wrote
+    const s = await page.evaluate(() => { const e = document.querySelector("#cats .spr.s-idle"); const c = e && getComputedStyle(e); return c && [c.backgroundImage, c.width, c.backgroundSize]; });
+    expect(s && s[0].includes("mochi-box.png") && s[1] === "32px" && s[2] === "128px 32px", JSON.stringify(s));
+    expect(/\.s-idle \{[^}]*animation: a-skin-idle 0\.8s steps\(4\) infinite/.test(await page.locator("#skinCss").textContent()), "no loop");
+  });
+  await check("a walk in the skin is every walking cat's, mirrored going left", async () => {
+    await page.evaluate(() => window.__catio.put("skin/cat-walk-side", { src: "art/licensed/mochi-idle.png", frames: 10, secs: 1, at: 1 }));
+    await page.waitForTimeout(600);
+    const css = await page.locator("#skinCss").textContent();
+    expect(/\.walker \.spr \{[^}]*mochi-idle\.png[^}]*a-skin-walk[^}]*scaleX\(-1\)/.test(css) && /\.walker\.flip \.spr \{ transform: none; \}/.test(css), css);
+  });
+  await check("a house of the wrong size is refused, with why, and the pack's house stays", async () => {
+    await page.evaluate(() => window.__catio.put("skin/house", { src: "art/licensed/meadow.png", at: 1 }));
+    await page.waitForTimeout(600);
+    expect((await page.locator("#world img[data-art='house']").getAttribute("src")).endsWith("art/licensed/house.png"), "house swapped");
+    await openArt();
+    const row = await page.locator("#artDlg li[data-slot='house']").innerText();
+    expect(/isn't used/i.test(row) && /112 × 32/.test(row) && /960 × 576/.test(row), row);
+    const panel = await page.locator("#artDlg li[data-slot='panel']").textContent();   // its group is folded
+    expect(/Yours/.test(panel) && /border 5 4 7 4/.test(panel), panel);
+  });
+  await check("Replace… checks her file against the slot before keeping it: a picture the wrong size can't be used", async () => {
+    await page.locator("#artFile-decor").setInputFiles({ name: "grounds.png", mimeType: "image/png", buffer: readFileSync(join(here, "..", "art", "licensed", "meadow.png")) });
+    await page.waitForTimeout(400);
+    const f = await page.locator("#artDlg li[data-slot='decor'] .swap").innerText();
+    expect(/112 × 32/.test(f) && /960 × 576/.test(f), f);
+    expect(!(await page.locator("#artDlg li[data-slot='decor'] .swap button[type=submit]").count()), "Use it offered");
+    await page.click("#artDlg li[data-slot='decor'] .swap button:has-text('Cancel')"); await settle(page);
+    expect(!(await page.locator("#artDlg li[data-slot='decor'] .swap").count()), "still open");
+  });
+  await check("Replace… asks a 9-slice drawn at another size for its border, keeps the file and writes its slot", async () => {
+    const before = await page.evaluate(() => window.__catio.uploads.length);
+    await page.locator("#artFile-field").setInputFiles({ name: "my-field.png", mimeType: "image/png", buffer: readFileSync(join(here, "..", "art", "licensed", "ui", "bubble.png")) });
+    await page.waitForTimeout(400);
+    expect((await page.locator("#artBorder").inputValue()) === "4 4 5 4", await page.locator("#artBorder").inputValue());
+    await page.fill("#artBorder", "5 5 6");
+    await page.click("#artDlg li[data-slot='field'] .swap button[type=submit]");
+    await page.waitForTimeout(500);
+    const d = await page.evaluate(() => window.__catio.store["skin/field"]);
+    expect(await page.evaluate(() => window.__catio.uploads.length) === before + 1, "not uploaded");
+    expect(d && /^\/_blob\//.test(d.src) && d.asset && JSON.stringify(d.slice) === "[5,5,6,5]" && d.w === 42 && d.h === 42 && d.name === "my-field.png", JSON.stringify(d));
+  });
+  await check("a cat's sheet asks for its frames, and refuses a count that doesn't split it", async () => {
+    await page.locator("#artFile-cat-meow").setInputFiles({ name: "meow.png", mimeType: "image/png", buffer: readFileSync(join(here, "..", "art", "licensed", "mochi-idle.png")) });
+    await page.waitForTimeout(400);
+    expect((await page.locator("#artFrames").inputValue()) === "10", await page.locator("#artFrames").inputValue());
+    await page.fill("#artFrames", "7");
+    await page.click("#artDlg li[data-slot='cat-meow'] .swap button[type=submit]");
+    await settle(page);
+    expect(/split/.test(await toast(page)) && !(await page.evaluate(() => window.__catio.store["skin/cat-meow"])), await toast(page));
+    await page.fill("#artFrames", "10");
+    await page.click("#artDlg li[data-slot='cat-meow'] .swap button[type=submit]");
+    await page.waitForTimeout(500);
+    const d = await page.evaluate(() => window.__catio.store["skin/cat-meow"]);
+    expect(d && d.frames === 10 && d.secs === 0.5, JSON.stringify(d));
+  });
+  await check("Put back gives a slot the pack's piece again, and lets her file go", async () => {
+    await page.click("#artDlg li[data-slot='panel'] button:has-text('Put back')");
+    await page.waitForTimeout(600);
+    expect(!(await page.evaluate(() => "skin/panel" in window.__catio.store)), "doc kept");
+    expect((await rootVar("--art-panel")).includes("art/licensed/ui/panel.png") && (await rootVar("--panel-t")) === "6", await rootVar("--art-panel"));
+    const asset = await page.evaluate(() => window.__catio.store["skin/field"].asset);
+    await page.click("#artDlg li[data-slot='field'] button:has-text('Put back')");
+    await page.waitForTimeout(600);
+    expect(await page.evaluate((a) => window.__catio.assetsDeleted.includes(a), asset), "asset kept");
+  });
+  await check("Put every piece back clears the skin, and the cats are the pack's again", async () => {
+    await page.click("#artResetAll");
+    await page.waitForTimeout(700);
+    expect(!(await page.evaluate(() => Object.keys(window.__catio.store).some((p) => p.startsWith("skin/")))), "skin docs left");
+    const s = await page.evaluate(() => { const e = document.querySelector("#cats .spr.s-idle"); return e && getComputedStyle(e).backgroundImage; });
+    expect(s && s.includes("mochi-idle.png") && !(await page.locator("#skinCss").textContent()).includes("a-skin"), s);
+    expect(!errors.length, errors.join(" | "));
+  });
+  await ctx.close();
+}
+{
+  const { page, ctx } = await open("?mode=nodb");
+  await check("with no database, The art still says what each piece is, with nothing to change", async () => {
+    await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The art" }).click(); await settle(page);
+    expect((await page.locator("#artDlg li[data-slot]").count()) >= 40, "no slots");
+    expect(!(await page.locator("#artDlg button:has-text('Replace')").count()), "Replace offered");
+  });
+  await ctx.close();
+}
+
 await browser.close();
 console.log(results.join("\n"));
 console.log(`\n${pass} passed, ${fail} failed`);
