@@ -48,7 +48,8 @@ function provider(origin) {
 				return { code: "invalid_redirect_uri", description: "Only Claude's connectors can sign in to the Catio." };
 			}
 		},
-		// agents and the session hooks send a user's agents' key: the registry knows whose it is
+		// agents and the session hooks send a user's agents' key, the queen's runner the user's queen key: the
+		// registry knows whose it is, and its role
 		async resolveExternalToken({ token, env }) {
 			const user = await (await registry(env)).userOfKey(await sha256(token));
 			return user ? { props: propsOf(user, false), audience: resource } : null;

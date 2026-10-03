@@ -99,10 +99,32 @@
   // known there by its container id, and fresher there than in claude.ai's list) and one the list doesn't have yet.
   // ?gateway=ask asks before every call. Without it, she has no CATIO connector.
   T.gw = [
-    { id: "cse_blocked1", session: "cse_blocked1", via: "claude-code", provider: "anthropic", mood: "review", title: "Shop about page", repo: "charredlatte/montfortoise-shopify", branch: "claude/about", updated: now - 60e3 },
+    { id: "cse_blocked1", session: "cse_blocked1", via: "claude-code", provider: "anthropic", mood: "review", title: "Shop about page", repo: "charredlatte/montfortoise-shopify", branch: "claude/about", updated: now - 60e3,
+      said: { text: "The French text is in, ready for you.", at: now - 50e3 } },
     { id: "cse_fresh9", session: "cse_fresh9", via: "claude-code", provider: "anthropic", mood: "needs", ask: "Merge the menu fix?", title: "Menu fix", repo: "charredlatte/Intermarche-grocery-shopping-app", updated: now - 30e3 },
   ];
+  // the queen's runner is on (her cat "queen" is present), unless ?queen=away
+  if (params.get("queen") !== "away") T.gw.push({ id: "queen", name: "The queen", via: "runner", provider: "anthropic", mood: "done", updated: now - 5e3 });
   T.gwNotes = [{ id: "g1", cat: "cse_blocked1", author: "session", text: "The French text is in, ready for you.", at: now - 50e3 }];
+  // the queen speaking (what the gateway pushes to an open café), and a cat bringing her something new
+  T.queenSays = (text, done, turn) => {
+    const id = done ? "q" + Date.now() : null;
+    if (done) T.gwNotes.push({ id, cat: "queen", author: "queen", text, at: Date.now() });
+    dispatchEvent(new CustomEvent("catio:queen", { detail: { type: "queen", turn: turn || "t1", text, done: !!done, routine: null, id } }));
+  };
+  T.handoff = (cat, text) => { const a = T.gw.find((x) => x.id === cat); a.said = { text, at: Date.now() }; dispatchEvent(new Event("catio:agents")); };
+  // homework the queen set (what the gateway's quizzes tool lists), and her answers as the page hands them in
+  T.quizzes = [];
+  T.setQuiz = (z) => { T.quizzes.push(Object.assign({ id: "z" + (T.quizzes.length + 1), by: "queen", at: Date.now(), status: "set" }, z)); dispatchEvent(new Event("catio:agents")); };
+  // her voice: what she would have said aloud, without a sound; and the voices the browser would offer
+  T.spoken = [];
+  const VOICES = [{ name: "Google US English", lang: "en-US", default: true }, { name: "Microsoft Hazel - English (United Kingdom)", lang: "en-GB", default: false }];
+  if (window.speechSynthesis) {
+    speechSynthesis.getVoices = () => VOICES;
+    speechSynthesis.speak = (u) => T.spoken.push({ text: u.text, voice: u.voice && u.voice.name, lang: u.lang, rate: u.rate, pitch: u.pitch });
+    // an utterance that takes one of the voices above (the browser's own refuses anything but its own voices)
+    window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; this.voice = null; this.lang = ""; this.rate = 1; this.pitch = 1; this.volume = 1; } };
+  }
   const answer = (payload) => Promise.resolve({ content: [{ type: "text", text: JSON.stringify(payload) }], payload });
   const ccr = {
     create_trigger: (i) => ({ trigger: { id: "trig_" + (++T.triggers), name: i.name } }),
@@ -111,6 +133,12 @@
     // ?send=ok posts; ?send=error fails the way a tool can; by default the page may not call it
     send_message: () => { const v = params.get("send"); if (v === "ok") return { ok: true }; throw v === "error" ? { code: "tool_error", message: "session is archived" } : { code: "not_in_manifest", message: "send_message isn't declared" }; },
     set_session_title: () => ({ ok: true }), archive_session: () => ({ ok: true }), unarchive_session: () => ({ ok: true }), interrupt_session: () => ({ ok: true }),
+    // the repositories GitHub lists for the viewer (invented); ?repos=none: GitHub isn't connected; ?repos=denied: the page's own grant is missing
+    list_repos: () => {
+      if (params.get("repos") === "none") throw { code: "tool_error", message: "GitHub isn't connected for this account" };
+      if (params.get("repos") === "denied") throw { code: "not_in_manifest", message: "list_repos isn't declared" };
+      return { repos: [{ full_name: "charredlatte/my-portfolio" }, { full_name: "charredlatte/recipes" }] };
+    },
   };
   // send_message's schema: ?sendschema=text names its message "text"; ?sendschema=none has none to read
   mcp.describeTool = async (server, tool) => {
@@ -126,6 +154,8 @@
       if (g === "ask") throw { code: "approval_required", message: "ask every time" };
       if (tool === "list_agents") return answer({ agents: clone(T.gw) });
       if (tool === "comments") return answer({ notes: clone(T.gwNotes.filter((n) => n.cat === input.cat)) });
+      if (tool === "quizzes") return answer({ quizzes: clone(T.quizzes.filter((z) => input.done || z.status !== "done")) });
+      if (tool === "answer") { const z = T.quizzes.find((x) => x.id === input.quiz); if (!z) throw { code: "tool_error", message: "no such quiz" }; z.status = "done"; z.answers = input.answers; return answer({ ok: true, told: true }); }
       return answer({ id: "g" + T.tools.length, woke: false });
     }
     if (server === "host:catio") {

@@ -44,7 +44,10 @@ The page is a private claude.ai artifact; its link is in [`artifacts.json`](arti
   brackets and a green sign show which) to rename it, say what lives there and list the repositories
   whose cats move in. Choose once which room new cats come in to; it's marked on the plan with an
   arrow.
-- **Every room has a queen**, a cat who is nobody's session and never leaves.
+- **The house has a queen**, in the entrance hall: a cat who is nobody's session, never leaves, and is the one
+  you talk to, like a character in a game. She keeps what you give her, looks after the other cats for you,
+  answers in Elizabethan English (aloud, if you turn her voice on), and runs the routines you set her. Cats
+  bring her what they have to say. Her brain runs on your own computer (`harness/runner`).
   - Click her for the room in one line: who needs you and why, or the thing she is keeping for you.
   - Open her to give her something to keep, take it back, or have her say it out loud in her room
     until you take it.
@@ -90,7 +93,7 @@ archway with its wooden doors open. Parterres, a bench and a signpost to the cat
 - **Claude Code sessions** come live from the built-in *Claude Code Remote* connector
   (`list_sessions`), called as Charlotte from inside the page and checked every minute. A
   session's state decides its mood; its GitHub repository decides its room.
-- **Rooms, renames, moves, adopted chats and what each queen keeps** live in the artifact's own
+- **Rooms, renames, moves, adopted chats and what the queen keeps** live in the artifact's own
   database, so they follow her between phone and PC. Nothing she does on the page is written back
   to this repo.
 - **When the live read is blocked**, the page shows the copy of her sessions Claude last saved,
@@ -148,7 +151,9 @@ claude --plugin-dir Pretty-Project-Portfolio/catio-plugin
 ```
 
 The skill walks you through your rooms, your sessions, publishing the page as your own private
-artifact, and the folder that runs off a USB stick.
+artifact, and the folder that runs off a USB stick. The page does the same on its own: a café with no rooms
+yet opens a seven-step wizard (name it, open the rooms you need, file your repositories, see your sessions,
+the litter box, how it works), and "Set up again…" in the House menu replays it.
 
 **It cannot give you the cats, or the interface.** Eight of the ten packs below forbid redistributing
 their files (and plants.zip came with no licence), so `catio/art/licensed/` is gitignored and a fresh clone draws the manor on plain

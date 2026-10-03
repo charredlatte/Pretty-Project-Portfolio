@@ -301,6 +301,30 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .item .ask { margin-top: 3px; overflow-wrap: anywhere; }
 .empty { font-size: .9rem; color: var(--ink-soft); margin: 0; }
 
+/* a closed room: dimmed, no sign; its queen is away and no cat is sent there */
+.roomhit[data-closed] { background: rgba(18, 36, 20, .3); }
+.roomhit[data-closed]:hover, .roomhit[data-closed].lit, .roomhit[data-closed]:focus-visible { background: rgba(18, 36, 20, .18); }
+.mm-room.closed { opacity: .4; }
+/* the first run: the wizard, one step at a time, in the pack's panel */
+.steps { display: flex; gap: 6px; justify-content: center; }
+.steps span { width: 8px; height: 8px; background: var(--ink); opacity: .25; }
+.steps span.on { opacity: 1; }
+.counter { display: flex; align-items: center; gap: 12px; }
+.counter b { font: 36px/44px var(--pixel); min-width: 2ch; text-align: center; }
+ul.roomgrid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
+.roomgrid .btn { width: 100%; text-align: center; padding: 0; overflow: hidden; text-overflow: ellipsis; font-size: 18px; }
+.roomgrid li[data-open="false"] .btn { opacity: .4; }
+.repo { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.repo code { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; font-size: .85rem; }
+.repo select { flex: 0 1 180px; }
+ul.how { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: .85rem; }
+ul.how b { display: block; font: 18px/22px var(--pixel); font-weight: normal; }
+/* the install lines and the drop zone: the pack's pressed-in field */
+.dlg pre, .dropzone { margin: 0; padding: 8px 10px; font-size: .8rem; white-space: pre-wrap; overflow-wrap: anywhere; background: #DCE0D2 padding-box;
+  border: calc(4 * var(--u)) solid transparent; border-image: url(art/licensed/ui/field.png) 4 4 5 4 fill / calc(4 * var(--u)) calc(4 * var(--u)) calc(5 * var(--u)) stretch; }
+.dropzone { text-align: center; color: var(--ink-soft); font: 18px/22px var(--pixel); padding: 18px 10px; }
+.dropzone.drop-on { background-color: #C0D470; }
+.dlg ul.sum { margin: 0; padding: 0 0 0 18px; font-size: .9rem; }
 /* dialogs: a panel over the dimmed cabin */
 dialog { padding: calc(2 * var(--u)) calc(4 * var(--u)); width: min(500px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); color: var(--ink); overflow: auto; }
 dialog::backdrop { background: rgba(18, 36, 20, .55); }
@@ -358,7 +382,9 @@ dialog.wide { width: min(600px, calc(100vw - 24px)); }
 .rt .door { position: absolute; right: calc(8 * var(--u)); bottom: calc(9 * var(--u)); width: 32px; height: 30px; image-rendering: pixelated;
   border-style: solid; border-color: transparent; border-width: 4px 4px 6px; border-image: url(art/licensed/ui/button-hover.png) 4 4 6 4 fill / 4px 4px 6px stretch; }
 .rt .door::after { content: ""; position: absolute; inset: 0; background: url(art/licensed/ui/arrow.png) center / 20px 18px no-repeat; }
+.rt.closed .tag { opacity: .55; }
 .rcard { display: grid; gap: 8px; }
+.rcard .open { justify-self: start; }
 .rcard[hidden] { display: none; }
 .rcard h3 { margin: 0; font: 18px/22px var(--pixel); overflow-wrap: anywhere; }
 .rcard h3 span { font: 500 .8rem var(--body); color: var(--ink-soft); }
@@ -395,6 +421,29 @@ ul.thread li { padding: 0 4px; font-size: .88rem; overflow-wrap: anywhere; white
 ul.thread li.them { background-color: #DCE0D2; border-image-source: url(art/licensed/ui/bubble.png); border-image-slice: 5 5 6 5 fill; border-width: 5px 5px 6px; margin-right: 24px; }
 ul.thread li.me { margin-left: 24px; }
 ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-soft); }
+/* the queen's card: her dialogue, like an NPC's */
+.dlg.queen .talk { display: grid; gap: 8px; }
+.dlg.queen .talk .row > .field { flex: 1 1 200px; }
+#queenThread { max-height: 40vh; overflow: auto; }
+ul.thread li.greet { font-style: italic; }
+ul.thread li.live::after { content: "▌"; margin-left: 2px; animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+ul.thread li.handoff .open { margin-left: 6px; vertical-align: middle; }
+ul.thread li.handoff.new .who::after { content: " · new"; color: var(--ink); }
+.btn.voice { display: inline-flex; align-items: center; gap: 8px; width: max-content; }
+/* her homework: a quiz a blocked cat, answered by tapping */
+.homework { display: grid; gap: 8px; }
+.homework .quiz { display: grid; gap: 6px; padding: 4px 6px 6px; background: #DCE0D2 padding-box; border: 5px solid transparent; border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / 5px 5px 6px stretch; }
+.homework .quiz h3 { margin: 0; font: 18px/22px var(--pixel); }
+.homework .quiz fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 4px; }
+.homework .quiz legend { padding: 0; font-weight: 700; font-size: .9rem; }
+.homework .quiz .opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.homework .quiz .actions { margin-top: 2px; }
+.days { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: .9rem; }
+.days label { display: inline-flex; align-items: center; gap: 3px; }
+.days input, .field input[type="range"] { accent-color: #93B259; }
+.field input[type="range"] { border: 0; border-image: none; padding: 0; }
+.routines > * + * { margin-top: 8px; }
 .rules li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: start; }
 .rules .t { font-size: .85rem; color: var(--ink-soft); grid-column: 1; }
 .rules .lock { font: 800 .72rem var(--body); color: var(--ink-soft); display: inline-flex; align-items: center; gap: 2px; }
@@ -472,6 +521,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
 <dialog id="roomsDlg" aria-labelledby="roomsTitle"></dialog>
 <dialog id="queenDlg" aria-labelledby="queenName"></dialog>
 <dialog id="brainDlg" aria-labelledby="brainTitle"></dialog>
+<dialog id="setupDlg" aria-labelledby="setupTitle"></dialog>
 <input type="file" id="picker" multiple hidden>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
@@ -573,10 +623,15 @@ ul.gkey li > div.what { flex-basis: 100%; }
   const NAMES = ["Praline", "Noisette", "Biscotte", "Caramel", "Figue", "Brioche", "Madeleine", "Pistache", "Tartine", "Chouquette",
     "Galette", "Canelé", "Miso", "Yuzu", "Sésame", "Cannelle", "Muscade", "Olive", "Prune", "Myrtille", "Cerise", "Guimauve",
     "Nougat", "Réglisse", "Clafoutis", "Crumble", "Macaron", "Mirabelle", "Pomme", "Gaufre", "Tofu", "Matcha"];
-  // Every room has one queen: she is not a session, she never leaves, and she keeps what matters
-  // in that room. Older, statelier names than the working cats'.
+  // The house has one queen: she is not a session, she never leaves, she keeps what matters, and she is the
+  // one you talk to (her runner, harness/runner, is her brain). An older, statelier name than the working cats'.
   const QUEEN_NAMES = ["Mémé", "Duchesse", "Joséphine", "Colette", "Berthe", "Augustine", "Odette",
     "Simone", "Marguerite", "Hortense", "Célestine", "Philomène"];
+  const QUEEN_ROOM = "hall";   // her seat: the pink armchair in the entrance hall
+  const QUEEN_ID = "queen";    // her cat on the gateway: her conversation with you, and her runner's presence
+  const MANNER = "Elizabethan English, warm and a touch grand: \"my lady\", \"prithee\", \"'tis\", \"mayhap\", \"anon\". The news first, plain enough to act on; the flourish after.";
+  const GREETING = "Good morrow, my lady. What wouldst thou have of me?";
+  const LISTEN = [["en-GB", "English (UK)"], ["en-US", "English (US)"], ["fr-FR", "Français"]];   // what she listens for
   const NOTE_MAX = 160;     // one line she can hold in her head
   const NOTES_MAX = 12;     // more than this and nothing is important any more
 
@@ -595,7 +650,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
     floor: "ground",          // the floor on screen: "ground" (the cat café) or "upper" (her own rooms)
     sessions: null, sessionsAt: null, live: { state: "loading" },
     liveSessions: null, liveAt: null, copy: null, from: null,   // the live feed, and Claude's saved copy for when it's blocked
-    rooms: {}, tweaks: {}, adopted: [], projects: {}, queens: {},
+    rooms: {}, house: {}, tweaks: {}, adopted: [], projects: {}, queens: {},   // house: house/main, the café's own name
+    rooms: {}, tweaks: {}, adopted: [], projects: {}, queens: {}, routines: {},
+    queenNotes: null, queenTurn: null, saidAt: null, quizzes: [],   // the queen's conversation, her answer as she speaks it, when each cat last spoke (for the handoffs), her homework
     brain: [], notes: [], rules: {}, audits: {}, graphs: {}, outbox: [], agents: [],   // the harness: dropped files, conversations, house rules, audits, project maps, queued posts, other agents
     assets: null, sample: null, host: null, hostAt: null, hostNote: null, agentNotes: {},   // host: the agents' server (GATEWAY, HOST or "api"), last answering at hostAt; hostNote: what she can fix about it; agentNotes: what cats said there
     focus: null, cursor: null, cam: null, sound: false, showOld: false, prevNeeding: null, art: "checking",
@@ -665,7 +722,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       id: "agent:" + a.id, agentId: a.id, kind: "agent", mood,
       title: a.title || a.name || a.id, ask: MOODS[mood].needs ? (a.ask || "Waiting for you.") : "",
       doing: a.title || "", repo: a.repo || "", branch: a.branch || "", origin: code ? "a Claude Code session" : (a.provider || "another maker") + "'s agent",
-      model: a.model || "", provider: a.provider || "", wakes: !!a.wakes,
+      model: a.model || "", provider: a.provider || "", wakes: !!a.wakes, said: a.said || null,
       updated: a.updated || 0, link: code && a.session ? sessionLink(a.session) : a.link || "", room: a.room || "", nameOverride: a.name || "", projectName: a.project || "",
     };
   }
@@ -679,6 +736,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     c.agentId = a.id;
     c.nameOverride = a.name || "";
     c.room = a.room || "";
+    c.said = a.said || null;   // what it last said: what it brings the queen
     if (c.archived || (a.updated || 0) <= c.updated) return;
     c.mood = AGENT_MOODS[a.mood] || c.mood;
     c.ask = !MOODS[c.mood].needs ? "" : a.ask || (c.mood === "cry" ? "The last turn stopped with an error." : c.mood === "box" ? "Ready for you to look over." : "Waiting for you.");
@@ -701,46 +759,77 @@ ul.gkey li > div.what { flex-basis: 100%; }
     return { coat: COATS[d.coat] ? d.coat : hash(p.key) % COATS.length };
   }
 
-  // The queen of a room. Not a session and not adopted: she is always there, she is never counted
-  // among the cats that need you, and what she keeps is the point of her.
-  function queenOf(k) {
-    const d = S.queens[k] || {};
-    const notes = (Array.isArray(d.notes) ? d.notes : []).filter((n) => n && n.text);
+  // The queen of the house. Not a session and not adopted: she is always there, she is never counted among the
+  // cats that need you, and she is the one you talk to. Her character and what she keeps are queens/house; what
+  // the room queens of before kept is hers too, until she is saved, when it moves into her document.
+  // Her seat is the hall's; when that room is closed (onboarding), she sits where new cats come in.
+  const queenRoom = () => (GEOM[QUEEN_ROOM] && GEOM[QUEEN_ROOM].queen && !(typeof roomOpen === "function" && !roomOpen(QUEEN_ROOM)) ? QUEEN_ROOM : catchAllRoom());
+  function queenOf() {
+    const h = S.queens.house || {};
+    const rooms = ORDER.filter((k) => S.queens[k]);
+    const own = (Array.isArray(h.notes) ? h.notes : []).filter((n) => n && n.text);
+    const kept = rooms.flatMap((k) => (Array.isArray(S.queens[k].notes) ? S.queens[k].notes : []).filter((n) => n && n.text).map((n) => Object.assign({}, n, { room: k })));
+    const notes = own.concat(kept).sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.at || 0) - (a.at || 0));
+    const coat = Number.isInteger(h.coat) && COATS[h.coat] ? h.coat : hash("queen:house") % COATS.length;
     return {
-      key: k,
-      name: d.name || QUEEN_NAMES[hash("queen:" + k) % QUEEN_NAMES.length],
-      notes: notes.slice().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.at || 0) - (a.at || 0)),
-      pinned: notes.filter((n) => n.pinned),
-      coat: COATS[hash("queen:" + k) % COATS.length].f,
+      key: "house",
+      name: h.name || rooms.map((k) => S.queens[k].name).find(Boolean) || QUEEN_NAMES[hash("queen:house") % QUEEN_NAMES.length],
+      notes, pinned: notes.filter((n) => n.pinned), coat: COATS[coat].f, coatIdx: coat,
+      manner: h.manner || MANNER, greeting: h.greeting || GREETING,
+      voice: Object.assign({ on: false, name: "", rate: 1, pitch: 1, lang: "en-GB" }, h.voice || {}),
+      readAt: h.readAt || 0, leftovers: rooms,
     };
   }
-  // She sits up when the room needs you, and speaks up when she is holding something for you.
-  function queenMood(q, here) {
-    if (q.pinned.length) return "meow";
-    return here.some((c) => MOODS[c.mood].needs) ? "idle" : "sleep";
+  // Her runner is her brain: away (none for two minutes), busy (answering) or here.
+  function queenState() {
+    const a = S.agents.find((x) => x.id === QUEEN_ID);
+    if (!a || Date.now() - (a.updated || 0) > 2 * 60e3) return "away";
+    return a.mood === "busy" ? "busy" : "here";
   }
-  // The one line she gives you about her room, without your having to open anything.
-  function queenLine(q, here) {
-    if (q.pinned.length) return q.pinned[0].text;
-    const need = here.filter((c) => MOODS[c.mood].needs);
-    if (need.length === 1) return need[0].name + " needs you: " + (need[0].ask || need[0].title);
-    if (need.length) return need.length + " cats need you in here.";
-    if (here.length) return "All quiet \u2014 " + here.length + (here.length === 1 ? " cat" : " cats") + ", none needing you.";
-    return "Nothing in this room just now.";
+  // What the cats brought her that you haven't read: each cat's latest word, newer than when you last opened her card.
+  const unreadHandoffs = (q) => S.agents.filter((a) => a.id !== QUEEN_ID && a.said && (a.said.at || 0) > q.readAt).length;
+  // The homework she set you and you haven't handed in: a quiz per blocked cat (quizzes, from the gateway).
+  const openQuizzes = () => (S.quizzes || []).filter((z) => z && z.status !== "done");
+  // Asleep while her runner is away; sitting up with something for you; speaking up when she is saying a note.
+  function queenMood(q) {
+    const st = q.state || queenState();
+    if (st === "away") return "sleep";
+    if (st === "busy") return "idle";
+    if (q.homework || q.unread) return "box";
+    return q.pinned.length ? "meow" : "idle";
+  }
+  // The one line she gives you without your having to open anything.
+  function queenLine(q) {
+    const st = q.state || queenState();
+    if (q.pinned.length && st !== "busy") return q.pinned[0].text;
+    if (st === "away") return "Away: start her runner on your PC to talk to her.";
+    if (st === "busy") return "Answering\u2026";
+    if (q.homework) return "Homework: " + q.homework + (q.homework === 1 ? " quiz" : " quizzes") + " to hand in.";
+    if (q.unread) return "Holding " + q.unread + (q.unread === 1 ? " thing" : " things") + " for you.";
+    return "Here. Talk to her.";
   }
 
   function roomInfo(key) {
     const d = S.rooms[key] || {};
-    return { key, name: d.name || GEOM[key].name, blurb: d.blurb || "", repos: Array.isArray(d.repos) ? d.repos : [], catchAll: !!d.catchAll };
+    return { key, name: d.name || GEOM[key].name, blurb: d.blurb || "", repos: Array.isArray(d.repos) ? d.repos : [], catchAll: !!d.catchAll, closed: !!d.closed };
   }
-  function catchAllRoom() { return ORDER.find((k) => S.rooms[k] && S.rooms[k].catchAll) || "living"; }
+  // A closed room (rooms/<k>.closed) is dimmed and gets no cats: no room document, or no closed key, means open.
+  // The rooms open in this order, public to private, when a café is set up with fewer than ten.
+  const OPENING = ["living", "dining", "kitchen", "study", "sunroom", "garden", "brain", "bedroom", "bath", "hall"];
+  const roomOpen = (k) => !(S.rooms[k] && S.rooms[k].closed);
+  const houseName = () => (S.house && S.house.name) || "KittyChat Café";
+  // where new cats come in: the flagged room, if it is open, else the first open room
+  function catchAllRoom() {
+    const f = ORDER.find((k) => S.rooms[k] && S.rooms[k].catchAll);
+    return f && roomOpen(f) ? f : OPENING.find(roomOpen) || "living";
+  }
   function roomFor(cat) {
     const t = S.tweaks[cat.id];
-    if (t && GEOM[t.room]) return t.room;
-    if (cat.room && GEOM[cat.room]) return cat.room;
+    if (t && GEOM[t.room] && roomOpen(t.room)) return t.room;
+    if (cat.room && GEOM[cat.room] && roomOpen(cat.room)) return cat.room;
     const repo = lower(cat.repo), name = repo.split("/").pop();
     if (repo) for (const k of ORDER) {
-      if (roomInfo(k).repos.some((r) => { r = lower(r).trim(); return r && (r === repo || r === name); })) return k;
+      if (roomOpen(k) && roomInfo(k).repos.some((r) => { r = lower(r).trim(); return r && (r === repo || r === name); })) return k;
     }
     return catchAllRoom();
   }
@@ -765,7 +854,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       cats.push(c);
     }
     for (const d of S.adopted) cats.push(catFromAdopted(d));
-    for (const a of S.agents) if (!a.archived && !joined.has(a.id)) cats.push(catFromAgent(a));
+    for (const a of S.agents) if (!a.archived && !joined.has(a.id) && a.id !== QUEEN_ID) cats.push(catFromAgent(a));   // the queen is not work to be done
     for (const c of cats) {
       const t = S.tweaks[c.id];
       c.name = (t && t.name) || c.nameOverride || NAMES[hash(c.id) % NAMES.length];
@@ -878,7 +967,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const words = [[needing.length, "need you"], [count("idle"), "at work"], [count("sleep"), "asleep"]].filter(([n]) => n).map(([n, w]) => n + " " + w).join(" · ");
     if (words) tally.appendChild(el("span", "sr", words + " "));
     if (needing.length) { const b = badge(needing); b.setAttribute("aria-hidden", "true"); tally.appendChild(b); }
-    document.title = (needing.length ? "(" + needing.length + ") " : "") + "KittyChat Café";
+    document.title = (needing.length ? "(" + needing.length + ") " : "") + houseName();
+    $("houseBtn").querySelector(".nm").textContent = houseName();
 
     // new meows make a sound
     const ids = new Set(cats.filter((c) => c.mood === "meow" || c.mood === "cry").map((c) => c.id));
@@ -893,7 +983,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     for (const k of ORDER) {
       const here = cats.filter((c) => c.roomKey === k);
       const st = stationsOf(k), floor = freeFloor(k), taken = [];
-      if (GEOM[k].queen) taken.push(GEOM[k].queen);
+      if (GEOM[k].queen && k === queenRoom()) taken.push(GEOM[k].queen);   // her seat is hers; the other rooms' seats are free floor
       const clear = (p) => !taken.some((t) => Math.abs(t[0] - p[0]) < 22 && Math.abs(t[1] - p[1]) < 14);   // a cat's width apart
       const [rx, ry, rw, rh] = GEOM[k].r, mid = [rx + rw / 2, ry + rh / 2];
       const pile = [];
@@ -911,8 +1001,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
         placeCat(layer, c, spot, k);
       }
       if (pile.length) placePile(layer, pile, taken[taken.length - 1] || mid, k);
-      placeQueen(layer, k, here);
     }
+    placeQueen(layer, queenRoom());
     // a cat that was in the house and is now napping in the attic walks off to it; one that was let go just goes
     for (const [id, w] of WHERE) {
       if (SEEN.has(id)) continue;
@@ -955,20 +1045,30 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
   function placeQueen(layer, k, here) {
     const spot = GEOM[k].queen;
-    if (!spot) return;
+    if (!spot || !roomOpen(k)) return;
     const q = queenOf(k);
     q.mood = queenMood(q, here);
     q.line = queenLine(q, here);
+  // The queen, on her seat in room k. Nothing is drawn on her either: hovering her says how she is.
+  function placeQueen(layer, k) {
+    const spot = GEOM[k] && GEOM[k].queen;
+    if (!spot) return;
+    const q = queenOf();
+    q.state = queenState();
+    q.unread = unreadHandoffs(q);
+    q.homework = openQuizzes().length;
+    q.mood = queenMood(q);
+    q.line = queenLine(q);
     const sp = SPR[q.mood];
     const b = el("button", "cat queen m-" + q.mood);
     b.type = "button";
     b.dataset.queen = k; b.dataset.floor = levelOf(k);
     const top = spot[1] * 2 - sp.ay;
     Object.assign(b.style, { left: spot[0] * 2 - sp.ax + "px", top: top + "px", width: sp.w + "px", height: sp.h + "px", zIndex: zOf(k) + 1000 + spot[1] * 2 });
-    b.setAttribute("aria-label", q.name + ", queen of the " + roomInfo(k).name + ". " + q.line);
+    b.setAttribute("aria-label", q.name + ", queen of the house. " + q.line);
     b.appendChild(sprite(q.mood, q.coat));
     b.addEventListener("click", (e) => { e.stopPropagation(); toggleMenu("queen", k, b); });
-    b.addEventListener("dblclick", (e) => { e.stopPropagation(); hideMenu(); openQueen(k); });
+    b.addEventListener("dblclick", (e) => { e.stopPropagation(); hideMenu(); openQueen("talk"); });
     hoverable(b, "queen", k);
     layer.appendChild(b);
     VIEW.queens[k] = q;
@@ -1101,6 +1201,40 @@ ul.gkey li > div.what { flex-basis: 100%; }
     walk(d, end, [w.x, w.y], legs)
       .then(() => d.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" }).finished)
       .finally(() => d.remove());
+  }
+  // a cat with news for the queen: a copy of it walks to her seat (by the stair when she is on the other floor,
+  // changing floor at its head) and is gone; what it brought shows in her thread
+  function toQueen(c, w) {
+    const k = queenRoom(), seat = GEOM[k] && GEOM[k].queen;
+    if (!seat) return;
+    const end = [seat[0] + 10, seat[1]], sp = SPR.idle;   // beside her, not on her lap
+    const d = el("div", "walker");
+    d.setAttribute("aria-hidden", "true");
+    d.dataset.handoff = c.id;
+    Object.assign(d.style, { left: end[0] * 2 - sp.ax + "px", top: end[1] * 2 - sp.ay + "px", width: sp.w + "px", height: sp.h + "px" });
+    d.appendChild(sprite("idle", c.coat));
+    $("walkers").appendChild(d);
+    const upFrom = levelOf(w.room) === "upper", upTo = levelOf(k) === "upper", f = flight();
+    let go;
+    if (upFrom === upTo) { d.dataset.floor = levelOf(k); go = walk(d, end, [w.x, w.y], wayTo([w.x, w.y], w.room, end, k)); }
+    else if (!f.length) { d.remove(); return; }
+    else if (upFrom) {   // to the stair head, then down the flight and on
+      d.dataset.floor = "upper";
+      const down = f.slice().reverse();
+      go = walk(d, end, [w.x, w.y], wayTo([w.x, w.y], w.room, STAIR[3], "landing")).then((ok) => {
+        if (!ok) return false;
+        d.dataset.floor = "ground";
+        return walk(d, end, down[0], [...down.slice(1).map((p) => [p, "hall", ON_STAIRS]), ...wayTo(f[0], "hall", end, k)]);
+      });
+    } else {   // up the flight, then on from its head
+      d.dataset.floor = "ground";
+      go = walk(d, end, [w.x, w.y], [...wayTo([w.x, w.y], w.room, f[0], "hall"), ...f.slice(1).map((p) => [p, "hall", ON_STAIRS])]).then((ok) => {
+        if (!ok) return false;
+        d.dataset.floor = "upper";
+        return walk(d, end, STAIR[3], wayTo(STAIR[3], "landing", end, k));
+      });
+    }
+    go.then(() => d.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" }).finished).finally(() => d.remove());
   }
   // now and then a working cat gets up, wanders a few steps from its station, and comes back
   setInterval(() => {
@@ -1264,7 +1398,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       if (f === "upper") put("mm-room landing" + faint, MANOR.landing);
       for (const r of ORDER) {
         if (levelOf(r) !== f) continue;
-        const d = put("mm-room" + faint + (!faint && r === S.focus ? " here" : "") + (!faint && r === MM.hot ? " hot" : ""), GEOM[r].r);
+        const d = put("mm-room" + faint + (roomOpen(r) ? "" : " closed") + (!faint && r === S.focus ? " here" : "") + (!faint && r === MM.hot ? " hot" : ""), GEOM[r].r);
         d.dataset.room = r;
         const need = !faint && needIn(VIEW.cats, r);
         if (need && need.length) d.appendChild(pip(need)).textContent = "";
@@ -1324,8 +1458,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
     for (const b of $("hits").querySelectorAll(".roomhit")) {
       const k = b.dataset.room, here = k === S.focus;
       b.classList.toggle("here", here);
+      b.toggleAttribute("data-closed", !roomOpen(k));
       b.tabIndex = k === cur ? 0 : -1;
-      b.setAttribute("aria-label", roomInfo(k).name + (here ? ", where you are" : "") + ", " + FLOORS[levelOf(k)].toLowerCase() + ": " + summary(VIEW.cats.filter((c) => c.roomKey === k)));
+      b.setAttribute("aria-label", roomInfo(k).name + (roomOpen(k) ? "" : ", closed") + (here ? ", where you are" : "") + ", " + FLOORS[levelOf(k)].toLowerCase() + ": " + summary(VIEW.cats.filter((c) => c.roomKey === k)));
     }
     for (const b of $("cats").children) b.tabIndex = (b.dataset.room || b.dataset.pile || b.dataset.queen) === S.focus ? 0 : -1;
     const up = S.floor === "upper";
@@ -1379,9 +1514,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
     if (MENU.kind === kind && MENU.key === key) return;
     const t = $("tip"), text = [], small = [];
     let need = [], says = "";
-    if (kind === "room") { text.push(roomInfo(key).name); need = needIn(VIEW.cats, key); if (!need.length) small.push(summary(VIEW.cats.filter((c) => c.roomKey === key))); }
+    if (kind === "room") { text.push(roomInfo(key).name); if (!roomOpen(key)) small.push("closed"); else { need = needIn(VIEW.cats, key); if (!need.length) small.push(summary(VIEW.cats.filter((c) => c.roomKey === key))); } }
     else if (kind === "stairs") { const f = other(S.floor); text.push(f === "upper" ? "Upstairs" : "Downstairs"); need = needOn(f); }
-    else if (kind === "queen") { const q = VIEW.queens[key] || queenOf(key); text.push(q.name); small.push("queen"); says = q.pinned.length ? q.pinned[0].text : ""; }
+    else if (kind === "queen") { const q = VIEW.queens[key] || queenOf(); text.push(q.name); small.push("queen"); says = q.line || queenLine(q); }
     else if (kind === "pile") { const p = VIEW.piles[key] || []; text.push(p.length + " cats"); }
     else {
       const c = VIEW.cats.find((x) => x.id === key); if (!c) return;
@@ -1524,6 +1659,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
   function roomMenu(k) {
     const r = roomInfo(k), here = VIEW.cats.filter((c) => c.roomKey === k), needing = urgentFirst(here);
+    if (r.closed) return [head(el("h3", null, r.name), "Closed"), el("div", "rule"), list([
+      mi("Open this room", () => { hideMenu(); save((db) => db.doc("rooms/" + k).update({ closed: false }), r.name + " is open."); }),
+      mi("Edit rooms", () => { hideMenu(); openRooms(k); })])];
     const out = [head(el("h3", null, r.name), r.blurb || (here.length ? summary(here) : "No cats in here yet."), needing)];
     if (needing.length) out.push(catRows(needing, 3));
     // the queen speaks only when she has something to say
@@ -1572,6 +1710,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       mi("The brain", () => { hideMenu(); openBrain(); }, { aside: tray ? tray + " on the tray" : "" }),
       mi("House rules", () => { hideMenu(); openRules(); }),
       mi("Edit rooms", () => { hideMenu(); openRooms(curRoom()); }),
+      S.db && mi("Set up again…", () => { hideMenu(); openSetup(true); }),
       (VIEW.attic || S.showOld) && mi(S.showOld ? "Send them back up" : "Bring them down", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }),
       S.mcp && mi("Check now", () => watch(true)),
       snd, still]));
@@ -1585,11 +1724,11 @@ ul.gkey li > div.what { flex-basis: 100%; }
       el("div", "rule"), list([mi("See them all", () => { hideMenu(); openPile(pile, room); })])];
   }
   function queenMenu(k) {
-    const here = VIEW.cats.filter((c) => c.roomKey === k);
-    const q = VIEW.queens[k] || queenOf(k);
+    const q = VIEW.queens[k] || queenOf();
+    const st = q.state || queenState();
     const h = el("h3"); h.append(el("span", "crown inline"), document.createTextNode(q.name));
-    const out = [head(h, "Queen of the " + roomInfo(k).name)];
-    out.push(el("div", q.pinned.length ? "ask-box need" : "sub", q.line || queenLine(q, here)));
+    const out = [head(h, "Queen of the house · " + stateWord(st))];
+    out.push(el("div", q.unread || (q.pinned.length && st !== "busy") ? "ask-box need" : "sub", q.line || queenLine(q)));
     // the headline is already her top pinned note, so the list picks up from the next one
     const rest = q.pinned.length ? q.notes.slice(1) : q.notes;
     if (rest.length) {
@@ -1603,9 +1742,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
       out.push(ul);
     }
     out.push(el("div", "rule"), list([
-      mi("What she keeps", () => { hideMenu(); openQueen(k); }),
-      S.focus === k ? mi("Whole house", zoomOut) : mi("Look in", () => focusRoom(k)),
-      GEOM[k].cabinet && mi("Files", () => { hideMenu(); openCabinet(k); })]));
+      mi("Talk to her", () => { hideMenu(); openQueen("talk"); }),
+      mi("What she keeps", () => { hideMenu(); openQueen("keeps"); }),
+      S.focus === k ? mi("Whole house", zoomOut) : mi("Look in", () => focusRoom(k))]));
     return out;
   }
 
@@ -1649,6 +1788,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     img.src = "art/licensed/pochi.png";
   }
 
+  const NOART = "The cat art isn't here: art/licensed/ is licensed and never shipped, so neither the house nor its cats can draw. Buy the packs in catio/art/CREDITS.md, drop the zips in, and run catio/tools/build-art.py.";
   function renderStatus() {
     const st = $("status"); st.replaceChildren();
     const L = S.live;
@@ -1681,7 +1821,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     // Nothing to do with the sessions: the cats can be there and still have nothing to draw with.
     if (S.art === "missing") {
       st.classList.add("warn");
-      st.appendChild(el("span", "copy words", "The cat art isn't here: art/licensed/ is licensed and never shipped, so neither the house nor its cats can draw. Buy the packs in catio/art/CREDITS.md, drop the zips in, and run catio/tools/build-art.py."));
+      st.appendChild(el("span", "copy words", NOART));
     }
   }
 
@@ -1757,12 +1897,20 @@ ul.gkey li > div.what { flex-basis: 100%; }
   function subscribe() {
     const db = S.db;
     const fail = (e) => toast("Couldn't load saved rooms and chats (" + (e && e.code || "error") + ").", "alert");
-    db.collection("rooms").onSnapshot((snap) => { const r = {}; for (const d of snap.docs) r[d.id] = d.data(); S.rooms = r; render(); }, fail);
+    // a café with no rooms at all is a new one: the first snapshot that isn't a cached guess opens the wizard
+    let first = true;
+    db.collection("rooms").onSnapshot((snap) => {
+      const r = {}; for (const d of snap.docs) r[d.id] = d.data(); S.rooms = r; render();
+      if (first && !(snap.metadata && snap.metadata.fromCache)) { first = false; if (!snap.docs.length) setTimeout(() => { if (!ORDER.some((k) => S.rooms[k])) openSetup(false); }, 1000); }
+      else if (snap.docs.length && $("setupDlg").open && !$("setupDlg").dataset.again) { $("setupDlg").close(); toast("The rooms are here: the café is set up."); }
+    }, fail);
+    db.doc("house/main").onSnapshot((d) => { S.house = d.exists ? d.data() : {}; render(); }, fail);
     db.collection("sessions").onSnapshot((snap) => { const t = {}; for (const d of snap.docs) t[d.id] = d.data(); S.tweaks = t; render(); }, fail);
     db.collection("cats").onSnapshot((snap) => { S.adopted = snap.docs.map((d) => Object.assign({ id: d.id }, d.data())); render(); }, fail);
     db.doc("snapshot/sessions").onSnapshot((d) => { S.copy = d.exists ? d.data() : null; pick(); render(); }, fail);
     db.collection("projects").onSnapshot((snap) => { const p = {}; for (const d of snap.docs) p[d.id] = d.data(); S.projects = p; render(); }, fail);
     db.collection("queens").onSnapshot((snap) => { const q = {}; for (const d of snap.docs) q[d.id] = d.data(); S.queens = q; render(); }, fail);
+    db.collection("routines").onSnapshot((snap) => { const r = {}; for (const d of snap.docs) r[d.id] = d.data(); S.routines = r; if (QUEEN_UI) QUEEN_UI.routines(); }, fail);
     const list = (name, into) => db.collection(name).onSnapshot((snap) => { into(snap.docs.map((d) => Object.assign({ id: d.id }, d.data()))); render(); }, fail);
     list("brain", (v) => { S.brain = v; });
     list("notes", (v) => {
@@ -1785,7 +1933,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
   function field(label, input) { const l = el("label", "field"); l.append(el("span", null, label), input); return l; }
   function roomSelect(id, value) {
     const s = el("select"); s.id = id;
-    for (const k of ORDER) { const o = el("option", null, roomInfo(k).name); o.value = k; if (k === value) o.selected = true; s.appendChild(o); }
+    // open rooms, and the closed one a cat is already in (so a save never moves it): a closed room keeps what is filed in it
+    const v = GEOM[value] ? value : catchAllRoom();
+    for (const k of ORDER) { if (!roomOpen(k) && k !== v) continue; const o = el("option", null, roomInfo(k).name + (roomOpen(k) ? "" : " (closed)")); o.value = k; if (k === v) o.selected = true; s.appendChild(o); }
     return s;
   }
   function closeBtn(dlg, label) { const b = el("button", "btn", label || "Close"); b.type = "button"; b.addEventListener("click", () => dlg.close()); return b; }
@@ -1836,7 +1986,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const r = el("div", "row");
     const nm = el("input"); nm.id = "catRename"; nm.maxLength = 30; nm.placeholder = c.name;
     nm.value = c.kind === "session" ? (S.tweaks[c.id] && S.tweaks[c.id].name) || "" : c.nameOverride;
-    r.append(field("Name", nm), field("Lives in", roomSelect("catRoom", c.roomKey)));
+    r.append(field("Name", nm), field("Lives in", roomSelect("catRoom", (S.tweaks[c.id] || {}).room || c.roomKey)));   // the room she gave it, even closed
     more.appendChild(r);
     let ti = null;
     if (c.kind === "session" && !VIA_GATEWAY) { ti = el("input"); ti.id = "catTitle"; ti.value = c.title; ti.maxLength = 120; more.appendChild(field("The session's title", ti)); }
@@ -1870,32 +2020,257 @@ ul.gkey li > div.what { flex-basis: 100%; }
   }
 
   // Her card: what she is keeping, what to give her, and what she should say out loud.
-  function openQueen(k) {
+  const stateWord = (st) => (st === "away" ? "away" : st === "busy" ? "answering" : "here");
+  const gatewayProblem = (e) => {
+    const c = e && e.code;
+    if (c === "no_mcp" || c === "server_not_connected" || c === "server_not_found") return "Your gateway isn't reachable from here: open the café on your gateway's address.";
+    return HOST_NOTES[c] || "The gateway didn't take it (" + (c || "error") + ").";
+  };
+  // Her voice is the browser's own (speechSynthesis), when her switch is on: one function, so a paid voice could be
+  // a second branch later. A streaming answer is spoken a sentence at a time, as each completes.
+  function voices() { try { return (window.speechSynthesis && speechSynthesis.getVoices()) || []; } catch (e) { return []; } }
+  function speak(text, voice) {
+    const v = voice || queenOf().voice;
+    if (!v.on || !window.speechSynthesis || !String(text || "").trim()) return;
+    const u = new SpeechSynthesisUtterance(String(text));
+    const all = voices(), pick = all.find((x) => x.name === v.name) || all.find((x) => /^en[-_]GB/i.test(x.lang)) || null;
+    u.lang = (pick && pick.lang) || "en-GB"; u.rate = +v.rate || 1; u.pitch = +v.pitch || 1;
+    try { if (pick) u.voice = pick; speechSynthesis.speak(u); } catch (e) {}
+  }
+  const SPOKEN = { turn: null, upTo: 0 };
+  function speakTurn(m) {
+    const text = m.text || "";
+    if (SPOKEN.turn !== m.turn || SPOKEN.upTo > text.length) { SPOKEN.turn = m.turn; SPOKEN.upTo = 0; }   // a new turn, or one that starts over
+    const rest = text.slice(SPOKEN.upTo);
+    if (m.done) { speak(rest); SPOKEN.upTo = text.length; return; }
+    const re = /[^.!?]*[.!?]+["')\]]*\s+/g;
+    let mm, end = 0;
+    while ((mm = re.exec(rest))) end = re.lastIndex;
+    if (end) { speak(rest.slice(0, end)); SPOKEN.upTo += end; }
+  }
+  // Her conversation (the gateway's notes for the cat "queen"): what you said and what she said
+  async function loadQueenThread() {
+    if (!S.host) return;
+    let p;
+    try { p = await hostCall("comments", { cat: QUEEN_ID, limit: 40 }); } catch (e) { return; }
+    const notes = (p && p.notes) || [];
+    if (!VIA_GATEWAY && S.queenNotes) {   // no live line in claude.ai: a new word of hers found by the poll is spoken
+      const known = new Set(S.queenNotes.map((n) => n.id));
+      for (const n of notes) if (n.author === QUEEN_ID && !known.has(n.id)) speak(n.text);
+    }
+    S.queenNotes = notes;
+    if (QUEEN_UI) QUEEN_UI.draw();
+  }
+  // Her routines: what to ask her, at what time, on which days. routines/<id>, read by her runner through the gateway.
+  const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], DAY_IDX = [1, 2, 3, 4, 5, 6, 0];
+  function routinesPanel() {
+    const wrap = el("div", "routines");
+    const ul = el("ul", "keeps"); ul.id = "routineList";
+    const draw = () => {
+      ul.replaceChildren();
+      const ids = Object.keys(S.routines || {}).sort();
+      if (!ids.length) ul.appendChild(el("li", "sub", "No routines yet. The day's list every morning, say."));
+      for (const id of ids) {
+        const r = S.routines[id] || {};
+        const li = el("li", "kept" + (r.on ? " pin" : "")); li.dataset.routine = id;
+        const days = Array.isArray(r.days) && r.days.length && r.days.length < 7 ? DAY_IDX.map((d, i) => (r.days.includes(d) ? DAYS[i] : "")).filter(Boolean).join(" ") : "every day";
+        li.append(el("span", "dot"), el("span", "t", (r.name || id) + " · " + (r.time || "") + " · " + days + (r.last ? " · last " + ago(r.last) : "")));
+        const sw = plainBtn(r.on ? "On" : "Off", "tiny" + (r.on ? " green" : ""), () => save((db) => db.doc("routines/" + id).update({ on: !r.on, last: Date.now() })));
+        sw.setAttribute("aria-pressed", String(!!r.on)); sw.setAttribute("aria-label", (r.name || id) + (r.on ? ": on" : ": off"));
+        const rm = plainBtn("Forget", "tiny pink", () => save((db) => db.doc("routines/" + id).delete()));
+        rm.setAttribute("aria-label", "Forget: " + (r.name || id));
+        li.append(sw, rm);
+        ul.appendChild(li);
+      }
+    };
+    draw();
+    let tz = "Europe/Paris";
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || tz; } catch (e) {}
+    const name = el("input"); name.id = "routineName"; name.maxLength = 60; name.placeholder = "Morning round";
+    const time = el("input"); time.id = "routineTime"; time.type = "time"; time.value = "09:00";
+    const dayBox = el("div", "days"); dayBox.id = "routineDays";
+    DAYS.forEach((d, i) => { const l = el("label"); const c = el("input"); c.type = "checkbox"; c.value = String(DAY_IDX[i]); c.checked = i < 5; l.append(c, document.createTextNode(d)); dayBox.appendChild(l); });
+    const prompt = el("textarea"); prompt.id = "routinePrompt"; prompt.rows = 2; prompt.maxLength = 1000; prompt.placeholder = "Who needs me today, and what first?";
+    const addBtn = plainBtn("Add", "green", async () => {
+      const n = name.value.trim(), t = time.value, p = prompt.value.trim();
+      const days = [...dayBox.querySelectorAll("input:checked")].map((c) => +c.value);
+      if (!n || !t || !p || !days.length) { toast("A routine needs a name, a time, a day and what to ask her.", "alert"); return; }
+      const ok = await save((db) => db.doc("routines/" + gid()).set({ name: n, time: t, days, tz, prompt: p, on: true, last: Date.now(), createdAt: Date.now() }), "Added. She'll do it at " + t + ".");
+      if (ok) { name.value = ""; prompt.value = ""; }
+    });
+    addBtn.id = "routineAdd";
+    const r1 = el("div", "row"); r1.append(field("Name", name), field("At", time));
+    const df = el("div", "field"); df.append(el("span", null, "On"), dayBox);
+    const r2 = el("div", "row"); r2.append(df, field("What to ask her", prompt));
+    const acts = el("div", "actions"); acts.append(el("span", "spacer"), addBtn);
+    wrap.append(ul, r1, r2, acts, el("p", "note", "They run while her runner is on, in your time zone (" + tz + "). A missed one runs once when it is back."));
+    wrap.redraw = draw;
+    return wrap;
+  }
+
+  // Her card, like an NPC's dialogue: her greeting, the thread (what she said, what the cats brought her, what you
+  // said), her answer as she speaks it, Speak / Send / Stop and her voice; then, folded, what she keeps, her
+  // character (name, coat, manner, greeting, voice) and her routines. Opening it counts the handoffs as read.
+  let QUEEN_UI = null, QUEEN_POLL = null;
+  function openQueen(section) {
     const dlg = $("queenDlg"); dlg.replaceChildren();
-    const here = VIEW.cats.filter((c) => c.roomKey === k);
-    const q = queenOf(k);
+    const q = queenOf();
+    q.state = queenState(); q.unread = unreadHandoffs(q); q.homework = openQuizzes().length;
     const notes = q.notes.map((n) => ({ text: n.text, pinned: !!n.pinned, at: n.at || Date.now() }));
-    const box = el("div", "dlg");
+    const opened = Date.now();
+    const box = el("div", "dlg queen");
 
     const head = el("div", "head");
     const por = el("div", "portrait");
-    por.append(sprite(queenMood(q, here), q.coat), el("span", "crown corner"));
+    por.append(sprite(queenMood(q), q.coat), el("span", "crown corner"));
     const hd = el("div");
     const h = el("h2", null, q.name); h.id = "queenName";
-    hd.append(h, el("span", "mood work", "Queen of the " + roomInfo(k).name));
+    const st = el("span", "mood " + (q.state === "away" ? "sleep" : "work"), "Queen of the house · " + stateWord(q.state)); st.id = "queenState";
+    const ln = el("p", "note", queenLine(q)); ln.id = "queenLineNote";
+    hd.append(h, st, ln);
     head.append(por, hd);
-    box.append(head, el("div", null, queenLine(q, here)));
+    box.appendChild(head);
 
+    // ---- the talk: her homework first, when she set some ----
+    const talk = el("section", "talk");
+    const hw = el("div", "homework"); hw.id = "queenHomework";
+    const drawHomework = () => {
+      hw.replaceChildren();
+      const open = openQuizzes();
+      hw.hidden = !open.length;
+      const cats = allCats(true).cats;
+      for (const z of open) {
+        const f = el("form", "quiz"); f.dataset.quiz = z.id;
+        f.addEventListener("submit", (e) => e.preventDefault());
+        const cat = z.for ? cats.find((c) => c.agentId === z.for) : null;
+        f.appendChild(el("h3", null, z.title));
+        f.appendChild(el("p", "sub", "Homework from " + (z.by === QUEEN_ID ? q.name : "you") + (cat ? ", to unblock " + cat.name : z.for ? ", for " + z.for : "") + " · " + ago(z.at)));
+        const picks = [];
+        (z.questions || []).forEach((qq, i) => {
+          const fs = el("fieldset", "q");
+          fs.appendChild(el("legend", null, (i + 1) + ". " + qq.q));
+          const row = el("div", "opts");
+          let picked = null;
+          const free = el("input"); free.maxLength = 1000; free.placeholder = qq.options && qq.options.length ? "Something else…" : "Your answer";
+          for (const o of qq.options || []) {
+            const b = plainBtn(o, "tiny", () => { picked = o; free.value = ""; for (const x of row.children) { x.classList.toggle("green", x === b); x.setAttribute("aria-pressed", String(x === b)); } });
+            b.setAttribute("aria-pressed", "false");
+            row.appendChild(b);
+          }
+          fs.appendChild(row);
+          if (qq.free || !(qq.options && qq.options.length)) {
+            free.addEventListener("input", () => { if (free.value.trim()) { picked = null; for (const x of row.children) { x.classList.remove("green"); x.setAttribute("aria-pressed", "false"); } } });
+            free.setAttribute("aria-label", "Your answer to: " + qq.q);
+            const l = el("label", "field"); l.appendChild(free); fs.appendChild(l);
+          }
+          picks.push(() => free.value.trim() || picked || "");
+          f.appendChild(fs);
+        });
+        const hand = plainBtn("Hand it in", "green", async () => {
+          const answers = picks.map((p) => p());
+          if (answers.some((a) => !a)) { toast("Answer every question first.", "alert"); return; }
+          hand.disabled = true;
+          try {
+            await hostCall("answer", { quiz: z.id, answers });
+            toast("Handed in." + (cat ? " " + cat.name + " has your answers." : ""));
+            await refreshQuizzes();
+            loadQueenThread();
+          } catch (e) { toast(gatewayProblem(e), "alert"); hand.disabled = false; }
+        });
+        hand.className += " hand";
+        const acts = el("div", "actions"); acts.append(el("span", "spacer"), hand);
+        f.appendChild(acts);
+        hw.appendChild(f);
+      }
+    };
+    drawHomework();
+    talk.appendChild(hw);
+    const ul = el("ul", "thread"); ul.id = "queenThread";
+    const drawThreadQ = () => {
+      ul.replaceChildren();
+      const cats = allCats(true).cats;
+      const items = (S.queenNotes || []).filter((n) => n.author === "charlotte" || n.author === QUEEN_ID).map((n) => ({ kind: n.author, text: n.text, at: n.at || 0, routine: n.routine }))
+        .concat(cats.filter((c) => c.said && c.said.text).map((c) => ({ kind: "handoff", cat: c, text: c.said.text, at: c.said.at || 0 })))
+        .sort((a, b) => a.at - b.at).slice(-20);
+      if (!items.some((it) => it.kind !== "handoff")) { const li = el("li", "them greet"); li.append(el("span", "who", q.name), document.createTextNode(q.greeting)); ul.appendChild(li); }   // nothing said yet: her greeting
+      for (const it of items) {
+        const li = el("li", it.kind === "charlotte" ? "me" : it.kind === "handoff" ? "them handoff" + (it.at > q.readAt ? " new" : "") : "them");
+        const who = it.kind === "charlotte" ? "You" : it.kind === "handoff" ? it.cat.name + " brought you" : q.name + (it.routine && it.routine.name ? " · " + it.routine.name : "");
+        li.append(el("span", "who", who + " · " + ago(it.at)), document.createTextNode(it.text));
+        if (it.kind === "handoff" && VIEW.cats.some((x) => x.id === it.cat.id)) { const o = plainBtn("Open " + it.cat.name, "tiny open", () => { dlg.close(); openCat(it.cat.id); }); li.appendChild(o); }
+        ul.appendChild(li);
+      }
+      if (S.queenTurn) { const li = el("li", "them live"); li.id = "queenLive"; li.append(el("span", "who", q.name + " · speaking"), document.createTextNode(S.queenTurn.text || "…")); ul.appendChild(li); }
+      ul.scrollTop = ul.scrollHeight;
+    };
+    talk.appendChild(ul);
+    const say = el("textarea"); say.id = "queenSay"; say.rows = 2; say.maxLength = 4000; say.placeholder = "Ask " + q.name + "…";
+    say.setAttribute("aria-label", "Say to " + q.name);
+    const send = plainBtn("Send", "green", async () => {
+      const text = say.value.trim();
+      if (!text) { say.focus(); return; }
+      send.disabled = true;
+      try {
+        await hostCall("comment", { cat: QUEEN_ID, text, author: "charlotte" });
+        say.value = "";
+        S.queenNotes = (S.queenNotes || []).concat([{ id: "me" + Date.now(), cat: QUEEN_ID, author: "charlotte", text, at: Date.now() }]);
+        drawThreadQ();
+        if (queenState() === "away") toast("Kept for her: she answers once her runner is on.");
+      } catch (e) { toast(gatewayProblem(e), "alert"); }
+      send.disabled = false;
+      say.focus();
+    });
+    send.id = "queenSend";
+    say.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send.click(); } });
+    const stop = plainBtn("Stop", "pink", async () => {
+      try { await hostCall("manage", { cat: QUEEN_ID, action: "pause" }); toast("She stops there."); }
+      catch (e) { toast(gatewayProblem(e), "alert"); }
+    });
+    stop.id = "queenStop"; stop.hidden = q.state !== "busy";
+    const row = el("div", "row");
+    const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (Rec) {   // voice to text: the browser's own (Chrome, Edge); what it heard stays in the box for her to send or fix
+      let rec = null;
+      const sp = plainBtn("Speak", "", () => {
+        if (rec) { rec.stop(); return; }
+        rec = new Rec(); rec.lang = currentVoice().lang || "en-GB"; rec.interimResults = true; rec.continuous = false;
+        const base = say.value.trim() ? say.value.replace(/\s*$/, " ") : "";
+        rec.onresult = (e) => { let t = ""; for (const r of e.results) t += r[0].transcript; say.value = base + t; };
+        rec.onend = () => { rec = null; sp.textContent = "Speak"; sp.setAttribute("aria-pressed", "false"); };
+        rec.onerror = (e) => { toast(e.error === "not-allowed" || e.error === "service-not-allowed" ? "The browser didn't let the café hear you." : "Couldn't hear you (" + e.error + ").", "alert"); };
+        try { rec.start(); sp.textContent = "Listening…"; sp.setAttribute("aria-pressed", "true"); } catch (e) { rec = null; }
+      });
+      sp.id = "queenSpeak"; sp.setAttribute("aria-pressed", "false");
+      row.appendChild(sp);
+    }
+    row.append(el("label", "field").appendChild(say).parentNode, send, stop);
+    // her voice, on or off, saved with her
+    let voiceOn = !!q.voice.on;
+    const vb = el("button", "btn sw sound voice"); vb.type = "button"; vb.id = "queenVoice";
+    const vbt = el("span", null, voiceOn ? "Voice on" : "Voice off");
+    vb.append(el("span", "switch" + (voiceOn ? " on" : "")), vbt);
+    vb.setAttribute("aria-pressed", String(voiceOn));
+    vb.hidden = !window.speechSynthesis;
+    vb.addEventListener("click", async () => {
+      voiceOn = !voiceOn;
+      vb.firstChild.classList.toggle("on", voiceOn); vbt.textContent = voiceOn ? "Voice on" : "Voice off"; vb.setAttribute("aria-pressed", String(voiceOn));
+      if (voiceOn) speak(gr.value.trim() || q.greeting, currentVoice());
+      await persist();
+    });
+    talk.append(row, vb);
+    box.appendChild(talk);
+
+    // ---- what she keeps ----
+    const kd = el("details", "more"); kd.id = "queenKeeps"; kd.open = section === "keeps";
+    kd.appendChild(el("summary", null, "What she keeps"));
     const list = el("ul", "keeps");
-    // what she keeps is saved as you change it, so closing the card never loses a note
-    const keep = () => save((db) => db.doc("queens/" + k).set({ name: (S.queens[k] && S.queens[k].name) || "", notes, updatedAt: Date.now() }));
     function draw() {
       list.replaceChildren();
-      if (!notes.length) list.appendChild(el("li", "sub", "She is keeping nothing for this room yet."));
+      if (!notes.length) list.appendChild(el("li", "sub", "She is keeping nothing for you yet."));
       notes.forEach((n, i) => {
         const li = el("li", n.pinned ? "kept pin" : "kept");
         const pin = plainBtn(n.pinned ? "Saying it" : "Say it", "tiny" + (n.pinned ? " green" : ""), () => { n.pinned = !n.pinned; draw(); keep(); });
-        pin.title = n.pinned ? "She says this in the room until you take it back" : "Have her say this out loud in the room";
+        pin.title = n.pinned ? "She says this in the hall until you take it back" : "Have her say this out loud";
         pin.setAttribute("aria-pressed", String(n.pinned));
         const rm = plainBtn("Forget", "tiny pink", () => { notes.splice(i, 1); draw(); keep(); });
         rm.setAttribute("aria-label", "Forget: " + n.text);
@@ -1904,8 +2279,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       });
     }
     draw();
-    box.appendChild(list);
-
+    kd.appendChild(list);
     const add = el("input"); add.id = "queenAdd"; add.maxLength = NOTE_MAX; add.placeholder = "The Drive order goes in on Sunday";
     const give = () => {
       const t = add.value.trim();
@@ -1915,26 +2289,89 @@ ul.gkey li > div.what { flex-basis: 100%; }
       add.value = ""; draw(); add.focus(); keep();
     };
     add.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); give(); } });
-    const row = el("div", "row");
-    row.append(field("Something she should keep", add), plainBtn("Give it to her", "green", give));
-    box.appendChild(row);
+    const krow = el("div", "row");
+    krow.append(field("Something she should keep", add), plainBtn("Give it to her", "green", give));
+    kd.appendChild(krow);
+    box.appendChild(kd);
 
-    const nm = el("input"); nm.id = "queenRename"; nm.value = (S.queens[k] && S.queens[k].name) || ""; nm.placeholder = q.name; nm.maxLength = 30;
-    box.appendChild(field("Her name", nm));
-    box.appendChild(el("p", "note", "Saved in this page: anyone you share it with can read it, so keep sensitive details out."));
+    // ---- her character ----
+    const cd = el("details", "more"); cd.id = "queenCharacter"; cd.open = section === "character";
+    cd.appendChild(el("summary", null, "Her character"));
+    const nm = el("input"); nm.id = "queenRename"; nm.value = (S.queens.house && S.queens.house.name) || ""; nm.placeholder = q.name; nm.maxLength = 30;
+    const coat = el("select"); coat.id = "queenCoat";
+    COATS.forEach((c, i) => { const o = el("option", null, c.name); o.value = String(i); if (i === q.coatIdx) o.selected = true; coat.appendChild(o); });
+    const r1 = el("div", "row"); r1.append(field("Her name", nm), field("Her coat", coat)); cd.appendChild(r1);
+    const gr = el("input"); gr.id = "queenGreeting"; gr.value = q.greeting; gr.maxLength = 200;
+    cd.appendChild(field("Her greeting", gr));
+    let manner = null;
+    if (VIA_GATEWAY) { manner = el("textarea"); manner.id = "queenManner"; manner.rows = 3; manner.maxLength = 2000; manner.value = q.manner; cd.appendChild(field("How she speaks", manner)); }
+    else cd.appendChild(el("p", "note", "How she speaks, and her routines, are set in the café on your gateway: her runner reads them there."));
+    let vsel = null;
+    if (window.speechSynthesis) {
+      vsel = el("select"); vsel.id = "queenVoiceName";
+      const auto = el("option", null, "The browser's English (UK) voice"); auto.value = ""; vsel.appendChild(auto);
+      const gb = (v) => (/^en[-_]GB/i.test(v.lang) ? 0 : 1);
+      for (const v of voices().slice().sort((a, b) => gb(a) - gb(b) || a.name.localeCompare(b.name))) { const o = el("option", null, v.name + " (" + v.lang + ")"); o.value = v.name; if (v.name === q.voice.name) o.selected = true; vsel.appendChild(o); }
+    }
+    const rate = el("input"); rate.id = "queenRate"; rate.type = "range"; rate.min = "0.6"; rate.max = "1.4"; rate.step = "0.1"; rate.value = String(q.voice.rate);
+    const pitch = el("input"); pitch.id = "queenPitch"; pitch.type = "range"; pitch.min = "0.6"; pitch.max = "1.6"; pitch.step = "0.1"; pitch.value = String(q.voice.pitch);
+    const lang = el("select"); lang.id = "queenLang";
+    for (const [v, l] of LISTEN) { const o = el("option", null, l); o.value = v; if (v === q.voice.lang) o.selected = true; lang.appendChild(o); }
+    const currentVoice = () => ({ on: voiceOn, name: vsel ? vsel.value : q.voice.name, rate: +rate.value || 1, pitch: +pitch.value || 1, lang: lang.value });
+    const r2 = el("div", "row");
+    if (vsel) r2.appendChild(field("Her voice", vsel));
+    r2.append(field("How fast", rate), field("How high", pitch));
+    cd.appendChild(r2);
+    const r3 = el("div", "row"); r3.appendChild(field("She listens for", lang));
+    const hear = plainBtn("Hear her", "", () => speak(gr.value.trim() || q.greeting, Object.assign(currentVoice(), { on: true }))); hear.id = "queenHear"; hear.hidden = !window.speechSynthesis;
+    r3.appendChild(hear);
+    cd.appendChild(r3);
+    cd.appendChild(el("p", "note", "Saved in this page: anyone you share it with can read it, so keep sensitive details out."));
+    const sv = el("button", "btn green", "Save"); sv.type = "button"; sv.id = "queenSave";
+    sv.addEventListener("click", async () => { if (await persist("Saved. " + (nm.value.trim() || q.name) + " has it.")) dlg.close(); });
+    const sa = el("div", "actions"); sa.append(el("span", "spacer"), sv); cd.appendChild(sa);
+    box.appendChild(cd);
 
-    const acts = el("div", "actions");
-    const sv = el("button", "btn green", "Save"); sv.type = "button";
-    sv.id = "queenSave";
-    sv.addEventListener("click", async () => {
-      const name = nm.value.trim();
-      const ok = await save((db) => db.doc("queens/" + k).set({ name, notes, updatedAt: Date.now() }), "Saved. " + (name || q.name) + " has it.");
-      if (ok) dlg.close();
-    });
-    acts.append(closeBtn(dlg), el("span", "spacer"), sv);
+    // ---- her routines ----
+    let routines = null;
+    if (VIA_GATEWAY) {
+      const rd = el("details", "more"); rd.id = "queenRoutines"; rd.open = section === "routines";
+      rd.appendChild(el("summary", null, "Routines"));
+      routines = routinesPanel();
+      rd.appendChild(routines);
+      box.appendChild(rd);
+    }
+
+    const acts = el("div", "actions"); acts.append(closeBtn(dlg));
     box.appendChild(acts);
     dlg.appendChild(box);
+
+    // what she is, as one document; saving it moves what the room queens kept into it
+    const docOf = () => ({ name: nm.value.trim(), coat: +coat.value, manner: manner ? manner.value.trim() : ((S.queens.house || {}).manner || ""), greeting: gr.value.trim(),
+      voice: currentVoice(), notes, readAt: Math.max(q.readAt, q.unread ? opened : 0), updatedAt: Date.now() });
+    const persist = (ok) => save(async (db) => { await db.doc("queens/house").set(docOf()); for (const k of q.leftovers) await db.doc("queens/" + k).delete(); }, ok);
+    const keep = () => persist();   // what she keeps is saved as you change it, so closing the card never loses a note
+
+    QUEEN_UI = {
+      draw: drawThreadQ,
+      homework: drawHomework,
+      routines: () => { if (routines) routines.redraw(); },
+      state: () => {
+        q.state = queenState(); q.unread = unreadHandoffs(q); q.homework = openQuizzes().length;
+        st.textContent = "Queen of the house · " + stateWord(q.state); st.className = "mood " + (q.state === "away" ? "sleep" : "work");
+        stop.hidden = q.state !== "busy";
+        ln.textContent = queenLine(q);
+        por.replaceChildren(sprite(queenMood(q), q.coat), el("span", "crown corner"));
+      },
+    };
+    dlg.addEventListener("close", () => { QUEEN_UI = null; if (QUEEN_POLL) { clearInterval(QUEEN_POLL); QUEEN_POLL = null; } }, { once: true });
+    drawThreadQ();
+    loadQueenThread();
+    if (!VIA_GATEWAY && S.host) QUEEN_POLL = setInterval(loadQueenThread, 5000);   // no live line in claude.ai: look every few seconds while her card is open
     show(dlg);
+    if (section === "talk" || !section) say.focus();
+    if (q.unread) save((db) => db.doc("queens/house").set(Object.assign({}, S.queens.house || {}, { readAt: opened })));   // read: one write, on her action
+    if (voiceOn) speak(q.greeting, currentVoice());
   }
 
   function adoptForm(c, room) {
@@ -1951,7 +2388,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const known = el("datalist"); known.id = "adProjects";
     for (const n of new Set(allCats(true).cats.map((x) => x.project.name))) { const o = el("option"); o.value = n; known.appendChild(o); }
     f.append(field("What's the chat about?", title), field("Link to the chat", link), field("Project (cats of one project look alike)", project), known);
-    const r = el("div", "row"); r.append(field("Lives in", roomSelect("adRoom", d.room || (c ? c.roomKey : room || "dining"))), field("Mood", mood)); f.appendChild(r);
+    const r = el("div", "row"); r.append(field("Lives in", roomSelect("adRoom", d.room || (c ? c.roomKey : room || catchAllRoom()))), field("Mood", mood)); f.appendChild(r);
     f.append(field("Note", note), field("Cat's name", name));
     f.appendChild(el("p", "note", "Saved in this page: anyone you share it with can read it, so keep sensitive details in the chat itself."));
     const acts = el("div", "actions");
@@ -2162,6 +2599,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const ca = el("select"); ca.id = "catchAll";
     const pct = (v, i) => ((v - (i < 2 ? PLAN[i] : 0)) / PLAN[i % 2 + 2] * 100) + "%";
     const named = {};   // room -> its Name field
+    const isOpen = {};  // room -> open (true) or closed, as switched here
     const tabName = (k) => $("rt-" + k).setAttribute("aria-label", (named[k].value.trim() || GEOM[k].name) + (ca.value === k ? ", where new cats come in" : ""));
     let sel = GEOM[start] ? start : S.cursor || catchKey;
     const pick = (k, focus) => {
@@ -2180,6 +2618,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       Object.assign(t.style, { left: pct(x * 2, 0), top: pct(y * 2, 1), width: pct(w * 2, 2), height: pct(hh * 2, 3) });
       const sign = el("span", "tag", r.name);
       t.appendChild(sign);
+      isOpen[k] = !r.closed; t.classList.toggle("closed", !!r.closed);
       if (k === catchKey) t.appendChild(door);
       t.addEventListener("click", () => pick(k));
       tabs.appendChild(t);
@@ -2198,8 +2637,18 @@ ul.gkey li > div.what { flex-basis: 100%; }
       for (const [v, l] of MODELS) { const o = el("option", null, l); o.value = v; if (v === ((S.rooms[k] || {}).model || "claude-opus-5-5")) o.selected = true; md.appendChild(o); }
       const row2 = el("div", "row"); row2.append(field("Repositories, separated by commas", rp), field("New cats' model", md));
       p.append(row, row2);
+      // open or closed: the pack's switch. A closed room is dimmed and gets no cats; the front door stays open.
+      const op = el("button", "sound open", r.closed ? "Closed" : "Open"); op.type = "button"; op.id = "ro-" + k;
+      op.setAttribute("aria-pressed", String(!r.closed)); op.prepend(el("span", "switch" + (r.closed ? "" : " on")));
+      op.addEventListener("click", () => {
+        const on = !isOpen[k];
+        if (!on && ca.value === k) { const next = ORDER.find((k2) => k2 !== k && isOpen[k2]); if (!next) return; ca.value = next; ca.dispatchEvent(new Event("change")); }
+        isOpen[k] = on; op.setAttribute("aria-pressed", String(on)); op.lastChild.textContent = on ? "Open" : "Closed"; op.firstChild.classList.toggle("on", on);
+        t.classList.toggle("closed", !on); o.hidden = o.disabled = !on;
+      });
+      p.appendChild(op);
       f.appendChild(p);
-      const o = el("option", null, r.name); o.value = k; ca.appendChild(o);
+      const o = el("option", null, r.name); o.value = k; o.hidden = o.disabled = !!r.closed; ca.appendChild(o);
       // the plan, the card and the front-door choice follow the name as she types it
       nm.addEventListener("input", () => { const v = nm.value.trim() || GEOM[k].name; sign.textContent = v; o.textContent = v; title.firstChild.textContent = v; tabName(k); });
     }
@@ -2218,11 +2667,11 @@ ul.gkey li > div.what { flex-basis: 100%; }
     f.appendChild(acts);
     f.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const chosen = GEOM[ca.value] ? ca.value : "living";
+      const chosen = GEOM[ca.value] && isOpen[ca.value] ? ca.value : ORDER.find((k) => isOpen[k]) || "living";   // never a closed room
       const ok = await save(async (db) => {
         for (const k of ORDER) {
           const repos = $("rr-" + k).value.split(",").map((x) => x.trim()).filter(Boolean);
-          await db.doc("rooms/" + k).set({ name: $("rn-" + k).value.trim() || GEOM[k].name, blurb: $("rb-" + k).value.trim(), repos, catchAll: k === chosen, model: $("rm-" + k).value });
+          await db.doc("rooms/" + k).set({ name: $("rn-" + k).value.trim() || GEOM[k].name, blurb: $("rb-" + k).value.trim(), repos, catchAll: k === chosen, model: $("rm-" + k).value, closed: !isOpen[k] });
         }
       }, "Rooms saved.");
       if (ok) dlg.close();
@@ -2232,6 +2681,242 @@ ul.gkey li > div.what { flex-basis: 100%; }
     pick(sel);
     show(dlg);
     if (GEOM[start]) $("rn-" + start).focus();
+  }
+
+  /* ---------- the first run: a wizard, one step at a time ---------- */
+  // Opens when the database has no rooms (a new café), or from the House menu to set up again. Nothing is
+  // written until the last step: one save writes house/main and the ten rooms. Setting up again keeps each
+  // room's blurb and model, which Edit rooms looks after.
+  const STEPS = ["Welcome", "Rooms", "GitHub", "Sessions", "Litter box", "How it works", "Done"];
+  const INSTALL = "claude plugin marketplace add https://github.com/charredlatte/Pretty-Project-Portfolio.git\nclaude plugin install kittychat-house-rules@kittychat --scope user";
+  function openSetup(again) {
+    const dlg = $("setupDlg");
+    if (dlg.open) return;
+    dlg.replaceChildren();
+    const f = el("form", "dlg");
+    const h = el("h2"); h.id = "setupTitle";
+    const dots = el("div", "steps"); dots.setAttribute("aria-hidden", "true");
+    STEPS.forEach(() => dots.appendChild(el("span")));
+    const where = el("p", "sr");
+    const body = el("div", "step");
+    const acts = el("div", "actions");
+    const back = el("button", "btn", "Back"); back.type = "button";
+    const next = el("button", "btn green", "Next"); next.type = "submit";
+    acts.append(back, closeBtn(dlg, "Later"), el("span", "spacer"), next);   // Later: nothing is written; a café with no rooms asks again next time
+    f.append(h, dots, where, body, acts);
+    // the answers, prefilled from what is there when setting up again (a café with no rooms yet is a first run)
+    again = !!again && ORDER.some((k) => S.rooms[k]);
+    dlg.dataset.again = again ? "1" : "";
+    // open: the rooms open now (or the first four); + opens the next in the opening order, − closes the last
+    const A = { name: S.house.name || "", open: again ? OPENING.filter(roomOpen) : OPENING.slice(0, 4), names: {}, repos: {}, gh: null, ghErr: null };
+    if (!A.open.length) A.open = [OPENING[0]];
+    for (const k of ORDER) A.names[k] = again && S.rooms[k] && S.rooms[k].name && S.rooms[k].name !== GEOM[k].name ? S.rooms[k].name : "";
+    // A.repos: the room chosen for each repository GitHub listed. A repository already filed stays where it is
+    // unless GitHub listed it (matched by name, with or without its owner); then the select, prefilled with its
+    // room, decides. The rest, duplicates and all, is left alone.
+    // the same repository: its exact name, or a bare name (no owner) that GitHub lists with one; another owner's is another's
+    const tail = (r) => lower(r).split("/").pop();
+    const same = (r, name) => lower(r) === lower(name) || (!String(r).includes("/") && tail(r) === tail(name));
+    const roomOfRepo = (name) => ORDER.find((k) => roomInfo(k).repos.some((r) => lower(r) === lower(name)))   // its exact name first
+      || ORDER.find((k) => roomInfo(k).repos.some((r) => same(r, name)));
+    const open = () => OPENING.filter((k) => A.open.includes(k));
+    const filed = () => {
+      // only a repository she decided on in the GitHub step (a row she saw) leaves where it was filed
+      const decided = Object.keys(A.repos), out = {};
+      for (const k of ORDER) {
+        // an entry leaves a room only when the same repository was filed in another one; a bare name beside its full name stays
+        const kept = again ? roomInfo(k).repos.filter((r) => !decided.some((n) => same(r, n) && A.repos[n] !== k)) : [];
+        out[k] = [...new Set(kept.concat(Object.keys(A.repos).filter((n) => A.repos[n] === k)))];
+      }
+      return out;
+    };
+    A.door = again ? catchAllRoom() : null;   // the front door she flagged stays while its room is open
+    const door = () => (A.door && A.open.includes(A.door) ? A.door : open()[0]);
+    const nameOf = (k) => A.names[k].trim() || GEOM[k].name;
+    const sessions = () => (S.liveSessions || []).filter((s) => !isWarmStart(s)).length;
+    let step = 0, timer = null;
+
+    const steps = [
+      () => {
+        const sec = el("div", "dlg");
+        sec.appendChild(el("p", "note", "Every Claude Code session is a cat, in the room of its repository. Seven short steps, and the doors open."));
+        if (S.art === "missing") sec.appendChild(el("p", "note", NOART));
+        const nm = el("input"); nm.id = "setupName"; nm.value = A.name; nm.maxLength = 40; nm.placeholder = "KittyChat Café";
+        nm.addEventListener("input", () => { A.name = nm.value; });
+        sec.appendChild(field("Name your café", nm));
+        return sec;
+      },
+      () => {
+        const sec = el("div", "dlg");
+        sec.appendChild(el("p", "note", "The manor has ten rooms. Open as many as you have kinds of work: they open from the front of the house, and the rest stay closed until you open them under Edit rooms."));
+        const ctr = el("div", "counter");
+        const less = el("button", "btn", "−"); less.type = "button"; less.id = "roomsLess"; less.setAttribute("aria-label", "One room fewer");
+        const more = el("button", "btn", "+"); more.type = "button"; more.id = "roomsMore"; more.setAttribute("aria-label", "One room more");
+        const n = el("b", null, String(A.open.length)); n.id = "roomsN";
+        ctr.append(less, n, more, el("span", "note", A.open.length === 1 ? "room open" : "rooms open"));
+        less.disabled = A.open.length <= 1; more.disabled = A.open.length >= 10;
+        less.addEventListener("click", () => { A.open = open().slice(0, -1); goStep(1, A.open.length > 1 ? "roomsLess" : "roomsMore"); });
+        more.addEventListener("click", () => { A.open = open().concat(OPENING.find((k) => !A.open.includes(k))); goStep(1, A.open.length < 10 ? "roomsMore" : "roomsLess"); });
+        const grid = el("ul", "roomgrid"); grid.setAttribute("aria-label", "The rooms");
+        for (const k of OPENING) {
+          const li = el("li"); li.dataset.room = k; li.dataset.open = String(open().includes(k));
+          const b = el("span", "btn", GEOM[k].name); b.append(el("span", "sr", open().includes(k) ? ", open" : ", closed"));
+          li.appendChild(b); grid.appendChild(li);
+        }
+        sec.append(ctr, grid);
+        open().forEach((k) => {
+          const nm = el("input"); nm.id = "sn-" + k; nm.value = A.names[k]; nm.maxLength = 30; nm.placeholder = GEOM[k].name;
+          nm.addEventListener("input", () => { A.names[k] = nm.value; });
+          sec.appendChild(field(GEOM[k].name + (k === door() ? " · new cats come in here" : ""), nm));
+        });
+        return sec;
+      },
+      () => {
+        const sec = el("div", "dlg");
+        if (!S.mcp) {
+          sec.appendChild(el("p", "note", local ? "On this computer the page can't ask GitHub for your repositories. List them under Edit rooms, when you have the page open in claude.ai or by hand."
+            : "The page can't reach Claude Code Remote in this view, so it can't list your repositories. File them under Edit rooms."));
+          return sec;
+        }
+        sec.appendChild(el("p", "note", "Each repository lives in a room. Its sessions are that room's cats."));
+        if (A.gh === null && !A.ghErr) {
+          const b = el("button", "btn green", A.ghBusy ? "Asking GitHub…" : "Connect GitHub"); b.type = "button"; b.id = "ghConnect"; b.disabled = !!A.ghBusy;
+          b.addEventListener("click", askGitHub);
+          sec.appendChild(b);
+        } else if (A.ghErr) {
+          const code = A.ghErr.code || "error";
+          // the page's own grant is missing: no GitHub setting can fix that, so say what can
+          if (["not_in_manifest", "consent_required", "not_granted", "capability_disabled", "capability_removed"].includes(code))
+            sec.appendChild(el("p", "note", "This page isn't allowed to ask for your repositories yet (" + code + "): it needs list_repos among its capabilities. Skip for now and file them under Edit rooms, or republish the page with it."));
+          else {
+            sec.appendChild(el("p", "note", ["server_not_connected", "server_not_found", "selection_required", "needs_reauth", "approval_required", "blocked_by_policy"].includes(code)
+              ? problem(A.ghErr).message : "Claude Code Remote couldn't list your repositories (" + code + ")."));
+            sec.appendChild(el("p", "note", "Connect GitHub in claude.ai and install the Claude GitHub App on your repositories, then check again."));
+          }
+          const row = el("div", "row");
+          const again2 = el("button", "btn", "Check again"); again2.type = "button"; again2.id = "ghRetry"; again2.addEventListener("click", askGitHub);
+          const skip = el("button", "btn", "Skip for now"); skip.type = "button"; skip.id = "ghSkip"; skip.addEventListener("click", () => goStep(3));
+          row.append(again2, skip); sec.appendChild(row);
+        } else if (!A.gh.length) sec.appendChild(el("p", "note", "GitHub lists no repositories for you yet. Rooms can be pointed at them later, under Edit rooms."));
+        else {
+          if (A.gh.length >= 50) sec.appendChild(el("p", "note", "The first 50 GitHub lists. The rest can be filed under Edit rooms."));
+          const fallback = door();
+          A.gh.forEach((name, i) => {
+            const row = el("div", "repo");
+            const sel = el("select"); sel.id = "sr-" + i; sel.setAttribute("aria-label", "Room for " + name);
+            // her pick this run while that room is open; else the room it was filed in before, which keeps it even closed
+            const prior = roomOfRepo(name), pick = A.repos[name];
+            const was = pick && open().includes(pick) ? pick : prior;
+            for (const k of open()) { const o = el("option", null, nameOf(k)); o.value = k; sel.appendChild(o); }
+            if (GEOM[was] && !open().includes(was)) { const o = el("option", null, nameOf(was) + " (closed)"); o.value = was; sel.appendChild(o); }
+            sel.value = GEOM[was] ? was : fallback;
+            A.repos[name] = sel.value;
+            sel.addEventListener("change", () => { A.repos[name] = sel.value; });
+            const fld = el("label", "field"); fld.append(el("span", "sr", "Room"), sel);
+            row.append(el("code", null, name), fld);
+            sec.appendChild(row);
+          });
+        }
+        return sec;
+      },
+      () => {
+        const sec = el("div", "dlg");
+        const L = S.live;
+        if (local) sec.appendChild(el("p", "note", "On this computer the cats are the saved copy of your sessions, data/sessions.json. Ask Claude to refresh it for newer cats."));
+        else if (L.state === "loading") { sec.appendChild(el("p", "note", "Looking for your sessions…")); timer = setTimeout(() => { if (dlg.open && step === 3) goStep(3); }, 800); }
+        else if (L.state === "ok") sec.appendChild(el("p", "note", sessions() + (sessions() === 1 ? " session" : " sessions") + " found. They'll move in when you open the doors."));
+        else {
+          sec.appendChild(el("p", "note", L.message));
+          const skip = el("button", "btn", "Skip for now"); skip.type = "button"; skip.id = "liveSkip"; skip.addEventListener("click", () => goStep(4));
+          sec.appendChild(skip);
+        }
+        return sec;
+      },
+      () => {
+        const sec = el("div", "dlg");
+        sec.appendChild(el("p", "note", "Loose notes, half-ideas, things for later. Drop a file here and it waits on the brain's tray until it is sorted to a cat, a room or the house: nothing leaves until you've checked."));
+        const dz = el("div", "dropzone", S.db ? "Drop files here" : "Files can't be kept in this view"); dz.id = "setupDrop";
+        dz.addEventListener("dragover", (e) => { e.preventDefault(); dz.classList.add("drop-on"); });
+        dz.addEventListener("dragleave", () => dz.classList.remove("drop-on"));
+        dz.addEventListener("drop", (e) => { e.preventDefault(); dz.classList.remove("drop-on"); const files = [...(e.dataTransfer ? e.dataTransfer.files : [])]; if (files.length) openDrop(files, null); });
+        sec.appendChild(dz);
+        sec.appendChild(el("p", "note", "In your clone the litter box is the litterbox/ folder: Markdown notes go in, python3 litterbox/sort.py piles them by project and files them, and pull requests the merging rule holds for you land there too. Holding is the rule's doing, not a setting here."));
+        const b = el("button", "btn", "Open the brain"); b.type = "button"; b.id = "setupBrain"; b.addEventListener("click", () => { hideMenu(); openBrain(); });
+        sec.appendChild(b);
+        return sec;
+      },
+      () => {
+        const sec = el("div", "dlg");
+        const ul = el("ul", "how");
+        for (const [t, d] of [["Sessions are cats.", "The café asks Claude who's awake. Each one walks into its repository's room."],
+          ["House rules are locks, not reminders.", "Small programs Claude Code runs on its own: no edits before the opening check, no pushing straight to main. Claude can't talk its way past them."],
+          ["Skills are training.", "Written instructions a cat reads when they apply, like catching up on what you sent."],
+          ["Messages wait on the mat.", "The café can't wake a session. What you send is kept, and picked up when the cat next looks."],
+          ["The litter box holds loose ends.", "Notes and held pull requests wait there until you check them."]]) {
+          const li = el("li"); li.append(el("b", null, t), document.createTextNode(d)); ul.appendChild(li);
+        }
+        sec.appendChild(ul);
+        sec.appendChild(el("p", "note", "The house rules come as a Claude Code plugin. Two lines install them:"));
+        const pre = el("pre", null, INSTALL); pre.id = "installLines";
+        const cp = el("button", "btn", "Copy"); cp.type = "button"; cp.id = "copyInstall";
+        cp.addEventListener("click", async () => { try { await navigator.clipboard.writeText(INSTALL); toast("Copied."); } catch (e) { toast("Couldn't copy: select the lines instead.", "alert"); } });
+        sec.append(pre, cp);
+        return sec;
+      },
+      () => {
+        const sec = el("div", "dlg");
+        const ul = el("ul", "sum");
+        const repos = Object.values(filed()).reduce((n, v) => n + v.length, 0);
+        for (const t of [A.name.trim() || "KittyChat Café", A.open.length + (A.open.length === 1 ? " room open" : " rooms open"),
+          repos + (repos === 1 ? " repository filed" : " repositories filed"), S.mcp && S.live.state === "ok" ? sessions() + (sessions() === 1 ? " cat at the door" : " cats at the door") : null].filter(Boolean)) ul.appendChild(el("li", null, t));
+        sec.appendChild(ul);
+        return sec;
+      },
+    ];
+    async function askGitHub() {
+      A.ghBusy = true; A.ghErr = null; goStep(2);
+      if (S.perms) { try { await S.perms.request(["mcp:" + SERVER]); } catch (e) {} }   // the first visit asks to use Claude Code Remote
+      try {
+        const p = payloadOf(await S.mcp.callTool(SERVER, "list_repos", { limit: 50 }));
+        const list = Array.isArray(p) ? p : (p && (p.repos || p.repositories || p.data)) || [];
+        A.gh = list.map((r) => (r && (r.full_name || r.name)) || "").filter(Boolean);
+      } catch (e) { A.ghErr = e || { code: "error" }; A.gh = null; }
+      A.ghBusy = false;
+      if (dlg.open && step === 2) goStep(2);
+    }
+    function goStep(i, focusId) {
+      clearTimeout(timer);
+      step = i;
+      h.textContent = STEPS[i];
+      where.textContent = "Step " + (i + 1) + " of " + STEPS.length;
+      [...dots.children].forEach((d, j) => d.classList.toggle("on", j === i));
+      body.replaceChildren(steps[i]());
+      back.hidden = i === 0;
+      next.textContent = i === STEPS.length - 1 ? "Open the doors" : "Next";
+      next.classList.toggle("green", true);
+      const first = focusId ? $(focusId) : body.querySelector("input");
+      if (first && (focusId || i < 2)) first.focus();
+    }
+    back.addEventListener("click", () => goStep(step - 1));
+    f.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (step < STEPS.length - 1) { goStep(step + 1); return; }
+      const rooms = open(), byRoom = filed(), front = door();
+      dlg.dataset.again = "1";   // from here the café has rooms of its own making: no snapshot closes the wizard, a retry updates
+      const ok = await save(async (db) => {
+        await db.doc("house/main").set({ name: A.name.trim() || "KittyChat Café", onboarded: Date.now() });
+        for (const k of ORDER) {
+          const d = { name: nameOf(k), repos: byRoom[k] || [], catchAll: k === front, closed: !rooms.includes(k) };
+          if (S.rooms[k]) await db.doc("rooms/" + k).update(d);
+          else await db.doc("rooms/" + k).set(Object.assign({ blurb: "", model: "claude-opus-5-5" }, d));
+        }
+      }, "The doors are open.");
+      if (ok) dlg.close();
+    });
+    dlg.addEventListener("close", () => clearTimeout(timer), { once: true });
+    dlg.appendChild(f);
+    goStep(0);
+    show(dlg);
   }
 
   /* ---------- the harness: posting into sessions ---------- */
@@ -2757,9 +3442,15 @@ ul.gkey li > div.what { flex-basis: 100%; }
     if (!S.host) return;
     try {
       const p = await hostCall("list_agents", {});
+      try { S.quizzes = ((await hostCall("quizzes", {})) || {}).quizzes || []; } catch (e) { /* an older server: no homework */ }
       S.agents = (p && p.agents) || []; S.hostAt = Date.now(); render();
       const ul = $("thread"), open = ul && VIEW.cats.find((x) => x.id === ul.dataset.cat);
       if (open) loadThread(open);
+      // what the cats brought the queen since the last look: each walks a copy of itself to her
+      const was = S.saidAt;
+      S.saidAt = new Map(S.agents.filter((a) => a.id !== QUEEN_ID && a.said && a.said.at).map((a) => [a.id, a.said.at]));
+      if (was) for (const [id, at] of S.saidAt) if ((was.get(id) || 0) < at) handoff(id);
+      if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); QUEEN_UI.draw(); }
     } catch (e) {
       const code = e && e.code;
       if (S.host === GATEWAY && code !== "server_unavailable" && code !== "rate_limited") {
@@ -2771,6 +3462,27 @@ ul.gkey li > div.what { flex-basis: 100%; }
     }
   }
   addEventListener("catio:agents", () => refreshAgents());   // on the gateway's own address, it says when a cat changed
+  function handoff(agentId) {
+    const c = VIEW.cats.find((x) => x.agentId === agentId), w = c && WHERE.get(c.id);
+    if (!c || !w || calm()) return;
+    toQueen(c, w);
+  }
+  // her homework, after she hands one in: the gateway's list again, and the queen redrawn
+  async function refreshQuizzes() {
+    if (!S.host) return;
+    try { S.quizzes = ((await hostCall("quizzes", {})) || {}).quizzes || []; } catch (e) { return; }
+    render();
+    if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); }
+  }
+  // the queen, as she speaks (the gateway pushes each piece of her answer to the café): her bubble grows, her
+  // voice says each sentence, and when she is done her answer is in the thread
+  addEventListener("catio:queen", (e) => {
+    const m = e.detail || {};
+    S.queenTurn = m.done ? null : { turn: m.turn, text: m.text || "", routine: m.routine };
+    if (m.done) loadQueenThread();
+    if (QUEEN_UI) QUEEN_UI.draw();
+    speakTurn(m);
+  });
 
   /* ---------- sound ---------- */
   let audio = null;

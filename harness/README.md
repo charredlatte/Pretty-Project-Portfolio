@@ -5,7 +5,11 @@ The Catio (`catio/`) is the cafe you see. This folder is the harness behind it:
 - a **Claude Code plugin**, `kittychat-house-rules`, that makes every session follow the house rules and
   understand what Charlotte sends from the Catio;
 - the **Catio MCP server**, `mcp/catio_mcp.py`, through which other agents and models (Codex, Gemini CLI,
-  Cursor, Claude Desktop, anything that speaks MCP) join the cafe as cats.
+  Cursor, Claude Desktop, anything that speaks MCP) join the cafe as cats;
+- the **gateway**, `gateway/`, the always-on hub every session reports to, which also serves the café on its own
+  address;
+- the **queen's runner**, `runner/queen.py`, the brain of the queen of the house, the cat Charlotte talks to in
+  the café: it runs on her PC and answers through the gateway (`runner/README.md`).
 
 ## The house rules
 
@@ -162,7 +166,8 @@ same tools as the Catio MCP server below. It changes two things:
   `CATIO_TOKEN` are set. The page reads the gateway through a connector she adds herself, which can be set to
   Always allow, unlike Claude Code Remote.
 - **A running session gets her message when its turn ends,** not at its next start. The Stop hook hands in her
-  notes, requests and files once each. An idle session still waits for its next turn: nothing can wake it.
+  notes, requests and files once each, and what the queen of the house says to it (`[Catio] The queen says: …`),
+  as hers. An idle session still waits for its next turn: nothing can wake it.
 
 Agents anywhere can join it too, over MCP with the agents' key. Setting it up is five steps, in
 `gateway/README.md`.

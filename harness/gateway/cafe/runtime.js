@@ -55,6 +55,7 @@
 			try { m = JSON.parse(e.data); } catch { return; }
 			if (m.type === "doc") { if (m.data == null) delete store[m.path]; else store[m.path] = m.data; notify(); }
 			else if (m.type === "agents") dispatchEvent(new Event("catio:agents"));
+			else if (m.type === "queen") dispatchEvent(new CustomEvent("catio:queen", { detail: m }));   // the queen, mid-sentence or done
 			else if (m.type === "reload") location.reload();
 		};
 		ws.onclose = () => setTimeout(connect, 3000 + Math.random() * 3000);
