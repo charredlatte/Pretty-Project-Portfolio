@@ -298,6 +298,61 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     const t = await page.locator("#roomsDlg").innerText();
     expect(t.includes("Filing cabinet") && t.includes("montfortoise-shopify") && t.includes("Intermarche-grocery-shopping-app") && t.includes("claude/test"), t.slice(0, 300));
   });
+  // the project maps (her ask, 3 October: "a customizable dashboard built on Graphify", the graphify in her house rules)
+  await page.evaluate(() => { for (const d of document.querySelectorAll("dialog[open]")) d.close(); });
+  await closeMenu(page);
+  await settle(page);
+  await T(page, () => window.__catio.put("graphs/intermarche-grocery-shopping-app", { repo: "example/Intermarche-grocery-shopping-app", at: Date.now() - 36e5, nodes: 64, edges: 98, communities: 4,
+    gods: [{ label: "Basket", degree: 11, file: "src/basket.js" }], groups: [{ name: "Basket", size: 20 }], surprises: [], questions: ["Where does the basket get its prices?"],
+    map: { n: [{ t: "Basket", g: 0, d: 11, x: 150, y: 80 }, { t: "Menus", g: 1, d: 4, x: 60, y: 40 }], l: [0, 1] } }));
+  const maps = () => page.locator("#mapsDlg .mapcard").evaluateAll((cs) => cs.map((c) => c.dataset.map));
+  const mapTool = (id, label) => page.locator('#mapsDlg .mapcard[data-map="' + id + '"] button[aria-label^="' + label + ':"]');
+  const manageMaps = () => page.evaluate(() => { for (const d of document.querySelectorAll("#mapsDlg .manage-tools:not([open])")) d.querySelector("summary").click(); });   // Manage folds each card's tools
+  await page.click("#houseBtn");
+  await page.locator("#menu .mi", { hasText: "Project maps" }).click();   // its name carries the count: "Project maps, 2"
+  await settle(page);
+  await check("the House menu opens every project's map as a card, the newest map first", async () => {
+    expect(JSON.stringify(await maps()) === JSON.stringify(["montfortoise-shopify", "intermarche-grocery-shopping-app"]), JSON.stringify(await maps()));
+    expect(await page.locator('#mapsDlg .mapcard[data-map="montfortoise-shopify"] .gart svg rect').count() === 3, "the map isn't drawn");
+    expect((await page.locator("#mapsDlg").innerText()).includes("Where does the basket get its prices?"), "no questions");
+  });
+  await manageMaps();
+  await mapTool("intermarche-grocery-shopping-app", "Pin").click();
+  await settle(page);
+  await mapTool("montfortoise-shopify", "Wide").click();
+  await settle(page);
+  await check("pinning puts a map first and widening spreads it, and the café keeps both", async () => {
+    expect((await maps())[0] === "intermarche-grocery-shopping-app", JSON.stringify(await maps()));
+    const d = await T(page, () => window.__catio.store["dashboard/maps"]);
+    expect(d && d.pinned.includes("intermarche-grocery-shopping-app") && d.wide.includes("montfortoise-shopify"), JSON.stringify(d));
+    expect((await page.locator('#mapsDlg .mapcard[data-map="montfortoise-shopify"]').getAttribute("class")).includes("wide"), "not wide");
+  });
+  await check("a map moves within its group: an unpinned one can't be moved above a pinned one", async () => {
+    expect(await mapTool("montfortoise-shopify", "Earlier").isDisabled(), "Earlier would cross the pinned map");
+    expect(await mapTool("intermarche-grocery-shopping-app", "Later").isDisabled(), "Later would cross into the unpinned ones");
+  });
+  await mapTool("intermarche-grocery-shopping-app", "Unpin").click();
+  await settle(page);
+  await mapTool("intermarche-grocery-shopping-app", "Earlier").click();
+  await settle(page);
+  await check("moving a map earlier changes the order, and the order is kept", async () => {
+    expect((await maps())[0] === "intermarche-grocery-shopping-app", JSON.stringify(await maps()));
+    expect(JSON.stringify((await T(page, () => window.__catio.store["dashboard/maps"])).order) === JSON.stringify(["intermarche-grocery-shopping-app", "montfortoise-shopify"]), "order not kept");
+  });
+  await mapTool("montfortoise-shopify", "Hide").click();
+  await settle(page);
+  await check("hiding a map takes it off the page and keeps a way back", async () => {
+    expect(JSON.stringify(await maps()) === JSON.stringify(["intermarche-grocery-shopping-app"]), JSON.stringify(await maps()));
+    expect(await page.locator('#mapsHidden button:has-text("Show montfortoise-shopify")').count() === 1, "no way back");
+  });
+  await page.locator('#mapsHidden button:has-text("Show montfortoise-shopify")').click();
+  await settle(page);
+  await check("Show brings it back where it was", async () => expect(JSON.stringify(await maps()) === JSON.stringify(["intermarche-grocery-shopping-app", "montfortoise-shopify"]), JSON.stringify(await maps())));
+  await page.keyboard.press("Escape");
+  await settle(page);
+  await openRoom(page, "study");
+  await menuButton(page, "Files").click();
+  await settle(page);
   await page.selectOption("#coat-montfortoise-shopify", "5");
   await page.locator("#roomsDlg .proj", { hasText: "montfortoise-shopify" }).locator("button:has-text('Save look')").click();
   await settle(page);
@@ -769,6 +824,8 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect((await menuText(page)).includes("Talk to her"), await menuText(page));
   });
   await check("no page errors in her scene", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
 // her quest log (3 October 2026: "where do I take the litter box quiz in the cafe UI?", then the queen's quest log, the
 // cards kept in her gateway): the queen keeps one list of everything waiting on her, quizzes that unblock a cat, litter
 // box notes to sort and decisions; the House menu and the litter box on the map open it, a card at a time, a tap answers

@@ -118,7 +118,10 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
 - **Controls**: two things sit on screen, and nothing else should:
   - the brand (`#houseBtn`, top left: ToffeeCraft's cat-face bubble, the name and a badge when cats need
     her), which is the House button: its menu holds what belongs to the whole house (whether the cats are
-    live, the brain, house rules, Edit rooms, the attic, Check now and sound);
+    live, the brain, house rules, Project maps, Edit rooms, the attic, Check now and sound). **Project maps**
+    (`openMaps()`, her ask of 3 October: "a customizable dashboard built on Graphify", the graphify of her house
+    rules) shows every `graphs/<repo>` map as a card, pinned first, then in her order, then the newest; she pins,
+    moves, widens and hides each, and `dashboard/maps` keeps it;
   - the map panel (`#controls`, top right; bottom right on a phone), in Game UI Pastel, drawn smooth:
     zoom out, zoom in, whole house and the fold (`#mapFold`, or M, remembered in `localStorage` as
     `catio.minimap`, folded at first on a phone); the minimap (`#minimap`: the floor's rooms as a plan
@@ -212,6 +215,7 @@ The artifact database, written by the page and seeded with `ArtifactData`:
 | `cats` | generated id | an adopted chat: `title`, `link`, `project`, `room`, `mood` (`needs` / `busy` / `done`), `note`, `name` |
 | `projects` | the project's slug (repo name, or an adopted chat's project) | `name`, `coat`: the look every cat of that project shares, set from a filing cabinet |
 | `graphs` | the repo's slug | its project map from graphify, saved by the catio skill's `graph_doc.py`: counts, the map, hubs, groups, surprises and questions a cat can be asked; shown in the filing cabinet |
+| `dashboard` | `maps` | how she set the Project maps page: `order[]`, `pinned[]`, `hidden[]`, `wide[]` (graph slugs) |
 | `queens` | `house` | the queen of the house: `name`, `coat`, `manner` (how she speaks; the runner reads it each turn), `greeting`, `voice: {on, name, rate, pitch, lang}`, `readAt` (when Charlotte last opened her card: older handoffs are read), `notes[]` of `{text, pinned, at}`. A pinned note is one she says out loud. Older `queens/<room>` documents are hers until her first save |
 | `routines` | generated id | one of her routines: `name`, `time` ("HH:MM"), `days` (0–6, Sunday 0), `tz`, `prompt`, `on`, `last` (when the gateway last handed it to her runner). Only the gateway's copy runs: the runner reads the House, not the artifact |
 | `layouts` | the room key | *(planned: Build mode, `docs/camera-and-minimap.md`)* the room's furniture, and `cabinet: {look, x, y}`: the piece its filing cabinet looks like (her choice per room) and where it stands. The cabinet never leaves its room and keeps its Files and review spot whatever it looks like. No document: `MANOR.layout` and the default look |

@@ -511,6 +511,16 @@ dialog.scene { width: min(800px, calc(100vw - 24px)); }
 .manage { display: flex; flex-wrap: wrap; gap: 6px; }
 /* a project's map: graphify's graph in the pack's picture frame, with its key below */
 .gmap[open] { display: grid; gap: 6px; }
+/* the project maps: every project's graphify map as a card in the pack's pressed well, in the order she sets */
+dialog.maps { width: min(1120px, calc(100vw - 24px)); }
+.mapgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 10px; align-items: start; }
+.mapcard.wide { grid-column: 1 / -1; }   /* the whole row, however many columns fit */
+.mapcard .mt { display: flex; align-items: center; gap: 6px; }
+.mapcard .mt h3 { flex: 1; margin: 0; font: 18px/22px var(--pixel); overflow-wrap: anywhere; }
+.mapcard .star { flex: none; width: 10px; height: 8px; transform: scale(2); margin: 0 6px; image-rendering: pixelated; background: url(art/licensed/ui/stars.png) 0 0 / 20px 8px no-repeat; }
+.mapcard .tools { display: flex; flex-wrap: wrap; gap: 4px; }
+.mapcard .tools .btn .pi { margin: -2px 0; }
+.mapcard .manage-tools > summary { font-size: 18px; }
 .gart { background: #F4E6C8 padding-box; border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; image-rendering: pixelated; }
 .gart svg { display: block; width: 100%; height: auto; }
 .gart line { stroke: var(--ink-soft); stroke-opacity: .35; stroke-width: 1; }
@@ -583,6 +593,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
 <dialog id="queenDlg" aria-labelledby="queenName"></dialog>
 <dialog id="brainDlg" aria-labelledby="brainTitle"></dialog>
 <dialog id="setupDlg" aria-labelledby="setupTitle"></dialog>
+<dialog id="mapsDlg" class="maps" aria-labelledby="mapsTitle"></dialog>
 <input type="file" id="picker" multiple hidden>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
@@ -714,7 +725,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     floor: "ground",          // the floor on screen: "ground" (the cat café) or "upper" (her own rooms)
     sessions: null, sessionsAt: null, live: { state: "loading" },
     liveSessions: null, liveAt: null, copy: null, from: null,   // the live feed, and Claude's saved copy for when it's blocked
-    rooms: {}, house: {}, tweaks: {}, adopted: [], projects: {}, queens: {},   // house: house/main, the café's own name
+    house: {}, dashboard: {},   // house/main (the café's own name, her look) and dashboard/maps (how she set the Project maps)
     rooms: {}, tweaks: {}, adopted: [], projects: {}, queens: {}, routines: {},
     queenNotes: null, queenTurn: null, saidAt: null, quizzes: [],   // the queen's conversation, her answer as she speaks it, when each cat last spoke (for the handoffs), her homework
     brain: [], notes: [], rules: {}, audits: {}, graphs: {}, outbox: [], agents: [],   // the harness: dropped files, conversations, house rules, audits, project maps, queued posts, other agents
@@ -1826,6 +1837,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       hw.length && mi("Homework", () => { hideMenu(); openQueen("homework"); }, { aside: hw.length + " waiting" }),
       mi("The brain", () => { hideMenu(); openBrain(); }, { aside: tray ? tray + " on the tray" : "" }),
       mi("House rules", () => { hideMenu(); openRules(); }),
+      S.db && mi("Project maps", () => { hideMenu(); openMaps(); }, { aside: mapCount() || "" }),
       mi("Edit rooms", () => { hideMenu(); openRooms(curRoom()); }),
       S.db && mi("Set up again…", () => { hideMenu(); openSetup(true); }),
       (VIEW.attic || S.showOld) && mi(S.showOld ? "Send them back up" : "Bring them down", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }),
@@ -2022,6 +2034,11 @@ ul.gkey li > div.what { flex-basis: 100%; }
       else if (snap.docs.length && $("setupDlg").open && !$("setupDlg").dataset.again) { $("setupDlg").close(); toast("The rooms are here: the café is set up."); }
     }, fail);
     db.doc("house/main").onSnapshot((d) => { S.house = d.exists ? d.data() : {}; render(); }, fail);
+    db.doc("dashboard/maps").onSnapshot((d) => {
+      const was = JSON.stringify(mapsLayout());
+      S.dashboard = d.exists ? d.data() : {}; S.dashboardExists = d.exists;
+      if (JSON.stringify(mapsLayout()) !== was) redrawMaps();   // set from another tab or device: show it, never save over it
+    }, fail);
     db.collection("sessions").onSnapshot((snap) => { const t = {}; for (const d of snap.docs) t[d.id] = d.data(); S.tweaks = t; render(); }, fail);
     db.collection("cats").onSnapshot((snap) => { S.adopted = snap.docs.map((d) => Object.assign({ id: d.id }, d.data())); render(); }, fail);
     db.doc("snapshot/sessions").onSnapshot((d) => { S.copy = d.exists ? d.data() : null; pick(); render(); }, fail);
@@ -2038,7 +2055,11 @@ ul.gkey li > div.what { flex-basis: 100%; }
     list("outbox", (v) => { S.outbox = v; });
     list("rules", (v) => { S.rules = Object.fromEntries(v.map((r) => [r.id, r])); });
     list("audits", (v) => { S.audits = Object.fromEntries(v.map((a) => [a.id, a])); });
-    list("graphs", (v) => { S.graphs = Object.fromEntries(v.map((g) => [g.id, g])); });
+    list("graphs", (v) => {
+      const was = $("mapsDlg").open ? mapsSig() : null;
+      S.graphs = Object.fromEntries(v.map((g) => [g.id, g]));
+      if (was !== null && mapsSig() !== was) { try { redrawMaps(); } catch (e) { /* a broken map never stops the house */ } }   // a map a session just saved shows at once
+    });
   }
   async function save(fn, ok) {
     if (!S.db) { toast("Saving isn't available in this view.", "alert"); return false; }
@@ -2854,6 +2875,111 @@ ul.gkey li > div.what { flex-basis: 100%; }
       li.appendChild(b); return li;
     }));
     return d;
+  }
+  // The project maps (her ask, 3 October: "a customizable dashboard built on Graphify", the graphify of her house
+  // rules): every project's map (graphs/<repo>) as a card, pinned ones first, then in the order she set, the newest map
+  // after that. She pins, hides, moves and widens each; dashboard/maps keeps the layout.
+  function mapsLayout() {
+    const d = S.dashboard || {}, list = (k) => (Array.isArray(d[k]) ? d[k] : []);
+    return { order: list("order"), hidden: list("hidden"), pinned: list("pinned"), wide: list("wide") };
+  }
+  const MAPS = { busy: false, folded: new Set(), managing: new Set() };   // a save on its way; cards she folded or opened Manage on
+  const maps = () => Object.entries(S.graphs).filter(([, g]) => g && g.map && Array.isArray(g.map.n));   // the real maps: a graph with a map drawn
+  const mapsSig = () => maps().map(([id, g]) => id + ":" + (g.at || 0)).sort().join("|");
+  const mapCount = () => { const L = mapsLayout(); return maps().filter(([id]) => !L.hidden.includes(id)).length; };
+  // a redraw she didn't ask for (another tab, a new map) keeps her place: focus stays on the button it was on
+  function redrawMaps() {
+    const dlg = $("mapsDlg");
+    if (!dlg.open || MAPS.busy) return;
+    const a = document.activeElement;
+    openMaps(a && dlg.contains(a) ? { act: a.dataset.act, card: (a.closest(".mapcard") || {}).dataset?.map } : null);
+  }
+  function openMaps(focus) {
+    const dlg = $("mapsDlg"); dlg.replaceChildren();
+    if (!dlg.dataset.wired) { dlg.dataset.wired = "1"; dlg.addEventListener("close", () => { MAPS.busy = false; }); }   // a save still on its way never locks the next visit
+    const L = mapsLayout();
+    const all = maps();
+    const rank = (id) => { const i = L.order.indexOf(id); return i < 0 ? 1e6 : i; };
+    const byOrder = ([a, ga], [b, gb]) => rank(a) - rank(b) || (gb.at || 0) - (ga.at || 0);
+    const pinnedFirst = (x, y) => (L.pinned.includes(y[0]) - L.pinned.includes(x[0])) || byOrder(x, y);
+    const everyId = all.slice().sort(byOrder).map(([id]) => id);   // her order over every map, hidden ones in their places
+    const shown = all.filter(([id]) => !L.hidden.includes(id)).sort(pinnedFirst);
+    const nameOf = (id) => String((S.graphs[id] || {}).repo || id).split("/").pop();
+    const flip = (key, id) => { const list = mapsLayout()[key]; return list.includes(id) ? list.filter((x) => x !== id) : list.concat(id); };   // from the layout as it is now
+    // one save at a time: the buttons wait while it is on its way, a refusal undoes only its own change, and the redraw
+    // puts focus back where she was (the button she used, else its card, else the page's title)
+    const keep = async (next, ok, again) => {
+      if (MAPS.busy) return;
+      MAPS.busy = true;
+      for (const b of dlg.querySelectorAll(".mapcard button, #mapsHidden button")) b.disabled = true;
+      const was = S.dashboard, now = Object.assign(mapsLayout(), next, { updatedAt: Date.now() });
+      S.dashboard = now;
+      // only what changed is written, so a change made on another device that hasn't reached this tab survives
+      const saved = await save((db) => (S.dashboardExists ? db.doc("dashboard/maps").update(Object.assign({}, next, { updatedAt: now.updatedAt })) : db.doc("dashboard/maps").set(now)), ok);
+      if (!saved && S.dashboard === now) S.dashboard = was;
+      MAPS.busy = false;
+      if (dlg.open) openMaps(again);
+    };
+    const box = el("div", "dlg");
+    const h = el("h2", null, "Project maps"); h.id = "mapsTitle"; h.tabIndex = -1;
+    box.append(h, el("p", "note", "Each project's map from graphify. Manage, under each, pins, moves, widens or hides it."));
+    if (!all.length) box.appendChild(el("p", "empty", "No project maps yet. A session makes one with the graphify skill and saves it to the café (graphs/<repo>), and it shows here."));
+    const cats = VIEW.cats;   // as the house last drew them
+    const grid = el("div", "mapgrid");
+    shown.forEach(([id, gm], i) => {
+      const pinned = L.pinned.includes(id), wide = L.wide.includes(id);
+      const cat = cats.find((c) => c.project.key === id && c.kind === "session") || null;
+      const card = el("section", "proj mapcard" + (wide ? " wide" : "") + (pinned ? " pinned" : "")); card.dataset.map = id;
+      const head = el("div", "mt"), t = el("h3", null, nameOf(id));
+      head.appendChild(t);
+      if (pinned) { const st = el("span", "star"); st.setAttribute("role", "img"); st.setAttribute("aria-label", "Pinned"); head.prepend(st); }
+      // what she came for first: the map; how it sits on the page folds under Manage, after it
+      const map = projectMap(gm, cat); map.open = !MAPS.folded.has(id);
+      map.addEventListener("toggle", () => { if (map.open) MAPS.folded.delete(id); else MAPS.folded.add(id); });
+      const manage = el("details", "manage-tools"); manage.open = MAPS.managing.has(id);
+      manage.appendChild(el("summary", null, "Manage"));
+      manage.addEventListener("toggle", () => { if (manage.open) MAPS.managing.add(id); else MAPS.managing.delete(id); });
+      const tools = el("div", "tools");
+      const tool = (act, label, run, icon, aria) => {
+        const b = plainBtn(label, "tiny", run); if (icon) b.prepend(el("span", "pi p-" + icon));
+        b.dataset.act = act; b.setAttribute("aria-label", (aria || label) + ": " + nameOf(id)); tools.appendChild(b); return b;
+      };
+      const here = (act) => ({ act, card: id });   // after the save, focus goes back to the same action on this card
+      tool("pin", pinned ? "Unpin" : "Pin", () => keep({ pinned: flip("pinned", id) }, null, here("pin")));
+      // a move swaps her with the next card in her group (pinned or not), in the order over every map, hidden ones kept
+      const next = (d) => { const o = shown[i + d]; return o && L.pinned.includes(o[0]) === pinned ? o[0] : null; };
+      const move = (d, act) => {
+        const other = next(d); if (!other) return;
+        const o = everyId.slice(), a = o.indexOf(id), b = o.indexOf(other);
+        [o[a], o[b]] = [o[b], o[a]];
+        keep({ order: o }, null, here(act));
+      };
+      tool("earlier", "", () => move(-1, "earlier"), "up", "Earlier").disabled = !next(-1);
+      tool("later", "", () => move(1, "later"), "down", "Later").disabled = !next(1);
+      tool("wide", wide ? "Narrow" : "Wide", () => keep({ wide: flip("wide", id) }, null, here("wide")));
+      const after = (shown[i + 1] || shown[i - 1] || [])[0];
+      tool("hide", "Hide", () => keep({ hidden: flip("hidden", id) }, nameOf(id) + " is hidden. It waits at the foot of the page.", { card: after }));
+      manage.appendChild(tools);
+      card.append(head, map, manage);
+      grid.appendChild(card);
+    });
+    box.appendChild(grid);
+    const gone = L.hidden.filter((x) => S.graphs[x] && S.graphs[x].map);
+    if (gone.length) {
+      const row = el("div", "manage"); row.id = "mapsHidden";
+      row.appendChild(el("span", "note", "Hidden:"));
+      for (const x of gone) { const b = plainBtn("Show " + nameOf(x), "tiny", () => keep({ hidden: mapsLayout().hidden.filter((y) => y !== x) }, null, { card: x })); row.appendChild(b); }
+      box.appendChild(row);
+    }
+    const acts = el("div", "actions"); acts.append(el("span", "spacer"), closeBtn(dlg));
+    box.appendChild(acts);
+    dlg.appendChild(box);
+    show(dlg);
+    if (focus) {
+      const card = focus.card && dlg.querySelector('.mapcard[data-map="' + CSS.escape(focus.card) + '"]');
+      const btn = card && focus.act && [...card.querySelectorAll(".tools button")].find((b) => b.dataset.act === focus.act && !b.disabled);
+      (btn || (card && card.querySelector(".manage-tools > summary")) || h).focus({ preventScroll: true });
+    }
   }
   async function askMap(c, q, b) {
     const text = "Ask the project map: " + q, id = gid();
