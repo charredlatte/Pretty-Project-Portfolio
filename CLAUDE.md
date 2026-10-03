@@ -245,7 +245,13 @@ that inflates "3 need you" makes the sign a liar.
   dressed from `house/main.owner`: hair, hair colour, top, skin and a bow, cat ears or a flower); the queen on the
   right, facing her, her sprite animated and `talking` while she answers; between them the thread as bubbles, hers
   by her and Charlotte's by Charlotte, scrolling, with her homework above it; under it Speak, Send and Stop. Behind
-  them the hall's own floor from `house.png`, in the pack's picture frame. **Every setting is in an overlay**
+  them the hall's own floor from `house.png`, in the pack's picture frame. **The words come first**
+  ("make this window useable", 3 October): the two of them are drawn small enough to leave the thread most of the
+  scene's width (`zoom` on `.owner` and `.qchar`, in steps, each with a crown scale that lands on whole art pixels),
+  and on a phone they stand side by side along the foot of the scene with the thread across the whole of it. Every
+  grid column around the thread and her homework is stated, never left to the content, and every button in them
+  wraps: an `auto` column grows to the longest word in a bubble or a quiz, and then her words scroll off the side.
+  **Every setting is in an overlay**
   (`#queenSettings`, Settings in the card's head, "Back to her" to leave): her voice switch and voice, What she keeps,
   Her character, Routines, and You. On the map she is as before: hovering names her, a click opens her menu. `speak()` is the browser's `speechSynthesis`
   (an en-GB voice unless she picks one): one function, so a paid voice could be a second branch.

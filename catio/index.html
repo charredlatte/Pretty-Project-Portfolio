@@ -424,9 +424,6 @@ ul.thread li.them { background-color: #DCE0D2; border-image-source: url(art/lice
 ul.thread li.me { margin-left: 24px; }
 ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-soft); }
 /* the queen's card: her dialogue, like an NPC's */
-.dlg.queen .talk { display: grid; gap: 8px; }
-.dlg.queen .talk .row > .field { flex: 1 1 200px; }
-#queenThread { max-height: 40vh; overflow: auto; }
 ul.thread li.greet { font-style: italic; }
 ul.thread li.live::after { content: "▌"; margin-left: 2px; animation: blink 1s steps(2) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
@@ -434,28 +431,36 @@ ul.thread li.handoff .open { margin-left: 6px; vertical-align: middle; }
 ul.thread li.handoff.new .who::after { content: " · new"; color: var(--ink); }
 .btn.voice { display: inline-flex; align-items: center; gap: 8px; width: max-content; }
 /* the queen's chat, as a scene (her ask, 3 October): the owner of the house on the left, seen from behind, the queen on
-   the right, talking, and what they say as bubbles between them, nearest each speaker. Behind them the hall's own floor,
-   from the house art, in the pack's picture frame. Every setting sits in an overlay over the scene. */
-dialog.scene { width: min(800px, calc(100vw - 24px)); }
+   the right, facing her, and what they say as bubbles above them, each speaker's by her. Behind them the hall's own floor,
+   from the house art, in the pack's picture frame. Every setting sits in an overlay over the scene.
+   The words get as much of the scene as the two of them leave: the gap between them used to be a column a third of
+   the card wide, with her answers running off the side of it ("make this window useable", 3 October). */
+dialog.scene { width: min(920px, calc(100vw - 24px)); }
 .dlg.queen { position: relative; }
 .qhead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: start; }
 .qhead h2 { display: flex; align-items: center; gap: 10px; }
 .qhead h2 .crown { position: static; flex: none; transform: scale(2); margin: 0 6px; }
 .qhead .acts { display: flex; gap: 6px; align-items: center; }
 .qhead .note { grid-column: 1 / -1; }
-.qstage { position: relative; height: min(56vh, 440px); min-height: 280px; display: grid; grid-template-columns: 168px minmax(0, 1fr) 160px;
+/* they take only as much width as they are drawn at, and the talk has the rest: the fixed 168 and 160 px columns
+   left the words a strip too narrow to read on her screen */
+.qstage { position: relative; height: min(62vh, 520px); min-height: 300px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
   overflow: hidden; image-rendering: pixelated; background: #7D8579 url(art/licensed/house.png) no-repeat; background-size: 3840px 2304px;
   background-position: -1120px -1010px; border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; }
 .qstage::before { content: ""; position: absolute; inset: 0; background: rgba(28, 22, 16, .3); pointer-events: none; }
 .qstage::after { content: ""; position: absolute; inset: 0; pointer-events: none; filter: var(--scene); }
-.qstage > * { position: relative; min-height: 0; }
+.qstage > * { position: relative; min-width: 0; min-height: 0; }
+/* zoom, not a transform: it scales the figure's own pixel offsets too, so the crown stays on her head. What it
+   multiplies has to land on a whole number of art pixels, so each step below sets the crown's own scale to suit
+   (.8 × 2.5 and .6 × 10/3 are both 2): drawn on a fraction of a pixel, the pack's art blurs. */
+.owner, .qchar { zoom: .8; }
 .owner { align-self: end; justify-self: start; margin: 0 0 -2px 4px; }
 .owner svg { display: block; width: 150px; height: auto; }
 .ownerprev svg { display: block; width: 112px; height: auto; }
 .qchar { align-self: end; justify-self: end; width: 150px; height: 190px; margin-right: 4px; }
 .qchar .spr { position: absolute; left: 50%; bottom: 2px; transform-origin: 50% 100%; transform: translateX(-50%) scale(2.6); }   /* the sheets face left: toward her */
 .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(5); }
-.qchar .crown { position: absolute; left: 50%; top: 22px; transform: translateX(-50%) scale(3); transform-origin: 50% 0; }
+.qchar .crown { position: absolute; left: 50%; top: 22px; transform: translateX(-50%) scale(2.5); transform-origin: 50% 0; }   /* × the .8 zoom: 2 whole art pixels */
 .qchar[data-mood="meow"] .crown, .qchar[data-mood="cry"] .crown { top: 54px; }   /* on her head, for each pose */
 .qchar[data-mood="idle"] .crown { top: 58px; }
 .qchar[data-mood="box"] .crown { top: 40px; }
@@ -463,10 +468,15 @@ dialog.scene { width: min(800px, calc(100vw - 24px)); }
 .qchar.talking { animation: talk .5s steps(2) infinite; }
 @keyframes talk { 50% { translate: 0 -3px; } }
 .qchar .nameplate, .owner .nameplate { position: absolute; bottom: 4px; white-space: nowrap; }
-.qtalk { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 6px; padding: 8px 4px 10px; }
-.qtalk .homework { max-height: 46%; overflow: auto; }
-#queenThread { grid-row: 2; max-height: none; height: 100%; overflow: auto; display: flex; flex-direction: column; gap: 6px; padding: 0 2px; overscroll-behavior: contain; }
-#queenThread li { max-width: 86%; margin: 0; }
+/* her homework over the talk. Both columns are stated, never left to the content: an auto column grows to the
+   longest word in a bubble or a quiz, and the words then scroll sideways instead of wrapping. */
+/* her homework takes what a card needs and no more, down to a floor of talk under it: a flat share of the scene
+   cut the card off above its Hand it in on a short screen */
+.qtalk { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(calc(100% - 96px)) minmax(0, 1fr); gap: 6px; padding: 8px 4px 10px; }
+.qtalk .homework { min-width: 0; overflow: auto; }   /* the row is what caps her homework: max-height: 46% on it resolved against nothing, so homework took the lot and left the talk no height at all */
+#queenThread { grid-row: 2; min-width: 0; height: 100%; overflow-y: auto; overflow-x: clip; display: flex; flex-direction: column; gap: 6px; padding: 0 2px; overscroll-behavior: contain; }
+#queenThread li { max-width: min(86%, 460px); margin: 0; }   /* wide enough to read, narrow enough to stay a bubble */
+#queenThread li .open { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }   /* .btn is nowrap: a cat with a long name would run off the side, and clip has nothing to scroll */
 #queenThread li.me { align-self: flex-start; }
 #queenThread li.them { align-self: flex-end; }
 #queenThread li.handoff { align-self: center; max-width: 92%; }
@@ -479,8 +489,19 @@ dialog.scene { width: min(800px, calc(100vw - 24px)); }
 .qsettings .shead h3 { margin: 0; flex: 1; font: 36px/44px var(--pixel); }
 .ownerprev { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: end; }
 .ownerprev .pic { padding: 6px 8px 0; background: #7D8579 padding-box; border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; }
+/* a card this narrow has no width to spare for them: drawn smaller, they leave the words two thirds of the scene
+   instead of half. Without this step the talk is back to the strip this whole change is about. */
+@media (max-width: 780px) {
+  .owner, .qchar { zoom: .6; }
+  .qchar .crown { transform: translateX(-50%) scale(3.3333); }   /* × the .6 zoom: 2 whole art pixels again */
+}
 @media (max-width: 560px) {
-  .qstage { grid-template-columns: 64px minmax(0, 1fr) 76px; height: min(52vh, 420px); }
+  /* a phone is tall and narrow, so the two of them stand side by side along the foot of the scene and the
+     words take its whole width: flanking her they left a strip under 200 px wide */
+  .qstage { height: min(58vh, 520px); grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .qtalk { grid-area: 1 / 1; grid-template-rows: fit-content(calc(100% - 56px)) minmax(0, 1fr); }   /* a smaller floor: a phone has barely the height for a whole quiz card */
+  .owner, .qchar { grid-area: 2 / 1; zoom: 1; }
+  .qhead h2 { font: 18px/24px var(--pixel); }   /* the pack's font draws at 18 or 36: at 36 her name broke mid-word beside Settings and Close */
   .owner svg { width: 62px; }
   .qchar { width: 76px; height: 110px; }
   .qchar .spr { transform: translateX(-50%) scale(1.4); }
@@ -490,12 +511,13 @@ dialog.scene { width: min(800px, calc(100vw - 24px)); }
   .ownerprev { grid-template-columns: minmax(0, 1fr); justify-items: start; }
 }
 /* her homework: a quiz a blocked cat, answered by tapping */
-.homework { display: grid; gap: 8px; }
-.homework .quiz { display: grid; gap: 6px; padding: 4px 6px 6px; background: #DCE0D2 padding-box; border: 5px solid transparent; border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / 5px 5px 6px stretch; }
+.homework { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }   /* stated, so a long option can't widen the card and scroll her card sideways */
+.homework .quiz { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 4px 6px 6px; background: #DCE0D2 padding-box; border: 5px solid transparent; border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / 5px 5px 6px stretch; }
 .homework .quiz h3 { margin: 0; font: 18px/22px var(--pixel); }
-.homework .quiz fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 4px; }
+.homework .quiz fieldset { border: 0; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; }   /* a fieldset is min-content wide by default: without this one option sets the card's width */
 .homework .quiz legend { padding: 0; font-weight: 700; font-size: .9rem; }
 .homework .quiz .opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.homework .quiz .opts > * { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }   /* an option is a sentence, not a control: it wraps rather than running off the card */
 .homework .quiz .actions { margin-top: 2px; }
 /* a deck in her quest log: one litter box note or decision at a time, its text scrolling inside the card */
 .homework .card:focus:not(:focus-visible) { outline: 0; }
@@ -2355,7 +2377,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     dress();
 
     // ---- the talk, between them: her homework first, when she set some ----
-    const talk = el("div", "qtalk talk");
+    const talk = el("div", "qtalk");
     const hw = el("div", "homework"); hw.id = "queenHomework";
     // A redraw that would change nothing is skipped, so the forms never move under her fingers; one that must
     // happen puts her answers so far (DRAFTS) back.
