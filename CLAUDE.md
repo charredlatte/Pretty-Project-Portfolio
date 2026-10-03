@@ -284,7 +284,8 @@ The page now **writes** through Claude Code Remote, always on an explicit action
   page says it is waiting; the session's own catch-up (catio skill) finds them. Never bind a Routine
   (`create_trigger` with `persistent_session_id`, then `fire_trigger`): it starts a stray new session instead
   (tried 30 September).
-- **Talking**: `notes/<id>` `{cat, text, author: charlotte|session|agent, at, via}`; replies show live.
+- **Talking**: `notes/<id>` `{cat, text, author: owner|session|agent, at, via}` (`charlotte` in notes from before
+  accounts: the page reads both, writes `owner`); replies show live.
 - **Managing**: `set_session_title`, `interrupt_session`, `archive_session` (+ `delete_trigger`),
   `unarchive_session`, `create_session` (New cat, model from `rooms/<k>.model`).
 - **Agents, and the sessions that report**: the gateway through her `CATIO` connector (`GATEWAY` in the page),
