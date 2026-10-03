@@ -24,7 +24,8 @@
 // they stay one size on screen at any zoom. That is deliberate — CLAUDE.md says the brackets "stay one
 // size on screen at any zoom" — and it is what `scales_with_u` carries.
 //
-// DRAFT: declarations only. Nothing here is implemented yet.
+// Implemented in src/draw.cpp -- all but Pixel and Body, the fonts, which arrive with SDL_ttf when
+// there is text to draw. The coats match Chromium's own rendering of COATS byte for byte.
 
 #ifndef CATIO_DRAW_H
 #define CATIO_DRAW_H
@@ -82,7 +83,9 @@ struct Ctx {
 
 /// A missing texture draws nothing and is not an error: the house fills in as the fetches land.
 void panel(const Ctx& c, const Panel& p, Rect dst);
-void cell(const Ctx& c, art::Id id, Rect src, Rect dst);
+/// A cut of one sheet. A coat above 0 draws the sheet in that coat: COATS' CSS filters, ported as the
+/// colour matrices the Filter Effects spec defines, applied once into a cached copy.
+void cell(const Ctx& c, art::Id id, Rect src, Rect dst, int coat = 0);
 /// One frame of a sprite strip, chosen from the clock. Cats animate; with reduced motion they do not.
 void strip(const Ctx& c, art::Id id, Rect frame0, int frames, double now, double seconds, Rect dst);
 void fill(const Ctx& c, Rect dst, Colour col);
