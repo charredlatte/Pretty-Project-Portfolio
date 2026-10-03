@@ -205,3 +205,5 @@ The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.
 - **No lifetime seat** (3 October): "Instead of relying on a lifetime guarantee sale, maybe there could be an in between
   and I could set myself up on Kickstarter or buy me a coffee." The pricing's third column is Support: a coffee page and a
   campaign to fund the app.
+- **A Basic plan** (3 October): "without the automatic litter box (quiz and easy unblocking handling)", up to 5 repos,
+  and a cap on the calls to the MCP. Between Free and Early access.
