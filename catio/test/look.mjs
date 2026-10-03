@@ -56,6 +56,7 @@ for (const name of names) {
       window.__catio.put("graphs/intermarche-grocery-shopping-app", { repo: "example/Intermarche-grocery-shopping-app", at: Date.now() - 36e5, nodes: 64, edges: 98, communities: 4, gods: [{ label: "Basket", degree: 11, file: "src/basket.js" }], groups: [{ name: "Basket", size: 20 }, { name: "Menus", size: 18 }, { name: "Drive", size: 9 }], surprises: [], questions: ["Where does the basket get its prices?"], map: map("B") });
     });
     await page.waitForTimeout(300);
+    await page.evaluate(() => { for (const d of document.querySelectorAll("dialog[open]")) d.close(); });   // a look before it may have left one open
     await page.click("#houseBtn");
     await page.locator("#menu .mi", { hasText: "Project maps" }).click();
     await page.waitForTimeout(500);

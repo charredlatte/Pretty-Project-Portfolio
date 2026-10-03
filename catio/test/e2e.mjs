@@ -307,6 +307,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     map: { n: [{ t: "Basket", g: 0, d: 11, x: 150, y: 80 }, { t: "Menus", g: 1, d: 4, x: 60, y: 40 }], l: [0, 1] } }));
   const maps = () => page.locator("#mapsDlg .mapcard").evaluateAll((cs) => cs.map((c) => c.dataset.map));
   const mapTool = (id, label) => page.locator('#mapsDlg .mapcard[data-map="' + id + '"] button[aria-label^="' + label + ':"]');
+  const manageMaps = () => page.evaluate(() => { for (const d of document.querySelectorAll("#mapsDlg .manage-tools:not([open])")) d.querySelector("summary").click(); });   // Manage folds each card's tools
   await page.click("#houseBtn");
   await page.locator("#menu .mi", { hasText: "Project maps" }).click();   // its name carries the count: "Project maps, 2"
   await settle(page);
@@ -315,6 +316,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(await page.locator('#mapsDlg .mapcard[data-map="montfortoise-shopify"] .gart svg rect').count() === 3, "the map isn't drawn");
     expect((await page.locator("#mapsDlg").innerText()).includes("Where does the basket get its prices?"), "no questions");
   });
+  await manageMaps();
   await mapTool("intermarche-grocery-shopping-app", "Pin").click();
   await settle(page);
   await mapTool("montfortoise-shopify", "Wide").click();
