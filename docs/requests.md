@@ -214,3 +214,13 @@ The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.
 - **Open source, with a paywall on the hosted café and the art** (3 October): the gateway's code "is open source for
   anyone with GitHub to use" (AGPL-3.0, her choice); "certain features should stay behind the paywall like certain
   breeds of cats (or all custom assets)"; the Buy Me a Coffee and Ulule links in the README, to help with crowdfunding.
+
+## The queen's quest log (3 October)
+
+- **"Where do I take the litter box quiz in the cafe UI?"** Nowhere yet: it was a page of its own. Then: **"Re work the
+  workflow using the UI game skill and all of my previous chats about my vision for the layout of the cafe UI."** Her
+  Game UI skill wasn't in the session or her Drive, so its recorded rules were used (quiet map, never colour alone, short
+  menus) with her layout decisions (no signs, nothing on the cats, two controls on screen, every menu the same shape).
+- **Asked, she chose:** the queen keeps one quest log of everything waiting on her (quizzes that unblock cats, litter box
+  notes to sort, decisions), like an NPC quest giver; the litter box is a piece on the map with no sign that opens the
+  same list at its notes; the two quiz pages are retired; the cards live in her gateway, so both cafés read them.

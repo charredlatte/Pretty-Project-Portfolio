@@ -65,7 +65,7 @@ function step(n, title, content, nextLabel = "Next") {
 screen("Layout: the shell", false);
 
 // 2. Welcome.
-{ const c = col(12); c.appendChild(text("Every Claude Code session becomes a cat in a house. Give the house a name.", 14, REG, INK, 560));
+{ const c = col(12); c.appendChild(text("All your Claude chats, in one cozy café. Each chat becomes a cat, each project a room. Give the café a name.", 14, REG, INK, 560));
   c.appendChild(text("Name your café", 12, BOLD, GREY)); c.appendChild(field("KittyChat Café", 400)); step(1, "Welcome", c); }
 
 // 3. Rooms.
@@ -105,11 +105,11 @@ screen("Layout: the shell", false);
 
 // 7. How it works.
 { const c = col(10);
-  for (const l of [["Sessions are cats.", "The café asks Claude who's awake. Each one walks into its repository's room."],
-    ["House rules are locks, not reminders.", "Small programs Claude Code runs on its own: no edits before the opening check, no pushing straight to main. Claude can't talk its way past them."],
-    ["Skills are training.", "Written instructions a cat reads when they apply, like catching up on what you sent."],
-    ["Messages wait on the mat.", "The café can't wake a session. What you send is kept, and picked up when the cat next looks."],
-    ["The litter box holds loose ends.", "Notes and held pull requests wait there until you check them."]]) {
+  for (const l of [["Chats are cats.", "Each Claude chat or coding session walks into the room of its project."],
+    ["The café asks who's awake.", "Each cat shows what its chat is doing: working, finished, or stuck and needs you. The badge beside the café's name counts who needs you."],
+    ["Some rules can't be talked around.", "Small checks run on their own before a cat may change or publish anything. Claude can't skip them."],
+    ["Messages wait on the mat.", "The café can't wake a cat. What you send is kept, and the cat picks it up the next time it checks in."],
+    ["The queen and the litter box.", "The queen keeps what matters and tells you what the cats are up to. Loose notes and held pull requests wait in the litter box until you check them."]]) {
     const li = col(2, "rule"); li.appendChild(text(l[0], 14, BOLD)); li.appendChild(text(l[1], 13, REG, GREY, 560)); c.appendChild(li); }
   step(6, "How it works", c); }
 
