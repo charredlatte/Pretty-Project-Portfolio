@@ -248,10 +248,12 @@ that inflates "3 need you" makes the sign a liar.
   them the hall's own floor from `house.png`, in the pack's picture frame. **The words come first**
   ("make this window useable", 3 October): the two of them are drawn small enough to leave the thread most of the
   scene's width (`zoom` on `.owner` and `.qchar`, in steps, each with a crown scale that lands on whole art pixels),
-  and on a phone they stand side by side along the foot of the scene with the thread across the whole of it (the
-  scene's own columns are `auto`, so the two of them take only what they are drawn at). The column the thread and
+  the scene's own columns are `auto`, so the two of them take only what they are drawn at, and on a phone they
+  stand side by side along the foot of the scene with the thread across the whole of it. The column the thread and
   her homework sit in is stated, never left to the content, and every button in them wraps: an `auto` column there
-  grows to the longest word in a bubble or a quiz, and then her words scroll off the side.
+  grows to the longest word in a bubble or a quiz, and then her words scroll off the side. The card is as tall as
+  the window allows and the scene takes what the head and the saybar leave, so Send is never pushed off a short
+  screen; a quiz taller than the scene scrolls, with a bubble's worth of talk kept under it.
   **Every setting is in an overlay**
   (`#queenSettings`, Settings in the card's head, "Back to her" to leave): her voice switch and voice, What she keeps,
   Her character, Routines, and You. On the map she is as before: hovering names her, a click opens her menu. `speak()` is the browser's `speechSynthesis`

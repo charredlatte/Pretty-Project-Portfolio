@@ -436,7 +436,10 @@ ul.thread li.handoff.new .who::after { content: " · new"; color: var(--ink); }
    The words get as much of the scene as the two of them leave: the gap between them used to be a column a third of
    the card wide, with her answers running off the side of it ("make this window useable", 3 October). */
 dialog.scene { width: min(920px, calc(100vw - 24px)); }
-.dlg.queen { position: relative; }
+/* the card takes the height it is given and the scene takes what the head and the saybar leave: a share of the
+   window (62vh and the like) fits one window and spills out of a short one, pushing Send off the bottom */
+.dlg.queen { position: relative; display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
+  height: min(calc(100dvh - 40px - 16 * var(--u)), 760px); }   /* the card's own cap, less the panel the dialog draws round it: 6 var(--u) of border and 2 of padding, each side */
 .qhead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: start; }
 .qhead h2 { display: flex; align-items: center; gap: 10px; }
 .qhead h2 .crown { position: static; flex: none; transform: scale(2); margin: 0 6px; }
@@ -444,7 +447,7 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 .qhead .note { grid-column: 1 / -1; }
 /* they take only as much width as they are drawn at, and the talk has the rest: the fixed 168 and 160 px columns
    left the words a strip too narrow to read on her screen */
-.qstage { position: relative; height: min(62vh, 520px); min-height: 300px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+.qstage { position: relative; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
   overflow: hidden; image-rendering: pixelated; background: #7D8579 url(art/licensed/house.png) no-repeat; background-size: 3840px 2304px;
   background-position: -1120px -1010px; border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; }
 .qstage::before { content: ""; position: absolute; inset: 0; background: rgba(28, 22, 16, .3); pointer-events: none; }
@@ -452,8 +455,9 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 .qstage > * { position: relative; min-width: 0; min-height: 0; }
 /* zoom, not a transform: it scales the figure's own pixel offsets too, so the crown stays on her head. A step
    narrower than this only changes --fz; the crown's own scale is derived from it, so it is always drawn on two
-   whole art pixels rather than a fraction of one, which blurs the pack's art. (The cat sheet keeps the scales it
-   was tuned at, 2.6 and 5, which were never whole either.) */
+   whole art pixels rather than a fraction of one, which blurs the pack's art. That holds its size as she shrinks,
+   so she wears it a little larger at the narrow steps: the whole numbers either side, 1 and 3, are further off.
+   (The cat sheet keeps the scales it was tuned at, 2.6 and 5, which were never whole either.) */
 .owner, .qchar { --fz: .8; zoom: var(--fz); }
 .owner { align-self: end; justify-self: start; margin: 0 0 -2px 4px; }
 .owner svg { display: block; width: 150px; height: auto; }
@@ -468,13 +472,12 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 .qchar[data-mood="sleep"] .crown { top: 104px; left: 34%; }
 .qchar.talking { animation: talk .5s steps(2) infinite; }
 @keyframes talk { 50% { translate: 0 -3px; } }
-.qchar .nameplate, .owner .nameplate { position: absolute; bottom: 4px; white-space: nowrap; }
 /* her homework over the talk, taking what a card needs and no more, down to a floor of talk under it: a flat share
    of the scene cut the card off above its Hand it in on a short screen. The column is stated, never left to the
    content: an auto column grows to the longest word in a bubble or a quiz, and her words then scroll sideways. */
 .qtalk { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(calc(100% - 96px)) minmax(0, 1fr); gap: 6px; padding: 8px 4px 10px; }
 .qtalk .homework { min-width: 0; overflow: auto; }   /* the row is what caps her homework: max-height: 46% on it resolved against nothing, so homework took the lot and left the talk no height at all */
-#queenThread { grid-row: 2; min-width: 0; height: 100%; overflow-y: auto; overflow-x: clip; display: flex; flex-direction: column; gap: 6px; padding: 0 2px; overscroll-behavior: contain; }
+#queenThread { grid-row: 2; min-width: 0; height: 100%; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 6px; padding: 0 2px; overscroll-behavior: contain; }
 #queenThread li { max-width: min(86%, 460px); margin: 0; }   /* wide enough to read, narrow enough to stay a bubble */
 #queenThread li .open { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }   /* .btn is nowrap: a cat with a long name would run off the side, and clip has nothing to scroll */
 #queenThread li.me { align-self: flex-start; }
@@ -498,7 +501,7 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
   /* a phone is tall and narrow, so the two of them stand side by side along the foot of the scene and the
      words take its whole width: flanking her they left a strip under 200 px wide */
   /* dvh, like the card's own cap: with vh the card outgrew a short phone, and Speak and Send went under the fold */
-  .qstage { height: min(50dvh, 480px); min-height: 200px; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .qstage { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
   .qtalk { grid-area: 1 / 1; }
   .owner, .qchar { grid-area: 2 / 1; --fz: 1; }
   .qhead h2 { font: 18px/24px var(--pixel); }   /* the pack's font draws at 18 or 36: at 36 her name broke mid-word beside Settings and Close */

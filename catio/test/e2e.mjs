@@ -801,10 +801,19 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     try {
       for (const [w, least] of [[1440, .6], [900, .6], [811, .6], [700, .6], [600, .55], [561, .55]]) {
         await page.setViewportSize({ width: w, height: 900 });
-        await page.locator("#queenDlg").evaluate((d, w) => new Promise((ok) => {   // the card has taken the new width, rather than a guess at how long that takes
-          const seen = () => d.getBoundingClientRect().width <= w - 24 + 1 && requestAnimationFrame(() => ok());
-          (function wait() { seen() || requestAnimationFrame(wait); })();
-        }), w);
+        // wait for the card's width to settle, rather than guessing how long the relayout takes
+        await page.locator("#queenDlg").evaluate((d) => new Promise((ok, no) => {
+          const until = Date.now() + 5000;
+          let last = -1, same = 0;
+          (function wait() {
+            const w = Math.round(d.getBoundingClientRect().width);
+            same = w === last ? same + 1 : 0;
+            last = w;
+            if (same >= 2) return ok();
+            if (Date.now() > until) return no(new Error("the card's width never settled, last " + w));
+            requestAnimationFrame(wait);
+          })();
+        }));
         const s = await page.locator("#queenThread").evaluate((u) => ({ over: u.scrollWidth - u.clientWidth, w: u.clientWidth }));
         expect(s.over <= 0, "at " + w + " her words scroll sideways: " + JSON.stringify(s));
         const stage = await page.locator(".qstage").evaluate((e) => e.clientWidth);   // inside the frame: what there is to share
@@ -1530,10 +1539,11 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   const { page, ctx, errors } = await open("?via=gateway&mode=blocked", { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   await page.locator("#cats .cat.queen").dispatchEvent("dblclick");
   await settle(page);
+  const fits = () => page.locator("#queenDlg").evaluate((d) => d.scrollHeight - d.clientHeight);
   await check("on a phone her card fits the screen, the two of them at its foot and the words across the whole scene", async () => {
-    const dlg = page.locator("#queenDlg");
-    expect(await dlg.evaluate((d) => d.scrollHeight - d.clientHeight) <= 1, "her card is taller than the screen: " + await dlg.evaluate((d) => d.scrollHeight - d.clientHeight));
-    expect(await page.locator("#queenSay").evaluate((s) => s.getBoundingClientRect().bottom <= innerHeight + 1), "Send is under the fold");
+    const over = await fits();
+    expect(over <= 1, "her card is taller than the screen by " + over);
+    expect(await page.locator("#queenSend").evaluate((s) => s.getBoundingClientRect().bottom <= innerHeight + 1), "Send is under the fold");
     const you = await page.locator("#queenOwnerFig").boundingBox(), her = await page.locator("#queenFig").boundingBox(), talk = await page.locator("#queenThread").boundingBox();
     expect(you.x + you.width <= her.x + 2, "they aren't side by side: " + JSON.stringify({ you, her }));
     expect(talk.y + talk.height <= you.y + 2, "the words aren't above them: " + JSON.stringify({ talk, you }));
@@ -1543,11 +1553,16 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   await T(page, () => window.__catio.setQuiz({ for: "cse_blocked1", title: "Unblock Caramel", questions: [{ q: "Which project is this one for?", options: ["montfortoise-shopify", "Pretty-Project-Portfolio"] }] }));
   await page.waitForTimeout(500);
-  await check("on a phone her homework still leaves the talk room under it, inside the screen", async () => {
+  // a quiz taller than a phone's scene has to scroll; what must hold is that the talk keeps a bubble's worth of
+  // room under it, and that what doesn't fit can be reached rather than being cut off
+  await check("on a phone her homework leaves the talk room under it, and what doesn't fit can be scrolled to", async () => {
     expect(await page.locator("#queenHomework .quiz").count() > 0, "no homework drawn");
     const h = await page.locator("#queenThread").evaluate((u) => u.clientHeight);
     expect(h > 80, "her homework left the talk no height: " + h);
-    expect(await page.locator("#queenDlg").evaluate((d) => d.scrollHeight - d.clientHeight) <= 1, "her card grew past the screen with homework open");
+    const hw = await page.locator("#queenHomework").evaluate((e) => ({ over: e.scrollHeight - e.clientHeight, canScroll: getComputedStyle(e).overflowY !== "hidden" && getComputedStyle(e).overflowY !== "clip" }));
+    expect(!hw.over || hw.canScroll, "her homework is cut off with no way to scroll to the rest: " + JSON.stringify(hw));
+    const over = await fits();
+    expect(over <= 1, "her card grew past the screen with homework open, by " + over);
   });
   await check("no page errors in her card on a phone", async () => expect(errors.length === 0, errors.join("; ")));
   await ctx.close();
