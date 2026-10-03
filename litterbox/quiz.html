@@ -8,6 +8,8 @@
    answered notes with litterbox/quiz.py and sort.py. The look is the KittyChat Café's: Cup Nooble's Sprout Lands
    panels and buttons (art/licensed/ui/, copied from the café's published files), its pixel font at 18px, on the
    café's meadow. Without the art, each piece's own face colour keeps it readable.
+   A deck may describe itself in meta/deck (its words) and give each card its own options: then the cards are
+   anything with choices, such as the decisions waiting on her, and the back shows Claude's recommendation.
    Layout: one column on the meadow, a flashcard over a two-by-two grid of answers. */
 @font-face { font-family: "Sprout"; src: url(art/licensed/ui/sprout.ttf) format("truetype"); font-display: swap; }
 :root {
@@ -133,7 +135,7 @@ button { font: inherit; color: inherit; cursor: var(--point); }
 
 <div class="wrap">
   <header class="top">
-    <span class="brand btn px" role="img" aria-label="Litter box quiz"><span class="logo" aria-hidden="true"></span>LITTER BOX QUIZ</span>
+    <span class="brand btn px" role="img" aria-label="Litter box quiz" id="brand"><span class="logo" aria-hidden="true"></span><span id="brandName">LITTER BOX QUIZ</span></span>
     <span class="count" id="count" aria-live="polite"></span>
   </header>
   <div class="strip" id="strip" aria-hidden="true"></div>
@@ -145,7 +147,7 @@ button { font: inherit; color: inherit; cursor: var(--point); }
 
   <section class="panel sheet" id="vEmpty" hidden>
     <h1>NOTHING TO SORT</h1>
-    <p>No pile is waiting for your check. When Claude sifts new notes and can only guess their project, they show up here as cards.</p>
+    <p id="emptyWhy">No pile is waiting for your check. When Claude sifts new notes and can only guess their project, they show up here as cards.</p>
   </section>
 
   <section id="vQuiz" hidden>
@@ -158,7 +160,7 @@ button { font: inherit; color: inherit; cursor: var(--point); }
             <button class="btn peek" id="peek" type="button">PEEK AT THE GUESS <span class="k">␣</span></button>
           </article>
           <article class="face back panel" id="back" aria-label="The sifter's guess" aria-hidden="true">
-            <div class="label">THE SIFTER GUESSED</div>
+            <div class="label" id="backLabel">THE SIFTER GUESSED</div>
             <div class="guess" id="guess"></div>
             <div class="repo" id="guessRepo"></div>
             <hr class="rule">
@@ -203,8 +205,8 @@ button { font: inherit; color: inherit; cursor: var(--point); }
   </section>
 
   <footer class="foot">
-    <div><kbd>1</kbd>–<kbd>4</kbd> choose · <kbd>0</kbd> every project · <kbd>D</kbd> settled · <kbd>S</kbd> skip · <kbd>␣</kbd> peek · <kbd>←</kbd> back</div>
-    <div>Your answers are saved as you go. Claude files the notes into each project's own repo when you ask. Interface by Cup Nooble (Sprout Lands UI) · Logo by ToffeeCraft.</div>
+    <div><kbd>1</kbd>–<kbd>4</kbd> choose · <kbd>0</kbd> <span id="footNone">every project</span> · <kbd>D</kbd> <span id="footDrop">settled</span> · <kbd>S</kbd> skip · <kbd>␣</kbd> peek · <kbd>←</kbd> back</div>
+    <div><span id="foot">Your answers are saved as you go. Claude files the notes into each project's own repo when you ask.</span> Interface by Cup Nooble (Sprout Lands UI) · Logo by ToffeeCraft.</div>
   </footer>
 </div>
 
@@ -214,7 +216,7 @@ button { font: inherit; color: inherit; cursor: var(--point); }
   const S = {
     db: null, state: "loading",          // loading | none | ok
     got: { cards: false, answers: false },
-    cards: [], answers: {}, projects: [],
+    cards: [], answers: {}, projects: [], deck: {},
     round: [], i: 0, flipped: false, more: false, busy: false, timer: 0, readOnly: false, note: "",
   };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -248,16 +250,33 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     return t.length > 110 ? t.slice(0, 108) + "…" : t;
   };
 
+  /* ---------- the deck's words: the litter box's unless meta/deck says otherwise ---------- */
+  const WORDS = {
+    title: "Litter box quiz", ask: "WHICH PROJECT IS THIS FOR?", peek: "PEEK AT THE GUESS", back: "THE SIFTER GUESSED",
+    noGuess: "No guess", drop: "SETTLED: DROP IT", dropped: "SETTLED", droppedTally: "Settled, dropped",
+    droppedSaid: "Settled. It leaves the box when Claude files your answers.", same: "Same as the sifter's guess.",
+    differs: "The sifter guessed {guess}. Your answer wins.", src: "The note came from {from}.",
+    tell: "File my litter box quiz answers.",
+    done: "Every card has an answer, saved as you went. Nothing is filed until you tell Claude.",
+    footNone: "every project", footDrop: "settled", foot: "Your answers are saved as you go. Claude files the notes into each project's own repo when you ask.",
+    empty: "No pile is waiting for your check. When Claude sifts new notes and can only guess their project, they show up here as cards.",
+  };
+  const D = (k) => (S.deck && typeof S.deck[k] === "string" ? S.deck[k] : WORDS[k]);
+
   /* ---------- projects and the four answers a card offers ---------- */
-  function project(repo) {
+  function project(repo, c) {   // a card's own option first, then the project list
+    const o = c && c.options && c.options.find((x) => x.key === repo);
+    if (o) return { repo: o.key, label: o.label || o.key, sub: o.why || "", words: [] };
     return S.projects.find((p) => p.repo === repo) || { repo, label: repo, words: [] };
   }
-  function projectList() {
+  function projectList(c) {
+    if (c && c.options) return c.options.map((o) => project(o.key, c));
     const list = S.projects.slice();
     for (const c of S.cards) if (c.guess && !list.some((p) => p.repo === c.guess)) list.push(project(c.guess));
     return list;
   }
   function optionsFor(c) {
+    if (c.options) return projectList(c).slice(0, 4);   // the card's own choices, in its order
     const text = (c.text + " " + (c.title || "")).toLowerCase();
     const scored = projectList().map((p, k) => ({
       p, k, s: (p.repo === c.guess ? 100 : 0) + (p.words || []).filter((w) => text.includes(String(w).toLowerCase())).length,
@@ -326,9 +345,9 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     if (S.note) return S.note;
     const a = c && S.answers[c.id];
     if (!a) return "";
-    if (a.verdict === "drop") return "Settled. It leaves the box when Claude files your answers.";
-    if (a.project === c.guess) return "Same as the sifter's guess.";
-    return "The sifter guessed " + project(c.guess).label + ". Your answer wins.";
+    if (a.verdict === "drop") return D("droppedSaid");
+    if (a.project === c.guess) return D("same");
+    return D("differs").replace("{guess}", project(c.guess, c).label);
   }
   function strip() {
     $("strip").replaceChildren(...S.round.map((id, k) => {
@@ -345,8 +364,7 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     b.dataset.repo = p.repo;
     if (a && a.verdict === "file" && a.project === p.repo) b.classList.add("green");
     else if (a && a.verdict === "file" && p.repo === c.guess) b.classList.add("was");
-    b.innerHTML = (key ? '<span class="key">' + key + "</span>" : "") + '<span class="name"><span>' + esc(p.label.toUpperCase()) + '</span><span class="repo">' + esc(p.repo) + "</span></span>" +
-    b.innerHTML = (key ? '<span class="key">' + key + "</span>" : "") + '<span class="name"><span>' + esc((p.label || p.repo).toUpperCase()) + '</span><span class="repo">' + esc(p.repo) + "</span></span>" +
+    b.innerHTML = (key ? '<span class="key">' + key + "</span>" : "") + '<span class="name"><span>' + esc((p.label || p.repo).toUpperCase()) + '</span><span class="repo">' + esc(p.sub !== undefined ? p.sub : p.repo) + "</span></span>" +
       (b.classList.contains("was") ? '<span class="was-tag">GUESS</span>' : "");
     b.setAttribute("aria-pressed", String(b.classList.contains("green")));
     b.disabled = S.readOnly;
@@ -366,10 +384,13 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     $("section").textContent = (c.section || "Findings").toUpperCase();
     $("section").hidden = !c.section;
     $("note").innerHTML = md(c.text);
-    const g = project(c.guess);
-    $("guess").textContent = (g.label || "No guess").toUpperCase();
-    $("guessRepo").textContent = c.guess ? "Pile: litterbox/" + (c.pile || c.guess + ".md") : "";
-    $("src").textContent = c.from ? "The note came from " + c.from + "." : "";
+    $("ask").textContent = D("ask");
+    $("backLabel").textContent = D("back");
+    $("peek").innerHTML = esc(D("peek")) + ' <span class="k">␣</span>';
+    const g = project(c.guess, c);
+    $("guess").textContent = (c.guess ? g.label : D("noGuess")).toUpperCase();
+    $("guessRepo").textContent = c.why ? c.why : c.guess && !c.options ? "Pile: litterbox/" + (c.pile || c.guess + ".md") : "";
+    $("src").textContent = c.from ? D("src").replace("{from}", c.from) : "";
     $("card").classList.toggle("flipped", S.flipped);
     $("front").setAttribute("aria-hidden", String(S.flipped));
     $("back").setAttribute("aria-hidden", String(!S.flipped));
@@ -383,10 +404,11 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     if (chosenElsewhere) S.more = true;
     $("all").hidden = !S.more;
     $("none").setAttribute("aria-expanded", String(S.more));
-    if (S.more) $("allList").replaceChildren(...projectList().map((p) => choiceButton(p, "", c)));
+    if (S.more) $("allList").replaceChildren(...projectList(c).map((p) => choiceButton(p, "", c)));
     $("drop").disabled = $("none").disabled = S.readOnly;
+    $("none").hidden = !!(c.options && c.options.length <= 4);   // the grid already shows every choice
     $("drop").setAttribute("aria-pressed", String(!!a && a.verdict === "drop"));
-    $("drop").textContent = a && a.verdict === "drop" ? "SETTLED ✓" : "SETTLED: DROP IT ";
+    $("drop").textContent = a && a.verdict === "drop" ? D("dropped") + " ✓" : D("drop") + " ";
     if (!(a && a.verdict === "drop")) $("drop").insertAdjacentHTML("beforeend", '<span class="k">D</span>');
     $("prev").disabled = S.i === 0;
     $("said").textContent = said(c);
@@ -400,11 +422,11 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     $("doneTitle").textContent = left ? "ROUND OVER" : "ALL SORTED";
     $("doneSub").textContent = left
       ? left + (left === 1 ? " card is" : " cards are") + " still waiting. Your other answers are saved."
-      : "Every card has an answer, saved as you went. Nothing is filed until you tell Claude.";
+      : D("done");
     const counts = new Map();
     for (const c of done) {
       const a = S.answers[c.id];
-      const k = a.verdict === "drop" ? "Settled, dropped" : project(a.project).label;
+      const k = a.verdict === "drop" ? D("droppedTally") : project(a.project, c).label;
       counts.set(k, (counts.get(k) || 0) + 1);
     }
     if (left) counts.set("Not answered yet", left);
@@ -415,10 +437,11 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     }));
     $("recap").replaceChildren(...S.cards.map((c) => {
       const a = S.answers[c.id], li = document.createElement("li");
-      const to = !a ? "NOT YET" : a.verdict === "drop" ? "SETTLED" : project(a.project).label.toUpperCase();
+      const to = !a ? "NOT YET" : a.verdict === "drop" ? D("dropped") : project(a.project, c).label.toUpperCase();
       li.innerHTML = '<span class="what">' + esc(gist(c.text)) + '</span><span class="to ' + (a ? a.verdict : "") + '">' + esc(to) + "</span>";
       return li;
     }));
+    $("tellText").textContent = D("tell");
     $("rest").hidden = !left;
     if (moved) $("doneTitle").focus({ preventScroll: true });
   }
@@ -479,6 +502,12 @@ button { font: inherit; color: inherit; cursor: var(--point); }
       paint(false);
     }, fail);
     db.doc("meta/projects").onSnapshot((d) => { S.projects = (d.exists && d.data().list) || []; paint(false); }, fail);
+    db.doc("meta/deck").onSnapshot((d) => {   // another deck in the same page: its words
+      S.deck = (d.exists && d.data()) || {};
+      document.title = D("title"); $("brandName").textContent = D("title").toUpperCase(); $("brand").setAttribute("aria-label", D("title"));
+      for (const k of ["emptyWhy", "footNone", "footDrop", "foot"]) $(k).textContent = D(k === "emptyWhy" ? "empty" : k);
+      paint(false);
+    }, fail);
   }
   paint(false);
   start();

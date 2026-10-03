@@ -195,6 +195,9 @@ questions. Closed rooms are dimmed, queenless and get no cats. CLAUDE.md, "Onboa
 
 ## Waiting on Charlotte
 
+The decisions below are dealt as cards in the decisions quiz (`decisions-quiz` in `artifacts.json`): answer them there
+and say "File my decisions." The small facts (who made `plants.zip`) stay here.
+
 1. **The gateway is set up** (2 October): the Worker, both secrets, `CATIO_URL` and `CATIO_TOKEN` in her
    environment, the setup script that installs the plugin, and the connector, signed in. A session reported
    through the hook and showed in `list_agents`, once PR #26 gave the hook its own User-Agent (Cloudflare refuses
