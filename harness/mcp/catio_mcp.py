@@ -251,6 +251,7 @@ def manage(args):
 
 
 QUIZ_MAX = 5
+QUIZ_KINDS = ("unblock", "litterbox", "decision")   # unblocking a cat, sorting a litter box note, a decision waiting on her
 
 
 def _quiz_of(args):
@@ -264,26 +265,55 @@ def _quiz_of(args):
         text = str(q.get("q") or q.get("question") or "").strip()[:300]
         if not text:
             raise ValueError("every question needs its q")
-        options = [str(o).strip()[:300] for o in (q.get("options") if isinstance(q.get("options"), list) else [])][:6]
-        options = [o for o in options if o]
+        options = [str(o).strip()[:300] for o in (q.get("options") if isinstance(q.get("options"), list) else [])]
+        options = [o for o in options if o][:12]
         out.append({"q": text, "options": options, "free": q.get("free") is True or not options})
     return str(args["title"]).strip()[:120], out
 
 
 def quiz(args):
-    """Homework the queen (or Charlotte) sets for Charlotte: a quiz whose answers unblock a cat."""
+    """Homework the queen (or Charlotte) sets for Charlotte, a card in her quest log (as the gateway's quiz)."""
     title, questions = _quiz_of(args)
-    rec = {"id": new_id(), "for": str(args.get("for") or "")[:200], "title": title, "questions": questions,
+    if args.get("kind") and args["kind"] not in QUIZ_KINDS:
+        raise ValueError("kind is unblock, litterbox or decision")
+    kind = args.get("kind") or "unblock"
+    if kind != "unblock" and (len(questions) != 1 or len(questions[0]["options"]) < 2):
+        raise ValueError("a %s card is one question with 2 to 12 options" % kind)
+    clip = lambda k, n: str(args.get(k) or "")[:n]
+    ref = re.sub(r"[^A-Za-z0-9_-]", "", clip("ref", 80))
+    rec = {"id": kind + "-" + ref if ref else new_id(), "for": clip("for", 200), "kind": kind, "title": title, "questions": questions,
+           "note": clip("note", 4000), "from": clip("from", 200), "hint": clip("hint", 300),
            "by": "owner" if args.get("by") in ("owner", "charlotte") else "queen", "at": now(), "status": "set"}
     with LOCK:
         s = load()
-        s.setdefault("quizzes", []).append(rec)
+        qs = s.setdefault("quizzes", [])
+        old = next((q for q in qs if q["id"] == rec["id"]), None)
+        if old and old.get("status") == "done":   # dealt again after she answered: her answer stands
+            return {"id": rec["id"], "done": True}
+        if old:   # dealt again while open: it keeps its place in the deck
+            rec["at"] = old.get("at", rec["at"])
+            qs[qs.index(old)] = rec
+        else:
+            qs.append(rec)
         store(s)
     return {"id": rec["id"]}
 
 
 def quizzes(args):
-    return {"quizzes": [q for q in load().get("quizzes", []) if args.get("done") is True or q.get("status") != "done"]}
+    return {"quizzes": [q for q in load().get("quizzes", []) if (args.get("done") is True or q.get("status") != "done")
+                        and (not args.get("kind") or q.get("kind", "unblock") == args["kind"])]}
+
+
+def forget(args):
+    """The cards already filed, cleared by id."""
+    ids = {str(i) for i in args.get("quizzes") or []}
+    with LOCK:
+        s = load()
+        before = len(s.get("quizzes", []))
+        s["quizzes"] = [q for q in s.get("quizzes", []) if q["id"] not in ids
+                        or (q.get("kind", "unblock") == "unblock" and q.get("status") != "done")]   # a cat still waits on it
+        store(s)
+    return {"forgotten": before - len(s["quizzes"])}
 
 
 def answer(args):
@@ -302,6 +332,8 @@ def answer(args):
             raise ValueError("answers is one answer per question, in order")
         q.update(status="done", answers=given, answeredAt=now())
         store(s)
+        if q.get("kind", "unblock") != "unblock":   # a card is kept for filing, not told
+            return {"ok": True, "told": False}
         told = bool(q["for"]) and q["for"] in s["agents"]
     text = "Homework handed in: " + q["title"] + "\n" + "\n".join("%d. %s \u2192 %s" % (i + 1, x["q"], given[i]) for i, x in enumerate(q["questions"]))
     if told:
@@ -402,6 +434,7 @@ def decide(args):
 
 
 S = {"type": "string"}
+KIND = {"type": "string", "enum": list(QUIZ_KINDS)}
 TOOLS = {
     "house_rules": (house_rules, "The KittyChat house rules every agent in the Catio follows. Read them when you start.", {}, []),
     "report_status": (report_status, "Join the Catio as a cat, or update your cat: what you're working on and whether you need the owner. "
@@ -425,13 +458,19 @@ TOOLS = {
     "manage": (manage, "Manage an agent's cat: rename, move (room key), archive, unarchive, pause, resume, wrap_up, message, done (clear a request).",
                {"cat": S, "action": {"type": "string", "enum": ["rename", "move", "archive", "unarchive", "pause", "resume", "wrap_up", "message", "done"]}, "value": S},
                ["cat", "action"]),
-    "quiz": (quiz, "Set the owner homework (the queen, or the owner): a short quiz whose answers unblock a cat. One quiz per cat, 1 to 5 "
-             "questions, each with 2 to 6 concrete options to pick, or free for a written answer. The owner answers in the café; the "
-             "cat gets the answers as the owner's words, and the queen is told.",
+    "quiz": (quiz, "Set the owner homework (the queen, or the owner): a card in the queen's quest log. kind unblock (the default): a short quiz "
+             "whose answers unblock a cat, one per cat, 1 to 5 questions, each with up to 12 concrete options to pick, or free for a "
+             "written answer; the cat gets the answers as the owner's words, and the queen is told. kind litterbox (a sifted note: which project "
+             "is it for?) or decision (one decision waiting on the owner): one question, the card's text in note, where it came from in from, "
+             "the guess or recommendation in hint; the answer is only kept, for filing. With ref, the card is dealt once: dealing it "
+             "again replaces it while open and leaves it alone once answered.",
              {"for": dict(S, description="The cat it unblocks (its agent id), or empty for the house"), "title": S,
-              "questions": {"type": "array", "items": {"type": "object", "properties": {"q": S, "options": {"type": "array", "items": S}, "free": {"type": "boolean"}}, "required": ["q"]}}},
+              "questions": {"type": "array", "items": {"type": "object", "properties": {"q": S, "options": {"type": "array", "items": S}, "free": {"type": "boolean"}}, "required": ["q"]}},
+              "kind": KIND, "note": S, "from": S, "hint": S, "ref": S},
              ["title", "questions"]),
-    "quizzes": (quizzes, "The homework set for the owner: the open quizzes, oldest first (done: true lists the handed-in ones too).", {"done": {"type": "boolean"}}, []),
+    "quizzes": (quizzes, "The homework set for the owner: the open quizzes, oldest first (done: true lists the handed-in ones too; kind lists one kind).",
+                {"done": {"type": "boolean"}, "kind": KIND}, []),
+    "forget": (forget, "Clear homework from the house (the queen or the owner): the cards already filed, or litter box notes and decisions no longer waiting, by id. An open unblock quiz stays.", {"quizzes": {"type": "array", "items": S}}, ["quizzes"]),
     "decide": (decide, "A typed decision from a System One model (laya-serve on this computer, or Jev): a state and named questions of type noul "
                "(yes/no: a probability), choice (criteria: {option: meaning}; the option, a probability each and a confidence) or score "
                "(criteria: ordered levels; a weighted score). No prose, milliseconds. preset easy asks the six questions of the easy-task "
@@ -439,7 +478,7 @@ TOOLS = {
                {"state": {"description": "The text or JSON the questions are about"}, "questions": {"type": "object"}, "preset": {"type": "string", "enum": ["easy"]},
                 "model": S, "kind": dict(S, description="A label for the log, e.g. sort"), "old": dict(S, description="What the old path chose, for the log")},
                ["state"]),
-    "answer": (answer, "Hand homework in (the owner only): one answer per question, in order. The answers reach the cat, as the owner's words, and the queen.",
+    "answer": (answer, "Hand homework in (the owner only): one answer per question, in order. An unblock quiz's answers reach the cat, as the owner's words, and the queen; a litterbox or decision card's are only kept, for filing.",
                {"quiz": S, "answers": {"type": "array", "items": S}}, ["quiz", "answers"]),
 }
 

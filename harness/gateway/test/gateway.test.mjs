@@ -485,6 +485,34 @@ describe("the queen", () => {
 		assert.match((await tool(her, "answer", { quiz: id, answers: ["a", "b"] })).refused, /already/);
 	});
 
+	test("deals litter box notes and decisions into the quest log, once each, and keeps her answers for filing", async () => {
+		const card = { kind: "litterbox", ref: "abc123def456", title: "loose-ends.md", note: "Rename her Mochi", from: "litterbox/loose-ends.md", hint: "pretty-project-portfolio",
+			questions: [{ q: "Which project is it for?", options: ["pretty-project-portfolio", "kittychat", "Settled: drop it"] }] };
+		assert.match((await tool(TOKEN, "quiz", card)).refused, /only the queen or the owner/);
+		assert.match((await tool(her, "quiz", { ...card, questions: [{ q: "Which?", free: true }] })).refused, /one question with 2 to 12 options/);   // a card the café couldn't answer
+		const open = await tool(QUEEN, "quiz", { for: "session_01Queen", title: "Still waiting", questions: [{ q: "Merge it?", options: ["Yes", "No"] }] });
+		const { id } = await tool(her, "quiz", card);
+		assert.equal(id, "litterbox-abc123def456");
+		const at = (await tool(her, "quizzes", { kind: "litterbox" })).quizzes[0].at;
+		await sleep(5);
+		assert.deepEqual(await tool(her, "quiz", { ...card, note: "Rename her Mochi, dealt again" }), { id });   // open: replaced, not doubled
+		assert.equal((await tool(her, "quizzes", { kind: "litterbox" })).quizzes[0].at, at, "a card dealt again moved in the deck");
+		assert.match((await tool(her, "quiz", { ...card, kind: "decisions" })).refused, /kind is unblock, litterbox or decision/);
+		await tool(her, "quiz", { kind: "decision", ref: "camera", title: "Which comes first?", hint: "The camera", questions: [{ q: "Which first?", options: ["The camera", "The gateway"] }] });
+		const lb = (await tool(her, "quizzes", { kind: "litterbox" })).quizzes;
+		assert.deepEqual(lb.map((z) => [z.id, z.kind, z.note, z.from, z.hint]), [[id, "litterbox", "Rename her Mochi, dealt again", "litterbox/loose-ends.md", "pretty-project-portfolio"]]);
+		assert.equal((await tool(her, "quizzes", { kind: "decision" })).quizzes[0].id, "decision-camera");
+		const before = (await tool(her, "comments", { cat: "queen" })).notes.length;
+		assert.deepEqual(await tool(her, "answer", { quiz: id, answers: ["kittychat"] }), { ok: true, told: false });
+		assert.equal((await tool(her, "comments", { cat: "queen" })).notes.length, before);   // a card isn't news for the queen
+		assert.deepEqual(await tool(her, "quiz", card), { id, done: true });   // dealt again after she answered: her answer stands
+		assert.deepEqual((await tool(her, "quizzes", { kind: "litterbox", done: true })).quizzes.map((z) => z.answers), [["kittychat"]]);
+		assert.match((await tool(TOKEN, "forget", { quizzes: [id] })).refused, /only the queen or the owner/);
+		assert.deepEqual(await tool(her, "forget", { quizzes: [id, "decision-camera", "nothing", open.id] }), { forgotten: 2 });
+		assert.ok((await tool(her, "quizzes")).quizzes.some((z) => z.id === open.id), "an open unblock quiz was forgotten");
+		assert.deepEqual((await tool(her, "quizzes", { done: true })).quizzes.filter((z) => z.kind !== "unblock" && z.kind), []);
+	});
+
 	test("runs a routine once when it comes due", async () => {
 		const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Paris", hourCycle: "h23", hour: "numeric", minute: "numeric" })
 			.formatToParts(new Date()).map((p) => [p.type, p.value]));
@@ -539,7 +567,7 @@ describe("the gateway", () => {
 		assert.equal(init.result.serverInfo.name, "catio");
 		const { result } = await rpc(TOKEN, "tools/list", {});
 		assert.deepEqual(result.tools.map((t) => t.name),
-			["house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "decide", "answer"]);
+			["house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "decide", "answer"]);
 		const rules = await tool(TOKEN, "house_rules");
 		assert.ok(rules.rules.some((r) => r.id === "ship"));
 		assert.equal((await tool(TOKEN, "nope")).rpcError.code, -32602);
