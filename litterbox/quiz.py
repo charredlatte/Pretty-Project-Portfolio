@@ -18,12 +18,12 @@ import sys
 import time
 from pathlib import Path
 
-from sort import BOX, TAG, leftover, norm, projects, read_box
+from sort import BOX, TAG, leftover, norm, projects, read_box, root_of
 
 
 def waiting(box):
     """[(pile, its frontmatter, the guessed project, its notes)] for each pile still waiting for a check."""
-    files = read_box(box, projects(BOX.parent))
+    files = read_box(box, projects(root_of(box)))
     return [(path, front, project, notes) for path, (front, notes, _, project, guess) in files.items() if guess and notes]
 
 

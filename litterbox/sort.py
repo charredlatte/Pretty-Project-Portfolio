@@ -335,10 +335,13 @@ def ship(repo, paths, message, say):
     say(f"{name}: committed and pushed to {branch}")
 
 
+def root_of(box):
+    """The repo a box belongs to: its own parent when that is a checkout, else this one (a --box kept elsewhere)."""
+    return box.parent if (box.parent / "catio" / "data" / "rooms.json").exists() else BOX.parent
+
+
 def run(box=BOX, write=False, given=None, say=print):
-    # the repo this box belongs to: the box's own parent when it is a checkout, else this one (a --box kept elsewhere)
-    root = box.parent if (box.parent / "catio" / "data" / "rooms.json").exists() else BOX.parent
-    given = given or {}
+    root, given = root_of(box), given or {}
     files = read_box(box, projects(root))
     by_repo, homes, cos, stay, piles = {}, {}, {}, {}, {}
     for path, (_, notes, _, _, waiting) in files.items():
