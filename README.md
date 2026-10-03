@@ -164,7 +164,7 @@ repository.
 ## Open source, and what stays behind the paywall
 
 The code is open source: the page, the harness, the gateway and the queen's runner, under the
-[GNU AGPL-3.0](LICENSE). Anyone with GitHub can run their own café, free, with the three lines above and a
+[GNU AGPL-3.0](LICENSE). Anyone with GitHub can run their own café, free, with the two lines above and a
 Cloudflare Worker for the gateway (`harness/gateway/README.md`). The licence asks one thing back: whoever runs a
 changed gateway as a service publishes the change.
 
@@ -241,5 +241,6 @@ The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harn
 
 ## Licence
 
-The code is © 2026 Charlotte Badot, under the [GNU Affero General Public License v3.0](LICENSE). The art is not
-covered: the packs keep their own terms (`catio/art/CREDITS.md`), and the café's own drawings are all rights reserved.
+The code is © 2026 Charlotte Badot, under the [GNU Affero General Public License v3.0](LICENSE), except
+`harness/skills/graphify/`, which is graphify's own, under its Apache-2.0 licence and notice in that folder. The art is
+not covered: the packs keep their own terms (`catio/art/CREDITS.md`), and the café's own drawings are all rights reserved.
