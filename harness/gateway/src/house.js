@@ -17,7 +17,8 @@ const HOLD = 25 * 1000;         // how long the runner's wait is held before it 
 const AWAY = 90 * 1000;         // a runner silent this long is back when it next waits: the cafés are told
 const DAY = 24 * 3600 * 1000;
 const DEFAULT_TZ = "Europe/Paris";
-const SAYS = ["charlotte", "queen"];   // whose notes a cat's hook is handed: hers, and her assistant's
+const OWNER = "owner";          // the house's owner on the wire; "charlotte" was the name before accounts
+const SAYS = [OWNER, "queen"];   // whose notes a cat's hook is handed: the owner's, and her assistant's
 
 class Refusal extends Error {}   // bad arguments: the caller is told, nothing breaks
 const CHANGES = new Set(["report_status", "comment", "drop_file", "pick_up", "manage", "quiz", "answer"]);   // tools that change what a café shows
@@ -130,7 +131,7 @@ const TOOLS = {
 	// With mark, only what hasn't been handed over yet, and now it has: a session's Stop hook hands her notes,
 	// requests and files in once each. Handing over keeps its own place (handedNotes), apart from what an answer
 	// counts as read (seenNotes), so a note she sends while the session is answering still gets handed in.
-	// A cat is handed what Charlotte and the queen say; the queen herself only what Charlotte says.
+	// A cat is handed what the owner and the queen say; the queen herself only what the owner says.
 	inbox(h, args) {
 		need(args, "agent");
 		const id = String(args.agent);
@@ -139,7 +140,7 @@ const TOOLS = {
 		const files = h.sql.exec("SELECT id, name, type, size, note, at FROM files WHERE cat = ? AND status = 'waiting'" +
 			(mark ? " AND handed IS NULL" : "") + " ORDER BY at", id).toArray();
 		const since = (a && (mark ? a.handedNotes ?? a.seenNotes : a.seenNotes)) || 0;
-		const authors = id === QUEEN ? ["charlotte"] : SAYS;
+		const authors = id === QUEEN ? [OWNER] : SAYS;
 		const notes = h.sql.exec("SELECT id, cat, text, author, at FROM notes WHERE cat = ? AND author IN (" + authors.map(() => "?").join(", ") +
 			") AND at > ? ORDER BY at", id, ...authors, since).toArray();
 		let request = (a && a.request) || null;
@@ -169,7 +170,7 @@ const TOOLS = {
 	},
 
 	drop_file(h, args, who) {
-		if (who !== "charlotte" && who !== QUEEN) throw new Refusal("only Charlotte drops files on a cat");
+		if (who !== OWNER && who !== QUEEN) throw new Refusal("only the owner drops files on a cat");
 		need(args, "name", "base64", "for");
 		const b64 = String(args.base64);
 		if (b64.length % 4 || !/^[A-Za-z0-9+/]*={0,2}$/.test(b64)) throw new Refusal("base64 isn't valid");
@@ -183,13 +184,14 @@ const TOOLS = {
 		return { id, woke: false };
 	},
 
-	// Who speaks: only Charlotte as charlotte, only the queen's runner as queen. What she says to the queen
+	// Who speaks: only the owner as owner, only the queen's runner as queen. What she says to the queen
 	// wakes a waiting runner; what the queen says is kept with the routine that asked it, if one did.
 	comment(h, args, who) {
 		need(args, "cat", "text");
-		const author = args.author || (who === "charlotte" ? "charlotte" : who === QUEEN ? QUEEN : "agent");
-		if (!["charlotte", "agent", "session", QUEEN].includes(author)) throw new Refusal("author is charlotte, agent, session or queen");
-		if (author === "charlotte" && who !== "charlotte") throw new Refusal("only Charlotte writes as Charlotte");
+		// "charlotte" was the owner's name on the wire before accounts: still taken, stored as "owner"
+		const author = args.author === "charlotte" ? OWNER : args.author || (who === OWNER ? OWNER : who === QUEEN ? QUEEN : "agent");
+		if (![OWNER, "agent", "session", QUEEN].includes(author)) throw new Refusal("author is owner, agent, session or queen");
+		if (author === OWNER && who !== OWNER) throw new Refusal("only the owner writes as the owner");
 		if (author === QUEEN && who !== QUEEN) throw new Refusal("only the queen's runner writes as the queen");
 		const note = { id: newId(), cat: String(args.cat), text: String(args.text).slice(0, 4000), author, at: h.stamp() };
 		h.sql.exec("INSERT INTO notes (id, cat, author, text, at) VALUES (?, ?, ?, ?, ?)", note.id, note.cat, note.author, note.text, note.at);
@@ -198,7 +200,7 @@ const TOOLS = {
 			a.seenNotes = note.at;   // an answer means everything she said before it was read
 			h.save(a);
 		}
-		if (note.cat === QUEEN && author === "charlotte") h.wake();
+		if (note.cat === QUEEN && author === OWNER) h.wake();
 		return { id: note.id, woke: false };
 	},
 
@@ -212,7 +214,7 @@ const TOOLS = {
 	// Charlotte or the queen manages a cat. On the queen herself, pause means stop the turn she is on: her
 	// runner is told, and nothing is stored.
 	manage(h, args, who) {
-		if (who !== "charlotte" && who !== QUEEN) throw new Refusal("only Charlotte manages a cat");
+		if (who !== OWNER && who !== QUEEN) throw new Refusal("only the owner manages a cat");
 		need(args, "cat", "action");
 		const act = args.action;
 		if (!ACTIONS.includes(act)) throw new Refusal("action is " + ACTIONS.slice(0, -1).join(", ") + " or done");
@@ -239,7 +241,7 @@ const TOOLS = {
 	// documents, so an open café shows them at once. Handing one in posts her answers to the cat, as her words
 	// (its hook hands them in), and tells the queen, who sees to the rest.
 	quiz(h, args, who) {
-		if (who !== "charlotte" && who !== QUEEN) throw new Refusal("only the queen or Charlotte sets homework");
+		if (who !== OWNER && who !== QUEEN) throw new Refusal("only the queen or the owner sets homework");
 		const { title, questions } = quizOf(args);
 		const id = newId();
 		h.putDoc("quizzes/" + id, { for: args.for ? String(args.for).slice(0, 200) : "", title, questions, by: who, at: Date.now(), status: "set" });
@@ -252,7 +254,7 @@ const TOOLS = {
 	},
 
 	answer(h, args, who) {
-		if (who !== "charlotte") throw new Refusal("only Charlotte hands homework in");
+		if (who !== OWNER) throw new Refusal("only the owner hands homework in");
 		need(args, "quiz");
 		const path = "quizzes/" + String(args.quiz);
 		const row = h.sql.exec("SELECT data FROM docs WHERE path = ?", path).toArray()[0];
@@ -264,8 +266,8 @@ const TOOLS = {
 		h.putDoc(path, { status: "done", answers: given, answeredAt: Date.now() }, true);
 		const text = "Homework handed in: " + z.title + "\n" + z.questions.map((q, i) => (i + 1) + ". " + q.q + " → " + given[i]).join("\n");
 		const told = !!(z.for && h.agent(z.for));
-		if (told) TOOLS.comment(h, { cat: z.for, text, author: "charlotte" }, "charlotte");
-		TOOLS.comment(h, { cat: QUEEN, text: text + (z.for ? "\n(for " + z.for + (told ? ", told)" : ", not a cat here)") : ""), author: "charlotte" }, "charlotte");
+		if (told) TOOLS.comment(h, { cat: z.for, text, author: OWNER }, OWNER);
+		TOOLS.comment(h, { cat: QUEEN, text: text + (z.for ? "\n(for " + z.for + (told ? ", told)" : ", not a cat here)") : ""), author: OWNER }, OWNER);
 		return { ok: true, told };
 	},
 	// A typed decision from a System One model (src/decide.js), for the one-bit questions the café asks: where a file
@@ -316,18 +318,20 @@ export class House extends DurableObject {
 		// the sign-in lock and the café's cookies moved to the registry with accounts
 		this.sql.exec("DROP TABLE IF EXISTS wrong_passwords");
 		this.sql.exec("DROP TABLE IF EXISTS logins");
+		// the owner's notes from before accounts were written as "charlotte": renamed once, the first time this wakes
+		if (!this.flagged("notesOwner")) { this.sql.exec("UPDATE notes SET author = 'owner' WHERE author = 'charlotte'"); this.flag("notesOwner", "1"); }
 		// the routine that asked for a note of the queen's, on houses built before she had any
 		if (!this.sql.exec("PRAGMA table_info(notes)").toArray().some((c) => c.name === "routine")) this.sql.exec("ALTER TABLE notes ADD COLUMN routine TEXT");
 		this.waiters = [];   // the runner's held waits: resolved when there is something for the queen to do
 	}
 
-	/** One tool call. `who` is "charlotte" (the house's owner, signed in through claude.ai or the café), "queen" (the
-	 * house's queen runner, holding a key with that role) or "agent" (holds an agents' key). */
+	/** One tool call. `who` is "owner" (signed in through claude.ai or the café), "queen" (the house's queen runner,
+	 * holding a key with that role) or "agent" (holds an agents' key). */
 	async call(name, args, who) {
 		const tool = Object.hasOwn(TOOLS, name) && TOOLS[name];
 		if (!tool) return { unknown: true };
 		try {
-			const ok = await tool(this, args && typeof args === "object" && !Array.isArray(args) ? args : {}, who === "charlotte" || who === QUEEN ? who : "agent");
+			const ok = await tool(this, args && typeof args === "object" && !Array.isArray(args) ? args : {}, who === OWNER || who === QUEEN ? who : "agent");
 			if (CHANGES.has(name)) this.tell({ type: "agents" });   // an open café redraws its cats now, not at its next look
 			return { ok };
 		} catch (e) {

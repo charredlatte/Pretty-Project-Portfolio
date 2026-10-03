@@ -132,7 +132,7 @@ class Queen(unittest.TestCase):
         return [json.loads(l) for l in self.log.read_text(encoding="utf-8").splitlines() if l.strip()]
 
     def test_relays_a_turn_as_it_streams_and_keeps_her_session(self):
-        self.srv.jobs.put({"notes": [{"id": "n1", "cat": "queen", "author": "charlotte", "text": "Who needs me today?", "at": 1}]})
+        self.srv.jobs.put({"notes": [{"id": "n1", "cat": "queen", "author": "owner", "text": "Who needs me today?", "at": 1}]})
         self.start()
         says = self.said()
         self.assertEqual(says[-1]["done"], True)
@@ -158,7 +158,7 @@ class Queen(unittest.TestCase):
         state = json.loads((self.home / "state.json").read_text())
         self.assertTrue(state["session"].startswith("s-"))
         # the next turn carries the conversation on
-        self.srv.jobs.put({"notes": [{"id": "n2", "cat": "queen", "author": "charlotte", "text": "And the shop?", "at": 2}]})
+        self.srv.jobs.put({"notes": [{"id": "n2", "cat": "queen", "author": "owner", "text": "And the shop?", "at": 2}]})
         self.said(2)
         second = [c for c in self.claude_calls() if "argv" in c][-1]
         self.assertEqual(second["argv"][second["argv"].index("--resume") + 1], state["session"])
@@ -179,7 +179,7 @@ class Queen(unittest.TestCase):
         self.assertNotEqual(json.loads((self.home / "state.json").read_text())["session"], "s-gone")
 
     def test_a_stop_ends_the_turn_in_progress_and_keeps_what_she_said(self):
-        self.srv.jobs.put({"notes": [{"id": "n1", "cat": "queen", "author": "charlotte", "text": "Tell me slowly.", "at": 1}]})
+        self.srv.jobs.put({"notes": [{"id": "n1", "cat": "queen", "author": "owner", "text": "Tell me slowly.", "at": 1}]})
         self.start()
         end = time.time() + 15
         while time.time() < end and not any(s["text"].startswith("Good morrow, my lady.") for s in self.srv.says):
@@ -191,7 +191,7 @@ class Queen(unittest.TestCase):
         self.assertLess(len(says[-1]["text"]), len("Good morrow, my lady. " + "(and on) " * 40), "it stopped before the end")
         self.assertIn({"stopped": True}, self.claude_calls())
         # and she goes on with the next thing
-        self.srv.jobs.put({"notes": [{"id": "n2", "cat": "queen", "author": "charlotte", "text": "Thank you.", "at": 2}]})
+        self.srv.jobs.put({"notes": [{"id": "n2", "cat": "queen", "author": "owner", "text": "Thank you.", "at": 2}]})
         self.assertEqual(self.said(2)[-1]["text"], "Good morrow, my lady. Two cats need thee.")
 
     def test_says_why_without_the_gateway_or_claude(self):

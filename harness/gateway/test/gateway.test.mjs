@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer as createHttpServer } from "node:http";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -242,7 +242,7 @@ describe("the café", () => {
 	test("uses the gateway's tools as herself", async () => {
 		assert.equal((await api("/api/tools/comment", { method: "POST", body: JSON.stringify({ cat: "cafe-cat", text: "From the café" }) })).status, 200);
 		const { notes } = await (await api("/api/tools/comments", { method: "POST", body: JSON.stringify({ cat: "cafe-cat" }) })).json();
-		assert.deepEqual([notes.at(-1).author, notes.at(-1).text], ["charlotte", "From the café"]);
+		assert.deepEqual([notes.at(-1).author, notes.at(-1).text], ["owner", "From the café"]);
 		assert.equal((await api("/api/tools/no_such_tool", { method: "POST", body: "{}" })).status, 404);
 		assert.equal((await api("/api/tools/manage", { method: "POST", body: JSON.stringify({ cat: "nobody", action: "archive" }) })).status, 400);
 		assert.match(await (await fetch(base + "/runtime.js")).text(), /catioGateway: true/);
@@ -398,7 +398,7 @@ describe("the queen", () => {
 		assert.ok((await tool(her, "comment", { cat: "queen", text: "Who needs me today?" })).id);
 		const got = await waiting;
 		assert.ok(Date.now() - started < 5000, "the wait came back as she spoke, not at its timeout");
-		assert.deepEqual(got.notes.map((n) => [n.author, n.text]), [["charlotte", "Who needs me today?"]]);
+		assert.deepEqual(got.notes.map((n) => [n.author, n.text]), [["owner", "Who needs me today?"]]);
 		assert.deepEqual([got.stop, got.routine], [false, null]);
 		assert.deepEqual(got.character, { name: "Duchesse", manner: "Elizabethan English, warm.", greeting: "Good morrow, my lady." });
 		assert.equal((await queen()).via, "runner", "her runner is present");
@@ -423,7 +423,7 @@ describe("the queen", () => {
 		assert.deepEqual(heard.filter((m) => m.type === "queen").map((m) => [m.turn, m.text, m.done]),
 			[["t1", "Good morrow, my", false], ["t1", "Good morrow, my lady. Two cats need thee.", true]]);
 		assert.deepEqual((await tool(her, "comments", { cat: "queen" })).notes.map((n) => [n.author, n.text]),
-			[["charlotte", "Who needs me today?"], ["charlotte", "And the shop?"], ["queen", "Good morrow, my lady. Two cats need thee."]]);
+			[["owner", "Who needs me today?"], ["owner", "And the shop?"], ["queen", "Good morrow, my lady. Two cats need thee."]]);
 		assert.equal((await say({ turn: "t1", text: "", done: true })).status, 200, "an empty turn stores nothing");
 		assert.equal((await tool(her, "comments", { cat: "queen" })).notes.length, 3);
 		assert.equal((await runner("/api/runner/say", { text: "x".repeat(70000), done: true })).status, 413);
@@ -442,9 +442,9 @@ describe("the queen", () => {
 		const env = { ...process.env, CATIO_URL: base, CATIO_TOKEN: TOKEN, CLAUDE_CODE_REMOTE_SESSION_ID: cat, NO_PROXY: "127.0.0.1", no_proxy: "127.0.0.1" };
 		const hook = (data) => execFileSync("python3", [REPORT], { input: JSON.stringify({ cwd: HERE, ...data }), env, encoding: "utf8" });
 		hook({ hook_event_name: "SessionStart", source: "startup" });
-		assert.equal((await tool(QUEEN, "comment", { cat, text: "x", author: "charlotte" })).refused, "only Charlotte writes as Charlotte");
+		assert.equal((await tool(QUEEN, "comment", { cat, text: "x", author: "owner" })).refused, "only the owner writes as the owner");
 		assert.equal((await tool(TOKEN, "comment", { cat, text: "x", author: "queen" })).refused, "only the queen's runner writes as the queen");
-		assert.equal((await tool(TOKEN, "manage", { cat, action: "wrap_up" })).refused, "only Charlotte manages a cat");
+		assert.equal((await tool(TOKEN, "manage", { cat, action: "wrap_up" })).refused, "only the owner manages a cat");
 		assert.ok((await tool(QUEEN, "comment", { cat, text: "Prithee, push thy work." })).id);
 		assert.equal((await tool(QUEEN, "manage", { cat, action: "wrap_up" })).ok, true);
 		// the session's hook hands the queen's words in as hers, and her request with them
@@ -462,7 +462,7 @@ describe("the queen", () => {
 
 	test("sets Charlotte homework whose answers unblock a cat", async () => {
 		const cat = "session_01Queen";
-		assert.match((await tool(TOKEN, "quiz", { for: cat, title: "x", questions: [{ q: "y" }] })).refused, /only the queen or Charlotte/);
+		assert.match((await tool(TOKEN, "quiz", { for: cat, title: "x", questions: [{ q: "y" }] })).refused, /only the queen or the owner/);
 		assert.match((await tool(QUEEN, "quiz", { title: "x", questions: [] })).refused, /questions is a list/);
 		const { id } = await tool(QUEEN, "quiz", { for: cat, title: "The menu fix", questions: [{ q: "Merge it?", options: ["Yes, merge it", "Not yet"] }, { q: "A word for the cat?", free: true }] });
 		assert.ok(id);
@@ -470,7 +470,7 @@ describe("the queen", () => {
 		assert.deepEqual(open.map((z) => [z.id, z.for, z.title, z.status, z.by, z.questions.length]), [[id, cat, "The menu fix", "set", "queen", 2]]);
 		assert.deepEqual(open[0].questions[0], { q: "Merge it?", options: ["Yes, merge it", "Not yet"], free: false });
 		assert.equal(open[0].questions[1].free, true);
-		assert.match((await tool(TOKEN, "answer", { quiz: id, answers: ["Yes, merge it", "Thanks"] })).refused, /only Charlotte/);
+		assert.match((await tool(TOKEN, "answer", { quiz: id, answers: ["Yes, merge it", "Thanks"] })).refused, /only the owner/);
 		assert.match((await tool(her, "answer", { quiz: id, answers: ["Yes, merge it"] })).refused, /one answer per question/);
 		const waiting = wait();   // her runner is waiting: handing in reaches the queen at once
 		await sleep(300);
@@ -478,7 +478,7 @@ describe("the queen", () => {
 		assert.deepEqual((await tool(her, "quizzes")).quizzes, []);
 		assert.equal((await tool(her, "quizzes", { done: true })).quizzes[0].answers[1], "Well done, thou good cat");
 		const box = await tool(TOKEN, "inbox", { agent: cat, mark: true });
-		assert.equal(box.notes.at(-1).author, "charlotte");
+		assert.equal(box.notes.at(-1).author, "owner");
 		assert.equal(box.notes.at(-1).text, "Homework handed in: The menu fix\n1. Merge it? \u2192 Yes, merge it\n2. A word for the cat? \u2192 Well done, thou good cat");
 		const got = await waiting;
 		assert.match(got.notes.at(-1).text, /^Homework handed in: The menu fix[\s\S]*\(for session_01Queen, told\)$/);
@@ -642,9 +642,11 @@ describe("the gateway", () => {
 		assert.equal(me.wake, undefined);
 
 		// her notes: an agent can't speak as her, and the hook is handed each one once
-		assert.equal((await tool(TOKEN, "comment", { cat, text: "do it", author: "charlotte" })).refused, "only Charlotte writes as Charlotte");
+		assert.equal((await tool(TOKEN, "comment", { cat, text: "do it", author: "owner" })).refused, "only the owner writes as the owner");
+		assert.equal((await tool(TOKEN, "comment", { cat, text: "do it", author: "charlotte" })).refused, "only the owner writes as the owner", "the old name is the owner's too");
+		assert.equal((await tool(TOKEN, "comment", { cat, text: "do it", author: "boss" })).refused, "author is owner, agent, session or queen");
 		assert.ok((await tool(her, "comment", { cat, text: "First, the tests." })).id);
-		assert.ok((await tool(her, "comment", { cat, text: "Then push." })).id);
+		assert.ok((await tool(her, "comment", { cat, text: "Then push.", author: "charlotte" })).id, "an older page still writes as charlotte");
 		assert.equal((await tool(TOKEN, "inbox", { agent: cat })).notes.length, 2);
 		const handed = await tool(TOKEN, "inbox", { agent: cat, mark: true });
 		assert.deepEqual(handed.notes.map((n) => n.text), ["First, the tests.", "Then push."]);
@@ -654,8 +656,8 @@ describe("the gateway", () => {
 		// an answer
 		assert.ok((await tool(TOKEN, "comment", { cat, text: "Done.", author: "session" })).id);
 		const talk = (await tool(her, "comments", { cat })).notes;
-		assert.deepEqual(talk.map((n) => [n.author, n.text]), [["charlotte", "First, the tests."], ["charlotte", "Then push."],
-			["charlotte", "And thanks."], ["session", "Done."]]);
+		assert.deepEqual(talk.map((n) => [n.author, n.text]), [["owner", "First, the tests."], ["owner", "Then push."],
+			["owner", "And thanks."], ["session", "Done."]], "stored as owner, the old name included");
 		assert.deepEqual((await tool(her, "comments", { cat, limit: 1 })).notes.map((n) => n.text), ["Done."]);
 		// what she writes while the session is answering still gets handed in
 		assert.ok((await tool(her, "comment", { cat, text: "Wait, one more." })).id);
@@ -664,7 +666,7 @@ describe("the gateway", () => {
 		assert.equal((await tool(TOKEN, "inbox", { agent: cat })).notes.length, 0);
 
 		// requests: only she makes them, and each is handed over once
-		assert.equal((await tool(TOKEN, "manage", { cat, action: "wrap_up" })).refused, "only Charlotte manages a cat");
+		assert.equal((await tool(TOKEN, "manage", { cat, action: "wrap_up" })).refused, "only the owner manages a cat");
 		assert.equal((await tool(her, "manage", { cat: "nobody", action: "pause" })).refused, "no such agent");
 		assert.match((await tool(her, "manage", { cat, action: "dance" })).refused, /^action is/);
 		assert.equal((await tool(her, "manage", { cat, action: "wrap_up" })).ok, true);
@@ -678,7 +680,7 @@ describe("the gateway", () => {
 
 		// files: hers only, small ones only, handed over once, picked up whole
 		const bytes = randomBytes(3000).toString("base64");
-		assert.equal((await tool(TOKEN, "drop_file", { name: "a.bin", base64: bytes, for: cat })).refused, "only Charlotte drops files on a cat");
+		assert.equal((await tool(TOKEN, "drop_file", { name: "a.bin", base64: bytes, for: cat })).refused, "only the owner drops files on a cat");
 		assert.equal((await tool(her, "drop_file", { name: "a.bin", base64: "!!!!", for: cat })).refused, "base64 isn't valid");
 		const big = Buffer.alloc(1024 * 1024 + 1).toString("base64");
 		assert.match((await tool(her, "drop_file", { name: "big.bin", base64: big, for: cat })).refused, /1 MiB/);
@@ -758,7 +760,7 @@ describe("the gateway", () => {
 
 		execFileSync("python3", [REPORT, "say", "Added."], { env });
 		assert.deepEqual((await tool(her, "comments", { cat })).notes.map((n) => [n.author, n.text]),
-			[["charlotte", "Add a test for the hook."], ["session", "Added."]]);
+			[["owner", "Add a test for the hook."], ["session", "Added."]]);
 	});
 
 	test("waits after five wrong passwords, even for the right one", async () => {
@@ -787,10 +789,31 @@ describe("the bootstrap key", () => {
 		// itself, so it is still there.
 		stop();
 		await new Promise((r) => setTimeout(r, 500));
+		// a house from before the rename holds the owner's notes as "charlotte": put one back into the persisted
+		// SQLite (and forget that the house renamed), as a real house would have on the first deploy
+		const dbs = [];
+		const walk = (d) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (f.endsWith(".sqlite")) dbs.push(p); } };
+		walk(state);
+		const flipped = execFileSync("python3", ["-c", `
+import sqlite3, sys
+n = 0
+for p in sys.argv[1:]:
+    c = sqlite3.connect(p)
+    try:
+        if c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='notes'").fetchone():
+            n += c.execute("UPDATE notes SET author = 'charlotte' WHERE cat = 'session_01Test' AND author = 'owner'").rowcount
+            c.execute("DELETE FROM state WHERE key = 'notesOwner'")
+            c.commit()
+    finally:
+        c.close()
+print(n)`, ...dbs], { encoding: "utf8" }).trim();
+		assert.ok(+flipped >= 3, "old-name rows planted: " + flipped);
 		await start();
 		assert.equal((await fetch(base + "/")).status, 200);
 		assert.equal((await mcp()).status, 401);
 		assert.deepEqual(await names(), ["queen"]);
+		const talk = await (await api("/api/tools/comments", { method: "POST", body: JSON.stringify({ cat: "session_01Test" }) })).json();
+		assert.ok(talk.notes.length >= 3 && talk.notes.every((n) => n.author !== "charlotte"), "the house renamed its old notes on waking: " + JSON.stringify(talk.notes.map((n) => n.author)));
 		assert.equal((await fetch(base + "/api/runner/say", { method: "POST", headers: { Authorization: "Bearer " + QUEEN, "Content-Type": "application/json" }, body: JSON.stringify({ turn: "t9", text: "", done: true }) })).status, 200);
 		const asHer = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "charlotte", password: PASSWORD }), redirect: "manual" });
 		assert.equal(asHer.status, 429, "the lock from the gateway suite is in the registry, not in the isolate");

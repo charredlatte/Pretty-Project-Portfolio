@@ -240,9 +240,9 @@ export async function cafe(request, env) {
 		}
 		return json({ ok: true, revoked });
 	}
-	// the gateway's tools, as the owner uses them through their connector: as "charlotte", the house's owner
+	// the gateway's tools, as the owner uses them through their connector
 	if (path.startsWith("/api/tools/") && method === "POST") {
-		const r = await house.call(path.slice("/api/tools/".length), await bodyOf(request), "charlotte");
+		const r = await house.call(path.slice("/api/tools/".length), await bodyOf(request), "owner");
 		if (r.unknown) return refuse(404, "not_found", "No such tool.");
 		if (r.error) return refuse(400, "tool_error", r.error);
 		return json(r.ok);
