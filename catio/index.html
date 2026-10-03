@@ -1043,12 +1043,6 @@ ul.gkey li > div.what { flex-basis: 100%; }
     if (legs) walk(b, spot, legs.from, legs.legs).then((ok) => { if (ok) dress(b, c, c.mood, spot, room); });
     VIEW.placed.push({ cat: c, x: spot[0] * 2, feet: spot[1] * 2, room });
   }
-  function placeQueen(layer, k, here) {
-    const spot = GEOM[k].queen;
-    if (!spot || !roomOpen(k)) return;
-    const q = queenOf(k);
-    q.mood = queenMood(q, here);
-    q.line = queenLine(q, here);
   // The queen, on her seat in room k. Nothing is drawn on her either: hovering her says how she is.
   function placeQueen(layer, k) {
     const spot = GEOM[k] && GEOM[k].queen;

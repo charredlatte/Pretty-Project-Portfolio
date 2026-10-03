@@ -1904,9 +1904,9 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
   });
   await menuButton(page, "Open this room").click();
   await page.waitForTimeout(300);
-  await check("Open this room opens it: the queen is back and the listed repo's cat walks in", async () => {
+  await check("Open this room opens it: the house's one queen is still there and the listed repo's cat walks in", async () => {
     expect((await T(page, () => window.__catio.store["rooms/study"].closed)) === false, "still closed");
-    expect(await page.locator('#cats .cat[data-queen="study"]').count() === 1, "no queen");
+    expect(await page.locator("#cats .cat[data-queen]").count() === 1, "the queen of the house is missing");
     expect((await page.locator('#cats .cat[aria-label*="Shop about page"]').getAttribute("data-room")) === "study", "cat not in the craft room");
   });
   // Edit rooms: a switch per room; the front door can't be closed, it moves
