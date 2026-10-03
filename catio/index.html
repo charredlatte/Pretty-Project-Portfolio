@@ -2128,12 +2128,21 @@ ul.gkey li > div.what { flex-basis: 100%; }
     // ---- the talk: her homework first, when she set some ----
     const talk = el("section", "talk");
     const hw = el("div", "homework"); hw.id = "queenHomework";
+    // Her answers in progress live here, by quiz, so they survive every redraw (a cat reporting, a quiz arriving);
+    // and a redraw that would change nothing is skipped, so the forms never move under her fingers.
+    const drafts = new Map();   // quiz id -> one {pick, text} per question
+    let drawn = null;
     const drawHomework = () => {
-      hw.replaceChildren();
       const open = openQuizzes();
+      const sig = open.map((z) => z.id + ":" + (z.at || 0) + ":" + (z.questions || []).length).join("|");
+      if (sig === drawn) return;
+      drawn = sig;
+      hw.replaceChildren();
       hw.hidden = !open.length;
       const cats = allCats(true).cats;
       for (const z of open) {
+        const draft = drafts.get(z.id) || [];
+        drafts.set(z.id, draft);
         const f = el("form", "quiz"); f.dataset.quiz = z.id;
         f.addEventListener("submit", (e) => e.preventDefault());
         const cat = z.for ? cats.find((c) => c.agentId === z.for) : null;
@@ -2141,23 +2150,26 @@ ul.gkey li > div.what { flex-basis: 100%; }
         f.appendChild(el("p", "sub", "Homework from " + (z.by === QUEEN_ID ? q.name : "you") + (cat ? ", to unblock " + cat.name : z.for ? ", for " + z.for : "") + " · " + ago(z.at)));
         const picks = [];
         (z.questions || []).forEach((qq, i) => {
+          const d = draft[i] || (draft[i] = { pick: null, text: "" });
           const fs = el("fieldset", "q");
           fs.appendChild(el("legend", null, (i + 1) + ". " + qq.q));
           const row = el("div", "opts");
-          let picked = null;
+          const mark = (o) => { for (const x of row.children) { x.classList.toggle("green", x.textContent === o); x.setAttribute("aria-pressed", String(x.textContent === o)); } };
           const free = el("input"); free.maxLength = 1000; free.placeholder = qq.options && qq.options.length ? "Something else…" : "Your answer";
+          free.value = d.text;
           for (const o of qq.options || []) {
-            const b = plainBtn(o, "tiny", () => { picked = o; free.value = ""; for (const x of row.children) { x.classList.toggle("green", x === b); x.setAttribute("aria-pressed", String(x === b)); } });
+            const b = plainBtn(o, "tiny", () => { d.pick = o; d.text = ""; free.value = ""; mark(o); });
             b.setAttribute("aria-pressed", "false");
             row.appendChild(b);
           }
+          if (d.pick) mark(d.pick);
           fs.appendChild(row);
           if (qq.free || !(qq.options && qq.options.length)) {
-            free.addEventListener("input", () => { if (free.value.trim()) { picked = null; for (const x of row.children) { x.classList.remove("green"); x.setAttribute("aria-pressed", "false"); } } });
+            free.addEventListener("input", () => { d.text = free.value; if (free.value.trim()) { d.pick = null; mark(null); } });
             free.setAttribute("aria-label", "Your answer to: " + qq.q);
             const l = el("label", "field"); l.appendChild(free); fs.appendChild(l);
           }
-          picks.push(() => free.value.trim() || picked || "");
+          picks.push(() => d.text.trim() || d.pick || "");
           f.appendChild(fs);
         });
         const hand = plainBtn("Hand it in", "green", async () => {
@@ -2166,6 +2178,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
           hand.disabled = true;
           try {
             await hostCall("answer", { quiz: z.id, answers });
+            drafts.delete(z.id);
             toast("Handed in." + (cat ? " " + cat.name + " has your answers." : ""));
             await refreshQuizzes();
             loadQueenThread();

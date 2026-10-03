@@ -569,13 +569,30 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await check("it isn't handed in half done", async () => expect((await toast(page)).includes("Answer every question"), await toast(page)));
   await page.locator('#queenHomework button:has-text("Yes, merge it")').click();
   await page.fill('#queenHomework input[aria-label^="Your answer"]', "Well done, thou good cat");
-  await page.locator('#queenHomework button:has-text("Hand it in")').click();
+  // while she answers, a cat reports and a second quiz arrives (her words, 3 October: "everything refreshed and
+  // greyed out while I was typing"): her pick and her typing stay where they are
+  await T(page, () => { dispatchEvent(new Event("catio:agents")); window.__catio.setQuiz({ for: "", title: "The French text", questions: [{ q: "Ship it?", options: ["Ship it", "Hold it"] }] }); });
+  await page.waitForTimeout(500);
+  await check("a cat reporting, or more homework arriving, never wipes what she has answered so far", async () => {
+    expect(await page.locator('#queenHomework form[data-quiz="z1"] button[aria-pressed="true"]:has-text("Yes, merge it")').count() === 1, "her pick was lost");
+    expect((await page.inputValue('#queenHomework form[data-quiz="z1"] input[aria-label^="Your answer"]')) === "Well done, thou good cat", "her typing was lost");
+    expect(await page.locator('#queenHomework form[data-quiz="z2"]').count() === 1, "the second quiz didn't show");
+  });
+  await page.locator('#queenHomework form[data-quiz="z1"] button:has-text("Hand it in")').click();
   await settle(page);
-  await check("handing it in sends your answers, in order, and the homework is done", async () => {
+  await check("handing it in sends your answers, in order", async () => {
     const a = await T(page, () => window.__catio.tools.filter((t) => t[1] === "answer").pop());
     expect(a && a[2].quiz === "z1" && JSON.stringify(a[2].answers) === JSON.stringify(["Yes, merge it", "Well done, thou good cat"]), JSON.stringify(a));
-    expect(!(await page.locator("#queenHomework").isVisible()), "the homework is still there");
     expect((await toast(page)).includes("Handed in"), await toast(page));
+    expect(await page.locator('#queenHomework form[data-quiz="z1"]').count() === 0, "the handed-in quiz is still there");
+  });
+  await page.locator('#queenHomework form[data-quiz="z2"] button:has-text("Ship it")').click();
+  await page.locator('#queenHomework form[data-quiz="z2"] button:has-text("Hand it in")').click();
+  await settle(page);
+  await check("with the last quiz handed in, the homework is done", async () => {
+    const a = await T(page, () => window.__catio.tools.filter((t) => t[1] === "answer").pop());
+    expect(a && a[2].quiz === "z2" && JSON.stringify(a[2].answers) === JSON.stringify(["Ship it"]), JSON.stringify(a));
+    expect(!(await page.locator("#queenHomework").isVisible()), "the homework is still there");
   });
   await page.keyboard.press("Escape");
   await settle(page);
