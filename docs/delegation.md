@@ -43,25 +43,85 @@ pull request is always hers to merge.** That is the safety net, and it is alread
 
 ## Phase A: inside a session (no new infrastructure)
 
-A strong session hands its mechanical steps to a small subagent. Half a day.
+A strong session hands its mechanical steps to a small sub agent. Half a day. Reviewed on 3 October against the
+open-source tools that do this (below); the review changed it in four places, marked *changed*.
 
-1. **Three agent definitions** in `catio-plugin/agents/`, each with `model:` and `tools:` in its frontmatter:
-   - `scout` (haiku): Glob, Grep, Read, the graphify query. Finds where things are, reports paths and lines.
-   - `tester` (haiku): Bash, Read. Runs the repo's checks and reports what failed, with the failing lines, nothing
-     else.
-   - `scribe` (sonnet): Read, Write to `docs/` and `*.md` only. Drafts a doc, a changelog line, a PR description.
+0. **The one-line version first** (*changed*). Claude Code resolves a sub agent's model from the call, then the
+   agent file, then `CLAUDE_CODE_SUBAGENT_MODEL`, then the session's model, and the built-in Explore and
+   general-purpose agents run on the **session's** model by default, so today every Explore in her Opus session
+   costs Opus. Setting `CLAUDE_CODE_SUBAGENT_MODEL=haiku` in her Claude environments puts every unpinned sub agent on
+   Haiku with no file in the repo. Try that for a week before anything below: it also moves graphify's extraction
+   sub agents to Haiku, so watch the map's quality; if it drops, pin graphify's agents to `sonnet` and keep the
+   variable.
+1. **Two agent definitions** in `catio-plugin/agents/`, each with `model`, `tools`, `maxTurns` and `omitClaudeMd:
+   true` in its frontmatter (the built-in Explore skips CLAUDE.md for the same reason; hers is long):
+   - `scout` (haiku): Glob, Grep, Read, and the graphify query preloaded with `skills:`. Finds where things are and
+     reports paths and lines, nothing else.
+   - `tester` (haiku): Bash, Read. Runs the repo's checks and reports what failed, with the failing lines.
 
-   None of them gets Edit on code. A small model that only reads, runs and writes prose can't weaken "a strong model
-   did the work", so the merge gate needs no change.
-2. **A soft house rule** `delegate` in `harness/rules.json` ("Send the small stuff to a smaller cat": search, test
-   runs and summaries go to `scout`, `tester` and `scribe`; code stays with you), `enforced: false`, with its switch
-   on the page like the other soft rules. The plugin's SessionStart hook prints it with the rest.
-3. **One check in the gate**, so the promise holds: `ship_gate.py` refuses a commit when a sidechain on a non-strong
-   model touched a tracked file (the transcript records tool calls per sidechain; `models()` already separates
-   them). A test in `harness/test/test_hooks.py` beside the "sonnet worked on it" one.
+   No `scribe` (*changed*): a PR description or a changelog line needs the diff the parent already holds, and a sub
+   agent that must be handed that context costs more than it saves. Anthropic's own finding is that splitting by
+   job title (planning, implementing, testing, reviewing) spent more on coordination than on the work; what pays is
+   splitting along information boundaries: a self-contained job with verbose output and a short answer. Scout and
+   tester are that. Prose stays with the parent, in Sonnet's or Opus's hands, where the French is better anyway.
+
+   Neither gets Edit or Write. A small model that only reads, runs and reports can't weaken "a strong model did the
+   work", so the merge gate's promise holds without a new rule.
+2. **A nudge, not only a rule** (*changed*). The soft rule `delegate` goes in `harness/rules.json` ("Send the small
+   stuff to a smaller cat"), with its switch on the page like the other soft rules. But the tools that work don't
+   rely on prose: cc-router's scout guard watches the main session for an unbounded search and suggests the Scout,
+   twice a session, then stays quiet. `graph_first.py` already does exactly this shape for the map; the same hook
+   gets a second line: a `Grep` or `Glob` across the repo, or a `Bash` test run, in the main session on a strong
+   model, is answered once with "scout/tester would do this for a tenth of the price". No block.
+3. **The gate check moves to the moment of the edit** (*changed*). The plan said: refuse a commit when a small
+   sidechain touched a tracked file, read from the transcript. Two facts against it: sub agent transcripts live
+   in their own files (`subagents/agent-<id>.jsonl`), not in the sidechain entries `models()` reads, and hooks run
+   *inside* sub agents, with the agent's name as `agent_type`. So `gates.py` refuses `Edit`, `Write` and
+   `NotebookEdit` when `agent_type` is `scout` or `tester`, or when the running model is not strong and the file is
+   tracked. Belt and braces over the frontmatter allowlist, a few lines, and it fires before anything is written
+   instead of at the commit. A test beside the "sonnet worked on it" one.
+4. **Escalation is "do it yourself"**. claude-router escalates a failed Sonnet job to Opus with the error attached;
+   oh-my-opencode keeps `explore` and `explore-medium` on two sizes. Neither for the café: when scout or tester
+   comes back empty or wrong, the rule says the session does that step itself, once. No bigger scout, no retry
+   loop.
 
 Done when: a session in this repo runs `tester` on Haiku and merges its own PR; `sh catio/test/run.sh` and the
 harness tests pass unchanged.
+
+**Later, from the same review, if A earns it:**
+- An `implementer` on Sonnet that may edit code, the way every other tool allows (cc-router's Worker,
+  claude-router's Implementer, oh-my-opencode's executor; aider's architect/editor split is the same idea and set
+  records on its own benchmark). In the café the gate would then count its sidechain as Sonnet work, so its PRs are
+  held for her, which is the right default. Not in A: the point of A is that nothing small writes code.
+- cc-router's **quota step-down**: at 85 % of her plan's window, every tier drops one (strong stays strong for
+  merging, which the gate wants anyway). Needs the usage reading from the status line; later.
+
+### Reviewed against
+
+- Claude Code's sub agent reference: the frontmatter (`model` incl. `fable`, `tools`, `disallowedTools`,
+  `maxTurns`, `omitClaudeMd`, `skills`, `memory`, `background`, `isolation: worktree`), the model resolution order,
+  `CLAUDE_CODE_SUBAGENT_MODEL` and `_FORCE`, Explore and general-purpose on the session's model by default, hooks
+  running inside sub agents, separate transcript files, and "use a sub agent when the output is verbose, the work is
+  self-contained and returns a summary".
+- **cc-router** (theBlackEndDev): Scout and Scribe on Haiku, Worker, Researcher, Reviewer and Planner on Sonnet,
+  Plan on Opus; the tier comes from which helper is started, enforced by hooks at `SubagentStart`; "no upgrades";
+  the scout guard; quota step-down at 85 %. No measured savings published.
+- **claude-router** (vimoxshah): Explorer on Haiku, Implementer on Sonnet, Hard-implementer and Reviewer on Opus,
+  Advisor on Fable; "cheap models for volume, premium where a mistake compounds"; only the two implementers write;
+  escalation with error context; a validation script before dispatch. No measured results.
+- **wshobson/agents**: four tiers over about two hundred agents: Opus for architecture, security, all review and
+  production code; Sonnet for docs, testing and debugging; Haiku for operational chores and simple docs. Note that
+  it puts testing on Sonnet: that is writing tests; running them is Haiku work.
+- **oh-my-opencode / oh-my-claudecode**: explore and librarian on the cheapest models "because they do not need
+  deep reasoning", oracle on the strongest "because its outputs gate execution", three sizes of executor.
+- **aider's architect/editor mode**: a strong model plans, a cheap one edits; state of the art on its own
+  benchmark. The opposite split from A, and the argument for the later `implementer`.
+- **RouteLLM** (LMSYS): a learned router between a cheap and a strong model, 85 % cost cut at 95 % of quality on
+  MT-Bench. Overkill here: in Claude Code the session itself is the router, by which helper it starts.
+- **Anthropic on multi-agent systems**: Opus lead with Sonnet sub agents beat a single Opus by 90 % on its research
+  eval; divide by information boundary, not by job title; isolate a subtask when it produces over about a thousand
+  tokens of which little matters to the parent; write the sub agent a precise objective, output format and
+  boundaries.
 
 ## Phase B: the queen starts small cats
 
@@ -120,6 +180,6 @@ spends her PC's time, not money: the runner is signed in with her plan.
 
 ## Order
 
-A1 to A3, then C1 (routines on a small model), then B, then C2 to C4. A and C1 need no new secrets, no deploy and
-no change to the page's stored capabilities. B changes the gateway (deployed by Workers Builds on merge) and the
+A0, then A1 to A4, then C1 (routines on a small model), then B, then C2 to C4. A and C1 need no new secrets, no deploy and
+no change to the page's stored capabilities (A0 is one variable in her Claude environments). B changes the gateway (deployed by Workers Builds on merge) and the
 runner (she restarts it), so it waits for a quiet day.
