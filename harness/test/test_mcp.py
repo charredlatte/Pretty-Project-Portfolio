@@ -108,7 +108,11 @@ class Stdio(unittest.TestCase):
         self.assertEqual(self.tool("answer", quiz=c["id"], answers=["Settled: drop it"]), {"ok": True, "told": False})
         self.assertEqual(len(self.tool("comments", cat="queen")["notes"]), heard)
         self.assertEqual(self.tool("quiz", **card), {"id": c["id"], "done": True})
-        self.assertEqual(self.tool("forget", quizzes=[c["id"]]), {"forgotten": 1})
+        with self.assertRaises(Exception):   # a card the café couldn't answer
+            self.tool("quiz", **dict(card, questions=[{"q": "Which?", "free": True}]))
+        waiting = self.tool("quiz", title="Still waiting", questions=[{"q": "Merge?", "options": ["Yes", "No"]}], **{"for": "codex-shop"})
+        self.assertEqual(self.tool("forget", quizzes=[c["id"], waiting["id"]]), {"forgotten": 1})
+        self.assertIn(waiting["id"], [q["id"] for q in self.tool("quizzes")["quizzes"]])
         self.assertEqual(self.tool("quizzes", done=True, kind="litterbox")["quizzes"], [])
         self.tool("manage", cat="codex-shop", action="rename", value="Biscotte")
         self.tool("manage", cat="codex-shop", action="archive")

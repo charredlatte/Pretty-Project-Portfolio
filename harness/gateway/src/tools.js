@@ -53,7 +53,7 @@ export const TOOLS = [
 		["title", "questions"]),
 	tool("quizzes", "The homework set for the owner: the open quizzes, oldest first (done: true lists the handed-in ones too; kind lists one kind).",
 		{ done: { type: "boolean" }, kind: { type: "string", enum: ["unblock", "litterbox", "decision"] } }),
-	tool("forget", "Clear homework from the house (the queen or the owner): the cards already filed, by id.",
+	tool("forget", "Clear homework from the house (the queen or the owner): the cards already filed, or litter box notes and decisions no longer waiting, by id. An open unblock quiz stays.",
 		{ quizzes: { type: "array", items: S } }, ["quizzes"]),
 	tool("decide",
 		"A typed decision from a System One model (Clef on Workers AI, Jev, or laya-serve): a state and named questions of type noul " +
@@ -63,7 +63,7 @@ export const TOOLS = [
 		{ state: { description: "The text or JSON the questions are about" }, questions: { type: "object" }, preset: { type: "string", enum: ["easy"] },
 			model: said("@cf/cloudflare/clef-flash (default), @cf/cloudflare/clef, typesafe/jev"), kind: said("A label for the log, e.g. sort"), old: said("What the old path chose, for the log") },
 		["state"]),
-	tool("answer", "Hand homework in (the owner only): one answer per question, in order. The answers reach the cat, as the owner's words, and the queen.",
+	tool("answer", "Hand homework in (the owner only): one answer per question, in order. An unblock quiz's answers reach the cat, as the owner's words, and the queen; a litterbox or decision card's are only kept, for filing.",
 		{ quiz: S, answers: { type: "array", items: S } }, ["quiz", "answers"]),
 ];
 

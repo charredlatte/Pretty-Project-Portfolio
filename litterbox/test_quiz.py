@@ -133,5 +133,23 @@ class Quiz(unittest.TestCase):
         self.assertIn(f"filed cards: litterbox-{ids[0]} litterbox-{ids[1]}", out.getvalue())
 
 
+    def test_stale_lists_the_open_cards_whose_note_no_longer_waits(self):
+        ids = list(self.cards())
+        saved = Path(self.tmp.name) / "open.json"
+        saved.write_text(json.dumps({"quizzes": [{"id": f"litterbox-{ids[0]}", "kind": "litterbox", "status": "set"},
+                                                 {"id": "litterbox-0123456789ab", "kind": "litterbox", "status": "set"},
+                                                 {"id": "z1", "kind": "unblock", "status": "set"}]}))
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            quiz.stale(saved, self.box)
+        self.assertEqual(out.getvalue().strip(), "stale cards: litterbox-0123456789ab")
+
+    def test_a_file_that_isnt_a_quizzes_result_is_refused_plainly(self):
+        saved = Path(self.tmp.name) / "wrapped.json"
+        saved.write_text(json.dumps({"content": [{"type": "text"}]}))
+        with self.assertRaises(SystemExit):
+            quiz.apply(saved, self.box)
+
+
 if __name__ == "__main__":
     unittest.main()

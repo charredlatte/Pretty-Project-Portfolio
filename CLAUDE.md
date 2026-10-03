@@ -258,7 +258,8 @@ that inflates "3 need you" makes the sign a liar.
   ("Homework: 2 notes to sort, 1 decision"); the House menu leads with Homework when anything waits; the library's
   chest is the litter box (`.cabinet.litter`, no sign): hovering says what waits, a click opens her card at its
   notes, or the brain's tray when there are none. Dealing and filing: `litterbox/README.md` and
-  `catio-plugin/skills/litterbox-quiz/`; `forget` clears filed cards. `litterbox/quiz.html` stays for a café with no
+  `catio-plugin/skills/litterbox-quiz/`; `forget` clears filed and stale cards, never an open unblock quiz. A
+  litterbox or decision card is one question with 2 to 12 options (the gateway refuses others: the café couldn't answer them). `litterbox/quiz.html` stays for a café with no
   gateway; her two quiz pages are retired.
 - **What she keeps** is hers alone; a note she is *saying* (`pinned`) becomes her line in her menu and hover.
   The room queens of before (`queens/<room>`) are read as hers until her first save, which writes `queens/house`

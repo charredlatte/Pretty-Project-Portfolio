@@ -40,6 +40,7 @@ function quizOf(args) {
 		return { q: text, options, free: q.free === true || !options.length };
 	});
 	const kind = QUIZ_KINDS.includes(args.kind) ? args.kind : "unblock";
+	if (kind !== "unblock" && (questions.length !== 1 || questions[0].options.length < 2)) throw new Refusal("a " + kind + " card is one question with 2 to 12 options");
 	const clip = (k, n) => (args[k] ? String(args[k]).slice(0, n) : "");
 	return { kind, title: String(args.title).trim().slice(0, QUIZ.title), questions, note: clip("note", QUIZ.note), from: clip("from", 200), hint: clip("hint", QUIZ.text), ref: clip("ref", 80).replace(/[^A-Za-z0-9_-]/g, "") };
 }
@@ -269,7 +270,10 @@ const TOOLS = {
 		const ids = (Array.isArray(args.quizzes) ? args.quizzes : []).map(String).slice(0, 500);
 		let gone = 0;
 		for (const id of ids) {
-			if (!h.sql.exec("SELECT 1 FROM docs WHERE path = ?", "quizzes/" + id).toArray().length) continue;
+			const row = h.sql.exec("SELECT data FROM docs WHERE path = ?", "quizzes/" + id).toArray()[0];
+			if (!row) continue;
+			const z = JSON.parse(row.data);
+			if ((z.kind || "unblock") === "unblock" && z.status !== "done") continue;   // a cat still waits on it
 			h.dropDoc("quizzes/" + id); gone++;
 		}
 		return { forgotten: gone };

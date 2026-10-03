@@ -64,6 +64,8 @@ gateway (`quizzes/<id>`, kind `litterbox`), so the notes of private projects nev
 1. **Deal the cards:** `python3 litterbox/quiz.py deal <dir>` writes one file per note on a pile still marked as a
    guess: the arguments of the gateway's `quiz` tool (the `CATIO` connector). Call `quiz` with each. A card is dealt
    once (its `ref` is the note's id): dealing again replaces the open ones and leaves the answered ones alone.
+   Then save `quizzes` with `{kind: "litterbox"}` and run `python3 litterbox/quiz.py stale <that file>`: `forget` the
+   cards it lists, whose notes no longer wait (a pile checked or rewritten since).
 2. **When she says to file them:** save the result of `quizzes` with `{done: true, kind: "litterbox"}` as a `.json`
    file, then `python3 litterbox/quiz.py apply <that file>`. Settled notes go. The rest leave their piles for
    `<date>-sorted-<project>.md`, checked, which the next `sort.py --write` files. Unanswered notes stay put.

@@ -5,6 +5,7 @@
     python3 litterbox/quiz.py cards OUT_DIR [--box DIR]      one JSON file per card, for litterbox/quiz.html's database: cards/<id>
     python3 litterbox/quiz.py apply ANSWERS [--box DIR]      her answers: the gateway's quizzes result saved as a .json file,
                                                              or the directory ArtifactData saves quiz.html's answers/ into
+    python3 litterbox/quiz.py stale QUIZZES [--box DIR]      the open litter box cards whose note no longer waits: to forget
 
 A card is one note on a pile whose header is still a guess. Its id comes from the pile's name and the note's words,
 so an answer finds its note again after the pile has changed. `apply` takes every answered note off its pile:
@@ -72,11 +73,12 @@ def cards(out, box):
 def deal(out, box):
     """Each card as the arguments of the gateway's quiz tool: a litter box card in the queen's quest log."""
     fresh(out)
-    repos = list(projects(root_of(box)))
+    bare = lambda r: r.rsplit("/", 1)[-1].lower()   # owner/repo and repo are one project
+    repos = list({bare(r): r for r in reversed(list(projects(root_of(box))))}.values())[::-1]
     n = 0
     for cid, card in notes_of(box):
-        guess = next((r for r in repos if r.lower() == card["guess"].lower()), card["guess"])
-        options = [guess] + [r for r in repos if r != guess][:10] + [SETTLED]
+        guess = next((r for r in repos if bare(r) == bare(card["guess"])), card["guess"])
+        options = [guess] + [r for r in repos if bare(r) != bare(guess)][:10] + [SETTLED]
         args = {"kind": "litterbox", "ref": cid, "title": card["title"] or card["pile"].removesuffix(".md"), "note": card["text"],
                 "from": card["from"], "hint": guess, "questions": [{"q": "Which project is it for?", "options": options}]}
         (out / f"{cid}.json").write_text(json.dumps(args, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -85,12 +87,28 @@ def deal(out, box):
     print(f"{n} cards in {out}: deal each with the gateway's quiz tool")
 
 
+def saved_quizzes(path):
+    """The cards in a saved result of the gateway's quizzes tool: {quizzes: [...]}, or the list itself."""
+    got = json.loads(path.read_text(encoding="utf-8"))
+    cards = got.get("quizzes") if isinstance(got, dict) else got
+    if not isinstance(cards, list) or not all(isinstance(z, dict) for z in cards):
+        sys.exit(f"{path}: not a quizzes result (save what the quizzes tool returns: {{\"quizzes\": [...]}})")
+    return cards
+
+
+def stale(where, box):
+    """The open litter box cards whose note is no longer on a pile waiting for a check: forget them."""
+    waiting_now = {cid for cid, _ in notes_of(box)}
+    gone = [z["id"] for z in saved_quizzes(Path(where)) if z.get("kind") == "litterbox" and z.get("status") != "done"
+            and z.get("id", "").removeprefix("litterbox-") not in waiting_now]
+    print("stale cards: " + " ".join(gone) if gone else "no stale cards")
+
+
 def answers_of(where):
     """{card id: {verdict, project}}: from the gateway's quizzes result (a file), or quiz.html's answers (a directory)."""
     if where.is_file():
-        got = json.loads(where.read_text(encoding="utf-8"))
         out = {}
-        for z in got.get("quizzes", got) if isinstance(got, dict) else got:
+        for z in saved_quizzes(where):
             if z.get("kind") != "litterbox" or z.get("status") != "done" or not z.get("answers"):
                 continue
             a = z["answers"][0]
@@ -104,7 +122,8 @@ def answers_of(where):
 
 
 def apply(where, box):
-    answers = answers_of(Path(where))
+    where = Path(where)
+    answers = answers_of(where)
     filed = []
     today = time.strftime("%Y-%m-%d")
     sorted_, rewrite, dropped = {}, {}, 0
@@ -140,16 +159,16 @@ def apply(where, box):
         print(f"{pile.name}: {had - len(keep)} answered, {len(keep)} left")
     print(f"dropped as settled: {dropped}. Next: python3 litterbox/sort.py --write" + (f" --box {box}" if box != BOX.resolve() else ""))
     if filed:   # the cards to clear: forget them in the gateway, or delete them from quiz.html's database
-        print("filed cards: " + " ".join(f"litterbox-{c}" for c in filed))
+        print("filed cards: " + " ".join(f"litterbox-{c}" if where.is_file() else c for c in filed))
 
 
 def main(argv):
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    p.add_argument("what", choices=["deal", "cards", "apply"])
+    p.add_argument("what", choices=["deal", "cards", "apply", "stale"])
     p.add_argument("dir", type=Path)
     p.add_argument("--box", type=Path, default=BOX)
     args = p.parse_args(argv)
-    {"deal": deal, "cards": cards, "apply": apply}[args.what](args.dir, args.box.resolve())
+    {"deal": deal, "cards": cards, "apply": apply, "stale": stale}[args.what](args.dir, args.box.resolve())
 
 
 if __name__ == "__main__":

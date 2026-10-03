@@ -489,6 +489,8 @@ describe("the queen", () => {
 		const card = { kind: "litterbox", ref: "abc123def456", title: "loose-ends.md", note: "Rename her Mochi", from: "litterbox/loose-ends.md", hint: "pretty-project-portfolio",
 			questions: [{ q: "Which project is it for?", options: ["pretty-project-portfolio", "kittychat", "Settled: drop it"] }] };
 		assert.match((await tool(TOKEN, "quiz", card)).refused, /only the queen or the owner/);
+		assert.match((await tool(her, "quiz", { ...card, questions: [{ q: "Which?", free: true }] })).refused, /one question with 2 to 12 options/);   // a card the café couldn't answer
+		const open = await tool(QUEEN, "quiz", { for: "session_01Queen", title: "Still waiting", questions: [{ q: "Merge it?", options: ["Yes", "No"] }] });
 		const { id } = await tool(her, "quiz", card);
 		assert.equal(id, "litterbox-abc123def456");
 		assert.deepEqual(await tool(her, "quiz", { ...card, note: "Rename her Mochi, dealt again" }), { id });   // open: replaced, not doubled
@@ -502,7 +504,8 @@ describe("the queen", () => {
 		assert.deepEqual(await tool(her, "quiz", card), { id, done: true });   // dealt again after she answered: her answer stands
 		assert.deepEqual((await tool(her, "quizzes", { kind: "litterbox", done: true })).quizzes.map((z) => z.answers), [["kittychat"]]);
 		assert.match((await tool(TOKEN, "forget", { quizzes: [id] })).refused, /only the queen or the owner/);
-		assert.deepEqual(await tool(her, "forget", { quizzes: [id, "decision-camera", "nothing"] }), { forgotten: 2 });
+		assert.deepEqual(await tool(her, "forget", { quizzes: [id, "decision-camera", "nothing", open.id] }), { forgotten: 2 });
+		assert.ok((await tool(her, "quizzes")).quizzes.some((z) => z.id === open.id), "an open unblock quiz was forgotten");
 		assert.deepEqual((await tool(her, "quizzes", { done: true })).quizzes.filter((z) => z.kind !== "unblock" && z.kind), []);
 	});
 

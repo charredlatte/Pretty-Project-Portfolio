@@ -2257,7 +2257,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
         f.appendChild(sub);
         if (z.note) {   // a note is markdown: its **bold** kept, its list bullet and *emphasis* marks dropped
           const p = el("p", "note-text");
-          z.note.replace(/^\s*[-*] /, "").replace(/\n[ \t]+/g, "\n").replace(/(^|\s)\*([^*\n]+)\*(?=\s|$)/g, "$1$2").split(/\*\*(.+?)\*\*/).forEach((part, i) => p.append(i % 2 ? el("strong", null, part) : document.createTextNode(part)));
+          z.note.replace(/^[ \t]*[-*] /gm, "").replace(/\n[ \t]+/g, "\n").replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s.,;:!?)]|$)/gm, "$1$2").split(/\*\*(.+?)\*\*/).forEach((part, i) => p.append(i % 2 ? el("strong", null, part) : document.createTextNode(part)));
           f.appendChild(p);
         }
         const fs = el("fieldset", "q");
@@ -2271,7 +2271,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
             try {
               await hostCall("answer", { quiz: z.id, answers: [o] });
               HANDED.add(z.id);
-              toast(d.kind === "litterbox" ? (o === "Settled: drop it" ? "Settled." : "Sorted: " + o + ".") : "Decided: " + o + ".");
+              toast("Handed in: " + o + ".");
               render(); if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); }
               refreshQuizzes();
             } catch (e) {

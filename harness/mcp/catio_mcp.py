@@ -275,6 +275,8 @@ def quiz(args):
     """Homework the queen (or Charlotte) sets for Charlotte, a card in her quest log (as the gateway's quiz)."""
     title, questions = _quiz_of(args)
     kind = args.get("kind") if args.get("kind") in QUIZ_KINDS else "unblock"
+    if kind != "unblock" and (len(questions) != 1 or len(questions[0]["options"]) < 2):
+        raise ValueError("a %s card is one question with 2 to 12 options" % kind)
     clip = lambda k, n: str(args.get(k) or "")[:n]
     ref = re.sub(r"[^A-Za-z0-9_-]", "", clip("ref", 80))
     rec = {"id": kind + "-" + ref if ref else new_id(), "for": clip("for", 200), "kind": kind, "title": title, "questions": questions,
@@ -304,7 +306,8 @@ def forget(args):
     with LOCK:
         s = load()
         before = len(s.get("quizzes", []))
-        s["quizzes"] = [q for q in s.get("quizzes", []) if q["id"] not in ids]
+        s["quizzes"] = [q for q in s.get("quizzes", []) if q["id"] not in ids
+                        or (q.get("kind", "unblock") == "unblock" and q.get("status") != "done")]   # a cat still waits on it
         store(s)
     return {"forgotten": before - len(s["quizzes"])}
 
@@ -463,7 +466,7 @@ TOOLS = {
              ["title", "questions"]),
     "quizzes": (quizzes, "The homework set for the owner: the open quizzes, oldest first (done: true lists the handed-in ones too; kind lists one kind).",
                 {"done": {"type": "boolean"}, "kind": KIND}, []),
-    "forget": (forget, "Clear homework from the house (the queen or the owner): the cards already filed, by id.", {"quizzes": {"type": "array", "items": S}}, ["quizzes"]),
+    "forget": (forget, "Clear homework from the house (the queen or the owner): the cards already filed, or litter box notes and decisions no longer waiting, by id. An open unblock quiz stays.", {"quizzes": {"type": "array", "items": S}}, ["quizzes"]),
     "decide": (decide, "A typed decision from a System One model (laya-serve on this computer, or Jev): a state and named questions of type noul "
                "(yes/no: a probability), choice (criteria: {option: meaning}; the option, a probability each and a confidence) or score "
                "(criteria: ordered levels; a weighted score). No prose, milliseconds. preset easy asks the six questions of the easy-task "
@@ -471,7 +474,7 @@ TOOLS = {
                {"state": {"description": "The text or JSON the questions are about"}, "questions": {"type": "object"}, "preset": {"type": "string", "enum": ["easy"]},
                 "model": S, "kind": dict(S, description="A label for the log, e.g. sort"), "old": dict(S, description="What the old path chose, for the log")},
                ["state"]),
-    "answer": (answer, "Hand homework in (the owner only): one answer per question, in order. The answers reach the cat, as the owner's words, and the queen.",
+    "answer": (answer, "Hand homework in (the owner only): one answer per question, in order. An unblock quiz's answers reach the cat, as the owner's words, and the queen; a litterbox or decision card's are only kept, for filing.",
                {"quiz": S, "answers": {"type": "array", "items": S}}, ["quiz", "answers"]),
 }
 

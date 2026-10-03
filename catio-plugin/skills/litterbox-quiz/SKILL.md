@@ -19,7 +19,8 @@ box on the map, a tap a card. Nothing to publish.
 
 1. **Deal:** `python3 litterbox/quiz.py deal <dir>` (with `--box` as below) writes each card as the `quiz` tool's
    arguments (`kind: "litterbox"`, `ref`, `title`, `note`, `from`, `hint`, one question). Call `quiz` with each.
-   Dealing again is safe: an open card is replaced, an answered one left alone.
+   Dealing again is safe: an open card is replaced, an answered one left alone. Then save `quizzes` with
+   `{kind: "litterbox"}`, run `python3 litterbox/quiz.py stale <file>` and `forget` the cards it lists.
 2. **File,** on "file my litter box": save `quizzes` with `{done: true, kind: "litterbox"}` to a `.json` file, run
    `python3 litterbox/quiz.py apply <file>`, then `sort.py --write` as in step 3 below, and `forget` the ids `apply`
    prints as filed.
