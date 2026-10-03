@@ -43,15 +43,16 @@ const settle = (page) => page.waitForTimeout(150);
 async function resize(page, width, height) {
   await page.setViewportSize({ width, height });
   await page.evaluate(([w, h]) => new Promise((ok, no) => {
-    const until = Date.now() + 5000;
     let last = "", same = 0;
+    // the deadline is its own timer: a page that stops being painted stops firing rAF, and a deadline checked
+    // only inside the rAF loop would never be reached, hanging the suite instead of failing it
+    const bust = setTimeout(() => no(new Error("the page never settled at " + w + "x" + h + ", last " + last)), 5000);
     (function wait() {
       const d = document.getElementById("queenDlg"), r = d && d.getBoundingClientRect();
       const now = innerWidth + "x" + innerHeight + ":" + (r ? Math.round(r.width) + "x" + Math.round(r.height) : "-");
       same = innerWidth === w && innerHeight === h && now === last ? same + 1 : 0;
       last = now;
-      if (same >= 2) return ok();
-      if (Date.now() > until) return no(new Error("the page never settled at " + w + "x" + h + ", last " + now));
+      if (same >= 2) { clearTimeout(bust); return ok(); }
       requestAnimationFrame(wait);
     })();
   }), [width, height]);
@@ -859,29 +860,36 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   // and at any height: the scene used to take a share of the window (62vh and the like), which fits one window and
   // spills out of a short one, pushing Send off the bottom
-  await check("her card fits a short window too, with Send on it and nothing of hers out of reach", async () => {
+  await T(page, () => window.__catio.setQuiz({ for: "cse_blocked1", title: "Unblock Caramel", questions: [{ q: "Which project is this one for?", options: ["montfortoise-shopify", "Pretty-Project-Portfolio"] }] }));
+  await page.waitForTimeout(500);
+  await check("her card fits a short window too, with Send reachable and nothing of hers out of reach", async () => {
     try {
-      for (const [w, h] of [[1440, 900], [900, 560], [844, 390], [811, 669], [700, 500], [390, 844], [390, 600]]) {
+      expect(await page.locator("#queenHomework .quiz").count() > 0, "no homework: the short windows below would miss the one case that breaks");
+      for (const [w, h] of [[1440, 900], [900, 560], [900, 430], [844, 390], [811, 669], [700, 500], [390, 844], [390, 600], [390, 500]]) {
         await resize(page, w, h);
         const m = await page.evaluate(() => {
           const dlg = document.getElementById("queenDlg"), st = document.querySelector(".qstage"), ul = document.getElementById("queenThread");
-          const send = document.getElementById("queenSend"), fig = document.querySelector(".qchar");
-          ul.scrollTop = ul.scrollHeight;
-          const last = ul.lastElementChild, sr = st.getBoundingClientRect();
-          return { cardOver: dlg.scrollHeight - dlg.clientHeight, sendOn: send.getBoundingClientRect().bottom <= innerHeight + 1,
-            lastHidden: last ? Math.round(last.getBoundingClientRect().bottom - sr.bottom) : 0,
-            figBelow: Math.round(fig.getBoundingClientRect().bottom - sr.bottom), talk: ul.clientHeight };
+          const send = document.getElementById("queenSend"), hw = document.getElementById("queenHomework");
+          const qc = document.querySelector(".qchar"), ow = document.querySelector(".owner");
+          dlg.scrollTop = dlg.scrollHeight;   // as she would, when the window is too short for the whole card
+          const r = send.getBoundingClientRect(), at = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+          const sr = st.getBoundingClientRect();
+          return { sendInView: r.top >= 0 && r.bottom <= innerHeight + 1, sendOnTop: !!at && (at === send || send.contains(at)),
+            // the scene clips what it cannot hold, and clipped is unreachable: nothing inside it may overflow it
+            stageOver: Math.max(st.scrollHeight - st.clientHeight, 0),
+            figAbove: Math.round(sr.top - Math.min(qc.getBoundingClientRect().top, ow.getBoundingClientRect().top)),
+            talk: ul.clientHeight, homework: hw.clientHeight };
         });
-        expect(m.cardOver <= 1, "at " + w + "x" + h + " her card is taller than the screen by " + m.cardOver);
-        expect(m.sendOn, "at " + w + "x" + h + " Send is under the fold");
-        // the scene clips what it cannot hold, so anything inside it has to fit: scrolled to the newest, her last
-        // word must be above the frame, and she must stand inside it
-        expect(m.lastHidden <= 1, "at " + w + "x" + h + " the newest thing she said is cut off by " + m.lastHidden + " px, with nowhere to scroll");
-        expect(m.figBelow <= 1, "at " + w + "x" + h + " she hangs " + m.figBelow + " px out of the frame");
-        expect(m.talk >= 40, "at " + w + "x" + h + " the talk is " + m.talk + " px: the two of them squeezed it out");
+        const at = w + "x" + h + " ";
+        expect(m.sendInView, "at " + at + "Send can't be brought on screen, even with the card scrolled down");
+        expect(m.sendOnTop, "at " + at + "something is drawn over Send, so it can't be clicked");
+        expect(m.stageOver <= 2, "at " + at + "the scene overflows its frame by " + m.stageOver + " px, which is clipped with nowhere to scroll");
+        expect(m.figAbove <= 1, "at " + at + "one of them is " + m.figAbove + " px above the frame, so her head is cut off");
+        expect(m.talk >= 20, "at " + at + "the talk is " + m.talk + " px: the two of them squeezed it out");
+        expect(m.homework >= 20, "at " + at + "her homework is " + m.homework + " px: the talk's floor squeezed it out");
       }
     } finally {
-      await resize(page, 1440, 900);
+      try { await resize(page, 1440, 900); } catch (e) { /* never mask the failure above with a resize error */ }
     }
   });
   await check("every other setting is in an overlay, out of the scene until Settings", async () => {
@@ -1632,7 +1640,9 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
       const over = e.scrollHeight - e.clientHeight;
       if (over <= 0) return { over, reached: true, hand: true };
       e.scrollTop = e.scrollHeight;
-      const box = e.getBoundingClientRect(), hand = e.querySelector(".hand") || e.querySelector(".actions button");
+      const box = e.getBoundingClientRect();
+      const hands = e.querySelectorAll(".hand, .actions button");
+      const hand = hands[hands.length - 1];   // the one at the bottom, where it has just been scrolled to
       const hr = hand && hand.getBoundingClientRect();
       return { over, reached: e.scrollTop > 0, hand: !!hr && hr.bottom <= box.bottom + 1 && hr.top >= box.top - 1 };
     });

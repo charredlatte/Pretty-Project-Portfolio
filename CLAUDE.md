@@ -253,9 +253,11 @@ that inflates "3 need you" makes the sign a liar.
   her homework sit in is stated, never left to the content, and every button in them wraps: an `auto` column there
   grows to the longest word in a bubble or a quiz, and then her words scroll off the side. The card fills the
   window (the height is on `dialog.scene`, which already states the cap and draws the panel) and the scene takes
-  what the head and the saybar leave, so Send is never pushed off a short screen; every row inside the scene can
-  shrink, because the scene clips what it cannot hold and a clipped bubble can't be scrolled to. A quiz taller
-  than the scene scrolls, with a bubble's worth of talk kept under it.
+  what the head and the saybar leave, down to a floor on its row: under that the card is taller than the window
+  and the dialog scrolls, which is reachable, where a scene given a `min-height` of its own would simply be drawn
+  over the saybar. Every row inside the scene can shrink, because the scene clips what it cannot hold and a
+  clipped bubble can't be scrolled to; her homework and the talk each keep a share of what is left, so neither
+  can squeeze the other out, and whichever is too tall for its share scrolls.
   **Every setting is in an overlay**
   (`#queenSettings`, Settings in the card's head, "Back to her" to leave): her voice switch and voice, What she keeps,
   Her character, Routines, and You. On the map she is as before: hovering names her, a click opens her menu. `speak()` is the browser's `speechSynthesis`
