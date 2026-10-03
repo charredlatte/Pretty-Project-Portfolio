@@ -38,6 +38,24 @@ const T = (page, f) => page.evaluate(f);
 const toast = async (page) => (await page.locator("#toast").textContent()) || "";
 const menuText = async (page) => (await page.locator("#menu").isVisible()) ? await page.locator("#menu").innerText() : "";
 const settle = (page) => page.waitForTimeout(150);
+// Resize and wait for the page to have taken the new size, rather than guessing how long the relayout takes:
+// setViewportSize resolves when the browser acknowledges it, which can be before the renderer has relaid out.
+async function resize(page, width, height) {
+  await page.setViewportSize({ width, height });
+  await page.evaluate(([w, h]) => new Promise((ok, no) => {
+    const until = Date.now() + 5000;
+    let last = "", same = 0;
+    (function wait() {
+      const d = document.getElementById("queenDlg"), r = d && d.getBoundingClientRect();
+      const now = innerWidth + "x" + innerHeight + ":" + (r ? Math.round(r.width) + "x" + Math.round(r.height) : "-");
+      same = innerWidth === w && innerHeight === h && now === last ? same + 1 : 0;
+      last = now;
+      if (same >= 2) return ok();
+      if (Date.now() > until) return no(new Error("the page never settled at " + w + "x" + h + ", last " + now));
+      requestAnimationFrame(wait);
+    })();
+  }), [width, height]);
+}
 // the manor's upstairs rooms; every other room is on the ground floor
 const UPPER = new Set(["brain", "bath", "bedroom"]);
 // go to the floor a room is on, with the floor switch, as a person would
@@ -829,28 +847,41 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     // a strip under half the scene
     try {
       for (const [w, least] of [[1440, .6], [900, .6], [811, .6], [700, .6], [600, .55], [561, .55]]) {
-        await page.setViewportSize({ width: w, height: 900 });
-        // wait for the card's width to settle, rather than guessing how long the relayout takes
-        await page.locator("#queenDlg").evaluate((d) => new Promise((ok, no) => {
-          const until = Date.now() + 5000;
-          let last = -1, same = 0;
-          (function wait() {
-            const w = Math.round(d.getBoundingClientRect().width);
-            same = w === last ? same + 1 : 0;
-            last = w;
-            if (same >= 2) return ok();
-            if (Date.now() > until) return no(new Error("the card's width never settled, last " + w));
-            requestAnimationFrame(wait);
-          })();
-        }));
+        await resize(page, w, 900);
         const s = await page.locator("#queenThread").evaluate((u) => ({ over: u.scrollWidth - u.clientWidth, w: u.clientWidth }));
         expect(s.over <= 0, "at " + w + " her words scroll sideways: " + JSON.stringify(s));
         const stage = await page.locator(".qstage").evaluate((e) => e.clientWidth);   // inside the frame: what there is to share
         expect(s.w > stage * least, "at " + w + " the talk gets too little of the scene: " + s.w + " of " + stage);
       }
     } finally {   // whatever happened, the checks after this one see the viewport they were written for
-      await page.setViewportSize({ width: 1440, height: 900 });
-      await settle(page);
+      await resize(page, 1440, 900);
+    }
+  });
+  // and at any height: the scene used to take a share of the window (62vh and the like), which fits one window and
+  // spills out of a short one, pushing Send off the bottom
+  await check("her card fits a short window too, with Send on it and nothing of hers out of reach", async () => {
+    try {
+      for (const [w, h] of [[1440, 900], [900, 560], [844, 390], [811, 669], [700, 500], [390, 844], [390, 600]]) {
+        await resize(page, w, h);
+        const m = await page.evaluate(() => {
+          const dlg = document.getElementById("queenDlg"), st = document.querySelector(".qstage"), ul = document.getElementById("queenThread");
+          const send = document.getElementById("queenSend"), fig = document.querySelector(".qchar");
+          ul.scrollTop = ul.scrollHeight;
+          const last = ul.lastElementChild, sr = st.getBoundingClientRect();
+          return { cardOver: dlg.scrollHeight - dlg.clientHeight, sendOn: send.getBoundingClientRect().bottom <= innerHeight + 1,
+            lastHidden: last ? Math.round(last.getBoundingClientRect().bottom - sr.bottom) : 0,
+            figBelow: Math.round(fig.getBoundingClientRect().bottom - sr.bottom), talk: ul.clientHeight };
+        });
+        expect(m.cardOver <= 1, "at " + w + "x" + h + " her card is taller than the screen by " + m.cardOver);
+        expect(m.sendOn, "at " + w + "x" + h + " Send is under the fold");
+        // the scene clips what it cannot hold, so anything inside it has to fit: scrolled to the newest, her last
+        // word must be above the frame, and she must stand inside it
+        expect(m.lastHidden <= 1, "at " + w + "x" + h + " the newest thing she said is cut off by " + m.lastHidden + " px, with nowhere to scroll");
+        expect(m.figBelow <= 1, "at " + w + "x" + h + " she hangs " + m.figBelow + " px out of the frame");
+        expect(m.talk >= 40, "at " + w + "x" + h + " the talk is " + m.talk + " px: the two of them squeezed it out");
+      }
+    } finally {
+      await resize(page, 1440, 900);
     }
   });
   await check("every other setting is in an overlay, out of the scene until Settings", async () => {
@@ -1566,14 +1597,22 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
 // opened her card at that size, so the rules that only apply there went unchecked.
 {
   const { page, ctx, errors } = await open("?via=gateway&mode=blocked", { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
-  await page.locator("#cats .cat.queen").dispatchEvent("dblclick");
-  await settle(page);
   const fits = () => page.locator("#queenDlg").evaluate((d) => d.scrollHeight - d.clientHeight);
+  await page.locator("#cats .cat.queen").tap();   // the way she opens it on a phone: a tap names her and opens her menu
+  await settle(page);
+  await check("on a phone a tap on her opens her menu, and Talk to her opens her card", async () => {
+    expect(await page.locator("#menu").isVisible(), "no menu");
+    expect(await page.locator("#queenDlg[open]").count() === 0, "her card opened on the first tap");
+    await menuButton(page, "Talk to her").tap();
+    await settle(page);
+    expect(await page.locator("#queenDlg[open]").count() === 1, "Talk to her didn't open her card");
+  });
   await check("on a phone her card fits the screen, the two of them at its foot and the words across the whole scene", async () => {
     const over = await fits();
     expect(over <= 1, "her card is taller than the screen by " + over);
     expect(await page.locator("#queenSend").evaluate((s) => s.getBoundingClientRect().bottom <= innerHeight + 1), "Send is under the fold");
     const you = await page.locator("#queenOwnerFig").boundingBox(), her = await page.locator("#queenFig").boundingBox(), talk = await page.locator("#queenThread").boundingBox();
+    expect(you && her && talk, "a piece is missing: " + JSON.stringify({ you, her, talk }));
     expect(you.x + you.width <= her.x + 2, "they aren't side by side: " + JSON.stringify({ you, her }));
     expect(talk.y + talk.height <= you.y + 2, "the words aren't above them: " + JSON.stringify({ talk, you }));
     const stage = await page.locator(".qstage").evaluate((e) => e.clientWidth);
@@ -1588,8 +1627,17 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(await page.locator("#queenHomework .quiz").count() > 0, "no homework drawn");
     const h = await page.locator("#queenThread").evaluate((u) => u.clientHeight);
     expect(h > 80, "her homework left the talk no height: " + h);
-    const hw = await page.locator("#queenHomework").evaluate((e) => ({ over: e.scrollHeight - e.clientHeight, canScroll: getComputedStyle(e).overflowY !== "hidden" && getComputedStyle(e).overflowY !== "clip" }));
-    expect(!hw.over || hw.canScroll, "her homework is cut off with no way to scroll to the rest: " + JSON.stringify(hw));
+    // scroll it, rather than trusting the stylesheet: what was below the fold has to come into view
+    const hw = await page.locator("#queenHomework").evaluate((e) => {
+      const over = e.scrollHeight - e.clientHeight;
+      if (over <= 0) return { over, reached: true, hand: true };
+      e.scrollTop = e.scrollHeight;
+      const box = e.getBoundingClientRect(), hand = e.querySelector(".hand") || e.querySelector(".actions button");
+      const hr = hand && hand.getBoundingClientRect();
+      return { over, reached: e.scrollTop > 0, hand: !!hr && hr.bottom <= box.bottom + 1 && hr.top >= box.top - 1 };
+    });
+    expect(hw.reached, "her homework is cut off with no way to scroll to the rest: " + JSON.stringify(hw));
+    expect(hw.hand, "Hand it in can't be reached even scrolled to the bottom: " + JSON.stringify(hw));
     const over = await fits();
     expect(over <= 1, "her card grew past the screen with homework open, by " + over);
   });
