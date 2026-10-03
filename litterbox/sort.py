@@ -336,7 +336,9 @@ def ship(repo, paths, message, say):
 
 
 def run(box=BOX, write=False, given=None, say=print):
-    root, given = box.parent, given or {}
+    # the repo this box belongs to: the box's own parent when it is a checkout, else this one (a --box kept elsewhere)
+    root = box.parent if (box.parent / "catio" / "data" / "rooms.json").exists() else BOX.parent
+    given = given or {}
     files = read_box(box, projects(root))
     by_repo, homes, cos, stay, piles = {}, {}, {}, {}, {}
     for path, (_, notes, _, _, waiting) in files.items():
