@@ -18,7 +18,7 @@ Nothing in it is art: plain grey boxes and Figma's Inter. Nothing from `catio/da
 5. **Sessions.** What `list_sessions` found. **4b** is the blocked state, with the saved copy in one line.
 6. **Litter box.** What it is and a drop zone. (The frame's switch for holding pull requests was dropped in
    the build: holding is the merging rule's doing, `harness/README.md`, not a page setting.)
-7. **How it works.** The harness in five plain lines: chats are cats, cats check in at the front desk, some rules
+7. **How it works.** The harness in five plain lines: chats are cats, the café asks who's awake, some rules
    can't be talked around, messages wait on the mat, the queen and the litter box.
 8. **Done.** The summary and "Open the doors".
 
@@ -51,8 +51,9 @@ artifact) are the reference; the onboarding follows them.
   thing, because they have to type or find it: Claude Code Remote, `list_repos`, `data/sessions.json`,
   `litterbox/sort.py`, the two install lines.
 - **The Welcome step opens with the tagline:** "All your Claude chats, in one cozy café."
-- **How it works says the connection start to finish** in the five lines of frame 7 (chats are cats, cats check in
-  at the front desk, rules can't be talked around, messages wait on the mat, the queen and the litter box).
+- **How it works says the connection start to finish** in the five lines of frame 7 (chats are cats, the café asks
+  who's awake, rules can't be talked around, messages wait on the mat, the queen and the litter box). `frames.js`
+  and `openSetup()` hold the same five, word for word: change both, and quote neither here beyond its title.
   Hooks and skills stay behind the House menu, for the people who ask.
 - **Be honest about where it stands.** Running your own café is open today (a clone, the public `catio` skill, a
   Cloudflare Worker for the front desk). A hosted café with nothing to install is planned and not open yet:

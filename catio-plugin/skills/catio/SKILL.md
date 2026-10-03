@@ -9,7 +9,8 @@ One page where every Claude Code session is a cat. It plays while it works, slee
 and meows with a speech bubble when it's waiting on its human. Each room of the manor is a kind of
 work, and a session's git repository decides which room its cat lives in.
 
-The house also has one **queen**: a cat who is not a session, never leaves, and sits in the entrance hall.
+The house also has one **queen**: a cat who is not a session and never leaves. Her seat is the entrance hall's,
+or, while that room is closed, wherever new cats come in.
 She keeps what matters, runs the routines you set her, and is the one you talk to. You give her something to
 hold, and she hands it back — in her menu, or said out loud until you take it off her.
 
@@ -184,8 +185,7 @@ says on its face. Keep anything sensitive in the chat itself and give the cat a 
 
 ## The queen, and what she's for
 
-The house has one queen, in the entrance hall (her call, 2 October 2026: one main character you chat with,
-not a cat per room). She holds what you'd otherwise have to remember, or go and look up. A note she is
+The house has one queen (her call, 2 October 2026: one main character you chat with, not a cat per room). She holds what you'd otherwise have to remember, or go and look up. A note she is
 *saying* becomes her line in her menu until it is taken back; the rest she just keeps.
 
 She is deliberately not a task: she never joins the count of cats needing you, because a sign that
@@ -204,8 +204,8 @@ of those counts.
   places the furniture and the cats' stations and writes the page's `MANOR` block, from which `GEOM`
   comes. Change them together, re-run `furniture.py`, and check that `furniture.check()` is empty — a cat
   standing in a bathtub is a geometry bug, not a styling one.
-- The entrance hall holds back one seat for the queen (`GEOM.hall.queen`), and each room keeps its own
-  `queen` seat in the drawing. Giving a room another cat seat means taking one out of `spots`, not inventing a
+- The queen sits on the entrance hall's held-back seat (`GEOM.hall.queen`), or on the front door room's when the
+  hall is closed (`queenRoom()`); each room keeps its own `queen` seat in the drawing. Giving a room another cat seat means taking one out of `spots`, not inventing a
   coordinate, because the seats are positions on a drawing that was checked against the art.
 
 Read `CLAUDE.md` in the repository root before anything structural. It carries the decisions this
