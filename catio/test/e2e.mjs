@@ -1345,6 +1345,14 @@ async function dropFiles(page, sel, files) {
   await check("the session's answer shows in the conversation", async () => {
     expect((await page.locator("#thread").innerText()).includes("Yes: it's in the PR."), await page.locator("#thread").innerText());
   });
+  // a note of hers from before accounts, written as "charlotte": still hers
+  await T(page, () => window.__catio.put("notes/old1", { cat: "session_blocked1", author: "charlotte", text: "Old one, from before.", at: Date.now() - 1 }));
+  await page.waitForTimeout(200);
+  await check("a note written as charlotte before accounts still reads as hers", async () => {
+    const li = page.locator("#thread li.me", { hasText: "Old one, from before." });
+    expect(await li.count() === 1, await page.locator("#thread").innerText());
+    expect((await li.innerText()).startsWith("You"), await li.innerText());
+  });
 
   // managing it
   await manage(page);

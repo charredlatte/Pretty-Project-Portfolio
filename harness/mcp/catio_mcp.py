@@ -309,10 +309,10 @@ S = {"type": "string"}
 TOOLS = {
     "house_rules": (house_rules, "The KittyChat house rules every agent in the Catio follows. Read them when you start.", {}, []),
     "report_status": (report_status, "Join the Catio as a cat, or update your cat: what you're working on and whether you need the owner. "
-                      "Call it when you start, when you need her, and when you finish. Returns what's waiting for you.",
+                      "Call it when you start, when you need them, and when you finish. Returns what's waiting for you.",
                       {"agent": dict(S, description="Your stable id, e.g. codex-montfortoise"), "name": S, "model": dict(S, description="e.g. gpt-5, gemini-2.5-pro"),
                        "provider": dict(S, description="openai, google, anthropic, local..."), "title": S, "project": S, "repo": dict(S, description="owner/repo"),
-                       "branch": S, "mood": {"type": "string", "enum": list(MOODS)}, "ask": dict(S, description="What you need from her, when mood is needs"),
+                       "branch": S, "mood": {"type": "string", "enum": list(MOODS)}, "ask": dict(S, description="What you need from the owner, when mood is needs"),
                        "link": S, "session": dict(S, description="Your own session id, for the wake command"),
                        "via": dict(S, description="What you run in, e.g. claude-code"), "cwd": S,
                        "wake": {"type": ["array", "null"], "items": S, "description": "Command that wakes you with a message; placeholders {message} {session} {agent}"}},
@@ -330,8 +330,8 @@ TOOLS = {
                {"cat": S, "action": {"type": "string", "enum": ["rename", "move", "archive", "unarchive", "pause", "resume", "wrap_up", "message", "done"]}, "value": S},
                ["cat", "action"]),
     "quiz": (quiz, "Set the owner homework (the queen, or the owner): a short quiz whose answers unblock a cat. One quiz per cat, 1 to 5 "
-             "questions, each with 2 to 6 concrete options she can pick, or free for a written answer. She answers in the café; the "
-             "cat gets her answers as her words, and the queen is told.",
+             "questions, each with 2 to 6 concrete options to pick, or free for a written answer. The owner answers in the café; the "
+             "cat gets the answers as the owner's words, and the queen is told.",
              {"for": dict(S, description="The cat it unblocks (its agent id), or empty for the house"), "title": S,
               "questions": {"type": "array", "items": {"type": "object", "properties": {"q": S, "options": {"type": "array", "items": S}, "free": {"type": "boolean"}}, "required": ["q"]}}},
              ["title", "questions"]),
@@ -448,6 +448,8 @@ def serve(folder, port):
 
 
 if __name__ == "__main__":
+    with LOCK:   # notes from before accounts are renamed once, here, so load() has nothing left to rename
+        store(load())
     if "--serve" in sys.argv:
         i = sys.argv.index("--serve")
         folder = sys.argv[i + 1] if len(sys.argv) > i + 1 and not sys.argv[i + 1].startswith("--") else "."

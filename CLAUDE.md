@@ -228,7 +228,7 @@ that inflates "3 need you" makes the sign a liar.
   Claude Code turn per thing she says or routine due, and streams the answer back. `queenState()` reads the agent
   record `queen`: away (no runner for two minutes: asleep, "start her runner"), busy (answering) or here.
 - **Her conversation** is the gateway's notes for the cat `queen`: Charlotte's lines (`comment`, author
-  `charlotte`) and hers (author `queen`, which only the runner's key may write). In the gateway café a `{type:
+  `owner`) and hers (author `queen`, which only the runner's key may write). In the gateway café a `{type:
   "queen"}` push (`catio:queen`) grows her live bubble as she speaks and her voice says each sentence; in claude.ai
   her card polls `comments` every 5 s. Stop is `manage {cat: "queen", action: "pause"}`.
 - **Her card** (`openQueen(section)`): her greeting until she has spoken, the thread (her replies, what the cats
@@ -316,7 +316,7 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
   repo, the chat or a test. With accounts (`src/registry.js`), the first two make the first account once; the
   queen's is a registry key with the role `queen`, kept in step with the secret at every start.
 - **Only she speaks as herself, and only her runner as the queen.** OAuth (her password, through the `Catio`
-  connector in claude.ai) may write as `charlotte`, drop files and manage; the queen's key writes as `queen`,
+  connector in claude.ai) may write as `owner`, drop files and manage; the queen's key writes as `queen`,
   tells cats and manages them for her; the agents' key may do neither. Keep it that way: it is what stops a
   leaked key from putting instructions in her mouth, or in her assistant's, which the cats act on.
 - **The queen's routes:** `POST /api/runner/wait` (held up to 25 s: her notes, a routine due, a stop, her

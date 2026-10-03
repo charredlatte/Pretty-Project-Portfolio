@@ -129,7 +129,7 @@ const TOOLS = {
 	// With mark, only what hasn't been handed over yet, and now it has: a session's Stop hook hands her notes,
 	// requests and files in once each. Handing over keeps its own place (handedNotes), apart from what an answer
 	// counts as read (seenNotes), so a note she sends while the session is answering still gets handed in.
-	// A cat is handed what Charlotte and the queen say; the queen herself only what Charlotte says.
+	// A cat is handed what the owner and the queen say; the queen herself only what the owner says.
 	inbox(h, args) {
 		need(args, "agent");
 		const id = String(args.agent);
@@ -182,7 +182,7 @@ const TOOLS = {
 		return { id, woke: false };
 	},
 
-	// Who speaks: only Charlotte as charlotte, only the queen's runner as queen. What she says to the queen
+	// Who speaks: only the owner as owner, only the queen's runner as queen. What she says to the queen
 	// wakes a waiting runner; what the queen says is kept with the routine that asked it, if one did.
 	comment(h, args, who) {
 		need(args, "cat", "text");
@@ -290,8 +290,8 @@ export class House extends DurableObject {
 		// the sign-in lock and the café's cookies moved to the registry with accounts
 		this.sql.exec("DROP TABLE IF EXISTS wrong_passwords");
 		this.sql.exec("DROP TABLE IF EXISTS logins");
-		// the owner's notes from before accounts were written as "charlotte"
-		this.sql.exec("UPDATE notes SET author = 'owner' WHERE author = 'charlotte'");
+		// the owner's notes from before accounts were written as "charlotte": renamed once, the first time this wakes
+		if (!this.flagged("notesOwner")) { this.sql.exec("UPDATE notes SET author = 'owner' WHERE author = 'charlotte'"); this.flag("notesOwner", "1"); }
 		// the routine that asked for a note of the queen's, on houses built before she had any
 		if (!this.sql.exec("PRAGMA table_info(notes)").toArray().some((c) => c.name === "routine")) this.sql.exec("ALTER TABLE notes ADD COLUMN routine TEXT");
 		this.waiters = [];   // the runner's held waits: resolved when there is something for the queen to do

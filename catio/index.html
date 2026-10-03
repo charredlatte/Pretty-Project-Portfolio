@@ -554,7 +554,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   // the cat café on the ground floor, her own rooms upstairs
   const ORDER = ["dining", "kitchen", "living", "study", "hall", "sunroom", "garden", "brain", "bath", "bedroom"];
   // a note of hers: "owner" on the wire, "charlotte" in the ones written before accounts (read both, write owner)
-  const mine = (n) => n.author === "owner" || n.author === "charlotte";
+  const fromOwner = (n) => n.author === "owner" || n.author === "charlotte";
   const FLOORS = { ground: "Ground floor", upper: "Upstairs" };
   const levelOf = (k) => (k === "landing" ? "upper" : MANOR.level[k] || "ground");
   const other = (f) => (f === "upper" ? "ground" : "upper");
@@ -1753,7 +1753,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const out = [head(h, [c.project.name, roomInfo(c.roomKey).name, ago(c.updated)].filter(Boolean).join(" · "))];
     out.push(el("div", c.ask ? "ask-box " + m.kind : "sub", c.ask || c.doing || c.title));
     const nf = waitingFor(c.id), last = notesFor(c).pop();
-    if (nf || last) out.push(el("p", "sub", [nf && nf + (nf === 1 ? " file" : " files") + " from the brain", last && (mine(last) ? "You" : c.name) + ": " + last.text.slice(0, 60)].filter(Boolean).join(" · ")));
+    if (nf || last) out.push(el("p", "sub", [nf && nf + (nf === 1 ? " file" : " files") + " from the brain", last && (fromOwner(last) ? "You" : c.name) + ": " + last.text.slice(0, 60)].filter(Boolean).join(" · ")));
     if (c.kind === "chat") {
       const moods = el("div", "moods");
       for (const [v, label, mk] of [["needs", "Needs me", "meow"], ["busy", "In progress", "idle"], ["done", "Done", "sleep"]]) {
@@ -2185,7 +2185,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const drawThreadQ = () => {
       ul.replaceChildren();
       const cats = allCats(true).cats;
-      const items = (S.queenNotes || []).filter((n) => mine(n) || n.author === QUEEN_ID).map((n) => ({ kind: mine(n) ? "owner" : n.author, text: n.text, at: n.at || 0, routine: n.routine }))
+      const items = (S.queenNotes || []).filter((n) => fromOwner(n) || n.author === QUEEN_ID).map((n) => ({ kind: fromOwner(n) ? "owner" : n.author, text: n.text, at: n.at || 0, routine: n.routine }))
         .concat(cats.filter((c) => c.said && c.said.text).map((c) => ({ kind: "handoff", cat: c, text: c.said.text, at: c.said.at || 0 })))
         .sort((a, b) => a.at - b.at).slice(-20);
       if (!items.some((it) => it.kind !== "handoff")) { const li = el("li", "them greet"); li.append(el("span", "who", q.name), document.createTextNode(q.greeting)); ul.appendChild(li); }   // nothing said yet: her greeting
@@ -3240,7 +3240,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   /* ---------- the harness: talking to a cat, and managing it ---------- */
   // What she said is in the Catio's notes; what a cat said back through the gateway (report.py say) is in the gateway's.
   const notesFor = (c) => S.notes.filter((n) => n.cat === c.id)
-    .concat(((c.agentId && S.agentNotes[c.agentId]) || []).filter((n) => !mine(n)))
+    .concat(((c.agentId && S.agentNotes[c.agentId]) || []).filter((n) => !fromOwner(n)))
     .sort((a, b) => (a.at || 0) - (b.at || 0));
   async function loadThread(c) {
     if (!c.agentId || !S.host) return;
@@ -3279,8 +3279,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const notes = notesFor(c).slice(-12);
     ul.hidden = !notes.length;
     for (const n of notes) {
-      const li = el("li", mine(n) ? "me" : "them");
-      li.append(el("span", "who", (mine(n) ? "You" : c.name) + " · " + ago(n.at) + (n.via === "queued" ? " · queued" : n.via === "unreachable" ? " · not delivered" : "")), document.createTextNode(n.text));
+      const li = el("li", fromOwner(n) ? "me" : "them");
+      li.append(el("span", "who", (fromOwner(n) ? "You" : c.name) + " · " + ago(n.at) + (n.via === "queued" ? " · queued" : n.via === "unreachable" ? " · not delivered" : "")), document.createTextNode(n.text));
       ul.appendChild(li);
     }
   }

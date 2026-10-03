@@ -136,7 +136,7 @@ queen runner acts in that account's house:
 - `POST /api/runner/say` `{turn, text, done, routine}` streams her answer: every open café gets a `queen` push
   as she speaks, and `done` stores it as her note (author `queen`, with the routine that asked it).
 - With her key on `/mcp`, the queen uses the same tools as everyone, as `queen`: she may `comment` as `queen`
-  (a cat's hook hands it in as `[Catio] The queen says: …`), `manage` and `drop_file`, never write as `charlotte`.
+  (a cat's hook hands it in as `[Catio] The queen says: …`), `manage` and `drop_file`, never write as `owner`.
   The agents' key may do none of it: the cats act on what she says.
 - `manage {cat: "queen", action: "pause"}` (Stop in the café) ends the turn she is on.
 - **Homework.** `quiz` (the queen, or Charlotte) sets Charlotte a quiz to unblock a cat: a title, `for` the cat, 1 to

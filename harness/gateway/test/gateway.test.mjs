@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, rmSync, statSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -720,10 +720,31 @@ describe("the bootstrap key", () => {
 		// itself, so it is still there.
 		stop();
 		await new Promise((r) => setTimeout(r, 500));
+		// a house from before the rename holds the owner's notes as "charlotte": put one back into the persisted
+		// SQLite (and forget that the house renamed), as a real house would have on the first deploy
+		const dbs = [];
+		const walk = (d) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (f.endsWith(".sqlite")) dbs.push(p); } };
+		walk(state);
+		const flipped = execFileSync("python3", ["-c", `
+import sqlite3, sys
+n = 0
+for p in sys.argv[1:]:
+    c = sqlite3.connect(p)
+    try:
+        if c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='notes'").fetchone():
+            n += c.execute("UPDATE notes SET author = 'charlotte' WHERE cat = 'session_01Test' AND author = 'owner'").rowcount
+            c.execute("DELETE FROM state WHERE key = 'notesOwner'")
+            c.commit()
+    finally:
+        c.close()
+print(n)`, ...dbs], { encoding: "utf8" }).trim();
+		assert.ok(+flipped >= 3, "old-name rows planted: " + flipped);
 		await start();
 		assert.equal((await fetch(base + "/")).status, 200);
 		assert.equal((await mcp()).status, 401);
 		assert.deepEqual(await names(), ["queen"]);
+		const talk = await (await api("/api/tools/comments", { method: "POST", body: JSON.stringify({ cat: "session_01Test" }) })).json();
+		assert.ok(talk.notes.length >= 3 && talk.notes.every((n) => n.author !== "charlotte"), "the house renamed its old notes on waking: " + JSON.stringify(talk.notes.map((n) => n.author)));
 		assert.equal((await fetch(base + "/api/runner/say", { method: "POST", headers: { Authorization: "Bearer " + QUEEN, "Content-Type": "application/json" }, body: JSON.stringify({ turn: "t9", text: "", done: true }) })).status, 200);
 		const asHer = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "charlotte", password: PASSWORD }), redirect: "manual" });
 		assert.equal(asHer.status, 429, "the lock from the gateway suite is in the registry, not in the isolate");
