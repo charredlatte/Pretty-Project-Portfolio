@@ -70,7 +70,7 @@ class Stdio(unittest.TestCase):
         self.assertEqual(len(self.tool("inbox", agent="codex-shop")["notes"]), 1)
         self.tool("comment", cat="codex-shop", text="Nearly done", author="agent")
         self.assertEqual(self.tool("inbox", agent="codex-shop")["notes"], [])
-        self.assertEqual([n["author"] for n in self.tool("comments", cat="codex-shop")["notes"]], ["charlotte", "agent"])
+        self.assertEqual([n["author"] for n in self.tool("comments", cat="codex-shop")["notes"]], ["owner", "agent"])
         self.tool("manage", cat="codex-shop", action="pause")
         self.assertEqual(self.tool("inbox", agent="codex-shop")["request"]["action"], "pause")
 
@@ -107,6 +107,14 @@ class Stdio(unittest.TestCase):
         self.assertTrue(any(l.startswith("[Catio] Delivery for you: brief.md") for l in lines), lines)
         self.assertIn("[Catio] Charlotte says: How's the theme?", lines)
         self.assertIn("[Catio] Request: pause", lines)
+
+    def test_renames_the_owners_old_notes(self):
+        # notes written before accounts said "charlotte": they read as the owner's, and the old name is still taken on write
+        Path(self.home, "state.json").write_text(json.dumps({"agents": {}, "files": [], "notes": [
+            {"id": "1", "cat": "codex-shop", "author": "charlotte", "text": "Old note.", "at": 1}]}), encoding="utf-8")
+        self.assertEqual([n["author"] for n in self.tool("comments", cat="codex-shop")["notes"]], ["owner"])
+        self.tool("comment", cat="codex-shop", text="Still me.", author="charlotte")
+        self.assertEqual([n["author"] for n in self.tool("comments", cat="codex-shop")["notes"]], ["owner", "owner"])
 
     def test_errors_are_tool_errors(self):
         self.rpc("initialize", {})

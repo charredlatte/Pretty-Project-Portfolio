@@ -113,7 +113,7 @@ class Report(unittest.TestCase):
                          [("report_status", "review", None), ("inbox", None, True)])
 
     def test_stop_hands_in_what_she_sent_once(self):
-        self.srv.box = {"notes": [{"id": "1", "cat": "session_01Abc", "text": "Push it, please.", "author": "charlotte", "at": 1}],
+        self.srv.box = {"notes": [{"id": "1", "cat": "session_01Abc", "text": "Push it, please.", "author": "owner", "at": 1}],
                         "request": {"action": "wrap_up", "at": 2},
                         "files": [{"id": "f1", "name": "brief.md", "type": "text/markdown", "size": 12, "note": "the plan", "at": 3}]}
         r = self.hook("Stop", stop_hook_active=False)
@@ -133,7 +133,7 @@ class Report(unittest.TestCase):
 
     def test_stop_hands_in_what_the_queen_says_as_hers(self):
         self.srv.box = {"notes": [{"id": "1", "cat": "session_01Abc", "text": "Prithee, push thy work.", "author": "queen", "at": 1},
-                                  {"id": "2", "cat": "session_01Abc", "text": "And then rest.", "author": "charlotte", "at": 2}],
+                                  {"id": "2", "cat": "session_01Abc", "text": "And then rest.", "author": "owner", "at": 2}],
                         "request": None, "files": []}
         out = json.loads(self.hook("Stop", stop_hook_active=False).stdout)
         self.assertIn("[Catio] The queen says: Prithee, push thy work.", out["reason"])
