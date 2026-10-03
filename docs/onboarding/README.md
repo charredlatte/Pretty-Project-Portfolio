@@ -54,7 +54,7 @@ artifact) are the reference; the onboarding follows them.
 - **How it works says the connection start to finish** in the five lines of frame 7 (chats are cats, the café asks
   who's awake, rules can't be talked around, messages wait on the mat, the queen and the litter box). `frames.js`
   and `openSetup()` hold the same five, word for word: change both, and quote neither here beyond its title.
-  Hooks and skills stay behind the House menu, for the people who ask.
+  Hooks and skills are not named: the step is five sentences and the two install lines, for whoever wants them.
 - **Be honest about where it stands.** Running your own café is open today (a clone, the public `catio` skill, a
   Cloudflare Worker for the front desk). A hosted café with nothing to install is planned and not open yet:
   nothing in the onboarding says "sign in" or "create an account" until it is. The art packs cannot be shared,
@@ -64,7 +64,10 @@ artifact) are the reference; the onboarding follows them.
 Frames 2 and 7 are redrawn in `frames.js`, and the Welcome and How-it-works steps of `openSetup()` in
 `catio/index.html` say the same (3 October). How it works is word for word the same in both; Welcome differs by
 its last sentence alone, because the wireframe ends on the name field and the page counts its seven steps. The other five steps are unchanged: they instruct,
-so they still name the real tools and commands. The suite passes; the look is `sh catio/test/run.sh look setup`.
+so they still name the real tools and commands. The look is `sh catio/test/run.sh look setup`. The suite stands where it stood: 225 pass and one fails, "on its
+own address the café is live through the gateway, with no warning sign", the same on the merge base. In a checkout
+with no `art/licensed/` the sign shows what is missing, so it shows in gateway mode too. It is a real failure and
+someone's to fix; this change neither caused it nor hides it.
 
 ## Still to build
 

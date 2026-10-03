@@ -6,13 +6,15 @@ description: Set up or refresh someone's own Catio — a page where every Claude
 # The Catio
 
 One page where every Claude Code session is a cat. It plays while it works, sleeps when it's done,
-and meows with a speech bubble when it's waiting on its human. Each room of the manor is a kind of
+and meows when it's waiting on its human: point at it and it says what it needs. Each room of the manor is a kind of
 work, and a session's git repository decides which room its cat lives in.
 
 The house also has one **queen**: a cat who is not a session and never leaves. Her seat is the entrance hall's,
 or, while that room is closed, wherever new cats come in.
-She keeps what matters, runs the routines you set her, and is the one you talk to. You give her something to
-hold, and she hands it back — in her menu, or said out loud until you take it off her.
+She keeps what matters and is the one you talk to. You give her something to hold, and she hands it back — in
+her menu, or said out loud until you take it off her. Talking with her and her routines need her brain running on
+the person's own computer (`harness/runner/`) and a gateway, which this skill does not set up: without them her
+card still holds what she keeps, and she shows as away.
 
 The page is one private artifact per person. Sessions come live from the Claude Code Remote
 connector; rooms, renames, adopted chats and what the queen keeps live in the artifact's own
