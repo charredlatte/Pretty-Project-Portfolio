@@ -82,7 +82,7 @@ function page(name, width = 1280, height = 900) {
   body.appendChild(text("What each column unlocks at the gateway", 16, BOLD));
   const grid = col(0, "feature grid");
   const rows = [["", "Free", "Basic", "Early access", "Support"], ["Repositories", "1", "5", "unlimited", "as Free, or with a reward"], ["Requests into a session (pause, wrap up, message, New cat)", "–", "[cap] a month", "✓", "with a reward"],
-    ["Gateway calls: comment, drop_file, manage (list_agents is never metered)", "–", "[cap] a month, shared", "✓", "with a reward"], ["The brain's sorter, the litter box quiz, the queen's homework", "–", "–", "✓", "with a reward"], ["Hosted café (accounts, keys, your own address)", "–", "✓", "✓", "with a reward"], ["The app, when it ships", "–", "at the Basic price", "included", "funded by the campaign"]];
+    ["Gateway calls: comment, drop_file, manage (list_agents and comments are never metered)", "–", "[cap] a month, shared", "✓", "with a reward"], ["The brain's sorter, the litter box quiz, the queen's homework", "–", "–", "✓", "with a reward"], ["Hosted café (accounts, keys, your own address)", "–", "✓", "✓", "with a reward"], ["The app, when it ships", "–", "at the Basic price", "included", "funded by the campaign"]];
   rows.forEach((r, i) => { const rr = row(0, "row"); r.forEach((cell, k) => { const t = text(cell, 12, i === 0 || k === 0 ? BOLD : REG, i === 0 ? GREY : INK, k === 0 ? 440 : 150); rr.appendChild(t); }); grid.appendChild(rr); });
   body.appendChild(grid);
   body.appendChild(text("In development: the subscription and the campaign fund the app. Cancel any month from your account.", 12, REG, GREY, w)); }
