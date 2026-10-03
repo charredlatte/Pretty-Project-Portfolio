@@ -82,6 +82,7 @@ class Quiz(unittest.TestCase):
         answers.mkdir(parents=True)
         (answers / f"{ids[0]}.json").write_text(json.dumps({"verdict": "file", "project": ""}))
         (answers / f"{ids[1]}.json").write_text(json.dumps({"verdict": "maybe"}))
+        (answers / f"{ids[2]}.json").write_text(json.dumps({"verdict": "file", "project": "../etc"}))
         with contextlib.redirect_stdout(io.StringIO()):
             quiz.apply(answers.parent, self.box)
         self.assertEqual((self.box / "LibreSprite.md").read_text(encoding="utf-8"), PILE, "untouched, byte for byte")
@@ -90,9 +91,11 @@ class Quiz(unittest.TestCase):
     def test_a_new_deal_clears_the_old_cards(self):
         out = Path(self.tmp.name) / "cards"
         out.mkdir()
-        (out / "stale.json").write_text("{}")
+        (out / "0123456789ab.json").write_text("{}")
+        (out / "artifacts.json").write_text("{}")
         self.cards()
-        self.assertFalse((out / "stale.json").exists())
+        self.assertFalse((out / "0123456789ab.json").exists())
+        self.assertTrue((out / "artifacts.json").exists(), "only its own cards go")
 
 
 if __name__ == "__main__":
