@@ -78,6 +78,9 @@ def deal(out, box):
     for r in projects(root_of(box)):
         if bare(r) not in seen:
             seen.add(bare(r)); repos.append(r)
+    if len(repos) > 11:   # the gateway takes 12 options: the guess, ten more and Settled
+        print(f"warning: {len(repos)} projects; a card lists its guess and ten others, so a note for one of the rest "
+              "can't be filed from the café: Skip it and file it by hand", file=sys.stderr)
     n = 0
     for cid, card in notes_of(box):
         guess = next((r for r in repos if bare(r) == bare(card["guess"])), card["guess"])
