@@ -77,7 +77,7 @@ checkout.
 
 1. **Its words:** `meta/deck`. Every key has the litter box's text as its default: `title`, `ask` ("WHAT DO YOU
    DECIDE?"), `peek`, `back` ("CLAUDE RECOMMENDS"), `noGuess`, `drop` ("DECIDE LATER"), `dropped` ("LATER"),
-   `droppedTally`, `droppedSaid`, `same`, `differs` (`{guess}` is the recommended label), `src` (`{from}`), `tell`
+   `droppedTally`, `droppedSaid`, `same`, `differs`, `all` (the heading over the extra choices) (`{guess}` is the recommended label), `src` (`{from}`), `tell`
    ("File my decisions."), `done`, `empty`, `footNone`, `footDrop`, `foot`.
 2. **Deal the cards:** `cards/<key>` with `text` (markdown: the decision in bold, then its context), `title` (the
    area), `section` ("decision"), `from` (the doc it comes from), `order`, `options` (2 to 6 of `{key, label, why}`;

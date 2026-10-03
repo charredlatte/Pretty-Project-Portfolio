@@ -178,7 +178,7 @@ button { font: inherit; color: inherit; cursor: var(--point); }
         <button class="btn" id="prev" type="button">BACK <span class="k">←</span></button>
       </div>
       <div class="panel all" id="all" hidden>
-        <h2 class="px" style="margin: 0; font-weight: normal;">EVERY PROJECT</h2>
+        <h2 class="px" style="margin: 0; font-weight: normal;" id="allTitle">EVERY PROJECT</h2>
         <div class="list" id="allList"></div>
       </div>
       <p class="said" id="said" aria-live="polite"></p>
@@ -253,7 +253,7 @@ button { font: inherit; color: inherit; cursor: var(--point); }
   /* ---------- the deck's words: the litter box's unless meta/deck says otherwise ---------- */
   const WORDS = {
     title: "Litter box quiz", ask: "WHICH PROJECT IS THIS FOR?", peek: "PEEK AT THE GUESS", back: "THE SIFTER GUESSED",
-    noGuess: "No guess", drop: "SETTLED: DROP IT", dropped: "SETTLED", droppedTally: "Settled, dropped",
+    noGuess: "No guess", all: "EVERY PROJECT", drop: "SETTLED: DROP IT", dropped: "SETTLED", droppedTally: "Settled, dropped",
     droppedSaid: "Settled. It leaves the box when Claude files your answers.", same: "Same as the sifter's guess.",
     differs: "The sifter guessed {guess}. Your answer wins.", src: "The note came from {from}.",
     tell: "File my litter box quiz answers.",
@@ -346,6 +346,7 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     const a = c && S.answers[c.id];
     if (!a) return "";
     if (a.verdict === "drop") return D("droppedSaid");
+    if (!c.guess) return "";
     if (a.project === c.guess) return D("same");
     return D("differs").replace("{guess}", project(c.guess, c).label);
   }
@@ -385,6 +386,7 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     $("section").hidden = !c.section;
     $("note").innerHTML = md(c.text);
     $("ask").textContent = D("ask");
+    $("allTitle").textContent = D("all");
     $("backLabel").textContent = D("back");
     $("peek").innerHTML = esc(D("peek")) + ' <span class="k">␣</span>';
     const g = project(c.guess, c);
@@ -467,13 +469,13 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     if (e.metaKey || e.ctrlKey || e.altKey || $("vQuiz").hidden) return;
     const k = e.key.toLowerCase();
     if (/^[1-4]$/.test(k)) { const b = $("choices").children[+k - 1]; if (b && !b.disabled) { e.preventDefault(); b.click(); } }
-    else if (k === "0" || k === "n") { e.preventDefault(); $("none").click(); }
+    else if (k === "0" || k === "n") { e.preventDefault(); if (!$("none").hidden) $("none").click(); }
     else if (k === "d") { e.preventDefault(); if (!$("drop").disabled) answer("drop"); }
     else if (k === "s") { e.preventDefault(); skip(); }
     else if (k === " " && !(e.target.closest && e.target.closest("button"))) { e.preventDefault(); flip(); }
     else if (k === "arrowleft" || k === "backspace") { if (S.i > 0) { e.preventDefault(); go(-1); } }
     else if (k === "arrowright" || k === "enter") { if (S.answers[current()?.id] && !(e.target.closest && e.target.closest("button"))) { e.preventDefault(); go(1); } }
-    else if (k === "escape" && S.more) { S.more = false; paint(false); $("none").focus(); }
+    else if (k === "escape" && S.more) { S.more = false; paint(false); if (!$("none").hidden) $("none").focus(); }
   });
 
   /* ---------- the store: cards from Claude, answers from her, the projects to choose from ---------- */
