@@ -60,12 +60,12 @@ function page(name, width = 1280, height = 900) {
   const cta = row(12, "calls"); cta.appendChild(button("Start free: self-host", true)); cta.appendChild(button("Join the café: early access")); body.appendChild(cta);
   body.appendChild(box(w, 360, BOX, "screenshot: the manor, ground floor"));
   const ways = row(16, "three ways");
-  for (const [t, d] of [["Self-host", "The public repo and the catio skill. Free. Your art, your artifact."], ["Hosted café", "Your café on our address, with accounts and the gateway. Monthly, while it's in development."], ["Set up for you", "An afternoon with Charlotte: rooms, repos, house rules. On quote."]]) {
+  for (const [t, d] of [["Self-host", "The public repo and the catio skill. Free. Your art, your artifact."], ["Hosted café", "Your café on our address, with accounts and the gateway. Monthly, while it's in development."], ["Set up for you, from 90 €", "A one-time payment: lifetime access, the DIY course on customizing your plugin, and an afternoon with Charlotte."]]) {
     const c = card(336); c.appendChild(text(t, 16, BOLD)); c.appendChild(text(d, 13, REG, GREY, 300)); ways.appendChild(c); }
   body.appendChild(ways); }
 
 // 2. Pricing.
-{ const { body, w } = page("2 Pricing", 1280, 1000);
+{ const { body, w } = page("2 Pricing", 1280, 1180);
   body.appendChild(text("Pricing", 32, BOLD));
   body.appendChild(text("Prices HT. TVA non applicable, art. 293 B du CGI. You pay Anthropic for Claude yourself; the café never resells it.", 13, REG, GREY, w));
   const tiers = row(16, "tiers");
@@ -85,6 +85,9 @@ function page(name, width = 1280, height = 900) {
     ["Gateway calls: comment, drop_file, manage (list_agents and comments are never metered)", "–", "[cap] a month, shared", "✓", "with a reward"], ["The brain's sorter, the litter box quiz, the queen's homework", "–", "–", "✓", "with a reward"], ["Hosted café (accounts, keys, your own address)", "–", "✓", "✓", "with a reward"], ["The app, when it ships", "–", "at the Basic price", "included", "funded by the campaign"]];
   rows.forEach((r, i) => { const rr = row(0, "row"); r.forEach((cell, k) => { const t = text(cell, 12, i === 0 || k === 0 ? BOLD : REG, i === 0 ? GREY : INK, k === 0 ? 440 : 150); rr.appendChild(t); }); grid.appendChild(rr); });
   body.appendChild(grid);
+  const setup = card(w, 20, "set up for you"); setup.appendChild(text("Set up for you · from 90 €, once", 18, BOLD));
+  setup.appendChild(text("Lifetime access to the café, and the DIY course: customize your own plugin, house rules, skills and the queen's manner, step by step. From [setup-plus] €: an afternoon with Charlotte setting up your rooms, repositories and rules.", 13, REG, INK, w - 40));
+  const sb = row(8); sb.appendChild(button("Get the course and lifetime access", true)); sb.appendChild(button("Book an afternoon")); setup.appendChild(sb); body.appendChild(setup);
   body.appendChild(text("In development: the subscription and the campaign fund the app. Cancel any month from your account.", 12, REG, GREY, w)); }
 
 // 3. Product page: one plan, Shopify's selling plans.

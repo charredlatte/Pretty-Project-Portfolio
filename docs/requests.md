@@ -207,3 +207,5 @@ The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.
   campaign to fund the app.
 - **A Basic plan** (3 October): "without the automatic litter box (quiz and easy unblocking handling)", up to 5 repos,
   and a cap on the calls to the MCP. Between Free and Early access.
+- **Set up for you, from 90 €** (3 October): no "sur devis". A one-time payment that is a lifetime subscription and the
+  plugin's customizable features taught as a DIY Claude customization course; the afternoon of setup on top.

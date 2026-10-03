@@ -10,8 +10,8 @@ the business plan's figures go once she has chosen them. The plan itself is priv
 ## The frames, left to right
 
 1. **Home.** One line on what the café is, a screenshot box, "Start free: self-host" and "Join the café: early
-   access", the three ways to get it (self-host, hosted, set up for you), and the legal footer every page carries
-   (mentions légales, CGV, confidentialité, rétractation, contact).
+   access", the three ways to get it (self-host, hosted, set up for you from 90 €), and the legal footer every page
+   carries (mentions légales, CGV, confidentialité, rétractation, contact).
 2. **Pricing.** Four columns from her paywall (2 and 3 October): Free (one repository, the page), Basic (up to five
    repositories, requests and gateway calls capped at `[cap]` a month, no sorter, quiz or homework: files dropped on a
    cat arrive unsorted), Early access (unlimited repositories, uncapped, the brain's sorter, the litter box quiz, the
@@ -19,7 +19,9 @@ the business plan's figures go once she has chosen them. The plan itself is priv
    and a name in the credits, no promise) and "Back the app" (a crowdfunding campaign whose rewards are a year of
    Early access). No lifetime seat (her call, 3 October: no lifetime guarantee sale, an in-between instead). Prices
    HT with "TVA non applicable, art. 293 B du CGI", a grid of what each column unlocks, and the "in development"
-   note: the subscription and the campaign fund the app.
+   note: the subscription and the campaign fund the app. Under the grid, **Set up for you**: a one-time payment from
+   90 € that is lifetime access plus the DIY course on customizing your own plugin (house rules, skills, the queen's
+   manner), and from `[setup-plus]` € an afternoon with Charlotte (her ask, 3 October: no "sur devis").
 3. **Product page.** The Early access plan as one Shopify product (Basic is a second product with the same page: the
    same selling plans, its own "what you get" list, and "Choose Basic" lands here): a selling-plan selector (monthly or yearly,
    Shopify's own Subscriptions app), "what you need first" (claude.ai with Claude Code, GitHub, the buyer's own cat
@@ -47,7 +49,7 @@ Mind the quota: a Starter plan with a View seat gets six MCP calls a month.
 
 ## Undecided
 
-- **The prices, and Basic's cap.** The business plan proposes them (`[basic]`, `[monthly]`, `[cap]`); the frames show
+- **The prices, and Basic's cap.** The business plan proposes them (`[basic]`, `[monthly]`, `[cap]`, `[setup-plus]`); the frames show
   placeholders until she picks. The polling calls (`list_agents`, `comments`) are never metered; which others count is
   the plan's list.
 - **The store's name and domain.** A separate store from Montfortoise (her choice, 2 October). Shopify's domain
