@@ -348,6 +348,26 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await page.locator('#mapsHidden button:has-text("Show montfortoise-shopify")').click();
   await settle(page);
   await check("Show brings it back where it was", async () => expect(JSON.stringify(await maps()) === JSON.stringify(["intermarche-grocery-shopping-app", "montfortoise-shopify"]), JSON.stringify(await maps())));
+  // set elsewhere (another tab, her phone): the open page shows it, and the next change keeps it
+  await T(page, () => { const d = window.__catio.store["dashboard/maps"]; window.__catio.put("dashboard/maps", Object.assign({}, d, { pinned: ["montfortoise-shopify"] })); });
+  await page.waitForTimeout(300);
+  await check("a layout set on another device shows at once, and a change here keeps it", async () => {
+    expect((await maps())[0] === "montfortoise-shopify", "the other device's pin didn't show: " + JSON.stringify(await maps()));
+    await manageMaps();
+    await mapTool("intermarche-grocery-shopping-app", "Wide").click();
+    await settle(page);
+    const d = await T(page, () => window.__catio.store["dashboard/maps"]);
+    expect(d.pinned.includes("montfortoise-shopify") && d.wide.includes("intermarche-grocery-shopping-app"), JSON.stringify(d));
+  });
+  await T(page, () => window.__catio.put("graphs/tiktok-saves", { repo: "example/tiktok-saves", at: Date.now(), nodes: 9, edges: 8, communities: 2, gods: [], groups: [], surprises: [], questions: [],
+    map: { n: [{ t: "Saves", g: 0, d: 3, x: 150, y: 80 }], l: [] } }));
+  await T(page, () => window.__catio.put("graphs/half-saved", { repo: "example/half-saved", at: Date.now(), map: {} }));
+  await page.waitForTimeout(300);
+  await check("a map a session saves shows while the page is open; one with nothing to draw doesn't break it", async () => {
+    const m = await maps();
+    expect(m.includes("tiktok-saves") && !m.includes("half-saved"), JSON.stringify(m));
+    expect(await page.locator("#mapsDlg .mapcard").count() === 3, "the page lost its cards");
+  });
   await page.keyboard.press("Escape");
   await settle(page);
   await openRoom(page, "study");

@@ -1837,7 +1837,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       hw.length && mi("Homework", () => { hideMenu(); openQueen("homework"); }, { aside: hw.length + " waiting" }),
       mi("The brain", () => { hideMenu(); openBrain(); }, { aside: tray ? tray + " on the tray" : "" }),
       mi("House rules", () => { hideMenu(); openRules(); }),
-      S.db && mi("Project maps", () => { hideMenu(); openMaps(); }, { aside: mapCount() || "" }),
+      S.db && maps().length && mi("Project maps", () => { hideMenu(); openMaps(); }, { aside: mapCount() || "" }),
       mi("Edit rooms", () => { hideMenu(); openRooms(curRoom()); }),
       S.db && mi("Set up again…", () => { hideMenu(); openSetup(true); }),
       (VIEW.attic || S.showOld) && mi(S.showOld ? "Send them back up" : "Bring them down", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }),
@@ -2036,8 +2036,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
     db.doc("house/main").onSnapshot((d) => { S.house = d.exists ? d.data() : {}; render(); }, fail);
     db.doc("dashboard/maps").onSnapshot((d) => {
       const was = JSON.stringify(mapsLayout());
-      S.dashboard = d.exists ? d.data() : {}; S.dashboardExists = d.exists;
-      if (JSON.stringify(mapsLayout()) !== was) redrawMaps();   // set from another tab or device: show it, never save over it
+      S.dashboard = d.exists ? d.data() : {};
+      if (JSON.stringify(mapsLayout()) !== was) redrawMaps();   // set from another tab or device: show it
     }, fail);
     db.collection("sessions").onSnapshot((snap) => { const t = {}; for (const d of snap.docs) t[d.id] = d.data(); S.tweaks = t; render(); }, fail);
     db.collection("cats").onSnapshot((snap) => { S.adopted = snap.docs.map((d) => Object.assign({ id: d.id }, d.data())); render(); }, fail);
@@ -2058,7 +2058,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     list("graphs", (v) => {
       const was = $("mapsDlg").open ? mapsSig() : null;
       S.graphs = Object.fromEntries(v.map((g) => [g.id, g]));
-      if (was !== null && mapsSig() !== was) { try { redrawMaps(); } catch (e) { /* a broken map never stops the house */ } }   // a map a session just saved shows at once
+      if (was !== null && mapsSig() !== was) redrawMaps();   // a map a session just saved shows at once
     });
   }
   async function save(fn, ok) {
@@ -2870,7 +2870,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     keyList(cat ? "Ask " + cat.name : "Questions it can answer", (gm.questions || []).map((q) => {
       const li = el("li");
       if (!cat) { li.textContent = q; return li; }
-      const b = el("button", "item ask", q); b.type = "button";
+      const b = el("button", "item ask", q); b.type = "button"; b.disabled = ASKING.has(cat.id + "\n" + q);
       b.addEventListener("click", () => askMap(cat, q, b));
       li.appendChild(b); return li;
     }));
@@ -2883,47 +2883,58 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const d = S.dashboard || {}, list = (k) => (Array.isArray(d[k]) ? d[k] : []);
     return { order: list("order"), hidden: list("hidden"), pinned: list("pinned"), wide: list("wide") };
   }
-  const MAPS = { busy: false, folded: new Set(), managing: new Set() };   // a save on its way; cards she folded or opened Manage on
+  const MAPS = { busy: 0, folded: new Set(), managing: new Set() };   // the save on its way (a token, 0 for none); cards folded or managed
   const maps = () => Object.entries(S.graphs).filter(([, g]) => g && g.map && Array.isArray(g.map.n));   // the real maps: a graph with a map drawn
   const mapsSig = () => maps().map(([id, g]) => id + ":" + (g.at || 0)).sort().join("|");
   const mapCount = () => { const L = mapsLayout(); return maps().filter(([id]) => !L.hidden.includes(id)).length; };
-  // a redraw she didn't ask for (another tab, a new map) keeps her place: focus stays on the button it was on
-  function redrawMaps() {
-    const dlg = $("mapsDlg");
-    if (!dlg.open || MAPS.busy) return;
-    const a = document.activeElement;
-    openMaps(a && dlg.contains(a) ? { act: a.dataset.act, card: (a.closest(".mapcard") || {}).dataset?.map } : null);
+  // where focus is in the dashboard, so a redraw can put it back: an action on a card, else the same words in the same card
+  function mapsFocus() {
+    const dlg = $("mapsDlg"), a = document.activeElement;
+    if (!a || !dlg.contains(a)) return null;
+    return { act: a.dataset.act, card: (a.closest(".mapcard") || {}).dataset?.map, text: a.textContent };
   }
+  // a redraw she didn't ask for (another tab, a new map) keeps her place; a broken map never stops the house
+  function redrawMaps() {
+    if (!$("mapsDlg").open || MAPS.busy) return;
+    try { openMaps(mapsFocus()); } catch (e) { /* the page as it was stays up */ }
+  }
+  // her order over every map, hidden ones in their places, from a layout
+  const orderOf = (L, ids) => { const rank = (id) => { const i = L.order.indexOf(id); return i < 0 ? 1e6 : i; };
+    return ids.slice().sort((a, b) => rank(a) - rank(b) || ((S.graphs[b] || {}).at || 0) - ((S.graphs[a] || {}).at || 0)); };
   function openMaps(focus) {
-    const dlg = $("mapsDlg"); dlg.replaceChildren();
-    if (!dlg.dataset.wired) { dlg.dataset.wired = "1"; dlg.addEventListener("close", () => { MAPS.busy = false; }); }   // a save still on its way never locks the next visit
+    const dlg = $("mapsDlg");
+    if (!dlg.dataset.wired) { dlg.dataset.wired = "1"; dlg.addEventListener("close", () => { MAPS.busy = 0; }); }   // a save still on its way never locks the next visit
     const L = mapsLayout();
-    const all = maps();
-    const rank = (id) => { const i = L.order.indexOf(id); return i < 0 ? 1e6 : i; };
-    const byOrder = ([a, ga], [b, gb]) => rank(a) - rank(b) || (gb.at || 0) - (ga.at || 0);
-    const pinnedFirst = (x, y) => (L.pinned.includes(y[0]) - L.pinned.includes(x[0])) || byOrder(x, y);
-    const everyId = all.slice().sort(byOrder).map(([id]) => id);   // her order over every map, hidden ones in their places
-    const shown = all.filter(([id]) => !L.hidden.includes(id)).sort(pinnedFirst);
+    const all = maps(), allIds = all.map(([id]) => id);
+    const everyId = orderOf(L, allIds);
+    const shown = everyId.filter((id) => !L.hidden.includes(id)).sort((a, b) => L.pinned.includes(b) - L.pinned.includes(a)).map((id) => [id, S.graphs[id]]);
     const nameOf = (id) => String((S.graphs[id] || {}).repo || id).split("/").pop();
-    const flip = (key, id) => { const list = mapsLayout()[key]; return list.includes(id) ? list.filter((x) => x !== id) : list.concat(id); };   // from the layout as it is now
-    // one save at a time: the buttons wait while it is on its way, a refusal undoes only its own change, and the redraw
-    // puts focus back where she was (the button she used, else its card, else the page's title)
-    const keep = async (next, ok, again) => {
+    const flip = (list, id) => (list.includes(id) ? list.filter((x) => x !== id) : list.concat(id));
+    // one save at a time: change(layout) says what to change, applied to the layout as stored when the save starts, so a
+    // change from another tab that hasn't reached this one survives; a refusal leaves the page as the database has it;
+    // the redraw puts focus back where she was
+    const keep = async (change, ok, again) => {
       if (MAPS.busy) return;
-      MAPS.busy = true;
+      const token = MAPS.busy = Date.now() + Math.random();
       for (const b of dlg.querySelectorAll(".mapcard button, #mapsHidden button")) b.disabled = true;
-      const was = S.dashboard, now = Object.assign(mapsLayout(), next, { updatedAt: Date.now() });
-      S.dashboard = now;
-      // only what changed is written, so a change made on another device that hasn't reached this tab survives
-      const saved = await save((db) => (S.dashboardExists ? db.doc("dashboard/maps").update(Object.assign({}, next, { updatedAt: now.updatedAt })) : db.doc("dashboard/maps").set(now)), ok);
-      if (!saved && S.dashboard === now) S.dashboard = was;
-      MAPS.busy = false;
+      let wrote = null;
+      await save(async (db) => {
+        const ref = db.doc("dashboard/maps"), snap = await ref.get();
+        const stored = snap.exists ? snap.data() : {};
+        const base = { order: [], hidden: [], pinned: [], wide: [] };
+        for (const k of Object.keys(base)) if (Array.isArray(stored[k])) base[k] = stored[k];
+        wrote = Object.assign({}, stored, base, change(base), { updatedAt: Date.now() });
+        await ref.set(wrote);
+      }, ok);
+      if (MAPS.busy !== token) return;   // she closed the page meanwhile: this save is no longer hers to redraw
+      if (wrote) S.dashboard = wrote;
+      MAPS.busy = 0;
       if (dlg.open) openMaps(again);
     };
     const box = el("div", "dlg");
     const h = el("h2", null, "Project maps"); h.id = "mapsTitle"; h.tabIndex = -1;
     box.append(h, el("p", "note", "Each project's map from graphify. Manage, under each, pins, moves, widens or hides it."));
-    if (!all.length) box.appendChild(el("p", "empty", "No project maps yet. A session makes one with the graphify skill and saves it to the café (graphs/<repo>), and it shows here."));
+    if (!all.length) box.appendChild(el("p", "empty", "No project maps yet: a session draws one with graphify and it shows here."));
     const cats = VIEW.cats;   // as the house last drew them
     const grid = el("div", "mapgrid");
     shown.forEach(([id, gm], i) => {
@@ -2945,52 +2956,56 @@ ul.gkey li > div.what { flex-basis: 100%; }
         b.dataset.act = act; b.setAttribute("aria-label", (aria || label) + ": " + nameOf(id)); tools.appendChild(b); return b;
       };
       const here = (act) => ({ act, card: id });   // after the save, focus goes back to the same action on this card
-      tool("pin", pinned ? "Unpin" : "Pin", () => keep({ pinned: flip("pinned", id) }, null, here("pin")));
-      // a move swaps her with the next card in her group (pinned or not), in the order over every map, hidden ones kept
+      tool("pin", pinned ? "Unpin" : "Pin", () => keep((B) => ({ pinned: flip(B.pinned, id) }), null, here("pin")));
+      // a move swaps her with the next card in her group (pinned or not), in her order over every map, hidden ones kept
       const next = (d) => { const o = shown[i + d]; return o && L.pinned.includes(o[0]) === pinned ? o[0] : null; };
       const move = (d, act) => {
         const other = next(d); if (!other) return;
-        const o = everyId.slice(), a = o.indexOf(id), b = o.indexOf(other);
-        [o[a], o[b]] = [o[b], o[a]];
-        keep({ order: o }, null, here(act));
+        keep((B) => { const o = orderOf(B, allIds), a = o.indexOf(id), b = o.indexOf(other); [o[a], o[b]] = [o[b], o[a]]; return { order: o }; }, null, here(act));
       };
       tool("earlier", "", () => move(-1, "earlier"), "up", "Earlier").disabled = !next(-1);
       tool("later", "", () => move(1, "later"), "down", "Later").disabled = !next(1);
-      tool("wide", wide ? "Narrow" : "Wide", () => keep({ wide: flip("wide", id) }, null, here("wide")));
+      tool("wide", wide ? "Narrow" : "Wide", () => keep((B) => ({ wide: flip(B.wide, id) }), null, here("wide")));
       const after = (shown[i + 1] || shown[i - 1] || [])[0];
-      tool("hide", "Hide", () => keep({ hidden: flip("hidden", id) }, nameOf(id) + " is hidden. It waits at the foot of the page.", { card: after }));
+      tool("hide", "Hide", () => keep((B) => ({ hidden: flip(B.hidden, id) }), nameOf(id) + " is hidden. It waits at the foot of the page.", { card: after }));
       manage.appendChild(tools);
       card.append(head, map, manage);
       grid.appendChild(card);
     });
     box.appendChild(grid);
-    const gone = L.hidden.filter((x) => S.graphs[x] && S.graphs[x].map);
+    const gone = L.hidden.filter((x) => allIds.includes(x));
     if (gone.length) {
       const row = el("div", "manage"); row.id = "mapsHidden";
       row.appendChild(el("span", "note", "Hidden:"));
-      for (const x of gone) { const b = plainBtn("Show " + nameOf(x), "tiny", () => keep({ hidden: mapsLayout().hidden.filter((y) => y !== x) }, null, { card: x })); row.appendChild(b); }
+      for (const x of gone) { const b = plainBtn("Show " + nameOf(x), "tiny", () => keep((B) => ({ hidden: B.hidden.filter((y) => y !== x) }), null, { card: x })); row.appendChild(b); }
       box.appendChild(row);
     }
     const acts = el("div", "actions"); acts.append(el("span", "spacer"), closeBtn(dlg));
     box.appendChild(acts);
-    dlg.appendChild(box);
+    dlg.replaceChildren(box);   // built whole first: a map that fails to draw leaves the page as it was
     show(dlg);
     if (focus) {
       const card = focus.card && dlg.querySelector('.mapcard[data-map="' + CSS.escape(focus.card) + '"]');
-      const btn = card && focus.act && [...card.querySelectorAll(".tools button")].find((b) => b.dataset.act === focus.act && !b.disabled);
-      (btn || (card && card.querySelector(".manage-tools > summary")) || h).focus({ preventScroll: true });
+      const scope = card || dlg, ok = (b) => !b.disabled;
+      const back = (focus.act && [...scope.querySelectorAll("[data-act]")].find((b) => b.dataset.act === focus.act && ok(b)))
+        || (focus.text && [...scope.querySelectorAll("button, summary, a")].find((b) => b.textContent === focus.text && ok(b)))
+        || (card && card.querySelector(".manage-tools > summary")) || h;
+      back.focus({ preventScroll: true });
     }
   }
+  const ASKING = new Set();   // questions on their way to a cat: their buttons stay off, whatever redraws them
   async function askMap(c, q, b) {
-    const text = "Ask the project map: " + q, id = gid();
-    b.disabled = true;
+    const text = "Ask the project map: " + q, id = gid(), key = c.id + "\n" + q;
+    if (ASKING.has(key)) return;
+    ASKING.add(key); b.disabled = true;
     await save(async (db) => {
       await db.doc("notes/" + id).set({ cat: c.id, text, author: "owner", at: Date.now() });
       const via = await tell(c, "[Catio] Charlotte says: " + text, { kind: "message", note: id, say: text });
       await db.doc("notes/" + id).update({ via });
       toast(saidAs[via]);
     });
-    b.disabled = false;
+    ASKING.delete(key);
+    for (const x of document.querySelectorAll("button.item.ask")) if (x.textContent === q) x.disabled = false;
   }
 
   function openAdopt(room) {
