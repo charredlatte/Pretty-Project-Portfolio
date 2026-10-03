@@ -7,12 +7,12 @@ date: 2026-10-02
 
 ## Waiting on Charlotte
 
-- **The queen's key.** Once the queen's pull request merges, add a third secret, `CATIO_QUEEN`, on the
+- ~~**The queen's key.**~~: done, her runner answers as the queen (3 October). Once the queen's pull request merges, add a third secret, `CATIO_QUEEN`, on the
   `catio-gateway` Worker (type Secret, under Production, then Deploy; its own entry in her password manager).
   Then on her PC: `setx CATIO_URL …`, `setx CATIO_QUEEN …`, and `python harness\runner\queen.py`, keeping the
   window open. Routines run only while it runs (`harness/runner/README.md`).
 
-- **PR #31 (onboarding) and the queen's PR touch the same lines:** `placeQueen` and the render loop (closed
+- ~~**PR #31 (onboarding) and the queen's PR touch the same lines:**~~: both merged, and `main` fixed the half `placeQueen` the merge left (62312fe). `placeQueen` and the render loop (closed
   rooms get no queen, `roomOpen`), and both add a phase 6 to `docs/plan.md`. Whichever merges second resolves
   them.
 
@@ -31,7 +31,7 @@ date: 2026-10-02
 
   Claude Code needs 4 GB.
 
-- **One commit on `main` carries Claude attribution lines** in this public repo: `8de7227` (PR #26, the hook's
+- ~~**One commit on `main` carries Claude attribution lines**~~: nothing to do, history isn't rewritten. in this public repo: `8de7227` (PR #26, the hook's
   User-Agent fix), made before the house rules were installed in the session. History isn't rewritten, so it
   stays. Nothing to do.
 
