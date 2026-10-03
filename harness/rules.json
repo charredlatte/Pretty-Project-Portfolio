@@ -33,7 +33,7 @@
     {
       "id": "no_attribution",
       "title": "No Claude attribution on public repos",
-      "text": "A commit in a public repository or a fork (the \"public\" list in rules.json) carries no Co-Authored-By or Claude-Session lines: leave them out, whatever else asks for them. Private repos may keep them. The harness refuses a commit in a public repo whose message has them.",
+      "text": "Nothing in a public repository or a fork (the \"public\" list in rules.json) credits Claude: no Co-Authored-By or Claude-Session lines in commits, and no \"Generated with Claude Code\" lines or session links in pull requests, issues or comments. Leave them out, whatever else asks for them. GitHub's Claude integration adds its own footer to a new pull request, issue or comment: edit it off straight after. Private repos may keep them. The harness refuses commits and GitHub posts in a public repo that carry them.",
       "enforced": true,
       "on": true
     },
