@@ -149,7 +149,12 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
 - **Cats walk** when their place changes: through the doorways to a new room, up the stair to nap in the
   attic (to the landing's ladder when they're upstairs), down it when they come back, and in by the front
   door when they're new. A journey that changes floor starts at the stair on the floor they're going to.
-  Working cats wander a little. A cat's element must be in the page before `walk()` starts. With reduced
+  Working cats wander a little. A cat's element must be in the page before `walk()` starts.
+- **The line at the front door** (her ask, 3 October): every cat waiting on her (mood `needs`, the meowing ones)
+  lines up in front of the entrance-hall door, beside the queen, the longest wait first (`LINE`, `placeLine()`,
+  `WAITING` keeps when the page first saw it wait), upstairs ones included; one that stops waiting walks back to its
+  room. Its room is still its own (menus, cabinets, Manage); the floor badges and the minimap count it where it
+  stands. Upset and to-review cats stay in their rooms. With reduced
   motion, and for four seconds after the page opens, cats are simply in their places.
 - **Onboarding** (`openSetup()`, `#setupDlg`): a café whose database has no `rooms/*` at all opens the wizard
   on its first snapshot that isn't from cache (Charlotte's has rooms, so she never sees it; the localhost copy
@@ -201,7 +206,7 @@ The artifact database, written by the page and seeded with `ArtifactData`:
 
 | Collection | Document | Holds |
 |---|---|---|
-| `house` | `main` | `name`: the café's own name on the brand and the title (none: "KittyChat Café"), `onboarded`: when the wizard last opened the doors |
+| `house` | `main` | `name`: the café's own name on the brand and the title (none: "KittyChat Café"), `onboarded`: when the wizard last opened the doors, `owner`: how she looks in the queen's scene `{hair, hairColor, top, skin, extra}` |
 | `rooms` | one per room key (`garden` (the catio), `kitchen`, `dining`, `living`, `sunroom`, `study`, `bedroom`, `bath`, `hall`, `brain`) | `name`, `blurb`, `repos[]` (repo names or `owner/repo`), `catchAll`, `model`, `closed` (no key: open) |
 | `sessions` | the Claude Code session id | `name`, `room`: her rename or move of one session's cat |
 | `cats` | generated id | an adopted chat: `title`, `link`, `project`, `room`, `mood` (`needs` / `busy` / `done`), `note`, `name` |
@@ -231,10 +236,14 @@ that inflates "3 need you" makes the sign a liar.
   `charlotte`) and hers (author `queen`, which only the runner's key may write). In the gateway café a `{type:
   "queen"}` push (`catio:queen`) grows her live bubble as she speaks and her voice says each sentence; in claude.ai
   her card polls `comments` every 5 s. Stop is `manage {cat: "queen", action: "pause"}`.
-- **Her card** (`openQueen(section)`): her greeting until she has spoken, the thread (her replies, what the cats
-  brought her, Charlotte's lines), Speak (`webkitSpeechRecognition`, Chrome and Edge), Send, Stop while busy, and
-  her voice switch; then, folded, What she keeps, Her character (name, coat, greeting, how she speaks, the
-  browser's voice, rate, pitch, what she listens for) and Routines. `speak()` is the browser's `speechSynthesis`
+- **Her card is a scene** (`openQueen(section)`, her ask of 3 October, like an RPG's dialogue): the owner of the house
+  on the left, seen from behind in her armchair (`ownerSVG()`, pixel art drawn in code since no pack has people,
+  dressed from `house/main.owner`: hair, hair colour, top, skin and a bow, cat ears or a flower); the queen on the
+  right, facing her, her sprite animated and `talking` while she answers; between them the thread as bubbles, hers
+  by her and Charlotte's by Charlotte, scrolling, with her homework above it; under it Speak, Send and Stop. Behind
+  them the hall's own floor from `house.png`, in the pack's picture frame. **Every setting is in an overlay**
+  (`#queenSettings`, Settings in the card's head, "Back to her" to leave): her voice switch and voice, What she keeps,
+  Her character, Routines, and You. On the map she is as before: hovering names her, a click opens her menu. `speak()` is the browser's `speechSynthesis`
   (an en-GB voice unless she picks one): one function, so a paid voice could be a second branch.
 - **Handoffs.** A cat's `said` (its latest note by its session or agent, from `list_agents`) newer than
   `queens/house.readAt` is something it brought her: `refreshAgents()` diffs `said.at` and a copy of the cat walks to
