@@ -45,9 +45,11 @@ Someone arriving for the first time may not know what MCP, an API or an LLM is, 
 need them to. The README's "In plain words" section and the explainer page ("What is KittyChat Café", a private
 artifact) are the reference; the onboarding follows them.
 
-- **Say it like the café.** Chat or session: a cat. Project: a room. A chat waiting on you: a cat that meows.
-  Assistant: the queen. The gateway is "the front desk", the runner "the queen's brain on your computer".
-  The wizard's own words never include MCP, API, gateway, runner, hooks or LLM.
+- **Say it like the café,** wherever the wizard is explaining rather than instructing. Chat or session: a cat.
+  Project: a room. A chat waiting on you: a cat that meows. Assistant: the queen. No MCP, API, gateway, runner,
+  hooks or LLM in a sentence whose job is to explain. A step that tells someone what to *do* still names the real
+  thing, because they have to type or find it: Claude Code Remote, `list_repos`, `data/sessions.json`,
+  `litterbox/sort.py`, the two install lines.
 - **The Welcome step opens with the tagline:** "All your Claude chats, in one cozy café."
 - **How it works says the connection start to finish** in the five lines of frame 7 (chats are cats, cats check in
   at the front desk, rules can't be talked around, messages wait on the mat, the queen and the litter box).
@@ -58,8 +60,9 @@ artifact) are the reference; the onboarding follows them.
   so the first step says the cats are the person's to bring, before anything else.
 - **Nothing credits Claude** in what the onboarding writes or publishes (her rule, CLAUDE.md "Shipping").
 
-Frames 2 and 7 are redrawn in `frames.js`, and `openSetup()` in `catio/index.html` says the same (3 October).
-The suite passes on it; the look is `sh catio/test/run.sh look setup`.
+Frames 2 and 7 are redrawn in `frames.js`, and the Welcome and How-it-works steps of `openSetup()` in
+`catio/index.html` say the same, word for word (3 October). The other five steps are unchanged: they instruct,
+so they still name the real tools and commands. The suite passes; the look is `sh catio/test/run.sh look setup`.
 
 ## Still to build
 

@@ -194,8 +194,9 @@ through `list_repos`, sessions, the litter box, how it works, done. The public `
 questions. Closed rooms are dimmed, queenless and get no cats. CLAUDE.md, "Onboarding".
 
 3 October: the wording went plain (`docs/onboarding/README.md`, "Decided 3 October"). The wizard's Welcome and How it
-works steps use the café's words, not MCP, API or hooks, and the README opens with "In plain words". The wizard copy
-in `openSetup()` is still to change. A hosted café is planned, not open: the onboarding offers running your own.
+works steps use the café's words, not MCP, API or hooks, in `openSetup()` and in the wireframes alike, and the
+README opens with "In plain words". The steps that instruct still name the real tools. Still to do: republish the
+page. A hosted café is planned, not open: the onboarding offers running your own.
 
 ## Waiting on Charlotte
 

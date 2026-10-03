@@ -1,6 +1,6 @@
 ---
 name: catio
-description: Set up or refresh someone's own Catio — a page where every Claude Code session is a cat living in a room of a two-floor pixel-art manor, with a queen in each room who keeps what matters in it. Use this whenever someone wants to see their Claude Code sessions as something other than a list: a dashboard of what's running, what's blocked and what's waiting on them; a "catio", cat café, cat house or session zoo; or when they ask to install, set up, rebuild, refresh or republish the Catio, add a room, or point a room at one of their repositories.
+description: Set up or refresh someone's own Catio — a page where every Claude Code session is a cat living in a room of a two-floor pixel-art manor, with a queen who keeps what matters and is the one you talk to. Use this whenever someone wants to see their Claude Code sessions as something other than a list: a dashboard of what's running, what's blocked and what's waiting on them; a "catio", cat café, cat house or session zoo; or when they ask to install, set up, rebuild, refresh or republish the Catio, add a room, or point a room at one of their repositories.
 ---
 
 # The Catio
@@ -9,12 +9,12 @@ One page where every Claude Code session is a cat. It plays while it works, slee
 and meows with a speech bubble when it's waiting on its human. Each room of the manor is a kind of
 work, and a session's git repository decides which room its cat lives in.
 
-Every room also has a **queen**: a cat who is not a session, never leaves, and keeps the things
-that matter about that room. You give her something to hold, and she hands it back — in her menu,
-or said out loud in her room until you take it off her.
+The house also has one **queen**: a cat who is not a session, never leaves, and sits in the entrance hall.
+She keeps what matters, runs the routines you set her, and is the one you talk to. You give her something to
+hold, and she hands it back — in her menu, or said out loud until you take it off her.
 
 The page is one private artifact per person. Sessions come live from the Claude Code Remote
-connector; rooms, renames, adopted chats and what the queens keep live in the artifact's own
+connector; rooms, renames, adopted chats and what the queen keeps live in the artifact's own
 database, so they follow the person between phone and computer.
 
 ## Speak plainly
@@ -96,7 +96,7 @@ Ask the same things the page's own wizard asks, in this order, so the page skips
 2. **How many rooms, and their names.** The rooms open from the front of the house, public to private:
    `living` (the cat lounge), `dining` (the café), `kitchen`, `study` (the craft room), `sunroom` (the terrace),
    `garden` (the catio), `brain` (the library), `bedroom`, `bath` (the ensuite), `hall`. The first N are open and
-   the rest get `"closed": true`: a closed room is dimmed, has no queen and gets no cats, and opens later under
+   the rest get `"closed": true`: a closed room is dimmed and gets no cats, and opens later under
    Edit rooms. The first open room is where new cats come in (`"catchAll": true`).
 3. **Which room each repository goes in.** Call `list_repos` (Claude Code Remote) and ask, repository by
    repository; `repos` takes repository names or `owner/repo`. A repository filed in a closed room is never
@@ -141,7 +141,7 @@ That output is gitignored, and it should stay that way: it carries their session
 ### 5. Their page
 
 Publish `catio/index.html` as **their own** private artifact — never republish someone else's.
-The URL in this repo's `artifacts.json` is Charlotte's, and her rooms and her queens live in its
+The URL in this repo's `artifacts.json` is Charlotte's, and her rooms and her queen live in its
 database; publishing over it would take her page away from her. Their first publish creates a new
 artifact, and they record that URL in their own copy of `artifacts.json`, republishing to it
 afterwards with `url` so nothing they have done on the page is lost.
@@ -155,7 +155,7 @@ capabilities: { mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_s
 ```
 
 The `mcp` grant is what lets the page read and manage their sessions as them, and only ever on their
-click (`list_repos` is what the wizard's GitHub step asks for their repositories); `db` is where rooms, renames, adopted chats and the queens' notes are kept; `assets` holds files
+click (`list_repos` is what the wizard's GitHub step asks for their repositories); `db` is where rooms, renames, adopted chats and the queen's notes are kept; `assets` holds files
 dropped on a cat; `sample` lets the page ask Claude which cat a file is for. On a republish, omit
 `capabilities` to keep what is stored: passing it replaces the whole set, so naming only some revokes
 the rest.
@@ -182,11 +182,11 @@ adopted by hand from a room's menu: title, link, project, mood and a note. Whate
 is stored in the artifact database and visible to anyone the page is shared with, which the form
 says on its face. Keep anything sensitive in the chat itself and give the cat a bland name.
 
-## Queens, and what they're for
+## The queen, and what she's for
 
-Each room's queen holds what matters about that room — the thing you'd otherwise have to remember,
-or go and look up. A note she is *saying* shows as her line in the menus and a bubble in her room
-until it is taken back; the rest she just keeps.
+The house has one queen, in the entrance hall (her call, 2 October 2026: one main character you chat with,
+not a cat per room). She holds what you'd otherwise have to remember, or go and look up. A note she is
+*saying* becomes her line in her menu until it is taken back; the rest she just keeps.
 
 She is deliberately not a task: she never joins the count of cats needing you, because a sign that
 says "3 need you" has to mean three real pieces of work. If you change how she works, keep her out
@@ -204,9 +204,9 @@ of those counts.
   places the furniture and the cats' stations and writes the page's `MANOR` block, from which `GEOM`
   comes. Change them together, re-run `furniture.py`, and check that `furniture.check()` is empty — a cat
   standing in a bathtub is a geometry bug, not a styling one.
-- Each room holds back one seat for its queen (`GEOM[room].queen`). Giving a room another cat seat
-  means taking one out of `spots`, not inventing a coordinate, because the seats are positions on a
-  drawing that was checked against the art.
+- The entrance hall holds back one seat for the queen (`GEOM.hall.queen`), and each room keeps its own
+  `queen` seat in the drawing. Giving a room another cat seat means taking one out of `spots`, not inventing a
+  coordinate, because the seats are positions on a drawing that was checked against the art.
 
 Read `CLAUDE.md` in the repository root before anything structural. It carries the decisions this
 page has already paid for.
