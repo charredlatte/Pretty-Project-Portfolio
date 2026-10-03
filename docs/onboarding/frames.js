@@ -109,7 +109,7 @@ screen("Layout: the shell", false);
     ["The café asks who's awake.", "Each cat shows what its chat is doing: working, finished, or stuck and needs you. The badge beside the café's name counts who needs you."],
     ["Some rules can't be talked around.", "Small checks run on their own before a cat may change or publish anything. Claude can't skip them."],
     ["Messages wait on the mat.", "The café can't wake a cat. What you send is kept, and the cat picks it up the next time it checks in."],
-    ["The queen and the litter box.", "The queen keeps what matters and tells you what the cats are up to. Loose notes and held pull requests wait in the litter box until you check them."]]) {
+    ["The queen and the litter box.", "The queen keeps what matters, so you don't have to remember it. Loose notes and held pull requests wait in the litter box until you check them."]]) {
     const li = col(2, "rule"); li.appendChild(text(l[0], 14, BOLD)); li.appendChild(text(l[1], 13, REG, GREY, 560)); c.appendChild(li); }
   step(6, "How it works", c); }
 
