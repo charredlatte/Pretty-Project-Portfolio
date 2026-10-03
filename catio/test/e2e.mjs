@@ -736,6 +736,16 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     const card = await box("#queenDlg");
     expect(card.height <= 900, "the card grew instead of scrolling: " + card.height);
   });
+  // "make this window useable" (3 October): her words were running off the side of a box a third of the card wide,
+  // with a sideways scrollbar under them, so a whole answer could not be read.
+  await T(page, () => window.__catio.queenSays("Pushed to https://github.com/charredlatte/Pretty-Project-Portfolio/compare/claude/a-branch-name-that-will-never-break-anywhere-at-all", true, "t40"));
+  await page.waitForTimeout(300);
+  await check("nothing she says runs off the side, and the talk gets most of the scene", async () => {
+    const s = await page.locator("#queenThread").evaluate((u) => ({ over: u.scrollWidth - u.clientWidth, w: u.clientWidth }));
+    expect(s.over <= 0, "her words scroll sideways: " + JSON.stringify(s));
+    const stage = await box(".qstage");
+    expect(s.w > stage.width * 0.6, "the talk gets too little of the scene: " + s.w + " of " + stage.width);
+  });
   await check("every other setting is in an overlay, out of the scene until Settings", async () => {
     for (const sel of ["#queenVoice", "#queenKeeps", "#queenCharacter", "#queenYou"]) expect(await page.locator(sel).isHidden(), sel + " shows in the scene");
     await page.click("#queenSettingsBtn");
@@ -769,6 +779,9 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect((await menuText(page)).includes("Talk to her"), await menuText(page));
   });
   await check("no page errors in her scene", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+
 // her quest log (3 October 2026: "where do I take the litter box quiz in the cafe UI?", then the queen's quest log, the
 // cards kept in her gateway): the queen keeps one list of everything waiting on her, quizzes that unblock a cat, litter
 // box notes to sort and decisions; the House menu and the litter box on the map open it, a card at a time, a tap answers
@@ -810,6 +823,16 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     const t = await page.locator('#queenHomework [data-deck="litterbox"]').innerText();
     expect(t.includes("1 of 2") && t.includes("Rename the grey cat") && !t.includes("**") && t.includes("The sifter guessed Pretty-Project-Portfolio"), t);
     expect(await page.locator('#queenHomework [data-deck="litterbox"] strong:has-text("Rename the grey cat")').count() === 1, "the bold is lost");
+  });
+  // "make this window useable": homework used to take the whole talk, leaving the conversation under it no height
+  // at all, and an option as long as a repository name pushed the card off the side.
+  await check("homework leaves the talk room under it, and a long option wraps instead of running off the card", async () => {
+    const h = await page.locator("#queenThread").evaluate((u) => u.clientHeight);
+    expect(h > 80, "her homework left the talk no height: " + h);
+    await T(page, () => window.__catio.setQuiz({ kind: "decision", title: "The long one", note: "Where does it go?", questions: [{ q: "Which?", options: ["Pretty-Project-Portfolio-with-a-name-that-will-never-break-anywhere", "Settled: drop it"] }] }));
+    await page.waitForTimeout(400);
+    const o = await page.locator("#queenHomework").evaluate((u) => u.scrollWidth - u.clientWidth);
+    expect(o <= 0, "her homework scrolls sideways: " + o);
   });
   await page.locator('#queenHomework [data-deck="litterbox"] button:has-text("Skip")').click();
   await settle(page);
