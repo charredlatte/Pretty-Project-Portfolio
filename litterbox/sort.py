@@ -382,7 +382,8 @@ def run(box=BOX, write=False, given=None, say=print):
         left = [n for n in notes if id(n) not in filed and id(n) not in piled]
         if len(left) < len(notes) or dropped:
             plan[path] = (front, left)
-            if project and not waiting and path.is_relative_to(root):   # a --box kept outside the repo isn't shipped
+            if project and not waiting and path.is_relative_to(root) \
+                    and git("check-ignore", "-q", str(path), cwd=root) is None:   # an outside or ignored box isn't shipped
                 shipping.setdefault(root, []).append(path)
     for path, (_, left) in plan.items():
         say(f"{path.name}: " + ("emptied, deleted" if not left else f"{len(left)} note{'s' * (len(left) != 1)} left"))
