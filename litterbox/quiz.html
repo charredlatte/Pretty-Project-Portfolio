@@ -267,7 +267,8 @@ button { font: inherit; color: inherit; cursor: var(--point); }
   function project(repo, c) {   // a card's own option first, then the project list
     const o = c && c.options && c.options.find((x) => x.key === repo);
     if (o) return { repo: o.key, label: o.label || o.key, sub: o.why || "", words: [] };
-    return S.projects.find((p) => p.repo === repo) || { repo, label: repo, words: [] };
+    const p = S.projects.find((x) => x.repo === repo);
+    return p ? Object.assign({}, p, { label: p.label || p.repo }) : { repo, label: repo, words: [] };   // always a label
   }
   function projectList(c) {
     if (c && c.options) return c.options.map((o) => project(o.key, c));
@@ -390,7 +391,7 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     $("backLabel").textContent = D("back");
     $("peek").innerHTML = esc(D("peek")) + ' <span class="k">␣</span>';
     const g = project(c.guess, c);
-    $("guess").textContent = (c.guess ? g.label || g.repo : D("noGuess")).toUpperCase();
+    $("guess").textContent = (c.guess ? g.label : D("noGuess")).toUpperCase();
     $("guessRepo").textContent = c.why ? c.why : c.guess && !c.options ? "Pile: litterbox/" + (c.pile || c.guess + ".md") : "";
     $("src").textContent = c.from ? D("src").replace("{from}", c.from) : "";
     $("card").classList.toggle("flipped", S.flipped);
@@ -405,6 +406,7 @@ button { font: inherit; color: inherit; cursor: var(--point); }
     $("choices").replaceChildren(...opts.map((p, k) => choiceButton(p, k + 1, c)));
     const chosenElsewhere = a && a.verdict === "file" && !opts.some((p) => p.repo === a.project) && !$("none").hidden;   // an old answer a re-dealt card no longer offers has nowhere to open
     if (chosenElsewhere) S.more = true;
+    if ($("none").hidden) S.more = false;   // a card with every choice on the grid has no panel to keep open
     $("all").hidden = !S.more;
     $("none").setAttribute("aria-expanded", String(S.more));
     if (S.more) $("allList").replaceChildren(...projectList(c).filter((p) => !c.options || !opts.some((o) => o.repo === p.repo)).map((p) => choiceButton(p, "", c)));   // a deck card: only the choices past the grid
