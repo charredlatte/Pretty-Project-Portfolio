@@ -292,7 +292,7 @@ The page now **writes** through Claude Code Remote, always on an explicit action
   (`create_trigger` with `persistent_session_id`, then `fire_trigger`): it starts a stray new session instead
   (tried 30 September).
 - **Talking**: `notes/<id>` `{cat, text, author: charlotte|session|agent, at, via}`; replies show live.
-- **Managing**: `set_session_title`, `interrupt_session`, `archive_session` (+ `delete_trigger`),
+- **Managing**: `set_session_title` (a cat's new name retitles its session too, her call on 3 October), `interrupt_session`, `archive_session` (+ `delete_trigger`),
   `unarchive_session`, `create_session` (New cat, model from `rooms/<k>.model`).
 - **Agents, and the sessions that report**: the gateway through her `CATIO` connector (`GATEWAY` in the page),
   else `host:catio` (on localhost, `/api/*` when served by `catio_mcp.py --serve`): `list_agents` every 30 s,

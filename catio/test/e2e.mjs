@@ -263,6 +263,10 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(d && d.name === "Biscuit" && d.room === "study", JSON.stringify(d));
     expect(await page.locator('#cats .cat[aria-label^="Biscuit "]').count() === 1, "renamed cat missing");
   });
+  await check("renaming a session's cat renames the real session too", async () => {
+    const t = (await T(page, () => window.__catio.tools)).filter((x) => x[1] === "set_session_title" && x[2].session_id === "session_work1");
+    expect(t.length === 1 && t[0][2].title === "Biscuit", JSON.stringify(t));
+  });
 
   /* ---------- 4. zoom, filing cabinet and a project's look ---------- */
   await openRoom(page, "study");
@@ -1436,8 +1440,8 @@ async function dropFiles(page, sel, files) {
   await page.click("#catDlg button:has-text('Save')");
   await page.waitForTimeout(200);
   await check("changing a session's title renames the real session", async () => {
-    const t = await tools(page, "set_session_title");
-    expect(t.length === 1 && t[0][2].session_id === "session_blocked1" && t[0][2].title === "Shop about page (FR)", JSON.stringify(t));
+    const t = (await tools(page, "set_session_title")).filter((x) => x[2].session_id === "session_blocked1");
+    expect(t.length === 1 && t[0][2].title === "Shop about page (FR)", JSON.stringify(t));
   });
   await openCat(page, "Week tab editing");
   await menuButton(page, "Talk").click();

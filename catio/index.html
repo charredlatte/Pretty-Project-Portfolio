@@ -1989,7 +1989,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
       const room = $("catRoom").value, name = nm.value.trim();
       const ok = c.kind === "session"
         ? await save(async (db) => {
-          const title = ti ? ti.value.trim() : "";
+          // renaming the cat renames the real session too (her call, 3 October), unless she typed a title of her own
+          const typed = ti ? ti.value.trim() : "", was = (S.tweaks[c.id] || {}).name || "";
+          const title = typed && typed !== c.title ? typed : ti && name && name !== was ? name : "";
           await db.doc("sessions/" + c.id).set(Object.assign({}, S.tweaks[c.id] || {}, { name, room, updatedAt: Date.now() }));
           if (title && title !== c.title) {
             try { await call("set_session_title", { session_id: c.id, title }); }
