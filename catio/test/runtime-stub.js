@@ -115,6 +115,7 @@
   T.handoff = (cat, text) => { const a = T.gw.find((x) => x.id === cat); a.said = { text, at: Date.now() }; dispatchEvent(new Event("catio:agents")); };
   // homework the queen set (what the gateway's quizzes tool lists), and her answers as the page hands them in
   T.quizzes = [];
+  T.quizzesFail = 0;   // this many reads of the quizzes list fail first (the gateway away for a moment)
   T.setQuiz = (z) => { T.quizzes.push(Object.assign({ id: "z" + (T.quizzes.length + 1), by: "queen", at: Date.now(), status: "set" }, z)); dispatchEvent(new Event("catio:agents")); };
   // her voice: what she would have said aloud, without a sound; and the voices the browser would offer
   T.spoken = [];
@@ -154,7 +155,7 @@
       if (g === "ask") throw { code: "approval_required", message: "ask every time" };
       if (tool === "list_agents") return answer({ agents: clone(T.gw) });
       if (tool === "comments") return answer({ notes: clone(T.gwNotes.filter((n) => n.cat === input.cat)) });
-      if (tool === "quizzes") return answer({ quizzes: clone(T.quizzes.filter((z) => input.done || z.status !== "done")) });
+      if (tool === "quizzes") { if (T.quizzesFail) { T.quizzesFail--; throw { code: "tool_error", message: "the gateway is away" }; } return answer({ quizzes: clone(T.quizzes.filter((z) => input.done || z.status !== "done")) }); }
       if (tool === "answer") { const z = T.quizzes.find((x) => x.id === input.quiz); if (!z) throw { code: "tool_error", message: "no such quiz" }; z.status = "done"; z.answers = input.answers; return answer({ ok: true, told: true }); }
       if (tool === "decide") return answer(clone(T.decideAnswer));
       return answer({ id: "g" + T.tools.length, woke: false });

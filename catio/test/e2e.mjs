@@ -587,12 +587,17 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(await page.locator('#queenHomework form[data-quiz="z1"]').count() === 0, "the handed-in quiz is still there");
   });
   await page.locator('#queenHomework form[data-quiz="z2"] button:has-text("Ship it")').click();
+  // the gateway takes her answers but its list is away for a moment after: the handed-in quiz still leaves her
+  // card, and nothing stays greyed out
+  await T(page, () => { window.__catio.quizzesFail = 1; });
   await page.locator('#queenHomework form[data-quiz="z2"] button:has-text("Hand it in")').click();
   await settle(page);
-  await check("with the last quiz handed in, the homework is done", async () => {
+  await check("with the last quiz handed in, the homework is done, even when the list can't be read back yet", async () => {
     const a = await T(page, () => window.__catio.tools.filter((t) => t[1] === "answer").pop());
     expect(a && a[2].quiz === "z2" && JSON.stringify(a[2].answers) === JSON.stringify(["Ship it"]), JSON.stringify(a));
+    expect(await T(page, () => window.__catio.quizzesFail) === 0, "the quizzes list was never read back");
     expect(!(await page.locator("#queenHomework").isVisible()), "the homework is still there");
+    expect(await page.locator("#queenHomework button:disabled").count() === 0, "a greyed-out Hand it in is left behind");
   });
   await page.keyboard.press("Escape");
   await settle(page);
