@@ -2359,7 +2359,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       const catOf = (z) => (z.for ? cats.find((c) => c.agentId === z.for) : null);
       const subOf = (z, cat) => "Homework from " + (z.by === QUEEN_ID ? q.name : "you") + (cat ? ", to unblock " + cat.name : z.for ? ", for " + z.for : "") + " · " + ago(z.at);
       const sig = open.map((z) => z.id + ":" + (z.at || 0) + ":" + (z.questions || []).length + ":" + (catOf(z) || {}).name).join("|")
-        + "#" + decks.map((d) => d.kind + ":" + d.at + ":" + sending.has(d.z.id) + ":" + d.cards.map((z) => z.id + "@" + (z.at || 0)).join(",")).join("|");
+        + "#" + decks.map((d) => d.kind + ":" + d.at + ":" + sending.has(d.z.id) + ":" + d.cards.map((z) => z.id + "@" + (z.at || 0)).join(",") + ":" + JSON.stringify([d.z.note, d.z.hint, d.z.questions])).join("|");   // the top card dealt again with new words redraws
       if (sig === drawn) {   // nothing to rebuild: only the "· N minutes ago" moves on
         for (const z of open) { const sub = hw.querySelector('form[data-quiz="' + z.id + '"] p.sub'); if (sub) sub.textContent = subOf(z, catOf(z)); }
         return;
