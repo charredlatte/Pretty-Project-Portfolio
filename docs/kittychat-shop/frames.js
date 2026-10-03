@@ -60,7 +60,7 @@ function page(name, width = 1280, height = 900) {
   const cta = row(12, "calls"); cta.appendChild(button("Start free: self-host", true)); cta.appendChild(button("Join the café: early access")); body.appendChild(cta);
   body.appendChild(box(w, 360, BOX, "screenshot: the manor, ground floor"));
   const ways = row(16, "three ways");
-  for (const [t, d] of [["Self-host", "The public repo and the catio skill. Free. Your art, your artifact."], ["Hosted café", "Your café on our address, with accounts and the gateway. Monthly, while it's in development."], ["Set up for you, from 90 €", "A one-time payment: lifetime access and the DIY course on customizing your plugin. An afternoon with Charlotte on top, from [setup-plus] €."]]) {
+  for (const [t, d] of [["Self-host: the developers' door", "Open source (AGPL-3.0): clone the repo, deploy the Worker, install the plugin. Your art, your artifact. A terminal, this time."], ["Hosted café", "Your café on our address, with accounts and the gateway. Monthly, while it's in development."], ["Set up for you, from 90 €", "A one-time payment: lifetime access and the DIY course on customizing your plugin. An afternoon with Charlotte on top, from [setup-plus] €."]]) {
     const c = card(336); c.appendChild(text(t, 16, BOLD)); c.appendChild(text(d, 13, REG, GREY, 300)); ways.appendChild(c); }
   body.appendChild(ways); }
 

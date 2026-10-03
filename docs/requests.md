@@ -211,3 +211,6 @@ The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.
   plugin's customizable features taught as a DIY Claude customization course; the afternoon of setup on top.
 - **Two audiences** (3 October): developers who lose track of sessions, and "small business owners looking to use AI for
   the first time. This should be like a video game accessible coding environment." The home page speaks to the second.
+- **Open source, with a paywall on the hosted café and the art** (3 October): the gateway's code "is open source for
+  anyone with GitHub to use" (AGPL-3.0, her choice); "certain features should stay behind the paywall like certain
+  breeds of cats (or all custom assets)"; the Buy Me a Coffee and Ulule links in the README, to help with crowdfunding.
