@@ -203,6 +203,8 @@ a { color: var(--ink); }
 .roomhit.here:focus-visible { border-style: solid; }
 .cabinet:hover, .cabinet:focus-visible, .cat:focus-visible { outline: 0; border: 9px solid transparent; border-image: url(art/licensed/ui/corners.png) 9 8 / 9px 8px stretch; border-image-outset: 5px; }
 .cat:focus-visible { border-width: 0; }
+/* a cat in the line is close to the next: only its own body answers the pointer */
+.cat[data-line] { clip-path: inset(0 14px 0 6px); }
 .spr { display: inline-block; vertical-align: bottom; filter: var(--tint, none); image-rendering: pixelated; background-repeat: no-repeat; }
 .cat .spr { display: block; }
 /* a count: the pack's white button at one pixel a pixel */
@@ -431,6 +433,62 @@ ul.thread li.live::after { content: "▌"; margin-left: 2px; animation: blink 1s
 ul.thread li.handoff .open { margin-left: 6px; vertical-align: middle; }
 ul.thread li.handoff.new .who::after { content: " · new"; color: var(--ink); }
 .btn.voice { display: inline-flex; align-items: center; gap: 8px; width: max-content; }
+/* the queen's chat, as a scene (her ask, 3 October): the owner of the house on the left, seen from behind, the queen on
+   the right, talking, and what they say as bubbles between them, nearest each speaker. Behind them the hall's own floor,
+   from the house art, in the pack's picture frame. Every setting sits in an overlay over the scene. */
+dialog.scene { width: min(800px, calc(100vw - 24px)); }
+.dlg.queen { position: relative; }
+.qhead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: start; }
+.qhead h2 { display: flex; align-items: center; gap: 10px; }
+.qhead h2 .crown { position: static; flex: none; transform: scale(2); margin: 0 6px; }
+.qhead .acts { display: flex; gap: 6px; align-items: center; }
+.qhead .note { grid-column: 1 / -1; }
+.qstage { position: relative; height: min(56vh, 440px); min-height: 280px; display: grid; grid-template-columns: 168px minmax(0, 1fr) 160px;
+  overflow: hidden; image-rendering: pixelated; background: #7D8579 url(art/licensed/house.png) no-repeat; background-size: 3840px 2304px;
+  background-position: -1120px -1010px; border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; }
+.qstage::before { content: ""; position: absolute; inset: 0; background: rgba(28, 22, 16, .3); pointer-events: none; }
+.qstage::after { content: ""; position: absolute; inset: 0; pointer-events: none; filter: var(--scene); }
+.qstage > * { position: relative; min-height: 0; }
+.owner { align-self: end; justify-self: start; margin: 0 0 -2px 4px; }
+.owner svg { display: block; width: 150px; height: auto; }
+.ownerprev svg { display: block; width: 112px; height: auto; }
+.qchar { align-self: end; justify-self: end; width: 150px; height: 190px; margin-right: 4px; }
+.qchar .spr { position: absolute; left: 50%; bottom: 2px; transform-origin: 50% 100%; transform: translateX(-50%) scale(2.6); }   /* the sheets face left: toward her */
+.qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(5); }
+.qchar .crown { position: absolute; left: 50%; top: 22px; transform: translateX(-50%) scale(3); transform-origin: 50% 0; }
+.qchar[data-mood="meow"] .crown, .qchar[data-mood="cry"] .crown { top: 54px; }   /* on her head, for each pose */
+.qchar[data-mood="idle"] .crown { top: 58px; }
+.qchar[data-mood="box"] .crown { top: 40px; }
+.qchar[data-mood="sleep"] .crown { top: 104px; left: 34%; }
+.qchar.talking { animation: talk .5s steps(2) infinite; }
+@keyframes talk { 50% { translate: 0 -3px; } }
+.qchar .nameplate, .owner .nameplate { position: absolute; bottom: 4px; white-space: nowrap; }
+.qtalk { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 6px; padding: 8px 4px 10px; }
+.qtalk .homework { max-height: 46%; overflow: auto; }
+#queenThread { grid-row: 2; max-height: none; height: 100%; overflow: auto; display: flex; flex-direction: column; gap: 6px; padding: 0 2px; overscroll-behavior: contain; }
+#queenThread li { max-width: 86%; margin: 0; }
+#queenThread li.me { align-self: flex-start; }
+#queenThread li.them { align-self: flex-end; }
+#queenThread li.handoff { align-self: center; max-width: 92%; }
+#queenThread > li:first-child { margin-top: auto; }   /* a short conversation sits at the bottom, by the speakers */
+.saybar { align-items: end; }
+.saybar > .field { flex: 1 1 220px; }
+.qsettings { position: absolute; inset: 0; z-index: 5; overflow: auto; display: grid; gap: 12px; align-content: start; padding: 6px calc(4 * var(--u));
+  border: calc(6 * var(--u)) solid transparent; border-image: url(art/licensed/ui/panel.png) 6 fill / calc(6 * var(--u)) stretch; background: var(--tan) padding-box; }
+.qsettings .shead { display: flex; align-items: center; gap: 8px; }
+.qsettings .shead h3 { margin: 0; flex: 1; font: 36px/44px var(--pixel); }
+.ownerprev { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: end; }
+.ownerprev .pic { padding: 6px 8px 0; background: #7D8579 padding-box; border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; }
+@media (max-width: 560px) {
+  .qstage { grid-template-columns: 64px minmax(0, 1fr) 76px; height: min(52vh, 420px); }
+  .owner svg { width: 62px; }
+  .qchar { width: 76px; height: 110px; }
+  .qchar .spr { transform: translateX(-50%) scale(1.4); }
+  .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(2.6); }
+  .qchar .crown, .qchar[data-mood] .crown { top: auto; bottom: 74px; transform: translateX(-50%) scale(2); }
+  .qchar[data-mood="sleep"] .crown { bottom: 44px; }
+  .ownerprev { grid-template-columns: minmax(0, 1fr); justify-items: start; }
+}
 /* her homework: a quiz a blocked cat, answered by tapping */
 .homework { display: grid; gap: 8px; }
 .homework .quiz { display: grid; gap: 6px; padding: 4px 6px 6px; background: #DCE0D2 padding-box; border: 5px solid transparent; border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / 5px 5px 6px stretch; }
@@ -1011,10 +1069,16 @@ ul.gkey li > div.what { flex-basis: 100%; }
     VIEW.placed = [];
     VIEW.piles = {};
     VIEW.queens = {};
+    // the waiting line: every cat waiting on her (mood "needs") lines up at the hall's front door, beside the queen,
+    // longest wait first (her ask, 3 October); one that stops waiting walks back to its room
+    const line = cats.filter((c) => c.mood === "meow").sort((a, b) => waitSince(a) - waitSince(b) || (a.id < b.id ? -1 : 1));
+    const queued = new Set(line.map((c) => c.id));
+    for (const id of [...WAITING.keys()]) if (!queued.has(id)) WAITING.delete(id);
     for (const k of ORDER) {
-      const here = cats.filter((c) => c.roomKey === k);
+      const here = cats.filter((c) => c.roomKey === k && !queued.has(c.id));
       const st = stationsOf(k), floor = freeFloor(k), taken = [];
       if (GEOM[k].queen && k === queenRoom()) taken.push(GEOM[k].queen);   // her seat is hers; the other rooms' seats are free floor
+      if (k === "hall") taken.push(...LINE.slice(0, line.length));   // the line's places are the line's
       const clear = (p) => !taken.some((t) => Math.abs(t[0] - p[0]) < 22 && Math.abs(t[1] - p[1]) < 14);   // a cat's width apart
       const [rx, ry, rw, rh] = GEOM[k].r, mid = [rx + rw / 2, ry + rh / 2];
       const pile = [];
@@ -1033,6 +1097,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       }
       if (pile.length) placePile(layer, pile, taken[taken.length - 1] || mid, k);
     }
+    placeLine(layer, line);
     placeQueen(layer, queenRoom());
     // a cat that was in the house and is now napping in the attic walks off to it; one that was let go just goes
     for (const [id, w] of WHERE) {
@@ -1073,7 +1138,29 @@ ul.gkey li > div.what { flex-basis: 100%; }
     layer.appendChild(b);   // before it walks: a walk stops when its cat has left the page
     if (legs) walk(b, spot, legs.from, legs.legs).then((ok) => { if (ok) dress(b, c, c.mood, spot, room); });
     VIEW.placed.push({ cat: c, x: spot[0] * 2, feet: spot[1] * 2, room });
+    return b;
   }
+  // The line's places: from beside the queen's seat along the front of the hall, past the front door, then a second row
+  // behind it; whoever doesn't fit curls up at its end. In native pixels, on the hall's open floor.
+  const WAITING = new Map();   // cat id -> when it started waiting, as the page first knew it
+  function waitSince(c) {
+    if (!WAITING.has(c.id)) WAITING.set(c.id, c.updated || Date.now());
+    return WAITING.get(c.id);
+  }
+  const LINE = (() => {
+    const door = (MANOR.doors.find((d) => d[0] === "hall" && !d[1]) || [0, 0, [394, 378]])[2];
+    const [, , x1, y1] = MANOR.floors.hall, seat = (GEOM.hall && GEOM.hall.queen) || [door[0] - 46, door[1]];
+    const spots = [];
+    for (const [y, step] of [[Math.min(door[1], y1 - 6), 20], [Math.min(door[1], y1 - 6) - 18, 20]])
+      for (let x = seat[0] + 22; x <= x1 - 12; x += step) spots.push([x, y]);
+    return spots;
+  })();
+  function placeLine(layer, line) {
+    line.slice(0, LINE.length).forEach((c, i) => { placeCat(layer, c, LINE[i], "hall").dataset.line = i + 1; });
+    const rest = line.slice(LINE.length);
+    if (rest.length) placePile(layer, rest, LINE[LINE.length - 1], "hall");
+  }
+
   // The queen, on her seat in room k. Nothing is drawn on her either: hovering her says how she is.
   function placeQueen(layer, k) {
     const spot = GEOM[k] && GEOM[k].queen;
@@ -1370,10 +1457,12 @@ ul.gkey li > div.what { flex-basis: 100%; }
   /* ---------- floors ---------- */
   // One floor shows at a time. The camera stays where it is, so the stair stays under the pointer; the
   // ground floor stays faded under the upper one. The floor switch, the stair and Page Up / Page Down change it.
-  const needOn = (f) => VIEW.cats.filter((c) => levelOf(c.roomKey) === f && MOODS[c.mood].needs);
+  // where a cat is now: a cat waiting on her is in the line at the front door, whatever its room
+  const whereIs = (c) => (c.mood === "meow" ? "hall" : c.roomKey);
+  const needOn = (f) => VIEW.cats.filter((c) => levelOf(whereIs(c)) === f && MOODS[c.mood].needs);
   function urgentOn(f) {
     const n = needOn(f).sort((a, b) => MOODS[a.mood].rank - MOODS[b.mood].rank)[0];
-    return n ? n.roomKey : null;
+    return n ? (levelOf(n.roomKey) === f ? n.roomKey : whereIs(n)) : null;   // the room whose menu lists it, on this floor
   }
   const curRoom = () => (S.cursor && levelOf(S.cursor) === S.floor ? S.cursor : urgentOn(S.floor) || HOME[S.floor]);
   function setFloor(f, quiet) {
@@ -1425,7 +1514,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
         if (levelOf(r) !== f) continue;
         const d = put("mm-room" + faint + (roomOpen(r) ? "" : " closed") + (!faint && r === S.focus ? " here" : "") + (!faint && r === MM.hot ? " hot" : ""), GEOM[r].r);
         d.dataset.room = r;
-        const need = !faint && needIn(VIEW.cats, r);
+        const need = !faint && VIEW.cats.filter((c) => whereIs(c) === r && MOODS[c.mood].needs);
         if (need && need.length) d.appendChild(pip(need)).textContent = "";
       }
     }
@@ -2022,7 +2111,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
       const room = $("catRoom").value, name = nm.value.trim();
       const ok = c.kind === "session"
         ? await save(async (db) => {
-          const title = ti ? ti.value.trim() : "";
+          // renaming the cat renames the real session too (her call, 3 October), unless she typed a title of her own
+          const typed = ti ? ti.value.trim() : "", was = (S.tweaks[c.id] || {}).name || "";
+          const title = typed && typed !== c.title ? typed : ti && name && name !== was ? name : "";
           await db.doc("sessions/" + c.id).set(Object.assign({}, S.tweaks[c.id] || {}, { name, room, updatedAt: Date.now() }));
           if (title && title !== c.title) {
             try { await call("set_session_title", { session_id: c.id, title }); }
@@ -2136,6 +2227,63 @@ ul.gkey li > div.what { flex-basis: 100%; }
     return wrap;
   }
 
+  // The owner of the house, seen from behind in her armchair, facing the queen. No pack draws people, so she is pixel
+  // art drawn here, on a 30 × 40 grid with the panels' own ink for an outline, from what she picks in Settings
+  // (house/main.owner).
+  const OWNER = {
+    hair: [["long", "Long"], ["bob", "Bob"], ["bun", "Bun"], ["short", "Short"]],
+    hairColor: [["Chestnut", "#6B3E26"], ["Black", "#2B2424"], ["Blonde", "#D9B25F"], ["Ginger", "#B8562B"], ["Silver", "#B9B7C4"], ["Pink", "#E08AA8"]],
+    skin: [["Light", "#F1C9A5"], ["Medium", "#D9A27A"], ["Tan", "#A9714E"], ["Deep", "#6E4630"]],
+    top: [["Sage", "#93B259"], ["Rose", "#E0A3A3"], ["Sky", "#8FB6D9"], ["Cream", "#EFD9B0"], ["Plum", "#8E5F8A"], ["Mustard", "#D4A536"]],
+    extra: [["bow", "A bow"], ["ears", "Cat ears"], ["flower", "A flower"], ["none", "Nothing"]],
+  };
+  const ownerOf = () => Object.assign({ hair: "long", hairColor: 0, skin: 0, top: 0, extra: "bow" }, (S.house && S.house.owner) || {});
+  const tone = (hex, f) => "#" + [1, 3, 5].map((i) => Math.max(0, Math.min(255, Math.round(parseInt(hex.slice(i, i + 2), 16) * f))).toString(16).padStart(2, "0")).join("");
+  function ownerSVG(o) {
+    const W = 30, H = 40, px = Array.from({ length: H }, () => Array(W).fill(null));
+    const pick = (list, i) => (list[i] || list[0])[1];
+    const hair = pick(OWNER.hairColor, o.hairColor), skin = pick(OWNER.skin, o.skin), top = pick(OWNER.top, o.top), chair = "#E7B9A8", accent = "#E06C8C";
+    // paint(test, colour): every grid cell whose centre passes test, in her own coordinates (one cell in from the edge)
+    const paint = (test, colour) => { for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const u = x - .5, v = y - .5; if (test(u, v)) px[y][x] = typeof colour === "function" ? colour(u, v) : colour; } };
+    const circle = (cx, cy, r) => (x, y) => (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
+    const rect = (x0, y0, x1, y1) => (x, y) => x >= x0 && x <= x1 && y >= y0 && y <= y1;
+    // her back and shoulders, her neck, her hair, then the armchair's back in front of her
+    paint((x, y) => rect(4, 18, 24, 38)(x, y) && !(y < 20.5 && (x < 6 || x > 22)), (x) => (x < 9 ? tone(top, .82) : top));
+    paint(rect(11.5, 14, 16.5, 19), skin);
+    const head = circle(14, 10, 7.5);
+    const styles = {
+      long: (x, y) => head(x, y) || (rect(7, 10, 21, 28)(x, y) && Math.abs(x - 14) <= 7 - Math.max(0, y - 23) * .9),
+      bob: (x, y) => head(x, y) || rect(6.5, 10, 21.5, 16.5)(x, y),
+      bun: (x, y) => head(x, y) || circle(14, 2.2, 3.4)(x, y),
+      short: (x, y) => head(x, y) && y < 14.5,
+    };
+    paint(styles[o.hair] || styles.long, (x) => (x < 11 ? tone(hair, .78) : hair));
+    if (o.hair === "short" || o.hair === "bun") paint(rect(21, 9, 22.6, 12), skin);   // an ear, under short hair
+    if (o.extra === "bow") paint((x, y) => y >= 11.5 && y <= 15.5 && Math.abs(x - 14) <= 4.5 && Math.abs(x - 14) <= 1 + Math.abs(y - 13.5) * 2.2, (x) => (Math.abs(x - 14) < 1 ? tone(accent, .72) : accent));
+    if (o.extra === "ears") {
+      const ear = (cx, k, b) => (x, y) => y >= b && y <= 5 && Math.abs(x - cx) <= (y - b) * k + .5;
+      paint((x, y) => ear(9, .6, 0)(x, y) || ear(19, .6, 0)(x, y), hair);
+      paint((x, y) => ear(9, .35, 2.2)(x, y) || ear(19, .35, 2.2)(x, y), "#F2A7BA");
+    }
+    if (o.extra === "flower") { paint(circle(20.5, 4.5, 2.3), "#FFF6E0"); paint(circle(20.5, 4.5, 1), "#E8B23A"); }
+    paint((x, y) => rect(.5, 26, 27.5, 38.4)(x, y) && !(y < 29 && ((x < 3 && (x - 3) ** 2 + (y - 29) ** 2 > 9) || (x > 25 && (x - 25) ** 2 + (y - 29) ** 2 > 9))),
+      (x, y) => (y < 27.5 ? tone(chair, 1.08) : x < 4 || x > 24 ? tone(chair, .86) : chair));
+    // the outline: every empty cell that touches her, in the panels' ink
+    const ink = "#3F2A20", out = px.map((row) => row.slice());
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!px[y][x] && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => (px[y + dy] || [])[x + dx])) out[y][x] = ink;
+    let rects = "";
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; ) {
+      const c = out[y][x]; let n = 1;
+      while (x + n < W && out[y][x + n] === c) n++;
+      if (c) rects += '<rect x="' + x + '" y="' + y + '" width="' + n + '" height="1" fill="' + c + '"/>';
+      x += n;
+    }
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("shape-rendering", "crispEdges"); svg.setAttribute("aria-hidden", "true");
+    svg.innerHTML = rects;
+    return svg;
+  }
+
   // Her card, like an NPC's dialogue: her greeting, the thread (what she said, what the cats brought her, what you
   // said), her answer as she speaks it, Speak / Send / Stop and her voice; then, folded, what she keeps, her
   // character (name, coat, manner, greeting, voice) and her routines. Opening it counts the handoffs as read.
@@ -2152,20 +2300,36 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const notes = q.notes.map((n) => ({ text: n.text, pinned: !!n.pinned, at: n.at || Date.now() }));
     const opened = Date.now();
     const box = el("div", "dlg queen");
+    dlg.classList.add("scene");
 
-    const head = el("div", "head");
-    const por = el("div", "portrait");
-    por.append(sprite(queenMood(q), q.coat), el("span", "crown corner"));
+    // her name, how she is and her line; Settings and Close
+    const head = el("header", "qhead");
     const hd = el("div");
-    const h = el("h2", null, q.name); h.id = "queenName";
+    const h = el("h2", null, q.name); h.id = "queenName"; h.prepend(el("span", "crown"));
     const st = el("span", "mood " + (q.state === "away" ? "sleep" : "work"), "Queen of the house · " + stateWord(q.state)); st.id = "queenState";
+    hd.append(h, st);
     const ln = el("p", "note", queenLine(q)); ln.id = "queenLineNote";
-    hd.append(h, st, ln);
-    head.append(por, hd);
+    const hacts = el("div", "acts");
+    const setBtn = plainBtn("Settings", "", () => openSettings()); setBtn.id = "queenSettingsBtn"; setBtn.setAttribute("aria-haspopup", "dialog"); setBtn.setAttribute("aria-expanded", "false");
+    hacts.append(setBtn, closeBtn(dlg));
+    head.append(hd, hacts, ln);
     box.appendChild(head);
 
-    // ---- the talk: her homework first, when she set some ----
-    const talk = el("section", "talk");
+    // the scene: the owner of the house on the left, from behind; the queen on the right, talking; their words between
+    const stage = el("section", "qstage"); stage.setAttribute("aria-label", "Talking with " + q.name);
+    const owner = el("div", "owner"); owner.id = "queenOwnerFig"; owner.appendChild(ownerSVG(ownerOf()));
+    const her = el("div", "qchar"); her.id = "queenFig"; her.setAttribute("aria-hidden", "true");
+    const dress = () => {
+      const talking = q.state === "busy" || !!S.queenTurn;
+      const mood = talking ? "meow" : queenMood(q);
+      her.replaceChildren(sprite(mood, q.coat), el("span", "crown"));
+      her.classList.toggle("talking", talking);
+      her.dataset.mood = mood;
+    };
+    dress();
+
+    // ---- the talk, between them: her homework first, when she set some ----
+    const talk = el("div", "qtalk talk");
     const hw = el("div", "homework"); hw.id = "queenHomework";
     // A redraw that would change nothing is skipped, so the forms never move under her fingers; one that must
     // happen puts her answers so far (DRAFTS) back.
@@ -2300,8 +2464,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
     };
     drawHomework();
     talk.appendChild(hw);
-    const ul = el("ul", "thread"); ul.id = "queenThread";
+    const ul = el("ul", "thread"); ul.id = "queenThread"; ul.setAttribute("aria-live", "polite");
     const drawThreadQ = () => {
+      dress();
       ul.replaceChildren();
       const cats = allCats(true).cats;
       const items = (S.queenNotes || []).filter((n) => fromOwner(n) || n.author === QUEEN_ID).map((n) => ({ kind: fromOwner(n) ? "owner" : n.author, text: n.text, at: n.at || 0, routine: n.routine }))
@@ -2342,7 +2507,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       catch (e) { toast(gatewayProblem(e), "alert"); }
     });
     stop.id = "queenStop"; stop.hidden = q.state !== "busy";
-    const row = el("div", "row");
+    const row = el("div", "row saybar");
     const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (Rec) {   // voice to text: the browser's own (Chrome, Edge); what it heard stays in the box for her to send or fix
       let rec = null;
@@ -2372,8 +2537,25 @@ ul.gkey li > div.what { flex-basis: 100%; }
       if (voiceOn) speak(gr.value.trim() || q.greeting, currentVoice());
       await persist();
     });
-    talk.append(row, vb);
-    box.appendChild(talk);
+    stage.append(owner, talk, her);
+    box.append(stage, row);
+
+    // ---- Settings: everything else, in an overlay over the scene ----
+    const set = el("section", "qsettings"); set.id = "queenSettings"; set.hidden = true;
+    set.setAttribute("role", "dialog"); set.setAttribute("aria-label", "Settings");
+    const shead = el("div", "shead");
+    const back = plainBtn("Back to her", "green", () => closeSettings()); back.id = "queenSettingsClose";
+    shead.append(el("h3", null, "Settings"), back);
+    const voiceBox = el("div", "row"); voiceBox.id = "queenVoiceBox";
+    voiceBox.appendChild(vb);
+    set.append(shead, voiceBox);
+    const openSettings = (part) => {
+      set.hidden = false; setBtn.setAttribute("aria-expanded", "true");
+      for (const d of set.querySelectorAll("details")) d.open = d.id === part;
+      const target = part ? set.querySelector("#" + part + " summary") : back;
+      (target || back).focus({ preventScroll: true });
+    };
+    const closeSettings = () => { set.hidden = true; setBtn.setAttribute("aria-expanded", "false"); say.focus({ preventScroll: true }); };
 
     // ---- what she keeps ----
     const kd = el("details", "more"); kd.id = "queenKeeps"; kd.open = section === "keeps";
@@ -2407,7 +2589,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const krow = el("div", "row");
     krow.append(field("Something she should keep", add), plainBtn("Give it to her", "green", give));
     kd.appendChild(krow);
-    box.appendChild(kd);
+    set.appendChild(kd);
 
     // ---- her character ----
     const cd = el("details", "more"); cd.id = "queenCharacter"; cd.open = section === "character";
@@ -2436,16 +2618,15 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const r2 = el("div", "row");
     if (vsel) r2.appendChild(field("Her voice", vsel));
     r2.append(field("How fast", rate), field("How high", pitch));
-    cd.appendChild(r2);
     const r3 = el("div", "row"); r3.appendChild(field("She listens for", lang));
     const hear = plainBtn("Hear her", "", () => speak(gr.value.trim() || q.greeting, Object.assign(currentVoice(), { on: true }))); hear.id = "queenHear"; hear.hidden = !window.speechSynthesis;
     r3.appendChild(hear);
-    cd.appendChild(r3);
+    voiceBox.after(r2, r3);
     cd.appendChild(el("p", "note", "Saved in this page: anyone you share it with can read it, so keep sensitive details out."));
     const sv = el("button", "btn green", "Save"); sv.type = "button"; sv.id = "queenSave";
     sv.addEventListener("click", async () => { if (await persist("Saved. " + (nm.value.trim() || q.name) + " has it.")) dlg.close(); });
     const sa = el("div", "actions"); sa.append(el("span", "spacer"), sv); cd.appendChild(sa);
-    box.appendChild(cd);
+    set.appendChild(cd);
 
     // ---- her routines ----
     let routines = null;
@@ -2454,11 +2635,38 @@ ul.gkey li > div.what { flex-basis: 100%; }
       rd.appendChild(el("summary", null, "Routines"));
       routines = routinesPanel();
       rd.appendChild(routines);
-      box.appendChild(rd);
+      set.appendChild(rd);
     }
 
-    const acts = el("div", "actions"); acts.append(closeBtn(dlg));
-    box.appendChild(acts);
+    // ---- you: the owner of the house, as she sits in the scene ----
+    const yd = el("details", "more"); yd.id = "queenYou";
+    yd.appendChild(el("summary", null, "You"));
+    const look = ownerOf();
+    const prev = el("div", "pic"), opts = el("div");
+    const sel = (id, label, list, value, num) => {
+      const x = el("select"); x.id = id;
+      list.forEach(([a, b], i) => { const o = el("option", null, num ? a : b); o.value = num ? String(i) : a; x.appendChild(o); });
+      x.value = String(value);
+      x.addEventListener("change", () => { look[id.replace("own-", "")] = num ? +x.value : x.value; prev.replaceChildren(ownerSVG(look)); });
+      return field(label, x);
+    };
+    const r4 = el("div", "row"), r5 = el("div", "row");
+    r4.append(sel("own-hair", "Hair", OWNER.hair, look.hair), sel("own-hairColor", "Hair colour", OWNER.hairColor, look.hairColor, true));
+    r5.append(sel("own-top", "Top", OWNER.top, look.top, true), sel("own-skin", "Skin", OWNER.skin, look.skin, true), sel("own-extra", "And", OWNER.extra, look.extra));
+    opts.append(r4, r5);
+    prev.appendChild(ownerSVG(look));
+    const pv = el("div", "ownerprev"); pv.append(prev, opts);
+    const osv = plainBtn("Save your look", "green", async () => {
+      if (await save((db) => db.doc("house/main").set(Object.assign({}, S.house || {}, { owner: Object.assign({}, look) })), "Saved. That's you in the hall.")) {
+        owner.replaceChildren(ownerSVG(look));
+      }
+    });
+    osv.id = "ownerSave";
+    const oa = el("div", "actions"); oa.append(el("span", "spacer"), osv);
+    yd.append(el("p", "note", "How you sit in the hall when you talk to her, seen from behind."), pv, oa);
+    set.appendChild(yd);
+
+    box.appendChild(set);
     dlg.appendChild(box);
 
     // what she is, as one document; saving it moves what the room queens kept into it
@@ -2476,7 +2684,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
         st.textContent = "Queen of the house · " + stateWord(q.state); st.className = "mood " + (q.state === "away" ? "sleep" : "work");
         stop.hidden = q.state !== "busy";
         ln.textContent = queenLine(q);
-        por.replaceChildren(sprite(queenMood(q), q.coat), el("span", "crown corner"));
+        dress();
       },
     };
     dlg.addEventListener("close", () => { QUEEN_UI = null; if (QUEEN_POLL) { clearInterval(QUEEN_POLL); QUEEN_POLL = null; } }, { once: true });
@@ -2484,6 +2692,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
     loadQueenThread();
     if (!VIA_GATEWAY && S.host) QUEEN_POLL = setInterval(loadQueenThread, 5000);   // no live line in claude.ai: look every few seconds while her card is open
     show(dlg);
+    const part = { keeps: "queenKeeps", character: "queenCharacter", routines: "queenRoutines", you: "queenYou" }[section];
+    if (part) openSettings(part); else say.focus();
     // opened at her homework (the House menu) or the litter box (on the map): that deck, else the first card
     const desk = section === "homework" || section === "litterbox" || section === "decision" ? hw.querySelector(section === "homework" ? ".quiz" : '[data-deck="' + section + '"]') || hw.querySelector(".quiz") : null;
     if (desk) { desk.scrollIntoView({ block: "nearest" }); (desk.matches(".card") ? desk : desk.querySelector(".opts button, input") || desk).focus(); }   // never onto an answer that a held key would hand in

@@ -213,8 +213,9 @@ and say "File my decisions." The small facts (who made `plants.zip`) stay here.
 4. **Rotate the MCPmarket token** in her plugin zip's `.mcp.json`.
 5. **Small questions:**
    - who made `plants.zip`;
-   - whether Rename should rename the real session;
-   - whether attic cats should sit on the stairs;
+   - ~~whether Rename should rename the real session~~: yes (3 October). Renaming a session's cat retitles the
+     session in claude.ai too, unless she types a title of her own in the same save;
+   - ~~whether attic cats should sit on the stairs~~: no, they stay out of sight (3 October);
    - whether to delete the Drive folder's `download` files.
 6. ~~Turn the house rules on in the cloud~~: done 2 October, the two lines are in the environment's setup script
    and a restarted session had the rules on.
@@ -224,8 +225,11 @@ and say "File my decisions." The small facts (who made `plants.zip`) stay here.
     and talk to her.
 7. **Turn on *Automatically delete head branches*** in each repo (Settings → General → Pull Requests), so a
    merge deletes its branch.
-8. **Opt the other repos in to semi-automatic merging**, if she wants: `{"merge": true}` in their
-   `.claude/catio-rules.json`. montfortoise-shopify should hold whatever its theme deploys from.
+8. **Opt the other repos in to semi-automatic merging**: she said yes for all of them (3 October). A session's
+   attempt was refused by Claude Code's own permission check, as a session widening its own merge rights, so the
+   change is hers to make: `{"merge": true}` in each repo's `.claude/catio-rules.json`. For montfortoise-shopify the
+   suggestion is `{"merge": true, "hold": ["components/"]}`, since `components/` is what gets installed on the live
+   theme.
 9. **Branches she may delete:**
    - `claude/digest-moves`;
    - `claude/elegant-edison-cnmcq7`;

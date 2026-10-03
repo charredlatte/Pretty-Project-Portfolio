@@ -74,6 +74,14 @@
     session("work1", "Week tab editing", "Intermarche-grocery-shopping-app", "WORKING", "RUNNING", 60e3, {}),
     session("old1", "Old parser", "Intermarche-grocery-shopping-app", "COMPLETED", "IDLE", 20 * 24 * H, { status_category: "completed" }),
   ];
+  // ?waiting=N: N more sessions waiting on her, from several rooms and both floors, each waiting a little less long than
+  // the one before, for the line at the front door
+  const WAITERS = [["Grocery list", "Intermarche-grocery-shopping-app"], ["Snail mail labels", "Snail-Mail-Trail"], ["Café pitch", ""],
+    ["TikTok tags", "tiktok-saves"], ["Theme colours", "montfortoise-shopify"], ["Portfolio header", "Pretty-Project-Portfolio"]];
+  for (let i = 0; i < Math.min(+params.get("waiting") || 0, 12); i++) {
+    const [title, repo] = WAITERS[i % WAITERS.length];
+    T.sessions.push(session("wait" + i, title + (i >= WAITERS.length ? " (2)" : ""), repo || "no-such-repo", "BLOCKED", "IDLE", (10 - i) * H, { status_category: "need_input", needs_action: "Which one should I keep?" }));
+  }
   if (params.get("mode") === "blocked") T.seedCopy();
   T.push = () => { if (T.handler) T.handler({ type: "data", result: { payload: { data: clone(T.sessions), has_more: false } } }); };
   T.fail = (code) => { if (T.handler) T.handler({ type: "error", error: { code, message: code } }); };
@@ -158,6 +166,7 @@
       if (g === "ask") throw { code: "approval_required", message: "ask every time" };
       if (tool === "list_agents") return answer({ agents: clone(T.gw) });
       if (tool === "comments") return answer({ notes: clone(T.gwNotes.filter((n) => n.cat === input.cat)) });
+      if (tool === "comment") { const id = "g" + T.tools.length; T.gwNotes.push({ id, cat: input.cat, author: input.author || "charlotte", text: input.text, at: Date.now() }); return answer({ id, woke: false }); }   // kept, as the gateway keeps it
       if (tool === "quizzes") {
         if (T.quizzesFail) { T.quizzesFail--; throw { code: "tool_error", message: "the gateway is away" }; }
         const out = answer({ quizzes: clone(T.quizzes.filter((z) => input.done || z.status !== "done")) });   // the list as it is now…

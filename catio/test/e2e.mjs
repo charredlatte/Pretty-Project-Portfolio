@@ -263,6 +263,10 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(d && d.name === "Biscuit" && d.room === "study", JSON.stringify(d));
     expect(await page.locator('#cats .cat[aria-label^="Biscuit "]').count() === 1, "renamed cat missing");
   });
+  await check("renaming a session's cat renames the real session too", async () => {
+    const t = (await T(page, () => window.__catio.tools)).filter((x) => x[1] === "set_session_title" && x[2].session_id === "session_work1");
+    expect(t.length === 1 && t[0][2].title === "Biscuit", JSON.stringify(t));
+  });
 
   /* ---------- 4. zoom, filing cabinet and a project's look ---------- */
   await openRoom(page, "study");
@@ -441,6 +445,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(await page.locator("#queenThread li.greet").count() === 0, "the greeting stays once she has spoken");
   });
   await check("Speak is there: the browser can hear her", async () => expect(await page.locator("#queenSpeak").count() === 1, "no Speak button"));
+  await page.click("#queenSettingsBtn");   // her settings sit in an overlay over the scene (her ask, 3 October)
   await page.click("#queenVoice");
   await settle(page);
   await T(page, () => window.__catio.queenSays("Anon, my lady. All is well.", true, "t2"));
@@ -473,6 +478,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   // routines, for her runner to run
   await queen().dblclick();
   await settle(page);
+  await page.click("#queenSettingsBtn");
   await page.click("#queenRoutines summary");
   await page.fill("#routineName", "Morning round");
   await page.fill("#routineTime", "08:30");
@@ -521,6 +527,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   await queen().dblclick();
   await settle(page);
+  await page.click("#queenSettingsBtn");
   await page.click("#queenKeeps summary");
   await page.locator('#queenDlg button:has-text("Saying it")').click();
   await settle(page);
@@ -536,6 +543,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   await queen().dblclick();
   await settle(page);
+  await page.click("#queenSettingsBtn");
   await page.click("#queenKeeps summary");
   await page.locator('#queenDlg button:has-text("Forget")').first().click();
   await settle(page);
@@ -649,6 +657,118 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await check("no page errors while working the queen", async () => expect(errors.length === 0, errors.join("; ")));
   await ctx.close();
 }
+
+/* ---------- 5c. the line at the front door (her ask, 3 October) ---------- */
+// Her words: "every cat whose mood is 'needs' (waiting on her) should line up in front of the entrance-hall door,
+// beside the queen, in the order it started waiting, the longest wait first. When a cat is no longer waiting, it leaves
+// the line and goes back to its room."
+{
+  const { page, ctx, errors } = await open("?waiting=4", { reducedMotion: "no-preference" });
+  const line = () => page.evaluate(() => [...document.querySelectorAll("#cats .cat[data-line]")].sort((a, b) => a.dataset.line - b.dataset.line)
+    .map((b) => ({ label: b.getAttribute("aria-label"), x: b.getBoundingClientRect().x, room: b.dataset.room })));
+  await page.waitForTimeout(4500);   // the first seconds, cats are simply in their places
+  await check("every cat waiting on her lines up at the entrance-hall door, beside the queen, the longest wait first", async () => {
+    const l = await line();
+    const order = l.map((c) => c.label.split(": ").pop());
+    expect(JSON.stringify(order) === JSON.stringify(["Grocery list", "Snail mail labels", "Café pitch", "TikTok tags", "Shop about page"]), JSON.stringify(order));
+    expect(l.every((c) => c.room === "hall"), "not all in the hall");
+    expect(l.every((c, i) => !i || c.x > l[i - 1].x), "not a line: " + JSON.stringify(l.map((c) => c.x)));
+    const q = await page.locator("#cats .cat.queen").boundingBox();
+    expect(q.x < l[0].x && l[0].x - q.x < 120, "the first in line isn't beside the queen: " + q.x + " / " + l[0].x);
+    expect(await page.locator("#cats .cat:not(.queen):not([data-line]).m-meow").count() === 0, "a cat waiting on her is still in its room");
+  });
+  await T(page, () => window.__catio.setBucket("wait0", "WORKING", "RUNNING"));
+  await page.waitForTimeout(400);
+  await check("one that stops waiting leaves the line and walks back to its room", async () => {
+    const b = page.locator('#cats .cat[data-id="session_wait0"]');
+    expect((await b.getAttribute("data-room")) === "kitchen", "not on its way to the kitchen: " + await b.getAttribute("data-room"));
+    expect((await b.getAttribute("class")).includes("walking"), "it jumped");
+    expect(await b.getAttribute("data-line") === null, "still in the line");
+    const order = (await line()).map((c) => c.label.split(": ").pop());
+    expect(order[0] === "Snail mail labels", "the next one didn't move up: " + JSON.stringify(order));
+  });
+  await check("no page errors around the line", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+
+/* ---------- 5d. the queen's chat, as a scene (her ask, 3 October) ---------- */
+// Her words: "The queen sits on the right, talking, as an animated 2D character. The owner of the house sits on the left,
+// seen from behind, as a 2D character Charlotte can customise. The conversation shows as chat bubbles between them, and it
+// scrolls. All other settings move into an overlay. The existing menu still opens when she hovers over the queen."
+{
+  const { page, ctx, errors } = await open("?via=gateway");
+  const box = (sel) => page.locator(sel).boundingBox();
+  await page.locator("#cats .cat.queen").dblclick();
+  await settle(page);
+  await check("her card is a scene: you on the left, seen from behind, the queen on the right, and the talk between", async () => {
+    const you = await box("#queenOwnerFig"), her = await box("#queenFig"), talk = await box("#queenThread");
+    expect(you && her && talk, "a piece is missing");
+    expect(you.x + you.width <= talk.x + 2 && talk.x + talk.width <= her.x + 2, JSON.stringify({ you, talk, her }));
+    expect(await page.locator("#queenOwnerFig svg rect").count() > 20, "you aren't drawn");
+    expect(await page.locator("#queenFig .spr").count() === 1, "she isn't drawn");
+  });
+  await page.fill("#queenSay", "Who needs me today?");
+  await page.click("#queenSend");
+  await settle(page);
+  await T(page, () => window.__catio.queenSays("Good morrow, my lady. Two cats need ", false, "t9"));
+  await page.waitForTimeout(200);
+  await check("while she speaks she is animated, talking", async () => {
+    expect((await page.locator("#queenFig").getAttribute("class")).includes("talking"), await page.locator("#queenFig").getAttribute("class"));
+    expect((await page.locator("#queenFig").getAttribute("data-mood")) === "meow", await page.locator("#queenFig").getAttribute("data-mood"));
+  });
+  await T(page, () => window.__catio.queenSays("Good morrow, my lady. Two cats need thee.", true, "t9"));
+  await page.waitForTimeout(300);
+  await check("what you say sits by you, what she says by her, as bubbles", async () => {
+    const html = await page.locator("#queenThread").innerHTML();
+    const n = (sel) => page.locator(sel).count();
+    expect(await n("#queenThread li.me") > 0 && await n("#queenThread li.them:not(.handoff)") > 0, "a bubble is missing: " + html.slice(0, 600));
+    const me = await page.locator("#queenThread li.me").last().boundingBox(), them = await page.locator("#queenThread li.them:not(.handoff)").last().boundingBox();
+    expect(me && them, "a bubble is missing");
+    expect(me.x < them.x && me.x + me.width < them.x + them.width, JSON.stringify({ me, them }));
+    expect(!(await page.locator("#queenFig").getAttribute("class")).includes("talking"), "still talking when done");
+  });
+  await T(page, () => { for (let i = 0; i < 14; i++) window.__catio.queenSays("Line " + i + " of a long answer, my lady, for the scroll.", true, "t" + (20 + i)); });
+  await page.waitForTimeout(400);
+  await check("a long conversation scrolls inside the scene, the newest at the bottom", async () => {
+    const s = await page.locator("#queenThread").evaluate((u) => ({ h: u.scrollHeight, c: u.clientHeight, t: u.scrollTop }));
+    expect(s.h > s.c, "it doesn't overflow: " + JSON.stringify(s));
+    expect(s.t + s.c >= s.h - 4, "not at the newest: " + JSON.stringify(s));
+    const card = await box("#queenDlg");
+    expect(card.height <= 900, "the card grew instead of scrolling: " + card.height);
+  });
+  await check("every other setting is in an overlay, out of the scene until Settings", async () => {
+    for (const sel of ["#queenVoice", "#queenKeeps", "#queenCharacter", "#queenYou"]) expect(await page.locator(sel).isHidden(), sel + " shows in the scene");
+    await page.click("#queenSettingsBtn");
+    for (const sel of ["#queenVoice", "#queenKeeps", "#queenCharacter", "#queenYou", "#queenRoutines"]) expect(await page.locator(sel).isVisible(), sel + " not in Settings");
+    await page.click("#queenSettingsClose");
+    expect(await page.locator("#queenSettings").isHidden(), "Settings stayed open");
+    expect(await page.locator("#queenThread").isVisible(), "the scene didn't come back");
+  });
+  await page.click("#queenSettingsBtn");
+  await page.click("#queenYou summary");
+  await page.selectOption("#own-hair", "bun");
+  await page.selectOption("#own-top", "2");
+  await page.selectOption("#own-extra", "ears");
+  const before = await page.locator("#queenOwnerFig").innerHTML();
+  await page.click("#ownerSave");
+  await settle(page);
+  await check("you can dress yourself, and the café keeps it", async () => {
+    const o = (await T(page, () => window.__catio.store["house/main"]) || {}).owner;
+    expect(o && o.hair === "bun" && o.top === 2 && o.extra === "ears", JSON.stringify(o));
+    expect((await page.locator("#queenOwnerFig").innerHTML()) !== before, "the scene didn't change");
+  });
+  await page.keyboard.press("Escape");
+  await settle(page);
+  await page.mouse.move(8, 8);
+  await page.locator("#cats .cat.queen").hover();
+  await settle(page);
+  await check("on the map, hovering her still names her, and a click still opens her menu", async () => {
+    expect((await page.locator("#tip").innerText()).length > 0, "no hover line");
+    await page.locator("#cats .cat.queen").click();
+    await settle(page);
+    expect((await menuText(page)).includes("Talk to her"), await menuText(page));
+  });
+  await check("no page errors in her scene", async () => expect(errors.length === 0, errors.join("; ")));
 // her quest log (3 October 2026: "where do I take the litter box quiz in the cafe UI?", then the queen's quest log, the
 // cards kept in her gateway): the queen keeps one list of everything waiting on her, quizzes that unblock a cat, litter
 // box notes to sort and decisions; the House menu and the litter box on the map open it, a card at a time, a tap answers
@@ -930,8 +1050,10 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   // a chat upstairs that needs her, while she is downstairs
   await T(page, () => window.__catio.put("cats/up1", { title: "Lease renewal", room: "bedroom", mood: "needs", note: "Sign it", name: "Mimi", project: "Flat lease", createdAt: Date.now(), updatedAt: Date.now() }));
   await settle(page);
-  await check("a cat upstairs that needs you shows on the floor switch, and the tally counts it", async () => {
-    expect(await page.locator("#floor-upper .badge").count() === 1, "no badge on the switch");
+  // her words (3 October): every cat waiting on her lines up in front of the entrance-hall door, beside the queen
+  await check("a cat upstairs that waits on you comes down to the line at the front door, and the tally counts it", async () => {
+    expect((await page.locator('#cats .cat[aria-label^="Mimi "]').getAttribute("data-room")) === "hall", "not in the line");
+    expect(await page.locator("#floor-upper .badge").count() === 0, "the upper floor's switch sends her upstairs to nobody");
     expect((await page.locator("#tally").innerText()).includes("2 need you"), await page.locator("#tally").innerText());
   });
   await page.locator("#stairs").click();
@@ -941,7 +1063,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect((await page.locator("#floor-upper").getAttribute("aria-checked")) === "true", "switch");
     expect(await page.locator('.roomhit[data-room="bedroom"]').isVisible(), "bedroom not showing");
     expect(await page.locator('.roomhit[data-room="kitchen"]').isHidden(), "the kitchen still answers upstairs");
-    expect(await page.locator('#cats .cat[aria-label^="Mimi "]').isVisible(), "the cat upstairs isn't there");
+    expect(await page.locator('#cats .cat[aria-label^="Mimi "]').isHidden(), "the cat waiting on her is still upstairs");
     expect(await page.locator("#floor-ground .badge").count() === 1, "no badge on the ground floor's switch");
     expect((await page.locator("#say").textContent()).startsWith("Upstairs"), await page.locator("#say").textContent());
   });
@@ -1077,10 +1199,10 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     page.locator('#walkers .walker[data-leaving="session_blocked1"]').waitFor({ state: "detached", timeout: 25000 }));
   await T(page, () => window.__catio.setBucket("blocked1", "BLOCKED", "IDLE", { status_category: "need_input", needs_action: "one more look" }));
   await settle(page);
-  await check("brought back, it comes down the stair and walks to its room, then meows", async () => {
+  await check("brought back waiting on her, it comes down the stair and walks to the line at the front door, then meows", async () => {
     expect((await cat("blocked1").getAttribute("class")).includes("walking"), "not walking back: " + await cat("blocked1").getAttribute("class"));
     await settled("blocked1", "m-meow");
-    expect(await cat("blocked1").getAttribute("data-room") === "study", "not in the craft room");
+    expect(await cat("blocked1").getAttribute("data-room") === "hall", "not in the line");
   });
   {
     const b = await catPoint(page, "Shop about page");
@@ -1092,9 +1214,9 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     await page.mouse.up();
     await page.waitForTimeout(250);
   }
-  await check("moved to the entrance hall, it walks there through the doorway", async () => {
-    expect(await cat("blocked1").getAttribute("data-room") === "hall", "not moved");
-    expect((await cat("blocked1").getAttribute("class")).includes("walking"), "it jumped");
+  await check("moved to the entrance hall while it waits, the move is kept and it stays in the line", async () => {
+    expect((await T(page, () => window.__catio.store["sessions/session_blocked1"])).room === "hall", "not moved");
+    expect(await cat("blocked1").getAttribute("data-room") === "hall", "left the line");
     await settled("blocked1", "m-meow");
   });
   await closeMenu(page);
@@ -1532,8 +1654,8 @@ async function dropFiles(page, sel, files) {
   await page.click("#catDlg button:has-text('Save')");
   await page.waitForTimeout(200);
   await check("changing a session's title renames the real session", async () => {
-    const t = await tools(page, "set_session_title");
-    expect(t.length === 1 && t[0][2].session_id === "session_blocked1" && t[0][2].title === "Shop about page (FR)", JSON.stringify(t));
+    const t = (await tools(page, "set_session_title")).filter((x) => x[2].session_id === "session_blocked1");
+    expect(t.length === 1 && t[0][2].title === "Shop about page (FR)", JSON.stringify(t));
   });
   await openCat(page, "Week tab editing");
   await menuButton(page, "Talk").click();
@@ -1580,7 +1702,7 @@ async function dropFiles(page, sel, files) {
     expect((await T(page, () => window.__catio.store["sessions/session_blocked1"])).room === "dining", "not moved");
     expect(!(await page.locator("#catDlg").evaluate((d) => d.open)), "the drag opened the card");
     expect(await page.locator("#menu").isHidden(), "the drag opened a menu");
-    expect((await page.locator('#cats .cat[aria-label*="Shop about page"]').getAttribute("data-room")) === "dining", "still in the old room");
+    expect((await page.locator('#cats .cat[aria-label*="Shop about page"]').getAttribute("data-room")) === "hall", "a cat waiting on her left the line");
   });
 
   // agents: a message and a file go through the Catio server on her computer
@@ -1842,6 +1964,7 @@ if (LOCAL) {
   await toFloor(page, "ground");
   await page.locator("#cats .cat.queen").dblclick();
   await settle(page);
+  await page.click("#queenSettingsBtn");
   await page.click("#queenKeeps summary");
   await page.fill("#queenAdd", "Off a USB stick, she still remembers.");
   await page.locator('#queenDlg button:has-text("Give it to her")').click();
@@ -2037,7 +2160,10 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
     await page.keyboard.press("Escape"); await settle(page);
   });
   await check("a session whose repo a closed room lists, and a chat moved there, sit at the front door", async () => {
-    expect((await page.locator('#cats .cat[aria-label*="Shop about page"]').getAttribute("data-room")) === "living", "session not in the lounge");
+    await page.locator('#cats .cat[aria-label*="Shop about page"]').click();   // waiting on her, it is in the line; its room is the lounge
+    await settle(page);
+    expect(/lounge/i.test(await menuText(page)), "session not filed in the lounge: " + await menuText(page));
+    await closeMenu(page);
     expect((await page.locator('#cats .cat[aria-label^="Willow"]').getAttribute("data-room")) === "living", "chat not in the lounge");
   });
   await T(page, () => { window.__catio.put("sessions/session_work1", { room: "bath" }); });
@@ -2081,7 +2207,11 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
   await check("Open this room opens it: the house's one queen is still there and the listed repo's cat walks in", async () => {
     expect((await T(page, () => window.__catio.store["rooms/study"].closed)) === false, "still closed");
     expect(await page.locator("#cats .cat[data-queen]").count() === 1, "the queen of the house is missing");
-    expect((await page.locator('#cats .cat[aria-label*="Shop about page"]').getAttribute("data-room")) === "study", "cat not in the craft room");
+    await closeMenu(page);
+    await page.locator('#cats .cat[aria-label*="Shop about page"]').click();   // waiting on her, it is in the line; its room is the craft room again
+    await settle(page);
+    expect((await menuText(page)).includes("Craft room"), "cat not filed in the craft room: " + await menuText(page));
+    await closeMenu(page);
   });
   // Edit rooms: a switch per room; the front door can't be closed, it moves
   await page.click("#houseBtn");

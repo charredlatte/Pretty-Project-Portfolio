@@ -30,6 +30,24 @@ for (const name of names) {
     await page.waitForTimeout(500);
     continue;
   }
+  // "queen": her card, the scene she talks in; "queen-settings": its Settings overlay, open at You
+  if (name.startsWith("queen")) {
+    if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") await page.click("#floor-ground");
+    if (!(await page.locator("#queenDlg").evaluate((d) => d.open))) {
+      await page.keyboard.press("0");
+      await page.waitForTimeout(300);
+      await page.locator("#cats .cat.queen").dispatchEvent("dblclick");
+      await page.waitForTimeout(600);
+    }
+    if (name === "queen-settings") {
+      await page.click("#queenSettingsBtn");
+      await page.click("#queenYou summary");
+      await page.waitForTimeout(300);
+    }
+    await page.screenshot({ path: join(out, name + ".png") });
+    console.log(join(out, name + ".png"));
+    continue;
+  }
   const floor = UPPER.has(name) ? "upper" : "ground";
   if ((await page.locator("#world").getAttribute("data-floor")) !== floor) await page.click("#floor-" + floor);
   await page.keyboard.press("0");   // the whole house, then into the room named

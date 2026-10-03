@@ -135,6 +135,36 @@ class Gates(unittest.TestCase):
         self.assertEqual(after("mcp__github__update_pull_request", cafe).returncode, 0)
         self.assertEqual(after("mcp__github__create_pull_request", dict(cafe, repo="montfortoise-shopify")).returncode, 0)
 
+    def sub_agent_edit(self, agent, model, path, merges=True):
+        if merges:
+            Path(self.tmp, ".claude").mkdir(exist_ok=True)
+            Path(self.tmp, ".claude", "catio-rules.json").write_text(json.dumps({"merge": True}))
+        side = Path(self.tmp) / "agent.jsonl"
+        side.write_text(json.dumps({"type": "assistant", "isSidechain": True, "message": {"model": model, "content": []}}) + "\n")
+        return run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": "Edit", "tool_input": {"file_path": path},
+                                "transcript_path": transcript(self.tmp, ["anthropic-skills:ponytail-audit"]), "cwd": self.tmp,
+                                "agent_type": agent, "agent_transcript_path": str(side)})
+
+    def test_scout_and_tester_never_edit(self):
+        for agent in ("scout", "kittychat-house-rules:tester"):
+            r = self.sub_agent_edit(agent, "claude-haiku-4-5-20251001", self.tmp + "/scratch.md", merges=False)
+            self.assertEqual(r.returncode, 2, agent)
+            self.assertIn("only reads, runs and reports", r.stderr)
+
+    def test_a_small_sub_agent_leaves_tracked_files_alone_where_sessions_merge(self):
+        subprocess.run(["git", "init", "-q", self.tmp]); Path(self.tmp, "app.py").write_text("x = 1\n")
+        subprocess.run(["git", "-C", self.tmp, "add", "app.py"])
+        r = self.sub_agent_edit("general-purpose", "claude-haiku-4-5-20251001", self.tmp + "/app.py")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("claude-haiku-4-5-20251001 may not edit a tracked file", r.stderr)
+        for model, path in (("claude-opus-5-5", "/app.py"), ("claude-haiku-4-5-20251001", "/notes.txt")):
+            self.assertEqual(self.sub_agent_edit("general-purpose", model, self.tmp + path).returncode, 0, (model, path))
+
+    def test_a_small_sub_agent_may_edit_where_she_merges_by_hand(self):
+        subprocess.run(["git", "init", "-q", self.tmp]); Path(self.tmp, "app.py").write_text("x = 1\n")
+        subprocess.run(["git", "-C", self.tmp, "add", "app.py"])
+        self.assertEqual(self.sub_agent_edit("general-purpose", "claude-sonnet-5-5", self.tmp + "/app.py", merges=False).returncode, 0)
+
     def test_scratch_writes_are_free(self):
         repo = Path(self.tmp, "repo"); repo.mkdir()
         self.assertEqual(self.gate("Write", {"file_path": self.tmp + "/scratch/x.md"}, cwd=str(repo)).returncode, 0)
@@ -420,6 +450,32 @@ class GraphFirst(unittest.TestCase):
         Path(tmp, "graphify-out").mkdir(); Path(tmp, "graphify-out", "graph.json").write_text('{"nodes": [], "links": []}')
         r = run("graph_first.py", {"hook_event_name": "PreToolUse", "tool_name": "Read", "tool_input": {}, "cwd": tmp}, cwd=tmp)
         self.assertEqual((r.returncode, r.stdout), (0, ""))
+
+
+    def nudge(self, tmp, tool, args, model="claude-opus-5-5", agent=None):
+        t = Path(tmp, "t.jsonl")
+        t.write_text(json.dumps({"type": "assistant", "message": {"model": model, "content": []}}) + "\n")
+        data = {"hook_event_name": "PreToolUse", "tool_name": tool, "tool_input": args, "cwd": tmp,
+                "session_id": "s-" + Path(tmp).name, "transcript_path": str(t)}
+        if agent:
+            data["agent_type"] = agent
+        r = run("graph_first.py", data, cwd=tmp)
+        return json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"] if r.stdout.strip() else ""
+
+    def test_a_strong_session_is_pointed_at_the_scout_and_the_tester_once(self):
+        tmp = tempfile.mkdtemp()
+        self.assertIn("scout", self.nudge(tmp, "Grep", {"pattern": "route"}))
+        self.assertEqual(self.nudge(tmp, "Grep", {"pattern": "again"}), "")          # once a session
+        self.assertIn("tester", self.nudge(tmp, "Bash", {"command": "python3 -m unittest discover -s harness/test"}))
+        self.assertEqual(self.nudge(tmp, "Bash", {"command": "npm test"}), "")
+
+    def test_no_nudge_for_narrow_reads_small_models_or_sub_agents(self):
+        for tool, args, model, agent in (("Grep", {"pattern": "x", "path": "src/a.py"}, "claude-opus-5-5", None),
+                                         ("Read", {"file_path": "a.py"}, "claude-opus-5-5", None),
+                                         ("Bash", {"command": "git status"}, "claude-opus-5-5", None),
+                                         ("Grep", {"pattern": "x"}, "claude-sonnet-5-5", None),
+                                         ("Grep", {"pattern": "x"}, "claude-opus-5-5", "scout")):
+            self.assertEqual(self.nudge(tempfile.mkdtemp(), tool, args, model, agent), "", (tool, args, model, agent))
 
 
 class GraphDoc(unittest.TestCase):
