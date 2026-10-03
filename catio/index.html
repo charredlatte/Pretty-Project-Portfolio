@@ -2130,42 +2130,44 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const hw = el("div", "homework"); hw.id = "queenHomework";
     // Her answers in progress live here, by quiz, so they survive every redraw (a cat reporting, a quiz arriving);
     // and a redraw that would change nothing is skipped, so the forms never move under her fingers.
-    const drafts = new Map();   // quiz id -> one {pick, text} per question
+    const drafts = new Map();   // quiz id -> one {pick, idx, text} per question
+    const sending = new Set();  // quizzes on their way in: no second Hand it in while one is
     let drawn = null;
     const drawHomework = () => {
       const open = openQuizzes();
-      const sig = open.map((z) => z.id + ":" + (z.at || 0) + ":" + (z.questions || []).length).join("|");
+      const cats = allCats(true).cats;
+      const catOf = (z) => (z.for ? cats.find((c) => c.agentId === z.for) : null);
+      const sig = open.map((z) => z.id + ":" + (z.at || 0) + ":" + (z.questions || []).length + ":" + (catOf(z) || {}).name).join("|");
       if (sig === drawn) return;
       drawn = sig;
       hw.replaceChildren();
       hw.hidden = !open.length;
-      const cats = allCats(true).cats;
       for (const z of open) {
         const draft = drafts.get(z.id) || [];
         drafts.set(z.id, draft);
         const f = el("form", "quiz"); f.dataset.quiz = z.id;
         f.addEventListener("submit", (e) => e.preventDefault());
-        const cat = z.for ? cats.find((c) => c.agentId === z.for) : null;
+        const cat = catOf(z);
         f.appendChild(el("h3", null, z.title));
         f.appendChild(el("p", "sub", "Homework from " + (z.by === QUEEN_ID ? q.name : "you") + (cat ? ", to unblock " + cat.name : z.for ? ", for " + z.for : "") + " · " + ago(z.at)));
         const picks = [];
         (z.questions || []).forEach((qq, i) => {
-          const d = draft[i] || (draft[i] = { pick: null, text: "" });
+          const d = draft[i] || (draft[i] = { pick: null, idx: -1, text: "" });
           const fs = el("fieldset", "q");
           fs.appendChild(el("legend", null, (i + 1) + ". " + qq.q));
           const row = el("div", "opts");
-          const mark = (o) => { for (const x of row.children) { x.classList.toggle("green", x.textContent === o); x.setAttribute("aria-pressed", String(x.textContent === o)); } };
+          const mark = (idx) => { [...row.children].forEach((x, j) => { x.classList.toggle("green", j === idx); x.setAttribute("aria-pressed", String(j === idx)); }); };
           const free = el("input"); free.maxLength = 1000; free.placeholder = qq.options && qq.options.length ? "Something else…" : "Your answer";
           free.value = d.text;
-          for (const o of qq.options || []) {
-            const b = plainBtn(o, "tiny", () => { d.pick = o; d.text = ""; free.value = ""; mark(o); });
+          (qq.options || []).forEach((o, j) => {
+            const b = plainBtn(o, "tiny", () => { d.pick = o; d.idx = j; d.text = ""; free.value = ""; mark(j); });
             b.setAttribute("aria-pressed", "false");
             row.appendChild(b);
-          }
-          if (d.pick) mark(d.pick);
+          });
+          if (d.pick) mark(d.idx);
           fs.appendChild(row);
           if (qq.free || !(qq.options && qq.options.length)) {
-            free.addEventListener("input", () => { d.text = free.value; if (free.value.trim()) { d.pick = null; mark(null); } });
+            free.addEventListener("input", () => { d.text = free.value; if (free.value.trim()) { d.pick = null; d.idx = -1; mark(-1); } });
             free.setAttribute("aria-label", "Your answer to: " + qq.q);
             const l = el("label", "field"); l.appendChild(free); fs.appendChild(l);
           }
@@ -2175,15 +2177,16 @@ ul.gkey li > div.what { flex-basis: 100%; }
         const hand = plainBtn("Hand it in", "green", async () => {
           const answers = picks.map((p) => p());
           if (answers.some((a) => !a)) { toast("Answer every question first.", "alert"); return; }
-          hand.disabled = true;
+          hand.disabled = true; sending.add(z.id);
           try {
             await hostCall("answer", { quiz: z.id, answers });
             drafts.delete(z.id);
             toast("Handed in." + (cat ? " " + cat.name + " has your answers." : ""));
             await refreshQuizzes();
             loadQueenThread();
-          } catch (e) { toast(gatewayProblem(e), "alert"); hand.disabled = false; }
+          } catch (e) { toast(gatewayProblem(e), "alert"); sending.delete(z.id); const again = hw.querySelector('form[data-quiz="' + z.id + '"] .hand'); if (again) again.disabled = false; }
         });
+        hand.disabled = sending.has(z.id);
         hand.className += " hand";
         const acts = el("div", "actions"); acts.append(el("span", "spacer"), hand);
         f.appendChild(acts);
