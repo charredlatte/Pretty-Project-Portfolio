@@ -9,7 +9,9 @@ the business plan's figures go once she has chosen them. The plan itself is priv
 
 ## The frames, left to right
 
-1. **Home.** One line on what the café is, a screenshot box, "Start free: self-host" and "Join the café: early
+1. **Home.** The headline speaks to someone who has never opened a terminal ("Your projects as a cat café. Every task
+   is a cat; it meows when it needs you. No terminal required."): her ask of 3 October, to advertise to small business
+   owners using AI for the first time, with the café as a video-game way into a coding environment. Then a screenshot box, "Start free: self-host" and "Join the café: early
    access", the three ways to get it (self-host, hosted, set up for you from 90 €), and the legal footer every page
    carries (mentions légales, CGV, confidentialité, rétractation, contact).
 2. **Pricing.** Four columns from her paywall (2 and 3 October): Free (one repository, the page), Basic (up to five
