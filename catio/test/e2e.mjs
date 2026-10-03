@@ -795,11 +795,19 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   // with a sideways scrollbar under them, so a whole answer could not be read.
   await T(page, () => window.__catio.queenSays("Pushed to https://github.com/charredlatte/Pretty-Project-Portfolio/compare/claude/a-branch-name-that-will-never-break-anywhere-at-all", true, "t40"));
   await page.waitForTimeout(300);
-  await check("nothing she says runs off the side, and the talk gets most of the scene", async () => {
-    const s = await page.locator("#queenThread").evaluate((u) => ({ over: u.scrollWidth - u.clientWidth, w: u.clientWidth }));
-    expect(s.over <= 0, "her words scroll sideways: " + JSON.stringify(s));
-    const stage = await box(".qstage");
-    expect(s.w > stage.width * 0.6, "the talk gets too little of the scene: " + s.w + " of " + stage.width);
+  await check("nothing she says runs off the side, and the talk gets most of the scene, at any width", async () => {
+    // every width down to the phone layout, not only this one: in between, the two of them used to leave the words
+    // a strip under half the scene
+    for (const [w, least] of [[1440, .6], [900, .6], [811, .6], [700, .6], [600, .55], [561, .55]]) {
+      await page.setViewportSize({ width: w, height: 900 });
+      await page.waitForTimeout(150);
+      const s = await page.locator("#queenThread").evaluate((u) => ({ over: u.scrollWidth - u.clientWidth, w: u.clientWidth }));
+      expect(s.over <= 0, "at " + w + " her words scroll sideways: " + JSON.stringify(s));
+      const stage = await page.locator(".qstage").evaluate((e) => e.clientWidth);   // inside the frame: what there is to share
+      expect(s.w > stage * least, "at " + w + " the talk gets too little of the scene: " + s.w + " of " + stage);
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(150);
   });
   await check("every other setting is in an overlay, out of the scene until Settings", async () => {
     for (const sel of ["#queenVoice", "#queenKeeps", "#queenCharacter", "#queenYou"]) expect(await page.locator(sel).isHidden(), sel + " shows in the scene");
@@ -845,7 +853,8 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     const T = window.__catio;
     T.setQuiz({ kind: "litterbox", title: "Loose ends", note: "- **Rename the grey cat** in the craft room.", from: "litterbox/loose-ends.md", hint: "Pretty-Project-Portfolio", questions: [{ q: "Which project is it for?", options: ["Pretty-Project-Portfolio", "tiktok-saves", "Settled: drop it"] }] });
     T.setQuiz({ kind: "litterbox", title: "Loose ends", note: "The shop's photos need a white background.", hint: "montfortoise-shopify", questions: [{ q: "Which project is it for?", options: ["montfortoise-shopify", "Pretty-Project-Portfolio", "Settled: drop it"] }] });
-    T.setQuiz({ kind: "decision", title: "The roadmap", note: "Which comes first?", hint: "The camera", questions: [{ q: "Which first?", options: ["The camera", "Build mode"] }] });
+    // the third option is as long as a repository name, with nothing to break at: it is what used to push her card off the side
+    T.setQuiz({ kind: "decision", title: "The roadmap", note: "Which comes first?", hint: "The camera", questions: [{ q: "Which first?", options: ["The camera", "Build mode", "Pretty-Project-Portfolio-with-a-name-that-will-never-break-anywhere"] }] });
   });
   await page.waitForTimeout(400);
   await check("what a cat brought her comes before notes to sort in her line", async () => {
@@ -881,12 +890,12 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   // "make this window useable": homework used to take the whole talk, leaving the conversation under it no height
   // at all, and an option as long as a repository name pushed the card off the side.
   await check("homework leaves the talk room under it, and a long option wraps instead of running off the card", async () => {
-    const h = await page.locator("#queenThread").evaluate((u) => u.clientHeight);
-    expect(h > 80, "her homework left the talk no height: " + h);
-    await T(page, () => window.__catio.setQuiz({ kind: "decision", title: "The long one", note: "Where does it go?", questions: [{ q: "Which?", options: ["Pretty-Project-Portfolio-with-a-name-that-will-never-break-anywhere", "Settled: drop it"] }] }));
-    await page.waitForTimeout(400);
+    const t = await page.locator("#queenHomework").innerText();
+    expect(t.includes("never-break-anywhere"), "the long option isn't drawn, so this proves nothing: " + t.slice(0, 200));
     const o = await page.locator("#queenHomework").evaluate((u) => u.scrollWidth - u.clientWidth);
     expect(o <= 0, "her homework scrolls sideways: " + o);
+    const h = await page.locator("#queenThread").evaluate((u) => u.clientHeight);
+    expect(h > 80, "her homework left the talk no height: " + h);
   });
   await page.locator('#queenHomework [data-deck="litterbox"] button:has-text("Skip")').click();
   await settle(page);
