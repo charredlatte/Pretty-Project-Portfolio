@@ -42,9 +42,7 @@ A hosted café with nothing to install is planned and not open yet. The plan is 
 December 2027. The pixel art comes from third-party packs that cannot be shared, so check each pack's terms before
 posting screenshots.
 
-**Make n Break.** The café is the first project on Make n Break, the channel Charlotte is starting with her partner
-Tosh ("Char and Tosh"): they build things with AI, try to break them, and show both halves. The channel isn't open yet.
-A dated calendar of its videos, the monthly code updates and the steps to the launch is being drawn up for the shop.
+Its making-of will be on Make n Break, a YouTube channel that isn't open yet.
 
 Everything below is the detail.
 
@@ -285,15 +283,11 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harness/test` and
 `python3 -m unittest litterbox/test_sort.py`.
 
-The page's test and its screenshots drive a headless Chromium. `run.sh` uses the one preinstalled in Claude's cloud
-sessions, `/opt/pw-browsers/chromium-1194`, or the path in `CHROMIUM`; if that path isn't executable it quietly falls
-back to Playwright's own browser. Each run starts with a fresh temporary profile: no logins and no saved passwords. It
-opens the page from local files and from the test's own server on 127.0.0.1. The only things it fetches from outside
-are the page's fonts, from Google Fonts (`fonts.googleapis.com` and `fonts.gstatic.com`). Sessions under the house
-rules must run the `browser-agent-preflight` skill before they start it: `harness/hooks/gates.py` blocks the browser commands it recognises
-until they have. The suite also needs the licensed art in
-`catio/art/licensed/`: without it the page rightly shows its no-art warning and one check fails (`run.sh` says so).
-`CLAUDE.md`, "Republishing", has the two ways to get the art back.
+The page's test and its screenshots drive a headless Chromium through Playwright. `run.sh` points `PLAYWRIGHT` and
+`CHROMIUM` at the copies preinstalled in Claude's cloud sessions; set both to your own elsewhere. Each run starts a
+fresh temporary profile with no logins or saved passwords, and loads only local files, the test's own server on
+127.0.0.1 and the page's Google Fonts. Under the house rules a session runs the `browser-agent-preflight` skill first.
+Without the licensed art, one check fails, as `run.sh` warns.
 
 ## Licence
 
