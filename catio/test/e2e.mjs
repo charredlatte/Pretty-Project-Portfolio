@@ -2558,6 +2558,37 @@ await check("no colour or pixel-font size is written into a rule: each is a toke
     await page.click("#lookMode-light"); await settle(page);
     await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
   });
+  await check("a size out of its range is refused, so no skin can bury the café under its borders", async () => {
+    await page.evaluate(() => window.__catio.put("skin/theme", { tokens: { "--u-desk": "20px", "--px-size": "0px", "--body-size": "0.9rem" }, at: 4 }));
+    await page.waitForTimeout(600);
+    expect((await rootVar("--u")) === "2px" && (await rootVar("--px-size")) === "18px" && (await rootVar("--body-size")) === "0.9rem", [await rootVar("--u"), await rootVar("--px-size")].join(" | "));
+  });
+  await check("a button's lit piece of another size than the button is refused, with why", async () => {
+    await page.evaluate(() => window.__catio.put("skin/button-hover", { src: "art/licensed/ui/bubble.png", at: 1 }));
+    await page.waitForTimeout(600);
+    expect((await rootVar("--art-button-hover")).includes("ui/button-hover.png"), await rootVar("--art-button-hover"));
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const row = await page.locator("#artDlg li[data-slot='button-hover']").textContent();
+    expect(/42 × 42/.test(row) && /26 × 28/.test(row) && /shares the button's border/.test(row), row);
+  });
+  await check("Put everything back clears what is kept, a refused piece and the tokens too", async () => {
+    await page.click("#artResetAll");
+    await page.waitForTimeout(800);
+    const left = await page.evaluate(() => Object.keys(window.__catio.store).filter((p) => p.startsWith("skin/")));
+    expect(!left.length, left.join(" "));
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
+  await check("a size she types that isn't kept leaves no preview behind", async () => {
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    await page.locator("#artDlg details[data-group='Type'] > summary").click();
+    const f = page.locator("#artDlg li[data-token='--px-size'] input");
+    await f.fill("12px"); await f.dispatchEvent("input");
+    expect((await rootVar("--px-size")) === "12px", "no preview");
+    await f.fill("12pxx"); await f.dispatchEvent("change"); await settle(page);
+    expect((await rootVar("--px-size")) === "18px" && /from 8 to 48px/.test(await toast(page)), await rootVar("--px-size"));
+    await page.click("#toast .btn"); await settle(page);   // the warning waits for her OK
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
   await check("a font of hers for the text goes ahead of the café's", async () => {
     await page.evaluate(() => window.__catio.put("skin/font-body", { src: "art/licensed/ui/sprout.ttf", at: 1 }));
     await page.waitForTimeout(800);

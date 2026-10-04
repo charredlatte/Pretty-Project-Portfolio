@@ -98,10 +98,14 @@
   --corners-t: 9; --corners-r: 8; --corners-b: 9; --corners-l: 8; --corners-s: var(--corners-t) var(--corners-r) var(--corners-b) var(--corners-l);
   --corners-w: calc(var(--corners-t) * var(--u)) calc(var(--corners-r) * var(--u)) calc(var(--corners-b) * var(--u)) calc(var(--corners-l) * var(--u));
   --corners-px: calc(var(--corners-t) * 1px) calc(var(--corners-r) * 1px) calc(var(--corners-b) * 1px) calc(var(--corners-l) * 1px);
+  /* the box a few pieces leave for their border: one width all round for the pack's (as it was drawn for), each side
+     its own once a skin gives the piece a border, so uneven art never covers what it frames */
+  --field-bw: calc(var(--field-t) * var(--u)); --bubble-bw: calc(var(--bubble-t) * 1px); --corners-bw: calc(var(--corners-t) * 1px);
   --divider-t: 4; --divider-r: 1; --divider-b: 0; --divider-l: 1; --divider-s: var(--divider-t) var(--divider-r) var(--divider-b) var(--divider-l);
   --divider-w: calc(var(--divider-t) * var(--u)) calc(var(--divider-r) * var(--u)) calc(var(--divider-b) * var(--u)) calc(var(--divider-l) * var(--u));
   /* the map panel's pieces are smooth art drawn at twice their size or more: -k is one of its pixels on screen */
-  --mpanel-k: .5px; --mbtn-k: .5px; --mframe-k: calc(6px / 28); --map-render: auto;
+  --mpanel-k: .5px; --mbtn-k: .5px; --mframe-k: calc(6px / 28);
+  --mpanel-render: auto; --mbtn-render: auto; --mframe-render: auto;   /* pixelated for a piece she draws as pixel art */
   --mpanel-t: 28; --mpanel-r: 28; --mpanel-b: 28; --mpanel-l: 28; --mpanel-s: var(--mpanel-t) var(--mpanel-r) var(--mpanel-b) var(--mpanel-l);
   --mpanel-w: calc(var(--mpanel-t) * var(--mpanel-k)) calc(var(--mpanel-r) * var(--mpanel-k)) calc(var(--mpanel-b) * var(--mpanel-k)) calc(var(--mpanel-l) * var(--mpanel-k));
   --mbtn-t: 20; --mbtn-r: 22; --mbtn-b: 24; --mbtn-l: 22; --mbtn-s: var(--mbtn-t) var(--mbtn-r) var(--mbtn-b) var(--mbtn-l);
@@ -140,7 +144,7 @@ a { color: var(--ink); }
 .btn.pink { border-image-source: var(--art-button-pink); background-color: var(--letgo); }
 .btn.green:hover, .btn.pink:hover { filter: brightness(1.06); }
 .btn:active { border-image: var(--art-button-down) var(--down-s) fill / var(--down-w) stretch; translate: 0 calc(2 * var(--u)); filter: none; }
-.field input, .field select, .field textarea { border: solid transparent; border-width: calc(var(--field-t) * var(--u)); border-image: var(--art-field) var(--field-s) fill / var(--field-w) stretch;
+.field input, .field select, .field textarea { border: solid transparent; border-width: var(--field-bw); border-image: var(--art-field) var(--field-s) fill / var(--field-w) stretch;
   background: var(--field-face) padding-box; padding: 1px 4px; width: 100%; min-width: 0; image-rendering: pixelated; }
 .field select { appearance: none; -webkit-appearance: none; padding-right: calc(14 * var(--u)); border-image-slice: var(--field-s);   /* no fill: the arrow is a background, under the frame */
   background: var(--art-arrow) right calc(2 * var(--u)) center / calc(10 * var(--u)) calc(9 * var(--u)) no-repeat, var(--field-face) padding-box; }
@@ -213,14 +217,14 @@ a { color: var(--ink); }
    so a copy without the licensed art is still a panel of buttons. */
 .mappanel { position: fixed; z-index: 31; top: calc(6 * var(--u) + 8px + env(safe-area-inset-top, 0px)); right: calc(6 * var(--u) + 8px);
   display: grid; gap: 6px; padding: 4px; border: 6px solid transparent; border-radius: 12px; background: var(--map-face);
-  border-image: var(--art-map-panel) var(--mpanel-s) fill / var(--mpanel-w) stretch; image-rendering: var(--map-render); }
+  border-image: var(--art-map-panel) var(--mpanel-s) fill / var(--mpanel-w) stretch; image-rendering: var(--mpanel-render); }
 .mp-row { display: flex; gap: 4px; align-items: center; }
 .mp-row .pbtn { flex: 1; }
 .floors { display: flex; gap: 4px; }
 .floors .pbtn { flex: 1; }
 .pbtn { font: var(--px-size)/var(--px-size) var(--pixel); color: var(--ink); height: 40px; padding: 0 2px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;
   border-style: solid; border-color: transparent; border-width: var(--mbtn-w); border-radius: 8px; background: var(--map-btn);
-  border-image: var(--art-map-button) var(--mbtn-s) fill / var(--mbtn-w) stretch; image-rendering: var(--map-render); }
+  border-image: var(--art-map-button) var(--mbtn-s) fill / var(--mbtn-w) stretch; image-rendering: var(--mbtn-render); }
 .pbtn:hover { border-image-source: var(--art-map-button-hover); background-color: var(--map-btn-lit); }
 .pbtn:active, .pbtn[aria-checked="true"], .pbtn[aria-expanded="true"]:not(.fold) { border-image-source: var(--art-map-button-down); background-color: var(--map-btn-down); }
 .pbtn:disabled { opacity: .5; cursor: default; }
@@ -241,7 +245,7 @@ a { color: var(--ink); }
 .mm-room.here { background: var(--mm-here); }
 .mm-room .pip { position: absolute; right: 2px; top: 2px; min-width: 8px; height: 8px; padding: 0; }
 .mm-stairs { position: absolute; pointer-events: none; background: repeating-linear-gradient(0deg, color-mix(in srgb, var(--mm-edge) 45%, transparent) 0 1px, transparent 1px 3px); }
-.mm-view { position: absolute; pointer-events: none; border: 2px solid var(--ink); border-radius: 6px; border-image: var(--art-map-frame) var(--mframe-s) / var(--mframe-w) stretch;
+.mm-view { position: absolute; pointer-events: none; border: 2px solid var(--ink); border-radius: 6px; border-image: var(--art-map-frame) var(--mframe-s) / var(--mframe-w) stretch; image-rendering: var(--mframe-render);
   transition: left .55s cubic-bezier(.3,.7,.2,1), top .55s cubic-bezier(.3,.7,.2,1), width .55s cubic-bezier(.3,.7,.2,1), height .55s cubic-bezier(.3,.7,.2,1); }
 .minimap.instant .mm-view { transition: none; }
 @media (max-width: 560px) {
@@ -265,7 +269,7 @@ a { color: var(--ink); }
 .house.upper { z-index: 3900; }
 /* the stair: the way between the floors, lit like a room */
 .stairs { position: absolute; z-index: 4990; background: transparent; border: 0; padding: 0; cursor: var(--point); }
-.stairs:hover, .stairs:focus-visible, .stairs.lit { outline: 0; background: color-mix(in srgb, var(--glow) 14%, transparent); border: solid transparent; border-width: calc(var(--corners-t) * 1px); border-image: var(--art-corners) var(--corners-s) / calc(var(--corners-t) * 1px / var(--cs, 1)) calc(var(--corners-r) * 1px / var(--cs, 1)) calc(var(--corners-b) * 1px / var(--cs, 1)) calc(var(--corners-l) * 1px / var(--cs, 1)) stretch; }
+.stairs:hover, .stairs:focus-visible, .stairs.lit { outline: 0; background: color-mix(in srgb, var(--glow) 14%, transparent); border: solid transparent; border-width: var(--corners-bw); border-image: var(--art-corners) var(--corners-s) / calc(var(--corners-t) * 1px / var(--cs, 1)) calc(var(--corners-r) * 1px / var(--cs, 1)) calc(var(--corners-b) * 1px / var(--cs, 1)) calc(var(--corners-l) * 1px / var(--cs, 1)) stretch; }
 /* what's under the pointer, named in a line */
 .tip { pointer-events: none; z-index: 21; transform: translate(-50%, -100%); font: var(--px-size)/var(--px-size) var(--pixel); gap: 6px; flex-wrap: wrap; max-width: 240px; }
 .tip small { font: 700 .74rem var(--body); color: var(--ink-soft); }
@@ -285,7 +289,7 @@ a { color: var(--ink); }
   border-image: var(--art-corners) var(--corners-s) / var(--bw) stretch; }
 .roomhit.here { cursor: var(--paw); background: transparent; border: 0; }
 .roomhit.here:focus-visible { border-style: solid; }
-.cabinet:hover, .cabinet:focus-visible, .cat:focus-visible { outline: 0; border: solid transparent; border-width: calc(var(--corners-t) * 1px); border-image: var(--art-corners) var(--corners-s) / var(--corners-px) stretch; border-image-outset: 5px; }
+.cabinet:hover, .cabinet:focus-visible, .cat:focus-visible { outline: 0; border: solid transparent; border-width: var(--corners-bw); border-image: var(--art-corners) var(--corners-s) / var(--corners-px) stretch; border-image-outset: 5px; }
 .cat:focus-visible { border-width: 0; }
 /* a cat in the line is close to the next: only its own body answers the pointer */
 .cat[data-line] { clip-path: inset(0 14px 0 6px); }
@@ -407,7 +411,7 @@ ul.how { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-
 ul.how b { display: block; font: var(--px-size)/var(--px-line) var(--pixel); font-weight: normal; }
 /* the install lines and the drop zone: the pack's pressed-in field */
 .dlg pre, .dropzone { margin: 0; padding: 8px 10px; font-size: .8rem; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--well) padding-box;
-  border: solid transparent; border-width: calc(var(--field-t) * var(--u)); border-image: var(--art-field) var(--field-s) fill / var(--field-w) stretch; }
+  border: solid transparent; border-width: var(--field-bw); border-image: var(--art-field) var(--field-s) fill / var(--field-w) stretch; }
 .dropzone { text-align: center; color: var(--ink-soft); font: var(--px-size)/var(--px-line) var(--pixel); padding: 18px 10px; }
 .dropzone.drop-on { background-color: var(--go); }
 .dlg ul.sum { margin: 0; padding: 0 0 0 18px; font-size: .9rem; }
@@ -492,7 +496,7 @@ dialog.wide { width: min(600px, calc(100vw - 24px)); }
 /* the brain: a veil while files are dragged over the house, the cat or room they'd go to lit up */
 .veil { position: absolute; inset: 0; z-index: 25; pointer-events: none; background: color-mix(in srgb, var(--veil) 28%, transparent); display: grid; place-items: start center; padding-top: calc(10 * var(--u) + 40px); }
 .veil .tag { position: static; font-size: var(--px-size); }
-.cat.drop-on, .roomhit.drop-on { outline: 0; border: solid transparent; border-width: calc(var(--corners-t) * 1px); border-image: var(--art-corners) var(--corners-s) / var(--corners-px) stretch; border-image-outset: 5px; background: color-mix(in srgb, var(--glow) 18%, transparent); }
+.cat.drop-on, .roomhit.drop-on { outline: 0; border: solid transparent; border-width: var(--corners-bw); border-image: var(--art-corners) var(--corners-s) / var(--corners-px) stretch; border-image-outset: 5px; background: color-mix(in srgb, var(--glow) 18%, transparent); }
 .roomhit.drop-on { border-image-outset: 0; }
 .cat.dragging { opacity: .35; }
 .ghost { position: fixed; z-index: 45; pointer-events: none; transform: translate(-50%, -85%) scale(1.6); transform-origin: 50% 100%; }
@@ -597,7 +601,7 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 }
 /* her homework: a quiz a blocked cat, answered by tapping */
 .homework { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }   /* stated, so a long option can't widen the card and scroll her card sideways */
-.homework .quiz { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 4px 6px 6px; background: var(--well) padding-box; border: solid transparent; border-width: calc(var(--bubble-t) * 1px); border-image: var(--art-bubble) var(--bubble-s) fill / var(--bubble-px) stretch; }
+.homework .quiz { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 4px 6px 6px; background: var(--well) padding-box; border: solid transparent; border-width: var(--bubble-bw); border-image: var(--art-bubble) var(--bubble-s) fill / var(--bubble-px) stretch; }
 .homework .quiz h3 { margin: 0; font: var(--px-size)/var(--px-line) var(--pixel); }
 .homework .quiz fieldset { border: 0; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; }   /* a fieldset is min-content wide by default: without this one option sets the card's width */
 .homework .quiz legend { padding: 0; font-weight: 700; font-size: .9rem; }
@@ -962,7 +966,14 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "--px-line": ["Type", "Pixel font line", "The height of a line of it."], "--body-size": ["Type", "Text size", "Everything you read."],
     "--u-desk": ["Type", "Art pixel", "How big one pixel of the art is on screen."], "--u-phone": ["Type", "Art pixel, on a phone", "The same on a narrow screen."],
   };
-  const tokenOk = (name, v) => TOKENS[name] && typeof v === "string" && (TOKENS[name][0] === "Type" ? /^\d{1,3}(\.\d{1,3})?(px|rem)$/.test(v) : /^#[0-9a-fA-F]{6}$/.test(v));
+  // a size stays where the café can still be read and used (in px; a rem is 16 of them), so no skin can lock her out of
+  // The look itself: an art pixel of 20 would bury every panel under its own border
+  const SIZES = { "--px-size": [8, 48], "--px-line": [8, 64], "--body-size": [10, 24], "--u-desk": [1, 4], "--u-phone": [1, 4] };
+  function sizeOk(name, v) {
+    const m = /^(\d{1,3}(?:\.\d{1,3})?)(px|rem)$/.exec(v), [lo, hi] = SIZES[name] || [0, 0];
+    return !!m && +m[1] * (m[2] === "rem" ? 16 : 1) >= lo && +m[1] * (m[2] === "rem" ? 16 : 1) <= hi;
+  }
+  const tokenOk = (name, v) => !!TOKENS[name] && typeof v === "string" && (TOKENS[name][0] === "Type" ? sizeOk(name, v) : /^#[0-9a-fA-F]{6}$/.test(v));
   const cleanTokens = (t) => Object.fromEntries(Object.entries(t && typeof t === "object" ? t : {}).filter(([k, v]) => tokenOk(k, v)));
   // A skin's tokens come in two modes, as Figma's variables and the design tokens format's themes do: light, and dark,
   // which says only what differs (anything it leaves out stays as in light). skin/theme and art/skin.json keep light
@@ -1054,8 +1065,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     return (SKIN.blobs[src] = href);
   }
   // Is this picture right for the slot? null if it is, else why not, in her words.
-  function misfit(key, w, h) {
+  function misfit(key, w, h, live) {
     const a = ART[key];
+    if (a.kind === "slice" && !a.slice) {   // the button's hover, green and pink, the map's dark panel…: cut with the head's border
+      const head = headOf(key), e = (live || SKIN.live)[head], [hw, hh] = e ? [e.w, e.h] : ART[head].size;
+      if (w !== hw || h !== hh) return "It is " + w + " × " + h + ": it shares the " + ART[head].name.toLowerCase() + "'s border, so draw it the same size, " + hw + " × " + hh + ".";
+    }
     if (a.kind === "exact" && (w !== a.size[0] || h !== a.size[1])) return "It is " + w + " × " + h + ": the " + a.name.toLowerCase() + " must be " + a.size[0] + " × " + a.size[1] + (/house|grounds|Upstairs|Ground|urniture/.test(a.name) ? ", as the rooms are measured on it." : ".");
     if (a.kind === "sheet" && Math.abs(w / h - a.size[0] / a.size[1]) > 0.02) return "It is " + w + " × " + h + ": draw it the shape of " + a.size[0] + " × " + a.size[1] + " (any size of that shape fits).";
     return null;
@@ -1078,8 +1093,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         live[k] = Object.assign(e, { url });
       } catch (err) { problems[k] = "It couldn't be read (" + ((err && err.message) || "error") + ")."; }
     }));
+    for (const k of Object.keys(live)) {   // now every head is measured: a member of another size than its head is refused
+      const why = ART[k].kind === "slice" && !ART[k].slice && misfit(k, live[k].w, live[k].h, live);
+      if (why) { problems[k] = why; delete live[k]; }
+    }
     if (seq !== SKIN.seq) return;   // a newer skin came in while this one loaded
-    SKIN.live = live; SKIN.problems = problems;
     // The skin is one stylesheet, #skinCss, after the page's own: the slots and light tokens on :root, the dark tokens where
     // the page's dark mode is, then the cats. A stylesheet, not inline styles, so dark mode can still win in the dark.
     const root = document.documentElement.style;
@@ -1087,14 +1105,19 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     SKIN.set = [];
     const vars = [], put = (p, v) => vars.push(p + ": " + v + ";");
     const css = [];
-    Object.assign(SPR, JSON.parse(JSON.stringify(SPR0)));
+    const spr = JSON.parse(JSON.stringify(SPR0));   // built here, and only the run that lands sets SPR
     for (const [k, e] of Object.entries(live)) {
       const a = ART[k];
       if (a.kind === "slice" || a.kind === "sheet" || a.kind === "exact") put("--art-" + k, cssUrl(e.url));
-      if (a.kind === "slice" && a.slice && e.slice) e.slice.forEach((n, i) => put("--" + a.fam + "-" + "trbl"[i], String(n)));
+      if (a.kind === "slice" && a.slice && e.slice) {
+        e.slice.forEach((n, i) => put("--" + a.fam + "-" + "trbl"[i], String(n)));
+        if (a.fam === "field") put("--field-bw", "var(--field-w)");
+        if (a.fam === "bubble") put("--bubble-bw", "var(--bubble-px)");
+        if (a.fam === "corners") put("--corners-bw", "var(--corners-px)");
+      }
       if (a.kind === "slice" && a.scale && (e.scale || e.pixel)) {
         put("--" + a.fam + "-k", e.scale ? e.scale + "px" : "var(--u)");
-        if (e.pixel) put("--map-render", "pixelated");
+        if (e.pixel) put("--" + a.fam + "-render", "pixelated");
       }
       if (a.kind === "cat") {
         const n = e.frames || a.frames, fw = Math.round(e.w / n), fh = e.h, [ax, ay] = e.anchor || [Math.round(fw / 2), fh], secs = e.secs || a.secs;
@@ -1106,7 +1129,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
           css.push(".cat.walking .spr, .walker .spr { position: absolute; left: calc(var(--ax) - " + ax + "px); top: calc(var(--ay) - " + ay + "px); " + sheet + " animation: " + play + "; transform: scaleX(-1); }",
             ".cat.walking.flip .spr, .walker.flip .spr { transform: none; }");
         } else {
-          SPR[a.mood] = Object.assign({}, SPR[a.mood], { w: fw, h: fh, ax, ay });
+          spr[a.mood] = Object.assign({}, spr[a.mood], { w: fw, h: fh, ax, ay });
           css.push(".s-" + a.mood + " { " + sheet + " animation: " + play + "; }");
           if (a.mood === "idle" && !live["cat-walk-side"]) css.push(".cat.walking .spr, .walker .spr { animation: " + play + ", step .32s steps(2) infinite; }");
         }
@@ -1125,6 +1148,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     for (const [n, t] of Object.entries(SKIN.tokens.light)) put(n, t.value);
     const dark = Object.entries(SKIN.tokens.dark).map(([n, t]) => n + ": " + t.value + ";").join(" ");
     if (seq !== SKIN.seq) return;
+    SKIN.live = live; SKIN.problems = problems;
+    for (const m of Object.keys(SPR)) delete SPR[m];
+    Object.assign(SPR, spr);
     $("skinCss").textContent = [":root { " + vars.join(" ") + " }",
       dark && '@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { ' + dark + " } }",
       dark && ':root[data-theme="dark"] { ' + dark + " }", ...css].filter(Boolean).join("\n");
@@ -2328,10 +2354,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // anyone else's copy, draws the cabin and no cats at all, and used to say nothing about it.
   // Ask the browser for one of them and, if it isn't there, tell the viewer how to put it right.
   function checkArt() {
-    const img = new Image();
-    img.addEventListener("load", () => { S.art = "ok"; renderStatus(); });
-    img.addEventListener("error", () => { S.art = "missing"; renderStatus(); });
-    img.src = srcOf("cat-cry");
+    const seen = ["house", "cat-cry"].map((k) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(true); i.onerror = () => ok(false); i.src = srcOf(k); }));
+    Promise.all(seen).then((r) => { S.art = r.every(Boolean) ? "ok" : "missing"; renderStatus(); });
   }
 
   const NOART = "The cat art isn't here: art/licensed/ is licensed and never shipped, so neither the house nor its cats can draw. Buy the packs in catio/art/CREDITS.md, drop the zips in, and run catio/tools/build-art.py.";
@@ -3262,8 +3286,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
 
   // A project's map, from graphify (the catio skill's graph_doc.py saves it as graphs/<repo>): its ideas as
   // dots coloured by neighbourhood, the hubs, the surprising links, and questions a cat can answer from it.
-  const hue = (i) => tok(i < 8 ? "--hue-" + (i + 1) : "--hue-none");   // the design system's, so a skin recolours them
+  const hues = () => [1, 2, 3, 4, 5, 6, 7, 8].map((i) => tok("--hue-" + i)).concat(tok("--hue-none"));   // the design system's, so a skin recolours them
   function projectMap(gm, cat) {
+    const H = hues(), hue = (i) => H[Math.min(i, 8)];   // read once a map
     const d = el("details", "gmap");
     d.appendChild(el("summary", null, "Project map, " + ago(gm.at)));
     d.appendChild(el("p", "note", gm.nodes + " ideas, " + gm.edges + " links, " + gm.communities + " neighbourhoods" + (gm.commit ? ", at " + gm.commit.slice(0, 7) : "") + "."));
@@ -4299,7 +4324,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     dlg.replaceChildren(); dlg.classList.add("wide");
     const box = el("div", "dlg");
     const h = el("h2", null, "The look"); h.id = "artTitle";
-    const mine = Object.values(SKIN.live).filter((e) => e.from === "db").length + Object.keys(SKIN.dbTokens.light).length + Object.keys(SKIN.dbTokens.dark).length;
+    const keptTokens = Object.keys(SKIN.dbTokens.light).length + Object.keys(SKIN.dbTokens.dark).length, keptSlots = Object.keys(SKIN.db);
+    const mine = keptTokens + keptSlots.length;   // what is kept, used or refused: all of it goes back
     box.append(h, el("p", "note", "The whole design is yours to change: every colour, font, size and piece of art. Change one and the whole café follows. Draw at the size shown; docs/drawing-plan.md lists them all."));
     box.appendChild(tokensBar());
     const groups = ["Colours", "Type", "Cats", "The house", "Interface", "Map panel", "Map colours"];
@@ -4317,7 +4343,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const acts = el("div", "actions");
     if (mine && S.db) {
       const all = el("button", "btn pink", "Put everything back"); all.type = "button"; all.id = "artResetAll";
-      all.addEventListener("click", async () => { if (mine - Object.keys(SKIN.db).length) await saveTokens({ light: {}, dark: {} }); if (Object.keys(SKIN.db).length) await putBack(Object.keys(SKIN.db)); });
+      all.addEventListener("click", async () => { if (keptTokens) await saveTokens({ light: {}, dark: {} }); if (keptSlots.length) await putBack(keptSlots); });
       acts.appendChild(all);
     }
     acts.append(el("span", "spacer"), closeBtn(dlg));
@@ -4381,7 +4407,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const onScreen = () => (document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === m;
     input.addEventListener("input", () => { if (tokenOk(n, input.value) && onScreen()) { document.documentElement.style.setProperty(n, input.value); SKIN.set.push(n); } });
     input.addEventListener("change", () => {
-      if (!tokenOk(n, input.value)) { toast(name + " is a size like 18px or 0.95rem.", "alert"); input.value = valueIn(m, n); return; }
+      if (!tokenOk(n, input.value)) {
+        document.documentElement.style.removeProperty(n);   // the preview goes with the value
+        toast(name + " is a size from " + SIZES[n][0] + " to " + SIZES[n][1] + "px (or the same in rem).", "alert"); input.value = valueIn(m, n); return;
+      }
       const next = { light: Object.assign({}, SKIN.dbTokens.light), dark: Object.assign({}, SKIN.dbTokens.dark) };
       next[m][n] = input.value;
       saveTokens(next, name + ": yours now" + (m === "dark" ? ", at night." : "."));
@@ -4407,9 +4436,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   async function saveTokens(tokens, ok) {
     const clean = { light: cleanTokens(tokens.light), dark: cleanTokens(tokens.dark) };
     const empty = !Object.keys(clean.light).length && !Object.keys(clean.dark).length;
-    if (await save((db) => (empty ? db.doc("skin/theme").delete() : db.doc("skin/theme").set({ tokens: clean.light, dark: clean.dark, at: Date.now() })), ok)) {
-      SKIN.dbTokens = clean; applySkin();
-    }
+    if (await save((db) => (empty ? db.doc("skin/theme").delete() : db.doc("skin/theme").set({ tokens: clean.light, dark: clean.dark, at: Date.now() })), ok)) SKIN.dbTokens = clean;
+    applySkin();   // kept or not, what shows is what is kept: a preview that failed to save goes
   }
   function artRow(k) {
     const a = ART[k], e = skinOf(k), li = el("li"); li.dataset.slot = k;
@@ -4886,7 +4914,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   const use = local ? localRuntime() : (n) => window.claude.use(n).catch(() => null);
   use("permissions").then((p) => { S.perms = p; });
   use("db").then((db) => { S.db = db; if (db) subscribe(); });
-  use("assets").then((a) => { S.assets = a; render(); });
+  use("assets").then((a) => {
+    S.assets = a; render();
+    if ([...Object.values(SKIN.db), ...Object.values(SKIN.file)].some((e) => e.src.startsWith("local:"))) applySkin();   // read before the store opened
+  });
   use("sample").then((sm) => { S.sample = sm; });
   use("mcp").then((mcp) => {
     S.mcp = mcp;

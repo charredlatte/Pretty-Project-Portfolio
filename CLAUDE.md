@@ -238,8 +238,9 @@ A skin says which are hers, from two places; the second wins:
   and writes `skin/<slot>`; Put back deletes either. It works in claude.ai, on the gateway and on localhost (there the
   file stays in the browser).
 
-A token is checked as a slot is (`tokenOk()`): a colour is six hex digits, a size a length in px or rem, and a
-name that isn't in `TOKENS` is ignored.
+A token is checked as a slot is (`tokenOk()`): a colour is six hex digits, a size a length in px or rem inside its
+range (`SIZES`: the art pixel 1 to 4 px, the pixel font 8 to 48, its line 8 to 64, the text 10 to 24, a rem as 16), so
+no skin can bury The look under its own borders, and a name that isn't in `TOKENS` is ignored.
 
 **Modes and tokens files, as Figma has them** (her ask of 4 October, "reevaluate plug-n-play capabilities of design
 systems like Figma"; read against Figma's variables, its `figma-generate-library` skill and the W3C Design Tokens
@@ -268,8 +269,8 @@ already its CSS variable), and more modes than light and dark (none asked for).
 What a slot takes, checked before it is drawn (`misfit()`): **exact** (the house, upstairs, the grounds, both
 furniture sheets, the two cursors) only its own size, because the rooms are measured on it; a **sheet** (faces,
 icons, meadow, logo…) any size of the same shape; a **slice** any size, with its border in its own pixels (a
-family shares its head's: the button's hover, green and pink take the button's; a map piece can be drawn as pixel
-art, `pixel: true`, or smooth at a `scale`); a **cat** one row of frames, any frame size, its feet at the bottom
+family shares its head's: the button's hover, green and pink take the button's, so each is drawn the head's size; a
+map piece can be drawn as pixel art, `pixel: true`, its family alone then `pixelated`, or smooth at a `scale`); a **cat** one row of frames, any frame size, its feet at the bottom
 middle unless `anchor` says, its loop in `secs` (the generated rules go in `#skinCss`, and `SPR` takes its frame
 size); `cat-walk-side` is a new slot, empty until she draws a walk: then every walking cat uses it, drawn facing
 right and mirrored going left; `owner` is her own picture of herself in the queen's scene (30 × 40 or that shape),

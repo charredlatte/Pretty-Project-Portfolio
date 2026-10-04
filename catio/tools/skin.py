@@ -47,6 +47,9 @@ def slots():
             v = re.search(key + r": \[([\d, ]+)\]", line)
             if v:
                 a[key] = [int(n) for n in v.group(1).split(",")]
+        v = re.search(r'fam: "(\w+)"', line)
+        if v:
+            a["fam"] = v.group(1)
         v = re.search(r"frames: (\d+)", line)
         if v:
             a["frames"] = int(v.group(1))
@@ -60,10 +63,17 @@ def token_names():
     return dict(re.findall(r'"(--[\w-]+)": \["([^"]+)"', block))
 
 
+SIZES = {"--px-size": (8, 48), "--px-line": (8, 64), "--body-size": (10, 24), "--u-desk": (1, 4), "--u-phone": (1, 4)}   # the page's SIZES, in px
+
+
 def token_ok(groups, name, v):
     if name not in groups or not isinstance(v, str):
         return False
-    return bool(re.fullmatch(r"\d{1,3}(\.\d{1,3})?(px|rem)", v) if groups[name] == "Type" else re.fullmatch(r"#[0-9a-fA-F]{6}", v))
+    if groups[name] != "Type":
+        return bool(re.fullmatch(r"#[0-9a-fA-F]{6}", v))
+    m = re.fullmatch(r"(\d{1,3}(?:\.\d{1,3})?)(px|rem)", v)
+    lo, hi = SIZES.get(name, (0, 0))
+    return bool(m) and lo <= float(m.group(1)) * (16 if m.group(2) == "rem" else 1) <= hi
 
 
 def from_dtcg(doc, groups):
@@ -121,6 +131,10 @@ def main():
     groups = token_names()
     modes = {m: {k: v for k, v in (old.get(key) or {}).items() if token_ok(groups, k, v)} if isinstance(old.get(key), dict) else {}
              for m, key in (("light", "tokens"), ("dark", "dark"))}
+    for key in ("tokens", "dark"):
+        for k, v in (old.get(key) or {}).items() if isinstance(old.get(key), dict) else []:
+            if not token_ok(groups, k, v):
+                said.append(f"  {key}: {k} = {v!r} left out (a colour is #rrggbb; a size stays in its range, SIZES in the page)")
     for p in files:
         if p.name.endswith(".tokens.json"):
             mode = "dark" if "dark" in p.name.lower() else "light"
@@ -168,6 +182,13 @@ def main():
                 continue
             entry["frames"] = n
             note = f" ({n} frames of {w // n} x {h})"
+        if a["kind"] == "slice" and "slice" not in a and a.get("fam"):   # cut with its head's border: the head's size
+            head = next(k for k, h in art.items() if h.get("fam") == a["fam"] and "slice" in h)
+            mine = SKIN / (head + ".png")
+            hw, hh = png_size(mine) if mine.exists() and png_size(mine) else art[head]["size"]
+            if [w, h] != [hw, hh]:
+                said.append(f"  {p.name}: {w} x {h}, but it shares {head}'s border, so it must be {hw} x {hh}: left out")
+                continue
         skin[key] = entry
         said.append(f"  {p.name}: {key}{note}")
     for mode, key in (("light", "tokens"), ("dark", "dark")):
