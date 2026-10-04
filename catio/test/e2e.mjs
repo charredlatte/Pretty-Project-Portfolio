@@ -2589,6 +2589,26 @@ await check("no colour or pixel-font size is written into a rule: each is a toke
     await page.click("#toast .btn"); await settle(page);   // the warning waits for her OK
     await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
   });
+  await check("a lit button drawn the size of her own button, given with it, is used", async () => {
+    await page.evaluate(() => {   // both in one snapshot, as a skin.json or a first load brings them
+      window.__catio.store["skin/button"] = { src: "art/licensed/ui/bubble.png", slice: [5, 5, 6, 5], at: 1 };
+      window.__catio.put("skin/button-hover", { src: "art/licensed/ui/bubble.png", at: 1 });
+    });
+    await page.waitForTimeout(700);
+    expect((await rootVar("--art-button-hover")).includes("ui/bubble.png") && (await rootVar("--btn-b")) === "6", await rootVar("--art-button-hover"));
+    // gone again, in one snapshot (the stub notifies on a write, so a stray document carries the news and goes too)
+    await page.evaluate(() => { const st = window.__catio.store; delete st["skin/button"]; delete st["skin/button-hover"]; window.__catio.put("skin/zz", {}); delete st["skin/zz"]; });
+    await page.waitForTimeout(500);
+  });
+  await check("a project map's dots outside its eight neighbourhoods are the rest's grey", async () => {
+    await page.evaluate(() => window.__catio.put("graphs/grey-test", { repo: "example/grey-test", at: Date.now(), nodes: 3, edges: 1, communities: 1, gods: [], groups: [{ name: "One", size: 2 }], surprises: [], questions: [],
+      map: { n: [{ t: "A", g: 0, d: 3, x: 50, y: 50 }, { t: "B", g: -1, d: 2, x: 150, y: 80 }, { t: "C", g: 11, d: 1, x: 250, y: 120 }], l: [0, 1] } }));
+    await page.waitForTimeout(400);
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "Project maps" }).click(); await settle(page);
+    const fills = await page.evaluate(() => [...document.querySelectorAll("#mapsDlg svg rect[fill]")].map((r) => r.getAttribute("fill").toUpperCase()));
+    expect(fills.includes("#5E8F34") && fills.filter((f) => f === "#9A8878").length === 2 && !fills.includes("UNDEFINED"), fills.join(" "));
+    await page.evaluate(() => document.getElementById("mapsDlg").close()); await settle(page);
+  });
   await check("a font of hers for the text goes ahead of the café's", async () => {
     await page.evaluate(() => window.__catio.put("skin/font-body", { src: "art/licensed/ui/sprout.ttf", at: 1 }));
     await page.waitForTimeout(800);

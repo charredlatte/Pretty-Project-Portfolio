@@ -881,7 +881,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // The look in the House menu writes; the collection wins. A slot says what it is and the size it is drawn at, so a
   // swap is checked before it is used:
   //   slice  a 9-slice: any size, with its border (top, right, bottom, left, in its own pixels). A family (the
-  //          button and its hover, green and pink) shares the head's border;
+  //          button and its hover, green and pink) shares the head's border, so each is drawn the head's size. `bw`
+  //          names a piece some rules give one border width all round (the pack's), and which of its widths takes
+  //          over, side by side, once she gives it a border of her own;
   //   sheet  cells, or a picture drawn into a set box: any size of the same shape;
   //   exact  that size exactly: the house, the grounds and the furniture (the rooms are measured on them), cursors;
   //   cat    a mood's sheet: one row of frames, any frame size, the feet at the bottom middle unless it says;
@@ -907,10 +909,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "button-green":  { group: "Interface", kind: "slice", fam: "btn", name: "Green button", file: LIC + "ui/button-green.png", size: [26, 28], what: "The one that goes ahead. Its border is the button's." },
     "button-pink":   { group: "Interface", kind: "slice", fam: "btn", name: "Pink button", file: LIC + "ui/button-pink.png", size: [26, 28], what: "The one that lets go. Its border is the button's." },
     "button-down":   { group: "Interface", kind: "slice", fam: "down", name: "Button, pressed", file: LIC + "ui/button-down.png", size: [26, 26], slice: [4, 4, 4, 4], what: "Pressed in, and the wells things sit in." },
-    "field":         { group: "Interface", kind: "slice", fam: "field", name: "Field", file: LIC + "ui/field.png", size: [26, 26], slice: [4, 4, 5, 4], what: "Where she types." },
-    "bubble":        { group: "Interface", kind: "slice", fam: "bubble", name: "Bubble", file: LIC + "ui/bubble.png", size: [42, 42], slice: [5, 5, 6, 5], what: "A cat's ask, and the replies in its thread." },
+    "field":         { group: "Interface", kind: "slice", fam: "field", bw: "w", name: "Field", file: LIC + "ui/field.png", size: [26, 26], slice: [4, 4, 5, 4], what: "Where she types." },
+    "bubble":        { group: "Interface", kind: "slice", fam: "bubble", bw: "px", name: "Bubble", file: LIC + "ui/bubble.png", size: [42, 42], slice: [5, 5, 6, 5], what: "A cat's ask, and the replies in its thread." },
     "frame":         { group: "Interface", kind: "slice", fam: "frame", name: "Picture frame", file: LIC + "ui/frame.png", size: [30, 30], slice: [7, 7, 7, 7], what: "Portraits, the queen's scene and the Edit rooms plan." },
-    "corners":       { group: "Interface", kind: "slice", fam: "corners", name: "Brackets", file: LIC + "ui/corners.png", size: [20, 20], slice: [9, 8, 9, 8], what: "The four corners a room or a cat lights up with; the middle stays empty." },
+    "corners":       { group: "Interface", kind: "slice", fam: "corners", bw: "px", name: "Brackets", file: LIC + "ui/corners.png", size: [20, 20], slice: [9, 8, 9, 8], what: "The four corners a room or a cat lights up with; the middle stays empty." },
     "divider":       { group: "Interface", kind: "slice", fam: "divider", name: "Divider", file: LIC + "ui/divider.png", size: [58, 4], slice: [4, 1, 0, 1], what: "The line between parts of a menu." },
     "faces":         { group: "Interface", kind: "sheet", name: "Mood faces", file: LIC + "ui/faces.png", size: [192, 32], what: "Six cells: upset, needs you, to review, working, asleep, a queen's heart eyes." },
     "pastel":        { group: "Interface", kind: "sheet", name: "Icons", file: LIC + "ui/pastel.png", size: [200, 20], what: "Ten cells: up, down, plus, minus, house, pause, play, check, lock, unlock." },
@@ -1009,14 +1011,13 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   function fromDTCG(file) {
     const found = {}, flat = {};
     let foreign = 0;
-    (function walk(node, path, type) {
+    (function walk(node, path) {   // the value's own shape says colour or size, so $type isn't needed to read it
       if (!node || typeof node !== "object") return;
-      const t = node.$type || type;
-      if ("$value" in node) { flat[path.join(".")] = { v: node.$value, t }; return; }
-      for (const [k, v] of Object.entries(node)) if (!k.startsWith("$")) walk(v, path.concat(k), t);
-    })(file, [], null);
-    const resolve = (v, depth) => (typeof v === "string" && /^\{[^}]+\}$/.test(v) && depth < 10 ? resolve((flat[v.slice(1, -1)] || {}).v, depth + 1) : v);
-    for (const [path, { v }] of Object.entries(flat)) {
+      if ("$value" in node) { flat[path.join(".")] = node.$value; return; }
+      for (const [k, v] of Object.entries(node)) if (!k.startsWith("$")) walk(v, path.concat(k));
+    })(file, []);
+    const resolve = (v, depth) => (typeof v === "string" && /^\{[^}]+\}$/.test(v) && depth < 10 ? resolve(flat[v.slice(1, -1)], depth + 1) : v);
+    for (const [path, v] of Object.entries(flat)) {
       const n = "--" + path.split(".").pop(), val = resolve(v, 0);
       if (!TOKENS[n]) { foreign++; continue; }
       let css = null;
@@ -1065,10 +1066,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     return (SKIN.blobs[src] = href);
   }
   // Is this picture right for the slot? null if it is, else why not, in her words.
-  function misfit(key, w, h, live) {
+  // A family member is checked against its head in the skin given (`live`; the one on screen when left out), or not at
+  // all while the skin is still being measured (`false`): applySkin checks members once every head is.
+  function misfit(key, w, h, live = SKIN.live) {
     const a = ART[key];
-    if (a.kind === "slice" && !a.slice) {   // the button's hover, green and pink, the map's dark panel…: cut with the head's border
-      const head = headOf(key), e = (live || SKIN.live)[head], [hw, hh] = e ? [e.w, e.h] : ART[head].size;
+    if (a.kind === "slice" && !a.slice && live) {   // the button's hover, green and pink, the map's dark panel…: cut with the head's border
+      const head = headOf(key), e = live[head], [hw, hh] = e ? [e.w, e.h] : ART[head].size;
       if (w !== hw || h !== hh) return "It is " + w + " × " + h + ": it shares the " + ART[head].name.toLowerCase() + "'s border, so draw it the same size, " + hw + " × " + hh + ".";
     }
     if (a.kind === "exact" && (w !== a.size[0] || h !== a.size[1])) return "It is " + w + " × " + h + ": the " + a.name.toLowerCase() + " must be " + a.size[0] + " × " + a.size[1] + (/house|grounds|Upstairs|Ground|urniture/.test(a.name) ? ", as the rooms are measured on it." : ".");
@@ -1086,7 +1089,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         const url = await resolved(e.src);
         if (ART[k].kind !== "font") {
           const [w, h] = SKIN.sizes[url] || (SKIN.sizes[url] = await natural(url));   // each picture is measured once
-          const why = misfit(k, w, h);
+          const why = misfit(k, w, h, false);
           if (why) { problems[k] = why; return; }
           Object.assign(e, { w, h });
         }
@@ -1111,9 +1114,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (a.kind === "slice" || a.kind === "sheet" || a.kind === "exact") put("--art-" + k, cssUrl(e.url));
       if (a.kind === "slice" && a.slice && e.slice) {
         e.slice.forEach((n, i) => put("--" + a.fam + "-" + "trbl"[i], String(n)));
-        if (a.fam === "field") put("--field-bw", "var(--field-w)");
-        if (a.fam === "bubble") put("--bubble-bw", "var(--bubble-px)");
-        if (a.fam === "corners") put("--corners-bw", "var(--corners-px)");
+        if (a.bw) put("--" + a.fam + "-bw", "var(--" + a.fam + "-" + a.bw + ")");   // her border's box, side by side
       }
       if (a.kind === "slice" && a.scale && (e.scale || e.pixel)) {
         put("--" + a.fam + "-k", e.scale ? e.scale + "px" : "var(--u)");
@@ -3132,7 +3133,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     });
     osv.id = "ownerSave";
     const oa = el("div", "actions"); oa.append(el("span", "spacer"), osv);
-    yd.append(el("p", "note", "How you sit in the hall when you talk to her, seen from behind."), pv, oa);
+    yd.append(el("p", "note", skinOf("owner") ? "Your own picture is in the hall (The look, in the House menu). These choices draw you again once you put it back."
+      : "How you sit in the hall when you talk to her, seen from behind."), pv, oa);
     set.appendChild(yd);
 
     box.appendChild(set);
@@ -3288,7 +3290,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // dots coloured by neighbourhood, the hubs, the surprising links, and questions a cat can answer from it.
   const hues = () => [1, 2, 3, 4, 5, 6, 7, 8].map((i) => tok("--hue-" + i)).concat(tok("--hue-none"));   // the design system's, so a skin recolours them
   function projectMap(gm, cat) {
-    const H = hues(), hue = (i) => H[Math.min(i, 8)];   // read once a map
+    const H = hues(), hue = (i) => H[i >= 0 && i < 8 ? i : 8];   // read once a map; -1 and the ninth on are the rest
     const d = el("details", "gmap");
     d.appendChild(el("summary", null, "Project map, " + ago(gm.at)));
     d.appendChild(el("p", "note", gm.nodes + " ideas, " + gm.edges + " links, " + gm.communities + " neighbourhoods" + (gm.commit ? ", at " + gm.commit.slice(0, 7) : "") + "."));
@@ -4321,6 +4323,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   function drawArt() {
     const dlg = $("artDlg"), top = dlg.scrollTop, open = new Set([...dlg.querySelectorAll("details[open]")].map((d) => d.dataset.group));
     const note = dlg.contains(TOAST);   // a note shown in it (what was just saved) outlives the redraw
+    const was = dlg.contains(document.activeElement) && document.activeElement.id;   // and so does where she was
     dlg.replaceChildren(); dlg.classList.add("wide");
     const box = el("div", "dlg");
     const h = el("h2", null, "The look"); h.id = "artTitle";
@@ -4351,7 +4354,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     dlg.appendChild(box);
     if (note) dlg.appendChild(TOAST);
     dlg.scrollTop = top;
+    if (was && $(was)) $(was).focus({ preventScroll: true });
   }
+  const copyTokens = () => ({ light: Object.assign({}, SKIN.dbTokens.light), dark: Object.assign({}, SKIN.dbTokens.dark) });
   // the mode The look edits, and the tokens file: Light or Dark, Export (a .tokens.json for Figma or another café) and
   // Import… (one from Figma's variables, or one exported here), into the mode chosen
   let LOOKMODE = "light";
@@ -4392,7 +4397,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     try { j = JSON.parse(await file.text()); } catch (e) { toast(file.name + " isn't a tokens file: it isn't JSON.", "alert"); return; }
     const { found, foreign } = fromDTCG(j), n = Object.keys(found).length;
     if (!n) { toast(file.name + " has none of the café's tokens" + (foreign ? " (" + foreign + " of its own)." : "."), "alert"); return; }
-    const next = { light: Object.assign({}, SKIN.dbTokens.light), dark: Object.assign({}, SKIN.dbTokens.dark) };
+    const next = copyTokens();
     Object.assign(next[m], found);
     await saveTokens(next, n + " " + (n === 1 ? "token" : "tokens") + " from " + file.name + " in " + (m === "light" ? "Light" : "Dark") + (foreign ? "; " + foreign + " not the café's, left out." : "."));
   }
@@ -4411,7 +4416,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         document.documentElement.style.removeProperty(n);   // the preview goes with the value
         toast(name + " is a size from " + SIZES[n][0] + " to " + SIZES[n][1] + "px (or the same in rem).", "alert"); input.value = valueIn(m, n); return;
       }
-      const next = { light: Object.assign({}, SKIN.dbTokens.light), dark: Object.assign({}, SKIN.dbTokens.dark) };
+      const next = copyTokens();
       next[m][n] = input.value;
       saveTokens(next, name + ": yours now" + (m === "dark" ? ", at night." : "."));
     });
@@ -4424,7 +4429,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (S.db && SKIN.dbTokens[m][n]) {
       const pb = el("button", "btn tiny", "Put back"); pb.type = "button";
       pb.addEventListener("click", () => {
-        const next = { light: Object.assign({}, SKIN.dbTokens.light), dark: Object.assign({}, SKIN.dbTokens.dark) };
+        const next = copyTokens();
         delete next[m][n]; saveTokens(next, name + ": the café's again.");
       });
       acts.appendChild(pb);
@@ -4460,7 +4465,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     return li;
   }
   async function pickArt(k, file) {
-    const a = ART[k], p = { file, url: URL.createObjectURL(file) };
+    const a = ART[k], p = { file, url: URL.createObjectURL(file), typed: {} };
     if (file.size > 20 * 1024 * 1024) { toast(file.name + " is over 20 MB.", "alert"); return; }
     if (a.kind !== "font") {
       try { [p.w, p.h] = await natural(p.url); } catch (e) { toast(file.name + " isn't a picture the browser can read.", "alert"); return; }
@@ -4482,21 +4487,23 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     let bd, px, frames, secs;
     if (!p.why && a.kind === "slice" && a.slice) {
       // the same size as the pack's keeps its border; another size needs hers
-      bd = el("input"); bd.id = "artBorder"; bd.value = (p.w === a.size[0] && p.h === a.size[1] ? borderOf(k) : a.scale ? borderOf(k).map((n) => Math.max(1, Math.round(n * p.w / a.size[0]))) : borderOf(k)).join(" ");
+      bd = el("input"); bd.id = "artBorder"; bd.value = p.typed.border ?? (p.w === a.size[0] && p.h === a.size[1] ? borderOf(k) : a.scale ? borderOf(k).map((n) => Math.max(1, Math.round(n * p.w / a.size[0]))) : borderOf(k)).join(" ");
       fields.appendChild(field("Border, in its pixels: top right bottom left", bd));
       if (a.scale) {
         px = el("select"); px.id = "artPixel";
         for (const [v, l] of [["pixel", "Pixel art, two screen pixels to one"], ["smooth", "Smooth, drawn at twice its size"]]) { const o = el("option", null, l); o.value = v; px.appendChild(o); }
-        px.value = p.w < a.size[0] / 2 ? "pixel" : "smooth";
+        px.value = p.typed.pixel ?? (p.w < a.size[0] / 2 ? "pixel" : "smooth");
         fields.appendChild(field("Drawn as", px));
       }
     }
     if (!p.why && a.kind === "cat") {
       frames = el("input"); frames.id = "artFrames"; frames.type = "number"; frames.min = 1; frames.max = 64;
-      frames.value = p.w % p.h === 0 ? p.w / p.h : a.frames;
-      secs = el("input"); secs.id = "artSecs"; secs.type = "number"; secs.min = 0.1; secs.max = 20; secs.step = 0.05; secs.value = a.secs;
+      frames.value = p.typed.frames ?? (p.w % p.h === 0 ? p.w / p.h : a.frames);
+      secs = el("input"); secs.id = "artSecs"; secs.type = "number"; secs.min = 0.1; secs.max = 20; secs.step = 0.05; secs.value = p.typed.secs ?? a.secs;
       const row = el("div", "row"); row.append(field("Frames", frames), field("Seconds a loop", secs)); fields.appendChild(row);
     }
+    // what she types is kept with the pick, so a redraw (a save elsewhere) gives it back
+    for (const [key, x] of [["border", bd], ["pixel", px], ["frames", frames], ["secs", secs]]) if (x) x.addEventListener("input", () => { p.typed[key] = x.value; });
     const acts = el("div", "actions");
     const no = el("button", "btn", "Cancel"); no.type = "button";
     no.addEventListener("click", () => { URL.revokeObjectURL(p.url); delete ARTPICK[k]; drawArt(); });
@@ -4525,7 +4532,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
           URL.revokeObjectURL(p.url); delete ARTPICK[k];
           if (old && old !== up.id) S.assets.delete(old).catch(() => {});
           SKIN.db[k] = skinEntry(k, doc); applySkin();
-        }
+        } else S.assets.delete(up.id).catch(() => {});   // nothing points at it: don't leave it in the store
       } catch (e) { toast("Couldn't keep " + p.file.name + " (" + ((e && e.code) || "error") + ").", "alert"); }
       finally { delete f.dataset.busy; }
     });

@@ -63,7 +63,14 @@ def token_names():
     return dict(re.findall(r'"(--[\w-]+)": \["([^"]+)"', block))
 
 
-SIZES = {"--px-size": (8, 48), "--px-line": (8, 64), "--body-size": (10, 24), "--u-desk": (1, 4), "--u-phone": (1, 4)}   # the page's SIZES, in px
+def sizes():
+    """The page's SIZES, each size token's range in px, read from the page so the two can't disagree."""
+    text = PAGE.read_text(encoding="utf-8")
+    block = text[text.index("const SIZES = {"):text.index("function sizeOk")]
+    return {n: (float(lo), float(hi)) for n, lo, hi in re.findall(r'"(--[\w-]+)": \[([\d.]+), ([\d.]+)\]', block)}
+
+
+SIZES = sizes()
 
 
 def token_ok(groups, name, v):
