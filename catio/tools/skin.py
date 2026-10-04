@@ -307,10 +307,12 @@ def check(art, key, rel, was, said, where="", filled=None):
     if a["kind"] == "cat":
         n = entry.get("frames") or (w // h if w % h == 0 and w // h <= 64 else None)   # square frames are worked out; others are hers to say
         if not n:   # the page's framesOf(): not guessed, or her cat would be cut in pieces
-            said.append(f"  {name}: " + (f"cut square, that is {w // h} frames, and 64 is the most: if its frames are wider, set \"frames\" in skin.json" if w % h == 0 else f"its frames aren't square ({w} x {h}): set \"frames\" in skin.json") + ": left out")
+            guess = auto.get("frames")   # a count an earlier run guessed, which is no longer guessed: say it, so she can keep it
+            said.append(f"  {name}: " + (f"cut square, that is {w // h} frames, and 64 is the most: if its frames are wider, set \"frames\" in skin.json" if w % h == 0 else f"its frames aren't square ({w} x {h}): set \"frames\" in skin.json") +
+                        (f" (an earlier run guessed {guess}; write \"frames\": {guess} if that is right)" if guess else "") + ": left out")
             return None
         if w % n:
-            said.append(f"  {name}: {w} px wide doesn't split into {n} frames: set \"frames\" in skin.json")
+            said.append(f"  {name}: {w} px wide doesn't split into {n} frames: set \"frames\" in skin.json: left out")
             return None
         if "frames" not in entry:
             worked.append("frames")

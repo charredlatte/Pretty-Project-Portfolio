@@ -1183,7 +1183,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (a.hot && hot && (hot[0] >= w || hot[1] >= h)) return "Its tip " + hot.join(" ") + " is outside its " + w + " × " + h + ".";
     if (a.kind === "cat" && !picking) {
       const n = framesOf(a, { frames }, w, h);
-      if (!n && h > 0 && w % h === 0) return "Cut square, that is " + w / h + " frames, and 64 is the most: if its frames are wider, say how many there are.";
+      if (!n && w % h === 0) return "Cut square, that is " + w / h + " frames, and 64 is the most: if its frames are wider, say how many there are.";
       if (!n) return "Its frames aren't square: say how many there are (\"frames\" in skin.json, or Frames in The look).";
       if (w % n) return "It is " + w + " pixels wide, which doesn't split into " + n + " frames.";
     }
@@ -1330,7 +1330,6 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (houseSig !== houseWas) {   // the house, its furniture or its cats changed: drawn again (a button or a face needs only the CSS)
       for (const i of document.querySelectorAll("img[data-art]")) i.src = srcOf(i.dataset.art);
       drawFurniture();
-      if (tipFor) outline(tipFor, true);   // the piece under a still pointer is a new one: outlined again
       render();
       SKIN.houseSig = houseSig;   // once drawn: a run that threw tries again next time
     }
@@ -1671,6 +1670,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         backgroundImage: cssUrl(srcOf(ATLAS[q.p.atlas])), backgroundSize: aw * 2 + "px " + ah * 2 + "px", backgroundPosition: -ax * 2 + "px " + -ay * 2 + "px" });
       box.appendChild(d);
     }
+    if (tipFor) outline(tipFor, true);   // the piece under a still pointer is a new one: outlined again, whoever redrew it
   }
   function drawProps() {
     drawFurniture();
@@ -4980,7 +4980,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (doc.pixel && pixelLoud(a, doc.slice || a.slice)) { toast(LOUD(doc.slice || a.slice), "alert"); (bd || px).focus(); return; }
       if (frames) {
         doc.frames = Number(frames.value); doc.secs = Number(secs.value);
-        if (!frames.value.trim()) { toast(p.w % p.h ? "Its frames aren't square: say how many there are." : "Cut square, that is " + p.w / p.h + " frames, and 64 is the most: if its frames are wider, say how many there are.", "alert"); frames.focus(); return; }
+        if (!frames.value.trim()) { toast(misfit(k, p.w, p.h, false, {}) || "Say how many frames there are.", "alert"); frames.focus(); return; }   // misfit's own words
         if (!Number.isInteger(doc.frames) || doc.frames < 1 || doc.frames > 64 || p.w % doc.frames) { toast("The frames must split its " + p.w + " pixels evenly.", "alert"); frames.focus(); return; }
         if (!(doc.secs >= 0.1 && doc.secs <= 20)) { toast("A loop takes between 0.1 and 20 seconds.", "alert"); secs.focus(); return; }
       }
