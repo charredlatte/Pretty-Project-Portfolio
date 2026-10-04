@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KittyChat Café</title>
+<meta name="description" content="All your Claude chats, in one cozy café. Every task is a cat; it meows when it needs you. No terminal required.">
+<meta name="theme-color" content="#070A1E">
+<!--
+  The KittyChat Café landing page: a draft for Charlotte's review (docs/landing-page/README.md lists every
+  decision on it). Static: no framework, no build. The fireside scene is drawn by landing/tools/scene.py into
+  landing/art/ (our own pixels: nothing from the packs, which may not be sold) and animated here on a canvas.
+  Fonts: Press Start 2P, Pixelify Sans and Nunito, all under the SIL Open Font License (landing/fonts/).
+-->
+<script src="art/scene.js"></script>
+<style>
+  /* ---- tokens: every colour, size and piece of art, as the café does it ---- */
+  :root {
+    --sky: #070A1E;          /* the zenith: the page's background, so the scene continues above its top edge */
+    --night: #121A34;        /* the night panel's face */
+    --night-line: #2A3A66;
+    --ink: #3F2A20;          /* dark cocoa: the tan panel's outline and its text */
+    --tan: #DCB98A;          /* the tan panel's face */
+    --tan-dark: #B8905E;
+    --cream: #F3E5C2;        /* the night panel's border, the buttons' face, light text */
+    --white: #FFFFFF;
+    --gold: #FFD35A;         /* the fire's yellow: focus rings, the pointer, PRESS START */
+    --ember: #FF8E2B;        /* the fire's orange: hover */
+    --go: #C0D470;           /* the café's green: the primary button */
+    --dim: #9AA0B4;          /* smoke grey: secondary text on the night */
+    --u: 2px;                /* one art pixel on screen */
+    --panel-tan: url(art/panel-tan.png);
+    --panel-night: url(art/panel-night.png);
+    --paw: url(art/paw.png);
+    --portrait-0: url(art/portrait-0.png);
+    --portrait-1: url(art/portrait-1.png);
+    --pixel: "Press Start 2P", monospace;       /* the arcade face: the logo, PRESS START, menus, buttons. Crisp at 8, 16, 24, 32px */
+    --pixel-text: "Pixelify Sans", sans-serif;  /* the dialogue and headings. Crisp at 20px and 40px only */
+    --body: "Nunito", system-ui, sans-serif;    /* paragraphs */
+  }
+  @font-face { font-family: "Press Start 2P"; src: url(fonts/PressStart2P-Regular.ttf) format("truetype"); font-display: swap; }
+  @font-face { font-family: "Pixelify Sans"; src: url(fonts/PixelifySans.ttf) format("truetype"); font-weight: 400 700; font-display: swap; }
+  @font-face { font-family: "Nunito"; src: url(fonts/Nunito.ttf) format("truetype"); font-weight: 200 1000; font-display: swap; }
+
+  * { box-sizing: border-box; }
+  html { background: var(--sky); color: var(--cream); scroll-behavior: auto; }
+  body { margin: 0; font: 400 18px/1.55 var(--body); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  .px { font-family: var(--pixel); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: none; font-smooth: never; letter-spacing: 0; }
+  .pxt { font-family: var(--pixel-text); font-size: 20px; line-height: 1.3; -webkit-font-smoothing: none; }
+  h1, h2, h3 { margin: 0; font-weight: 400; }
+  h2 { font-family: var(--pixel); font-size: 24px; line-height: 1.5; color: var(--gold); text-shadow: var(--u) var(--u) 0 var(--ink), 0 0 0 transparent; margin-bottom: 24px; }
+  h3 { font-family: var(--pixel-text); font-size: 20px; line-height: 1.3; font-weight: 700; }
+  p { margin: 0 0 1em; }
+  a { color: var(--gold); }
+  img, canvas, .sprite, [style*="--panel"] { image-rendering: pixelated; image-rendering: crisp-edges; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .skip { position: absolute; left: 8px; top: -60px; z-index: 50; padding: 8px 12px; background: var(--cream); color: var(--ink); }
+  .skip:focus { top: 8px; }
+  :focus-visible { outline: var(--u) solid var(--gold); outline-offset: var(--u); box-shadow: 0 0 0 calc(var(--u) * 2) var(--ink); }
+
+  /* ---- the 9-slice boxes: 24 × 24 art with 8-pixel corners, shown at two screen pixels an art pixel ---- */
+  .panel { border: calc(8 * var(--u)) solid transparent; border-image: var(--panel-tan) 8 fill / calc(8 * var(--u)); color: var(--ink); image-rendering: pixelated; }
+  .panel.night { border-image-source: var(--panel-night); color: var(--cream); }
+
+  /* ---- buttons: a cream face, an ink outline, a shadow under it that the press removes ---- */
+  .btn { display: inline-flex; align-items: center; gap: 12px; font-family: var(--pixel); font-size: 16px; line-height: 1.5; text-decoration: none; color: var(--ink);
+    background: var(--cream); border: var(--u) solid var(--ink); padding: 10px 20px 8px; box-shadow: 0 calc(2 * var(--u)) 0 var(--ink); cursor: var(--paw) 2 2, pointer; -webkit-font-smoothing: none; }
+  .btn.primary { background: var(--go); }
+  .btn:hover { background: var(--white); }
+  .btn.primary:hover { background: #D4E68A; }
+  .btn:active, .btn.pressed { transform: translateY(calc(2 * var(--u))); box-shadow: none; }
+  .btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; box-shadow: none; transform: none; }
+  .ptr { width: 16px; height: 16px; flex: none; background: var(--gold); clip-path: polygon(0 0, 100% 50%, 0 100%); visibility: hidden; }
+  .btn:hover .ptr, .btn:focus-visible .ptr { visibility: visible; }
+
+  /* ---- the title screen ---- */
+  .hero { position: relative; min-height: 100svh; display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; background: var(--sky); }
+  .stage { position: absolute; inset: 0; display: flex; justify-content: center; align-items: flex-end; pointer-events: none; }
+  #scene { display: block; }
+  .hud { display: contents; }
+  .masthead, .start, .talk { position: relative; z-index: 2; }     /* above the scene, which is absolute */
+  .masthead { grid-row: 1; text-align: center; padding: 10vh 16px 0; }
+  .talk { grid-row: 3; align-self: end; }
+  .logo { font-family: var(--pixel); font-size: 32px; line-height: 1.5; color: var(--white); text-shadow: calc(2 * var(--u)) calc(2 * var(--u)) 0 var(--ink); margin: 0; }
+  .logo small { display: block; font-family: var(--pixel-text); font-size: 20px; color: var(--cream); text-shadow: var(--u) var(--u) 0 var(--ink); margin-top: 12px; font-weight: 400; }
+  .start { text-align: center; margin-top: 40px; }
+  .start[hidden] { display: none; }
+  #pressStart { font-family: var(--pixel); font-size: 16px; line-height: 1.5; color: var(--gold); background: none; border: 0; padding: 16px 24px; cursor: var(--paw) 2 2, pointer;
+    text-shadow: var(--u) var(--u) 0 var(--ink); animation: blink 1.06s steps(1, end) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  #pressStart:hover, #pressStart:focus-visible { animation: none; color: var(--white); }
+  .talk { width: min(760px, calc(100% - 32px)); margin: 0 auto 24px; display: none; }
+  .talk.on { display: block; }
+  .box { display: grid; grid-template-columns: 68px 1fr; gap: 20px; align-items: start; min-height: 68px; }
+  .face { width: 68px; height: 68px; background: var(--portrait-0) no-repeat; background-size: 68px 68px; image-rendering: pixelated; }
+  .face.b { background-image: var(--portrait-1); }
+  .who { font-family: var(--pixel); font-size: 16px; color: var(--gold); margin-bottom: 8px; }
+  .text { min-height: 52px; }
+  .text .cursor { display: inline-block; width: 10px; height: 20px; vertical-align: -3px; background: var(--cream); animation: blink .8s steps(1, end) infinite; }
+  .adv { position: absolute; right: 24px; bottom: 16px; width: 16px; height: 12px; background: var(--cream); clip-path: polygon(0 0, 100% 0, 50% 100%); animation: bob .6s steps(2, end) infinite; }
+  @keyframes bob { 50% { transform: translateY(4px); } }
+  .menu { list-style: none; margin: 8px 0 0 88px; padding: 0; display: none; }    /* under the words, past the portrait */
+  .menu.on { display: block; }
+  .menu li { margin: 0; }
+  .menu a { display: flex; align-items: center; gap: 12px; padding: 3px 8px; font-family: var(--pixel); font-size: 16px; line-height: 1.5; color: var(--cream); text-decoration: none; white-space: nowrap; cursor: var(--paw) 2 2, pointer; }
+  .menu a .ptr { visibility: hidden; }
+  .menu a:hover, .menu a:focus-visible, .menu a.on { color: var(--white); }
+  .menu a:hover .ptr, .menu a:focus-visible .ptr, .menu a.on .ptr { visibility: visible; }
+  .menu a small { font-family: var(--pixel-text); font-size: 20px; color: var(--dim); margin-left: auto; }
+  .corner { position: absolute; top: 12px; right: 12px; z-index: 4; display: flex; gap: 8px; }
+  .corner button { font-family: var(--pixel); font-size: 8px; line-height: 2; color: var(--cream); background: rgba(7, 10, 30, .6); border: var(--u) solid var(--cream); padding: 6px 10px; cursor: var(--paw) 2 2, pointer; }
+  .corner button[aria-pressed="true"] { background: var(--cream); color: var(--ink); }
+
+  /* ---- the screens below ---- */
+  main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 64px; }
+  section { margin-bottom: 72px; }
+  .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .card { padding: 4px 4px 0; }
+  .card .face { margin-bottom: 8px; }
+  .card h3 { margin-bottom: 8px; }
+  .card p { font-size: 17px; margin: 0; }
+  .note { color: var(--dim); font-size: 16px; }
+  .files { display: grid; gap: 20px; }
+  .file { display: grid; grid-template-columns: 24px 1fr auto; gap: 16px 20px; align-items: center; padding: 8px 12px; }
+  .file .ptr { background: var(--cream); }
+  .file:hover .ptr, .file:focus-within .ptr { visibility: visible; }
+  .file .slot { font-family: var(--pixel); font-size: 16px; color: var(--gold); }
+  .file .price { font-family: var(--pixel-text); font-size: 20px; color: var(--cream); }
+  .file p { grid-column: 2; margin: 0; font-size: 17px; }
+  .file .btn { grid-column: 3; grid-row: 1 / span 2; }
+  .hearts { display: inline-flex; gap: 4px; vertical-align: middle; margin-left: 12px; }
+  .hearts i { width: 14px; height: 12px; background: var(--ember); clip-path: polygon(50% 100%, 0 45%, 0 20%, 25% 0, 50% 20%, 75% 0, 100% 20%, 100% 45%); }
+  .hearts i.off { background: var(--night-line); }
+  .faq details { border-bottom: var(--u) solid var(--night-line); }
+  .faq summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 12px 8px; font-family: var(--pixel-text); font-size: 20px; cursor: var(--paw) 2 2, pointer; color: var(--cream); }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary .ptr { visibility: hidden; }
+  .faq summary:hover .ptr, .faq details[open] summary .ptr, .faq summary:focus-visible .ptr { visibility: visible; }
+  .faq details p { padding: 0 8px 16px 36px; margin: 0; color: var(--cream); }
+  .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+  .founder { display: grid; grid-template-columns: 68px 1fr; gap: 20px; align-items: start; }
+  footer { border-top: var(--u) solid var(--night-line); padding: 32px 16px 48px; color: var(--dim); font-size: 15px; }
+  footer .inner { max-width: 1040px; margin: 0 auto; }
+  footer nav { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-bottom: 16px; }
+  footer nav a { color: var(--cream); text-decoration: none; }
+  footer nav a:hover { text-decoration: underline; }
+
+  /* ---- the loading frame and the screen wipe ---- */
+  #loading { position: fixed; inset: 0; z-index: 100; background: #000; display: grid; place-content: center; text-align: center; color: var(--cream); }
+  #loading .px { color: var(--gold); margin-bottom: 20px; }
+  #loading .bar { width: 240px; height: 16px; border: var(--u) solid var(--cream); padding: var(--u); margin: 0 auto 20px; }
+  #loading .bar i { display: block; height: 100%; width: 0; background: var(--gold); transition: none; }
+  #loading .paws { display: flex; gap: 12px; justify-content: center; }
+  #loading .paws i { width: 32px; height: 32px; background: var(--paw) no-repeat; background-size: 32px 32px; image-rendering: pixelated; opacity: 0; animation: step 1.2s steps(1, end) infinite; }
+  #loading .paws i:nth-child(2) { animation-delay: .4s; } #loading .paws i:nth-child(3) { animation-delay: .8s; }
+  @keyframes step { 0% { opacity: 1; } 75% { opacity: 1; } 76% { opacity: 0; } }
+  #loading.done { opacity: 0; pointer-events: none; transition: opacity .3s steps(3, end); }
+  #wipe { position: fixed; inset: 0; z-index: 90; background: #000; opacity: 0; pointer-events: none; }
+  #wipe.on { opacity: 1; transition: opacity .24s steps(3, end); }
+  #wipe.off { opacity: 0; transition: opacity .24s steps(3, end); }
+
+  /* ---- a phone ---- */
+  @media (max-width: 760px) {
+    :root { --u: 1px; }
+    .hero { grid-template-rows: auto auto auto; min-height: 0; }
+    .stage { position: static; order: 2; align-items: flex-start; overflow: hidden; height: 270px; }
+    .masthead { order: 1; padding: 32px 16px 16px; }
+    .logo { font-size: 24px; } .logo small { font-size: 20px; }
+    .masthead, .talk { grid-row: auto; }
+    .start { margin: 24px 0 8px; }
+    .talk { order: 3; margin: 16px auto 24px; }
+    .menu { margin-left: 0; }
+    .menu a small { display: none; }        /* the hints would wrap each item onto two lines */
+    .menu a { padding: 6px 4px; }
+    .three { grid-template-columns: 1fr; }
+    .file { grid-template-columns: 24px 1fr; }
+    .file .btn { grid-column: 2; grid-row: auto; justify-self: start; }
+    .corner { top: 8px; right: 8px; }
+    .panel { border-width: calc(8 * var(--u)); }
+  }
+
+  /* ---- reduced motion: everything stands still; the text is simply there ---- */
+  @media (prefers-reduced-motion: reduce) {
+    #pressStart, .adv, .text .cursor, #loading .paws i { animation: none; }
+    #loading .paws i { opacity: 1; }
+    #loading.done, #wipe.on, #wipe.off { transition: none; }
+  }
+</style>
+</head>
+<body>
+<a class="skip px" href="#how">Skip the title screen</a>
+
+<div id="loading" role="status" aria-live="polite">
+  <div class="px">NOW LOADING</div>
+  <div class="bar" aria-hidden="true"><i id="loadBar"></i></div>
+  <div class="paws" aria-hidden="true"><i></i><i></i><i></i></div>
+  <span class="sr">The page is loading its pictures.</span>
+</div>
+<div id="wipe" aria-hidden="true"></div>
+
+<header class="hero" id="top">
+  <div class="stage" aria-hidden="true"><canvas id="scene" width="480" height="270"></canvas></div>
+  <p class="sr">A pixel-art night: two cats sit side by side on a log bench to the left of a campfire, their faces lit by it. Logs lie around the fire; a tent glows from inside; smoke drifts up in thin trails; behind them a pine forest, mountains and the milky way.</p>
+  <div class="hud">
+    <div class="masthead">
+      <h1 class="logo">KittyChat Café<small>All your Claude chats, in one cozy café.</small></h1>
+      <div class="start" id="startRow"><button id="pressStart" type="button">PRESS START</button></div>
+    </div>
+    <div class="talk panel night" id="talk" role="region" aria-label="Two cats welcome you">
+      <div class="box">
+        <div class="face" id="face" aria-hidden="true"></div>
+        <div>
+          <div class="who" id="who">BRIOCHE</div>
+          <div class="text pxt" id="text" aria-live="polite"></div>
+        </div>
+      </div>
+      <ul class="menu" id="menu" aria-label="Main menu">
+        <li><a href="#files" data-slot="1"><span class="ptr"></span>NEW CAFÉ <small>run your own, free</small></a></li>
+        <li><a href="#files" data-slot="2"><span class="ptr"></span>JOIN THE CAFÉ <small>early access</small></a></li>
+        <li><a href="#how"><span class="ptr"></span>HOW IT WORKS</a></li>
+        <li><a href="#support"><span class="ptr"></span>SUPPORT THE WORK</a></li>
+      </ul>
+      <button class="adv" id="adv" type="button" aria-label="Next"></button>
+    </div>
+  </div>
+  <div class="corner">
+    <button id="sound" type="button" aria-pressed="false" aria-label="Sound: off">SOUND OFF</button>
+    <button id="skipIntro" type="button">SKIP</button>
+  </div>
+</header>
+
+<main id="main">
+  <section id="how" aria-labelledby="howH">
+    <h2 id="howH">HOW IT WORKS</h2>
+    <div class="three">
+      <div class="panel card"><div class="face" aria-hidden="true"></div><h3>Your chats become cats</h3><p>Work with Claude as you do. Each chat or coding session is a cat, and its project decides which room it lives in.</p></div>
+      <div class="panel card"><div class="face b" aria-hidden="true"></div><h3>The café asks who's awake</h3><p>Each cat checks in at a small front desk with a short note: working, finished, or stuck and needs you. Busy cats play; finished cats sleep.</p></div>
+      <div class="panel card"><div class="face" aria-hidden="true"></div><h3>You answer from the page</h3><p>A cat that needs you meows. Point at it and it says what it wants. Click it, type a line or drop a file on it, and the queen handles the rest.</p></div>
+    </div>
+    <p class="note" style="margin-top: 20px">Your private chats stay in your own account. The café shows them; it never reads your code.</p>
+  </section>
+
+  <section id="files" aria-labelledby="filesH">
+    <h2 id="filesH">CHOOSE YOUR FILE</h2>
+    <div class="files">
+      <div class="panel night file" id="slot1">
+        <span class="ptr" aria-hidden="true"></span>
+        <div><span class="slot">FILE 1 · RUN YOUR OWN</span><span class="hearts" aria-label="open today"><i></i><i></i><i></i></span><div class="price">Free · open today</div></div>
+        <a class="btn primary" href="https://github.com/charredlatte/Pretty-Project-Portfolio"><span class="ptr"></span>START A NEW CAFÉ</a>
+        <p>The developers' door: clone it, deploy the front desk, install the plugin. Your art, your page. A terminal, this once.</p>
+      </div>
+      <div class="panel night file" id="slot2">
+        <span class="ptr" aria-hidden="true"></span>
+        <div><span class="slot">FILE 2 · THE HOSTED CAFÉ</span><span class="hearts" aria-label="not open yet"><i class="off"></i><i class="off"></i><i class="off"></i></span><div class="price">[monthly] € a month · early access</div></div>
+        <a class="btn" href="mailto:[email]?subject=Early%20access%20to%20the%20KittyChat%20Caf%C3%A9"><span class="ptr"></span>JOIN THE LIST</a>
+        <p>Your café on our address, nothing to install. Not open yet: join the list and be first through the door. Prices HT, TVA non applicable, art. 293 B du CGI.</p>
+      </div>
+      <div class="panel night file" id="slot3">
+        <span class="ptr" aria-hidden="true"></span>
+        <div><span class="slot">FILE 3 · SET UP FOR YOU</span><span class="hearts" aria-label="open today"><i></i><i></i><i></i></span><div class="price">From 90 €, once</div></div>
+        <a class="btn" href="mailto:[email]?subject=Set%20up%20my%20caf%C3%A9"><span class="ptr"></span>WRITE TO CHARLOTTE</a>
+        <p>Lifetime access, and the DIY course on customizing your own café: rooms, rules, the queen's manner. From [setup-plus] €, an afternoon with Charlotte setting it up with you.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" class="faq" aria-labelledby="faqH">
+    <h2 id="faqH">ASK THE QUEEN</h2>
+    <details><summary><span class="ptr"></span>Do I need to know how to code?</summary><p>No. The hosted café and "set up for you" ask nothing of the sort. Running your own is the developers' door, and asks for a terminal once.</p></details>
+    <details><summary><span class="ptr"></span>Does the café read my code?</summary><p>No. It reads your chats' titles and states, and what you drop on a cat. Your work stays where it is.</p></details>
+    <details><summary><span class="ptr"></span>Is this Claude?</summary><p>The café never resells Claude. You use your own claude.ai account, and the café shows your chats as cats and talks to them for you.</p></details>
+    <details><summary><span class="ptr"></span>Who sees my data?</summary><p>You, in your own house at the front desk. Cloudflare hosts it; the privacy policy says exactly what is stored and for how long.</p></details>
+    <details><summary><span class="ptr"></span>Can I stop?</summary><p>Yes, from your account, any month. The subscription ends at the period's end and your café stays readable for 30 days.</p></details>
+  </section>
+
+  <section id="support" aria-labelledby="supH">
+    <h2 id="supH">SUPPORT THE WORK</h2>
+    <div class="founder">
+      <div class="face b" aria-hidden="true"></div>
+      <div>
+        <p>The café is open source, and I am one person building it between a stationery shop and a lot of cats. The subscription and the campaign fund the app, planned for December 2027. A coffee is thanks and a name in the credits; backing the app is a year of early access.</p>
+        <p class="note">Charlotte, who runs the café.</p>
+        <div class="row"><a class="btn" href="https://buymeacoffee.com/[handle]"><span class="ptr"></span>BUY ME A COFFEE</a><a class="btn" href="https://ulule.com/[campaign]"><span class="ptr"></span>BACK THE APP</a></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="inner">
+    <nav aria-label="Legal"><a href="#">Mentions légales</a><a href="#">CGV</a><a href="#">Confidentialité</a><a href="#">Rétractation</a><a href="#">Contact</a></nav>
+    <p>KittyChat Café · Charlotte Badot, EI. The fire, the cats, the tent and the night were drawn for this page. Type: Press Start 2P, Pixelify Sans and Nunito, under the SIL Open Font License.</p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (s) => document.querySelector(s);
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const S = window.SCENE;
+
+  /* ---- sound: four bleeps from an oscillator, off until she turns it on ---- */
+  let audio = null, soundOn = false;
+  try { soundOn = localStorage.getItem("kc.sound") === "on"; } catch (e) {}
+  const soundBtn = $("#sound");
+  const showSound = () => { soundBtn.setAttribute("aria-pressed", String(soundOn)); soundBtn.textContent = soundOn ? "SOUND ON" : "SOUND OFF"; soundBtn.setAttribute("aria-label", "Sound: " + (soundOn ? "on" : "off")); };
+  const bleep = (notes, len = .05, kind = "square") => {
+    if (!soundOn) return;
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      let t = audio.currentTime;
+      for (const f of notes) {
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = kind; o.frequency.value = f; g.gain.value = .06;
+        o.connect(g); g.connect(audio.destination); o.start(t); o.stop(t + len); t += len;
+      }
+    } catch (e) {}
+  };
+  const SFX = { move: () => bleep([880]), ok: () => bleep([660, 990], .07), back: () => bleep([440, 330], .07), tick: () => bleep([1320], .015) };
+  soundBtn.addEventListener("click", () => { soundOn = !soundOn; try { localStorage.setItem("kc.sound", soundOn ? "on" : "off"); } catch (e) {} showSound(); SFX.ok(); });
+  showSound();
+
+  /* ---- the scene: 480 × 270 drawn off screen, then scaled by a whole number ---- */
+  const canvas = $("#scene"), ctx = canvas.getContext("2d");
+  const off = document.createElement("canvas"); off.width = S.w; off.height = S.h;
+  const o = off.getContext("2d");
+  const art = {};
+  const NAMES = ["sky", "far", "mid-0", "mid-1", "mid-2", "cats-0", "cats-1", "cats-2", "tent-glow", "fire", "panel-night", "panel-tan", "paw", "portrait-0", "portrait-1"];
+  let loaded = 0;
+  const bar = $("#loadBar");
+  const loads = NAMES.map((n) => new Promise((res) => {
+    const im = new Image();
+    im.onload = im.onerror = () => { loaded++; bar.style.width = Math.round(100 * loaded / NAMES.length) + "%"; res(); };
+    im.src = "art/" + n + ".png"; art[n] = im;
+  }));
+
+  let k = 1;
+  const fit = () => {
+    const dpr = window.devicePixelRatio || 1;
+    const vw = canvas.parentElement.clientWidth || innerWidth;
+    k = Math.max(1, Math.ceil(vw * dpr / S.w));                 // device pixels an art pixel: always whole
+    canvas.width = S.w * k; canvas.height = S.h * k;
+    canvas.style.width = (S.w * k / dpr) + "px"; canvas.style.height = (S.h * k / dpr) + "px";
+    ctx.imageSmoothingEnabled = false;
+    draw(true);
+  };
+
+  // What moves, and when. Every change is a step, never a slide: the games had no easing.
+  const now = () => performance.now();
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const st = { light: 1, lightAt: 0, fire: 0, fireAt: 0, cat: 0, catUntil: 0, breathAt: 0, breath: 0, blinkAt: now() + rnd(2000, 5000), earAt: now() + rnd(6000, 12000), tailAt: now() + rnd(4000, 9000),
+    glow: 1, glowAt: 0, smoke: [], smokeAt: 0, stars: S.stars.map(([x, y, lv]) => ({ x, y, lv, on: Math.random() < .5, at: now() + rnd(500, 4000) })), meteor: null, meteorAt: now() + rnd(20000, 40000) };
+  const GLOW = [.55, .7, .85];
+  const paint = (t, still) => {
+    o.clearRect(0, 0, S.w, S.h);
+    o.drawImage(art.sky, 0, 0);
+    for (const s of st.stars) {                                   // twinkle: a star flips between dim and bright on its own clock
+      if (!still && t > s.at) { s.on = !s.on; s.at = t + rnd(400, 3500); }
+      o.fillStyle = s.on ? "#FFFFFF" : "#6F7BB8"; o.fillRect(s.x, s.y, 1, 1);
+      if (s.lv === 2 && s.on) { o.fillStyle = "#B4BDEA"; o.fillRect(s.x - 1, s.y, 1, 1); o.fillRect(s.x + 1, s.y, 1, 1); o.fillRect(s.x, s.y - 1, 1, 1); o.fillRect(s.x, s.y + 1, 1, 1); }
+    }
+    if (st.meteor) {                                              // a shooting star, now and then: a short streak, gone in half a second
+      const m = st.meteor, p = (t - m.t0) / 450;
+      if (p >= 1) st.meteor = null; else { const x = m.x + 70 * p, y = m.y + 28 * p; o.fillStyle = "#FFFFFF"; o.fillRect(x | 0, y | 0, 2, 1); o.fillStyle = "#B4BDEA"; o.fillRect((x - 3) | 0, (y - 1) | 0, 3, 1); o.fillRect((x - 6) | 0, (y - 2) | 0, 2, 1); }
+    }
+    o.drawImage(art.far, 0, 0);
+    o.drawImage(art["mid-" + st.light], 0, 0);
+    o.globalAlpha = GLOW[st.glow]; o.drawImage(art["tent-glow"], S.tentGlow.x, S.tentGlow.y); o.globalAlpha = 1;
+    const c = S.cats; o.drawImage(art["cats-" + st.light], st.cat * c.fw, 0, c.fw, c.fh, c.x, c.y, c.fw, c.fh);
+    const f = S.fire; o.drawImage(art.fire, st.fire * f.fw, 0, f.fw, f.fh, f.x, f.y, f.fw, f.fh);
+    for (const p of st.smoke) {                                   // smoke: light little trails that drift up, wobble and thin out
+      const life = (t - p.t0) / p.life; if (life >= 1) continue;
+      const x = p.x + Math.sin(t / 900 + p.ph) * 3 * life, y = p.y - life * p.rise;
+      o.globalAlpha = life < .33 ? .55 : life < .66 ? .35 : .18; o.fillStyle = "#B8BED0";
+      o.fillRect(x | 0, y | 0, life > .6 ? 2 : 1, p.tall ? 2 : 1);
+    }
+    o.globalAlpha = 1;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(off, 0, 0, S.w, S.h, 0, 0, S.w * k, S.h * k);
+  };
+  const step = (t) => {
+    if (t - st.fireAt > 1000 / S.fire.fps) { st.fire = (st.fire + 1) % S.fire.frames; st.fireAt = t; }
+    if (t - st.lightAt > 90) { st.light = Math.random() < .5 ? 1 : Math.random() < .5 ? 0 : 2; st.lightAt = t; }    // the flicker: three baked levels, no blending
+    if (t - st.glowAt > 800) { st.glow = (st.glow + 1) % 3; st.glowAt = t; }
+    if (t > st.catUntil) {
+      if (t > st.blinkAt) { st.cat = 2; st.catUntil = t + 180; st.blinkAt = t + rnd(2500, 7000); }
+      else if (t > st.earAt) { st.cat = 3; st.catUntil = t + 260; st.earAt = t + rnd(7000, 15000); }
+      else if (t > st.tailAt) { st.cat = 4; st.catUntil = t + 420; st.tailAt = t + rnd(5000, 11000); }
+      else { if (t - st.breathAt > 1200) { st.breath ^= 1; st.breathAt = t; } st.cat = st.breath; }
+    }
+    if (t - st.smokeAt > 380) { st.smoke.push({ x: S.smoke.x + rnd(-3, 3), y: S.smoke.y, t0: t, life: rnd(3200, 4600), rise: rnd(26, 40), ph: rnd(0, 6.28), tall: Math.random() < .3 }); st.smokeAt = t; }
+    st.smoke = st.smoke.filter((p) => t - p.t0 < p.life);
+    if (!st.meteor && t > st.meteorAt) { st.meteor = { x: rnd(40, 300), y: rnd(10, 70), t0: t }; st.meteorAt = t + rnd(25000, 50000); }
+  };
+  let running = false, raf = 0;
+  const draw = (still) => { if (!art.sky || !art.sky.complete) return; if (still || reduced) paint(now(), true); };
+  const loop = (t) => { if (!running) return; step(t); paint(t, false); raf = requestAnimationFrame(loop); };
+  const run = (on) => { if (reduced) return; if (on && !running) { running = true; raf = requestAnimationFrame(loop); } if (!on && running) { running = false; cancelAnimationFrame(raf); } };
+  document.addEventListener("visibilitychange", () => run(!document.hidden));
+  new IntersectionObserver((es) => run(es[0].isIntersecting && !document.hidden), { threshold: 0 }).observe(canvas);
+  addEventListener("resize", fit);
+
+  /* ---- the loading frame: real, and never shorter than half a second ---- */
+  const t0 = now();
+  Promise.all(loads).then(() => {
+    fit();
+    const wait = Math.max(0, 500 - (now() - t0));
+    setTimeout(() => { $("#loading").classList.add("done"); run(true); setTimeout(() => $("#loading").remove(), 400); }, reduced ? 0 : wait);
+  });
+
+  /* ---- the wipe: fade to black, jump, fade back. Reduced motion jumps. ---- */
+  const wipe = $("#wipe");
+  const goTo = (hash, slot) => {
+    const target = document.querySelector(hash); if (!target) return;
+    const land = () => { target.scrollIntoView({ block: "start" }); if (slot) { const s = $("#slot" + slot); s.classList.add("pressed"); s.querySelector("a").focus({ preventScroll: true }); setTimeout(() => s.classList.remove("pressed"), 600); } else { target.setAttribute("tabindex", "-1"); target.focus({ preventScroll: true }); } };
+    if (reduced) { land(); return; }
+    wipe.classList.remove("off"); wipe.classList.add("on");
+    setTimeout(() => { land(); wipe.classList.remove("on"); wipe.classList.add("off"); }, 260);
+  };
+
+  /* ---- the title screen: PRESS START, then the two cats talk, then the menu ---- */
+  const PAGES = [
+    ["BRIOCHE", 0, "Oh! A visitor. Pull up a log, the fire's warm."],
+    ["PEPPER", 1, "Every chat you have with Claude is a cat in our café. Busy cats work. Sleeping cats are done."],
+    ["BRIOCHE", 0, "A cat that needs you meows. Point at it and it tells you what it wants. No terminal, ever."],
+    ["PEPPER", 1, "Where would you like to go?"],
+  ];
+  const talk = $("#talk"), text = $("#text"), who = $("#who"), face = $("#face"), menu = $("#menu"), adv = $("#adv"), startRow = $("#startRow");
+  let page = -1, typing = null, started = false;
+  const CPS = 40;
+  const show = (n) => {
+    page = n; const [name, which, line] = PAGES[n];
+    who.textContent = name; face.classList.toggle("b", which === 1);
+    menu.classList.remove("on"); adv.hidden = false;
+    text.textContent = "";
+    if (reduced) { text.textContent = line; done(); return; }
+    const cur = document.createElement("span"); cur.className = "cursor";
+    const tn = document.createTextNode(""); text.append(tn, cur);
+    let i = 0;
+    typing = setInterval(() => {
+      i++; tn.nodeValue = line.slice(0, i);
+      if (i % 2 === 0) SFX.tick();
+      if (i >= line.length) { clearInterval(typing); typing = null; cur.remove(); done(); }
+    }, 1000 / CPS);
+  };
+  const done = () => { if (page === PAGES.length - 1) { adv.hidden = true; menu.classList.add("on"); menu.querySelector("a").focus({ preventScroll: true }); } };
+  const next = () => {
+    if (typing) { clearInterval(typing); typing = null; text.textContent = PAGES[page][2]; done(); return; }    // a press while it types shows the whole line
+    if (page < PAGES.length - 1) { SFX.ok(); show(page + 1); }
+  };
+  const start = () => {
+    if (started) return; started = true; SFX.ok();
+    startRow.hidden = true; talk.classList.add("on"); show(0);
+  };
+  $("#pressStart").addEventListener("click", start);
+  adv.addEventListener("click", next);
+  talk.addEventListener("click", (e) => { if (!e.target.closest("a, button")) next(); });
+  $("#skipIntro").addEventListener("click", () => { started = true; startRow.hidden = true; talk.classList.add("on"); if (typing) { clearInterval(typing); typing = null; } page = PAGES.length - 1; who.textContent = PAGES[page][0]; face.classList.add("b"); text.textContent = PAGES[page][2]; done(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+    const inMenu = document.activeElement && document.activeElement.closest("#menu");
+    if (!started && (e.key === "Enter" || e.key === " ")) { if (document.activeElement === document.body || document.activeElement === $("#pressStart")) { e.preventDefault(); start(); } return; }
+    if (started && !menu.classList.contains("on") && (e.key === "Enter" || e.key === " " || e.key === "z" || e.key === "x")) { if (!document.activeElement.closest("button:not(#adv), a")) { e.preventDefault(); next(); } return; }
+    if (inMenu && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+      e.preventDefault(); const items = [...menu.querySelectorAll("a")]; const i = items.indexOf(document.activeElement);
+      items[(i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length].focus(); SFX.move();
+    }
+  });
+  menu.addEventListener("mouseover", (e) => { const a = e.target.closest("a"); if (a && !a.classList.contains("on")) { menu.querySelectorAll("a").forEach((x) => x.classList.remove("on")); a.classList.add("on"); SFX.move(); } });
+  menu.addEventListener("focusin", (e) => { const a = e.target.closest("a"); if (a) { menu.querySelectorAll("a").forEach((x) => x.classList.remove("on")); a.classList.add("on"); } });
+  menu.addEventListener("click", (e) => { const a = e.target.closest("a"); if (!a) return; e.preventDefault(); SFX.ok(); goTo(a.getAttribute("href"), a.dataset.slot); });
+  document.querySelectorAll(".skip, footer nav a").forEach((a) => a.addEventListener("click", (e) => { const h = a.getAttribute("href"); if (h && h.startsWith("#") && h.length > 1) { e.preventDefault(); goTo(h); } }));
+  document.querySelectorAll(".btn, summary").forEach((b) => { b.addEventListener("mouseenter", SFX.move); b.addEventListener("click", SFX.ok); });
+})();
+</script>
+</body>
+</html>
