@@ -926,7 +926,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "logo":          { group: "Interface", kind: "sheet", name: "Logo", file: LIC + "ui/logo.png", size: [21, 18], what: "The brand: a cat face in a bubble." },
     "cursor":        { group: "Interface", kind: "exact", name: "Paw", file: LIC + "ui/cursor.png", size: [32, 32], hot: [9, 5], what: "The pointer: a cursor isn't scaled, so draw it at 16 and save it doubled." },
     "cursor-point":  { group: "Interface", kind: "exact", name: "Pointing paw", file: LIC + "ui/cursor-point.png", size: [32, 32], hot: [9, 3], what: "The pointer over something to click." },
-    "font":          { group: "Type", kind: "font", name: "Pixel font", file: LIC + "ui/sprout.ttf", token: "--pixel", what: "Titles, labels and buttons. Set its size under Sizes, one font pixel a screen pixel." },
+    "font":          { group: "Type", kind: "font", name: "Pixel font", file: LIC + "ui/sprout.ttf", token: "--pixel", what: "Titles, labels and buttons. Its size is under Type, Pixel font size: one font pixel a screen pixel." },
     "font-body":     { group: "Type", kind: "font", name: "Text font", file: null, token: "--body", what: "Everything you read: Nunito from Google Fonts until you give one." },
     "font-display":  { group: "Type", kind: "font", name: "Round font", file: null, token: "--display", what: "Where the pixel font has no letter: Fredoka from Google Fonts until you give one." },
     "map-panel":     { group: "Map panel", kind: "slice", fam: "mpanel", name: "Map panel", file: LIC + "pastel/panel.png", size: [300, 150], slice: [28, 28, 28, 28], scale: 0.5, what: "The camera's panel, top right." },
@@ -989,7 +989,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // pass the style when reading many, so it is read once
   const tok = (name, cs = getComputedStyle(document.documentElement)) => cs.getPropertyValue(name).trim();
   const SPR0 = JSON.parse(JSON.stringify(SPR));   // the pack's frames, for putting a cat back
-  const SKIN = { file: {}, db: {}, live: {}, problems: {}, set: new Set(), seq: 0, blobs: {}, fonts: {}, sizes: {}, standIn: {},
+  const SKIN = { file: {}, db: {}, live: {}, problems: {}, set: new Set(), seq: 0, blobs: {}, fonts: {}, faces: {}, sizes: {}, standIn: {},
     fileTokens: { light: {}, dark: {} }, dbTokens: { light: {}, dark: {} }, tokens: { light: {}, dark: {} } };
   const TOKENS0 = {};   // the café's own value of each token, read before any skin: what export and Put back start from
   { const cs = getComputedStyle(document.documentElement); for (const n of [...Object.keys(TOKENS), "--pixel", "--body", "--display"]) TOKENS0[n] = tok(n, cs); }
@@ -1029,6 +1029,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       else if (val && typeof val.hex === "string") css = val.hex.slice(0, 7);
       else if (val && Array.isArray(val.components) && (val.colorSpace || "srgb") === "srgb") css = "#" + val.components.slice(0, 3).map((c) => Math.round(Math.min(1, Math.max(0, c)) * 255).toString(16).padStart(2, "0")).join("");
       else if (val && typeof val.value === "number" && /^(px|rem)$/.test(val.unit)) css = String(+val.value.toFixed(3)) + val.unit;
+      else if (typeof val === "number" && TOKENS[n] && TOKENS[n][0] === "Type") css = String(+val.toFixed(3)) + "px";   // Figma's number variable: px
       if (tokenOk(n, css)) found[n] = css; else foreign++;
     }
     return { found, foreign };
@@ -1073,14 +1074,16 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // Is this picture right for the slot? null if it is, else why not, in her words.
   // A family member is checked against its head in the skin given (`live`; the one on screen when left out), or not at
   // all while the skin is still being measured (`false`): applySkin checks members once every head is.
-  function misfit(key, w, h, live = SKIN.live, slice = null) {
+  function misfit(key, w, h, live = SKIN.live, slice = null, frames = null) {
     const a = ART[key];
+    if (a.kind === "cat" && w % (frames || a.frames)) return "It is " + w + " pixels wide, which doesn't split into " + (frames || a.frames) + " frames.";
     if (a.kind === "slice" && !a.slice && live) {   // the button's hover, green and pink, the map's dark panel…: cut with the head's border
       const head = headOf(key), e = live[head], [hw, hh] = e ? [e.w, e.h] : ART[head].size;
       if (w !== hw || h !== hh) return "It is " + w + " × " + h + ": it shares the " + ART[head].name.toLowerCase() + "'s border, so draw it the same size, " + hw + " × " + hh + ".";
     }
     if (a.kind === "exact" && (w !== a.size[0] || h !== a.size[1])) return "It is " + w + " × " + h + ": the " + a.name.toLowerCase() + " must be " + a.size[0] + " × " + a.size[1] + (a.measured ? ", as the rooms are measured on it." : ".");
-    if (a.kind === "slice" && slice && (slice[1] + slice[3] > w || slice[0] + slice[2] > h)) return "Its border " + slice.join(" ") + " doesn't fit inside its " + w + " × " + h + ".";
+    const b = a.kind === "slice" && (slice || (a.slice && !a.scale && a.slice));   // hers, or the pack's it would be cut with
+    if (b && (b[1] + b[3] > w || b[0] + b[2] > h || !b.some(Boolean))) return "Its border " + b.join(" ") + " doesn't fit inside its " + w + " × " + h + (slice ? "." : ": give it its own.");
     if (a.kind === "sheet" && Math.abs(w / h - a.size[0] / a.size[1]) > 0.02) return "It is " + w + " × " + h + ": draw it the shape of " + a.size[0] + " × " + a.size[1] + " (any size of that shape fits).";
     return null;
   }
@@ -1095,11 +1098,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         const url = await resolved(e.src);
         if (ART[k].kind !== "font") {
           const [w, h] = SKIN.sizes[url] || (SKIN.sizes[url] = await natural(url));   // each picture is measured once
-          const why = misfit(k, w, h, false, e.slice);
+          const why = misfit(k, w, h, false, e.slice, e.frames);
           if (why) return { why };
           Object.assign(e, { w, h });
-        } else if (!SKIN.fonts["KittySkin-" + k] || SKIN.fonts["KittySkin-" + k].url !== url) {   // the fonts load together
-          const f = new FontFace("KittySkin-" + k, cssUrl(url)); await f.load(); e.face = f;
+        } else if (!SKIN.fonts["KittySkin-" + k] || SKIN.fonts["KittySkin-" + k].url !== url) {   // the fonts load together, each once
+          e.face = await (SKIN.faces[url] || (SKIN.faces[url] = new FontFace("KittySkin-" + k, cssUrl(url)).load().catch((err) => { delete SKIN.faces[url]; throw err; })));
         }
         return { e: Object.assign(e, { url }) };
       } catch (err) { return { why: ART[k].kind === "font" ? "The font couldn't be read." : "It couldn't be read (" + ((err && err.message) || "error") + ")." }; }
@@ -1137,7 +1140,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         if (a.bw) put("--" + a.fam + "-bw", "var(--" + a.fam + "-" + a.bw + ")");   // her border's box, side by side
       }
       if (a.kind === "slice" && a.scale && (e.scale || e.pixel)) {
-        put("--" + a.fam + "-k", e.scale ? e.scale + "px" : "var(--u)");
+        put("--" + a.fam + "-k", e.pixel ? "var(--u)" : e.scale + "px");   // pixel art at the art pixel, whatever scale was worked out
         if (e.pixel) put("--" + a.fam + "-render", "pixelated");
       }
       if (a.kind === "cat") {
@@ -4458,7 +4461,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const { found, foreign } = fromDTCG(j), n = Object.keys(found).length;
     if (!n) { toast(file.name + " has none of the café's tokens" + (foreign ? " (" + foreign + " of its own)." : "."), "alert"); return; }
     // what is the same as it would be anyway is taken out by editTokens: an export re-imported stays a few changes, not 56
-    await editTokens((next) => Object.assign(next[m], found), n + " " + (n === 1 ? "token" : "tokens") + " from " + file.name + " in " + (m === "light" ? "Light" : "Dark") + (foreign ? "; " + foreign + " not the café's, left out." : "."), true);
+    const was = copyTokens(), kept = Object.entries(found).filter(([t, v]) => v.toLowerCase() !== String(anyway(m, t, was)).toLowerCase()).length;
+    // run even when nothing is new: a value the same as it would be anyway takes back one of hers it matches
+    await editTokens((next) => Object.assign(next[m], found), (kept ? kept + " " + (kept === 1 ? "token" : "tokens") + " from " + file.name + " in " + (m === "light" ? "Light" : "Dark")
+      : "Nothing new in " + file.name + ": every one is already the café's" + (m === "dark" ? " or as in Light" : "")) + (foreign ? "; " + foreign + " not the café's, left out." : "."), true);
   }
   // a colour or a size, in the mode The look is on: a picker, what it colours, and Put back when it is hers
   function tokenRow(n) {

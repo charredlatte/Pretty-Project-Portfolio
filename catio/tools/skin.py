@@ -202,12 +202,14 @@ def png_size(path):
 def check(art, key, rel, was, said, where=""):
     """One drawing for one slot, checked as the page checks it: its entry for skin.json, or None and why, said."""
     a, path, name = art[key], ROOT / rel, Path(rel).name
-    entry = {k: v for k, v in was.items() if k in ("slice", "frames", "secs", "anchor", "scale", "pixel", "hot", "w", "h")}
+    auto = set(was.get("auto") or [])   # what this worked out itself last time: worked out again, never "dropped"
+    entry = {k: v for k, v in was.items() if k in ("slice", "frames", "secs", "anchor", "scale", "pixel", "hot", "w", "h") and k not in auto}
     for k, ok in SETTINGS.items():   # what the page would drop, dropped here, and said
         if k in entry and not ok(entry[k]):
             said.append(f"  {name}: its \"{k}\" ({entry[k]!r}) isn't one the page can use, so it was dropped")
             del entry[k]
     entry["file"] = rel
+    worked = []
     if a["kind"] == "font":
         if path.suffix.lower() not in FONTS:
             said.append(f"  {name}: a font slot takes .ttf, .otf, .woff or .woff2")
@@ -236,23 +238,31 @@ def check(art, key, rel, was, said, where=""):
     if a["kind"] == "slice" and "slice" in a and want and [w, h] != want and "slice" not in entry:
         if "scale" in a and not entry.get("pixel"):   # as The look does: the pack's border, scaled to her drawing
             entry["slice"] = [max(1, round(n * w / want[0])) for n in a["slice"]]
+            worked.append("slice")
             note = f" (border {' '.join(map(str, entry['slice']))}, scaled from the pack's; set \"slice\" if it isn't)"
         else:
             note = f" (another size than the pack's {want[0]} x {want[1]}: give its border, \"slice\": [t, r, b, l], or it keeps {a['slice']})"
+    if entry.get("pixel"):
+        entry.pop("scale", None)   # pixel art is drawn at the art pixel: a scale has nothing to say
     if a["kind"] == "slice" and "scale" in a and want and w != want[0] and "scale" not in entry and not entry.get("pixel"):
         entry["scale"] = round(a["scale"] * want[0] / w, 4)   # drawn smooth, shown the pack's size
+        worked.append("scale")
         note += f" (scale {entry['scale']}, smooth; \"pixel\": true instead if it is pixel art)"
-    sl = entry.get("slice") or a.get("slice")
-    if a["kind"] == "slice" and entry.get("slice") and (sl[1] + sl[3] > w or sl[0] + sl[2] > h or not any(sl)):
-        said.append(f"  {name}: its border {' '.join(map(str, sl))} doesn't fit inside {w} x {h}: left out")
+    sl = entry.get("slice") or (a.get("slice") if "scale" not in a else None)   # hers, or the pack's it would be cut with
+    if a["kind"] == "slice" and sl and (sl[1] + sl[3] > w or sl[0] + sl[2] > h or not any(sl)):
+        said.append(f"  {name}: the border {' '.join(map(str, sl))} doesn't fit inside {w} x {h}: left out" + ("" if entry.get("slice") else " (give it its own, \"slice\")"))
         return None
     if a["kind"] == "cat":
         n = entry.get("frames") or (w // h if w % h == 0 and w // h <= 64 else a.get("frames", 1))
         if w % n:
             said.append(f"  {name}: {w} px wide doesn't split into {n} frames: set \"frames\" in skin.json")
             return None
+        if "frames" not in entry:
+            worked.append("frames")
         entry["frames"] = n
         note = f" ({n} frames of {w // n} x {h})"
+    if worked:
+        entry["auto"] = worked
     said.append(f"  {name}: {key}{note}{where}")
     return entry
 
