@@ -43,6 +43,17 @@ def log(*words):
     print(time.strftime("%H:%M:%S"), *words, flush=True)
 
 
+def step(block):
+    """A tool she reached for, as the café's loading strip names it: the tool without its server's prefix, and the
+    cat and action it was about, when it has them."""
+    args = block.get("input") or {}
+    out = {"tool": str(block.get("name") or "").split("__")[-1][:60]}
+    for k in ("cat", "action"):
+        if isinstance(args.get(k), str):
+            out[k] = args[k][:60]
+    return out
+
+
 class Gateway:
     def __init__(self, url, key):
         self.url, self.key = url.rstrip("/"), key
@@ -171,10 +182,12 @@ class Runner:
             args += ["--resume", self.state["session"]]
         return args
 
-    def say(self, turn, text, done, routine):
+    def say(self, turn, text, done, routine, steps=None):
         body = {"turn": turn, "text": text[-8000:], "done": done}
         if routine:
             body["routine"] = routine
+        if steps is not None:   # what she is doing, for the café's loading strip: the last few tools she reached for
+            body["steps"] = steps[-12:]
         try:
             self.gw.post("/api/runner/say", body, 20)
         except (OSError, ValueError) as e:
@@ -201,7 +214,7 @@ class Runner:
             child.stdin.close()
         except OSError:
             pass
-        text, final, session, failed, last_sent = "", None, None, None, 0.0
+        text, final, session, failed, last_sent, steps, awake = "", None, None, None, 0.0, [], False
         for line in child.stdout:
             try:
                 ev = json.loads(line)
@@ -210,6 +223,9 @@ class Runner:
             kind = ev.get("type")
             if kind == "system" and ev.get("session_id"):
                 session = ev["session_id"]
+                if not awake:   # she is up: the café shows her thinking before her first word
+                    awake = True
+                    self.say(turn_id, "", False, routine, steps)
             elif kind == "stream_event":
                 e = ev.get("event") or {}
                 if e.get("type") == "message_start":
@@ -217,13 +233,18 @@ class Runner:
                 elif e.get("type") == "content_block_delta" and (e.get("delta") or {}).get("type") == "text_delta":
                     text += e["delta"].get("text") or ""
                     if time.time() - last_sent >= SAY_EVERY:
-                        self.say(turn_id, text, False, routine)
+                        self.say(turn_id, text, False, routine, steps)
                         last_sent = time.time()
             elif kind == "assistant":   # a whole message at a time, when there are no partial ones
-                parts = [b.get("text") or "" for b in ((ev.get("message") or {}).get("content") or []) if b.get("type") == "text"]
+                blocks = (ev.get("message") or {}).get("content") or []
+                parts = [b.get("text") or "" for b in blocks if b.get("type") == "text"]
+                tools = [step(b) for b in blocks if b.get("type") == "tool_use"]
+                steps += tools
                 if parts and not text:
                     text = "".join(parts)
-                    self.say(turn_id, text, False, routine)
+                    self.say(turn_id, text, False, routine, steps)
+                elif tools:   # each tool she reaches for is told at once, not on the text's beat
+                    self.say(turn_id, text, False, routine, steps)
             elif kind == "result":
                 session = ev.get("session_id") or session
                 if isinstance(ev.get("result"), str):

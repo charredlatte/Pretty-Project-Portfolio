@@ -37,6 +37,8 @@ sid = argv[argv.index("--resume") + 1] if "--resume" in argv else "s-" + str(int
 out({"type": "system", "subtype": "init", "session_id": sid})
 stopped = []
 signal.signal(signal.SIGINT, lambda *a: stopped.append(1))
+if "look in" in prompt.lower():   # she reaches for a tool before she answers
+    out({"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "mcp__catio__comments", "input": {"cat": "cse_1", "limit": 5}}]}})
 slow = "slowly" in prompt
 words = ["Good ", "morrow, ", "my ", "lady. "] + (["(and on) "] * 40 if slow else ["Two ", "cats ", "need ", "thee."])
 out({"type": "stream_event", "event": {"type": "message_start"}})
@@ -177,6 +179,17 @@ class Queen(unittest.TestCase):
         self.assertNotIn("--resume", calls[1]["argv"])
         self.assertEqual(calls[1]["stdin"], '[Catio] Routine "Morning round": Who needs me?')
         self.assertNotEqual(json.loads((self.home / "state.json").read_text())["session"], "s-gone")
+
+    def test_tells_the_cafe_she_is_up_and_each_tool_she_reaches_for(self):
+        self.srv.jobs.put({"notes": [{"id": "n1", "cat": "queen", "author": "owner", "text": "Look in on Praline.", "at": 1}]})
+        self.start()
+        says = self.said()
+        self.assertEqual((says[0]["text"], says[0]["done"], says[0]["steps"]), ("", False, []), "she said nothing was afoot before her first word")
+        tool = [s for s in says if s.get("steps")]
+        self.assertTrue(tool, "no step told: %r" % says)
+        self.assertEqual(tool[0]["steps"], [{"tool": "comments", "cat": "cse_1"}])
+        self.assertNotIn("steps", says[-1], "a finished turn has no steps to show")
+        self.assertEqual(says[-1]["text"], "Good morrow, my lady. Two cats need thee.")
 
     def test_a_stop_ends_the_turn_in_progress_and_keeps_what_she_said(self):
         self.srv.jobs.put({"notes": [{"id": "n1", "cat": "queen", "author": "owner", "text": "Tell me slowly.", "at": 1}]})

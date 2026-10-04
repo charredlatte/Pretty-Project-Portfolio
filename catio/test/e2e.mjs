@@ -794,8 +794,45 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await page.fill("#queenSay", "Who needs me today?");
   await page.click("#queenSend");
   await settle(page);
+  // Her ask, 4 October: a loading state like Claude's own ("Searching … 22s ›"), drawn from the games of the early
+  // 2000s she picked from the wireframes: Animal Crossing's pause while she wakes, The Sims' action queue while she
+  // works, every step when unfolded, and the RPG "more" arrow while she answers. Under the talk, on her side.
+  await check("the moment you send, she is thinking: her name on a tab, the dots and the seconds, under the talk", async () => {
+    const w = page.locator("#queenWork");
+    expect(await w.isVisible(), "no strip after Send");
+    const t = await w.innerText();
+    expect(/thinking/i.test(t) && /\d+s/.test(t), t);
+    expect((await page.locator("#queenWork .tab").innerText()).trim().length > 0, "no name on the tab");
+    expect(await page.locator("#queenLive").count() === 0, "an empty bubble before she has said a word");
+    expect(!(await page.locator("#queenFig").getAttribute("class")).includes("talking"), "talking before she has a word to say");
+    const strip = await w.boundingBox(), talk = await page.locator("#queenThread").boundingBox(), say = await page.locator("#queenSay").boundingBox();
+    expect(strip.y >= talk.y + talk.height - 2 && strip.y + strip.height <= say.y, "not under the talk: " + JSON.stringify({ strip, talk, say }));
+    expect(strip.x + strip.width > talk.x + talk.width * .6, "not on her side: " + JSON.stringify({ strip, talk }));
+  });
+  const other = await T(page, () => window.__catio.gw.find((a) => a.id !== "queen").id);
+  await T(page, (c) => window.__catio.queenSays("", false, "t9", [{ tool: "list_agents" }, { tool: "comments", cat: c }]), other);
+  await page.waitForTimeout(200);
+  await check("at work, each step she has done is a ticked tile and the one she is on is lit, in words", async () => {
+    expect(await page.locator("#queenWork .tile.done").count() === 2, "the steps done (Awake, the cats): " + await page.locator("#queenWork").innerHTML());
+    const now = await page.locator("#queenWork .tile.now").innerText();
+    expect(/reading .+'s notes/i.test(now) && !now.includes(other), now);
+    expect(/\d+s/.test(now), "no seconds: " + now);
+  });
+  await page.click("#queenWork summary");
+  await settle(page);
+  await check("unfolded, every step this turn, Awake first, each with its time", async () => {
+    const li = page.locator("#queenWork ol li");
+    expect(await li.count() === 3, await page.locator("#queenWork").innerText());
+    expect((await li.first().innerText()).includes("Awake"), await li.first().innerText());
+    expect(/looking in on the cats/i.test(await li.nth(1).innerText()), await li.nth(1).innerText());
+  });
   await T(page, () => window.__catio.queenSays("Good morrow, my lady. Two cats need ", false, "t9"));
   await page.waitForTimeout(200);
+  await check("once her words come, the lit tile says she is answering and her steps stay unfolded", async () => {
+    expect(/answering/i.test(await page.locator("#queenWork .tile.now").innerText()), await page.locator("#queenWork").innerText());
+    expect(await page.locator("#queenWork details").evaluate((d) => d.open), "the fold closed under her");
+    expect(await page.locator("#queenWork .tile.done").count() === 3, "a step was lost");
+  });
   await check("while she speaks she is animated, talking", async () => {
     expect((await page.locator("#queenFig").getAttribute("class")).includes("talking"), await page.locator("#queenFig").getAttribute("class"));
     expect((await page.locator("#queenFig").getAttribute("data-mood")) === "meow", await page.locator("#queenFig").getAttribute("data-mood"));
@@ -810,6 +847,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(me && them, "a bubble is missing");
     expect(me.x < them.x && me.x + me.width < them.x + them.width, JSON.stringify({ me, them }));
     expect(!(await page.locator("#queenFig").getAttribute("class")).includes("talking"), "still talking when done");
+    expect(!(await page.locator("#queenWork").isVisible()), "the strip outlived her answer");
   });
   await T(page, () => { for (let i = 0; i < 14; i++) window.__catio.queenSays("Line " + i + " of a long answer, my lady, for the scroll.", true, "t" + (20 + i)); });
   await page.waitForTimeout(400);
@@ -871,6 +909,54 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect((await menuText(page)).includes("Talk to her"), await menuText(page));
   });
   await check("no page errors in her scene", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+// her turn as it goes, the rest of it (4 October): a long wait gets The Sims' loading tips, Stop turns the lit tile
+// pink until she has stopped, and with her runner away there is no strip at all, only a line saying why
+{
+  const { page, ctx, errors } = await open("?via=gateway");
+  await page.clock.install();
+  await page.locator("#cats .cat.queen").dblclick();
+  await settle(page);
+  await page.fill("#queenSay", "Sort the litter box for me.");
+  await page.click("#queenSend");
+  await T(page, () => window.__catio.queenSays("", false, "t1", [{ tool: "house_rules" }]));
+  await settle(page);
+  await check("a short wait has no tip", async () => expect(!(await page.locator("#queenWork .qtip").isVisible()), "a tip too soon"));
+  await page.clock.fastForward(60e3);
+  await check("a long wait gets a loading tip under the queue, and the seconds turn to minutes", async () => {
+    expect((await page.locator("#queenWork .qtip").innerText()).endsWith("\u2026"), await page.locator("#queenWork").innerText());
+    expect(/1:0\d/.test(await page.locator("#queenWork .tile.now").innerText()), await page.locator("#queenWork .tile.now").innerText());
+  });
+  await page.click("#queenStop");
+  await settle(page);
+  await check("Stop turns the step she is on to stopping, and stays pressed until she has", async () => {
+    expect(await page.locator("#queenWork .tile.now.stop").count() === 1, await page.locator("#queenWork").innerHTML());
+    expect(/stopping/i.test(await page.locator("#queenWork .tile.now").innerText()), await page.locator("#queenWork").innerText());
+    expect(await page.locator("#queenStop").isDisabled(), "Stop can be pressed twice");
+  });
+  await T(page, () => window.__catio.queenSays("Stopped there, my lady.", true, "t1"));
+  await settle(page);
+  await check("stopped, the strip is gone and Stop is free again", async () => {
+    expect(!(await page.locator("#queenWork").isVisible()), "the strip stayed");
+    expect(!(await page.locator("#queenStop").isDisabled()), "Stop stuck pressed");
+  });
+  await check("no page errors while she works", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+{
+  const { page, ctx, errors } = await open("?via=gateway&queen=away");
+  await page.locator("#cats .cat.queen").dblclick();
+  await settle(page);
+  await page.fill("#queenSay", "Are you there?");
+  await page.click("#queenSend");
+  await settle(page);
+  await check("with her runner away, your words wait with one line saying why, and nothing ticks", async () => {
+    expect(/asleep/i.test(await page.locator("#queenWork").innerText()), await page.locator("#queenWork").innerText());
+    expect(await page.locator("#queenWork .tile, #queenWork .qdots, #queenWork time").count() === 0, "a working strip for a queen who is asleep");
+    expect(!(await page.locator("#queenStop").isVisible()), "Stop with nothing to stop");
+  });
+  await check("no page errors with her away", async () => expect(errors.length === 0, errors.join("; ")));
   await ctx.close();
 }
 // her quest log (3 October 2026: "where do I take the litter box quiz in the cafe UI?", then the queen's quest log, the

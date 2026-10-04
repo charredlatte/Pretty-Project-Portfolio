@@ -408,6 +408,12 @@ export class House extends DurableObject {
 		const done = m.done === true;
 		const routine = m.routine && typeof m.routine === "object" && m.routine.id
 			? { id: String(m.routine.id).slice(0, 100), name: String(m.routine.name || "").slice(0, 100) } : null;
+		// what she is doing, for the café's loading strip: the last few tools she reached for, passed on and never kept
+		const steps = !done && Array.isArray(m.steps) ? m.steps.slice(-12).filter((s) => s && typeof s.tool === "string").map((s) => {
+			const o = { tool: s.tool.slice(0, 60) };
+			for (const k of ["cat", "action"]) if (typeof s[k] === "string") o[k] = s[k].slice(0, 60);
+			return o;
+		}) : undefined;
 		const changed = this.presence(done ? "done" : "busy");
 		let id = null;
 		if (done && text.trim()) {
@@ -415,7 +421,7 @@ export class House extends DurableObject {
 			this.sql.exec("INSERT INTO notes (id, cat, author, text, at, routine) VALUES (?, ?, ?, ?, ?, ?)", id, QUEEN, QUEEN, text, this.stamp(),
 				routine ? JSON.stringify(routine) : null);
 		}
-		this.tell({ type: "queen", turn: String(m.turn || "").slice(0, 60), text, done, routine, id });
+		this.tell({ type: "queen", turn: String(m.turn || "").slice(0, 60), text, done, routine, id, steps });
 		if (changed || id) this.tell({ type: "agents" });
 		return { ok: true, id };
 	}
