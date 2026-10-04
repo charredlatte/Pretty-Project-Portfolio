@@ -1114,7 +1114,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // A family member is checked against its head in the skin given (`live`; the one on screen when left out), or not at
   // all while the skin is still being measured (`false`): applySkin checks members once every head is.
   // `picking`: a file just chosen in The look, whose form will ask for its frames and border, so those aren't held against it yet
-  // a cat sheet's frames: what its entry says, else square frames when it splits into them (as skin.py reads it), else the pack's
+  // a cat sheet's frames: what its entry says, else square frames when it splits into them (as skin.py reads it), else
+  // none: misfit() asks for them rather than guess
   // a smooth slot's piece starts as pixel art when it is drawn nearer the art pixel than the screen: a map piece
   // shown 135 px wide is pixel art at about 68 and smooth at 135 or more; a sheet, at half the pack's width or less
   const PIXELISH = [0.75, 0.5];   // of the width a map piece is shown, of a sheet's pack width (tools/skin.py reads these)
@@ -1212,7 +1213,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (a.kind === "slice" && a.slice) {
         if (e.slice) e.slice.forEach((n, i) => put("--" + a.fam + "-" + "trbl"[i], String(n)));
         // hers, with her border or the pack's: its own box side by side, and drawn at its own widths
-        if (a.bw) put("--" + a.fam + "-bw", "var(--" + a.fam + "-" + a.bw + ")");
+        // (a smooth map piece only once it is cut or shown other than the pack's: at the pack's own border its box stays the pack's)
+        if (a.bw && (!a.scale || e.slice || e.scale || e.pixel)) put("--" + a.fam + "-bw", "var(--" + a.fam + "-" + a.bw + ")");
         if (a.iw) put("--" + a.fam + "-iw", "var(--" + a.fam + "-" + a.iw + ")");
       }
       if (a.kind === "slice" && a.scale && (e.scale || e.pixel)) {
@@ -2462,7 +2464,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         return mi("Project maps", () => { hideMenu(); MAPS.visit++; try { openMaps(); } catch (e) { toast("A project map couldn't be drawn (" + (e && e.message || "error") + ").", "alert"); } }, { aside: shown || "" });
       })(),
       mi("Edit rooms", () => { hideMenu(); openRooms(curRoom()); }),
-      (() => { const n = Object.keys(SKIN.db).length + new Set([...Object.keys(SKIN.dbTokens.light), ...Object.keys(SKIN.dbTokens.dark)]).size; return mi("The look", () => { hideMenu(); openArt(); }, { aside: n ? n + " yours" : "" }); })(),
+      (() => { const n = Object.values(SKIN.live).filter((e) => e.from === "db").length + new Set([...Object.keys(SKIN.dbTokens.light), ...Object.keys(SKIN.dbTokens.dark)]).size; return mi("The look", () => { hideMenu(); openArt(); }, { aside: n ? n + " yours" : "" }); })(),
       S.db && mi("Set up again…", () => { hideMenu(); openSetup(true); }),
       (VIEW.attic || S.showOld) && mi(S.showOld ? "Send them back up" : "Bring them down", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }),
       S.mcp && mi("Check now", () => watch(true)),
@@ -4815,6 +4817,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (doc.pixel && pixelLoud(a, doc.slice || a.slice)) { toast(LOUD(doc.slice || a.slice), "alert"); (bd || px).focus(); return; }
       if (frames) {
         doc.frames = Number(frames.value); doc.secs = Number(secs.value);
+        if (!frames.value.trim()) { toast("Its frames aren't square: say how many there are.", "alert"); frames.focus(); return; }
         if (!Number.isInteger(doc.frames) || doc.frames < 1 || doc.frames > 64 || p.w % doc.frames) { toast("The frames must split its " + p.w + " pixels evenly.", "alert"); frames.focus(); return; }
         if (!(doc.secs >= 0.1 && doc.secs <= 20)) { toast("A loop takes between 0.1 and 20 seconds.", "alert"); secs.focus(); return; }
       }

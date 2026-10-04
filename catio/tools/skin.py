@@ -307,7 +307,8 @@ def check(art, key, rel, was, said, where="", filled=None):
     if a["kind"] == "cat":
         # square frames are worked out; a count an earlier run guessed for frames that aren't square is kept as hers,
         # so a drawing once used isn't dropped now that nothing is guessed
-        kept = was.get("frames") if isinstance(was.get("frames"), int) and not isinstance(was.get("frames"), bool) else None
+        f0 = was.get("frames")
+        kept = f0 if SETTINGS["frames"](f0) and [was.get("w"), was.get("h")] == [w, h] else None   # a count the page takes, for this very drawing
         n = entry.get("frames") or (w // h if w % h == 0 and w // h <= 64 else kept)
         if not n:   # the page's framesOf(): not guessed, or her cat would be cut in pieces
             said.append(f"  {name}: its frames aren't square ({w} x {h}): set \"frames\" in skin.json")

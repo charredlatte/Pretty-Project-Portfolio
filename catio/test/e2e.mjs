@@ -2973,13 +2973,17 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
   await check("an address that climbs out of art/ in disguise is refused, and a cat whose frames aren't square is asked for them", async () => {
     await page.evaluate(() => { window.__catio.put("skin/panel", { src: "art/%2e%2e/%2e%2e/files/x", at: 1 }); window.__catio.put("skin/cat-meow", { src: "art/licensed/ui/logo.png", at: 1 }); });
     await page.waitForTimeout(700);
-    expect(!(await rootVar("--art-panel")).includes("%2e"), await rootVar("--art-panel"));
-    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
-    const row = await page.locator("#artDlg li[data-slot='cat-meow']").textContent();
-    expect(/frames aren't square/.test(row), row);
-    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
-    await page.evaluate(() => { window.__catio.drop("skin/panel"); window.__catio.drop("skin/cat-meow"); });
-    await page.waitForTimeout(500);
+    try {
+      await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+      // refused as an address, never even fetched: not "couldn't be read", which is what a fetched one that failed says
+      const panel = await page.locator("#artDlg li[data-slot='panel']").textContent();
+      expect(/isn't a file the café can read/.test(panel), panel);
+      const row = await page.locator("#artDlg li[data-slot='cat-meow']").textContent();
+      expect(/frames aren't square/.test(row), row);
+    } finally {
+      await page.evaluate(() => { const d = document.getElementById("artDlg"); if (d.open) d.close(); window.__catio.drop("skin/panel"); window.__catio.drop("skin/cat-meow"); });
+      await page.waitForTimeout(500);
+    }
   });
   await check("a project map's dots outside its eight neighbourhoods are the rest's grey", async () => {
     await page.evaluate(() => window.__catio.put("graphs/grey-test", { repo: "example/grey-test", at: Date.now(), nodes: 3, edges: 1, communities: 1, gods: [], groups: [{ name: "One", size: 2 }], surprises: [], questions: [],
