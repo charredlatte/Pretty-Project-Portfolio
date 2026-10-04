@@ -214,6 +214,9 @@ The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.
 - **Open source, with a paywall on the hosted café and the art** (3 October): the gateway's code "is open source for
   anyone with GitHub to use" (AGPL-3.0, her choice); "certain features should stay behind the paywall like certain
   breeds of cats (or all custom assets)"; the Buy Me a Coffee and Ulule links in the README, to help with crowdfunding.
+- **Set up the Buy Me a Coffee and Ulule accounts** (4 October). The accounts are hers to open (her identity, IBAN and
+  ID check); `docs/kittychat-shop/support-pages.md` holds every step and every line to paste, and why neither page may
+  show the café's current art.
 
 ## The queen's quest log (3 October)
 
