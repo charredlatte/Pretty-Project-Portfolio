@@ -1215,6 +1215,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       // back into the pack's
       for (const m of Object.keys(ART)) if (ART[m].fam === a.fam && m !== h && !live[m]) { put("--art-" + m, cssUrl(e.url)); standIn[m] = h; }
     }
+    // the pack's faces sit a pixel inside each 32 px cell, so their box is cut a pixel in; hers fill their cells: shown whole
+    if (live.faces) css.push(".face-ico { background-position: calc(var(--f) * -30px) 0; background-size: 180px 30px; }");
     // her plain button standing in for the green or the pink one keeps its frame, but not its face: the go-ahead and the
     // letting-go keep their colours (--go, --letgo) until she draws them
     if (standIn["button-green"]) css.push('.btn.green, .menu .moods .btn[aria-pressed="true"] { border-image-slice: var(--btn-s); }');
@@ -4567,8 +4569,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     catch (e) {
       if (e && e.code === "declined") return;
       if (e && e.code === "rate_limited") { toast("A save is already open: finish it first.", "alert"); return; }
-      // the permission missing: the browser's own download, below; anything else is said as it is
-      if (!(e && ["capability_disabled", "capability_removed", "not_granted"].includes(e.code))) { toast("Couldn't save " + name + " (" + ((e && (e.code || e.message)) || "error") + ").", "alert"); return; }
+      // a file the save itself refused is said as it is; any other code (no permission, unavailable here, one not known
+      // yet) falls back to the browser's own download, below
+      if (e && ["too_large", "bad_request", "invalid_request"].includes(e.code)) { toast("Couldn't save " + name + " (" + e.code + ").", "alert"); return; }
     }
     const a = el("a"); a.href = URL.createObjectURL(new Blob([text], { type: "application/design-tokens+json" })); a.download = name;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);

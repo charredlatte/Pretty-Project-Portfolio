@@ -2733,6 +2733,15 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     await page.evaluate(() => { const st = window.__catio.store; delete st["skin/button"]; window.__catio.put("skin/zz", {}); delete st["skin/zz"]; });
     await page.waitForTimeout(500);
   });
+  await check("faces of her own fill their cells: each mood face is shown whole, not cut a pixel in as the pack's are", async () => {
+    const box = () => page.evaluate(() => { const b = document.createElement("span"); b.className = "face-ico"; document.body.appendChild(b); const cs = getComputedStyle(b); const r = cs.backgroundSize + " " + cs.backgroundPosition; b.remove(); return r; });
+    expect((await box()) === "192px 32px -97px -1px", await box());
+    await page.evaluate(() => window.__catio.put("skin/faces", { src: "art/licensed/ui/faces.png", at: 1 }));
+    await page.waitForTimeout(600);
+    expect((await box()) === "180px 30px -90px 0px", await box());
+    await page.evaluate(() => { delete window.__catio.store["skin/faces"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(500);
+  });
   await check("a project map's dots outside its eight neighbourhoods are the rest's grey", async () => {
     await page.evaluate(() => window.__catio.put("graphs/grey-test", { repo: "example/grey-test", at: Date.now(), nodes: 3, edges: 1, communities: 1, gods: [], groups: [{ name: "One", size: 2 }], surprises: [], questions: [],
       map: { n: [{ t: "A", g: 0, d: 3, x: 50, y: 50 }, { t: "B", g: -1, d: 2, x: 150, y: 80 }, { t: "C", g: 11, d: 1, x: 250, y: 120 }], l: [0, 1] } }));
