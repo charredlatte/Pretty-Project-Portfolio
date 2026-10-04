@@ -1063,8 +1063,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (!safeSrc(e.src)) return null;
     const out = { src: e.src, w: num(v.w, 1, 8192), h: num(v.h, 1, 8192), at: num(v.at, 0, 1e14), asset: typeof v.asset === "string" ? v.asset : null, name: typeof v.name === "string" ? v.name.slice(0, 120) : "" };
     const member = !a.slice && a.fam;   // a family member is cut with its head's border: one of its own is never used, so never held against it
-    if (!member && Array.isArray(v.slice) && v.slice.length === 4 && v.slice.every((n) => num(n, 0, a.scale ? 256 : 64) !== null && Number.isInteger(n))) out.slice = v.slice.slice();
-    else if (!member && typeof v === "object" && v.slice != null) out.bad = "Its border isn't four whole numbers from 0 to " + (a.scale ? 256 : 64) + ".";   // refused, not cut with the pack's
+    const cut = a.kind === "slice" && !member;   // only a 9-slice of its own is cut with a border: anywhere else one is never read
+    if (cut && Array.isArray(v.slice) && v.slice.length === 4 && v.slice.every((n) => num(n, 0, a.scale ? 256 : 64) !== null && Number.isInteger(n))) out.slice = v.slice.slice();
+    else if (cut && typeof v === "object" && v.slice != null) out.bad = "Its border isn't four whole numbers from 0 to " + (a.scale ? 256 : 64) + ".";   // refused, not cut with the pack's
     if (num(v.scale, 0.001, 64) !== null) out.scale = v.scale;
     if (v.pixel === true) out.pixel = true;
     if (num(v.frames, 1, 64) !== null && Number.isInteger(v.frames)) out.frames = v.frames;
@@ -1116,6 +1117,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const { slice = null, frames = null, hot = null, bad = null } = e || {};
     const a = ART[key];
     if (bad) return bad;
+    if (!(w > 0 && h > 0)) return "It has no size the browser can read: save it as a PNG.";   // an SVG with none, say
     if (a.hot && hot && (hot[0] >= w || hot[1] >= h)) return "Its tip " + hot.join(" ") + " is outside its " + w + " × " + h + ".";
     if (a.kind === "cat" && !picking && w % framesOf(a, { frames }, w, h)) return "It is " + w + " pixels wide, which doesn't split into " + framesOf(a, { frames }, w, h) + " frames.";
     if (a.kind === "slice" && !a.slice && live) {   // the button's hover, green and pink, the map's dark panel…: cut with the head's border
@@ -2501,7 +2503,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // anyone else's copy, draws the cabin and no cats at all, and used to say nothing about it.
   // Ask the browser for one of them and, if it isn't there, tell the viewer how to put it right.
   function checkArt() {
-    const packs = Object.keys(ART).filter((k) => !SKIN.live[k] && ART[k].file && ART[k].file.startsWith(LIC) && ART[k].kind !== "font");
+    const packs = Object.keys(ART).filter((k) => !SKIN.live[k] && !(SKIN.standIn && SKIN.standIn[k]) && ART[k].file && ART[k].file.startsWith(LIC) && ART[k].kind !== "font");
     // the house, a piece of each sheet the pack's cats still draw from (two moods can share one), and one more pack piece
     const cats = Object.keys(ART).filter((k) => ART[k].kind === "cat" && packs.includes(k));
     const sheets = [...new Map(cats.map((k) => [ART[k].file, k])).values()];
@@ -2653,7 +2655,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     // her own design: one document a slot, and skin/theme for the tokens, as The look writes them, drawn as they land
     db.collection("skin").onSnapshot((snap) => {
       const out = {}, theme = snap.docs.find((d) => d.id === "theme"), tokens = modeTokens(theme && theme.data());
-      SKIN.dbIds = snap.docs.map((d) => d.id).filter((id) => id !== "theme");   // every one, a refused or unknown one too: Put everything back takes them all
+      SKIN.dbIds = snap.docs.map((d) => d.id).filter((id) => id !== "theme"); SKIN.hasTheme = !!theme;   // every one, a refused or unknown one too: Put everything back takes them all
       SKIN.dbAssets = Object.fromEntries(snap.docs.map((d) => [d.id, d.data() && d.data().asset]).filter(([, a]) => typeof a === "string"));   // and their files, so a refused one's goes too
       for (const d of snap.docs) { const e = skinEntry(d.id, d.data()); if (e) out[d.id] = e; }
       if (sameData(out, SKIN.db) && sameData(tokens, SKIN.dbTokens)) return;   // what she just saved, coming back
@@ -4513,7 +4515,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const box = el("div", "dlg");
     const h = el("h2", null, "The look"); h.id = "artTitle";
     const keptTokens = Object.keys(SKIN.dbTokens.light).length + Object.keys(SKIN.dbTokens.dark).length, keptSlots = [...new Set([...Object.keys(SKIN.db), ...(SKIN.dbIds || [])])];
-    const mine = keptTokens + keptSlots.length;   // what is kept, used or refused: all of it goes back
+    const mine = keptTokens + keptSlots.length + (SKIN.hasTheme ? 1 : 0);   // what is kept, used or refused: all of it goes back
     box.append(h, el("p", "note", "The whole design is yours to change: every colour, font, size and piece of art. Change one and the whole café follows. Draw at the size shown; docs/drawing-plan.md lists them all."));
     box.appendChild(tokensBar());
     const groups = ["Colours", "Type", "Cats", "The house", "Interface", "Map panel", "Map colours"];
@@ -4533,7 +4535,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       const all = el("button", "btn pink", "Put everything back"); all.type = "button"; all.id = "artResetAll";
       all.addEventListener("click", async () => {
         const slots = [...new Set([...Object.keys(SKIN.db), ...(SKIN.dbIds || [])])];   // as they are now, not as the card was drawn
-        if (keptTokens) await saveTokens({ light: {}, dark: {} }, slots.length ? undefined : "Every colour and size is the café's again.");
+        if (keptTokens || SKIN.hasTheme) await saveTokens({ light: {}, dark: {} }, slots.length ? undefined : "Every colour and size is the café's again.");   // a theme of refused values goes too
         if (slots.length) await putBack(slots);
         const folder = Object.keys(SKIN.file).length + Object.keys(SKIN.fileTokens.light).length + Object.keys(SKIN.fileTokens.dark).length;
         if (folder) toast("What you set here is the café's again. " + folder + " from art/skin.json stay: they're in the folder.");
@@ -4685,7 +4687,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const stand = !e && SKIN.standIn && SKIN.standIn[k];
     const from = e ? (e.from === "db" ? "Yours" : "From art/skin.json") : stand ? "Your " + ART[stand].name.toLowerCase() + " stands in until you draw this one" : a.file ? "The pack's" : "None yet";
     txt.appendChild(el("span", "from" + (e || stand ? " mine" : ""), from));
-    if (SKIN.problems[k]) txt.appendChild(el("span", "problem", "Yours isn't used: " + SKIN.problems[k]));
+    const unread = !SKIN.db[k] && (SKIN.dbIds || []).includes(k);   // kept, but not a piece the page can read at all
+    const why = SKIN.problems[k] || (unread ? "It isn't a file the café can read (its address is refused)." : null);
+    if (why) txt.appendChild(el("span", "problem", "Yours isn't used: " + why));
     const acts = el("div", "acts");
     if (S.assets) {
       const input = el("input"); input.type = "file"; input.hidden = true; input.id = "artFile-" + k;
@@ -4694,7 +4698,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       const rp = el("button", "btn tiny", "Replace…"); rp.type = "button"; rp.addEventListener("click", () => input.click());
       acts.append(input, rp);
     }
-    if (S.db && SKIN.db[k]) { const pb = el("button", "btn tiny", "Put back"); pb.type = "button"; pb.addEventListener("click", () => putBack([k])); acts.appendChild(pb); }
+    if (S.db && (SKIN.db[k] || unread)) { const pb = el("button", "btn tiny", "Put back"); pb.type = "button"; pb.addEventListener("click", () => putBack([k])); acts.appendChild(pb); }
     li.append(artPic(k), txt, acts);
     if (ARTPICK[k]) li.appendChild(artForm(k));
     return li;

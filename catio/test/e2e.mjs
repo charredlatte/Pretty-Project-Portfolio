@@ -2804,6 +2804,18 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     await page.evaluate(() => window.__catio.drop("skin/map-button"));
     await page.waitForTimeout(500);
   });
+  await check("a piece of hers the café can't read at all says so on its row, with Put back; colours it can't take go with Put everything back", async () => {
+    await page.evaluate(() => { window.__catio.put("skin/panel", { src: "https://example.com/panel.png", at: 1 }); window.__catio.put("skin/theme", { tokens: { "--ink": "red" }, at: 1 }); });
+    await page.waitForTimeout(600);
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    await page.locator("#artDlg details[data-group='Interface'] > summary").click();
+    const row = await page.locator("#artDlg li[data-slot='panel']").textContent();
+    expect(/isn't a file the café can read/.test(row) && /Put back/.test(row), row);
+    await page.click("#artResetAll"); await page.waitForTimeout(800);
+    const left = await page.evaluate(() => Object.keys(window.__catio.store).filter((p) => p.startsWith("skin/")));
+    expect(!left.length, left.join(" "));
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
   await check("a project map's dots outside its eight neighbourhoods are the rest's grey", async () => {
     await page.evaluate(() => window.__catio.put("graphs/grey-test", { repo: "example/grey-test", at: Date.now(), nodes: 3, edges: 1, communities: 1, gods: [], groups: [{ name: "One", size: 2 }], surprises: [], questions: [],
       map: { n: [{ t: "A", g: 0, d: 3, x: 50, y: 50 }, { t: "B", g: -1, d: 2, x: 150, y: 80 }, { t: "C", g: 11, d: 1, x: 250, y: 120 }], l: [0, 1] } }));
