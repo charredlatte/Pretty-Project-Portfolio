@@ -67,7 +67,8 @@
     return q;
   };
   const db = Object.freeze({ doc: docRef, collection: collRef });
-  T.put = (path, d) => { T.store[path] = clone(d); notify(path); };   // someone else wrote it: a session's reply, Claude's seed
+  T.put = (path, d) => { T.store[path] = clone(d); notify(path); };
+  T.drop = (path) => { delete T.store[path]; notify(path); };   // someone else deleted it   // someone else wrote it: a session's reply, Claude's seed
 
   T.sessions = [
     session("blocked1", "Shop about page", "montfortoise-shopify", "BLOCKED", "IDLE", 2 * H, { status_category: "need_input", needs_action: "review the French text" }),

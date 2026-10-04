@@ -2772,6 +2772,20 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     await page.evaluate(() => { delete window.__catio.store["skin/map-panel-dark"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
     await page.waitForTimeout(500);
   });
+  await check("the thickest frame a skin may give still leaves the house the middle of the screen, drawn the right way round", async () => {
+    const kept = await page.evaluate(() => window.__catio.store["skin/theme"]);
+    // on a phone, 390 px wide: a 64-pixel border at 4 px an art pixel would be 264 px a side
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => { window.__catio.store["skin/panel"] = { src: "art/licensed/house.png", slice: [64, 64, 64, 64], at: 1 }; window.__catio.put("skin/theme", { tokens: { "--u-phone": "4px" }, at: 10 }); });
+    await page.waitForTimeout(900);
+    await page.keyboard.press("0"); await page.waitForTimeout(400);
+    const c = await cam(page);
+    expect(c.s > 0.05, JSON.stringify(c));   // a scale at or under nothing draws the house mirrored, or not at all
+    await page.evaluate((t) => { const st = window.__catio.store; delete st["skin/panel"]; if (t) window.__catio.put("skin/theme", t); else window.__catio.drop("skin/theme"); }, kept);
+    await page.waitForTimeout(800);
+    await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(400);
+    await page.keyboard.press("0"); await page.waitForTimeout(300);
+  });
   await check("the logo is drawn at the art pixel, so it grows and shrinks with her --u-desk", async () => {
     const logo = () => page.evaluate(() => { const r = document.querySelector("#houseBtn .logo").getBoundingClientRect(); return r.width + "x" + r.height; });
     expect((await logo()) === "42x36", await logo());

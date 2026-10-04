@@ -95,7 +95,7 @@ for (const name of names) {
     console.log(join(out, name + ".png"));
     await page.evaluate(() => document.getElementById("artDlg").close());
     if (name === "art-swap") {   // the looks after it see the café as it is, not this skin
-      await page.evaluate(() => { const st = window.__catio.store; for (const k of Object.keys(st)) if (k.startsWith("skin/")) delete st[k]; window.__catio.put("skin/zz", {}); delete st["skin/zz"]; });
+      await page.evaluate(() => { for (const k of Object.keys(window.__catio.store)) if (k.startsWith("skin/")) window.__catio.drop(k); });
       await page.waitForTimeout(800);
     }
     continue;

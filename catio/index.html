@@ -1061,13 +1061,13 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const e = typeof v === "string" ? { src: v } : v && typeof v === "object" ? { src: v.src || v.file } : {};
     if (!safeSrc(e.src)) return null;
     const out = { src: e.src, w: num(v.w, 1, 8192), h: num(v.h, 1, 8192), at: num(v.at, 0, 1e14), asset: typeof v.asset === "string" ? v.asset : null, name: typeof v.name === "string" ? v.name.slice(0, 120) : "" };
-    if (!a.slice && a.fam) {}   // a family member is cut with its head's border: one of its own is never used, so never held against it
-    else if (Array.isArray(v.slice) && v.slice.length === 4 && v.slice.every((n) => num(n, 0, a.scale ? 256 : 64) !== null && Number.isInteger(n))) out.slice = v.slice.slice();
-    else if (typeof v === "object" && v.slice != null) out.bad = "Its border isn't four whole numbers from 0 to " + (a.scale ? 256 : 64) + ".";   // refused, not cut with the pack's
+    const member = !a.slice && a.fam;   // a family member is cut with its head's border: one of its own is never used, so never held against it
+    if (!member && Array.isArray(v.slice) && v.slice.length === 4 && v.slice.every((n) => num(n, 0, a.scale ? 256 : 64) !== null && Number.isInteger(n))) out.slice = v.slice.slice();
+    else if (!member && typeof v === "object" && v.slice != null) out.bad = "Its border isn't four whole numbers from 0 to " + (a.scale ? 256 : 64) + ".";   // refused, not cut with the pack's
     if (num(v.scale, 0.001, 64) !== null) out.scale = v.scale;
     if (v.pixel === true) out.pixel = true;
     if (num(v.frames, 1, 64) !== null && Number.isInteger(v.frames)) out.frames = v.frames;
-    else if (typeof v === "object" && v.frames != null) out.bad = "Its frames aren't a whole number from 1 to 64.";
+    else if (a.kind === "cat" && typeof v === "object" && v.frames != null) out.bad = "Its frames aren't a whole number from 1 to 64.";   // a cat's alone: no other slot reads them
     if (num(v.secs, 0.1, 20) !== null) out.secs = v.secs;
     if (Array.isArray(v.anchor) && v.anchor.length === 2 && v.anchor.every((n) => num(n, 0, 1024) !== null)) out.anchor = v.anchor.slice();
     if (Array.isArray(v.hot) && v.hot.length === 2 && v.hot.every((n) => Number.isInteger(n) && n >= 0 && n < 128)) out.hot = v.hot.slice();
@@ -1956,7 +1956,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   let MARGIN = null;
   function frameWidth() {
     const cs = getComputedStyle(document.querySelector(".trim"));
-    const m = Math.max(...["Top", "Right", "Bottom", "Left"].map((side) => parseFloat(cs["border" + side + "Width"]) || 0)) + 8, was = MARGIN;
+    const st = $("stage"), most = Math.floor(Math.min(st.clientWidth, st.clientHeight) / 4) || Infinity;   // however thick her frame, the house keeps the middle half
+    const m = Math.min(most, Math.max(...["Top", "Right", "Bottom", "Left"].map((side) => parseFloat(cs["border" + side + "Width"]) || 0)) + 8), was = MARGIN;
     MARGIN = m;
     return was !== null && was !== m;   // it changed
   }
@@ -4786,7 +4787,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         const up = await S.assets.upload(p.file, { type: (a.kind === "font" && p.fontType) || p.file.type || undefined });
         doc.asset = up.id;
         doc.src = /^\/files\/|^local:/.test(up.url || "") ? up.url : "/_blob/" + up.id;   // claude.ai serves an asset at /_blob/<id> in every view
-        const old = SKIN.db[k] && SKIN.db[k].asset;
+        const old = (SKIN.db[k] && SKIN.db[k].asset) || (SKIN.dbAssets || {})[k];   // a refused one's file goes too
         if (await save((db) => db.doc("skin/" + k).set(doc), a.name + ": yours now.")) {
           p.kept = true; URL.revokeObjectURL(p.url); if (ARTPICK[k] === p) delete ARTPICK[k];   // a newer pick for the slot stays
           if (old && old !== up.id) S.assets.delete(old).catch(() => {});
