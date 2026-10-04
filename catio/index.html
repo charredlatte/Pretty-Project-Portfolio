@@ -192,8 +192,8 @@ a { color: var(--ink); }
 .prop { position: absolute; pointer-events: none; }
 /* a piece of furniture: one cell of an atlas, at two screen pixels an art pixel, in the cats' z-space */
 .piece { position: absolute; pointer-events: none; image-rendering: pixelated; background-repeat: no-repeat; }
-/* rooms, cabinets and cats light up with the pack's white selection brackets: a room under the pointer,
-   with keyboard focus, or whose menu is open. A room's brackets keep one size on screen at any zoom
+/* rooms light up with the pack's white selection brackets: a room under the pointer, with keyboard focus, or
+   whose menu is open (cats and cabinets are outlined instead, below). A room's brackets keep one size on screen at any zoom
    (--cs is the camera scale). */
 .roomhit, .cabinet, .cat { position: absolute; background: transparent; border: 0; padding: 0; cursor: var(--point); }
 .roomhit { --by: calc(var(--u) * 9 / var(--cs, 1)); --bx: calc(var(--u) * 8 / var(--cs, 1)); }
@@ -201,8 +201,13 @@ a { color: var(--ink); }
   border-image: url(art/licensed/ui/corners.png) 9 8 / var(--by) var(--bx) stretch; }
 .roomhit.here { cursor: var(--paw); background: transparent; border: 0; }
 .roomhit.here:focus-visible { border-style: solid; }
-.cabinet:hover, .cabinet:focus-visible, .cat:focus-visible { outline: 0; border: 9px solid transparent; border-image: url(art/licensed/ui/corners.png) 9 8 / 9px 8px stretch; border-image-outset: 5px; }
-.cat:focus-visible { border-width: 0; }
+.cat:focus-visible { outline: 0; }
+.cabinet:focus-visible { outline: 0; border: 9px solid transparent; border-image: url(art/licensed/ui/corners.png) 9 8 / 9px 8px stretch; border-image-outset: 5px; }
+/* a cat, the queen, a pile, a filing cabinet or the litter box under the pointer (or with its menu open, or keyboard
+   focus) is outlined around its own shape, not boxed: one art pixel of the pack's white, traced from the sprite's
+   pixels (her ask, 4 October: "it outlines the object boundaries of the 2D asset") */
+.cat.hot, .cat.lit, .cat:focus-visible, .piece.hot { --ol: #FFF8E4;
+  filter: drop-shadow(2px 0 0 var(--ol)) drop-shadow(-2px 0 0 var(--ol)) drop-shadow(0 2px 0 var(--ol)) drop-shadow(0 -2px 0 var(--ol)); }
 /* a cat in the line is close to the next: only its own body answers the pointer */
 .cat[data-line] { clip-path: inset(0 14px 0 6px); }
 .spr { display: inline-block; vertical-align: bottom; filter: var(--tint, none); image-rendering: pixelated; background-repeat: no-repeat; }
@@ -1054,6 +1059,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       b.tabIndex = -1;   // the room's menu has Files
       b.dataset.room = k; b.dataset.floor = levelOf(k);
       b.setAttribute("aria-label", "Filing cabinet in the " + GEOM[k].name);
+      b.piece = $("props").querySelector('.piece[data-room="' + k + '"]:is([data-piece="filing_cabinet"], [data-piece="catio_chest"])');
       Object.assign(b.style, { left: box[0] * 2 + "px", top: box[1] * 2 + "px", width: box[2] * 2 + "px", height: box[3] * 2 + "px", zIndex: zOf(k) ? zOf(k) - 40 : "" });
       b.addEventListener("click", (e) => { e.stopPropagation(); hideMenu(); openCabinet(k); });
       hoverable(b, "room", k);
@@ -1068,6 +1074,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
       b.type = "button"; b.tabIndex = -1;   // the House menu has Homework, and the library's has The brain
       b.dataset.room = k; b.dataset.floor = levelOf(k);
       b.setAttribute("aria-label", "The litter box");
+      b.piece = $("props").querySelector('.piece[data-room="' + k + '"][data-piece="brain_chest"]');
       Object.assign(b.style, { left: box[0] * 2 + "px", top: box[1] * 2 + "px", width: box[2] * 2 + "px", height: box[3] * 2 + "px", zIndex: zOf(k) ? zOf(k) - 40 : "" });
       b.addEventListener("click", (e) => { e.stopPropagation(); hideMenu(); hideTip(); if (deckOf("litterbox").length) openQueen("litterbox"); else openBrain(); });
       hoverable(b, "litter", k);
@@ -1150,7 +1157,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   // counts, faces, bubbles or crowns (her call, 2 October 2026). Hovering a cat says what it needs.
   function dress(b, c, mood, spot, room) {
     const sp = SPR[mood];
-    b.className = "cat m-" + mood;
+    b.className = ["cat", "m-" + mood, ...["hot", "lit"].filter((k) => b.classList.contains(k))].join(" ");
     Object.assign(b.style, { left: spot[0] * 2 - sp.ax + "px", top: spot[1] * 2 - sp.ay + "px", width: sp.w + "px", height: sp.h + "px", zIndex: zOf(room) + 1000 + spot[1] * 2 });
     b.replaceChildren(sprite(mood, c.coat));
   }
@@ -1681,10 +1688,18 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const x = Math.max(t.offsetWidth / 2 + 8, Math.min(st.width - t.offsetWidth / 2 - 8, a.left - st.left + a.width / 2));
     const y = Math.max(t.offsetHeight + 8, a.top - st.top + (kind === "room" ? Math.min(a.height / 2, 60) : -4));
     Object.assign(t.style, { left: x + "px", top: y + "px" });
+    outline(tipFor, false);
     tipFor = node;
+    outline(node, true);
     mmHot(kind === "room" ? key : null);
   }
-  function hideTip(node) { if (node && node !== tipFor) return; $("tip").hidden = true; tipFor = null; if (MM.hot) mmHot(null); }
+  function hideTip(node) { if (node && node !== tipFor) return; $("tip").hidden = true; outline(tipFor, false); tipFor = null; if (MM.hot) mmHot(null); }
+  // what gets the outline: a cat (or the queen, or a pile) itself; for a filing cabinet or the litter box, the piece of
+  // furniture it stands over. A room keeps its brackets.
+  function outline(node, on) {
+    const t = node && (node.piece || (node.classList.contains("cat") ? node : null));
+    if (t) t.classList.toggle("hot", on);
+  }
   // a click closes the menu a click opened; one that keyboard focus opened stays, now pinned by the click
   function toggleMenu(kind, key, node) {
     hideTip();
@@ -1695,7 +1710,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     MENU.kind = MENU.key = MENU.anchor = MENU.at = MENU.sub = MENU.src = null;
     $("menu").hidden = true;
     $("houseBtn").setAttribute("aria-expanded", "false");
-    for (const b of $("hits").querySelectorAll(".lit")) b.classList.remove("lit");
+    for (const b of document.querySelectorAll("#hits .lit, #cats .lit")) b.classList.remove("lit");
   }
   function anchorOf(kind, key) {
     if (kind === "house") return $("houseBtn");
@@ -1718,8 +1733,9 @@ ul.gkey li > div.what { flex-basis: 100%; }
     menu.hidden = false;
     menu.scrollTop = keepScroll;
     $("houseBtn").setAttribute("aria-expanded", String(kind === "house"));
-    for (const b of $("hits").querySelectorAll(".lit")) b.classList.remove("lit");
+    for (const b of document.querySelectorAll("#hits .lit, #cats .lit")) b.classList.remove("lit");
     if (kind === "room") { const h = anchorOf("room", key); if (h) h.classList.add("lit"); }
+    else if (kind !== "house") { const h = anchorOf(kind, key); if (h) h.classList.add("lit"); }   // the cat whose menu this is keeps its outline
     // place it beside what it belongs to, inside the stage
     const a = (node || anchorOf(kind, key) || $("stage")).getBoundingClientRect();
     const st = $("stage").getBoundingClientRect();

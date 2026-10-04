@@ -134,7 +134,11 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
 - **Room controls**: a control for one room or cat goes in its menu.
 - **The camera is free**: drag to pan (left, right or middle button, or Space), wheel or pinch to zoom,
   + / − / 0 and Shift+arrows. `S.focus` is the room that fills the view.
-- **Hover names a thing** in a line (`#tip`). **A click opens its menu** beside it, pinned until a click
+- **Hover names a thing** in a line (`#tip`), and outlines it if it is a sprite (her ask, 4 October: "it outlines
+  the object boundaries of the 2D asset"): a cat, the queen, a pile, a filing cabinet or the litter box gets one art
+  pixel of the pack's white traced around its own shape (`outline()`, `.hot`; a `drop-shadow` filter, not a box),
+  and a cat, the queen or a pile keeps it while its menu is open (`.lit`) or it has keyboard focus. A room, and a
+  cabinet with keyboard focus, keep their brackets. **A click opens its menu** beside it, pinned until a click
   elsewhere or Escape (`toggleMenu`); a tap does the same. Keyboard focus opens a menu only when
   `:focus-visible`, and a click never closes a menu keyboard focus opened.
 - **Every menu has the same shape, as short as it can be** ("make the menus less bloated and minimize
@@ -176,7 +180,7 @@ The interface is Cup Nooble's Sprout Lands UI pack, cut by `build-art.py` into
 `art/licensed/ui/`. Menus, dialogs, the sign and the screen's frame are its tan panel; buttons are
 its cream square button (white on hover, pressed in when held; `green` and `pink` are recoloured
 copies); inputs are its grey pressed-in button; a cat's ask and the replies in its thread are its grey bubble;
-a filing cabinet's project sits in its pressed cream well; rooms and cabinets light up with its
+a filing cabinet's project sits in its pressed cream well; rooms light up with its
 white selection brackets (on a room they stay one size on screen at any zoom), and so does the
 chosen room on the Edit rooms plan, which sits in its picture frame with its arrow, on its white
 button, pointing into the room new cats come in to. Each is a 9-slice `border-image`. The mood faces are its cat emoji
