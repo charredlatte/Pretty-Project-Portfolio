@@ -4,28 +4,32 @@ Issue #3: "An AI harness that presents itself as a cat cafe." The KittyChat Caf�
 private artifact) is the harness. Every Claude Code session and every other agent is a cat in a two-floor
 manor. Files dropped on the page go to the right cat, and cats can be talked to and managed.
 
-Last revised 2 October 2026. How it got here, version by version, is in `docs/history.md`; what she has asked
+Last revised 4 October 2026. How it got here, version by version, is in `docs/history.md`; what she has asked
 for, in `docs/requests.md`; the audit behind phase 0, in `docs/audit-2026-10-01.md`.
 
 ## Where it stands
 
-- **Live:** version 18 (1 October): the KittyChat Café, made honest.
-  - The brand is the House button; quiet maps and short menus; the Game UI Pastel map panel and minimap.
-  - Posts go to the outbox: the page tries `send_message`, claude.ai refuses it, and the page says so.
-  - Counts show only what really waits on her.
-- **`main`** has everything live, plus:
-  - the house rules, on in all seven repos, with the rule against Claude attribution in commits on her public
-    repos and forks (PR #18);
-  - the gateway, built and tested, waiting for her setup (PR #19);
-  - the litter box's sifter;
-  - the digest of her sessions;
-  - the drawing plan.
-- **Tests:**
-  - e2e: 158 passed;
-  - harness: 44 passed;
-  - the gateway in workerd, with the real hook: 9 passed;
-  - the sifter: 12 passed;
-  - `furniture.check()` empty.
+Updated 4 October 2026.
+
+- **Live:** the artifact in `artifacts.json`, republished on her say-so, so it can trail `main` until the next
+  publish.
+- **`main`** has, beyond phase 0's honest café:
+  - the house rules, on in all seven repos, with no Claude attribution on her public repos, and semi-automatic
+    merging where a repo opts in;
+  - the gateway, set up on 2 October (her `CATIO` connector): live cats, the café on its own address behind her
+    password, and accounts phase 1 (`docs/accounts.md`);
+  - the queen of the house and her runner, her routines, and the quest log: homework, the litter box and decisions
+    as cards in her card;
+  - the decider, logging beside the sorter (`docs/delegation.md`);
+  - onboarding (phase 7), Project maps, and outlines on hover;
+  - the open-source licence (AGPL-3.0), the shop's wireframes and plans, and the Buy Me a Coffee and Ulule kit
+    (`docs/kittychat-shop/`);
+  - plug-and-play design: every colour, font and size a token and every piece of art a slot, changed from The look
+    or `art/skin.json` (`CLAUDE.md`);
+  - the engine under the café, for builders (`docs/engine.md`);
+  - the C++ phone app, whose core draws the manor (`docs/mobile-app.md`).
+- **Tests:** the commands are in the README's Files section. The page's suite needs the licensed art
+  (`CLAUDE.md`, "Checking a change").
 
 ## How what she sends reaches a session
 
@@ -190,7 +194,7 @@ Claude Code sessions in claude.ai stay claude.ai's: their full conversation open
    ($5/month Workers Paid, sleeps when idle, about 7¢ a working hour at 4 GB), Hetzner CAX11 (€5.99 + €0.50 a month),
    Oracle's Always Free ARM machine (2 cores, 12 GB since June 2026), a Raspberry Pi. Claude Code needs 4 GB.
 
-### Phase 6: onboarding. Built
+### Phase 7: onboarding. Built
 
 A café with no rooms opens a seven-step wizard (`docs/onboarding/`): name, rooms (the rest closed), repositories
 through `list_repos`, sessions, the litter box, how it works, done. The public `catio` skill asks the same

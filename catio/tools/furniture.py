@@ -30,7 +30,6 @@ from pathlib import Path
 
 from PIL import Image
 
-WG = "Wood_Garden_Asset_Pack/Wood Garden Asset Pack/"   # rowdy41: one piece per file; a sheet named "wg:<file>"
 SHEETS = {
     "cc": "CosyCabin_Objects.png",
     "tc": "CatRoomFree/Furnitures.png",
@@ -243,21 +242,8 @@ def suffix(sheet):
     return sheet[3:] if sheet.startswith("wg:") else SHEETS[sheet]
 
 
-def folder_loader(packs):
-    """Find a sheet by the end of its path in an unpacked folder of packs."""
-    files = [str(f) for f in Path(packs).rglob("*.png")]
-    def load(end):
-        hit = [f for f in files if f == end or f.endswith("/" + end)]
-        if not hit:
-            raise SystemExit(end + " not found under " + packs)
-        return Image.open(sorted(hit, key=len)[0]).convert("RGBA")
-    return load
-
-
 def sprite(key, load, cache={}):
-    """One piece's picture. load(path end) opens a sheet: folder_loader(packs), or a zip lookup."""
-    if isinstance(load, str):
-        load = folder_loader(load)
+    """One piece's picture. load(path end) opens a sheet from the packs' zips."""
     c = CATALOGUE[key]
     if c["sheet"] not in cache:
         cache[c["sheet"]] = load(suffix(c["sheet"]))
@@ -418,21 +404,6 @@ def check(only=None):
             if k != key and r == room and fx <= sx < fx + fw and fy <= sy < fy + fh:
                 bad.append((s, sx, sy, key, "on", k))
     return bad
-
-
-def render(img, packs, only=None, marks=False):
-    """Draw the layout over the shell (previews and the old build path). marks=True dots the stations."""
-    from PIL import ImageDraw
-    out = img.copy()
-    for k, x, y, room in placed(only):
-        out.alpha_composite(sprite(k, packs), (x, y))
-    if marks:
-        d = ImageDraw.Draw(out)
-        colour = {"needs": (230, 60, 60), "review": (230, 160, 40), "work": (60, 120, 230), "fail": (160, 60, 200),
-                  "sleep": (60, 180, 90), "queen": (250, 210, 0)}
-        for s, x, y, room, k in stations(only):
-            d.rectangle([x - 1, y - 1, x + 1, y + 1], fill=colour[s])
-    return out
 
 
 if __name__ == "__main__":
