@@ -49,7 +49,7 @@
   --owner-chair: #E7B9A8; --owner-accent: #E06C8C; --owner-ears: #F2A7BA; --owner-flower: #FFF6E0; --owner-flower-heart: #E8B23A;
   --hue-1: #5E8F34; --hue-2: #C0587A; --hue-3: #3F7FA6; --hue-4: #D08A2E; --hue-5: #7B5EA7; --hue-6: #2E8C7F; --hue-7: #A6503A; --hue-8: #8C7B2E;
   --hue-none: #9A8878;     /* a project map's neighbourhoods, in order, then the rest */
-  --pixel: "Sprout", "Fredoka", ui-rounded, system-ui, sans-serif;
+  --pixel: "Sprout", var(--display);   /* a letter the pixel font hasn't is drawn in the round font */
   --px-size: 18px;         /* the pixel font's size: one font pixel a screen pixel (36 is twice it) */
   --px-line: 22px;
   --display: "Fredoka", "Nunito", ui-rounded, system-ui, sans-serif;
@@ -104,7 +104,8 @@
   /* the box a few pieces leave for their border: one width all round for the pack's (as it was drawn for), each side
      its own once a skin gives the piece a border, so uneven art never covers what it frames */
   --field-bw: calc(var(--field-t) * var(--u)); --bubble-bw: calc(var(--bubble-t) * 1px); --corners-bw: calc(var(--corners-t) * 1px);
-  --bubble-iw: var(--btn-px); --down-iw: var(--btn-w);   /* the floor tab draws the pack's pressed button at the button's widths too */   /* a thread's reply draws the pack's bubble at the button's widths, as it always has; hers at its own */
+  --bubble-iw: var(--btn-px);   /* a thread's reply draws the pack's bubble at the button's widths, as it always has; hers at its own */
+  --down-iw: var(--btn-w);   /* the floor tab draws the pack's pressed button at the button's widths too, while both are the pack's */
   --divider-t: 4; --divider-r: 1; --divider-b: 0; --divider-l: 1; --divider-s: var(--divider-t) var(--divider-r) var(--divider-b) var(--divider-l);
   --divider-w: calc(var(--divider-t) * var(--u)) calc(var(--divider-r) * var(--u)) calc(var(--divider-b) * var(--u)) calc(var(--divider-l) * var(--u));
   /* the map panel's pieces are smooth art drawn at twice their size or more: -k is one of its pixels on screen */
@@ -930,7 +931,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "logo":          { group: "Interface", kind: "sheet", name: "Logo", file: LIC + "ui/logo.png", size: [21, 18], what: "The brand: a cat face in a bubble." },
     "cursor":        { group: "Interface", kind: "exact", name: "Paw", file: LIC + "ui/cursor.png", size: [32, 32], hot: [9, 5], what: "The pointer: a cursor isn't scaled, so draw it at 16 and save it doubled." },
     "cursor-point":  { group: "Interface", kind: "exact", name: "Pointing paw", file: LIC + "ui/cursor-point.png", size: [32, 32], hot: [9, 3], what: "The pointer over something to click." },
-    "font":          { group: "Type", kind: "font", name: "Pixel font", file: LIC + "ui/sprout.ttf", token: "--pixel", what: "Titles, labels and buttons. Its size is under Type, Pixel font size: one font pixel a screen pixel." },
+    "font":          { group: "Type", kind: "font", name: "Pixel font", file: LIC + "ui/sprout.ttf", token: "--pixel", rest: '"Sprout", var(--display)', what: "Titles, labels and buttons. Its size is under Type, Pixel font size: one font pixel a screen pixel." },
     "font-body":     { group: "Type", kind: "font", name: "Text font", file: null, token: "--body", what: "Everything you read: Nunito from Google Fonts until you give one." },
     "font-display":  { group: "Type", kind: "font", name: "Round font", file: null, token: "--display", what: "Where the pixel font has no letter: Fredoka from Google Fonts until you give one." },
     "map-panel":     { group: "Map panel", kind: "slice", fam: "mpanel", name: "Map panel", file: LIC + "pastel/panel.png", size: [300, 150], slice: [28, 28, 28, 28], scale: 0.5, what: "The camera's panel, top right." },
@@ -1177,7 +1178,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (a.kind === "font") {
         const fam = "KittySkin-" + k;
         if (e.face) faces[fam] = { url: e.url, face: e.face };
-        put(a.token, '"' + fam + '", ' + TOKENS0[a.token]);
+        put(a.token, '"' + fam + '", ' + (a.rest || TOKENS0[a.token]));   // hers first, then what the token had (the pixel font's: the round font, live)
       }
     }
     // the tokens, in each mode: the file's, then hers from The look
@@ -1191,9 +1192,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       // back into the pack's
       for (const m of Object.keys(ART)) if (ART[m].fam === a.fam && m !== h && !live[m]) { put("--art-" + m, cssUrl(e.url)); standIn[m] = h; }
     }
+    if (live.button && !live["button-down"]) put("--down-iw", "var(--down-w)");   // her button, the pack's pressed one: each at its own widths
     const dark = Object.entries(tokens.dark).map(([n, t]) => n + ": " + t.value + ";").join(" ");
     const artWas = SKIN.artSig, artSig = JSON.stringify([Object.entries(live).map(([k, e]) => [k, e.url, e.slice, e.frames, e.secs, e.anchor, e.scale, e.pixel]), standIn]);
-    const HOUSE = (k) => ART[k].group === "Cats" || ART[k].measured;   // what the house, its furniture and its cats are drawn from
+    const HOUSE = (k) => ART[k].kind === "cat" || ART[k].measured;   // what the house, its furniture and its cats are drawn from
     const houseWas = SKIN.houseSig, houseSig = JSON.stringify(Object.entries(live).filter(([k]) => HOUSE(k)).map(([k, e]) => [k, e.url, e.frames, e.secs, e.anchor]));
     SKIN.live = live; SKIN.problems = problems; SKIN.tokens = tokens; SKIN.standIn = standIn; SKIN.artSig = artSig;
     SKIN.lookSig = artSig + JSON.stringify(tokens);   // what restyle() draws from
@@ -4622,7 +4624,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     let bd, px, frames, secs, hot;
     if (!p.why && a.kind === "slice" && a.slice) {
       // the same size as the pack's keeps its border; another size needs hers
-      bd = el("input"); bd.id = "artBorder-" + k; bd.value = p.typed.border ?? (p.w === a.size[0] && p.h === a.size[1] ? borderOf(k) : a.scale ? borderOf(k).map((n) => Math.max(1, Math.round(n * p.w / a.size[0]))) : borderOf(k)).join(" ");
+      const now = skinOf(headOf(k)), nw = now ? now.w : a.size[0], nh = now ? now.h : a.size[1];   // the border is the one drawn now, at that width
+      bd = el("input"); bd.id = "artBorder-" + k; bd.value = p.typed.border ?? (p.w === nw && p.h === nh ? borderOf(k) : a.scale ? borderOf(k).map((n) => Math.max(1, Math.round(n * p.w / nw))) : borderOf(k)).join(" ");
       fields.appendChild(field("Border, in its pixels: top right bottom left", bd));
       if (a.scale) {
         px = el("select"); px.id = "artPixel-" + k;

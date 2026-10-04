@@ -2712,6 +2712,11 @@ await check("tools/skin.py reads every slot, token and size range the page has",
     await page.evaluate(() => window.__catio.put("skin/font-body", { src: "art/licensed/ui/sprout.ttf", at: 1 }));
     await page.waitForTimeout(800);
     expect((await rootVar("--body")).startsWith('"KittySkin-font-body", "Nunito"'), await rootVar("--body"));
+    // the round font is where the pixel font has no letter: hers there reaches every title and button
+    await page.evaluate(() => window.__catio.put("skin/font-display", { src: "art/licensed/ui/sprout.ttf", at: 1 }));
+    await page.waitForTimeout(800);
+    const fam = await page.evaluate(() => getComputedStyle(document.getElementById("houseBtn")).fontFamily);
+    expect(/^"?Sprout"?, "?KittySkin-font-display"?/.test(fam), fam);
   });
   await check("a picture of her that isn't the owner's shape is refused, and she is drawn as before", async () => {
     await page.evaluate(() => window.__catio.put("skin/owner", { src: "art/licensed/ui/logo.png", at: 1 }));

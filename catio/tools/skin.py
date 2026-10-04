@@ -282,6 +282,19 @@ def check(art, key, rel, was, said, where="", filled=None):
     return entry
 
 
+def family(art, skin, said):
+    """A family member is cut with its head's border, so it is the head's size: the head as it ended up (hers, wherever its
+    file is, or the pack's when hers was left out). Those that aren't are left out, and said."""
+    for key in [k for k in skin if k in art and art[k]["kind"] == "slice" and "slice" not in art[k] and art[k].get("fam")]:
+        head = next(k for k, h in art.items() if h.get("fam") == art[key]["fam"] and "slice" in h)
+        hf, mf = file_of(skin.get(head)), file_of(skin[key])
+        hw, hh = (png_size(ROOT / hf) if hf and (ROOT / hf).is_file() else None) or art[head]["size"]
+        mw, mh = (png_size(ROOT / mf) if mf and (ROOT / mf).is_file() else None) or (0, 0)
+        if [mw, mh] != [hw, hh]:
+            said.append(f"  {key}: {mw} x {mh}, but it shares {head}'s border, so it must be {hw} x {hh}: left out")
+            del skin[key]
+
+
 def main():
     art = slots()
     try:
@@ -314,16 +327,17 @@ def main():
             from_files.setdefault(mode, {}).update(found)
             said.append(f"  {p.name}: {len(found)} tokens into {mode}" + (f", {foreign} not the cafe's" if foreign else ""))
     base = defaults()
-    if "light" in from_files:
-        from_files["light"] = {t: v for t, v in from_files["light"].items() if v.lower() != base.get(t, "").lower()}
-    if "dark" in from_files:   # dark says only what differs from light: The look's own dark export repeats every light value
-        light = modes["light"] if "light" in broken else from_files.get("light", modes["light"])
-        from_files["dark"] = {t: v for t, v in from_files["dark"].items() if v.lower() != (light.get(t) or base.get(t, "")).lower()}
-    modes.update({m: t for m, t in from_files.items() if m not in broken})
     filed = set(old.get("tokensFromFiles") or [])   # modes built from files last time: with their files gone, so are they
     for mode in filed - set(from_files) - broken:
         said.append(f"  {mode}: its tokens files have gone, so its tokens were dropped")
         modes[mode] = {}
+    if "light" in from_files:
+        from_files["light"] = {t: v for t, v in from_files["light"].items() if v.lower() != base.get(t, "").lower()}
+    if "light" in from_files and "light" not in broken:
+        modes["light"] = from_files["light"]
+    if "dark" in from_files:   # dark says only what differs from light as it now stands: The look's own export repeats it
+        from_files["dark"] = {t: v for t, v in from_files["dark"].items() if v.lower() != (modes["light"].get(t) or base.get(t, "")).lower()}
+    modes.update({m: t for m, t in from_files.items() if m not in broken})
     for key, was in old.items():   # a drawing of hers in art/skin/ that has gone
         f = file_of(was)
         if key in art and isinstance(f, str) and f.startswith("art/skin/") and not (ROOT / f).is_file():
@@ -345,6 +359,7 @@ def main():
         entry = check(art, p.stem, "art/skin/" + p.name, was if isinstance(was, dict) else {}, said, filled=filled)
         if entry:
             skin[p.stem] = entry
+    family(art, skin, said)   # members of art/skin/ first: one refused there leaves a hand-pointed one its chance
     for key, was in old.items():   # a slot pointed by hand at art outside art/skin/ (another pack's): checked the same way
         f = file_of(was)
         if key in skin or key not in art or not isinstance(f, str) or not f.startswith("art/") or f.startswith("art/skin/"):
@@ -355,16 +370,7 @@ def main():
         entry = check(art, key, f, was if isinstance(was, dict) else {}, said, " (outside art/skin/)", filled=filled)
         if entry:
             skin[key] = entry
-    # a family member is cut with its head's border, so it is the head's size: the head as it ended up (hers, wherever
-    # its file is, or the pack's when hers was left out)
-    for key in [k for k in skin if k in art and art[k]["kind"] == "slice" and "slice" not in art[k] and art[k].get("fam")]:
-        head = next(k for k, h in art.items() if h.get("fam") == art[key]["fam"] and "slice" in h)
-        hf, mf = file_of(skin.get(head)), file_of(skin[key])
-        hw, hh = (png_size(ROOT / hf) if hf and (ROOT / hf).is_file() else None) or art[head]["size"]
-        mw, mh = (png_size(ROOT / mf) if mf and (ROOT / mf).is_file() else None) or (0, 0)
-        if [mw, mh] != [hw, hh]:
-            said.append(f"  {key}: {mw} x {mh}, but it shares {head}'s border, so it must be {hw} x {hh}: left out")
-            del skin[key]
+    family(art, skin, said)
     still = (set(from_files) - broken) | (filed & broken)   # built from files now, or still waiting on one half-saved
     if still:
         skin["tokensFromFiles"] = sorted(still)
