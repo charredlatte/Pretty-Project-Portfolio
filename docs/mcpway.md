@@ -13,9 +13,10 @@ design, quotes it, fabricates the board and assembles the parts. MCPWay takes a 
 skills, agents, which model drives what), deploys the gateway, and installs the pieces into the clients the buyer
 already uses.
 
-- **Any model.** Claude, OpenAI, Gemini, Mistral, a local model through Ollama, a small model for yes/no
-  decisions. Buyers bring their own keys and plans: MCPWay never resells Claude, OpenAI or Gemini access. The one
-  model it runs itself is the decider's small one, inside the price.
+- **Any model.** Claude today; OpenAI, Gemini, Mistral and a local model through Ollama once the runner's
+  drivers are in (below), and a small model for yes/no decisions. Buyers bring their own keys and plans: MCPWay
+  never resells Claude, OpenAI or Gemini access. The one model it runs itself is the decider's small one, inside
+  the price (once buyers' keys can't pick another, below).
 - **Any environment.** Claude Code, Codex, Gemini CLI, Cursor, Claude Desktop, claude.ai. On a laptop, a Raspberry
   Pi or a cloud container. One gateway, the same tools everywhere.
 - **Any face.** The KittyChat Café is the flagship: a pixel-art manor where every session is a cat. Teams who
@@ -34,13 +35,18 @@ Most of it, for one house: Charlotte's.
 | House rules | The Claude Code plugin whose hooks enforce the rules | `harness/rules.json`, `harness/hooks/` |
 | The runner | Waits on the gateway and runs one model turn per message or routine | `harness/runner/queen.py` |
 | The decider | Typed decisions from a small model, logged beside the old path | `harness/gateway/src/decide.js` |
-| Other agents | The stdio twin of the gateway, for Codex, Gemini CLI, Cursor and Claude Desktop | `harness/mcp/catio_mcp.py` |
+| Other agents | The stdio twin of the gateway, for Codex, Gemini CLI, Cursor and Claude Desktop on the same machine | `harness/mcp/catio_mcp.py` |
 | The café | The manor, the onboarding, the queen, served from the gateway behind a sign-in | `catio/index.html`, `harness/gateway/cafe/` |
 
-Still missing for a product: self sign-up and keys (phase 2 of `docs/accounts.md`), runner drivers for models
-other than Claude, a plain face, metering, a house several people can share, OAuth for clients other than
-Claude's (the gateway only lets claude.ai and claude.com connectors sign in), and art Charlotte owns
-(`docs/drawing-plan.md`).
+Still missing for a product:
+
+- self sign-up and a keys button in the page (phase 2 of `docs/accounts.md`; keys themselves are built);
+- runner drivers for models other than Claude;
+- a plain face, for teams;
+- metering, and a house several people can share;
+- the decider's model locked for buyers' keys (today any caller can pass `model`, a paid one included);
+- OAuth for clients other than Claude's (the gateway only lets claude.ai and claude.com connectors sign in);
+- art Charlotte owns (`docs/drawing-plan.md`).
 
 ## Your way, concretely
 
@@ -64,9 +70,9 @@ product.
 | claude.ai, Claude Desktop | The gateway as a connector, signed in as the owner |
 | Cursor, other MCP clients | The gateway with an agent key: report and read, never write as the owner |
 
-The runner and its drivers stay open source and free in every tier: they run on the buyer's machine. What is
-sold is what is hosted (the gateway, the house, the café) and what costs a model call (the decider, the litter
-box, homework). Model keys stay with the runner, on the buyer's machine or their own cloud account; the gateway
+Everything here is open source under the AGPL, and anyone can self-host it. What is sold is not having to: the
+gateway, the house and the café run for you, with the hosted features (the decider, the litter box, homework)
+turned on. The runner stays on the buyer's side in every tier. Model keys stay with the runner, on the buyer's machine or their own cloud account; the gateway
 never holds them.
 
 ## Who it is for
@@ -78,10 +84,16 @@ never holds them.
 3. **Small business owners new to AI**, the café's first audience, through the manor and a harness built for them.
 4. **Makers of rule packs, skills and skins**, later, through a parts gallery.
 
+Besides the hosted tiers, two things are sold. **Builds** are harnesses made to order: Charlotte sets one up for
+the buyer, with the course on changing it (the shop's "Set up for you"). **Parts** are rule packs, skills and
+skins sold by their makers in a gallery, later. The shop wireframes (`docs/kittychat-shop/`) predate MCPWay and
+have no Team column yet.
+
 ## Competition
 
-Every MCP gateway in the 2026 roundups governs which tools an agent may call. None shows sessions, runs agents
-on a model of your choice, or enforces rules on how they work. MCPWay is the gateway agents report to.
+Every MCP gateway in the 2026 roundups governs which tools an agent may call. None shows sessions, runs agents,
+or enforces rules on how they work. MCPWay is the gateway agents report to: it runs them with Claude today, and
+with the model of your choice once the drivers are in.
 
 | Category | Examples | What they leave open |
 | --- | --- | --- |
@@ -113,7 +125,7 @@ name ready. The "-Way" echo of PCBWay is fine as a name; "the PCBWay of MCP" in 
 | --- | --- | --- | --- |
 | Make it a product | October 2026 | Sign-up and keys, runner drivers, a plain face, the name and domain | A stranger's cat reports within 10 minutes |
 | Ten by invite | November and December 2026 | Her own art, the legal pages, metering, the store | Ten paying houses, no data lost |
-| Public launch | January to March 2027 | MCP registries and the plugin marketplace, a launch post, Builds on sale, café videos | A hundred paying houses |
-| Parts and teams | From April 2027 | The Team plan, the parts gallery, the app campaign | |
+| Public launch | January to March 2027 | MCP registries and the plugin marketplace, a launch post, Builds on sale, café videos, the app campaign | A hundred paying houses |
+| Parts and teams | From April 2027 | The Team plan, the parts gallery, the app itself if the campaign funds it | |
 
 October's work is under `harness/`, so each pull request waits for Charlotte, as the merging rule says.
