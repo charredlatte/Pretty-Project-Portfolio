@@ -998,7 +998,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   const tok = (name, cs = getComputedStyle(document.documentElement)) => cs.getPropertyValue(name).trim();
   const SPR0 = JSON.parse(JSON.stringify(SPR));   // the pack's frames, for putting a cat back
   const SKIN = { file: {}, db: {}, live: {}, problems: {}, set: new Set(), seq: 0, blobs: {}, fonts: {}, faces: {}, sizes: {}, standIn: {},
-    houseSig: "[]",   // the start draws the house, its furniture and its cats with none of hers
+    houseSig: "[]", artSig: "[[],{}]",   // the start draws the house, its furniture and its cats with none of hers, and checks the art
     fileTokens: { light: {}, dark: {} }, dbTokens: { light: {}, dark: {} }, tokens: { light: {}, dark: {} } };
   const TOKENS0 = {};   // the café's own value of each token, read before any skin: what export and Put back start from
   { const cs = getComputedStyle(document.documentElement); for (const n of [...Object.keys(TOKENS), "--pixel", "--body", "--display"]) TOKENS0[n] = tok(n, cs); }
@@ -1103,10 +1103,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   const pixelish = (a, w) => w <= (a.scale ? a.size[0] * a.scale * PIXELISH[0] : a.size[0] * PIXELISH[1]);
   // a map piece drawn as pixel art shows its border at the art pixel: more of it than the pack shows on screen would
   // bury the map panel (the pack's 28 at half size is 14 px; hers, 14 pixels of art at most)
-  // shown at the art pixel: the desk's (--u-desk, hers if she set it)
-  const artPx = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--u-desk")) || 2;   // the desk's, the larger: the same answer on any screen
-  const pixelLoud = (a, b) => !!(a.scale && b && Math.max(...b) * artPx() > 2 * Math.max(...a.slice) * a.scale);
-  const LOUD = (b) => "Drawn as pixel art, its border of " + Math.max(...b) + " would show " + Math.max(...b) * artPx() + " px wide on a desk, more than twice the pack's: draw it smaller, or as smooth.";
+  // shown at the art pixel: the desk's in light (--u-desk, hers if she set it), the same answer on any screen or theme
+  const artPx = () => parseFloat(SKIN.dbTokens.light["--u-desk"] || SKIN.fileTokens.light["--u-desk"] || TOKENS0["--u-desk"]) || 2;
+  // and it must leave the piece a middle as shown: a map button is 40 px high, so its top and bottom less than that
+  const pixelLoud = (a, b) => !!(a.scale && b && (Math.max(...b) * artPx() > 2 * Math.max(...a.slice) * a.scale ||
+    Math.max(b[0] + b[2], b[1] + b[3]) * artPx() >= a.size[1] * a.scale));
+  const LOUD = (b) => "Drawn as pixel art, its border of " + Math.max(...b) + " would show " + Math.max(...b) * artPx() + " px wide on a desk, too much for the piece as it is shown: draw it smaller, or as smooth.";
   const framesOf = (a, e, w, h) => (e && e.frames) || (w % h === 0 && w / h <= 64 ? w / h : a.frames);
   // `e`: what the entry says about itself (slice, frames, hot) that must fit the picture
   function misfit(key, w, h, live = SKIN.live, e = {}, picking = false) {
@@ -2649,7 +2651,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     // her own design: one document a slot, and skin/theme for the tokens, as The look writes them, drawn as they land
     db.collection("skin").onSnapshot((snap) => {
       const out = {}, theme = snap.docs.find((d) => d.id === "theme"), tokens = modeTokens(theme && theme.data());
-      SKIN.dbIds = snap.docs.map((d) => d.id).filter((id) => id !== "theme");   // every one, a refused or unknown one too: Put everything back takes them all
+      SKIN.dbIds = snap.docs.map((d) => d.id).filter((id) => id !== "theme");
+      SKIN.dbAssets = Object.fromEntries(snap.docs.map((d) => [d.id, d.data() && d.data().asset]).filter(([, a]) => typeof a === "string"));   // so a refused one's file goes too   // every one, a refused or unknown one too: Put everything back takes them all
       for (const d of snap.docs) { const e = skinEntry(d.id, d.data()); if (e) out[d.id] = e; }
       if (sameData(out, SKIN.db) && sameData(tokens, SKIN.dbTokens)) return;   // what she just saved, coming back
       SKIN.db = out; SKIN.dbTokens = tokens; applySkin();
@@ -3451,7 +3454,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // dots coloured by neighbourhood, the hubs, the surprising links, and questions a cat can answer from it.
   const hueIx = (i) => (i >= 0 && i < 8 ? i : 8);   // a neighbourhood's hue: its own for the first eight, the rest's after (and for -1)
   // light or dark, as the page is drawn: claude.ai's own switch, else the system's
-  const themeOnScreen = () => document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const themeOnScreen = () => { const t = document.documentElement.dataset.theme; return t === "light" || t === "dark" ? t : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; };   // as the CSS reads it
   let HUES = null;   // [key, the nine hues]: read again when the look or light and dark change
   const hues = () => {
     const key = (SKIN.lookSig || "") + themeOnScreen();
@@ -4762,7 +4765,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     fields.appendChild(acts);
     f.addEventListener("submit", async (ev) => {
       ev.preventDefault();
-      if (p.why || p.busy) return;   // on the pick, not the form: a redraw makes a new form
+      if (p.why || p.busy || p.kept) return;   // on the pick, not the form: a redraw makes a new form; kept, it is done
       const doc = { name: p.file.name, at: Date.now() };
       if (p.w) Object.assign(doc, { w: p.w, h: p.h });
       if (bd) { doc.slice = border(bd.value, p.w, p.h, maxBorder(k)); if (!doc.slice) { toast("A border is one to four whole numbers up to " + maxBorder(k) + ", like 4 4 6 4, that fit inside its " + p.w + " × " + p.h + ".", "alert"); bd.focus(); return; } }
@@ -4785,7 +4788,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         doc.src = /^\/files\/|^local:/.test(up.url || "") ? up.url : "/_blob/" + up.id;   // claude.ai serves an asset at /_blob/<id> in every view
         const old = SKIN.db[k] && SKIN.db[k].asset;
         if (await save((db) => db.doc("skin/" + k).set(doc), a.name + ": yours now.")) {
-          URL.revokeObjectURL(p.url); if (ARTPICK[k] === p) delete ARTPICK[k];   // a newer pick for the slot stays
+          p.kept = true; URL.revokeObjectURL(p.url); if (ARTPICK[k] === p) delete ARTPICK[k];   // a newer pick for the slot stays
           if (old && old !== up.id) S.assets.delete(old).catch(() => {});
           SKIN.db[k] = skinEntry(k, doc); applySkin();
         } else S.assets.delete(up.id).catch(() => {});   // nothing points at it: don't leave it in the store
@@ -4796,7 +4799,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   }
   async function putBack(keys) {
     if (!S.db) { toast("Saving isn't available in this view.", "alert"); return; }
-    const ids = Object.fromEntries(keys.map((k) => [k, SKIN.db[k] && SKIN.db[k].asset]));   // read first: a snapshot may land before the deletes do
+    const ids = Object.fromEntries(keys.map((k) => [k, (SKIN.db[k] && SKIN.db[k].asset) || (SKIN.dbAssets || {})[k]]));   // read first: a snapshot may land before the deletes do
     const done = await Promise.allSettled(keys.map((k) => S.db.doc("skin/" + k).delete()));
     const gone = keys.filter((k, i) => done[i].status === "fulfilled");
     for (const k of gone) {   // each one put back lets its file go, whatever happened to the others

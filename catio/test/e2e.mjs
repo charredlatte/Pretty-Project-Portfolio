@@ -2684,12 +2684,13 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
   });
   await check("Put everything back clears what is kept, a refused piece and the tokens too", async () => {
     // one the page can't read at all (an address it won't load) goes too, though it was never shown
-    await page.evaluate(() => window.__catio.put("skin/panel-x", { src: "https://example.com/x.png", at: 1 }));
+    await page.evaluate(() => window.__catio.put("skin/panel-x", { src: "https://example.com/x.png", asset: "a-gone", at: 1 }));
     await page.waitForTimeout(500);
     await page.click("#artResetAll");
     await page.waitForTimeout(800);
     const left = await page.evaluate(() => Object.keys(window.__catio.store).filter((p) => p.startsWith("skin/")));
     expect(!left.length, left.join(" "));
+    expect(await page.evaluate(() => window.__catio.assetsDeleted.includes("a-gone")), "its file stayed in the store");
     await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
   });
   await check("a size she types that isn't kept leaves no preview behind", async () => {
@@ -2842,6 +2843,14 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
       await page.waitForTimeout(400);
       expect((await page.inputValue("#artPixel-map-button")) === was, w + ": " + await page.inputValue("#artPixel-map-button"));
     }
+    await page.click("#artDlg li[data-slot='map-button'] .swap button:has-text('Cancel')"); await settle(page);
+    // a map button the size it is shown, called pixel art: its border would leave the 40 px button no middle
+    await page.locator("#artFile-map-button").setInputFiles({ name: "map-button.png", mimeType: "image/png", buffer: png(135, 40) });
+    await page.waitForTimeout(400);
+    await page.selectOption("#artPixel-map-button", "pixel");
+    await page.click("#artDlg li[data-slot='map-button'] .swap button[type=submit]"); await settle(page);
+    expect(/too much for the piece as it is shown/.test(await toast(page)) && !(await page.evaluate(() => "skin/map-button" in window.__catio.store)), await toast(page));
+    await page.click("#toast .btn");
     await page.click("#artDlg li[data-slot='map-button'] .swap button:has-text('Cancel')"); await settle(page);
     // a map panel drawn at the pack's own size, called pixel art, would show its 28-pixel border 56 px wide: refused
     await page.locator("#artFile-map-panel").setInputFiles({ name: "map-panel.png", mimeType: "image/png", buffer: png(300, 150) });

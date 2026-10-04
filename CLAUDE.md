@@ -256,12 +256,12 @@ Format 2025.10). Figma keeps a variable's value per **mode** and moves a whole p
   `dark`. Dark says only what differs; the rest stays as in light. The look edits the mode its Light / Dark switch is
   on. The whole skin is one stylesheet, `#skinCss`, after the page's own (light on `:root`, dark where the page's dark
   mode is), never inline styles, so dark mode still wins in the dark.
-- **Export tokens** writes the mode on screen as `kittychat-<mode>.tokens.json` (`toDTCG()`): a group per section of
+- **Export tokens** writes the mode The look's switch is on as `kittychat-<mode>.tokens.json` (`toDTCG()`): a group per section of
   The look (`colours`, `type`, `map-colours`), `$type` on the group, each colour as `{colorSpace: "srgb", components,
   hex}`, each size as `{value, unit}`, The look's words as `$description`. Through the `downloads` capability when
   the artifact has it, else the browser's own download. Figma imports dimensions in px only, so `body-size` (rem)
   doesn't reach it.
-- **Import tokens…** (`fromDTCG()`) reads any such file into the mode on screen: Figma's export, another café's, or
+- **Import tokens…** (`fromDTCG()`) reads any such file into the mode The look's switch is on: Figma's export, another café's, or
   one written by hand. A token is matched by its own name (`ink`, `go`, `px-size`…, or Figma's `Ink`, `Px size`) whatever group it sits in, an
   alias (`"{primitives.navy}"`) is followed, a colour may be the object or a hex string, and what isn't the café's is
   counted and left out. A name found twice takes the one in the café's own group (`colours.grass` over
