@@ -359,7 +359,7 @@ def main():
                 broken.add(mode)
                 continue
             from_files.setdefault(mode, {}).update(found)
-            said.append(f"  {p.name}: {len(found)} tokens into {mode}" + (f", {foreign} not the cafe's" if foreign else "") + (f", {refused} with a value the cafe can't take (see-through, or out of its range)" if refused else ""))
+            said.append(f"  {p.name}: {len(found)} tokens into {mode}" + (f", {foreign} not the cafe's" if foreign else "") + (f", {refused} with a value the cafe can't take (see-through, out of its range, or an alias to nothing in the file)" if refused else ""))
     base = defaults()
     tf = old.get("tokensFromFiles")   # modes built from files last time: with their files gone, so are they
     filed = {m for m in tf if m in ("light", "dark")} if isinstance(tf, list) else set()

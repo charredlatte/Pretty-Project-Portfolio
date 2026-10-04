@@ -297,8 +297,10 @@ a { color: var(--ink); }
 .roomhit.here:focus-visible { border-style: solid; }
 .cabinet:hover, .cabinet:focus-visible, .cat:focus-visible { outline: 0; border: solid transparent; border-width: var(--corners-bw); border-image: var(--art-corners) var(--corners-s) / var(--corners-px) stretch; border-image-outset: 5px; }
 .cat:focus-visible { border-width: 0; }
-/* a cat in the line is close to the next: only its own body answers the pointer */
-.cat[data-line] { clip-path: inset(0 14px 0 6px); }
+/* a cat in the line is close to the next: only its own body answers the pointer (14 and 6 of the sitting frame's 64,
+   as shares, so her own frame is trimmed alike); walking there, it is whole */
+.cat[data-line] { clip-path: inset(0 21.875% 0 9.375%); }
+.cat.walking[data-line] { clip-path: none; }
 .spr { display: inline-block; vertical-align: bottom; filter: var(--tint, none); image-rendering: pixelated; background-repeat: no-repeat; }
 .cat .spr { display: block; }
 /* a count: the pack's white button at one pixel a pixel */
@@ -1188,12 +1190,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         if (a.mood === "walk") {
           // drawn facing right, so it is mirrored going left: .flip is set going right
           css.push(".cat.walking .spr, .walker .spr { position: absolute; left: calc(var(--ax) - " + ax + "px); top: calc(var(--ay) - " + ay + "px); " + sheet + " animation: " + play + "; transform: scaleX(-1); transform-origin: " + ax + "px " + ay + "px; }",
-            ".cat.walking.flip .spr, .walker.flip .spr { transform: none; }", ".cat.walking[data-line] { clip-path: none; }");   // the line's trim is for the pack's sitting frame
+            ".cat.walking.flip .spr, .walker.flip .spr { transform: none; }");
         } else {
           spr[a.mood] = Object.assign({}, spr[a.mood], { w: fw, h: fh, ax, ay });
           // drawn bigger or smaller than the pack's frame, it is scaled to fill the same place in a portrait, a thumb or the scene
-          css.push(".s-" + a.mood + " { " + sheet + " animation: " + play + "; --fs: " + +(SPR0[a.mood].h / fh).toFixed(4) + "; }",
-            ".cat.m-" + a.mood + "[data-line] { clip-path: none; }");   // the line's trim is for the pack's frame
+          css.push(".s-" + a.mood + " { " + sheet + " animation: " + play + "; --fs: " + +(SPR0[a.mood].h / fh).toFixed(4) + "; }");
           if (a.mood === "idle" && !live["cat-walk-side"]) css.push(".cat.walking .spr, .walker .spr { animation: " + play + ", step .32s steps(2) infinite; }");
         }
       }
@@ -4564,7 +4565,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     let j;
     try { j = JSON.parse(await file.text()); } catch (e) { toast(file.name + " isn't a tokens file: it isn't JSON.", "alert"); return; }
     const { found, foreign, refused } = fromDTCG(j), n = Object.keys(found).length;
-    const why = refused ? "; " + refused + " the café's with a value it can't take (a see-through colour, or a size out of its range)" : "";
+    const why = refused ? "; " + refused + " the café's with a value it can't take (a see-through colour, a size out of its range, or an alias to nothing in the file)" : "";
     if (!n) { toast(file.name + " has none of the café's tokens" + (foreign ? " (" + foreign + " of its own)" : "") + why + ".", "alert"); return; }
     // what is the same as it would be anyway is taken out by editTokens: an export re-imported stays a few changes, not 56
     const kept = Object.entries(found).filter(([t, v]) => v.toLowerCase() !== String(valueIn(m, t)).toLowerCase()).length;   // new: not what shows now
@@ -4668,7 +4669,13 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const a = ART[k], p = { file, url: URL.createObjectURL(file), typed: {} };
     if (a.kind === "font") {   // tried before anything is kept: a file that isn't a font is said at once
       // its bytes, not a URL: no rule of the page's frame can refuse the try
-      try { await new FontFace("KittySkin-try", await file.arrayBuffer()).load(); } catch (e) { URL.revokeObjectURL(p.url); toast(file.name + " isn't a font the browser can read.", "alert"); return; }
+      try {
+        const bytes = await file.arrayBuffer();
+        await new FontFace("KittySkin-try", bytes).load();
+        // its type from its own first bytes, whatever its name or the browser says: the store takes only these four
+        const tag = String.fromCharCode(...new Uint8Array(bytes, 0, 4));
+        p.fontType = { wOF2: "font/woff2", wOFF: "font/woff", OTTO: "font/otf", true: "font/ttf", "\0\x01\0\0": "font/ttf" }[tag] || null;
+      } catch (e) { URL.revokeObjectURL(p.url); toast(file.name + " isn't a font the browser can read.", "alert"); return; }
       if (!$("artDlg").open) { URL.revokeObjectURL(p.url); return; }   // she closed the card while it was read
     } else {
       try { [p.w, p.h] = await natural(p.url); } catch (e) { URL.revokeObjectURL(p.url); toast(file.name + " isn't a picture the browser can read.", "alert"); return; }
@@ -4741,9 +4748,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       }
       p.busy = true;
       try {
-        // a font's own type, from its name: a browser often gives none, or an old one the store won't take
-        const ext = (p.file.name.match(/\.(ttf|otf|woff2?)$/i) || [])[1];
-        const up = await S.assets.upload(p.file, { type: a.kind === "font" && ext ? "font/" + ext.toLowerCase() : p.file.type || undefined });
+        // a font's own type, read from it: a browser often gives none, or an old one the store won't take
+        const up = await S.assets.upload(p.file, { type: (a.kind === "font" && p.fontType) || p.file.type || undefined });
         doc.asset = up.id;
         doc.src = /^\/files\/|^local:/.test(up.url || "") ? up.url : "/_blob/" + up.id;   // claude.ai serves an asset at /_blob/<id> in every view
         const old = SKIN.db[k] && SKIN.db[k].asset;
