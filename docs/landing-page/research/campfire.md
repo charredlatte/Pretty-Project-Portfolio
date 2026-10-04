@@ -1,0 +1,104 @@
+# Pixel-art night campfire scene: research notes
+
+## 1. Canvas size for a hero scene
+- **320×180** is the common default: ×6 = 1920×1080, ×4 = 1280×720, ×12 = 4K (shweep devlog; summerengine). Characters come out "16 to 32 pixels tall" at this size.
+- **384×216** = exactly 1/5 of 1080p ("looks great so far on all 16:9 monitors", Visionaire forum). Lylouf's *Milky Way* (Lospec, a night scene with a cat) is drawn at 384×216 in 22 colours — a direct proof of concept for this brief.
+- **480×270** scales cleanly ×2 → 960×540, ×4 → 1080p, ×8 → 4K; chosen by people who found 320×180 "lacked sufficient detail" (itch.io; Aseprite forum). Design everything at the internal resolution and scale together — never mix scales.
+- Slynyrd's landscape studies use 192×144 and about 15 colours per scene.
+
+## 2. Classic palettes (Lospec)
+Endesga 32 — 32 colours, by ENDESGA (nice navy ramp #181425 → #262b44 → #3a4466 → #5a6988 → #8b9bb4, and fire #a22633/#e43b44/#f77622/#feae34/#fee761). Resurrect 64 — 64, Kerrie Lake. Apollo — 46, AdamCYounis (night-blue ramp #172038 → #253a5e → #3c5e8b, greys #090a14 → #10141f → #151d28 → #202e37). Pear36 — 36, PineappleOnPizza. Night-specific small ones: Midnight Ablaze (7, fire-pink to near-black), Moonlight 15 (15), Campfire Story (16: #02180f, #181a2f, #072d36… up to #f9c762, #ffff9e), city silhouette-5 (5).
+
+## 3. Starry sky and Milky Way
+- Saint11 *Space/Stars*: common star shapes are a single pixel, a 2-px dot and a 3-px "+"; "for BG stars I like to use 2 or 3 color variations"; "sporadic bright points give the image rhythm"; twinkle = "small color changes, low frame count, not all stars should animate, stars should be out of sync"; big stars "hue shift and increase saturation towards the middle" (ramp dark blue → cyan → white); nebula "clouds have lots of spirals that look like tentacles" and "fade clouds to stars"; "avoid 100% black background".
+- Lylouf *Milky Way* (384×216, 22 colours): sky is **one flat near-black-navy** (#14182e) with a darker #080a15 and a lighter #2c354d; the Milky Way band is drawn as **swirling nebula blobs in two mid blue-greys (#3a3f5e, #404973 edged with #686f99)**, their edges softened with **checkerboard dither into the sky**, carrying small ring/circle motifs; stars are single pixels in **mint/cyan (#92e8c0, #4fa4b8)**, a few "+" crosses, and one big cross with a dithered halo. So: 3 sky values + 2–3 nebula values + 2 star colours is enough.
+- Dither guidance (pixnote): checkerboard for "light-to-dark blue gradients", Bayer for "sky, water, light gradients", density in ~5 stages (0/25/50/75/100%). Slynyrd (Pixelblog 1): ramps hue-shift as they brighten; "saturation peaks in the middle", desaturate the brightest steps.
+
+## 4. Mountains and pine silhouettes at several depths
+- Slynyrd Pixelblog 62: "the closest plane is the most saturated with strongest contrast… saturation reduces with each receding plane, while lightness increases"; "the hue shifts more to the color of the sky with each receding plane"; nearest plane has thick grass blades, the next "one or two pixel tall clusters", beyond that none; add "a band of haze along the bottom" to blend planes. Pixelblog 11: "the closer an object is to the vertical position of the horizon, the more distant it appears."
+- Saint11 *Parallax and depth* table — close: saturation HIGH, contrast HIGH, light BRIGHT, hue HOT, details MANY; far: LOW, LOW, DARK, COLD, FEW; "objects far away are usually darker, less saturated and can fade to the sky color". At night this means each farther layer is a flat silhouette one step closer to the sky colour: e.g. Apollo #090a14 (near pines) → #10141f → #151d28 → #202e37 (far ridge) under sky #172038.
+- Saint11 *Clouds*: "far away clouds are faded, closer clouds have strong contrast"; *Vegetation 3*: "fade far vegetation towards sky color". Slynyrd Pixelblog 44 conifers: "start by making a simple stick tree guide, then start making branches from top to bottom", side branches mirrored; at silhouette scale a tiered triangle with a 1-px trunk reads as a pine.
+
+## 5. Firelight on objects, faces and cats
+- Saint11 *Illumination*: key light "casts the main shadow", fill "softens the shadows", rim light "creates a thin outline to separate the object from the background"; "change the hue when changing the amount of light; use complementary light colors for a strong contrast"; from-below light "has a strong effect on faces". For a campfire the fire is a low, warm key; the sky is a cool fill/rim (blue edge on the far side).
+- Saint11 *Darkness*: "blend dark areas with the background", "draw 2 imaginary lines from the light source to the edges of an object to find the shadow", "keep the light direction always consistent", "when drawing things in a dark background I like to use only one color to keep a low contrast".
+- cypaint: "warm light (yellow, orange, red)… use dark brown shadows" rather than black; glow = "bright, saturated colors for the core… then gradually decrease brightness and saturation outward"; "gradually darken colors away from the light source, using intermediate shades". Slynyrd Pixelblog 6: hazy air = soft shadows, clear air = "crisp dark shadows".
+- Practical falloff: 3 rings on the ground (lit orange-brown, dim red-brown, base night colour), with the ring boundaries dithered one checker row.
+
+## 6. Campfire flame animation
+- Saint11 *Fire* (30 frames at 100 ms): "each fire wave starts brighter and on the bottom; use wavy shapes"; "start new waves every 2 or 3 frames; when reach the last frame, continue as if the first frame were the next one"; "the flame speed is higher in the middle"; "the wave top fades in a pointy shape"; "the bright colors come from bottom"; "divide the flame in base and particles; the base changes shape but keeps volume; particles detach from the base"; "a cheap technique… redrawing the same shape but failing just a little". Its example fire uses 4 flame tones: #fbf236 (yellow core), #df7126, #ac3232, plus 2-px white tips; and a sparks ramp white → yellow → orange → red; "ember flicks and moves slightly — small moves".
+- Frame counts in the wild: OpenGameArt campfire 32×32, 8 frames (6 used); 9-frame fire at 16/32/64; Seliel's camp 4-frame burning + 4-frame dying fire (2×2 tiles); silasgamedev campfire 7-frame loop with smoke and embers, 46-colour palette. Secondary (sprite-ai search snippet): 4 tones white → yellow → orange → deep red, 4–6 frames, base almost still.
+
+## 7. Embers, sparks, smoke
+- Sparks: 1-px dots that rise and drift, colour cooling along the sparks ramp (white → yellow → orange → red) before vanishing (Saint11 Fire; propulsion sheet: "flame gets darker… even darker and smaller").
+- Saint11 *Smoke*: "animate a single particle, go back and do another until the smoke is done"; "the first frame is a contrast frame, it makes the next frame brighter"; "avoid breaking the shape too much or it will look like noise"; his campfire example is 3–5 grey puffs of 1–3 px, rising ~1 px/frame, each shrinking to a single pixel then gone. No pixel-art source describes a sine wobble; the generic particle rule (itch.io) is a per-particle amplitude and frequency fed to sin(). Keep amplitude ≤1 px and fade by stepping through 2–3 greys rather than alpha.
+
+## 8. Glowing tent
+No dedicated pixel-art tutorial found. Derive from: glow core bright and saturated, stepping down in brightness and saturation (cypaint); Saint11 volumetric light "brighter in the middle"; Darkness: one colour, low contrast. Lylouf uses two warm yellows (#ffee83, #f0b541) for lanterns against #080a15. Recommend a 3-step fabric ramp (pale yellow at the lamp, warm orange mid, the tent's night colour at seams), seams and poles in the dark colour so the shape still reads.
+
+## 9. Logs and bench
+Saint11 *Wood*: "start with the basic silhouette using a medium color", "avoid pillow shading", "stump rings fading details with distance", bark "like it was made of individual scales… light the scales not only individually but as a single shape", "hue shift the shadow; consider the light color; use slow transitions; don't overdo the highlight". Its night example palette: near-black → #3b2027 → red-brown. Seliel: "a squat log to act as a stool".
+
+## 10. Cats, 16–24 px, from behind
+- Lylouf's cat from behind is ~8 px tall at 384×216: a 2-px-wide head with two 1-px ears, a pear body, a curled tail, one highlight; it reads instantly.
+- Sprite-ai guide (secondary): "two triangles, and their proportion against the head is the entire read"; "a two or three frame tail flick on a still body reads as alive"; below 16×16 "the ears stop reading".
+- Packs: bowpixel 16×16 cat, 33+ animations at 12 fps; notsleeping 12×12, 3 frames × 4 directions (includes back); silasgamedev 32×32, 4-direction walks; 16-bit Kitties 16×16 idle/walk/sit/sleep.
+- Saint11 *Quadruped walk*: "imagine 2 bipeds walking with a small time offset", "every 2 frames a leg touches the ground", leg pattern contact → drag → rise → forward, 8 frames.
+
+FACTS
+- 320x180 'divides within 1080p 6 times, but also divides into 720 4 times' and fits 1440p and 2160p; chosen for a 'claustrophobic' framing (https://shweep.itch.io/the-machine-that-breathes/devlog/114161/resolving-resolutions)
+- 320x180 'times 6 is 1920x1080, and times 12 is 4K'; characters at that size are 'maybe 16 to 32 pixels tall'; only ever scale by whole numbers (https://www.summerengine.com/pt/blog/how-to-make-a-pixel-art-game)
+- 'I use 384x216 pixel which is 1/5 the scale of Full HD. Looks great so far on all 16:9 monitors i tested' (https://www.visionaire-studio.net/forum/thread/which-resolution-do-you-use-in-your-game/)
+- '480x270 scales cleanly to: 960x540, 1920x1080, 3840x2160'; most common pixel game resolutions are 320x180 and 640x360 (https://itch.io/post/9909606)
+- A 480x270 game is shown at 4x on a 1920x1080 screen; 'design all your assets at the same scale, at your game's internal resolution' (https://community.aseprite.org/t/canvas-size-pixel-size-resolution-and-ppu/8668)
+- Endesga 32 has 32 colours, by ENDESGA, originally for NYKRA; navy ramp #181425 #262b44 #3a4466 #5a6988 #8b9bb4 #c0cbdc (https://lospec.com/palette-list/endesga-32)
+- Resurrect 64 has 64 colours, by Kerrie Lake (https://lospec.com/palette-list/resurrect-64)
+- Apollo has 46 colours, by AdamCYounis; night blues #172038 #253a5e #3c5e8b and greys #090a14 #10141f #151d28 #202e37 (https://lospec.com/palette-list/apollo)
+- Pear36 has 36 colours, by PineappleOnPizza (https://lospec.com/palette-list/pear36)
+- Midnight Ablaze: 7 colours (#ff8274 #d53c6a #7c183c #460e2b #31051e #1f0510 #130208), 'for a very ominous night sky' (https://lospec.com/palette-list/midnight-ablaze)
+- Moonlight 15: 15 colours, 'suitable for night scenes, underwater, or bioluminescence' (https://lospec.com/palette-list/moonlight-15)
+- Campfire Story: 16 colours tagged fire/campfire/warm/glow, from #02180f and #181a2f up to #f9c762 and #ffff9e (https://lospec.com/palette-list/campfire-story)
+- Lylouf's 'Milky Way' is 384x216 with 22 colours, tagged cat, nighttime, river, landscape; sky #14182e/#080a15/#2c354d, nebula #3a3f5e/#404973/#686f99 with checker-dithered edges, stars #92e8c0 and #4fa4b8, lanterns #ffee83/#f0b541 (https://lospec.com/gallery/lylouf13/milky-way)
+- Saint11 Space/Stars: star shapes are 1 px, 2 px and a 3-px plus; 'for BG stars I like to use 2 or 3 color variations'; 'sporadic bright points give the image rhythm'; twinkling = small colour changes, low frame count, not all stars animate, out of sync; big stars hue-shift and gain saturation toward the middle; 'avoid 100% black background' (https://saint11.art/img/pixel-tutorials/Stars.gif)
+- Lospec lists Pedro Medeiros' Space/Stars tutorial (2017), 'Tips on creating planets and stars' (https://lospec.com/pixel-art-tutorials/space-stars-by-pedro-medeiros)
+- Checkerboard dither 'for light-to-dark blue gradients', Bayer for 'sky, water, light gradients', density split into about 5 stages (0/25/50/75/100%) (https://pixnote.net/en/learn/dithering)
+- Ramps hue-shift as they brighten ('warming as they become brighter'); 'saturation peaks in the middle'; decrease saturation at high brightness; Mondo palette = 8 ramps of 9 swatches plus desaturated variants, 128 colours (https://www.slynyrd.com/blog/2018/1/10/pixelblog-1-color-palettes)
+- 'The closest plane is the most saturated with strongest contrast... saturation reduces with each receding plane, while lightness increases'; 'the hue shifts more to the color of the sky with each receding plane'; vegetation texture drops from blades to 1-2 px clusters to none; scenes at 192x144 in ~15 colours (https://www.slynyrd.com/blog/2026/5/27/pixelblog-62-landscape-backgrounds)
+- 'The further the object, the more it takes on the color of atmospheric haze'; 'the closer an object is to the vertical position of the horizon, the more distant it appears' (https://slynyrd.com/blog/2018/11/16/pixelblog-11-landscape-pixeling)
+- Saint11 Parallax and depth: close = high saturation, high contrast, bright, hot hue, many details; far = low, low, dark, cold, few; 'objects far away are usually darker, less saturated and can fade to the sky color' (https://saint11.art/img/pixel-tutorials/Parallax.gif)
+- Conifer trees: 'start by making a simple stick tree guide, then start making branches from top to bottom'; one fill and one outline colour first, then light/medium/dark branches; side branches can be mirrored (https://slynyrd.com/blog/2023/5/22/pixelblog-44-top-down-trees)
+- Saint11 Illumination: key light casts the main shadow, fill softens shadows, rim light 'creates a thin outline to separate the object from the background'; 'change the hue when changing the amount of light; use complementary light colors for a strong contrast'; from-below light 'has a strong effect on faces'; volumetric cone 'brighter in the middle' (https://saint11.art/img/pixel-tutorials/IlluminationTechniques.gif)
+- Saint11 Darkness: 'blend dark areas with the background'; 'draw 2 imaginary lines from the light source to the edges of an object to find the shadow'; 'keep the light direction always consistent'; 'in a dark background I like to use only one color to keep a low contrast'; add 'a strong rim/back light' (https://saint11.art/img/pixel-tutorials/Darkness.gif)
+- Warm light: 'use dark brown shadows' not black; glow: 'bright, saturated colors for the core of the glow, then gradually decrease brightness and saturation outward'; 'gradually darken colors away from the light source, using intermediate shades'; night: 'blue highlights paired with deep indigo shadows evoke moonlight' (https://cypaint.com/article/how-to-paint-light-in-pixel-art)
+- Hazy air makes 'cast shadows... less defined and soft'; clear atmosphere 'keeps the light hard and makes crisp dark shadows' (https://www.slynyrd.com/blog/2018/6/15/pixelblog-6-light-and-shadow)
+- Saint11 Fire (30 frames, 100 ms each): 'each fire wave starts brighter and on the bottom; use wavy shapes'; 'start new waves every 2 or 3 frames'; 'the flame speed is higher in the middle'; 'the wave top fades in a pointy shape'; 'the bright colors come from bottom'; base 'keeps volume', 'particles detach from the base'; sparks ramp white-yellow-orange-red; 'ember flicks and moves slightly' (https://saint11.art/img/pixel-tutorials/Fire.gif)
+- Lospec lists 7 fire tutorials: Pedro Medeiros 'Fire Tutorial' (2016), Artem Brullov parts 1 and 2 (2018), Gogli 'Fire Animation' (2019), Solar Lune torch (2011) (https://lospec.com/pixel-art-tutorials/tags/fire)
+- Saint11 Smoke: 'animate a single particle, go back and do another until the smoke is done'; 'the first frame is a contrast frame, it makes the next frame brighter'; 'avoid breaking the shape too much or it will look like noise' (https://saint11.art/img/pixel-tutorials/SmokeSheet.gif)
+- OpenGameArt campfire: 32x32, 8 frames (first 6 used); author found copy-pasted flames look 'like a blurred out mass of randomness' and re-pixelled each frame (https://opengameart.org/content/camp-fire-animation)
+- 9-frame fire at 16x, 32x and 64x; 'you can duplicate and mix frames if you need a slower animation' (https://opengameart.org/content/9-frame-fire-animation-16x-32x-64x)
+- Pixel Campfire FX: 7-frame hand-animated loop with rising smoke and ember/spark FX, 'designed with a 46-color limited palette' (https://silasgamedev.itch.io/pixel-campfire)
+- Seliel's Traveler's Camp: tent is 4x4 tiles front and back, 4-frame burning and 4-frame dying campfire, 'a squat log to act as a stool', bedroll 2x3 tiles (https://seliel-the-shaper.itch.io/travelers-camp)
+- Saint11 Wood: 'start with the basic silhouette using a medium color'; 'avoid pillow shading'; bark 'like it was made of individual scales... light the scales not only individually but as a single shape'; 'hue shift the shadow; consider the light color; use slow transitions; don't overdo the highlight' (https://saint11.art/img/pixel-tutorials/Wood.gif)
+- Saint11 Quadruped walk: 'imagine 2 bipeds walking with a small time offset'; 'every 2 frames a leg touches the ground'; leg pattern contact, drag, rise, forward; 8-frame trot (https://saint11.art/img/pixel-tutorials/4LegsWalk.gif)
+- 16x16 cat pack with 33+ animations (sit, idle, run, front/rear attack, climb...), played at 12 fps (https://bowpixel.itch.io/cat-anim-16x16-black)
+- 12x12 cat spritesheet: '3 frames of animation 4 directions', '4 trashy colors', 8 colour combos (https://notsleeping.itch.io/lo-res-cat-spritesheet)
+- 32x32 cats with '4-directional walk cycles (up, down, left, right)' in 5 coats (https://silasgamedev.itch.io/animated-pixel-cats-5-unique-32x32-sprites-with-4-direction-walk-cycles)
+- (secondary, AI-art site) tiny cats: ears are 'two triangles, and their proportion against the head is the entire read'; below 16x16 'the ears stop reading'; 'a two or three frame tail flick on a still body reads as alive' (https://www.sprite-ai.art/gallery/cats)
+- Saint11 Clouds: 'far away clouds are faded, closer clouds have strong contrast'; 'hue shift the shadows; keep low contrast'; the full tutorial index with every sheet (Fire, SmokeSheet, Stars, IlluminationTechniques, Darkness, Parallax, Wood, 4LegsWalk, Vegetation3) (https://saint11.art/blog/pixel-art-tutorials/)
+
+AVOID
+- Do not use a 100% black sky; Saint11 says 'avoid 100% black background' and Lylouf's night sky sits at #14182e with #080a15 only as the darkest accent.
+- Do not draw the sky as a smooth multi-band gradient; 3 values plus a dithered band is enough at 320-480 px wide, and stacked parallel bands read as banding.
+- Do not animate every star, or animate them in sync; 'not all stars should animate, stars should be out of sync', with small colour changes and a low frame count.
+- Do not draw the Milky Way as a straight brighter stripe; suggest it with spiral nebula blobs in 2-3 mid blue-greys whose edges checker-dither into the sky, with stars inside it.
+- Do not give far mountain and forest layers detail, contrast or saturation; each farther layer is a flatter, darker-or-hazier silhouette one step closer to the sky colour ('fade to the sky color').
+- Do not shade firelit faces and cats with black or grey shadows; warm key light takes dark brown / red-brown shadows and a cool blue rim from the sky side.
+- Do not light the scene from two inconsistent directions; 'keep the light direction always consistent' and find shadows with the two imaginary lines from the fire.
+- Do not animate the whole flame as random noise or copy-paste chunks; keep the base 'keeps volume', start waves at the bottom every 2-3 frames, let tops pinch off as particles (OpenGameArt author called the copy-paste result 'a blurred out mass of randomness').
+- Do not put the brightest colour at the top of the flame; 'the bright colors come from bottom' and the tops 'fade in a pointy shape'.
+- Do not end the flame ramp in brown; the outer edge is red, and sparks cool white-yellow-orange-red before vanishing.
+- Do not fade smoke with alpha or wobble it by more than about a pixel; step each puff through 2-3 greys down to a single pixel, and 'avoid breaking the shape too much or it will look like noise'.
+- Do not render the tent glow as a flat yellow fill; use a saturated core stepping down in brightness and saturation, keep seams and poles in the dark colour so the silhouette still reads, and keep the fabric's unlit side low-contrast.
+- Do not pillow-shade logs or over-highlight them; 'avoid pillow shading', 'don't overdo the highlight', hue-shift the shadow and consider the fire's colour.
+- Do not go below 16 px for cats that must read as cats; place the two ear pixels first, and at 8-12 px rely on a head, two ears and a tail (as in Lylouf's cat).
+- Do not mix asset scales or non-integer zooms; design at one internal resolution (320x180, 384x216 or 480x270) and scale only by whole numbers.

@@ -52,14 +52,14 @@
   h3 { font-family: var(--pixel-text); font-size: 20px; line-height: 1.3; font-weight: 700; }
   p { margin: 0 0 1em; }
   a { color: var(--gold); }
-  img, canvas, .sprite, [style*="--panel"] { image-rendering: pixelated; image-rendering: crisp-edges; }
+  img, canvas, .sprite, [style*="--panel"] { image-rendering: crisp-edges; image-rendering: pixelated; }   /* pixelated last: the one every browser has */
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .skip { position: absolute; left: 8px; top: -60px; z-index: 50; padding: 8px 12px; background: var(--cream); color: var(--ink); }
   .skip:focus { top: 8px; }
   :focus-visible { outline: var(--u) solid var(--gold); outline-offset: var(--u); box-shadow: 0 0 0 calc(var(--u) * 2) var(--ink); }
 
   /* ---- the 9-slice boxes: 24 × 24 art with 8-pixel corners, shown at two screen pixels an art pixel ---- */
-  .panel { border: calc(8 * var(--u)) solid transparent; border-image: var(--panel-tan) 8 fill / calc(8 * var(--u)); color: var(--ink); image-rendering: pixelated; }
+  .panel { border: calc(8 * var(--u)) solid transparent; border-image: var(--panel-tan) 8 fill / calc(8 * var(--u)) round; color: var(--ink); image-rendering: pixelated; }
   .panel.night { border-image-source: var(--panel-night); color: var(--cream); }
 
   /* ---- buttons: a cream face, an ink outline, a shadow under it that the press removes ---- */
@@ -86,7 +86,7 @@
   .start { text-align: center; margin-top: 40px; }
   .start[hidden] { display: none; }
   #pressStart { font-family: var(--pixel); font-size: 16px; line-height: 1.5; color: var(--gold); background: none; border: 0; padding: 16px 24px; cursor: var(--paw) 2 2, pointer;
-    text-shadow: var(--u) var(--u) 0 var(--ink); animation: blink 1.06s steps(1, end) infinite; }
+    text-shadow: var(--u) var(--u) 0 var(--ink); animation: blink 1.06s steps(1, end) 4; }   /* four blinks, then it holds: nothing blinks past five seconds (WCAG 2.2.2) */
   @keyframes blink { 50% { opacity: 0; } }
   #pressStart:hover, #pressStart:focus-visible { animation: none; color: var(--white); }
   .talk { width: min(760px, calc(100% - 32px)); margin: 0 auto 24px; display: none; }
@@ -98,7 +98,7 @@
   .who { font-family: var(--pixel); font-size: 16px; color: var(--gold); margin-bottom: 8px; }
   .text { min-height: 52px; }
   .text .cursor { display: inline-block; width: 10px; height: 20px; vertical-align: -3px; background: var(--cream); animation: blink .8s steps(1, end) infinite; }
-  .adv { position: absolute; right: 24px; bottom: 16px; width: 16px; height: 12px; background: var(--cream); clip-path: polygon(0 0, 100% 0, 50% 100%); animation: bob .6s steps(2, end) infinite; }
+  .adv { position: absolute; right: 24px; bottom: 16px; width: 16px; height: 12px; background: var(--cream); clip-path: polygon(0 0, 100% 0, 50% 100%); animation: bob .6s steps(2, end) 8; }   /* bobs for five seconds, then rests */
   @keyframes bob { 50% { transform: translateY(4px); } }
   .menu { list-style: none; margin: 8px 0 0 88px; padding: 0; display: none; }    /* under the words, past the portrait */
   .menu.on { display: block; }
@@ -228,6 +228,7 @@
   </div>
   <div class="corner">
     <button id="sound" type="button" aria-pressed="false" aria-label="Sound: off">SOUND OFF</button>
+    <button id="still" type="button" aria-pressed="false" aria-label="Stop the scene's animation">STILL</button>
     <button id="skipIntro" type="button">SKIP</button>
   </div>
 </header>
@@ -372,13 +373,12 @@
     o.globalAlpha = GLOW[st.glow]; o.drawImage(art["tent-glow"], S.tentGlow.x, S.tentGlow.y); o.globalAlpha = 1;
     const c = S.cats; o.drawImage(art["cats-" + st.light], st.cat * c.fw, 0, c.fw, c.fh, c.x, c.y, c.fw, c.fh);
     const f = S.fire; o.drawImage(art.fire, st.fire * f.fw, 0, f.fw, f.fh, f.x, f.y, f.fw, f.fh);
-    for (const p of st.smoke) {                                   // smoke: light little trails that drift up, wobble and thin out
+    for (const p of st.smoke) {                                   // smoke: light little trails that drift up, wobble a pixel and thin out
       const life = (t - p.t0) / p.life; if (life >= 1) continue;
-      const x = p.x + Math.sin(t / 900 + p.ph) * 3 * life, y = p.y - life * p.rise;
-      o.globalAlpha = life < .33 ? .55 : life < .66 ? .35 : .18; o.fillStyle = "#B8BED0";
+      const x = p.x + Math.sin(t / 900 + p.ph) * 1.5 * life, y = p.y - life * p.rise;
+      o.fillStyle = life < .33 ? "#8E95AE" : life < .66 ? "#5F6886" : "#3B4566";   // three greys, no fading: the pixel-art way
       o.fillRect(x | 0, y | 0, life > .6 ? 2 : 1, p.tall ? 2 : 1);
     }
-    o.globalAlpha = 1;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(off, 0, 0, S.w, S.h, 0, 0, S.w * k, S.h * k);
   };
@@ -397,9 +397,17 @@
     if (!st.meteor && t > st.meteorAt) { st.meteor = { x: rnd(40, 300), y: rnd(10, 70), t0: t }; st.meteorAt = t + rnd(25000, 50000); }
   };
   let running = false, raf = 0;
-  const draw = (still) => { if (!art.sky || !art.sky.complete) return; if (still || reduced) paint(now(), true); };
+  // STILL stops the scene (WCAG 2.2.2: anything that moves for more than five seconds can be stopped). It is
+  // remembered, and reduced motion starts still.
+  let still = reduced;
+  try { if (localStorage.getItem("kc.still") === "on") still = true; } catch (e) {}
+  const draw = (force) => { if (!art.sky || !art.sky.complete) return; if (force || still) paint(now(), true); };
   const loop = (t) => { if (!running) return; step(t); paint(t, false); raf = requestAnimationFrame(loop); };
-  const run = (on) => { if (reduced) return; if (on && !running) { running = true; raf = requestAnimationFrame(loop); } if (!on && running) { running = false; cancelAnimationFrame(raf); } };
+  const run = (on) => { if (still) on = false; if (on && !running) { running = true; raf = requestAnimationFrame(loop); } if (!on && running) { running = false; cancelAnimationFrame(raf); } };
+  const stillBtn = $("#still");
+  const showStill = () => { stillBtn.setAttribute("aria-pressed", String(still)); stillBtn.setAttribute("aria-label", still ? "Start the scene's animation" : "Stop the scene's animation"); };
+  stillBtn.addEventListener("click", () => { still = !still; try { localStorage.setItem("kc.still", still ? "on" : "off"); } catch (e) {} showStill(); if (still) { run(false); draw(true); } else run(!document.hidden); SFX.ok(); });
+  showStill();
   document.addEventListener("visibilitychange", () => run(!document.hidden));
   new IntersectionObserver((es) => run(es[0].isIntersecting && !document.hidden), { threshold: 0 }).observe(canvas);
   addEventListener("resize", fit);
@@ -409,7 +417,7 @@
   Promise.all(loads).then(() => {
     fit();
     const wait = Math.max(0, 500 - (now() - t0));
-    setTimeout(() => { $("#loading").classList.add("done"); run(true); setTimeout(() => $("#loading").remove(), 400); }, reduced ? 0 : wait);
+    setTimeout(() => { $("#loading").classList.add("done"); draw(false); run(true); setTimeout(() => $("#loading").remove(), 400); }, reduced ? 0 : wait);
   });
 
   /* ---- the wipe: fade to black, jump, fade back. Reduced motion jumps. ---- */

@@ -74,6 +74,7 @@ scrolled at any time (PRESS START gates nothing: a visitor who scrolls past the 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | PRESS START | title | gold, blinking | steady, white | opens the dialogue | steady, gold ring | confirm | ALttP title | ☐ |
 | SOUND OFF / ON | top right | small outlined button | – | toggles, remembered in the browser | gold ring | confirm | – | ☐ |
+| STILL | top right | small outlined button | – | stops the scene (fire, smoke, stars, cats, glow) and starts it again; remembered; starts pressed under reduced motion | gold ring | confirm | the café's Still cats switch; WCAG 2.2.2 (anything moving past 5 s can be stopped) | ☐ |
 | SKIP | top right | small outlined button | – | straight to the menu | gold ring | – | every intro since the 90s | ☐ |
 | ▼ (next) | dialogue, bottom right | bobbing triangle | – | turns the page; a press while it types shows the whole line | gold ring | confirm | Zelda / Pokémon | ☐ |
 | Menu item | the box | cream text | pointer ▶, white text | bleep, wipe to black, jump to the section | same as hover | move / confirm | Stardew, Zelda's hand cursor | ☐ |
@@ -95,7 +96,7 @@ web page. Timings are in `index.html` beside the thing they time.
 | What | Timing | With reduced motion | ref | |
 | --- | --- | --- | --- | --- |
 | Loading frame | ≥ 500 ms; bar fills with the real loads; out in 3 steps over 300 ms | no minimum, no fade | – | ☐ |
-| PRESS START | 530 ms on, 530 ms off, no fade | steady | The Minish Cap draws it 32 frames on, 32 off at 60 fps: 533 ms each | ☐ |
+| PRESS START | 530 ms on, 530 ms off, no fade; four blinks, then it holds (nothing blinks past 5 s: WCAG 2.2.2) | steady | The Minish Cap draws it 32 frames on, 32 off at 60 fps: 533 ms each; Mario 64, 20 of every 32 frames at 30 fps | ☐ |
 | Fire | 8 frames at 10 fps | frame 1, still | – | ☐ |
 | Firelight | flicker between 3 baked light levels every 90 ms (no blending: three pictures) | the middle level, still | – | ☐ |
 | Smoke | a particle every 380 ms; rises 26–40 px over 3–5 s, sine wobble, 3 opacity steps, 1 px wide then 2 | none | – | ☐ |
@@ -104,7 +105,7 @@ web page. Timings are in `index.html` beside the thing they time.
 | Cats | breathe (a pixel taller) every 1.2 s; blink 180 ms every 2.5–7 s; an ear flicks 260 ms; the tail 420 ms; the second cat out of step | still | Stardew's idle animals | ☐ |
 | Dialogue box | grows open in 3 steps over 200 ms | simply there | Ocarina's box grows over 8 frames; Stardew's over ~200 ms with "breathin" | ☐ |
 | Typewriter | one character every 30 ms (Stardew's exact delay), a blinking block cursor; a press completes the line | the whole line at once | Stardew; Ocarina types one a frame at 20 fps | ☐ |
-| ▼ | bobs 2 px at 2 Hz in 2 steps | still | Zelda | ☐ |
+| ▼ | bobs 2 px at 2 Hz in 2 steps, for five seconds, then rests | still | Pokémon Red toggles its ▼ at the box's bottom-right tile; Stardew's continue icon bounces | ☐ |
 | Menu items | appear one by one, 120 ms apart, no fade | all at once | Stardew's four buttons land one every 200 ms | ☐ |
 | Menu pointer | snaps, no easing | same | every 16-bit menu | ☐ |
 | Confirm | the screen wipes to black in 3 steps over 240 ms, the page jumps, the wipe lifts in 3 steps | a plain jump | Zelda's fade to black | ☐ |
@@ -112,6 +113,7 @@ web page. Timings are in `index.html` beside the thing they time.
 | Buttons | the press drops 4 px, no transition | same | – | ☐ |
 | Sections | **none**: no scroll reveals, no parallax, no fades | same | – | ☐ |
 | When hidden | the scene stops drawing when the tab is hidden or the title is scrolled away | – | – | ☐ |
+| STILL | the scene can be stopped by its button at any time, and stays stopped on the next visit | starts stopped | WCAG 2.2.2 pause, stop, hide | ☐ |
 
 **Sound** is four bleeps made by the page itself (an oscillator; no sound files, nothing to license): move 880 Hz
 for 50 ms, confirm 660 then 990, back 440 then 330, and a 15 ms tick every other letter of the typewriter. **Off by
@@ -204,9 +206,98 @@ server's `use_figma` on the file, or in Figma desktop as a development plugin (w
 `(async () => { … ; figma.closePlugin(); })()` in place of the final `return`). Each run draws a fresh row.
 
 Mind the quota: a Starter plan with a View seat gets twenty MCP calls a month that read Figma (`create_new_file` and
-`whoami` are free); this draft used one for the drawing.
+`whoami` are free); this draft used two: the drawing, and a fix that made the containers see-through. The file was
+drawn before the STILL button and the five-second limits on the blink and the ▼ were added (section 4): `frames.js`
+has them, the file in her drafts doesn't until it is redrawn.
 
-## 12. Checking it
+## 12. What the games actually do: the research behind the references
+
+Six researchers read the decompiled games, the wikis and the standards so the references above are checked, not
+remembered. What shaped the page, with its source:
+
+**Stardew Valley** (the 1.5.6 decompilation, `Menus/TitleMenu.cs`, `LoadGameMenu.cs`, `DialogueBox.cs`; the wiki)
+
+- The dialogue box types one character every 30 ms (`characterAdvanceDelay = 30`); a click reveals the rest, a second
+  click advances after a 750 ms safety delay; a bouncing icon shows when the line is done; there is no text-speed
+  option. The box is 1200 × 384 at the bottom centre, 64 px up, and grows open from its centre in about 200 ms with a
+  "breathin" sound. → the typewriter, the skip rule, the box that grows in steps.
+- The four title buttons land one every 200 ms, each with a sound; hovering one eases its scale from 3× to 3.25×
+  with a footstep. → the menu items that come one by one; the hover that shows a pointer instead of growing.
+- Picking a save flashes its slot every 75 ms for 2150 ms, the last second fading to black; "Loading" adds a dot every
+  333 ms; the pixel font is an 8 × 16 sheet with lowercase, drawn at 3×. → the file slot pressed on landing, the loading
+  frame's stepped bar.
+
+**Zelda** (zeldaret/oot, zeldaret/mm, zeldaret/tmc, snesrev/zelda3)
+
+- The Minish Cap draws PRESS START only when `(timer & 0x20) == 0`: 32 frames on, 32 off at 60 fps, 533 ms each; Majora's
+  fades it in 20-frame legs; Ocarina's is red (255, 30, 30). → 530 ms on, 530 ms off, hard-cut.
+- A Link to the Past's file-select cursor is a fairy whose wings flap every 8 frames; Ocarina's highlight pulses its alpha
+  70 ↔ 200 over 20 frames; The Minish Cap plays TEXTBOX_CHOICE on the cursor, TEXTBOX_SELECT to confirm, MENU_CANCEL back,
+  MENU_ERROR when invalid. → the pointer that snaps; move / confirm / back bleeps.
+- Ocarina's text box is 256 × 64 and grows open over 8 frames with an overshoot (width 1.2 → 2.2 → 2.0); its text prints
+  one character a frame at 20 fps; The Minish Cap's speeds are 5 / 3 / 1 ticks per character, ×8 while B is held.
+  → the box in three steps; the typewriter near 20–33 characters a second.
+- Only the last heart beats, shrinking to 68 % over 10 frames and back. → hearts that stand still here; they say
+  open / not open, not health.
+
+**The era's motion** (sm64 decomp `area.c`, `title_screen.c`, `level_update.c`; pret/pokered; pixnote; WCAG)
+
+- Super Mario 64 shows PRESS START on 20 of every 32 frames at 30 fps (0.67 s on, 0.4 s off) and starts its attract demo
+  after 800 idle frames, about 27 s. Pokémon Red prints a letter every 1 / 3 / 5 frames (Fast / Medium / Slow), one
+  frame while A or B is held, toggles its ▼ at the box's bottom-right tile, and waits 30 frames before a held
+  direction repeats every 5. Cursors were tiles written and erased, never tweened; sprite animation ran at 4–8 fps on
+  the NES and SNES, 8–12 fps being the usual pixel-art band, idles 2–4 drawings. → steps everywhere, 8–10 fps
+  sprites, no easing on the pointer.
+- WCAG 2.3.1: nothing flashes faster than 3 Hz; WCAG 2.2.2: anything that blinks or moves past 5 s can be paused,
+  stopped or hidden; `prefers-reduced-motion: reduce` is not "none": keep loading indicators and feedback, replace
+  motion with opacity or colour, no full-screen wipes. → four blinks then hold, the ▼ rests after 5 s, STILL, the
+  plain jump under reduced motion.
+- UI audio has three slots: cursor move (quiet, 100–300 ms), decide (rising), cancel (falling); browsers block audio
+  before the first gesture. → the four bleeps, off by default, and the first one after the press.
+
+**Pixel art on the web** (MDN, caniuse, 7tonshark, Google Fonts' sources)
+
+- `image-rendering: pixelated` is in every browser (Chrome 41, Firefox 93, Safari 10); `crisp-edges` only reached Chrome
+  in version 148, so declare `crisp-edges` first and `pixelated` last. The integer scale must be computed in device
+  pixels (a 2× CSS scale is 2.5 device pixels at a ratio of 1.25) and `drawImage` sizes must be whole multiples;
+  `pixelated` on a non-integer size still blurs. → `k = ceil(width × dpr / 480)` device pixels an art pixel.
+- Time sprites by the frame's timestamp, never by counting `requestAnimationFrame` calls (a 15-tick loop is 4 fps at
+  60 Hz and 8 at 120). → every timer on the page is a clock.
+- `border-image` with `stretch` smears pixel-art edges; use `round` and whole-tile boxes. Press Start 2P, Silkscreen and
+  Tiny5 are crisp at multiples of 8 px, Micro 5 at 11, Jersey 15 at 27; Pixelify Sans and VT323 are "pixel-look" faces
+  rather than grid-true (our own test found Pixelify Sans 4 % soft at 20 px and a third soft elsewhere); pixel fonts
+  are for titles, labels and buttons at 16 px and up, body copy in a normal face; Silkscreen has no lowercase. → the
+  three faces and their sizes.
+
+**The landing page itself** (NN/g, Baymard, Unbounce's 2024 benchmark, the DGCCRF, WSU)
+
+- Visitors decide in the first 10 seconds; one call to action converts 13.5 % against 10.5 % with three; a literal
+  "what you get" headline beat a value proposition by 44 %; copy at a grade 5–7 reading level converts 11.1 %
+  against 5.3 % for "professional" prose. → one PRESS START, a tagline that says what it is, short sentences.
+- Real product pictures and real people are studied, stock images ignored. → the scene and a note in her voice.
+- Fake reviews are a deceptive commercial practice in France since 28 May 2022 (Code de la consommation, L121-4), as
+  is fake urgency; small real counts deter more than none; a waitlist should ask for an email and nothing else; the
+  words "artificial intelligence" alone lowered trust and purchase intent in a 1,000-adult study. → no testimonials,
+  no countdown, a mailto, and "Claude" named only as the product it is, never "AI".
+
+**The campfire** (Lospec, Saint11's tutorials, Lylouf's "Milky Way", itch.io devlogs)
+
+- 480 × 270 scales cleanly to 960 × 540, 1920 × 1080 and 3840 × 2160; 320 × 180 and 640 × 360 are the other common
+  choices. → 480 × 270.
+- Never a 100 % black sky (Lylouf's night sits at #14182E with #080A15 as the darkest accent); the sky as three values
+  and a dithered band, not stacked gradients; stars as 1 px, 2 px and a 3-px plus, in two or three colours, not all
+  animated and never in sync; the milky way suggested by dithered blobs with stars inside, not a straight stripe; each
+  farther layer flatter and closer to the sky colour. → the sky, the stars, the band, the mountains and pines.
+- Flames keep their volume at the base and pinch off at the top; the bright colours come from the bottom; the outer
+  edge is red, never brown. Smoke steps through two or three greys down to a single pixel, wobbling a pixel at most,
+  never faded with alpha. A glowing tent is a saturated core stepping down, its seams and poles kept dark. Firelit
+  faces take dark brown shadows and a cool rim from the sky, never grey. → the eight frames, the stepped greys, the
+  glow layer, the cats' shading.
+
+The six notes, with every source, are in `docs/landing-page/research/` (`stardew.md`, `zelda.md`, `motion.md`,
+`pixel-web.md`, `saas.md`, `campfire.md`).
+
+## 13. Checking it
 
 - Look: `python3 landing/tools/scene.py --preview` and open `landing/art/preview.png`; open `landing/index.html` at 1440
   and at 390 wide, with and without reduced motion. The screenshots of this draft were taken with Playwright at both

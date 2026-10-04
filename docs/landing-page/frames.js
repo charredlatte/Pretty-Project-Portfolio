@@ -47,7 +47,7 @@ function title(name, width = 1440, height = 900) {
   put(f, text("canvas: the fireside scene. Two cats on a log bench left of the fire, faces lit; logs; a glowing tent; smoke; pines, mountains, the milky way. Scaled by whole numbers, cropped at the sides, the sky colour continues above it.", 12, REG, GREY, phone ? width - 32 : 520), phone ? 16 : 24, phone ? 130 : height - 80);
   const head = col(8, "masthead"); head.appendChild(text("KittyChat Café", phone ? 24 : 32, BOLD, INK)); head.appendChild(text("All your Claude chats, in one cozy café.", 16, REG, INK));
   put(f, head, phone ? 16 : (width - 400) / 2, phone ? 32 : 90);
-  const corner = row(8, "corner"); corner.appendChild(button("SOUND OFF")); corner.appendChild(button("SKIP")); put(f, corner, width - (phone ? 170 : 200), 12);
+  const corner = row(8, "corner"); corner.appendChild(button("SOUND OFF")); corner.appendChild(button("STILL")); corner.appendChild(button("SKIP")); put(f, corner, width - (phone ? 240 : 270), 12);
   return { f, scene, phone };
 }
 
@@ -123,7 +123,7 @@ function title(name, width = 1440, height = 900) {
   put(f, text("Dialogue", 18, BOLD), 80, 420);
   const d = row(40); for (const [l, s] of [["Text▌", "typing, 40 cps, cursor blinks"], ["▼", "page done: bobs 2 px at 2 Hz"], ["(menu)", "last page: the menu replaces ▼"]]) { const c = col(8); c.appendChild(text(l, 14, BOLD)); c.appendChild(text(s, 11, REG, GREY, 180)); d.appendChild(c); } put(f, d, 80, 460);
   put(f, text("Corner", 18, BOLD), 80, 580);
-  const k = row(20); for (const [l, s] of [["SOUND OFF", "default: no sound"], ["SOUND ON", "pressed look; bleeps on move, confirm, back, type"], ["SKIP", "straight to the menu"]]) { const c = col(8); c.appendChild(button(l, l === "SOUND ON")); c.appendChild(text(s, 11, REG, GREY, 160)); k.appendChild(c); } put(f, k, 80, 620);
+  const k = row(20); for (const [l, s] of [["SOUND OFF", "default: no sound"], ["SOUND ON", "pressed look; bleeps on move, confirm, back, type"], ["STILL", "stops the scene; remembered; pressed under reduced motion"], ["SKIP", "straight to the menu"]]) { const c = col(8); c.appendChild(button(l, l === "SOUND ON")); c.appendChild(text(s, 11, REG, GREY, 160)); k.appendChild(c); } put(f, k, 80, 620);
   put(f, text("Pointer", 18, BOLD), 80, 740); put(f, text("A cat paw (16 × 16, our own), tip at the top left, on anything clickable. The arrow elsewhere.", 12, REG, GREY, 600), 80, 780);
   put(f, note("Sounds are four oscillator bleeps made in the page (no sound files): move 880 Hz 50 ms; confirm 660→990; back 440→330; a 15 ms tick every other letter. Off by default.", 420), 900, 60); }
 
@@ -132,7 +132,8 @@ function title(name, width = 1440, height = 900) {
   put(f, text("Every motion on the page", 18, BOLD), 80, 60);
   const rows = [["What", "Timing", "Reduced motion"],
     ["Loading frame", "≥ 500 ms, bar fills with real loads, fades out in 3 steps", "no minimum, no fade"],
-    ["PRESS START", "blinks 530 ms on / 530 ms off, no fade", "steady"],
+    ["PRESS START", "blinks 530 ms on / 530 ms off, no fade; four blinks then it holds", "steady"],
+    ["STILL", "the scene can be stopped at any time; remembered", "starts stopped"],
     ["Fire", "8 frames at 10 fps", "frame 1, still"],
     ["Firelight", "flicker between 3 baked levels every 90 ms, no blending", "level 2, still"],
     ["Smoke", "a particle every 380 ms, rises 26–40 px over 3–5 s, sine wobble, 3 opacity steps", "none"],
