@@ -101,8 +101,9 @@ on Charlotte's PC. The Worker is her face, her ears and her memory; the runner i
    arms a Durable Object alarm for the next firing; `alarm()` wakes a waiting runner. One is due when its latest
    firing is newer than `last`, the time it was last handed out, so a missed routine runs once when the runner is
    back, never twice, and only while the runner runs.
-8. **Presence.** Every `wait` and `say` touches the queen's agent record; a runner silent for 90 s (`AWAY`) is
-   away, and the café says "start her runner". `queenState()` in the page reads that record.
+8. **Presence.** Every `wait` and `say` touches the queen's agent record. The page's `queenState()` reads it: no
+   touch for two minutes and she is away, and the café says "start her runner". The house's own `AWAY` (90 s)
+   decides when a runner's next wait counts as a return, so the open cafés are told she is back.
 
 The Worker's own reasoning is small on purpose: the **decider** (`decide`, Clef on Workers AI inside the free plan,
 or Jev, or any System One server at `DECIDE_URL`) answers typed yes/no, choice and score questions with
@@ -166,8 +167,9 @@ have to change. "A house" is one account's Durable Object.
   in `gateway/README.md`: a flood of guesses slows every sign-in behind it. The fix is a rate-limiting rule on
   `/login` and `/authorize` (one WAF rule on the free plan) and caching key lookups outside the object.
 - **The plan's ceilings.** The free plan allows 100,000 Worker requests a day and 10 ms of CPU a request. One open
-  café polling every 30 s is 2,880 requests a day, a runner waiting 25 s at a time about 3,500; so roughly 25
-  open cafés with runners exhaust the free plan, and the paid plan is the first thing a hosted café buys.
+  café polling every 30 s is 2,880 requests a day, a runner waiting 25 s at a time about 3,500, so about 6,400 a
+  house; roughly 15 houses with a café open and a runner up exhaust the free plan, and the paid plan is the
+  first thing a hosted café buys.
 - **The runner is one per house, by design.** `waiters` is an in-memory list, so several runners on one house
   would all be woken and the first `inbox` would take the notes; routines are handed out once. One queen, one
   runner: a second one is a bug, not a scale-out.
@@ -199,8 +201,9 @@ have to change. "A house" is one account's Durable Object.
   again in `catio_mcp.py` (schema and body), so the page and agents can use either; then the page's stored
   capabilities list, which needs a republish with the whole set (`CLAUDE.md`, "The stored capabilities"). Three
   tools joined in two days (`decide`, `quizzes`, `answer`) and each took all four steps. One `tools.json` both
-  servers read would make it two. The gateway tests compare the two lists, so forgetting one fails a test rather
-  than diverging quietly.
+  servers read would make it two. Nothing checks that the two lists agree: the gateway test asserts the Worker's
+  names against its own list, so a tool added to one server and not the other diverges quietly until someone
+  calls it. A test that reads both would catch it.
 - **A new message kind** (beside notes, requests and files) touches `inbox` in `house.js`, `handed_in` in
   `report.py`, the `catio` skill's catch-up and the page: four places, each a few lines, no layer to thread it
   through.

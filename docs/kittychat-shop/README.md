@@ -41,6 +41,8 @@ the business plan's figures go once she has chosen them. The plan itself is priv
 7. **Legal pages.** Four tiles: mentions légales (EI, SIREN, host), CGV (object, price, renewal, withdrawal,
    médiateur), politique de confidentialité (what the gateway stores, sub-processors, RGPD rights), and the model
    withdrawal form.
+8. **Home (phone)** and 9. **Pricing (phone)**, at 390 wide, with the tiers stacked. The phone's home says the car
+   in one line ("Claude is the engine. The café is the rest of the car, and Ninine drives."), and each stacked tier keeps its line.
 10. **About.** The promotion's brief, as Charlotte set it on 4 October: the point of contact (her, as EI, with
    the email, address and hours as placeholders and a Write button), the due date (when the early-access promotion
    ends, with launched and last-updated dates), a short description of the promotion (the launch price held for as
@@ -48,8 +50,6 @@ the business plan's figures go once she has chosen them. The plan itself is priv
    hosted café, the repository, Buy Me a Coffee, Ulule and the shop), and the mentions légales on the page itself
    (éditeur, directrice de la publication, hébergeurs, TVA, médiateur), pointing to the Legal page for the rest.
    "About" joins the nav.
-8. **Home (phone)** and 9. **Pricing (phone)**, at 390 wide, with the tiers stacked. The phone's home says the car
-   in one line ("Claude is the engine. The café is the rest of the car, and Ninine drives."), and each stacked tier keeps its line.
 
 ## The car
 
