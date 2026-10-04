@@ -531,7 +531,7 @@ ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-
 /* the queen's card: her dialogue, like an NPC's */
 ul.thread li.greet { font-style: italic; }
 /* her words as they come end in the pack's triangle turned down and bouncing: the "more" arrow of every RPG's dialogue box */
-ul.thread li.live::after { content: ""; display: inline-block; width: 7px; height: 12px; margin-left: 6px; vertical-align: -1px; background: url(art/licensed/ui/pointer.png) no-repeat;
+ul.thread li.live::after { content: ""; display: inline-block; width: 7px; height: 12px; margin-left: 6px; vertical-align: -1px; background: var(--art-pointer) no-repeat;
   image-rendering: pixelated; rotate: 90deg; animation: more .6s steps(2) infinite; }
 @keyframes more { 50% { translate: 0 2px; } }
 @keyframes blink { 50% { opacity: 0; } }
@@ -585,16 +585,10 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); height: 792px; }   /* dial
 .qchar[data-mood="sleep"] .crown { top: 104px; left: 34%; }
 .qchar.talking { animation: talk .5s steps(2) infinite; }
 @keyframes talk { 50% { translate: 0 -3px; } }
-.qchar .nameplate, .owner .nameplate { position: absolute; bottom: 4px; white-space: nowrap; }
-/* her homework over the talk. Both columns are stated, never left to the content: an auto column grows to the
-   longest word in a bubble or a quiz, and the words then scroll sideways instead of wrapping. */
-/* her homework takes what a card needs and no more, down to a floor of talk under it: a flat share of the scene
-   cut the card off above its Hand it in on a short screen */
-.qtalk { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(calc(100% - 96px)) minmax(0, 1fr) auto; gap: 6px; padding: 8px 4px 10px; }
 /* her homework over the talk, taking what a card needs and no more, down to a floor of talk under it: a flat share
    of the scene cut the card off above its Hand it in on a short screen. The column is stated, never left to the
-   content: an auto column grows to the longest word in a bubble or a quiz, and her words then scroll sideways. */
-.qtalk { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(max(50%, calc(100% - 96px))) minmax(0, 1fr); gap: 6px; padding: 8px 4px 10px; }
+   content: an auto column grows to the longest word in a bubble or a quiz, and her words then scroll sideways. The last row is her work as it goes (#queenWork). */
+.qtalk { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(max(50%, calc(100% - 96px))) minmax(0, 1fr) auto; gap: 6px; padding: 8px 4px 10px; }
 .qtalk .homework { min-width: 0; overflow: auto; }   /* the row is what caps her homework: max-height: 46% on it resolved against nothing, so homework took the lot and left the talk no height at all */
 #queenThread { grid-row: 2; min-width: 0; height: 100%; overflow: auto; display: flex; flex-direction: column; gap: 6px; padding: 0 2px; overscroll-behavior: contain; }
 #queenThread li { max-width: min(86%, 460px); margin: 0; }   /* wide enough to read, narrow enough to stay a bubble */
@@ -604,36 +598,36 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); height: 792px; }   /* dial
 #queenThread li.handoff { align-self: center; max-width: min(92%, 460px); }
 #queenThread > li:first-child { margin-top: auto; }   /* a short conversation sits at the bottom, by the speakers */
 .saybar { align-items: end; }
-#queenStop:disabled { cursor: default; border-image-source: url(art/licensed/ui/button-down.png); translate: 0 calc(2 * var(--u)); filter: none; }   /* pressed, until she has stopped */
+#queenStop:disabled { cursor: default; border-image-source: var(--art-button-down); translate: 0 calc(2 * var(--u)); filter: none; }   /* pressed, until she has stopped */
 /* her turn as it goes, under the talk on her side (4 October). Waking is Animal Crossing's pause: the grey bubble
    with her name on a tab. At work it is The Sims' action queue: each step done a small pressed-in tile with the
    pack's tick, the one she is on a lit cream tile. The dots are art pixels; stopping is the pink button and the cross. */
 #queenWork { grid-row: 3; justify-self: end; max-width: 100%; min-width: 0; display: grid; justify-items: end; gap: 2px; }
 #queenWork[hidden] { display: none; }
-.qwork .secs { font: 18px/22px var(--pixel); color: var(--ink-soft); flex: none; }
+.qwork .secs { font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink-soft); flex: none; }
 .qwork .w { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .qdots { display: inline-flex; gap: var(--u); flex: none; }
 .qdots i { width: calc(2 * var(--u)); height: calc(2 * var(--u)); background: var(--ink); animation: qdot 1.2s steps(1) infinite; }
 .qdots i:nth-child(2) { animation-delay: .4s; }
 .qdots i:nth-child(3) { animation-delay: .8s; }
 @keyframes qdot { 0% { opacity: 1; } 33% { opacity: .25; } }
-.qx, .qtick { width: 12px; height: 12px; flex: none; background: url(art/licensed/ui/status.png) -12px 0 / 24px 12px no-repeat; image-rendering: pixelated; }
+.qx, .qtick { width: 12px; height: 12px; flex: none; background: var(--art-status) -12px 0 / 24px 12px no-repeat; image-rendering: pixelated; }
 .qtick { background-position: 0 0; }
-.qwake { position: relative; display: flex; align-items: center; gap: 8px; max-width: 100%; margin-top: 14px; padding: 2px 8px 0; font: 18px/22px var(--pixel); background: #DCE0D2 padding-box;
-  border: solid transparent; border-width: 5px 5px 6px; border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / 5px 5px 6px stretch; }
-.qwake .tab { position: absolute; left: 6px; top: -22px; padding: 0 4px; font: 18px/16px var(--pixel); white-space: nowrap; background: var(--cream) padding-box;
-  border: solid transparent; border-width: 4px 4px 6px; border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / 4px 4px 6px stretch; }
+.qwake { position: relative; display: flex; align-items: center; gap: 8px; max-width: 100%; margin-top: 14px; padding: 2px 8px 0; font: var(--px-size)/var(--px-line) var(--pixel); background: var(--well) padding-box;
+  border: solid transparent; border-width: var(--bubble-px); border-image: var(--art-bubble) var(--bubble-s) fill / var(--bubble-px) stretch; }
+.qwake .tab { position: absolute; left: 6px; top: -22px; padding: 0 4px; font: var(--px-size)/calc(var(--px-size) - 2px) var(--pixel); white-space: nowrap; background: var(--cream) padding-box;
+  border: solid transparent; border-width: var(--btn-px); border-image: var(--art-button) var(--btn-s) fill / var(--btn-px) stretch; }
 .qwork details { max-width: 100%; }
 .dlg .qwork details > summary { width: auto; max-width: 100%; gap: 4px; justify-content: flex-end; }
-.qwork .tile { flex: none; box-sizing: border-box; width: 24px; height: 24px; display: inline-grid; place-items: center; font: 18px/1 var(--pixel); background: #CDB793 padding-box;
-  border: 4px solid transparent; border-image: url(art/licensed/ui/button-down.png) 4 fill / 4px stretch; image-rendering: pixelated; }
-.qwork .tile.done::after { content: ""; width: 12px; height: 12px; background: url(art/licensed/ui/status.png) 0 0 / 24px 12px no-repeat; }
+.qwork .tile { flex: none; box-sizing: border-box; width: 24px; height: 24px; display: inline-grid; place-items: center; font: var(--px-size)/1 var(--pixel); background: var(--pressed) padding-box;
+  border: solid transparent; border-width: var(--down-px); border-image: var(--art-button-down) var(--down-s) fill / var(--down-px) stretch; image-rendering: pixelated; }
+.qwork .tile.done::after { content: ""; width: 12px; height: 12px; background: var(--art-status) 0 0 / 24px 12px no-repeat; }
 .qwork .tile.more { width: auto; padding: 0 2px; }
 .qwork .tile.now { flex: 0 1 auto; width: auto; height: auto; min-width: 0; display: inline-flex; align-items: center; gap: 8px; padding: 2px 6px 0; background: var(--cream) padding-box;
-  border-width: 4px 4px 6px; border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / 4px 4px 6px stretch; }
-.qwork .tile.now.stop { border-image-source: url(art/licensed/ui/button-pink.png); }
-.qwork ol { list-style: none; margin: 4px 0 0; padding: 4px 8px; display: grid; gap: 2px; font-size: .84rem; background: #DCE0D2 padding-box;
-  border: solid transparent; border-width: 5px 5px 6px; border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / 5px 5px 6px stretch; }
+  border-width: var(--btn-px); border-image: var(--art-button) var(--btn-s) fill / var(--btn-px) stretch; }
+.qwork .tile.now.stop { border-image-source: var(--art-button-pink); }
+.qwork ol { list-style: none; margin: 4px 0 0; padding: 4px 8px; display: grid; gap: 2px; font-size: .84rem; background: var(--well) padding-box;
+  border: solid transparent; border-width: var(--bubble-px); border-image: var(--art-bubble) var(--bubble-s) fill / var(--bubble-px) stretch; }
 .qwork ol li { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .qwork ol .secs { font: .78rem var(--body); }
 .qwork ol li.on { font-weight: 800; }
@@ -653,11 +647,6 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); height: 792px; }   /* dial
 @media (max-width: 560px) {
   /* a phone is tall and narrow, so the two of them stand side by side along the foot of the scene and the
      words take its whole width: flanking her they left a strip under 200 px wide */
-  .qstage { height: min(58vh, 520px); grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
-  .qtalk { grid-area: 1 / 1; grid-template-rows: fit-content(calc(100% - 56px)) minmax(0, 1fr) auto; }   /* a smaller floor: a phone has barely the height for a whole quiz card */
-  .owner, .qchar { grid-area: 2 / 1; zoom: 1; }
-  .qhead h2 { font: 18px/24px var(--pixel); }   /* the pack's font draws at 18 or 36: at 36 her name broke mid-word beside Settings and Close */
-  .owner svg { width: 62px; }
   /* the words keep a floor and the two of them give way: their row is what the talk was squeezed to nothing by */
   .qstage { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(72px, 1fr) auto; }
   .qtalk { grid-area: 1 / 1; }
