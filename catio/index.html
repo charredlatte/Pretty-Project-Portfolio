@@ -316,6 +316,7 @@ a { color: var(--ink); }
    as shares, so her own frame is trimmed alike); walking there, it is whole */
 .cat[data-line] { clip-path: inset(0 21.875% 0 9.375%); }
 .cat.walking[data-line] { clip-path: none; }
+.cat[data-line]:is(.hot, .lit, :focus-visible) { clip-path: inset(-2px calc(21.875% - 2px) -2px calc(9.375% - 2px)); }   /* room for its outline */
 .spr { display: inline-block; vertical-align: bottom; filter: var(--tint, none); image-rendering: pixelated; background-repeat: no-repeat; }
 .cat .spr { display: block; }
 /* a count: the pack's white button at one pixel a pixel */
@@ -1182,6 +1183,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (a.hot && hot && (hot[0] >= w || hot[1] >= h)) return "Its tip " + hot.join(" ") + " is outside its " + w + " × " + h + ".";
     if (a.kind === "cat" && !picking) {
       const n = framesOf(a, { frames }, w, h);
+      if (!n && h > 0 && w % h === 0) return "That is " + w / h + " frames: 64 at most.";
       if (!n) return "Its frames aren't square: say how many there are (\"frames\" in skin.json, or Frames in The look).";
       if (w % n) return "It is " + w + " pixels wide, which doesn't split into " + n + " frames.";
     }
@@ -1702,7 +1704,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       b.tabIndex = -1;   // the room's menu has Files
       b.dataset.room = k; b.dataset.floor = levelOf(k);
       b.setAttribute("aria-label", "Filing cabinet in the " + GEOM[k].name);
-      b.piece = $("props").querySelector('.piece[data-room="' + k + '"]:is([data-piece="filing_cabinet"], [data-piece="catio_chest"])');
+      // found when it is wanted: a skin of hers redraws the furniture, and a piece kept from before would be a stale one
+      Object.defineProperty(b, "piece", { get: () => $("props").querySelector('.piece[data-room="' + k + '"]:is([data-piece="filing_cabinet"], [data-piece="catio_chest"])') });
       Object.assign(b.style, { left: box[0] * 2 + "px", top: box[1] * 2 + "px", width: box[2] * 2 + "px", height: box[3] * 2 + "px", zIndex: zOf(k) ? zOf(k) - 40 : "" });
       b.addEventListener("click", (e) => { e.stopPropagation(); hideMenu(); openCabinet(k); });
       hoverable(b, "room", k);
@@ -1717,7 +1720,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       b.type = "button"; b.tabIndex = -1;   // the House menu has Homework, and the library's has The brain
       b.dataset.room = k; b.dataset.floor = levelOf(k);
       b.setAttribute("aria-label", "The litter box");
-      b.piece = $("props").querySelector('.piece[data-room="' + k + '"][data-piece="brain_chest"]');
+      Object.defineProperty(b, "piece", { get: () => $("props").querySelector('.piece[data-room="' + k + '"][data-piece="brain_chest"]') });
       Object.assign(b.style, { left: box[0] * 2 + "px", top: box[1] * 2 + "px", width: box[2] * 2 + "px", height: box[3] * 2 + "px", zIndex: zOf(k) ? zOf(k) - 40 : "" });
       b.addEventListener("click", (e) => { e.stopPropagation(); hideMenu(); hideTip(); if (deckOf("litterbox").length) openQueen("litterbox"); else openBrain(); });
       hoverable(b, "litter", k);
@@ -2539,7 +2542,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         return mi("Project maps", () => { hideMenu(); MAPS.visit++; try { openMaps(); } catch (e) { toast("A project map couldn't be drawn (" + (e && e.message || "error") + ").", "alert"); } }, { aside: shown || "" });
       })(),
       mi("Edit rooms", () => { hideMenu(); openRooms(curRoom()); }),
-      (() => { const n = Object.values(SKIN.live).filter((e) => e.from === "db").length + new Set([...Object.keys(SKIN.dbTokens.light), ...Object.keys(SKIN.dbTokens.dark)]).size; return mi("The look", () => { hideMenu(); openArt(); }, { aside: n ? n + " yours" : "" }); })(),
+      (() => { const n = Object.values(SKIN.live).filter((e) => e.from === "db").length + Object.keys(SKIN.dbTokens.light).length + Object.keys(SKIN.dbTokens.dark).length; return mi("The look", () => { hideMenu(); openArt(); }, { aside: n ? n + " yours" : "" }); })(),
       S.db && mi("Set up again…", () => { hideMenu(); openSetup(true); }),
       (VIEW.attic || S.showOld) && mi(S.showOld ? "Send them back up" : "Bring them down", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }),
       S.mcp && mi("Check now", () => watch(true)),
