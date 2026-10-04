@@ -1,9 +1,9 @@
 {
   "name": "catio",
-  "displayName": "The Catio",
-  "version": "0.1.0",
-  "description": "Set up your own Catio: every Claude Code session as a cat in a pixel-art cabin, one room per project, with a queen in each room who keeps what matters in it.",
+  "displayName": "KittyChat Café",
+  "version": "0.1.1",
+  "description": "Set up your own KittyChat Café: every Claude Code session as a cat in a two-floor pixel-art manor, one room per project, with a queen cat who keeps what matters and is the one you talk to.",
   "author": { "name": "charredlatte", "url": "https://github.com/charredlatte" },
   "repository": "https://github.com/charredlatte/Pretty-Project-Portfolio",
-  "keywords": ["claude-code", "sessions", "dashboard", "pixel-art", "artifact"]
+  "keywords": ["claude-code", "sessions", "dashboard", "pixel-art", "artifact", "kittychat"]
 }
