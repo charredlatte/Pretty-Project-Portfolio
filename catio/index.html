@@ -902,8 +902,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "house-upper":   { group: "The house", kind: "exact", name: "Upstairs", file: LIC + "house-upper.png", size: [960, 576], what: "Her own rooms, over the back of the house." },
     "decor":         { group: "The house", kind: "exact", name: "The grounds", file: LIC + "decor.png", size: [960, 576], what: "The catio, the drive, the forest and the garden." },
     "meadow":        { group: "The house", kind: "sheet", name: "Meadow", file: LIC + "meadow.png", size: [112, 32], what: "The grass the house stands on, tiled." },
-    "furniture":     { group: "The house", kind: "exact", name: "Furniture", file: LIC + "furniture.png", size: [512, 110], what: "Every licensed piece, one cell each (tools/furniture.py has the cells)." },
-    "furniture-cabin": { group: "The house", kind: "exact", name: "Cosy Cabin furniture", file: "art/furniture.png", size: [512, 99], what: "The cabin's pieces, one cell each." },
+    "furniture":     { group: "The house", kind: "exact", name: "Furniture", file: LIC + "furniture.png", atlas: "lic", size: MANOR.atlases.lic, what: "Every licensed piece, one cell each (tools/furniture.py has the cells)." },
+    "furniture-cabin": { group: "The house", kind: "exact", name: "Cosy Cabin furniture", file: "art/furniture.png", atlas: "cc", size: MANOR.atlases.cc, what: "The cabin's pieces, one cell each." },
     "panel":         { group: "Interface", kind: "slice", fam: "panel", name: "Panel", file: LIC + "ui/panel.png", size: [106, 122], slice: [6, 6, 6, 6], what: "Every menu, dialog and the sign." },
     "button":        { group: "Interface", kind: "slice", fam: "btn", name: "Button", file: LIC + "ui/button.png", size: [26, 28], slice: [4, 4, 6, 4], what: "The cream button; the bottom border is its raised edge." },
     "button-hover":  { group: "Interface", kind: "slice", fam: "btn", name: "Button, lit", file: LIC + "ui/button-hover.png", size: [26, 28], what: "Under the pointer. Its border is the button's." },
@@ -1106,8 +1106,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     // The skin is one stylesheet, #skinCss, after the page's own: the slots and light tokens on :root, the dark tokens where
     // the page's dark mode is, then the cats. A stylesheet, not inline styles, so dark mode can still win in the dark.
     const root = document.documentElement.style;
-    for (const p of SKIN.set) root.removeProperty(p);   // what The look was previewing
-    SKIN.set.clear();
+    const making = document.activeElement && document.activeElement.closest && document.activeElement.closest("#artDlg li[data-token]");
+    for (const p of SKIN.set) if (!making || making.dataset.token !== p) root.removeProperty(p);   // what The look was previewing, but the one under her hand
+    for (const p of [...SKIN.set]) if (!making || making.dataset.token !== p) SKIN.set.delete(p);
     const vars = [], put = (p, v) => vars.push(p + ": " + v + ";"), standIn = {};
     const css = [];
     const spr = JSON.parse(JSON.stringify(SPR0));   // built here, and only the run that lands sets SPR
@@ -1130,7 +1131,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         css.push("@keyframes a-skin-" + a.mood + " { from { background-position: 0 0; } to { background-position: " + -n * fw + "px 0; } }");
         if (a.mood === "walk") {
           // drawn facing right, so it is mirrored going left: .flip is set going right
-          css.push(".cat.walking .spr, .walker .spr { position: absolute; left: calc(var(--ax) - " + ax + "px); top: calc(var(--ay) - " + ay + "px); " + sheet + " animation: " + play + "; transform: scaleX(-1); }",
+          css.push(".cat.walking .spr, .walker .spr { position: absolute; left: calc(var(--ax) - " + ax + "px); top: calc(var(--ay) - " + ay + "px); " + sheet + " animation: " + play + "; transform: scaleX(-1); transform-origin: " + ax + "px " + ay + "px; }",
             ".cat.walking.flip .spr, .walker.flip .spr { transform: none; }");
         } else {
           spr[a.mood] = Object.assign({}, spr[a.mood], { w: fw, h: fh, ax, ay });
@@ -1142,7 +1143,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (a.kind === "font") {
         const fam = "KittySkin-" + k;
         try {
-          if (SKIN.fonts[fam] !== e.url) { const f = new FontFace(fam, cssUrl(e.url)); await f.load(); document.fonts.add(f); SKIN.fonts[fam] = e.url; }
+          if (!SKIN.fonts[fam] || SKIN.fonts[fam].url !== e.url) {
+            const f = new FontFace(fam, cssUrl(e.url)); await f.load();
+            if (SKIN.fonts[fam]) document.fonts.delete(SKIN.fonts[fam].face);
+            document.fonts.add(f); SKIN.fonts[fam] = { url: e.url, face: f };
+          }
           put(a.token, '"' + fam + '", ' + TOKENS0[a.token]);
         } catch (err) { problems[k] = "The font couldn't be read."; delete live[k]; }
       }
@@ -1162,6 +1167,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (seq !== SKIN.seq) return;
     const artWas = SKIN.artSig, artSig = JSON.stringify([Object.entries(live).map(([k, e]) => [k, e.url, e.slice, e.frames, e.secs, e.anchor, e.scale, e.pixel]), standIn]);
     SKIN.live = live; SKIN.problems = problems; SKIN.tokens = tokens; SKIN.standIn = standIn; SKIN.artSig = artSig;
+    for (const [fam, f] of Object.entries(SKIN.fonts)) if (!live[fam.slice("KittySkin-".length)]) { document.fonts.delete(f.face); delete SKIN.fonts[fam]; }   // a font put back
     for (const m of Object.keys(SPR)) delete SPR[m];
     Object.assign(SPR, spr);
     $("skinCss").textContent = [":root { " + vars.join(" ") + " }",
@@ -2728,6 +2734,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   const ownerOf = () => Object.assign({ hair: "long", hairColor: 0, skin: 0, top: 0, extra: "bow" }, (S.house && S.house.owner) || {});
   const tone = (hex, f) => "#" + [1, 3, 5].map((i) => Math.max(0, Math.min(255, Math.round(parseInt(hex.slice(i, i + 2), 16) * f))).toString(16).padStart(2, "0")).join("");
   function ownerSVG(o) {
+    const cs = getComputedStyle(document.documentElement), tok = (n) => cs.getPropertyValue(n).trim();   // its colours, read once
     if (skinOf("owner")) { const i = el("img", "ownerimg"); i.src = skinOf("owner").url; i.alt = ""; return i; }
     const W = 30, H = 40, px = Array.from({ length: H }, () => Array(W).fill(null));
     const pick = (list, i) => (list[i] || list[0])[1];
@@ -4310,6 +4317,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // list and changes nothing.
   const ARTPICK = {};   // slot -> the file she picked and hasn't used yet: { file, url, w, h, why }
   function openArt() { $("artDlg").replaceChildren(); drawArt(); show($("artDlg")); }
+  $("artDlg").addEventListener("close", () => { for (const k of Object.keys(ARTPICK)) { URL.revokeObjectURL(ARTPICK[k].url); delete ARTPICK[k]; } });   // a pick not used goes with the card
   const headOf = (k) => Object.keys(ART).find((x) => ART[x].fam === ART[k].fam && ART[x].slice);
   const borderOf = (k) => { const h = headOf(k), e = skinOf(h); return (e && e.slice) || ART[h].slice; };
   function artLine(k) {
@@ -4337,7 +4345,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const parts = String(text).trim().split(/[\s,]+/).filter(Boolean), n = parts.map(Number);
     if (!n.length || n.length > 4 || n.some((x) => !Number.isInteger(x) || x < 0 || x > 1024)) return null;
     const [t, r = t, b = t, l = r] = n;
-    if (t + r + b + l === 0 || (w && (l + r >= w || t + b >= h))) return null;   // a frame, with a middle left inside it
+    if (t + r + b + l === 0 || (w && (l + r > w || t + b > h))) return null;   // a frame that fits its picture (it may meet itself: the divider does)
     return [t, r, b, l];
   }
   function drawArt() {
@@ -4553,7 +4561,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (p.why || f.dataset.busy) return;
       const doc = { name: p.file.name, at: Date.now() };
       if (p.w) Object.assign(doc, { w: p.w, h: p.h });
-      if (bd) { doc.slice = border(bd.value, p.w, p.h); if (!doc.slice) { toast("A border is one to four whole numbers, like 4 4 6 4, that leave its " + p.w + " × " + p.h + " a middle.", "alert"); bd.focus(); return; } }
+      if (bd) { doc.slice = border(bd.value, p.w, p.h); if (!doc.slice) { toast("A border is one to four whole numbers, like 4 4 6 4, that fit inside its " + p.w + " × " + p.h + ".", "alert"); bd.focus(); return; } }
       if (hot) {
         doc.hot = hot.value.trim().split(/[\s,]+/).map(Number);
         if (doc.hot.length !== 2 || doc.hot.some((n) => !Number.isInteger(n) || n < 0 || n >= Math.min(p.w, 128))) { toast("Where it points is two whole numbers inside it, like 9 5.", "alert"); hot.focus(); return; }

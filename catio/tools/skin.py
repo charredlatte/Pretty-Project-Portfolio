@@ -41,6 +41,7 @@ def slots():
     """The slot table, read from the page itself so the two can't disagree."""
     text = PAGE.read_text(encoding="utf-8")
     block = text[text.index("const ART = {"):text.index("const SPR0")]
+    atlases = json.loads(re.search(r'"atlases":(\{[^}]*\})', text).group(1))   # MANOR's, which furniture.py writes
     out = {}
     for line in block.splitlines():
         m = re.match(r'\s+"([\w-]+)":\s*\{.*kind: "(\w+)"', line)
@@ -51,6 +52,9 @@ def slots():
             v = re.search(key + r": \[([\d, ]+)\]", line)
             if v:
                 a[key] = [int(n) for n in v.group(1).split(",")]
+        v = re.search(r'atlas: "(\w+)"', line)
+        if v:
+            a["size"] = atlases[v.group(1)]
         v = re.search(r'fam: "(\w+)"', line)
         if v:
             a["fam"] = v.group(1)
@@ -134,6 +138,23 @@ def from_dtcg(doc, groups):
     return found, foreign
 
 
+def ints(v, n, lo, hi):
+    return isinstance(v, list) and len(v) == n and all(isinstance(x, int) and not isinstance(x, bool) and lo <= x <= hi for x in v)
+
+
+def number(v, lo, hi):
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and lo <= v <= hi
+
+
+# the page's skinEntry(), for what a slot's entry may carry
+SETTINGS = {
+    "slice": lambda v: ints(v, 4, 0, 1024), "frames": lambda v: isinstance(v, int) and not isinstance(v, bool) and 1 <= v <= 64,
+    "secs": lambda v: number(v, 0.1, 20), "anchor": lambda v: isinstance(v, list) and len(v) == 2 and all(number(x, 0, 1024) for x in v),
+    "scale": lambda v: number(v, 0.001, 8), "pixel": lambda v: v is True, "hot": lambda v: ints(v, 2, 0, 127),
+    "w": lambda v: isinstance(v, int), "h": lambda v: isinstance(v, int),
+}
+
+
 def png_size(path):
     with open(path, "rb") as f:
         head = f.read(24)
@@ -190,6 +211,10 @@ def main():
             continue
         a, was = art[key], old.get(key) if isinstance(old.get(key), dict) else {}
         entry = {k: v for k, v in was.items() if k in ("slice", "frames", "secs", "anchor", "scale", "pixel", "hot", "w", "h")}
+        for k, ok in SETTINGS.items():   # what the page would drop, dropped here, and said
+            if k in entry and not ok(entry[k]):
+                said.append(f"  {p.name}: its \"{k}\" ({entry[k]!r}) isn't one the page can use, so it was dropped")
+                del entry[k]
         entry["file"] = "art/skin/" + p.name
         if a["kind"] == "font":
             if p.suffix.lower() not in FONTS:
@@ -223,21 +248,25 @@ def main():
             entry["scale"] = round(a["scale"] * want[0] / w, 4)   # as The look does: drawn smooth, shown the pack's size
             note += f" (scale {entry['scale']}, smooth; \"pixel\": true instead if it is pixel art)"
         if a["kind"] == "cat":
-            n = entry.get("frames") or (w // h if w % h == 0 else a.get("frames", 1))
+            n = entry.get("frames") or (w // h if w % h == 0 and w // h <= 64 else a.get("frames", 1))
             if w % n:
                 said.append(f"  {p.name}: {w} px wide doesn't split into {n} frames: set \"frames\" in skin.json")
                 continue
             entry["frames"] = n
             note = f" ({n} frames of {w // n} x {h})"
-        if a["kind"] == "slice" and "slice" not in a and a.get("fam"):   # cut with its head's border: the head's size
-            head = next(k for k, h in art.items() if h.get("fam") == a["fam"] and "slice" in h)
-            mine = SKIN / (head + ".png")
-            hw, hh = png_size(mine) if mine.exists() and png_size(mine) else art[head]["size"]
-            if [w, h] != [hw, hh]:
-                said.append(f"  {p.name}: {w} x {h}, but it shares {head}'s border, so it must be {hw} x {hh}: left out")
-                continue
         skin[key] = entry
         said.append(f"  {p.name}: {key}{note}")
+    # a family member is cut with its head's border, so it is the head's size: the head as it ended up (hers, wherever
+    # its file is, or the pack's when hers was left out)
+    for key in [k for k in skin if k in art and art[k]["kind"] == "slice" and "slice" not in art[k] and art[k].get("fam")]:
+        head = next(k for k, h in art.items() if h.get("fam") == art[key]["fam"] and "slice" in h)
+        hf = skin.get(head, {}).get("file") if isinstance(skin.get(head), dict) else skin.get(head)
+        hw, hh = (png_size(ROOT / hf) if hf and (ROOT / hf).is_file() and png_size(ROOT / hf) else None) or art[head]["size"]
+        mf = skin[key]["file"] if isinstance(skin[key], dict) else skin[key]
+        mw, mh = png_size(ROOT / mf) or (0, 0)
+        if [mw, mh] != [hw, hh]:
+            said.append(f"  {key}: {mw} x {mh}, but it shares {head}'s border, so it must be {hw} x {hh}: left out")
+            del skin[key]
     for mode, key in (("light", "tokens"), ("dark", "dark")):
         if modes[mode]:
             skin[key] = dict(sorted(modes[mode].items()))

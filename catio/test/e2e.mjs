@@ -2494,6 +2494,22 @@ await check("no colour or pixel-font size is written into a rule: each is a toke
   const hexes = (js.slice(0, owner) + js.slice(ownerEnd)).match(/["']#[0-9A-Fa-f]{3,8}["']/g) || [];   // her look's choices are data
   expect(!hexes.length, hexes.join(" "));
 });
+await check("each slot's default in ART is the one the CSS draws with: its file, and a 9-slice's border", async () => {
+  const src = readFileSync(join(here, "..", "index.html"), "utf8");
+  const css = src.slice(src.indexOf(":root {"), src.indexOf("color-scheme: light;"));
+  const art = src.slice(src.indexOf("const ART = {"), src.indexOf("const SPR0"));
+  const wrong = [];
+  for (const line of art.split("\n")) {
+    const m = line.match(/^\s+"([\w-]+)":\s*\{.*kind: "(\w+)".*file: (?:LIC \+ )?"([^"]+)"/);
+    if (!m || m[2] === "font" || m[2] === "cat") continue;   // the font is @font-face's; a cat's sheet is its mood's rule
+    const file = line.includes("file: LIC + ") ? "art/licensed/" + m[3] : m[3];
+    if (["furniture", "furniture-cabin", "house-upper", "decor"].includes(m[1])) continue;   // drawn from the script (srcOf), not a variable
+    if (!css.includes("--art-" + m[1] + ": url(" + file + ")")) wrong.push(m[1] + " is not " + file);
+    const sl = line.match(/slice: \[(\d+), (\d+), (\d+), (\d+)\]/), fam = line.match(/fam: "(\w+)"/);
+    if (sl && fam && !css.includes("--" + fam[1] + "-t: " + sl[1] + "; --" + fam[1] + "-r: " + sl[2] + "; --" + fam[1] + "-b: " + sl[3] + "; --" + fam[1] + "-l: " + sl[4] + ";")) wrong.push(m[1] + "'s border is not " + sl.slice(1).join(" "));
+  }
+  expect(!wrong.length, wrong.join("; "));
+});
 await check("tools/skin.py reads every slot, token and size range the page has", async () => {
   const { mkdtempSync, mkdirSync, copyFileSync, writeFileSync } = await import("node:fs");
   const { execFileSync } = await import("node:child_process");
@@ -2656,7 +2672,7 @@ await check("tools/skin.py reads every slot, token and size range the page has",
     for (const bad of ["", "0", "30"]) {   // "4," reads as 4 all round, which is fine
       await page.fill("#artBorder", bad);
       await page.click("#artDlg li[data-slot='panel'] .swap button[type=submit]"); await settle(page);
-      expect(/leave its 42 × 42 a middle/.test(await toast(page)) && !(await page.evaluate(() => "skin/panel" in window.__catio.store)), bad + ": " + await toast(page));
+      expect(/fit inside its 42 × 42/.test(await toast(page)) && !(await page.evaluate(() => "skin/panel" in window.__catio.store)), bad + ": " + await toast(page));
       await page.click("#toast .btn");
     }
     await page.click("#artDlg li[data-slot='panel'] .swap button:has-text('Cancel')"); await settle(page);
