@@ -257,7 +257,7 @@ page is retired). The small facts (who made `plants.zip`) stay here.
 1. CLAUDE.md's "Checking a change": looked at against her words, then `sh catio/test/run.sh`, everything passing.
 2. Read the live artifact in full (`Artifact` read, then every line of the saved file), and compare it with
    the branch's page. If the live one is newer, merge it first; never overwrite it.
-3. Publish `catio/index.html` to `artifacts.json`'s URL with only the files that changed, and **omit
+3. Publish `catio/index.html` to the café's URL (`kittychat-cafe` in `artifacts.json`) with only the files that changed, and **omit
    `capabilities`** to keep the stored set:
    the whole set is in `CLAUDE.md` ("The stored capabilities"). Pass `capabilities` only to add something on
    purpose, and then pass that whole set.
@@ -270,8 +270,9 @@ page is retired). The small facts (who made `plants.zip`) stay here.
 - **No Claude attribution lines** (`Co-Authored-By: Claude`, `Claude-Session:`) in commits on her public
   repos or forks: this one, the grocery app, Snail-Mail-Trail and the LibreSprite fork. She asked on
   1 October; the gate hook enforces it (`harness/rules.json`).
-- The gateway's three secrets (`CATIO_TOKEN`, `CATIO_PASSWORD`, `CATIO_QUEEN`) live only in Cloudflare, her
-  Claude environments and the queen's runner: never in the repo, the chat or a test.
+- The gateway's three secrets live only in Cloudflare and one other place each: `CATIO_TOKEN` in her Claude
+  environments, `CATIO_PASSWORD` in her password manager, `CATIO_QUEEN` on the queen's runner. Never in the repo,
+  the chat or a test.
 - Never commit `art/licensed/`, `catio/data/sessions.json`, `catio/dist/` or anything from her sessions.
 
 ## Known limits

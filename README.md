@@ -58,18 +58,24 @@ and a folder that runs on your own computer. The page does the same on its own: 
 seven-step wizard (name it, open the rooms you need, file your repositories, see your sessions, the litter box, how
 it works), and "Set up again…" in the House menu replays it.
 
-**The house rules** (`harness/`, the `kittychat-house-rules` plugin) are what make your sessions report to the
-gateway, collect what you send them and follow the rules below. Today they are Charlotte's own harness: the café
-they point at and the list of public repositories are hers (`harness/rules.json`), and two of the rules call skills
-that aren't in this repository (`ponytail-audit` and `browser-agent-preflight`). Fork it and set yours before you
-install it; the install lines are in [`harness/README.md`](harness/README.md).
+**Make the harness yours.** The house rules (`harness/`, the `kittychat-house-rules` plugin) are what make your
+sessions report to the gateway, collect what you send them and follow the rules below. Today they are Charlotte's
+own harness, so set these in your fork before you install it:
+
+- `harness/rules.json`: `catio`, your café's artifact link, and `public`, your public repositories.
+- The install lines in [`harness/README.md`](harness/README.md), and the same two in the wizard's How it works step
+  (`INSTALL` in `catio/index.html`): your fork's address instead of this one.
+- The skills the rules call that aren't in this repository: `ponytail-audit` and `browser-agent-preflight` (the
+  merging rule's `code-review` comes with Claude Code). Install them, or switch the rules that need them off in a
+  repository's `.claude/catio-rules.json`.
+- The gateway's first account is named by `CATIO_HANDLE` on the Worker, `charlotte` when it is unset.
 
 For cats that stay live wherever you open the café, and a queen you can talk to, add the gateway: a free Cloudflare
 Worker that every session checks in at, set up in five steps ([`harness/gateway/README.md`](harness/gateway/README.md)).
 The queen's brain runs on your own computer ([`harness/runner/README.md`](harness/runner/README.md)).
 
 **Bring your own cats.** Seven of the ten art packs the café is drawn from forbid sharing their files, an eighth is
-drawn into the same picture as two of them, and plants.zip came with no licence, so `catio/art/licensed/` is not in
+drawn into the same pictures as theirs, and plants.zip came with no licence, so `catio/art/licensed/` is not in
 this repository. A fresh clone draws the manor on plain panels, says so on its own sign, and gives the three steps
 to fix it: buy the packs yourself and run `catio/tools/build-art.py` over your own zips. Only Cosy Cabin, whose
 licence allows it, is included.

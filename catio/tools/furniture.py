@@ -17,9 +17,10 @@ stations   where a cat goes to show its state: (state, dx, dy), the point under 
            piece's top-left. States: needs, review, work, fail, sleep; queen for the room's queen; upstairs for
            the steps of the stair, foot to top, which cats climb on their way to the attic.
 
-Sheets are named by the end of their path inside the packs' zips; "wg:<file>" names one of Wood Garden's
-one-piece files. "cc" is Cosy Cabin (committable: art/furniture.png); every other sheet is licensed and goes into
-art/licensed/furniture.png, which ships only inside the private artifact.
+Sheets are named by the end of their path, which finds them both in Charlotte's zips and in an unpacked
+copy (folder_loader); "wg:<file>" is one of Wood Garden's one-piece files. "cc" is Cosy Cabin (committable:
+art/furniture.png); every other sheet is licensed and goes into art/licensed/furniture.png, which ships only
+inside the private artifact.
 
     python3 catio/tools/furniture.py      writes the page's generated MANOR block (no zips needed: atlas
                                           positions depend only on the pieces' sizes)
@@ -242,8 +243,21 @@ def suffix(sheet):
     return sheet[3:] if sheet.startswith("wg:") else SHEETS[sheet]
 
 
+def folder_loader(packs):
+    """Find a sheet by the end of its path in an unpacked folder of packs."""
+    files = [str(f) for f in Path(packs).rglob("*.png")]
+    def load(end):
+        hit = [f for f in files if f == end or f.endswith("/" + end)]
+        if not hit:
+            raise SystemExit(end + " not found under " + packs)
+        return Image.open(sorted(hit, key=len)[0]).convert("RGBA")
+    return load
+
+
 def sprite(key, load, cache={}):
-    """One piece's picture. load(path end) opens a sheet from the packs' zips."""
+    """One piece's picture. load(path end) opens a sheet: folder_loader(packs), or a zip lookup."""
+    if isinstance(load, str):
+        load = folder_loader(load)
     c = CATALOGUE[key]
     if c["sheet"] not in cache:
         cache[c["sheet"]] = load(suffix(c["sheet"]))
