@@ -145,7 +145,7 @@ merge to `main`.
 
 1. **She sets it up once** (`harness/gateway/README.md`):
    - deploy the Worker from this repo;
-   - two secrets;
+   - its secrets (`harness/gateway/README.md`);
    - `CATIO_URL` and `CATIO_TOKEN` in each Claude environment, with the Worker allowed in the network policy;
    - the `Catio` connector in claude.ai, its tools set to Always allow.
 2. **The page reads the gateway. Done (2 October):**
@@ -163,7 +163,8 @@ merge to `main`.
    - a Telegram channel;
    - agent cats through `host:catio` (only the Claude desktop app can declare it). Agents that report to the
      gateway show up anywhere, through the `Catio` connector;
-   - `catio-plugin/` listed in the marketplace beside `kittychat-house-rules`.
+   - ~~`catio-plugin/` listed in the marketplace beside `kittychat-house-rules`~~: done
+     (`.claude-plugin/marketplace.json`).
    - accounts, one café per person: the recommendation is `docs/accounts.md`.
 
 ### Phase 6: the Catio as the UI for all her sessions, in OpenClaw's shape
@@ -207,14 +208,15 @@ page. A hosted café is planned, not open: the onboarding offers running your ow
 
 ## Waiting on Charlotte
 
-The decisions below are dealt as cards in the decisions quiz (`decisions-quiz` in `artifacts.json`): answer them there
-and say "File my decisions." The small facts (who made `plants.zip`) stay here.
+The decisions below are dealt as decision cards in the queen's quest log (her card in the café; the decisions quiz
+page is retired). The small facts (who made `plants.zip`) stay here.
 
 1. **The gateway is set up** (2 October): the Worker, both secrets, `CATIO_URL` and `CATIO_TOKEN` in her
    environment, the setup script that installs the plugin, and the connector, signed in. A session reported
    through the hook and showed in `list_agents`, once PR #26 gave the hook its own User-Agent (Cloudflare refuses
    Python's). Left for her: set the connector's tools to Always allow, if she hasn't.
-2. **Which comes first:** phase 2 (the camera) or the page reading the gateway (phase 5).
+2. ~~Which comes first: phase 2 (the camera) or the page reading the gateway (phase 5)~~: the page reads the
+   gateway (2 October).
 3. ~~The posts waiting since 30 September~~: delivered from a session on 2 October with Claude Code Remote's
    `send_message` (four messages, one archive; two were already done) and marked delivered.
 4. **Rotate the MCPmarket token** in her plugin zip's `.mcp.json`.
@@ -257,12 +259,8 @@ and say "File my decisions." The small facts (who made `plants.zip`) stay here.
    the branch's page. If the live one is newer, merge it first; never overwrite it.
 3. Publish `catio/index.html` to `artifacts.json`'s URL with only the files that changed, and **omit
    `capabilities`** to keep the stored set:
-   - Claude Code Remote's nine tools: `list_sessions`, `list_repos`, `send_message`, `delete_trigger`,
-     `create_session`, `set_session_title`, `archive_session`, `unarchive_session` and `interrupt_session`;
-   - `db`, `assets` and `sample`.
-
-   Pass `capabilities` only to add something on purpose (the `Catio` connector, in phase 5), and then pass
-   the whole set.
+   the whole set is in `CLAUDE.md` ("The stored capabilities"). Pass `capabilities` only to add something on
+   purpose, and then pass that whole set.
 4. Afterwards: list the files, read back and look at any art that changed, list `rooms`, and create, update
    and delete one probe in `cats`.
 5. Add a line to `docs/history.md`.
@@ -272,8 +270,8 @@ and say "File my decisions." The small facts (who made `plants.zip`) stay here.
 - **No Claude attribution lines** (`Co-Authored-By: Claude`, `Claude-Session:`) in commits on her public
   repos or forks: this one, the grocery app, Snail-Mail-Trail and the LibreSprite fork. She asked on
   1 October; the gate hook enforces it (`harness/rules.json`).
-- The gateway's two secrets (`CATIO_TOKEN`, `CATIO_PASSWORD`) live only in Cloudflare and her Claude
-  environments: never in the repo, the chat or a test.
+- The gateway's three secrets (`CATIO_TOKEN`, `CATIO_PASSWORD`, `CATIO_QUEEN`) live only in Cloudflare, her
+  Claude environments and the queen's runner: never in the repo, the chat or a test.
 - Never commit `art/licensed/`, `catio/data/sessions.json`, `catio/dist/` or anything from her sessions.
 
 ## Known limits

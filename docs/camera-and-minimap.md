@@ -5,7 +5,8 @@ corner that folds away, and a camera and controls that feel like The Sims' build
 
 **Where it stands (4 October 2026):** iteration 1, the map panel and the minimap, is built (version 15, phase 1 of
 `docs/plan.md`). Iteration 2, the camera, is phase 2 and not built. Live and Build is specified in
-`docs/renovation-mode.md`. The rest of this file was written against version 12 (30 September), before any of it.
+`docs/renovation-mode.md`. The plan below was written against version 12 (30 September); "Iterations" records what
+was built and where it differs from the plan.
 
 ## Where the camera stands in version 12
 

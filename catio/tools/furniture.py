@@ -17,8 +17,8 @@ stations   where a cat goes to show its state: (state, dx, dy), the point under 
            piece's top-left. States: needs, review, work, fail, sleep; queen for the room's queen; upstairs for
            the steps of the stair, foot to top, which cats climb on their way to the attic.
 
-Sheets are named by the end of their path, which finds them both in Charlotte's zips and in an unpacked
-copy. "cc" is Cosy Cabin (committable: art/furniture.png); every other sheet is licensed and goes into
+Sheets are named by the end of their path inside the packs' zips; "wg:<file>" names one of Wood Garden's
+one-piece files. "cc" is Cosy Cabin (committable: art/furniture.png); every other sheet is licensed and goes into
 art/licensed/furniture.png, which ships only inside the private artifact.
 
     python3 catio/tools/furniture.py      writes the page's generated MANOR block (no zips needed: atlas

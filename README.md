@@ -58,6 +58,14 @@ and a folder that runs on your own computer. The page does the same on its own: 
 seven-step wizard (name it, open the rooms you need, file your repositories, see your sessions, the litter box, how
 it works), and "Set up again…" in the House menu replays it.
 
+Then give your sessions the house rules, and the `catio` skill that collects what you send them from the café (the
+same two lines the wizard shows):
+
+```bash
+claude plugin marketplace add https://github.com/charredlatte/Pretty-Project-Portfolio.git
+claude plugin install kittychat-house-rules@kittychat --scope user
+```
+
 For cats that stay live wherever you open the café, and a queen you can talk to, add the gateway: a free Cloudflare
 Worker that every session checks in at, set up in five steps ([`harness/gateway/README.md`](harness/gateway/README.md)).
 The queen's brain runs on your own computer ([`harness/runner/README.md`](harness/runner/README.md)).
@@ -87,10 +95,11 @@ panels, says so on its own sign, and gives the three steps to fix it: buy the pa
 - **Filing cabinets** in the rooms hold their projects with all their cats, archived and napping ones included, and
   each project's map: its main ideas, how they connect, and questions you can ask a cat with one click. Project maps,
   in the House menu, lays every map out as a dashboard you can pin and arrange.
-- **Make it yours.** Every colour, font, size and piece of art can be swapped with no code change, from The look in
-  the House menu or a skin file beside the page (`art/skin.json`), so the café can wear your own drawings.
-- **House rules** every session follows, which Claude can't talk its way around: a read-only audit before any change,
-  a check before any browser, nothing pushed to your default branch, and anything guessed held for you to review
+- **Make it yours.** Every colour, font and size, and most of the art, can be swapped with no code change, from The
+  look in the House menu or a skin file beside the page (`art/skin.json`), so the café can wear your own drawings.
+- **House rules** that every session with the house-rules plugin follows, and Claude can't talk its way around: a
+  read-only audit before any change, a check before any browser, and nothing pushed to your default branch. A
+  repository can let its sessions merge their own pull requests; then anything guessed is held for you to review
   ([`harness/README.md`](harness/README.md)).
 - **Other agents too.** Codex, Gemini CLI, Cursor or anything else that speaks MCP joins as a cat through the Catio
   MCP server.
@@ -182,9 +191,10 @@ The café also runs from a folder, with no claude.ai at all. `python3 catio/tool
 (`catio/tools/save-sessions.py`). Serve the folder with any static server, such as VS Code's Live Server or
 `python -m http.server 8000`, and open <http://localhost:8000>. It's plain HTML, with no server code.
 
-The Catio MCP server serves the same folder and lets agents that aren't Claude Code sessions join as cats:
-`python3 harness/mcp/catio_mcp.py --serve . --port 8791`. On localhost the cats are the saved copy, not live, and
-adopted chats, room names and project looks are kept in that browser.
+The folder also carries the Catio MCP server, which serves the page and lets agents that aren't Claude Code
+sessions join as cats: from inside the folder, `python3 harness/mcp/catio_mcp.py --serve . --port 8791`, then open
+<http://localhost:8791>. On localhost the cats are the saved copy, not live, and adopted chats, room names and
+project looks are kept in that browser.
 
 The folder holds your licensed art and your session titles, so it is for your own use: never commit it or share it.
 
@@ -260,18 +270,13 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `artifacts.json`: the published page's one URL.
 - `harness/`: the KittyChat harness, the `kittychat-house-rules` plugin (hooks, the `catio` skill,
   graphify), on in all seven of her repos, and the Catio MCP server for other agents. See [its README](harness/README.md).
-- `catio-plugin/`: the plugin that sets up someone else's own Catio; `.claude-plugin/marketplace.json`
-  lists the harness plugin as the `kittychat` marketplace.
+- `catio-plugin/`: the plugin that sets up your own café; `.claude-plugin/marketplace.json` lists it and the
+  harness plugin as the `kittychat` marketplace.
 - `litterbox/`: the back burner, where loose notes land; `litterbox/sort.py` piles them up by project
   and files a pile into that project's repo once it has been checked. See [its README](litterbox/README.md).
 - `docs/`: the plan, her requests compiled, the camera and minimap plan, renovation mode's constraints,
   the drawing plan for her own art, the engine under the café ([`docs/engine.md`](docs/engine.md)), and
   what the litter box filed here.
-- `catio-app/`: a **draft** of the café as a native C++ app for a phone, for her to judge: nine headers
-  of declarations, the generated floor plan, and build files for desktop, Android and iOS. Nothing
-  compiles into an app yet, and it ships with no pack art — the app fetches that from her gateway on
-  first run, because the packs may not be redistributed. The case for it and the whole design are in
-  the drawing plan for her own art, and what the litter box filed here.
 - `catio-app/`: the café as a native C++ app for a phone, in progress. Its core draws the manor --
   matching the page's own render pixel for pixel -- but there is no window loop, interface or network
   yet, and it has not run on a phone. It ships with no pack art: the app fetches that from her gateway

@@ -8,15 +8,9 @@ compressed. Read this before starting something new. Last updated 2 October 2026
 | Place | What's there |
 |---|---|
 | `CLAUDE.md` | The operating brief: how to work on the page, the licences, the data, publishing |
-| `README.md` | What the page is, the rooms, the packs |
+| `README.md` | What the café is, what you get, and how to run your own |
 | `docs/requests.md` | This file: her requests |
-| `docs/from-the-litterbox.md` | Everything the litter box held, sorted: open questions, ideas not built (with the art and sound still missing: what to buy, what to draw, and at what sizes), facts learned, the compressed 29 September harness chat and the UI/UX audit |
-| `docs/plan.md` | The roadmap: phases in order, what's waiting on her, how to publish |
-| `docs/audit-2026-10-01.md` | The project audit of 1 October: what's broken, what's stale, what to fix first |
-| `docs/history.md` | How it got here, version by version |
-| `docs/camera-and-minimap.md` | The map panel, the minimap and the Sims-style camera |
-| `docs/renovation-mode.md` | The renovation mode spec: moving, adding and removing furniture, the cabinets' looks |
-| `docs/drawing-plan.md` | Every asset she will draw herself, at what size and scale, and the new pieces (litterbox, café tables…) |
+| `docs/README.md` | Every other doc, by what it is for: the plan, the specs, the shop, the record |
 | `litterbox/` | The back burner: new notes land here, `litterbox/sort.py` piles them by project for her to check, then files each checked pile into its project's own repo and pushes it |
 | `catio/art/CREDITS.md` | Every pack, its artist and its licence |
 | `harness/README.md`, `harness/rules.json` | The KittyChat house rules and the Catio MCP server |
