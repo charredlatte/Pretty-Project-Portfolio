@@ -200,8 +200,9 @@ def png_size(path):
     return struct.unpack(">II", head[16:24])
 
 
-def check(art, key, rel, was, said, where=""):
-    """One drawing for one slot, checked as the page checks it: its entry for skin.json, or None and why, said."""
+def check(art, key, rel, was, said, where="", filled=None):
+    """One drawing for one slot, checked as the page checks it: its entry for skin.json, or None and why, said. What it
+    fills is told through `filled` when given (a family member's, once its head is known), else said at once."""
     a, path, name = art[key], ROOT / rel, Path(rel).name
     # what this worked out itself last time, with the values it gave: worked out again, never "dropped" - unless she has
     # changed one since, which makes it hers
@@ -273,7 +274,11 @@ def check(art, key, rel, was, said, where=""):
         note = f" ({n} frames of {w // n} x {h})"
     if worked:
         entry["auto"] = {k: entry[k] for k in worked}
-    said.append(f"  {name}: {key}{note}{where}")
+    line = f"  {name}: {key}{note}{where}"
+    if filled is not None:
+        filled[key] = line
+    else:
+        said.append(line)
     return entry
 
 
@@ -323,7 +328,7 @@ def main():
         f = file_of(was)
         if key in art and isinstance(f, str) and f.startswith("art/skin/") and not (ROOT / f).is_file():
             said.append(f"  {key}: {f} has gone, so the pack's is back")
-    names = {}
+    names, filled = {}, {}   # filled: what each slot's drawing fills, said once the family check has run
     for p in files:
         if not p.name.endswith(".tokens.json"):
             names.setdefault(p.stem, []).append(p.name)
@@ -337,7 +342,7 @@ def main():
             said.append(f"  {p.name}: no slot is called {p.stem} (the slots are in ART, catio/index.html)")
             continue
         was = old.get(p.stem)
-        entry = check(art, p.stem, "art/skin/" + p.name, was if isinstance(was, dict) else {}, said)
+        entry = check(art, p.stem, "art/skin/" + p.name, was if isinstance(was, dict) else {}, said, filled=filled)
         if entry:
             skin[p.stem] = entry
     for key, was in old.items():   # a slot pointed by hand at art outside art/skin/ (another pack's): checked the same way
@@ -347,7 +352,7 @@ def main():
         if not (ROOT / f).is_file():
             said.append(f"  {key}: {f} has gone, so it was dropped")
             continue
-        entry = check(art, key, f, was if isinstance(was, dict) else {}, said, " (outside art/skin/)")
+        entry = check(art, key, f, was if isinstance(was, dict) else {}, said, " (outside art/skin/)", filled=filled)
         if entry:
             skin[key] = entry
     # a family member is cut with its head's border, so it is the head's size: the head as it ended up (hers, wherever
@@ -363,6 +368,7 @@ def main():
     still = (set(from_files) - broken) | (filed & broken)   # built from files now, or still waiting on one half-saved
     if still:
         skin["tokensFromFiles"] = sorted(still)
+    said.extend(line for key, line in filled.items() if key in skin)
     for mode, key in (("light", "tokens"), ("dark", "dark")):
         if modes[mode]:
             skin[key] = dict(sorted(modes[mode].items()))

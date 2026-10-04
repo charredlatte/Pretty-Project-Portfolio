@@ -104,7 +104,7 @@
   /* the box a few pieces leave for their border: one width all round for the pack's (as it was drawn for), each side
      its own once a skin gives the piece a border, so uneven art never covers what it frames */
   --field-bw: calc(var(--field-t) * var(--u)); --bubble-bw: calc(var(--bubble-t) * 1px); --corners-bw: calc(var(--corners-t) * 1px);
-  --bubble-iw: var(--btn-px);   /* a thread's reply draws the pack's bubble at the button's widths, as it always has; hers at its own */
+  --bubble-iw: var(--btn-px); --down-iw: var(--btn-w);   /* the floor tab draws the pack's pressed button at the button's widths too */   /* a thread's reply draws the pack's bubble at the button's widths, as it always has; hers at its own */
   --divider-t: 4; --divider-r: 1; --divider-b: 0; --divider-l: 1; --divider-s: var(--divider-t) var(--divider-r) var(--divider-b) var(--divider-l);
   --divider-w: calc(var(--divider-t) * var(--u)) calc(var(--divider-r) * var(--u)) calc(var(--divider-b) * var(--u)) calc(var(--divider-l) * var(--u));
   /* the map panel's pieces are smooth art drawn at twice their size or more: -k is one of its pixels on screen */
@@ -464,7 +464,7 @@ dialog.wide { width: min(600px, calc(100vw - 24px)); }
 .plan[data-floor="ground"] .plan-art .upper { display: none; }
 .planfloors { display: flex; gap: 6px; }
 .planfloors .fl { display: flex; align-items: center; gap: 6px; }
-.planfloors .fl[aria-checked="true"] { border-image-source: var(--art-button-down); border-image-slice: var(--down-s) fill; translate: 0 calc(2 * var(--u)); background-color: var(--pressed); }
+.planfloors .fl[aria-checked="true"] { border-image-source: var(--art-button-down); border-image-slice: var(--down-s) fill; border-image-width: var(--down-iw); translate: 0 calc(2 * var(--u)); background-color: var(--pressed); }
 .rt { position: absolute; padding: 0; background: transparent; border: 0 solid transparent; }
 .rt:hover { background: color-mix(in srgb, var(--glow) 16%, transparent); }
 .rt[aria-selected="true"], .rt:focus-visible { outline: 0; background: color-mix(in srgb, var(--glow) 20%, transparent);
@@ -913,7 +913,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "button-hover":  { group: "Interface", kind: "slice", fam: "btn", name: "Button, lit", file: LIC + "ui/button-hover.png", size: [26, 28], what: "Under the pointer. Its border is the button's." },
     "button-green":  { group: "Interface", kind: "slice", fam: "btn", name: "Green button", file: LIC + "ui/button-green.png", size: [26, 28], what: "The one that goes ahead. Its border is the button's." },
     "button-pink":   { group: "Interface", kind: "slice", fam: "btn", name: "Pink button", file: LIC + "ui/button-pink.png", size: [26, 28], what: "The one that lets go. Its border is the button's." },
-    "button-down":   { group: "Interface", kind: "slice", fam: "down", name: "Button, pressed", file: LIC + "ui/button-down.png", size: [26, 26], slice: [4, 4, 4, 4], what: "Pressed in, and the wells things sit in." },
+    "button-down":   { group: "Interface", kind: "slice", fam: "down", iw: "w", name: "Button, pressed", file: LIC + "ui/button-down.png", size: [26, 26], slice: [4, 4, 4, 4], what: "Pressed in, and the wells things sit in." },
     "field":         { group: "Interface", kind: "slice", fam: "field", bw: "w", name: "Field", file: LIC + "ui/field.png", size: [26, 26], slice: [4, 4, 5, 4], what: "Where she types." },
     "bubble":        { group: "Interface", kind: "slice", fam: "bubble", bw: "px", iw: "px", name: "Bubble", file: LIC + "ui/bubble.png", size: [42, 42], slice: [5, 5, 6, 5], what: "A cat's ask, and the replies in its thread." },
     "frame":         { group: "Interface", kind: "slice", fam: "frame", name: "Picture frame", file: LIC + "ui/frame.png", size: [30, 30], slice: [7, 7, 7, 7], what: "Portraits, the queen's scene and the Edit rooms plan." },
@@ -1134,7 +1134,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     // The skin is one stylesheet, #skinCss, after the page's own: the slots and light tokens on :root, the dark tokens where
     // the page's dark mode is, then the cats. A stylesheet, not inline styles, so dark mode can still win in the dark.
     const root = document.documentElement.style;
-    const making = document.activeElement && document.activeElement.closest && document.activeElement.closest("#artDlg li[data-token]");
+    let making = document.activeElement && document.activeElement.closest && document.activeElement.closest("#artDlg li[data-token]");
+    if (making) {   // her preview stays, unless what is kept for that token changed meanwhile (put back elsewhere, say)
+      const n = making.dataset.token, before = MODES.map((m) => (SKIN.tokens[m][n] || {}).value).join(), after = MODES.map((m) => SKIN.dbTokens[m][n] || SKIN.fileTokens[m][n]).join();
+      if (before !== after) making = null;
+    }
     for (const p of [...SKIN.set]) if (!making || making.dataset.token !== p) { root.removeProperty(p); SKIN.set.delete(p); }   // what The look was previewing, but the one under her hand
     const vars = [], put = (p, v) => vars.push(p + ": " + v + ";"), standIn = {}, faces = {};   // faces: fonts loaded here, put in place if this run lands
     const css = [];
@@ -1189,8 +1193,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     }
     const dark = Object.entries(tokens.dark).map(([n, t]) => n + ": " + t.value + ";").join(" ");
     const artWas = SKIN.artSig, artSig = JSON.stringify([Object.entries(live).map(([k, e]) => [k, e.url, e.slice, e.frames, e.secs, e.anchor, e.scale, e.pixel]), standIn]);
+    const HOUSE = (k) => ART[k].group === "Cats" || ART[k].measured;   // what the house, its furniture and its cats are drawn from
+    const houseWas = SKIN.houseSig, houseSig = JSON.stringify(Object.entries(live).filter(([k]) => HOUSE(k)).map(([k, e]) => [k, e.url, e.frames, e.secs, e.anchor]));
     SKIN.live = live; SKIN.problems = problems; SKIN.tokens = tokens; SKIN.standIn = standIn; SKIN.artSig = artSig;
     SKIN.lookSig = artSig + JSON.stringify(tokens);   // what restyle() draws from
+    SKIN.houseSig = houseSig;
     const using = new Set(Object.values(cands).flat().map((e) => e.src));
     for (const src of Object.keys(SKIN.blobs)) if (!using.has(src)) { URL.revokeObjectURL(SKIN.blobs[src]); delete SKIN.blobs[src]; }   // a piece of hers put back
     for (const [fam, f] of Object.entries(faces)) { if (SKIN.fonts[fam]) document.fonts.delete(SKIN.fonts[fam].face); document.fonts.add(f.face); SKIN.fonts[fam] = f; }
@@ -1200,7 +1207,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     $("skinCss").textContent = [":root { " + vars.join(" ") + " }",
       dark && '@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { ' + dark + " } }",
       dark && ':root[data-theme="dark"] { ' + dark + " }", ...css].filter(Boolean).join("\n");
-    if (artSig !== artWas) {   // the art changed: the house, its furniture and its cats are drawn again
+    if (houseSig !== houseWas) {   // the house, its furniture or its cats changed: drawn again (a button or a face needs only the CSS)
       for (const i of document.querySelectorAll("img[data-art]")) i.src = srcOf(i.dataset.art);
       drawFurniture();
       checkArt();
@@ -4615,29 +4622,29 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     let bd, px, frames, secs, hot;
     if (!p.why && a.kind === "slice" && a.slice) {
       // the same size as the pack's keeps its border; another size needs hers
-      bd = el("input"); bd.id = "artBorder"; bd.value = p.typed.border ?? (p.w === a.size[0] && p.h === a.size[1] ? borderOf(k) : a.scale ? borderOf(k).map((n) => Math.max(1, Math.round(n * p.w / a.size[0]))) : borderOf(k)).join(" ");
+      bd = el("input"); bd.id = "artBorder-" + k; bd.value = p.typed.border ?? (p.w === a.size[0] && p.h === a.size[1] ? borderOf(k) : a.scale ? borderOf(k).map((n) => Math.max(1, Math.round(n * p.w / a.size[0]))) : borderOf(k)).join(" ");
       fields.appendChild(field("Border, in its pixels: top right bottom left", bd));
       if (a.scale) {
-        px = el("select"); px.id = "artPixel";
+        px = el("select"); px.id = "artPixel-" + k;
         for (const [v, l] of [["pixel", "Pixel art, two screen pixels to one"], ["smooth", "Smooth, drawn at twice its size"]]) { const o = el("option", null, l); o.value = v; px.appendChild(o); }
         px.value = p.typed.pixel ?? (p.w < a.size[0] / 2 ? "pixel" : "smooth");
         fields.appendChild(field("Drawn as", px));
       }
     }
     if (!p.why && a.smooth) {   // a smooth sheet: hers may be pixel art
-      px = el("select"); px.id = "artPixel";
+      px = el("select"); px.id = "artPixel-" + k;
       for (const [v, l] of [["pixel", "Pixel art"], ["smooth", "Smooth"]]) { const o = el("option", null, l); o.value = v; px.appendChild(o); }
       px.value = p.typed.pixel ?? (p.w <= a.size[0] / 2 ? "pixel" : "smooth");
       fields.appendChild(field("Drawn as", px));
     }
     if (!p.why && a.hot) {
-      hot = el("input"); hot.id = "artHot"; hot.value = p.typed.hot ?? a.hot.join(" ");
+      hot = el("input"); hot.id = "artHot-" + k; hot.value = p.typed.hot ?? a.hot.join(" ");
       fields.appendChild(field("Where it points, in its pixels: x y", hot));
     }
     if (!p.why && a.kind === "cat") {
-      frames = el("input"); frames.id = "artFrames"; frames.type = "number"; frames.min = 1; frames.max = 64;
+      frames = el("input"); frames.id = "artFrames-" + k; frames.type = "number"; frames.min = 1; frames.max = 64;
       frames.value = p.typed.frames ?? (p.w % p.h === 0 && p.w / p.h <= 64 ? p.w / p.h : a.frames);
-      secs = el("input"); secs.id = "artSecs"; secs.type = "number"; secs.min = 0.1; secs.max = 20; secs.step = 0.05; secs.value = p.typed.secs ?? a.secs;
+      secs = el("input"); secs.id = "artSecs-" + k; secs.type = "number"; secs.min = 0.1; secs.max = 20; secs.step = 0.05; secs.value = p.typed.secs ?? a.secs;
       const row = el("div", "row"); row.append(field("Frames", frames), field("Seconds a loop", secs)); fields.appendChild(row);
     }
     // what she types is kept with the pick, so a redraw (a save elsewhere) gives it back
@@ -5137,8 +5144,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const assets = {
       upload: async (blob) => { const id = "local-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); await tx("readwrite", (st) => st.put(blob, id)); return { id, url: "local:" + id, sizeBytes: blob.size, contentType: blob.type }; },
       delete: async (id) => { await tx("readwrite", (st) => st.delete(id)); return { deleted: true }; },
-      open: async (id) => { const b = await tx("readonly", (st) => st.get(id)); if (b) window.open(URL.createObjectURL(b), "_blank", "noopener"); },
       href: async (id) => { const b = await tx("readonly", (st) => st.get(id)); return b ? URL.createObjectURL(b) : null; },   // her art, drawn from this browser
+      open: async (id) => { const u = await assets.href(id); if (u) { window.open(u, "_blank", "noopener"); setTimeout(() => URL.revokeObjectURL(u), 60000); } },
     };
     return async (n) => { await ready; return n === "db" ? db : n === "assets" ? ((await idb) ? assets : null) : null; };
   }

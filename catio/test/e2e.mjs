@@ -2669,7 +2669,7 @@ await check("tools/skin.py reads every slot, token and size range the page has",
     await page.locator("#artFile-panel").setInputFiles({ name: "panel.png", mimeType: "image/png", buffer: readFileSync(join(here, "..", "art", "licensed", "ui", "bubble.png")) });
     await page.waitForTimeout(400);
     for (const bad of ["", "0", "30"]) {   // "4," reads as 4 all round, which is fine
-      await page.fill("#artBorder", bad);
+      await page.fill("#artBorder-panel", bad);
       await page.click("#artDlg li[data-slot='panel'] .swap button[type=submit]"); await settle(page);
       expect(/fit inside its 42 × 42/.test(await toast(page)) && !(await page.evaluate(() => "skin/panel" in window.__catio.store)), bad + ": " + await toast(page));
       await page.click("#toast .btn");
@@ -2786,8 +2786,8 @@ await check("tools/skin.py reads every slot, token and size range the page has",
     const before = await page.evaluate(() => window.__catio.uploads.length);
     await page.locator("#artFile-field").setInputFiles({ name: "my-field.png", mimeType: "image/png", buffer: readFileSync(join(here, "..", "art", "licensed", "ui", "bubble.png")) });
     await page.waitForTimeout(400);
-    expect((await page.locator("#artBorder").inputValue()) === "4 4 5 4", await page.locator("#artBorder").inputValue());
-    await page.fill("#artBorder", "5 5 6");
+    expect((await page.locator("#artBorder-field").inputValue()) === "4 4 5 4", await page.locator("#artBorder-field").inputValue());
+    await page.fill("#artBorder-field", "5 5 6");
     await page.click("#artDlg li[data-slot='field'] .swap button[type=submit]");
     await page.waitForTimeout(500);
     const d = await page.evaluate(() => window.__catio.store["skin/field"]);
@@ -2797,12 +2797,12 @@ await check("tools/skin.py reads every slot, token and size range the page has",
   await check("a cat's sheet asks for its frames, and refuses a count that doesn't split it", async () => {
     await page.locator("#artFile-cat-meow").setInputFiles({ name: "meow.png", mimeType: "image/png", buffer: readFileSync(join(here, "..", "art", "licensed", "mochi-idle.png")) });
     await page.waitForTimeout(400);
-    expect((await page.locator("#artFrames").inputValue()) === "10", await page.locator("#artFrames").inputValue());
-    await page.fill("#artFrames", "7");
+    expect((await page.locator("#artFrames-cat-meow").inputValue()) === "10", await page.locator("#artFrames-cat-meow").inputValue());
+    await page.fill("#artFrames-cat-meow", "7");
     await page.click("#artDlg li[data-slot='cat-meow'] .swap button[type=submit]");
     await settle(page);
     expect(/split/.test(await toast(page)) && !(await page.evaluate(() => window.__catio.store["skin/cat-meow"])), await toast(page));
-    await page.fill("#artFrames", "10");
+    await page.fill("#artFrames-cat-meow", "10");
     await page.click("#artDlg li[data-slot='cat-meow'] .swap button[type=submit]");
     await page.waitForTimeout(500);
     const d = await page.evaluate(() => window.__catio.store["skin/cat-meow"]);
@@ -2811,7 +2811,7 @@ await check("tools/skin.py reads every slot, token and size range the page has",
   await check("a working cat of 4 frames, where the pack's has 10, is asked for its frames rather than refused", async () => {
     await page.locator("#artFile-cat-work").setInputFiles({ name: "work.png", mimeType: "image/png", buffer: readFileSync(join(here, "..", "art", "licensed", "mochi-box.png")) });
     await page.waitForTimeout(400);
-    expect((await page.locator("#artFrames").inputValue()) === "4" && (await page.locator("#artDlg li[data-slot='cat-work'] .swap button[type=submit]").count()) === 1, await page.locator("#artDlg li[data-slot='cat-work'] .swap").innerText());
+    expect((await page.locator("#artFrames-cat-work").inputValue()) === "4" && (await page.locator("#artDlg li[data-slot='cat-work'] .swap button[type=submit]").count()) === 1, await page.locator("#artDlg li[data-slot='cat-work'] .swap").innerText());
     await page.click("#artDlg li[data-slot='cat-work'] .swap button:has-text('Cancel')"); await settle(page);
   });
   await check("Put back gives a slot the pack's piece again, and lets her file go", async () => {
