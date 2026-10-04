@@ -1042,7 +1042,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const e = typeof v === "string" ? { src: v } : v && typeof v === "object" ? { src: v.src || v.file } : {};
     if (!safeSrc(e.src)) return null;
     const out = { src: e.src, w: num(v.w, 1, 8192), h: num(v.h, 1, 8192), at: num(v.at, 0, 1e14), asset: typeof v.asset === "string" ? v.asset : null, name: typeof v.name === "string" ? v.name.slice(0, 120) : "" };
-    if (Array.isArray(v.slice) && v.slice.length === 4 && v.slice.every((n) => num(n, 0, 1024) !== null && Number.isInteger(n))) out.slice = v.slice.slice();
+    if (Array.isArray(v.slice) && v.slice.length === 4 && v.slice.every((n) => num(n, 0, 64) !== null && Number.isInteger(n))) out.slice = v.slice.slice();
     if (num(v.scale, 0.001, 64) !== null) out.scale = v.scale;
     if (v.pixel === true) out.pixel = true;
     if (num(v.frames, 1, 64) !== null && Number.isInteger(v.frames)) out.frames = v.frames;
@@ -1083,25 +1083,36 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   }
   // Read the skin and draw with it: every variable, picture and sheet it touches, and nothing it doesn't.
   async function applySkin() {
-    const seq = ++SKIN.seq, want = {}, problems = {};
-    for (const [k, v] of Object.entries(SKIN.file)) want[k] = Object.assign({ from: "file" }, v);
-    for (const [k, v] of Object.entries(SKIN.db)) want[k] = Object.assign({ from: "db" }, v);
-    const live = {};
-    await Promise.all(Object.entries(want).map(async ([k, e]) => {
+    const seq = ++SKIN.seq, problems = {}, cands = {};
+    // every candidate for a slot, hers from The look first, then art/skin.json's: the first that fits is drawn, so one
+    // refused falls back to the other rather than to the pack's
+    for (const [from, set] of [["db", SKIN.db], ["file", SKIN.file]]) for (const [k, v] of Object.entries(set)) (cands[k] = cands[k] || []).push(Object.assign({ from }, v));
+    const read = async (k, e) => {
       try {
         const url = await resolved(e.src);
         if (ART[k].kind !== "font") {
           const [w, h] = SKIN.sizes[url] || (SKIN.sizes[url] = await natural(url));   // each picture is measured once
           const why = misfit(k, w, h, false);
-          if (why) { problems[k] = why; return; }
+          if (why) return { why };
           Object.assign(e, { w, h });
+        } else if (!SKIN.fonts["KittySkin-" + k] || SKIN.fonts["KittySkin-" + k].url !== url) {   // the fonts load together
+          const f = new FontFace("KittySkin-" + k, cssUrl(url)); await f.load(); e.face = f;
         }
-        live[k] = Object.assign(e, { url });
-      } catch (err) { problems[k] = "It couldn't be read (" + ((err && err.message) || "error") + ")."; }
-    }));
-    for (const k of Object.keys(live)) {   // now every head is measured: a member of another size than its head is refused
-      const why = ART[k].kind === "slice" && !ART[k].slice && misfit(k, live[k].w, live[k].h, live);
-      if (why) { problems[k] = why; delete live[k]; }
+        return { e: Object.assign(e, { url }) };
+      } catch (err) { return { why: ART[k].kind === "font" ? "The font couldn't be read." : "It couldn't be read (" + ((err && err.message) || "error") + ")." }; }
+    };
+    const tried = Object.fromEntries(await Promise.all(Object.entries(cands).map(async ([k, list]) => [k, await Promise.all(list.map((e) => read(k, e)))])));
+    const live = {};
+    const choose = (k, ok) => {
+      const r = tried[k].find((t) => t.e && ok(t.e));
+      if (r) live[k] = r.e; else problems[k] = (tried[k].find((t) => t.why) || {}).why || problems[k];
+      if (r && r !== tried[k][0] && tried[k][0].why) problems[k] = tried[k][0].why;   // hers from The look refused, art/skin.json's drawn: say why
+    };
+    for (const k of Object.keys(tried)) if (!(ART[k].kind === "slice" && !ART[k].slice)) choose(k, () => true);
+    for (const k of Object.keys(tried)) if (ART[k].kind === "slice" && !ART[k].slice) {   // members once every head is chosen: the head's size
+      let why = null;
+      choose(k, (e) => !(why = misfit(k, e.w, e.h, live)));
+      if (!live[k] && why) problems[k] = why;
     }
     if (seq !== SKIN.seq) return;   // a newer skin came in while this one loaded
     // The skin is one stylesheet, #skinCss, after the page's own: the slots and light tokens on :root, the dark tokens where
@@ -1133,7 +1144,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         if (a.mood === "walk") {
           // drawn facing right, so it is mirrored going left: .flip is set going right
           css.push(".cat.walking .spr, .walker .spr { position: absolute; left: calc(var(--ax) - " + ax + "px); top: calc(var(--ay) - " + ay + "px); " + sheet + " animation: " + play + "; transform: scaleX(-1); transform-origin: " + ax + "px " + ay + "px; }",
-            ".cat.walking.flip .spr, .walker.flip .spr { transform: none; }");
+            ".cat.walking.flip .spr, .walker.flip .spr { transform: none; }", ".cat.walking[data-line] { clip-path: none; }");   // the line's trim is for the pack's sitting frame
         } else {
           spr[a.mood] = Object.assign({}, spr[a.mood], { w: fw, h: fh, ax, ay });
           // drawn bigger or smaller than the pack's frame, it is scaled to fill the same place in a portrait, a thumb or the scene
@@ -1143,10 +1154,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       }
       if (a.kind === "font") {
         const fam = "KittySkin-" + k;
-        try {
-          if (!SKIN.fonts[fam] || SKIN.fonts[fam].url !== e.url) { const f = new FontFace(fam, cssUrl(e.url)); await f.load(); faces[fam] = { url: e.url, face: f }; }
-          put(a.token, '"' + fam + '", ' + TOKENS0[a.token]);
-        } catch (err) { problems[k] = "The font couldn't be read."; delete live[k]; }
+        if (e.face) faces[fam] = { url: e.url, face: e.face };
+        put(a.token, '"' + fam + '", ' + TOKENS0[a.token]);
       }
     }
     // the tokens, in each mode: the file's, then hers from The look
@@ -1175,8 +1184,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       for (const i of document.querySelectorAll("img[data-art]")) i.src = srcOf(i.dataset.art);
       drawFurniture();
       checkArt();
+      render();
     }
-    render();   // what reads a token as it draws draws again: the house, her look in the hall, the maps' hues
+    // a colour alone redraws only what reads one as it draws (the CSS follows by itself): her look, the maps' hues
     if ($("queenOwnerFig")) $("queenOwnerFig").replaceChildren(ownerSVG(ownerOf()));
     const you = document.querySelector("#queenYou .ownerprev .pic");
     if (you) {   // the look she is choosing there, as the selects hold it
@@ -2383,8 +2393,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // anyone else's copy, draws the cabin and no cats at all, and used to say nothing about it.
   // Ask the browser for one of them and, if it isn't there, tell the viewer how to put it right.
   function checkArt() {
-    const pack = Object.keys(ART).find((k) => !SKIN.live[k] && ART[k].file && ART[k].file.startsWith(LIC) && ART[k].kind !== "font");
-    const seen = [...new Set(["house", "cat-cry", pack].filter(Boolean))].map((k) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(true); i.onerror = () => ok(false); i.src = srcOf(k); }));
+    const packs = Object.keys(ART).filter((k) => !SKIN.live[k] && ART[k].file && ART[k].file.startsWith(LIC) && ART[k].kind !== "font");
+    const seen = [...new Set(["house", "cat-cry", packs[0]].filter((k) => k && packs.includes(k)))].map((k) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(true); i.onerror = () => ok(false); i.src = srcOf(k); }));
     const run = (checkArt.run = (checkArt.run || 0) + 1);
     Promise.all(seen).then((r) => { if (run !== checkArt.run) return; S.art = r.every(Boolean) ? "ok" : "missing"; renderStatus(); });
   }
@@ -4349,7 +4359,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // "4 4 6 4", "6" or "9 8": a border as CSS writes one, to four whole numbers
   function border(text, w, h) {
     const parts = String(text).trim().split(/[\s,]+/).filter(Boolean), n = parts.map(Number);
-    if (!n.length || n.length > 4 || n.some((x) => !Number.isInteger(x) || x < 0 || x > 1024)) return null;
+    if (!n.length || n.length > 4 || n.some((x) => !Number.isInteger(x) || x < 0 || x > 64)) return null;   // 64: a panel can't swallow the screen
     const [t, r = t, b = t, l = r] = n;
     if (t + r + b + l === 0 || (w && (l + r > w || t + b > h))) return null;   // a frame that fits its picture (it may meet itself: the divider does)
     return [t, r, b, l];
@@ -4572,13 +4582,13 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     fields.appendChild(acts);
     f.addEventListener("submit", async (ev) => {
       ev.preventDefault();
-      if (p.why || f.dataset.busy) return;
+      if (p.why || p.busy) return;   // on the pick, not the form: a redraw makes a new form
       const doc = { name: p.file.name, at: Date.now() };
       if (p.w) Object.assign(doc, { w: p.w, h: p.h });
-      if (bd) { doc.slice = border(bd.value, p.w, p.h); if (!doc.slice) { toast("A border is one to four whole numbers, like 4 4 6 4, that fit inside its " + p.w + " × " + p.h + ".", "alert"); bd.focus(); return; } }
+      if (bd) { doc.slice = border(bd.value, p.w, p.h); if (!doc.slice) { toast("A border is one to four whole numbers up to 64, like 4 4 6 4, that fit inside its " + p.w + " × " + p.h + ".", "alert"); bd.focus(); return; } }
       if (hot) {
         doc.hot = hot.value.trim().split(/[\s,]+/).map(Number);
-        if (doc.hot.length !== 2 || doc.hot.some((n) => !Number.isInteger(n) || n < 0 || n >= Math.min(p.w, 128))) { toast("Where it points is two whole numbers inside it, like 9 5.", "alert"); hot.focus(); return; }
+        if (doc.hot.length !== 2 || doc.hot.some((n, i) => !Number.isInteger(n) || n < 0 || n >= Math.min(i ? p.h : p.w, 128))) { toast("Where it points is two whole numbers inside it, like 9 5.", "alert"); hot.focus(); return; }
       }
       if (px) { if (px.value === "pixel") doc.pixel = true; else if (p.w !== a.size[0]) doc.scale = a.scale * a.size[0] / p.w; }
       if (frames) {
@@ -4586,7 +4596,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         if (!Number.isInteger(doc.frames) || doc.frames < 1 || doc.frames > 64 || p.w % doc.frames) { toast("The frames must split its " + p.w + " pixels evenly.", "alert"); frames.focus(); return; }
         if (!(doc.secs >= 0.1 && doc.secs <= 20)) { toast("A loop takes between 0.1 and 20 seconds.", "alert"); secs.focus(); return; }
       }
-      f.dataset.busy = "1";
+      p.busy = true;
       try {
         const up = await S.assets.upload(p.file, { type: p.file.type || undefined });
         doc.asset = up.id;
@@ -4598,7 +4608,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
           SKIN.db[k] = skinEntry(k, doc); applySkin();
         } else S.assets.delete(up.id).catch(() => {});   // nothing points at it: don't leave it in the store
       } catch (e) { toast("Couldn't keep " + p.file.name + " (" + ((e && e.code) || "error") + ").", "alert"); }
-      finally { delete f.dataset.busy; }
+      finally { p.busy = false; }
     });
     return f;
   }

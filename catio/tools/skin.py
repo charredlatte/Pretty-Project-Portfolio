@@ -173,7 +173,7 @@ def number(v, lo, hi):
 
 # the page's skinEntry(), for what a slot's entry may carry
 SETTINGS = {
-    "slice": lambda v: ints(v, 4, 0, 1024), "frames": lambda v: isinstance(v, int) and not isinstance(v, bool) and 1 <= v <= 64,
+    "slice": lambda v: ints(v, 4, 0, 64), "frames": lambda v: isinstance(v, int) and not isinstance(v, bool) and 1 <= v <= 64,
     "secs": lambda v: number(v, 0.1, 20), "anchor": lambda v: isinstance(v, list) and len(v) == 2 and all(number(x, 0, 1024) for x in v),
     "scale": lambda v: number(v, 0.001, 64), "pixel": lambda v: v is True, "hot": lambda v: ints(v, 2, 0, 127),
     "w": lambda v: isinstance(v, int), "h": lambda v: isinstance(v, int),
@@ -201,16 +201,6 @@ def main():
     groups = token_names()
     modes = {m: {k: v for k, v in (old.get(key) or {}).items() if token_ok(groups, k, v)} if isinstance(old.get(key), dict) else {}
              for m, key in (("light", "tokens"), ("dark", "dark"))}
-    for key, was in old.items():   # a slot pointed by hand at art outside art/skin/ (another pack's): kept while it is there
-        f = file_of(was)
-        if any(p.stem == key and not p.name.endswith(".tokens.json") for p in files):
-            continue   # a drawing of hers in art/skin/ takes the slot
-        if key in art and isinstance(f, str) and f.startswith("art/") and not f.startswith("art/skin/"):
-            if (ROOT / f).is_file():
-                skin[key] = was
-                said.append(f"  {key}: {f}, kept (outside art/skin/)")
-            else:
-                said.append(f"  {key}: {f} has gone, so it was dropped")
     for key in ("tokens", "dark"):
         for k, v in (old.get(key) or {}).items() if isinstance(old.get(key), dict) else []:
             if not token_ok(groups, k, v):
@@ -284,6 +274,16 @@ def main():
             note = f" ({n} frames of {w // n} x {h})"
         skin[key] = entry
         said.append(f"  {p.name}: {key}{note}")
+    for key, was in old.items():   # a slot pointed by hand at art outside art/skin/ (another pack's): kept while it is there
+        f = file_of(was)
+        if key in skin:
+            continue   # a drawing of hers in art/skin/ took the slot (one refused there leaves this one in place)
+        if key in art and isinstance(f, str) and f.startswith("art/") and not f.startswith("art/skin/"):
+            if (ROOT / f).is_file():
+                skin[key] = was
+                said.append(f"  {key}: {f}, kept (outside art/skin/)")
+            else:
+                said.append(f"  {key}: {f} has gone, so it was dropped")
     # a family member is cut with its head's border, so it is the head's size: the head as it ended up (hers, wherever
     # its file is, or the pack's when hers was left out)
     for key in [k for k in skin if k in art and art[k]["kind"] == "slice" and "slice" not in art[k] and art[k].get("fam")]:
