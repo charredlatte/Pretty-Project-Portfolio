@@ -116,6 +116,13 @@ def whole():
     return set(re.findall(r'"(--[\w-]+)"', re.search(r"const WHOLE_PX = \[([^\]]*)\]", page()).group(1)))
 
 
+@functools.cache
+def pixelish():
+    """The page's PIXELISH: drawn at most this much of the width a map piece is shown, or of a sheet's pack width, a smooth
+    slot's piece starts as pixel art."""
+    return tuple(float(n) for n in re.search(r"const PIXELISH = \[([\d.]+), ([\d.]+)\]", page()).groups())
+
+
 def token_ok(groups, name, v):
     if name not in groups or not isinstance(v, str):
         return False
@@ -259,7 +266,7 @@ def check(art, key, rel, was, said, where="", filled=None):
     smooth = "scale" in a or a.get("smooth")
     # as The look starts it: drawn nearer the art pixel than the screen (a map piece), or at half the pack's width or
     # less (a sheet), it is pixel art
-    if smooth and want and "pixel" not in entry and "scale" not in entry and w <= (want[0] * a["scale"] * 0.75 if "scale" in a else want[0] / 2):
+    if smooth and want and "pixel" not in entry and "scale" not in entry and w <= (want[0] * a["scale"] * pixelish()[0] if "scale" in a else want[0] * pixelish()[1]):
         entry["pixel"] = True
         worked.append("pixel")
         note += " (pixel art; \"pixel\": false if it is smooth)"
@@ -358,6 +365,7 @@ def main():
         f = file_of(was)
         if key in art and isinstance(f, str) and f.startswith("art/skin/") and Path(f).stem == key and not (ROOT / f).is_file():
             said.append(f"  {key}: {f} has gone, so the pack's is back")   # one under another name is said with the hand-pointed
+    pointed = {file_of(w) for k, w in old.items() if k in art and isinstance(file_of(w), str)}   # files skin.json names by hand
     names, filled = {}, {}   # filled: what each slot's drawing fills, said once the family check has run
     for p in files:
         if not p.name.endswith(".tokens.json"):
@@ -369,7 +377,8 @@ def main():
         if p.name.endswith(".tokens.json"):
             continue
         if p.stem not in art:
-            said.append(f"  {p.name}: no slot is called {p.stem} (the slots are in ART, catio/index.html)")
+            if "art/skin/" + p.name not in pointed:   # one skin.json points at a slot by hand is weighed there
+                said.append(f"  {p.name}: no slot is called {p.stem} (the slots are in ART, catio/index.html)")
             continue
         was = old.get(p.stem)
         entry = check(art, p.stem, "art/skin/" + p.name, was if isinstance(was, dict) else {}, said, filled=filled)
@@ -394,7 +403,7 @@ def main():
             if not (ROOT / f).is_file():
                 said.append(f"  {key}: {f} has gone, so it was dropped")
                 continue
-            entry = check(art, key, f, was if isinstance(was, dict) else {}, said, " (outside art/skin/)", filled=filled)
+            entry = check(art, key, f, was if isinstance(was, dict) else {}, said, " (named by hand)" if f.startswith("art/skin/") else " (outside art/skin/)", filled=filled)
             if entry:
                 skin[key] = entry
     family(art, skin, said)

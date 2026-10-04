@@ -2542,11 +2542,14 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
   writeFileSync(join(c, "art/skin/map-button.png"), png(135, 40)); writeFileSync(join(c, "art/skin/map-panel.png"), png(68, 34));
   // her button, pointed at by hand outside the folder, and her lit one in the folder, drawn its size
   writeFileSync(join(c, "art/other/button.png"), png(52, 56)); writeFileSync(join(c, "art/skin/button-hover.png"), png(52, 56));
-  writeFileSync(join(c, "art", "skin.json"), JSON.stringify({ button: { file: "art/other/button.png", slice: [8, 8, 8, 8] } }));
+  // and a panel of hers in the folder under another name, which skin.json points at by hand
+  writeFileSync(join(c, "art/skin/my-panel.png"), png(53, 61));
+  writeFileSync(join(c, "art", "skin.json"), JSON.stringify({ button: { file: "art/other/button.png", slice: [8, 8, 8, 8] }, panel: "art/skin/my-panel.png" }));
   const out = execFileSync("python3", [join(c, "tools", "skin.py")], { encoding: "utf8" });
   const j = JSON.parse(readFileSync(join(c, "art", "skin.json"), "utf8"));
   expect(!j["map-button"].pixel && j["map-button"].scale === 1 && j["map-panel"].pixel === true && !j["map-panel"].scale, JSON.stringify([j["map-button"], j["map-panel"]]));
   expect(j.button && j["button-hover"], out);
+  expect(j.panel && !/no slot is called my-panel/.test(out) && /my-panel\.png: panel/.test(out), out);
 });
 {
   const { page, ctx, errors } = await open();

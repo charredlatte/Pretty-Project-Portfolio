@@ -995,6 +995,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   const tok = (name, cs = getComputedStyle(document.documentElement)) => cs.getPropertyValue(name).trim();
   const SPR0 = JSON.parse(JSON.stringify(SPR));   // the pack's frames, for putting a cat back
   const SKIN = { file: {}, db: {}, live: {}, problems: {}, set: new Set(), seq: 0, blobs: {}, fonts: {}, faces: {}, sizes: {}, standIn: {},
+    houseSig: "[]",   // the start draws the house, its furniture and its cats with none of hers
     fileTokens: { light: {}, dark: {} }, dbTokens: { light: {}, dark: {} }, tokens: { light: {}, dark: {} } };
   const TOKENS0 = {};   // the café's own value of each token, read before any skin: what export and Put back start from
   { const cs = getComputedStyle(document.documentElement); for (const n of [...Object.keys(TOKENS), "--pixel", "--body", "--display"]) TOKENS0[n] = tok(n, cs); }
@@ -1085,7 +1086,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // a cat sheet's frames: what its entry says, else square frames when it splits into them (as skin.py reads it), else the pack's
   // a smooth slot's piece starts as pixel art when it is drawn nearer the art pixel than the screen: a map piece
   // shown 135 px wide is pixel art at about 68 and smooth at 135 or more; a sheet, at half the pack's width or less
-  const pixelish = (a, w) => w <= (a.scale ? a.size[0] * a.scale * 0.75 : a.size[0] / 2);
+  const PIXELISH = [0.75, 0.5];   // of the width a map piece is shown, of a sheet's pack width (tools/skin.py reads these)
+  const pixelish = (a, w) => w <= (a.scale ? a.size[0] * a.scale * PIXELISH[0] : a.size[0] * PIXELISH[1]);
   const framesOf = (a, e, w, h) => (e && e.frames) || (w % h === 0 && w / h <= 64 ? w / h : a.frames);
   // `e`: what the entry says about itself (slice, frames, hot) that must fit the picture
   function misfit(key, w, h, live = SKIN.live, e = {}, picking = false) {
@@ -1232,14 +1234,14 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     restyle();
     if ($("artDlg").open) drawArt();
   }
-  // What the script draws with a colour (her figure, a map's dots) and the frame's thickness, again: after a skin, and
-  // when the page turns light or dark, since a dark token can differ from its light one
   // a colour she is still choosing: what the script draws (her armchair, a map's neighbourhoods) follows it too, once a frame
   let previewing = 0;
   function previewDrawn() {
     if (previewing) return;
     previewing = requestAnimationFrame(() => { previewing = 0; HUES = null; restyle(true); });
   }
+  // What the script draws with a colour (her figure, a map's dots) and the frame's thickness, again: after a skin, and
+  // when the page turns light or dark, since a dark token can differ from its light one
   function restyle(force) {
     // a thicker or thinner frame: the whole house or the room she looked into is fitted again; a view she moved herself
     // is kept, inside it
@@ -1259,7 +1261,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (me && !skinOf("owner")) me.replaceChildren(ownerSVG(ownerOf()));
     if ($("mapsDlg").open) redrawMaps();
     const H = hues();   // a map open anywhere else (a filing cabinet's card) takes its new colours in place
-    for (const d of document.querySelectorAll("[data-hue]")) { if (d.tagName === "rect") d.setAttribute("fill", H[+d.dataset.hue]); else d.style.background = H[+d.dataset.hue]; }
+    for (const d of document.querySelectorAll("[data-hue]")) if (!d.closest("#mapsDlg")) { if (d.tagName === "rect") d.setAttribute("fill", H[+d.dataset.hue]); else d.style.background = H[+d.dataset.hue]; }   // the maps' own were just redrawn
   }
   // art/skin.json beside the page: her own pieces, dropped in a folder and listed (tools/skin.py lists them)
   async function loadSkinFile() {
@@ -2465,12 +2467,19 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // Ask the browser for one of them and, if it isn't there, tell the viewer how to put it right.
   function checkArt() {
     const packs = Object.keys(ART).filter((k) => !SKIN.live[k] && ART[k].file && ART[k].file.startsWith(LIC) && ART[k].kind !== "font");
-    const seen = [...new Set(["house", "cat-cry", packs[0]].filter((k) => k && packs.includes(k)))].map((k) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(true); i.onerror = () => ok(false); i.src = srcOf(k); }));
+    const probe = [...new Set(["house", "cat-cry", packs[0]].filter((k) => k && packs.includes(k)))];
+    const seen = probe.map((k) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(true); i.onerror = () => ok(false); i.src = srcOf(k); }));
     const run = (checkArt.run = (checkArt.run || 0) + 1);
-    Promise.all(seen).then((r) => { if (run !== checkArt.run) return; S.art = r.every(Boolean) ? "ok" : "missing"; renderStatus(); });
+    Promise.all(seen).then((r) => {
+      if (run !== checkArt.run) return;
+      S.art = r.every(Boolean) ? "ok" : "missing";
+      S.artHouse = probe.some((k, i) => !r[i] && (k === "house" || k === "cat-cry"));   // the house or its cats, rather than a piece of the interface
+      renderStatus();
+    });
   }
 
-  const NOART = "The cat art isn't here: art/licensed/ is licensed and never shipped, so neither the house nor its cats can draw. Buy the packs in catio/art/CREDITS.md, drop the zips in, and run catio/tools/build-art.py.";
+  // what the sign says when the packs' art isn't here: the house and its cats, or only what she hasn't drawn herself
+  const noArt = () => "The cat art isn't here: art/licensed/ is licensed and never shipped, so " + (S.artHouse ? "neither the house nor its cats can draw" : "the pieces you haven't drawn yourself can't draw") + ". Buy the packs in catio/art/CREDITS.md, drop the zips in, and run catio/tools/build-art.py.";
   function renderStatus() {
     const st = $("status"); st.replaceChildren();
     const L = S.live;
@@ -2503,7 +2512,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     // Nothing to do with the sessions: the cats can be there and still have nothing to draw with.
     if (S.art === "missing") {
       st.classList.add("warn");
-      st.appendChild(el("span", "copy words", NOART));
+      st.appendChild(el("span", "copy words", noArt()));
     }
   }
 
@@ -3789,7 +3798,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       () => {
         const sec = el("div", "dlg");
         sec.appendChild(el("p", "note", "All your Claude chats, in one cozy café. Each chat becomes a cat, each project a room. Seven short steps, and the doors open."));
-        if (S.art === "missing") sec.appendChild(el("p", "note", NOART));
+        if (S.art === "missing") sec.appendChild(el("p", "note", noArt()));
         const nm = el("input"); nm.id = "setupName"; nm.value = A.name; nm.maxLength = 40; nm.placeholder = "KittyChat Café";
         nm.addEventListener("input", () => { A.name = nm.value; });
         sec.appendChild(field("Name your café", nm));
@@ -4548,10 +4557,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const screen = () => document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     const onScreen = () => screen() === m || (m === "light" && !SKIN.tokens.dark[n]);   // dark says only what differs
     input.addEventListener("input", () => { if (tokenOk(n, input.value) && onScreen()) { document.documentElement.style.setProperty(n, input.value); SKIN.set.add(n); previewDrawn(); } });
-    input.addEventListener("blur", () => { if (!SKIN.saving && !SKIN.redrawing) { document.documentElement.style.removeProperty(n); SKIN.set.delete(n); previewDrawn(); } });   // a preview she let go of unchanged
+    input.addEventListener("blur", () => { if (!SKIN.saving && !SKIN.redrawing && SKIN.set.has(n)) { document.documentElement.style.removeProperty(n); SKIN.set.delete(n); previewDrawn(); } });   // a preview she let go of unchanged
     input.addEventListener("change", () => {
       if (!tokenOk(n, input.value)) {
-        document.documentElement.style.removeProperty(n);   // the preview goes with the value
+        document.documentElement.style.removeProperty(n); SKIN.set.delete(n); previewDrawn();   // the preview goes with the value
         toast(name + " is a size from " + SIZES[n][0] + " to " + SIZES[n][1] + "px" + (WHOLE_PX.includes(n) ? ", in whole pixels." : " (or the same in rem)."), "alert"); input.value = valueIn(m, n); return;
       }
       editTokens((next) => { next[m][n] = input.value; }, name + ": yours now" + (m === "dark" ? ", at night." : "."));
@@ -4586,7 +4595,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       edit(next);
       const touched = MODES.flatMap((m) => [...new Set([...Object.keys(was[m]), ...Object.keys(next[m])])].filter((t) => was[m][t] !== next[m][t]).map((t) => [m, t]));
       for (const [m, t] of touched) if (next[m][t] && (m === "light" || imported) && String(next[m][t]).toLowerCase() === String(anyway(m, t, next)).toLowerCase()) delete next[m][t];
-      if (!(await saveTokensNow(next, ok))) for (const [, t] of touched) { document.documentElement.style.removeProperty(t); SKIN.set.delete(t); }   // not kept: not shown
+      if (!(await saveTokensNow(next, ok))) { for (const [, t] of touched) { document.documentElement.style.removeProperty(t); SKIN.set.delete(t); } previewDrawn(); }   // not kept: not shown
     }).finally(() => { SKIN.saving--; });
     TOKENQ = run.catch(() => {});
     return run;
