@@ -2531,6 +2531,23 @@ const png = (w, h) => {
   const raw = Buffer.alloc((w * 4 + 1) * h, 255); for (let y = 0; y < h; y++) raw[y * (w * 4 + 1)] = 0;
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ih), chunk("IDAT", deflateSync(raw)), chunk("IEND", Buffer.alloc(0))]);
 };
+await check("art/skin.json beside the page: a slot written as its path alone is drawn", async () => {
+  // the page served over http (art/skin.json can't be fetched from file://), its skin.json naming the panel by path
+  const P = join(here, ".."), page0 = readFileSync(join(here, ".page.html"), "utf8").replace(/<base href="[^"]*">/, '<base href="http://catio.test/">');
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+  await ctx.route("http://catio.test/**", (r) => {
+    const path = decodeURIComponent(new URL(r.request().url()).pathname);
+    if (path === "/page.html") return r.fulfill({ contentType: "text/html", body: page0 });
+    if (path === "/art/skin.json") return r.fulfill({ contentType: "application/json", body: JSON.stringify({ panel: "art/licensed/ui/bubble.png" }) });
+    try { return r.fulfill({ body: readFileSync(join(P, path)) }); } catch (e) { return r.fulfill({ status: 404, body: "" }); }
+  });
+  const page = await ctx.newPage();
+  await page.goto("http://catio.test/page.html");
+  await page.waitForTimeout(1200);
+  const v = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--art-panel"));
+  await ctx.close();
+  expect(v.includes("ui/bubble.png"), v);
+});
 await check("tools/skin.py: a map piece is pixel art only drawn near the art pixel, and a member is weighed against her head", async () => {
   const { mkdtempSync, mkdirSync, copyFileSync, writeFileSync } = await import("node:fs");
   const { execFileSync } = await import("node:child_process");

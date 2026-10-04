@@ -55,7 +55,7 @@ def defaults():
 
 def file_of(entry):
     """An entry's file, as the page reads it: "file" or "src", or the entry itself when it is a path."""
-    return (entry.get("file") or entry.get("src")) if isinstance(entry, dict) else entry if isinstance(entry, str) else None
+    return (entry.get("src") or entry.get("file")) if isinstance(entry, dict) else entry if isinstance(entry, str) else None   # src first, as skinEntry()
 
 
 def slots():
@@ -318,6 +318,8 @@ def family(art, skin, said):
     for key in [k for k in skin if k in art and art[k]["kind"] == "slice" and "slice" not in art[k] and art[k].get("fam")]:
         head = next(k for k, h in art.items() if h.get("fam") == art[key]["fam"] and "slice" in h)
         hf, mf = file_of(skin.get(head)), file_of(skin[key])
+        if not (isinstance(mf, str) and mf.startswith("art/")) or (hf and not hf.startswith("art/")):
+            continue   # not a file here: the page weighs it
         hw, hh = (png_size(ROOT / hf) if hf and (ROOT / hf).is_file() else None) or art[head]["size"]
         mw, mh = (png_size(ROOT / mf) if mf and (ROOT / mf).is_file() else None) or (0, 0)
         if [mw, mh] != [hw, hh]:
@@ -333,7 +335,8 @@ def main():
         sys.exit(f"{OUT.relative_to(ROOT.parent)} isn't JSON any more ({e}): put it right, or delete it to start again.")
     if not isinstance(old, dict):
         sys.exit(f"{OUT.relative_to(ROOT.parent)} should be an object of slots and tokens: put it right, or delete it.")
-    files = sorted(p for p in SKIN.iterdir() if p.is_file()) if SKIN.is_dir() else []
+    # hidden and system files (.DS_Store, desktop.ini, Thumbs.db) are nobody's drawing
+    files = sorted(p for p in SKIN.iterdir() if p.is_file() and not p.name.startswith(".") and p.name.lower() not in ("desktop.ini", "thumbs.db")) if SKIN.is_dir() else []
     skin, said = {}, []
     groups = token_names()
     modes = {m: {k: v for k, v in (old.get(key) or {}).items() if token_ok(groups, k, v)} if isinstance(old.get(key), dict) else {}
@@ -404,7 +407,18 @@ def main():
             family(art, skin, said)
         for key, was in old.items():
             f = file_of(was)
-            if key in skin or key not in art or bool(member(key)) != members or not isinstance(f, str) or not f.startswith("art/"):
+            if key in skin or bool(key in art and member(key)) != members:
+                continue
+            if key not in art:
+                if key not in ("tokens", "dark", "tokensFromFiles"):
+                    said.append(f"  {key}: no slot is called that (the slots are in ART, catio/index.html): dropped")
+                continue
+            if isinstance(f, str) and re.fullmatch(r"(/_blob/[\w-]+|/files/[\w.-]+|local:[\w-]+)", f):
+                skin[key] = was   # an asset, a gateway file or one in a browser: the page checks it, this can't
+                said.append(f"  {key}: {f} kept as written (not a file here, so the page checks it)")
+                continue
+            if not isinstance(f, str) or not f.startswith("art/"):
+                said.append(f"  {key}: {f!r} isn't a file the page can read: dropped")
                 continue
             if f.startswith("art/skin/") and Path(f).stem == key:
                 continue   # one named after its slot was weighed with the folder
