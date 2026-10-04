@@ -17,7 +17,8 @@ Publish `catio/index.html` with:
   `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `corners`,
   `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point`, `pointer`, `logo`, `pastel` `.png`,
   and `sprout.ttf`), and the map panel in `art/licensed/pastel/` (`panel`, `panel-dark`, `frame`, `button`,
-  `button-hover`, `button-down`, `icons` `.png`);
+  `button-hover`, `button-down`, `icons` `.png`); and, once she has pieces of her own in `art/skin/`,
+  `art/skin.json` and each file it lists (below, "Plug-and-play design");
 - `capabilities`: omit it on a republish to keep what's stored: Claude Code Remote's nine tools and the
   gateway's five (below), `db`, `assets` and `sample`. Pass it only to add a tool on purpose, and then pass the whole set
   (the first republish after PR #31 must, to add `list_repos`: until it has, the wizard's GitHub step says the page
@@ -199,13 +200,98 @@ what works the camera and what builds the house: the map panel and minimap, its 
 house, floors, fold), and Build's tools (the Live / Build switch, the catalogue bar, a filing cabinet's
 "Looks like…" panel, undo and redo). Everything that talks about cats and rooms stays Sprout Lands. Draw each
 panel from one pack, never both. The Pastel art is smooth, not pixel art: scale it down with ordinary
-smoothing, never `pixelated`. See `docs/camera-and-minimap.md`.
+smoothing, never `pixelated` (a map piece she draws as pixel art of her own is the one exception: "Plug-and-play design"). See `docs/camera-and-minimap.md`.
 
-Titles, labels, buttons and names use the pack's pixel font (`--pixel`, `sprout.ttf`) at **18px**,
+Titles, labels, buttons and names use the pack's pixel font (`--pixel`, `sprout.ttf`) at **18px** (`--px-size`),
 where one font pixel is one screen pixel (36px for a cat's name on its card); anything else blurs.
 It has capitals only (small letters draw as capitals), so body text stays in Nunito.
 `build-art.py` adds the accents French names need (à â ä ç é è ê ë î ï ô ö ù û ü ÿ, a middle
 dot, an ellipsis, curly quotes); other symbols fall back to Fredoka.
+
+## Plug-and-play design
+
+Her asks of 3 and 4 October: "Allow all assets to be plug-n-plays", then "Make sure the entire design system is
+plug-n-play". The design system is **tokens and slots**, and a skin can change any of them with no code change.
+
+**Every colour, font and size is a token** in `:root` (`TOKENS` in the page names them for The look): `--ink`,
+`--tan`, `--well`, `--go`, `--grass`, the map panel's and the minimap's colours, a project map's `--hue-1`…`--hue-8`,
+the owner's chair and bow, `--px-size` and `--px-line` (the pixel font, one font pixel a screen pixel: titles are
+twice it), `--body-size`, and the art pixel `--u-desk` and `--u-phone` (`--u` is one of them). A see-through colour
+is mixed from its token (`color-mix(in srgb, var(--glow) 14%, transparent)`), and the script reads a colour it draws
+with `tok()`. Keep it that way: **a new colour, pixel-font size or art-pixel size is a new token**, never a literal in a
+rule or a `"#…"` in the script (only `OWNER`'s choices, which are her look, not the café's). A check walks the page for
+one. The text's smaller sizes stay `rem` steps from the browser's own size, as they always were.
+
+**Every piece of art is a slot** (`ART` in the page, 45 of them, named as `docs/drawing-plan.md` names her files:
+`panel`, `button`, `cat-meow`, `house`, `owner`, `font`, `font-body`…).
+The CSS and the code name the slot, never the file: a 9-slice is `var(--art-panel) var(--panel-s) fill /
+var(--panel-w)`, a sheet `var(--art-faces)`, the house `<img data-art="house">`, the furniture
+`srcOf(ATLAS[…])`. So any piece swaps for her own drawing, or another pack's, with no code change. Keep it that way:
+**a new piece of art is a new slot** (a line in `ART`, a `--art-<slot>` default in `:root`), never a `url(art/…)` in a
+rule. A check walks the page for one.
+
+A skin says which are hers, from two places; the second wins:
+
+- **`art/skin.json`** beside the page: `{ "panel": { "file": "art/skin/panel.png", "slice": [8, 8, 8, 8] }, …,
+  "tokens": { "--ink": "#1D3557", "--px-size": "16px" } }`. `python3 catio/tools/skin.py` writes the slots from
+  whatever is in `catio/art/skin/` (each file named after its slot), keeps the tokens, and says what each file fills
+  or why it can't. Her own drawings may be committed there; **never put a pack's file in `art/skin/`**. The bundle
+  carries it; a publish needs `art/skin.json` and its files in `files`. The café on the gateway's address doesn't
+  get it yet: `cafe/move-in.py` uploads only the packs' art, and teaching it is a change under `harness/`, so hers
+  to approve. The look works there all the same.
+- **The look** in the House menu (`openArt()`): her colours, type and sizes, then every slot, what it is and the size
+  to draw it at. A colour has its picker, a size its field, kept in `skin/theme` when she lets go; Replace… checks
+  her file, asks a 9-slice drawn at another size for its border and a cat for its frames, keeps it with `assets`
+  and writes `skin/<slot>`; Put back deletes either. It works in claude.ai, on the gateway and on localhost (there the
+  file stays in the browser).
+
+A token is checked as a slot is (`tokenOk()`): a colour is six hex digits, a size a length in px or rem inside its
+range (`SIZES`: the art pixel 1 to 4 px, the pixel font 8 to 48, its line 8 to 64, the text 10 to 24, a rem as 16;
+`WHOLE_PX`: the art pixel and the pixel font in whole px, or the pixel art blurs), and a 9-slice's border is at most 64
+of its pixels a side (256 for a smooth map piece, drawn big and shown smaller), so no skin can bury The look under its
+own borders, and a name that isn't in `TOKENS` is ignored.
+
+**Modes and tokens files, as Figma has them** (her ask of 4 October, "reevaluate plug-n-play capabilities of design
+systems like Figma"; read against Figma's variables, its `figma-generate-library` skill and the W3C Design Tokens
+Format 2025.10). Figma keeps a variable's value per **mode** and moves a whole palette as a **design tokens file**
+(`.tokens.json`, the W3C format it imports and exports natively). The café does both:
+
+- **Two modes**, `light` and `dark` (`MODES`): `skin/theme` is `{tokens, dark, at}` and `art/skin.json` has `tokens` and
+  `dark`. Dark says only what differs; the rest stays as in light. The look edits the mode its Light / Dark switch is
+  on. The whole skin is one stylesheet, `#skinCss`, after the page's own (light on `:root`, dark where the page's dark
+  mode is), never inline styles, so dark mode still wins in the dark.
+- **Export tokens** writes the mode The look's switch is on as `kittychat-<mode>.tokens.json` (`toDTCG()`): a group per section of
+  The look (`colours`, `type`, `map-colours`), `$type` on the group, each colour as `{colorSpace: "srgb", components,
+  hex}`, each size as `{value, unit}`, The look's words as `$description`. Through the `downloads` capability when
+  the artifact has it, else the browser's own download. Figma imports dimensions in px only, so `body-size` (rem)
+  doesn't reach it.
+- **Import tokens…** (`fromDTCG()`) reads any such file into the mode The look's switch is on: Figma's export, another café's, or
+  one written by hand. A token is matched by its own name (`ink`, `go`, `px-size`…, or Figma's `Ink`, `Px size`) whatever group it sits in, an
+  alias (`"{primitives.navy}"`) is followed, a colour may be the object or a hex string, and what isn't the café's is
+  counted and left out. A name found twice takes the one in the café's own group (`colours.grass` over
+  `primitives.grass`); a see-through colour or a size out of its range is refused and counted apart. `skin.py` does the same for `*.tokens.json` dropped in `art/skin/` ("dark" in the name: the
+  dark mode).
+
+Not taken from Figma, on purpose: a primitives layer under the semantic tokens (Figma's skill keeps one collection
+for under 50 to 60 tokens, and the café has 56), scopes and code syntax (Figma's own metadata; a token's name here is
+already its CSS variable), and more modes than light and dark (none asked for).
+
+What a slot takes, checked before it is drawn (`misfit()`): **exact** (the house, upstairs, the grounds, both
+furniture sheets, the two cursors) only its own size, because the rooms are measured on it; a **sheet** (faces,
+icons, meadow, logo…) any size of the same shape; a **slice** any size, with its border in its own pixels (a
+family shares its head's: the button's hover, green and pink take the button's, so each is drawn the head's size, and
+while she hasn't drawn one, her head stands in for it (`SKIN.standIn`), so a hover never turns back into the pack's;
+a map piece can be drawn as pixel art, `pixel: true`, its family alone then `pixelated`, or smooth at a `scale`
+(as pixel art its border shows at the art pixel, at most twice the pack's on screen, and the family follows its head:
+a member called pixel art beside a smooth head is refused, `pixelLoud()` and `misfit()`);
+what sits inside a frame follows its border: the HUD and the map panel inside the screen's panel, the portrait inside
+its frame, a plan's tag and door inside its brackets); a **cat** one row of frames, any frame size, its feet at the bottom
+middle unless `anchor` says, its loop in `secs` (the generated rules go in `#skinCss`, and `SPR` takes its frame
+size; `--fs` scales it to fill the pack's place in a portrait, a thumb or the queen's scene); a paw (`cursor`,
+`cursor-point`) says where its tip is, `hot: [x, y]` (`--cursor-hot`); `cat-walk-side` is a new slot, empty until she draws a walk: then every walking cat uses it, drawn facing
+right and mirrored going left; `owner` is her own picture of herself in the queen's scene (30 × 40 or that shape),
+drawn in code from her look until she gives one; `font-body` and `font-display` go ahead of Nunito and Fredoka. A
+piece that doesn't fit isn't used, and The look says why.
 
 ## Data
 
@@ -219,6 +305,7 @@ The artifact database, written by the page and seeded with `ArtifactData`:
 | `cats` | generated id | an adopted chat: `title`, `link`, `project`, `room`, `mood` (`needs` / `busy` / `done`), `note`, `name` |
 | `projects` | the project's slug (repo name, or an adopted chat's project) | `name`, `coat`: the look every cat of that project shares, set from a filing cabinet |
 | `graphs` | the repo's slug | its project map from graphify, saved by the catio skill's `graph_doc.py`: counts, the map, hubs, groups, surprises and questions a cat can be asked; shown in the filing cabinet |
+| `skin` | `theme`, and one per art slot (`panel`, `cat-meow`, `house`…) | `theme`: `{tokens: {"--ink": "#…", …}, dark: {…}, at}`, her colours and sizes in light, and what differs in dark (keep both keys when you write it: a missing `dark` loses her night colours). A slot's: her own piece for it: `src` (`/_blob/<asset>`, a gateway `/files/` path or `local:` in a browser), `asset`, `name`, `w`, `h`, and what it needs: `slice` [t, r, b, l], `frames`, `secs`, `pixel` or `scale`. No document: the pack's piece |
 | `dashboard` | `maps` | how she set the Project maps page: `order[]`, `pinned[]`, `hidden[]`, `wide[]` (graph slugs) |
 | `queens` | `house` | the queen of the house: `name`, `coat`, `manner` (how she speaks; the runner reads it each turn), `greeting`, `voice: {on, name, rate, pitch, lang}`, `readAt` (when Charlotte last opened her card: older handoffs are read), `notes[]` of `{text, pinned, at}`. A pinned note is one she says out loud. Older `queens/<room>` documents are hers until her first save |
 | `routines` | generated id | one of her routines: `name`, `time` ("HH:MM"), `days` (0–6, Sunday 0), `tz`, `prompt`, `on`, `last` (when the gateway last handed it to her runner). Only the gateway's copy runs: the runner reads the House, not the artifact |
@@ -350,7 +437,10 @@ The page now **writes** through Claude Code Remote, always on an explicit action
 - `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet.
 
 The stored capabilities (the full set, to pass whole if a tool is ever added):
-`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","list_repos","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "CATIO", tools: ["list_agents","comment","comments","drop_file","manage","decide","quizzes","answer"] }] }, db: {}, assets: {}, sample: {} }`
+`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","list_repos","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "CATIO", tools: ["list_agents","comment","comments","drop_file","manage","decide","quizzes","answer"] }] }, db: {}, assets: {}, sample: {}, downloads: true }`
+
+`downloads` joined it on 4 October (The look's Export tokens): until a republish passes the whole set, Export falls
+back to the browser's own download, which claude.ai's frame may not allow.
 
 `decide` joined the set on 3 October (the decider, below): the first republish after it must pass the whole set, or in claude.ai the
 page cannot ask the decider and the brain simply keeps sorting the old way. `quizzes` and `answer` joined it the same evening (her

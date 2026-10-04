@@ -373,17 +373,33 @@ Pieces marked **station** would give cats a new place to show a state: say which
 
 ## 9. What changes in the code when her art arrives
 
-Claude does this part; it's here so the drawing can go in any order.
+**Nothing, for most of it.** Every piece is a slot (3 October, "Allow all assets to be plug-n-plays"), and every
+colour, font and size a token (4 October, "the entire design system"): pick your palette in **The look** in the House
+menu, then give a slot your drawing and the café draws with it, either from The look (Replace…, a piece at a time) or
+by saving it in `catio/art/skin/` under the slot's name (`panel.png`, `cat-meow.png`…) and running
+`python3 catio/tools/skin.py`. A 9-slice can have its own border (say it when you replace it), a cat any frame size
+and count, the map panel can be pixel art; the house, the grounds and the furniture keep their sizes, since the rooms
+are measured on them. `CLAUDE.md`, "Plug-and-play design", has the rules. The slot names are the file names in the
+tables above, without `.png`; the cats are `cat-work`, `cat-review`, `cat-meow`, `cat-cry`, `cat-sleep` and
+`cat-walk-side`, you in the queen's scene `owner`, the map panel's pieces `map-panel`, `map-button`…, and the fonts
+`font` (pixel), `font-body` and `font-display`. A pixel font of your own drawn on another grid than 18 px sets its size
+in The look (Type, Pixel font size).
+
+If you pick colours in Figma: keep them as variables, export the collection's mode as a design tokens file (right-click
+the mode, Export mode), and use Import tokens… in The look, on Light or Dark. Name a variable after the café's token
+(`ink`, `go`, `grass`…; The look's own Export tokens gives you every name to start from) and it lands there.
+
+What is left for Claude:
 
 - **Her art can be committed.** It is hers, so `art/licensed/` and its licence rules go away piece by piece, and
   anyone's clone shows the house. (Whether the repo stays public with her art in it is her call.) The credits
   in `catio/art/CREDITS.md` and the footer shrink as packs leave.
 - **`build-art.py` and `furniture.py`** read her files instead of the zips: a folder `catio/art/source/`,
   one PNG per piece, named as in the tables above. `CATALOGUE` loses its sheet boxes and `scale=0.5`.
-- **Cats:** one 32 px `SPR` entry per state, the walk sheets in `walk()`, and coats as palette swaps in
-  `build-art.py` instead of CSS filters.
-- **The map panel:** new slice numbers and sizes in the CSS, `image-rendering: pixelated`, and the
-  "smooth, never pixelated" rule in `CLAUDE.md` retired.
+- **Cats:** the moods and the side walk drop in as slots. Left: the walks down and up (`cat-walk-down`,
+  `cat-walk-up` are not slots yet), and coats as palette swaps instead of CSS filters.
+- **The map panel:** nothing in the CSS any more (its border and pixel art are part of the slot); only the
+  "smooth, never pixelated" rule in `CLAUDE.md` retires.
 - **New pieces** go into `CATALOGUE` and `LAYOUT`, with stations where marked, then `furniture.check()` must be
   empty and no cat may stand on furniture.
 - **Integer zoom** (the Game UI rule): the camera zooms freely today. Snapping it to whole steps (1×, 2×, 3×, 4×)
