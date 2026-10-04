@@ -136,7 +136,8 @@ def token_ok(groups, name, v):
 
 
 def from_dtcg(doc, groups):
-    """The page's fromDTCG(): the café's tokens in a design tokens file, and how many weren't the café's."""
+    """The page's fromDTCG(): the café's tokens in a design tokens file, how many weren't the café's, and how many were
+    but with a value it can't take."""
     flat, found, foreign = {}, {}, 0
 
     def walk(node, path):   # as the page's walk: objects and lists alike
@@ -156,20 +157,26 @@ def from_dtcg(doc, groups):
         if isinstance(v, str) and re.fullmatch(r"\{[^}]+\}", v) and depth < 10:
             return resolve(flat.get(v[1:-1]), depth + 1)
         return v
+    own, refused = {}, 0   # as the page: the café's own group wins a name; a value it can't take is refused, not foreign
     for path, raw in flat.items():
         name, v, css = "--" + re.sub(r"[\s_]+", "-", path.split(".")[-1].strip().lower()), resolve(raw), None   # Figma's "Px size" is px-size
         if name not in groups:
             foreign += 1
             continue
+        hexa = v if isinstance(v, str) else v.get("hex") if isinstance(v, dict) and isinstance(v.get("hex"), str) else ""
+        clear = bool(re.fullmatch(r"#[0-9a-fA-F]{6}(?![fF]{2})[0-9a-fA-F]{2}", hexa)) or (isinstance(v, dict) and number(v.get("alpha"), float("-inf"), float("inf")) and v["alpha"] < 1)
         try:
             css = to_css(v) if not (number(v, 0, 999) and groups.get(name) == "Type") else f"{round(v, 3):g}px"   # Figma's number variable
-        except (TypeError, ValueError):   # numbers that aren't: the page counts it as not the café's, so does this
+        except (TypeError, ValueError):   # numbers that aren't: refused, as the page does
             css = None
-        if token_ok(groups, name, css):
-            found[name] = css
-        else:
-            foreign += 1
-    return found, foreign
+        if clear or not token_ok(groups, name, css):
+            refused += 1
+            continue
+        mine = path.split(".")[0] == re.sub(r"[^a-z0-9]+", "-", groups[name].lower())   # the page's groupKey()
+        if name in found and (own[name] or not mine):
+            continue
+        found[name], own[name] = css, mine
+    return found, foreign, refused
 
 
 def to_css(v):
@@ -342,13 +349,13 @@ def main():
         if p.name.endswith(".tokens.json"):
             mode = "dark" if "dark" in p.name.lower() else "light"
             try:
-                found, foreign = from_dtcg(json.loads(p.read_text(encoding="utf-8")), groups)
+                found, foreign, refused = from_dtcg(json.loads(p.read_text(encoding="utf-8")), groups)
             except (ValueError, UnicodeDecodeError):
                 said.append(f"  {p.name}: not a tokens file (it isn't JSON): {mode} kept as it was")
                 broken.add(mode)
                 continue
             from_files.setdefault(mode, {}).update(found)
-            said.append(f"  {p.name}: {len(found)} tokens into {mode}" + (f", {foreign} not the cafe's" if foreign else ""))
+            said.append(f"  {p.name}: {len(found)} tokens into {mode}" + (f", {foreign} not the cafe's" if foreign else "") + (f", {refused} with a value the cafe can't take (see-through, or out of its range)" if refused else ""))
     base = defaults()
     tf = old.get("tokensFromFiles")   # modes built from files last time: with their files gone, so are they
     filed = {m for m in tf if m in ("light", "dark")} if isinstance(tf, list) else set()
@@ -419,6 +426,9 @@ def main():
         if modes[mode]:
             skin[key] = dict(sorted(modes[mode].items()))
             said.append(f"  {key}: {len(modes[mode])} ({mode})")
+    if not skin and not OUT.exists():   # nothing of hers, and no skin.json to empty: none is written
+        print(f"  (nothing in {SKIN.relative_to(ROOT.parent)} yet, so no {OUT.relative_to(ROOT.parent)} was written)")
+        return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(skin, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"{OUT.relative_to(ROOT.parent)}: {sum(k in art for k in skin)} of {len(art)} slots are hers")

@@ -264,7 +264,8 @@ Format 2025.10). Figma keeps a variable's value per **mode** and moves a whole p
 - **Import tokens…** (`fromDTCG()`) reads any such file into the mode on screen: Figma's export, another café's, or
   one written by hand. A token is matched by its own name (`ink`, `go`, `px-size`…, or Figma's `Ink`, `Px size`) whatever group it sits in, an
   alias (`"{primitives.navy}"`) is followed, a colour may be the object or a hex string, and what isn't the café's is
-  counted and left out. `skin.py` does the same for `*.tokens.json` dropped in `art/skin/` ("dark" in the name: the
+  counted and left out. A name found twice takes the one in the café's own group (`colours.grass` over
+  `primitives.grass`); a see-through colour or a size out of its range is refused and counted apart. `skin.py` does the same for `*.tokens.json` dropped in `art/skin/` ("dark" in the name: the
   dark mode).
 
 Not taken from Figma, on purpose: a primitives layer under the semantic tokens (Figma's skill keeps one collection

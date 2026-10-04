@@ -1027,18 +1027,25 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       for (const [k, v] of Object.entries(node)) if (!k.startsWith("$")) walk(v, path.concat(k));
     })(file, []);
     const resolve = (v, depth) => (typeof v === "string" && /^\{[^}]+\}$/.test(v) && depth < 10 ? resolve(flat[v.slice(1, -1)], depth + 1) : v);
+    const own = {};   // a token found in the café's own group (colours, type…) wins over one of the same name elsewhere
+    let refused = 0;   // the café's, but a value it can't take: see-through, or a size out of its range
     for (const [path, v] of Object.entries(flat)) {
       const n = "--" + path.split(".").pop().trim().toLowerCase().replace(/[\s_]+/g, "-"), val = resolve(v, 0);   // Figma's "Px size" is px-size
       if (!TOKENS[n]) { foreign++; continue; }
+      const hex = typeof val === "string" ? val : val && typeof val.hex === "string" ? val.hex : "";
+      const clear = /^#[0-9a-f]{6}(?!ff)[0-9a-f]{2}$/i.test(hex) || (val && typeof val === "object" && typeof val.alpha === "number" && val.alpha < 1);   // the café's colours are solid: see-through is mixed from them
       let css = null;
       if (typeof val === "string") css = /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(val) ? val.slice(0, 7) : val;   // older files write a colour as its hex
       else if (val && typeof val.hex === "string") css = val.hex.slice(0, 7);
       else if (val && Array.isArray(val.components) && (val.colorSpace || "srgb") === "srgb") css = "#" + val.components.slice(0, 3).map((c) => Math.round(Math.min(1, Math.max(0, c)) * 255).toString(16).padStart(2, "0")).join("");
       else if (val && typeof val.value === "number" && /^(px|rem)$/.test(val.unit)) css = String(+val.value.toFixed(3)) + val.unit;
       else if (typeof val === "number" && TOKENS[n] && TOKENS[n][0] === "Type") css = String(+val.toFixed(3)) + "px";   // Figma's number variable: px
-      if (tokenOk(n, css)) found[n] = css; else foreign++;
+      if (clear || !tokenOk(n, css)) { refused++; continue; }
+      const mine = path.split(".")[0] === groupKey(TOKENS[n][0]);
+      if (n in found && (own[n] || !mine)) continue;   // the first, unless a later one is in the café's own group
+      found[n] = css; own[n] = mine;
     }
-    return { found, foreign };
+    return { found, foreign, refused };
   }
   // a source the page made or wrote: the art beside it, an asset, a gateway file or one kept in this browser
   const safeSrc = (v) => typeof v === "string" && /^(?:art\/[^"'()\\\x00-\x1f]+|\/_blob\/[\w-]+|\/files\/[\w.-]+|local:[\w-]+|blob:[^\s"'()\\]+)$/.test(v) && !v.includes("..");
@@ -1052,9 +1059,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (!safeSrc(e.src)) return null;
     const out = { src: e.src, w: num(v.w, 1, 8192), h: num(v.h, 1, 8192), at: num(v.at, 0, 1e14), asset: typeof v.asset === "string" ? v.asset : null, name: typeof v.name === "string" ? v.name.slice(0, 120) : "" };
     if (Array.isArray(v.slice) && v.slice.length === 4 && v.slice.every((n) => num(n, 0, a.scale ? 256 : 64) !== null && Number.isInteger(n))) out.slice = v.slice.slice();
+    else if (v.slice !== undefined && v.slice !== null) out.bad = "Its border isn't four whole numbers from 0 to " + (a.scale ? 256 : 64) + ".";   // refused, not cut with the pack's
     if (num(v.scale, 0.001, 64) !== null) out.scale = v.scale;
     if (v.pixel === true) out.pixel = true;
     if (num(v.frames, 1, 64) !== null && Number.isInteger(v.frames)) out.frames = v.frames;
+    else if (v.frames !== undefined && v.frames !== null) out.bad = "Its frames aren't a whole number from 1 to 64.";
     if (num(v.secs, 0.1, 20) !== null) out.secs = v.secs;
     if (Array.isArray(v.anchor) && v.anchor.length === 2 && v.anchor.every((n) => num(n, 0, 1024) !== null)) out.anchor = v.anchor.slice();
     if (Array.isArray(v.hot) && v.hot.length === 2 && v.hot.every((n) => Number.isInteger(n) && n >= 0 && n < 128)) out.hot = v.hot.slice();
@@ -1091,8 +1100,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   const framesOf = (a, e, w, h) => (e && e.frames) || (w % h === 0 && w / h <= 64 ? w / h : a.frames);
   // `e`: what the entry says about itself (slice, frames, hot) that must fit the picture
   function misfit(key, w, h, live = SKIN.live, e = {}, picking = false) {
-    const { slice = null, frames = null, hot = null } = e || {};
+    const { slice = null, frames = null, hot = null, bad = null } = e || {};
     const a = ART[key];
+    if (bad) return bad;
     if (a.hot && hot && (hot[0] >= w || hot[1] >= h)) return "Its tip " + hot.join(" ") + " is outside its " + w + " × " + h + ".";
     if (a.kind === "cat" && !picking && w % framesOf(a, { frames }, w, h)) return "It is " + w + " pixels wide, which doesn't split into " + framesOf(a, { frames }, w, h) + " frames.";
     if (a.kind === "slice" && !a.slice && live) {   // the button's hover, green and pink, the map's dark panel…: cut with the head's border
@@ -1247,7 +1257,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   function restyle(force) {
     // a thicker or thinner frame: the whole house or the room she looked into is fitted again; a view she moved herself
     // is kept, inside it
-    if (frameWidth()) { if (!S.cam || S.cam === S.fitted) layout(true); else setCam(S.cam, false); }
+    if (frameWidth()) { hideMenu(); hideTip(); if (!S.cam || S.cam === S.fitted) layout(true); else setCam(S.cam, false); }   // the house moves: a menu beside it would be left behind
     if (!force && SKIN.drawnSig === SKIN.lookSig) return;   // nothing the script draws with has changed
     SKIN.drawnSig = SKIN.lookSig;
     if ($("queenOwnerFig")) $("queenOwnerFig").replaceChildren(ownerSVG(ownerOf()));
@@ -4550,13 +4560,14 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   async function importTokens(file, m) {
     let j;
     try { j = JSON.parse(await file.text()); } catch (e) { toast(file.name + " isn't a tokens file: it isn't JSON.", "alert"); return; }
-    const { found, foreign } = fromDTCG(j), n = Object.keys(found).length;
-    if (!n) { toast(file.name + " has none of the café's tokens" + (foreign ? " (" + foreign + " of its own)." : "."), "alert"); return; }
+    const { found, foreign, refused } = fromDTCG(j), n = Object.keys(found).length;
+    const why = refused ? "; " + refused + " the café's with a value it can't take (a see-through colour, or a size out of its range)" : "";
+    if (!n) { toast(file.name + " has none of the café's tokens" + (foreign ? " (" + foreign + " of its own)" : "") + why + ".", "alert"); return; }
     // what is the same as it would be anyway is taken out by editTokens: an export re-imported stays a few changes, not 56
     const kept = Object.entries(found).filter(([t, v]) => v.toLowerCase() !== String(valueIn(m, t)).toLowerCase()).length;   // new: not what shows now
     // run even when nothing is new: a value the same as it would be anyway takes back one of hers it matches
     await editTokens((next) => Object.assign(next[m], found), (kept ? kept + " " + (kept === 1 ? "token" : "tokens") + " from " + file.name + " in " + (m === "light" ? "Light" : "Dark")
-      : "Nothing new in " + file.name + ": the café already looks like that" + (m === "dark" ? " at night" : "")) + (foreign ? "; " + foreign + " not the café's, left out." : "."), true);
+      : "Nothing new in " + file.name + ": the café already looks like that" + (m === "dark" ? " at night" : "")) + (foreign ? "; " + foreign + " not the café's, left out" : "") + why + ".", true);
   }
   // a colour or a size, in the mode The look is on: a picker, what it colours, and Put back when it is hers
   function tokenRow(n) {
@@ -4575,7 +4586,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         document.documentElement.style.removeProperty(n); SKIN.set.delete(n); if (drawn) previewDrawn();   // the preview goes with the value
         toast(name + " is a size from " + SIZES[n][0] + " to " + SIZES[n][1] + "px" + (WHOLE_PX.includes(n) ? ", in whole pixels." : " (or the same in rem)."), "alert"); input.value = valueIn(m, n); return;
       }
-      editTokens((next) => { next[m][n] = input.value; }, name + ": yours now" + (m === "dark" ? ", at night." : "."));
+      const same = m === "light" && input.value.toLowerCase() === String(anyway(m, n, copyTokens())).toLowerCase();   // editTokens takes it out rather than keep it
+      editTokens((next) => { next[m][n] = input.value; }, name + (same ? ": the café's again." : ": yours now" + (m === "dark" ? ", at night." : ".")));
     };
     input.addEventListener("blur", () => {
       if (SKIN.redrawing) return;   // the card redrawn under her: not hers

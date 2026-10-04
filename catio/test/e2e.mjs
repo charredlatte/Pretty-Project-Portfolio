@@ -2615,6 +2615,38 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     await page.click("#lookMode-light"); await settle(page);
     await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
   });
+  await check("Import tokens… takes the café's own group over a namesake, and refuses a see-through colour or a size out of range rather than call it foreign", async () => {
+    const kept = await page.evaluate(() => { const t = window.__catio.store["skin/theme"]; delete window.__catio.store["skin/theme"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; return t; });
+    await page.waitForTimeout(500);
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const file = { primitives: { grass: { $value: "#00ff00" } }, colours: { grass: { $value: "#112233" }, go: { $value: "#C0D47080" }, tan: { $value: { colorSpace: "srgb", components: [1, 0, 0], alpha: 0.5 } } },
+      type: { "px-size": { $value: { value: 17.5, unit: "px" } } } };
+    await page.locator("#tokensFile").setInputFiles({ name: "mixed.tokens.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });
+    await page.waitForTimeout(600);
+    const t = await page.evaluate(() => window.__catio.store["skin/theme"].tokens);
+    expect(t["--grass"] === "#112233" && !("--go" in t) && !("--tan" in t) && !("--px-size" in t), JSON.stringify(t));
+    expect(/1 token from mixed\.tokens\.json in Light/.test(await toast(page)) && /3 the café's with a value it can't take/.test(await toast(page)) && !/not the café's/.test(await toast(page)), await toast(page));
+    // a size typed back to the café's own is said to be the café's again, not hers
+    const f = page.locator("#artDlg li[data-token='--px-size'] input");
+    await page.locator("#artDlg details[data-group='Type'] > summary").click();
+    await f.fill("20px"); await f.dispatchEvent("change"); await settle(page);
+    await f.fill("18px"); await f.dispatchEvent("change"); await settle(page);
+    expect(/Pixel font size: the café's again/.test(await toast(page)) && !("--px-size" in (await page.evaluate(() => window.__catio.store["skin/theme"].tokens))), await toast(page));
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+    await page.evaluate((t) => window.__catio.put("skin/theme", t), kept);
+    await page.waitForTimeout(500);
+  });
+  await check("a border or a frame count the page can't take refuses her piece, rather than cutting it with the pack's", async () => {
+    await page.evaluate(() => window.__catio.put("skin/panel", { src: "art/licensed/ui/bubble.png", slice: [80, 80, 80, 80], at: 1 }));
+    await page.waitForTimeout(600);
+    expect(!(await rootVar("--art-panel")).includes("bubble.png"), await rootVar("--art-panel"));
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const row = await page.locator("#artDlg li[data-slot='panel']").textContent();
+    expect(/border isn't four whole numbers from 0 to 64/.test(row), row);
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+    await page.evaluate(() => { delete window.__catio.store["skin/panel"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(500);
+  });
   await check("a size out of its range is refused, so no skin can bury the café under its borders", async () => {
     await page.evaluate(() => window.__catio.put("skin/theme", { tokens: { "--u-desk": "20px", "--px-size": "0px", "--body-size": "0.9rem" }, at: 4 }));
     await page.waitForTimeout(600);
