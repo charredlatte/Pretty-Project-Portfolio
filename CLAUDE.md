@@ -19,10 +19,9 @@ Publish `catio/index.html` with:
   and `sprout.ttf`), and the map panel in `art/licensed/pastel/` (`panel`, `panel-dark`, `frame`, `button`,
   `button-hover`, `button-down`, `icons` `.png`); and, once she has pieces of her own in `art/skin/`,
   `art/skin.json` and each file it lists (below, "Plug-and-play design");
-- `capabilities`: omit it on a republish to keep what's stored: Claude Code Remote's nine tools and the
-  gateway's five (below), `db`, `assets` and `sample`. Pass it only to add a tool on purpose, and then pass the whole set
-  (the first republish after PR #31 must, to add `list_repos`: until it has, the wizard's GitHub step says the page
-  isn't allowed to ask).
+- `capabilities`: omit it on a republish to keep what's stored. Pass it, as the whole set in "The stored capabilities"
+  below, to add a tool on purpose or when that section says a tool joined since the last publish (the first republish
+  after PR #31 must, to add `list_repos`: until it has, the wizard's GitHub step says the page isn't allowed to ask).
 
 `catio/data/` is **not** published: it is for the localhost copy (below).
 

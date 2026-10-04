@@ -61,8 +61,9 @@ it works), and "Set up again…" in the House menu replays it.
 **What a fork changes.** The house rules (`harness/`, the `kittychat-house-rules` plugin) are what make your sessions
 report to the gateway, collect what you send them and follow the rules below. Today the harness and the page are set
 for Charlotte's own café: her café's link, her GitHub name, her public repositories and her install lines are
-written into them. [`docs/self-hosting.md`](docs/self-hosting.md) lists every one, and what to set it to in your
-fork before you install the plugin from it.
+written into them. [`docs/self-hosting.md`](docs/self-hosting.md) lists what to change in your fork before you
+publish your café or install the plugin from it (the install lines are in [`harness/README.md`](harness/README.md):
+give them your fork's address).
 
 For cats that stay live wherever you open the café, and a queen you can talk to, add the gateway: a free Cloudflare
 Worker that every session checks in at, set up in five steps ([`harness/gateway/README.md`](harness/gateway/README.md)).
@@ -70,9 +71,9 @@ The queen's brain runs on your own computer ([`harness/runner/README.md`](harnes
 
 **Bring your own cats.** Seven of the ten art packs the café is drawn from forbid sharing their files, an eighth is
 drawn into the same pictures as theirs, and plants.zip came with no licence, so `catio/art/licensed/` is not in
-this repository. A fresh clone draws the manor on plain panels, says so on its own sign, and gives the three steps
-to fix it: buy the packs yourself and run `catio/tools/build-art.py` over your own zips. Only Cosy Cabin, whose
-licence allows it, is included.
+this repository. A fresh clone draws only the Cosy Cabin furniture, its menus on plain colour: no house and no
+cats. It says so on its own sign, with the three steps to fix it: buy the packs yourself and run
+`catio/tools/build-art.py` over your own zips. Only Cosy Cabin, whose licence allows it, is included.
 
 ## What you get
 
