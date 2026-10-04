@@ -2543,7 +2543,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         return mi("Project maps", () => { hideMenu(); MAPS.visit++; try { openMaps(); } catch (e) { toast("A project map couldn't be drawn (" + (e && e.message || "error") + ").", "alert"); } }, { aside: shown || "" });
       })(),
       mi("Edit rooms", () => { hideMenu(); openRooms(curRoom()); }),
-      (() => { const n = Object.values(SKIN.live).filter((e) => e.from === "db").length + new Set([...Object.keys(SKIN.dbTokens.light), ...Object.keys(SKIN.dbTokens.dark)]).size;   /* a token once, as The look's groups count it */ return mi("The look", () => { hideMenu(); openArt(); }, { aside: n ? n + " yours" : "" }); })(),
+      (() => { const n = Object.values(SKIN.live).filter((e) => e.from === "db").length + new Set([...Object.keys(SKIN.dbTokens.light), ...Object.keys(SKIN.dbTokens.dark)]).size;   /* what she set in The look, a token once: the folder's are the folder's */ return mi("The look", () => { hideMenu(); openArt(); }, { aside: n ? n + " yours" : "" }); })(),
       S.db && mi("Set up again…", () => { hideMenu(); openSetup(true); }),
       (VIEW.attic || S.showOld) && mi(S.showOld ? "Send them back up" : "Bring them down", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }),
       S.mcp && mi("Check now", () => watch(true)),
@@ -4980,7 +4980,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (doc.pixel && pixelLoud(a, doc.slice || a.slice)) { toast(LOUD(doc.slice || a.slice), "alert"); (bd || px).focus(); return; }
       if (frames) {
         doc.frames = Number(frames.value); doc.secs = Number(secs.value);
-        if (!frames.value.trim()) { toast("Its frames aren't square: say how many there are.", "alert"); frames.focus(); return; }
+        if (!frames.value.trim()) { toast(p.w % p.h ? "Its frames aren't square: say how many there are." : "Cut square, that is " + p.w / p.h + " frames, and 64 is the most: if its frames are wider, say how many there are.", "alert"); frames.focus(); return; }
         if (!Number.isInteger(doc.frames) || doc.frames < 1 || doc.frames > 64 || p.w % doc.frames) { toast("The frames must split its " + p.w + " pixels evenly.", "alert"); frames.focus(); return; }
         if (!(doc.secs >= 0.1 && doc.secs <= 20)) { toast("A loop takes between 0.1 and 20 seconds.", "alert"); secs.focus(); return; }
       }
