@@ -441,8 +441,9 @@ ul.thread li.handoff.new .who::after { content: " · new"; color: var(--ink); }
    own to allow for, and the scene's floor is on its row rather than a min-height of its own: a min-height
    overflows the row it sits in and, the scene being positioned, is drawn over the saybar, so Send would be on
    screen and still not clickable. Under the floor the card is taller than the window and the dialog scrolls. */
-dialog.scene { width: min(920px, calc(100vw - 24px)); height: min(calc(100dvh - 40px), 792px); }
-.dlg.queen { position: relative; height: 100%; display: grid; grid-template-rows: auto minmax(180px, 1fr) auto; }
+dialog.scene { width: min(920px, calc(100vw - 24px)); height: 792px; }   /* dialog's own max-height brings it down to the window */
+.dlg.queen { position: relative; height: 100%; display: grid; grid-template-rows: auto minmax(200px, 1fr) auto; }
+.dlg.queen:has(> .qsettings:not([hidden])) { overflow: hidden; }
 .qhead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: start; }
 .qhead h2 { display: flex; align-items: center; gap: 10px; }
 .qhead h2 .crown { position: static; flex: none; transform: scale(2); margin: 0 6px; }
@@ -504,7 +505,7 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); height: min(calc(100dvh - 
   /* a phone is tall and narrow, so the two of them stand side by side along the foot of the scene and the
      words take its whole width: flanking her they left a strip under 200 px wide */
   /* the words keep a floor and the two of them give way: their row is what the talk was squeezed to nothing by */
-  .qstage { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(72px, 1fr) minmax(0, auto); }
+  .qstage { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(72px, 1fr) auto; }
   .qtalk { grid-area: 1 / 1; }
   .owner, .qchar { grid-area: 2 / 1; --fz: 1; }
   .qhead h2 { font: 18px/24px var(--pixel); }   /* the pack's font draws at 18 or 36: at 36 her name broke mid-word beside Settings and Close */

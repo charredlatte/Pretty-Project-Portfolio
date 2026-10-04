@@ -47,15 +47,23 @@ async function resize(page, width, height) {
     // the deadline is its own timer: a page that stops being painted stops firing rAF, and a deadline checked
     // only inside the rAF loop would never be reached, hanging the suite instead of failing it
     const bust = setTimeout(() => no(new Error("the page never settled at " + w + "x" + h + ", last " + last)), 5000);
+    const open = () => [...document.querySelectorAll("dialog[open]")].map((d) => { const r = d.getBoundingClientRect(); return Math.round(r.width) + "x" + Math.round(r.height); }).join(",");
     (function wait() {
-      const d = document.getElementById("queenDlg"), r = d && d.getBoundingClientRect();
-      const now = innerWidth + "x" + innerHeight + ":" + (r ? Math.round(r.width) + "x" + Math.round(r.height) : "-");
+      const now = innerWidth + "x" + innerHeight + ":" + document.documentElement.clientWidth + ":" + open();
       same = innerWidth === w && innerHeight === h && now === last ? same + 1 : 0;
       last = now;
       if (same >= 2) { clearTimeout(bust); return ok(); }
       requestAnimationFrame(wait);
     })();
   }), [width, height]);
+}
+// Run a check that moves the viewport about, then put it back. A restore that fails must not replace the failure
+// it follows, and must not be swallowed when there was none: the checks after it would run at the wrong size.
+async function atSizes(page, body, width = 1440, height = 900) {
+  let failed = null;
+  try { await body(); } catch (e) { failed = e; }
+  try { await resize(page, width, height); } catch (e) { failed = failed || e; }
+  if (failed) throw failed;
 }
 // the manor's upstairs rooms; every other room is on the ground floor
 const UPPER = new Set(["brain", "bath", "bedroom"]);
@@ -846,7 +854,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await check("nothing she says runs off the side, and the talk gets most of the scene, at any width", async () => {
     // every width down to the phone layout, not only this one: in between, the two of them used to leave the words
     // a strip under half the scene
-    try {
+    await atSizes(page, async () => {
       for (const [w, least] of [[1440, .6], [900, .6], [811, .6], [700, .6], [600, .55], [561, .55]]) {
         await resize(page, w, 900);
         const s = await page.locator("#queenThread").evaluate((u) => ({ over: u.scrollWidth - u.clientWidth, w: u.clientWidth }));
@@ -854,18 +862,16 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
         const stage = await page.locator(".qstage").evaluate((e) => e.clientWidth);   // inside the frame: what there is to share
         expect(s.w > stage * least, "at " + w + " the talk gets too little of the scene: " + s.w + " of " + stage);
       }
-    } finally {   // whatever happened, the checks after this one see the viewport they were written for
-      await resize(page, 1440, 900);
-    }
+    });
   });
   // and at any height: the scene used to take a share of the window (62vh and the like), which fits one window and
   // spills out of a short one, pushing Send off the bottom
   await T(page, () => window.__catio.setQuiz({ for: "cse_blocked1", title: "Unblock Caramel", questions: [{ q: "Which project is this one for?", options: ["montfortoise-shopify", "Pretty-Project-Portfolio"] }] }));
   await page.waitForTimeout(500);
   await check("her card fits a short window too, with Send reachable and nothing of hers out of reach", async () => {
-    try {
-      expect(await page.locator("#queenHomework .quiz").count() > 0, "no homework: the short windows below would miss the one case that breaks");
-      for (const [w, h] of [[1440, 900], [900, 560], [900, 430], [844, 390], [811, 669], [700, 500], [390, 844], [390, 600], [390, 500]]) {
+    expect(await page.locator("#queenHomework .quiz").count() > 0, "no homework: the short windows below would miss the one case that breaks");
+    await atSizes(page, async () => {
+      for (const [w, h] of [[1440, 900], [900, 560], [900, 430], [844, 390], [811, 669], [700, 500], [390, 844], [390, 600], [390, 500], [390, 420]]) {
         await resize(page, w, h);
         const m = await page.evaluate(() => {
           const dlg = document.getElementById("queenDlg"), st = document.querySelector(".qstage"), ul = document.getElementById("queenThread");
@@ -873,24 +879,31 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
           const qc = document.querySelector(".qchar"), ow = document.querySelector(".owner");
           dlg.scrollTop = dlg.scrollHeight;   // as she would, when the window is too short for the whole card
           const r = send.getBoundingClientRect(), at = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
-          const sr = st.getBoundingClientRect();
+          // the scene clips at its content box, inside the frame, so that is what anything in it has to fit
+          const cs = getComputedStyle(st), sr = st.getBoundingClientRect();
+          const top = sr.top + parseFloat(cs.borderTopWidth), bottom = sr.bottom - parseFloat(cs.borderBottomWidth);
+          const out = (e) => { const b = e.getBoundingClientRect(); return Math.round(Math.max(top - b.top, b.bottom - bottom, 0)); };
+          // the two of them are tucked 2 px into the frame on purpose, to stand on it: their heads are the side that fails
+          const above = (e) => Math.round(Math.max(top - e.getBoundingClientRect().top, 0));
+          // neither of them may stand on the words: beside them on a wide card, under them on a phone, never over
+          const over = (e, f) => { const a = e.getBoundingClientRect(), b = f.getBoundingClientRect();
+            return Math.round(Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))); };
           return { sendInView: r.top >= 0 && r.bottom <= innerHeight + 1, sendOnTop: !!at && (at === send || send.contains(at)),
-            // the scene clips what it cannot hold, and clipped is unreachable: nothing inside it may overflow it
-            stageOver: Math.max(st.scrollHeight - st.clientHeight, 0),
-            figAbove: Math.round(sr.top - Math.min(qc.getBoundingClientRect().top, ow.getBoundingClientRect().top)),
+            ownerOut: above(ow), queenOut: above(qc), talkOut: out(ul), overTalk: Math.max(over(ow, ul), over(qc, ul)),
             talk: ul.clientHeight, homework: hw.clientHeight };
         });
         const at = w + "x" + h + " ";
         expect(m.sendInView, "at " + at + "Send can't be brought on screen, even with the card scrolled down");
         expect(m.sendOnTop, "at " + at + "something is drawn over Send, so it can't be clicked");
-        expect(m.stageOver <= 2, "at " + at + "the scene overflows its frame by " + m.stageOver + " px, which is clipped with nowhere to scroll");
-        expect(m.figAbove <= 1, "at " + at + "one of them is " + m.figAbove + " px above the frame, so her head is cut off");
+        // the scene clips what it cannot hold, and clipped is unreachable
+        expect(m.ownerOut <= 1, "at " + at + "the owner's head is " + m.ownerOut + " px above the frame, so it is cut off");
+        expect(m.queenOut <= 1, "at " + at + "the queen's head is " + m.queenOut + " px above the frame, so it is cut off");
+        expect(m.talkOut <= 1, "at " + at + "the talk is " + m.talkOut + " px outside the frame, with nowhere to scroll");
+        expect(m.overTalk === 0, "at " + at + "one of them stands over the words, by " + m.overTalk + " square px");
         expect(m.talk >= 20, "at " + at + "the talk is " + m.talk + " px: the two of them squeezed it out");
         expect(m.homework >= 20, "at " + at + "her homework is " + m.homework + " px: the talk's floor squeezed it out");
       }
-    } finally {
-      try { await resize(page, 1440, 900); } catch (e) { /* never mask the failure above with a resize error */ }
-    }
+    });
   });
   await check("every other setting is in an overlay, out of the scene until Settings", async () => {
     for (const sel of ["#queenVoice", "#queenKeeps", "#queenCharacter", "#queenYou"]) expect(await page.locator(sel).isHidden(), sel + " shows in the scene");
@@ -1641,7 +1654,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
       if (over <= 0) return { over, reached: true, hand: true };
       e.scrollTop = e.scrollHeight;
       const box = e.getBoundingClientRect();
-      const hands = e.querySelectorAll(".hand, .actions button");
+      const hands = e.querySelectorAll(".hand");   // its own class: .actions also holds a deck's Skip
       const hand = hands[hands.length - 1];   // the one at the bottom, where it has just been scrolled to
       const hr = hand && hand.getBoundingClientRect();
       return { over, reached: e.scrollTop > 0, hand: !!hr && hr.bottom <= box.bottom + 1 && hr.top >= box.top - 1 };
