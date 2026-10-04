@@ -37,6 +37,11 @@ const card = (w, pad = 16, name = "card") => {
 const ids = [];
 let x = 0;
 const NAV = ["Pricing", "How it works", "Docs", "Account", "Cart (0)"];
+// The car (Charlotte, 4 October): the harness is the car, Ninine the queen cat drives it, Claude is the engine.
+// README, "The car", and docs/onboarding/README.md, which fits it part by part.
+const STORM = ["Claude on its own", "A stripped car: a brilliant engine and nothing else. No seatbelts, no windshield, no brakes, no tires. You can drive it if you know engines."];
+const SUN = ["Claude in the café", "The whole car, and Ninine, the queen cat, drives. A windshield to see who's working and who needs you, seatbelts and brakes Claude can't talk its way round, tires on your GitHub. You tell her where you're going."];
+const DRIVE = { Free: "Take it round the block", Basic: "Your own car, with a mileage cap", "Early access": "Unlimited mileage, and the sat-nav", Support: "Chip in for the next model" };
 
 // A storefront page: header with the name and the nav, a content column, the legal footer.
 function page(name, width = 1280, height = 900) {
@@ -59,6 +64,9 @@ function page(name, width = 1280, height = 900) {
   body.appendChild(text("No terminal required. A pixel-art manor where a room is a project and a cat is a task: who's working, who's blocked, who needs you. Your own claude.ai does the work; the café shows it and talks to it.", 16, REG, GREY, 640));
   const cta = row(12, "calls"); cta.appendChild(button("Start free: self-host", true)); cta.appendChild(button("Join the café: early access")); body.appendChild(cta);
   body.appendChild(box(w, 360, BOX, "screenshot: the manor, ground floor"));
+  const cars = row(16, "the car");
+  for (const [t, d] of [STORM, SUN]) { const c = card(512, 20, t); c.appendChild(text(t, 16, BOLD)); c.appendChild(text(d, 14, REG, t === SUN[0] ? INK : GREY, 472)); cars.appendChild(c); }
+  body.appendChild(cars);
   const ways = row(16, "three ways");
   for (const [t, d] of [["Self-host: the developers' door", "Open source (AGPL-3.0): clone the repo, deploy the Worker, install the plugin. Your art, your artifact. A terminal, this time."], ["Hosted café", "Your café on our address, with accounts and the gateway. Monthly, while it's in development."], ["Set up for you, from 90 €", "A one-time payment: lifetime access and the DIY course on customizing your plugin. An afternoon with Charlotte on top, from [setup-plus] €."]]) {
     const c = card(336); c.appendChild(text(t, 16, BOLD)); c.appendChild(text(d, 13, REG, GREY, 300)); ways.appendChild(c); }
@@ -67,7 +75,7 @@ function page(name, width = 1280, height = 900) {
 // 2. Pricing.
 { const { body, w } = page("2 Pricing", 1280, 1180);
   body.appendChild(text("Pricing", 32, BOLD));
-  body.appendChild(text("Prices HT. TVA non applicable, art. 293 B du CGI. You pay Anthropic for Claude yourself; the café never resells it.", 13, REG, GREY, w));
+  body.appendChild(text("Every plan is the whole car, and Ninine drives. Claude is its engine, and you buy the fuel from Anthropic yourself: the café never resells it. Prices HT. TVA non applicable, art. 293 B du CGI.", 13, REG, GREY, w));
   const tiers = row(16, "tiers");
   for (const [t, p, lines, primary] of [
     ["Free", "0 €", ["Self-host or hosted", "One repository, one room", "Hover, menus, the saved copy", "Community help"], false],
@@ -75,6 +83,7 @@ function page(name, width = 1280, height = 900) {
     ["Early access", "[monthly] €/month", ["Everything in Basic, uncapped", "Unlimited repositories and rooms", "The brain's sorter and the litter box quiz", "The queen's homework to unblock a cat", "New features as they land, until the app ships"], true],
     ["Support", "A coffee, or back the app", ["No subscription, no promise", "One-off coffees and small memberships", "Your name in the café's credits", "The campaign funds the app: a year of Early access as its reward"], false]]) {
     const c = card(248, 16, (t === "Support" ? "support" : "tier " + t)); c.appendChild(text(t, 18, BOLD)); c.appendChild(text(p, 20, BOLD, primary ? INK : GREY, 216));
+    c.appendChild(text(DRIVE[t], 13, BOLD, GREY, 216));
     for (const l of lines) c.appendChild(text("✓  " + l, 13, REG, INK, 216));
     if (t === "Support") { const r = col(6, "support buttons"); r.appendChild(button("Buy me a coffee")); r.appendChild(button("Back the app")); c.appendChild(r); }
     else c.appendChild(button(t === "Free" ? "Clone the repo" : "Choose " + t, primary)); tiers.appendChild(c); }
@@ -85,7 +94,7 @@ function page(name, width = 1280, height = 900) {
     ["Gateway calls: comment, drop_file, manage (list_agents and comments are never metered)", "–", "[cap] a month, shared", "✓", "with a reward"], ["The brain's sorter, the litter box quiz, the queen's homework", "–", "–", "✓", "with a reward"], ["Hosted café (accounts, keys, your own address)", "–", "✓", "✓", "with a reward"], ["The app, when it ships", "–", "at the Basic price", "included", "funded by the campaign"]];
   rows.forEach((r, i) => { const rr = row(0, "row"); r.forEach((cell, k) => { const t = text(cell, 12, i === 0 || k === 0 ? BOLD : REG, i === 0 ? GREY : INK, k === 0 ? 440 : 150); rr.appendChild(t); }); grid.appendChild(rr); });
   body.appendChild(grid);
-  const setup = card(w, 20, "set up for you"); setup.appendChild(text("Set up for you · from 90 €, once", 18, BOLD));
+  const setup = card(w, 20, "set up for you"); setup.appendChild(text("Set up for you · from 90 €, once", 18, BOLD)); setup.appendChild(text("Driving lessons", 13, BOLD, GREY));
   setup.appendChild(text("Lifetime access to the café, and the DIY course: customize your own plugin, house rules, skills and the queen's manner, step by step. From [setup-plus] €: an afternoon with Charlotte setting up your rooms, repositories and rules.", 13, REG, INK, w - 40));
   const sb = row(8); sb.appendChild(button("Get the course and lifetime access", true)); sb.appendChild(button("Book an afternoon")); setup.appendChild(sb); body.appendChild(setup);
   body.appendChild(text("In development: the subscription and the campaign fund the app. Cancel any month from your account.", 12, REG, GREY, w)); }
@@ -156,13 +165,14 @@ function page(name, width = 1280, height = 900) {
 { const { body, w } = page("8 Home (phone)", 390, 900);
   body.appendChild(text("Your projects as a cat café.", 24, BOLD, INK, w));
   body.appendChild(text("Every task is a cat; it meows when it needs you. No terminal required.", 14, REG, GREY, w));
+  body.appendChild(text("Claude is the engine. The café is the rest of the car, and Ninine drives.", 14, BOLD, INK, w));
   body.appendChild(button("Start free: self-host", true)); body.appendChild(button("Join the café"));
   body.appendChild(box(w, 240, BOX, "screenshot")); }
 { const { body, w } = page("9 Pricing (phone)", 390, 1240);
   body.appendChild(text("Pricing", 24, BOLD));
   body.appendChild(text("Prices HT · TVA non applicable, art. 293 B du CGI", 12, REG, GREY, w));
   for (const [t, p, primary] of [["Free", "0 €", false], ["Basic", "[basic] €/month · 5 repos, [cap] calls", false], ["Early access", "[monthly] €/month", true], ["Support", "A coffee, or back the app", false]]) {
-    const c = card(w, 16, (t === "Support" ? "support" : "tier " + t)); c.appendChild(text(t, 16, BOLD)); c.appendChild(text(p, 18, BOLD, primary ? INK : GREY, w - 32));
+    const c = card(w, 16, (t === "Support" ? "support" : "tier " + t)); c.appendChild(text(t, 16, BOLD)); c.appendChild(text(p, 18, BOLD, primary ? INK : GREY, w - 32)); c.appendChild(text(DRIVE[t], 12, BOLD, GREY, w - 32));
     if (t === "Support") { const r = row(8); r.appendChild(button("Buy me a coffee")); r.appendChild(button("Back the app")); c.appendChild(r); }
     else c.appendChild(button(t === "Free" ? "Clone the repo" : "Choose " + t, primary)); body.appendChild(c); } }
 

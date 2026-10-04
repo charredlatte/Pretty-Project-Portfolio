@@ -882,7 +882,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // The house has one queen: she is not a session, she never leaves, she keeps what matters, and she is the
   // one you talk to (her runner, harness/runner, is her brain). An older, statelier name than the working cats'.
   const QUEEN_NAMES = ["Mémé", "Duchesse", "Joséphine", "Colette", "Berthe", "Augustine", "Odette",
-    "Simone", "Marguerite", "Hortense", "Célestine", "Philomène"];
+    "Ninine", "Marguerite", "Hortense", "Célestine", "Philomène"];
   const QUEEN_ROOM = "hall";   // her seat: the pink armchair in the entrance hall
   const QUEEN_ID = "queen";    // her cat on the gateway: her conversation with you, and her runner's presence
   const MANNER = "Elizabethan English, warm and a touch grand: \"my lady\", \"prithee\", \"'tis\", \"mayhap\", \"anon\". The news first, plain enough to act on; the flourish after.";
@@ -3885,11 +3885,14 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const door = () => (A.door && A.open.includes(A.door) ? A.door : open()[0]);
     const nameOf = (k) => A.names[k].trim() || GEOM[k].name;
     const sessions = () => (S.liveSessions || []).filter((s) => !isWarmStart(s)).length;
+    const queen = () => queenOf().name;   // she drives the car: Ninine, unless the café has named her
     let step = 0, timer = null;
 
     const steps = [
       () => {
         const sec = el("div", "dlg");
+        sec.appendChild(el("p", "note", "All your Claude chats, in one cozy café. Each chat becomes a cat, each project a room. Claude on its own is a stripped car: a brilliant engine, with no seatbelts, no windshield and no tires. The café is the rest of the car, and " + queen() + ", the queen cat, drives. Seven short steps fit the parts, then the doors open."));
+        if (S.art === "missing") sec.appendChild(el("p", "note", NOART));
         sec.appendChild(el("p", "note", "All your Claude chats, in one cozy café. Each chat becomes a cat, each project a room. Seven short steps, and the doors open."));
         if (S.art === "missing") sec.appendChild(el("p", "note", noArt()));
         const nm = el("input"); nm.id = "setupName"; nm.value = A.name; nm.maxLength = 40; nm.placeholder = "KittyChat Café";
@@ -3924,6 +3927,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       },
       () => {
         const sec = el("div", "dlg");
+        sec.appendChild(el("p", "note", "The tires. Your repositories are where the work meets the road."));
         if (!S.mcp) {
           sec.appendChild(el("p", "note", local ? "On this computer the page can't ask GitHub for your repositories. List them under Edit rooms, when you have the page open in claude.ai or by hand."
             : "The page can't reach Claude Code Remote in this view, so it can't list your repositories. File them under Edit rooms."));
@@ -3973,6 +3977,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       () => {
         const sec = el("div", "dlg");
         const L = S.live;
+        sec.appendChild(el("p", "note", "The windshield. Through it you see every chat on the road, each one a cat."));
         if (local) sec.appendChild(el("p", "note", "On this computer the cats are the saved copy of your sessions, data/sessions.json. Ask Claude to refresh it for newer cats."));
         else if (L.state === "loading") { sec.appendChild(el("p", "note", "Looking for your sessions…")); timer = setTimeout(() => { if (dlg.open && step === 3) goStep(3); }, 800); }
         else if (L.state === "ok") sec.appendChild(el("p", "note", sessions() + (sessions() === 1 ? " session" : " sessions") + " found. They'll move in when you open the doors."));
@@ -3985,7 +3990,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       },
       () => {
         const sec = el("div", "dlg");
-        sec.appendChild(el("p", "note", "Loose notes, half-ideas, things for later. Drop a file here and it waits on the brain's tray until it is sorted to a cat, a room or the house: nothing leaves until you've checked."));
+        sec.appendChild(el("p", "note", "The glovebox. Loose notes, half-ideas, things for later. Drop a file here and it waits on the brain's tray until it is sorted to a cat, a room or the house: nothing leaves until you've checked."));
         const dz = el("div", "dropzone", S.db ? "Drop files here" : "Files can't be kept in this view"); dz.id = "setupDrop";
         dz.addEventListener("dragover", (e) => { e.preventDefault(); dz.classList.add("drop-on"); });
         dz.addEventListener("dragleave", () => dz.classList.remove("drop-on"));
@@ -3998,16 +4003,17 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       },
       () => {
         const sec = el("div", "dlg");
+        sec.appendChild(el("p", "note", "Claude on its own is a stripped car: an engine, and nothing else. The café is the rest of it:"));
         const ul = el("ul", "how");
-        for (const [t, d] of [["Chats are cats.", "Each Claude chat or coding session walks into the room of its project."],
-          ["The café asks who's awake.", "Each cat shows what its chat is doing: working, finished, or stuck and needs you. The badge beside the café's name counts who needs you."],
-          ["Some rules can't be talked around.", "Small checks run on their own before a cat may change or publish anything. Claude can't skip them."],
-          ["Messages wait on the mat.", "The café can't wake a cat. What you send is kept, and the cat picks it up the next time it checks in."],
-          ["The queen and the litter box.", "The queen keeps what matters and tells you what the cats are up to. Loose notes and held pull requests wait in the litter box until you check them."]]) {
+        for (const [t, d] of [[queen() + " drives.", "The queen cat at the wheel: she runs your routines, passes your words to the cats and tells you what they're up to, from your own computer."],
+          ["The windshield and the dashboard.", "Each chat is a cat in its project's room, checking in as it works: busy, finished, or stuck and needs you. The badge counts who needs you."],
+          ["Seatbelts and brakes.", "Checks run before a cat may change or publish anything, and Claude can't talk its way round them. Anything it guessed waits for you."],
+          ["The intercom.", "The café can't wake a cat. What you say is kept, and the cat hears it the next time it checks in."],
+          ["The glovebox.", "Loose notes and held pull requests wait in the litter box until you check them."]]) {
           const li = el("li"); li.append(el("b", null, t), document.createTextNode(d)); ul.appendChild(li);
         }
         sec.appendChild(ul);
-        sec.appendChild(el("p", "note", "The house rules come as a Claude Code plugin. Two lines install them:"));
+        sec.appendChild(el("p", "note", "The seatbelts and brakes come as a Claude Code plugin. Two lines fit them:"));
         const pre = el("pre", null, INSTALL); pre.id = "installLines";
         const cp = el("button", "btn", "Copy"); cp.type = "button"; cp.id = "copyInstall";
         cp.addEventListener("click", async () => { try { await navigator.clipboard.writeText(INSTALL); toast("Copied."); } catch (e) { toast("Couldn't copy: select the lines instead.", "alert"); } });
@@ -4016,6 +4022,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       },
       () => {
         const sec = el("div", "dlg");
+        sec.appendChild(el("p", "note", "Your car is ready, and " + queen() + " has the keys."));
         const ul = el("ul", "sum");
         const repos = Object.values(filed()).reduce((n, v) => n + v.length, 0);
         for (const t of [A.name.trim() || "KittyChat Café", A.open.length + (A.open.length === 1 ? " room open" : " rooms open"),
