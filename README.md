@@ -38,12 +38,13 @@ How it connects, start to finish:
 Your private chats stay in your own account, never in this repository.
 
 **Where it stands.** The code is open source and you can run your own café today (see [Running your own](#running-your-own)).
-A hosted café with nothing to install is planned and not open yet. **The app launches in December 2027.** The pixel art
-comes from third-party packs that cannot be shared, so check each pack's terms before posting screenshots.
+A hosted café with nothing to install is planned and not open yet. The plan is to launch the KittyChat Café app in
+December 2027. The pixel art comes from third-party packs that cannot be shared, so check each pack's terms before
+posting screenshots.
 
-**Make n Break.** The café is the first thing built on Make n Break, the channel where Char and Tosh build things with
-AI, try to break them, and show both halves. The videos, the monthly code updates and each step to the launch are
-listed by date on a calendar page on the shop. The YouTube channel is coming.
+**Make n Break.** The café is the first project on Make n Break, the channel Charlotte is starting with her partner
+Tosh ("Char and Tosh"): they build things with AI, try to break them, and show both halves. The channel isn't open yet.
+A dated calendar of its videos, the monthly code updates and the steps to the launch is being drawn up for the shop.
 
 Everything below is the detail.
 
@@ -284,11 +285,13 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harness/test` and
 `python3 -m unittest litterbox/test_sort.py`.
 
-The page's test and its screenshots drive a headless Chromium. In Claude's cloud sessions it is the one preinstalled
-at `/opt/pw-browsers` (`CHROMIUM` overrides it), launched fresh for each run with no profile, no logins and no saved
-passwords. It opens the page from local files and from the test's own server on 127.0.0.1, and the only thing it fetches
-from outside is the page's Google Fonts stylesheet. The house rules still run the `browser-agent-preflight` skill
-once per session before it starts. The suite also needs the licensed art in
+The page's test and its screenshots drive a headless Chromium. `run.sh` uses the one preinstalled in Claude's cloud
+sessions, `/opt/pw-browsers/chromium-1194`, or the path in `CHROMIUM`; if that path isn't executable it quietly falls
+back to Playwright's own browser. Each run starts with a fresh temporary profile: no logins and no saved passwords. It
+opens the page from local files and from the test's own server on 127.0.0.1. The only things it fetches from outside
+are the page's fonts, from Google Fonts (`fonts.googleapis.com` and `fonts.gstatic.com`). Sessions under the house
+rules must run the `browser-agent-preflight` skill before they start it: `harness/hooks/gates.py` blocks the browser commands it recognises
+until they have. The suite also needs the licensed art in
 `catio/art/licensed/`: without it the page rightly shows its no-art warning and one check fails (`run.sh` says so).
 `CLAUDE.md`, "Republishing", has the two ways to get the art back.
 
