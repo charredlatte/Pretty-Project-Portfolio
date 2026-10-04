@@ -271,6 +271,12 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `litterbox/`: the back burner, where loose notes land; `litterbox/sort.py` piles them up by project
   and files a pile into that project's repo once it has been checked. See [its README](litterbox/README.md).
 - `docs/`: the plan, her requests compiled, the camera and minimap plan, renovation mode's constraints,
+  the drawing plan for her own art, the engine under the café ([`docs/engine.md`](docs/engine.md)), and
+  what the litter box filed here.
+- `catio-app/`: a **draft** of the café as a native C++ app for a phone, for her to judge: nine headers
+  of declarations, the generated floor plan, and build files for desktop, Android and iOS. Nothing
+  compiles into an app yet, and it ships with no pack art — the app fetches that from her gateway on
+  first run, because the packs may not be redistributed. The case for it and the whole design are in
   the drawing plan for her own art, and what the litter box filed here.
 - `catio-app/`: the café as a native C++ app for a phone, in progress. Its core draws the manor --
   matching the page's own render pixel for pixel -- but there is no window loop, interface or network

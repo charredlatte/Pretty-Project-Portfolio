@@ -55,9 +55,9 @@ Mind the quota: a Starter plan with a View seat gets six MCP calls a month.
 - **The prices, and Basic's cap.** The business plan proposes them (`[basic]`, `[monthly]`, `[cap]`, `[setup-plus]`); the frames show
   placeholders until she picks. The polling calls (`list_agents`, `comments`) are never metered; which others count is
   the plan's list.
-- **The store's name and domain.** A separate store from Montfortoise (her choice, 2 October). Shopify's domain
-  check on "KittyChat Café" (2 October) offered no kittychat domain; it suggested purrchat.store, whiskerchat.com
-  and meowmingle.store, each available that day. An INPI search for "KittyChat" is still to do.
+- **The store's domain.** A separate store from Montfortoise (her choice, 2 October), named KittyChat Café, the
+  one name for the café and its engine (4 October, `docs/engine.md`). On 4 October Shopify's check found
+  kittychatcafe.com available. An INPI search for "KittyChat" comes before buying it.
 - **Monthly or yearly first.** Shopify Subscriptions handles both; the wireframe shows both selling plans.
 - ~~Ulule or Kickstarter, Buy Me a Coffee or Ko-fi~~: Ulule and Buy Me a Coffee (her pick, 4 October). The sign-up kit,
   copy and rewards included, is `support-pages.md`.
