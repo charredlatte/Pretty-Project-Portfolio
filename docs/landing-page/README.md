@@ -95,15 +95,17 @@ web page. Timings are in `index.html` beside the thing they time.
 | What | Timing | With reduced motion | ref | |
 | --- | --- | --- | --- | --- |
 | Loading frame | ≥ 500 ms; bar fills with the real loads; out in 3 steps over 300 ms | no minimum, no fade | – | ☐ |
-| PRESS START | 530 ms on, 530 ms off, no fade | steady | ALttP | ☐ |
+| PRESS START | 530 ms on, 530 ms off, no fade | steady | The Minish Cap draws it 32 frames on, 32 off at 60 fps: 533 ms each | ☐ |
 | Fire | 8 frames at 10 fps | frame 1, still | – | ☐ |
 | Firelight | flicker between 3 baked light levels every 90 ms (no blending: three pictures) | the middle level, still | – | ☐ |
 | Smoke | a particle every 380 ms; rises 26–40 px over 3–5 s, sine wobble, 3 opacity steps, 1 px wide then 2 | none | – | ☐ |
 | Stars | each of 47 stars flips dim / bright on its own 0.4–3.5 s clock; a shooting star every 25–50 s, 450 ms | still | – | ☐ |
 | Tent glow | 3 opacity levels, one step every 800 ms | the middle level | – | ☐ |
 | Cats | breathe (a pixel taller) every 1.2 s; blink 180 ms every 2.5–7 s; an ear flicks 260 ms; the tail 420 ms; the second cat out of step | still | Stardew's idle animals | ☐ |
-| Typewriter | 40 characters a second, a blinking block cursor; a press completes the line | the whole line at once | Stardew, Zelda | ☐ |
+| Dialogue box | grows open in 3 steps over 200 ms | simply there | Ocarina's box grows over 8 frames; Stardew's over ~200 ms with "breathin" | ☐ |
+| Typewriter | one character every 30 ms (Stardew's exact delay), a blinking block cursor; a press completes the line | the whole line at once | Stardew; Ocarina types one a frame at 20 fps | ☐ |
 | ▼ | bobs 2 px at 2 Hz in 2 steps | still | Zelda | ☐ |
+| Menu items | appear one by one, 120 ms apart, no fade | all at once | Stardew's four buttons land one every 200 ms | ☐ |
 | Menu pointer | snaps, no easing | same | every 16-bit menu | ☐ |
 | Confirm | the screen wipes to black in 3 steps over 240 ms, the page jumps, the wipe lifts in 3 steps | a plain jump | Zelda's fade to black | ☐ |
 | Landing on a file | the slot is pressed for 600 ms and its button takes focus | same | – | ☐ |

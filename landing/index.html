@@ -90,7 +90,8 @@
   @keyframes blink { 50% { opacity: 0; } }
   #pressStart:hover, #pressStart:focus-visible { animation: none; color: var(--white); }
   .talk { width: min(760px, calc(100% - 32px)); margin: 0 auto 24px; display: none; }
-  .talk.on { display: block; }
+  .talk.on { display: block; animation: boxin .2s steps(3, end); transform-origin: 50% 50%; }   /* the box grows open in three steps, as Ocarina's does over eight frames */
+  @keyframes boxin { from { transform: scaleY(.55); } }
   .box { display: grid; grid-template-columns: 68px 1fr; gap: 20px; align-items: start; min-height: 68px; }
   .face { width: 68px; height: 68px; background: var(--portrait-0) no-repeat; background-size: 68px 68px; image-rendering: pixelated; }
   .face.b { background-image: var(--portrait-1); }
@@ -102,6 +103,8 @@
   .menu { list-style: none; margin: 8px 0 0 88px; padding: 0; display: none; }    /* under the words, past the portrait */
   .menu.on { display: block; }
   .menu li { margin: 0; }
+  .menu.on li { animation: appear 0s steps(1, end) both; animation-delay: calc(var(--i) * 120ms); }   /* the items come one by one, as Stardew's buttons do */
+  @keyframes appear { from { visibility: hidden; } }
   .menu a { display: flex; align-items: center; gap: 12px; padding: 3px 8px; font-family: var(--pixel); font-size: 16px; line-height: 1.5; color: var(--cream); text-decoration: none; white-space: nowrap; cursor: var(--paw) 2 2, pointer; }
   .menu a .ptr { visibility: hidden; }
   .menu a:hover, .menu a:focus-visible, .menu a.on { color: var(--white); }
@@ -181,7 +184,7 @@
 
   /* ---- reduced motion: everything stands still; the text is simply there ---- */
   @media (prefers-reduced-motion: reduce) {
-    #pressStart, .adv, .text .cursor, #loading .paws i { animation: none; }
+    #pressStart, .adv, .text .cursor, #loading .paws i, .talk.on, .menu.on li { animation: none; }
     #loading .paws i { opacity: 1; }
     #loading.done, #wipe.on, #wipe.off { transition: none; }
   }
@@ -215,10 +218,10 @@
         </div>
       </div>
       <ul class="menu" id="menu" aria-label="Main menu">
-        <li><a href="#files" data-slot="1"><span class="ptr"></span>NEW CAFÉ <small>run your own, free</small></a></li>
-        <li><a href="#files" data-slot="2"><span class="ptr"></span>JOIN THE CAFÉ <small>early access</small></a></li>
-        <li><a href="#how"><span class="ptr"></span>HOW IT WORKS</a></li>
-        <li><a href="#support"><span class="ptr"></span>SUPPORT THE WORK</a></li>
+        <li style="--i: 0"><a href="#files" data-slot="1"><span class="ptr"></span>NEW CAFÉ <small>run your own, free</small></a></li>
+        <li style="--i: 1"><a href="#files" data-slot="2"><span class="ptr"></span>JOIN THE CAFÉ <small>early access</small></a></li>
+        <li style="--i: 2"><a href="#how"><span class="ptr"></span>HOW IT WORKS</a></li>
+        <li style="--i: 3"><a href="#support"><span class="ptr"></span>SUPPORT THE WORK</a></li>
       </ul>
       <button class="adv" id="adv" type="button" aria-label="Next"></button>
     </div>
@@ -428,7 +431,7 @@
   ];
   const talk = $("#talk"), text = $("#text"), who = $("#who"), face = $("#face"), menu = $("#menu"), adv = $("#adv"), startRow = $("#startRow");
   let page = -1, typing = null, started = false;
-  const CPS = 40;
+  const CPS = 33;                                   // one character every 30 ms, Stardew's characterAdvanceDelay
   const show = (n) => {
     page = n; const [name, which, line] = PAGES[n];
     who.textContent = name; face.classList.toggle("b", which === 1);
