@@ -105,12 +105,19 @@ def sizes():
 _SIZES = {}
 
 
+def whole():
+    """The page's WHOLE_PX: the sizes kept to whole screen pixels."""
+    return set(re.findall(r'"(--[\w-]+)"', re.search(r"const WHOLE_PX = \[([^\]]*)\]", page()).group(1)))
+
+
 def token_ok(groups, name, v):
     if name not in groups or not isinstance(v, str):
         return False
     if groups[name] != "Type":
         return bool(re.fullmatch(r"#[0-9a-fA-F]{6}", v))
     m = re.fullmatch(r"(\d{1,3}(?:\.\d{1,3})?)(px|rem)", v)
+    if m and name in whole() and (m.group(2) != "px" or not float(m.group(1)).is_integer()):
+        return False   # the page's WHOLE_PX: whole screen pixels, or the pixel art blurs
     lo, hi = sizes().get(name, (0, 0))
     return bool(m) and lo <= float(m.group(1)) * (16 if m.group(2) == "rem" else 1) <= hi
 
@@ -236,7 +243,7 @@ def main():
         entry["file"] = "art/skin/" + p.name
         if a["kind"] == "font":
             if p.suffix.lower() not in FONTS:
-                said.append(f"  {p.name}: a font slot takes .ttf, .otf or .woff")
+                said.append(f"  {p.name}: a font slot takes .ttf, .otf, .woff or .woff2")
                 continue
             skin[key] = entry
             said.append(f"  {p.name}: {key} (" + {"font": "the pixel font", "font-body": "the text", "font-display": "the round font"}.get(key, "a font") + ")")

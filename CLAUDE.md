@@ -214,8 +214,9 @@ plug-n-play". The design system is **tokens and slots**, and a skin can change a
 the owner's chair and bow, `--px-size` and `--px-line` (the pixel font, one font pixel a screen pixel: titles are
 twice it), `--body-size`, and the art pixel `--u-desk` and `--u-phone` (`--u` is one of them). A see-through colour
 is mixed from its token (`color-mix(in srgb, var(--glow) 14%, transparent)`), and the script reads a colour it draws
-with `tok()`. Keep it that way: **a new colour or size is a new token**, never a literal in a rule or a `"#…"` in the
-script (only `OWNER`'s choices, which are her look, not the café's). A check walks the page for one.
+with `tok()`. Keep it that way: **a new colour, pixel-font size or art-pixel size is a new token**, never a literal in a
+rule or a `"#…"` in the script (only `OWNER`'s choices, which are her look, not the café's). A check walks the page for
+one. The text's smaller sizes stay `rem` steps from the browser's own size, as they always were.
 
 **Every piece of art is a slot** (`ART` in the page, 45 of them, named as `docs/drawing-plan.md` names her files:
 `panel`, `button`, `cat-meow`, `house`, `owner`, `font`, `font-body`…).
@@ -241,8 +242,9 @@ A skin says which are hers, from two places; the second wins:
   file stays in the browser).
 
 A token is checked as a slot is (`tokenOk()`): a colour is six hex digits, a size a length in px or rem inside its
-range (`SIZES`: the art pixel 1 to 4 px, the pixel font 8 to 48, its line 8 to 64, the text 10 to 24, a rem as 16), so
-no skin can bury The look under its own borders, and a name that isn't in `TOKENS` is ignored.
+range (`SIZES`: the art pixel 1 to 4 px, the pixel font 8 to 48, its line 8 to 64, the text 10 to 24, a rem as 16;
+`WHOLE_PX`: the art pixel and the pixel font in whole px, or the pixel art blurs), and a 9-slice's border is at most 64
+of its pixels a side, so no skin can bury The look under its own borders, and a name that isn't in `TOKENS` is ignored.
 
 **Modes and tokens files, as Figma has them** (her ask of 4 October, "reevaluate plug-n-play capabilities of design
 systems like Figma"; read against Figma's variables, its `figma-generate-library` skill and the W3C Design Tokens
@@ -272,7 +274,7 @@ What a slot takes, checked before it is drawn (`misfit()`): **exact** (the house
 furniture sheets, the two cursors) only its own size, because the rooms are measured on it; a **sheet** (faces,
 icons, meadow, logo…) any size of the same shape; a **slice** any size, with its border in its own pixels (a
 family shares its head's: the button's hover, green and pink take the button's, so each is drawn the head's size, and
-while she hasn't drawn one, her head stands in for it whenever it is cut another way than the pack's (`SKIN.standIn`);
+while she hasn't drawn one, her head stands in for it (`SKIN.standIn`), so a hover never turns back into the pack's;
 a map piece can be drawn as pixel art, `pixel: true`, its family alone then `pixelated`, or smooth at a `scale`;
 what sits inside a frame follows its border: the HUD and the map panel inside the screen's panel, the portrait inside
 its frame, a plan's tag and door inside its brackets); a **cat** one row of frames, any frame size, its feet at the bottom

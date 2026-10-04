@@ -898,12 +898,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "cat-sleep":     { group: "Cats", kind: "cat", name: "Sleeping cat", file: LIC + "pochi.png", size: [256, 435], mood: "sleep", frames: 4, secs: 2.4, what: "Nothing to do: curled up, breathing." },
     "owner":         { group: "Cats", kind: "sheet", name: "You, from behind", file: null, size: [30, 40], what: "You in your armchair, in the queen's scene. Until there is one, you are drawn from the look you chose there." },
     "cat-walk-side": { group: "Cats", kind: "cat", name: "Walking cat", file: null, mood: "walk", frames: 6, secs: 0.6, what: "Every walk, drawn facing right. Until there is one, a walking cat is the working cat, hopping." },
-    "house":         { group: "The house", kind: "exact", name: "Ground floor", file: LIC + "house.png", size: [960, 576], what: "Floors, walls, glass and the facade, downstairs." },
-    "house-upper":   { group: "The house", kind: "exact", name: "Upstairs", file: LIC + "house-upper.png", size: [960, 576], what: "Her own rooms, over the back of the house." },
-    "decor":         { group: "The house", kind: "exact", name: "The grounds", file: LIC + "decor.png", size: [960, 576], what: "The catio, the drive, the forest and the garden." },
+    "house":         { group: "The house", kind: "exact", measured: true, name: "Ground floor", file: LIC + "house.png", size: [960, 576], what: "Floors, walls, glass and the facade, downstairs." },
+    "house-upper":   { group: "The house", kind: "exact", measured: true, name: "Upstairs", file: LIC + "house-upper.png", size: [960, 576], what: "Her own rooms, over the back of the house." },
+    "decor":         { group: "The house", kind: "exact", measured: true, name: "The grounds", file: LIC + "decor.png", size: [960, 576], what: "The catio, the drive, the forest and the garden." },
     "meadow":        { group: "The house", kind: "sheet", name: "Meadow", file: LIC + "meadow.png", size: [112, 32], what: "The grass the house stands on, tiled." },
-    "furniture":     { group: "The house", kind: "exact", name: "Furniture", file: LIC + "furniture.png", atlas: "lic", size: MANOR.atlases.lic, what: "Every licensed piece, one cell each (tools/furniture.py has the cells)." },
-    "furniture-cabin": { group: "The house", kind: "exact", name: "Cosy Cabin furniture", file: "art/furniture.png", atlas: "cc", size: MANOR.atlases.cc, what: "The cabin's pieces, one cell each." },
+    "furniture":     { group: "The house", kind: "exact", measured: true, name: "Furniture", file: LIC + "furniture.png", atlas: "lic", size: MANOR.atlases.lic, what: "Every licensed piece, one cell each (tools/furniture.py has the cells)." },
+    "furniture-cabin": { group: "The house", kind: "exact", measured: true, name: "Cosy Cabin furniture", file: "art/furniture.png", atlas: "cc", size: MANOR.atlases.cc, what: "The cabin's pieces, one cell each." },
     "panel":         { group: "Interface", kind: "slice", fam: "panel", name: "Panel", file: LIC + "ui/panel.png", size: [106, 122], slice: [6, 6, 6, 6], what: "Every menu, dialog and the sign." },
     "button":        { group: "Interface", kind: "slice", fam: "btn", name: "Button", file: LIC + "ui/button.png", size: [26, 28], slice: [4, 4, 6, 4], what: "The cream button; the bottom border is its raised edge." },
     "button-hover":  { group: "Interface", kind: "slice", fam: "btn", name: "Button, lit", file: LIC + "ui/button-hover.png", size: [26, 28], what: "Under the pointer. Its border is the button's." },
@@ -972,8 +972,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // a size stays where the café can still be read and used (in px; a rem is 16 of them), so no skin can lock her out of
   // The look itself: an art pixel of 20 would bury every panel under its own border
   const SIZES = { "--px-size": [8, 48], "--px-line": [8, 64], "--body-size": [10, 24], "--u-desk": [1, 4], "--u-phone": [1, 4] };
+  const WHOLE_PX = ["--px-size", "--px-line", "--u-desk", "--u-phone"];   // whole screen pixels, or the pixel art blurs
   function sizeOk(name, v) {
     const m = /^(\d{1,3}(?:\.\d{1,3})?)(px|rem)$/.exec(v), [lo, hi] = SIZES[name] || [0, 0];
+    if (m && WHOLE_PX.includes(name) && (m[2] !== "px" || !Number.isInteger(+m[1]))) return false;
     return !!m && +m[1] * (m[2] === "rem" ? 16 : 1) >= lo && +m[1] * (m[2] === "rem" ? 16 : 1) <= hi;
   }
   const tokenOk = (name, v) => !!TOKENS[name] && typeof v === "string" && (TOKENS[name][0] === "Type" ? sizeOk(name, v) : /^#[0-9a-fA-F]{6}$/.test(v));
@@ -1032,7 +1034,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     return { found, foreign };
   }
   // a source the page made or wrote: the art beside it, an asset, a gateway file or one kept in this browser
-  const safeSrc = (v) => typeof v === "string" && /^(?:art\/[\w./-]+|\/_blob\/[\w-]+|\/files\/[\w.-]+|local:[\w-]+|blob:[^\s"'()\\]+)$/.test(v) && !v.includes("..");
+  const safeSrc = (v) => typeof v === "string" && /^(?:art\/[^"'()\\\n]+|\/_blob\/[\w-]+|\/files\/[\w.-]+|local:[\w-]+|blob:[^\s"'()\\]+)$/.test(v) && !v.includes("..");
   const num = (v, lo, hi) => (typeof v === "number" && isFinite(v) && v >= lo && v <= hi ? v : null);
   const cssUrl = (src) => 'url("' + src + '")';
   // one skin entry, from art/skin.json or the collection, made safe: what isn't understood is left out
@@ -1077,7 +1079,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       const head = headOf(key), e = live[head], [hw, hh] = e ? [e.w, e.h] : ART[head].size;
       if (w !== hw || h !== hh) return "It is " + w + " × " + h + ": it shares the " + ART[head].name.toLowerCase() + "'s border, so draw it the same size, " + hw + " × " + hh + ".";
     }
-    if (a.kind === "exact" && (w !== a.size[0] || h !== a.size[1])) return "It is " + w + " × " + h + ": the " + a.name.toLowerCase() + " must be " + a.size[0] + " × " + a.size[1] + (/house|grounds|Upstairs|Ground|urniture/.test(a.name) ? ", as the rooms are measured on it." : ".");
+    if (a.kind === "exact" && (w !== a.size[0] || h !== a.size[1])) return "It is " + w + " × " + h + ": the " + a.name.toLowerCase() + " must be " + a.size[0] + " × " + a.size[1] + (a.measured ? ", as the rooms are measured on it." : ".");
     if (a.kind === "sheet" && Math.abs(w / h - a.size[0] / a.size[1]) > 0.02) return "It is " + w + " × " + h + ": draw it the shape of " + a.size[0] + " × " + a.size[1] + " (any size of that shape fits).";
     return null;
   }
@@ -1148,7 +1150,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         } else {
           spr[a.mood] = Object.assign({}, spr[a.mood], { w: fw, h: fh, ax, ay });
           // drawn bigger or smaller than the pack's frame, it is scaled to fill the same place in a portrait, a thumb or the scene
-          css.push(".s-" + a.mood + " { " + sheet + " animation: " + play + "; --fs: " + +(SPR0[a.mood].h / fh).toFixed(4) + "; }");
+          css.push(".s-" + a.mood + " { " + sheet + " animation: " + play + "; --fs: " + +(SPR0[a.mood].h / fh).toFixed(4) + "; }",
+            ".cat.m-" + a.mood + "[data-line] { clip-path: none; }");   // the line's trim is for the pack's frame
           if (a.mood === "idle" && !live["cat-walk-side"]) css.push(".cat.walking .spr, .walker .spr { animation: " + play + ", step .32s steps(2) infinite; }");
         }
       }
@@ -1165,14 +1168,16 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     for (const [h, e] of Object.entries(live)) {
       const a = ART[h];
       if (a.kind !== "slice" || !a.slice) continue;
-      const same = (!e.slice || e.slice.join() === a.slice.join()) && e.w === a.size[0] && e.h === a.size[1] && (!e.scale || e.scale === a.scale) && !e.pixel;
-      if (same) continue;   // her head cut like the pack's: the pack's lit, green and pink still fit it
+      // her button is her look: it stands in for the lit, green and pink ones until she draws them, so a hover never turns
+      // back into the pack's
       for (const m of Object.keys(ART)) if (ART[m].fam === a.fam && m !== h && !live[m]) { put("--art-" + m, cssUrl(e.url)); standIn[m] = h; }
     }
     const dark = Object.entries(tokens.dark).map(([n, t]) => n + ": " + t.value + ";").join(" ");
     if (seq !== SKIN.seq) return;
     const artWas = SKIN.artSig, artSig = JSON.stringify([Object.entries(live).map(([k, e]) => [k, e.url, e.slice, e.frames, e.secs, e.anchor, e.scale, e.pixel]), standIn]);
     SKIN.live = live; SKIN.problems = problems; SKIN.tokens = tokens; SKIN.standIn = standIn; SKIN.artSig = artSig;
+    const using = new Set(Object.values(cands).flat().map((e) => e.src));
+    for (const src of Object.keys(SKIN.blobs)) if (!using.has(src)) { URL.revokeObjectURL(SKIN.blobs[src]); delete SKIN.blobs[src]; }   // a piece of hers put back
     for (const [fam, f] of Object.entries(faces)) { if (SKIN.fonts[fam]) document.fonts.delete(SKIN.fonts[fam].face); document.fonts.add(f.face); SKIN.fonts[fam] = f; }
     for (const [fam, f] of Object.entries(SKIN.fonts)) if (!live[fam.slice("KittySkin-".length)]) { document.fonts.delete(f.face); delete SKIN.fonts[fam]; }   // a font put back
     for (const m of Object.keys(SPR)) delete SPR[m];
@@ -4338,7 +4343,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   const borderOf = (k) => { const h = headOf(k), e = skinOf(h); return (e && e.slice) || ART[h].slice; };
   function artLine(k) {
     const a = ART[k], e = skinOf(k);
-    if (a.kind === "font") return (e ? e.name || "Yours" : a.file ? "The pack's" : "Google Fonts'") + ". A font file: .ttf, .otf or .woff.";
+    if (a.kind === "font") return (e ? e.name || "Yours" : a.file ? "The pack's" : "Google Fonts'") + ". A font file: .ttf, .otf, .woff or .woff2.";
     if (a.kind === "cat") {
       if (e) { const n = e.frames || a.frames; return n + " frames of " + Math.round(e.w / n) + " × " + e.h + ", " + (e.secs || a.secs) + " s a loop."; }
       return a.file ? a.frames + " frames of " + SPR0[a.mood].w + " × " + SPR0[a.mood].h + ". Yours: one row of frames, the feet at the bottom middle." : "One row of " + a.frames + " frames, the feet at the bottom middle.";
@@ -4368,6 +4373,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const dlg = $("artDlg"), top = dlg.scrollTop, first = !dlg.querySelector("details.artgroup"), open = new Set([...dlg.querySelectorAll("details[open]")].map((d) => d.dataset.group));
     const note = dlg.contains(TOAST);   // a note shown in it (what was just saved) outlives the redraw
     const was = dlg.contains(document.activeElement) && document.activeElement.id;   // and so does where she was
+    const typing = was && document.activeElement.closest("li[data-token]") && document.activeElement.type === "text" ? document.activeElement.value : null;
     dlg.replaceChildren(); dlg.classList.add("wide");
     const box = el("div", "dlg");
     const h = el("h2", null, "The look"); h.id = "artTitle";
@@ -4390,7 +4396,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const acts = el("div", "actions");
     if (mine && S.db) {
       const all = el("button", "btn pink", "Put everything back"); all.type = "button"; all.id = "artResetAll";
-      all.addEventListener("click", async () => { if (keptTokens) await saveTokens({ light: {}, dark: {} }); if (keptSlots.length) await putBack(keptSlots); });
+      all.addEventListener("click", async () => {
+        if (keptTokens) await saveTokens({ light: {}, dark: {} });
+        if (keptSlots.length) await putBack(keptSlots);
+        const folder = Object.keys(SKIN.file).length + Object.keys(SKIN.fileTokens.light).length + Object.keys(SKIN.fileTokens.dark).length;
+        if (folder) toast("What you set here is the café's again. " + folder + " from art/skin.json stay: they're in the folder.");
+      });
       acts.appendChild(all);
     }
     acts.append(el("span", "spacer"), closeBtn(dlg));
@@ -4398,7 +4409,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     dlg.appendChild(box);
     if (note) dlg.appendChild(TOAST);
     dlg.scrollTop = top;
-    if (was && $(was)) $(was).focus({ preventScroll: true });
+    if (was && $(was)) { if (typing !== null) $(was).value = typing; $(was).focus({ preventScroll: true }); }
   }
   // the same data, whatever order its keys came in (a snapshot's aren't the order the page wrote them)
   const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
@@ -4461,7 +4472,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     input.addEventListener("change", () => {
       if (!tokenOk(n, input.value)) {
         document.documentElement.style.removeProperty(n);   // the preview goes with the value
-        toast(name + " is a size from " + SIZES[n][0] + " to " + SIZES[n][1] + "px (or the same in rem).", "alert"); input.value = valueIn(m, n); return;
+        toast(name + " is a size from " + SIZES[n][0] + " to " + SIZES[n][1] + "px" + (WHOLE_PX.includes(n) ? ", in whole pixels." : " (or the same in rem)."), "alert"); input.value = valueIn(m, n); return;
       }
       editTokens((next) => { next[m][n] = input.value; }, name + ": yours now" + (m === "dark" ? ", at night." : "."));
     });
@@ -4534,7 +4545,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (file.size > 20 * 1024 * 1024) { toast(file.name + " is over 20 MB.", "alert"); return; }
     const a = ART[k], p = { file, url: URL.createObjectURL(file), typed: {} };
     if (a.kind !== "font") {
-      try { [p.w, p.h] = await natural(p.url); } catch (e) { toast(file.name + " isn't a picture the browser can read.", "alert"); return; }
+      try { [p.w, p.h] = await natural(p.url); } catch (e) { URL.revokeObjectURL(p.url); toast(file.name + " isn't a picture the browser can read.", "alert"); return; }
+      if (!$("artDlg").open) { URL.revokeObjectURL(p.url); return; }   // she closed the card while it was read
       p.why = misfit(k, p.w, p.h);
     }
     if (ARTPICK[k]) URL.revokeObjectURL(ARTPICK[k].url);
