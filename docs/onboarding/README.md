@@ -18,10 +18,10 @@ Nothing in it is art: plain grey boxes and Figma's Inter. Nothing from `catio/da
 5. **Sessions.** The windshield: what `list_sessions` found. **4b** is the blocked state, with the saved copy in one line.
 6. **Litter box.** The glovebox: what it is and a drop zone. (The frame's switch for holding pull requests was dropped in
    the build: holding is the merging rule's doing, `harness/README.md`, not a page setting.)
-7. **How it works.** The whole car, part by part (below): the stripped car, then five parts: Simone drives, the
+7. **How it works.** The whole car, part by part (below): the stripped car, then five parts: Ninine drives, the
    windshield and the dashboard, seatbelts and brakes, the intercom, the glovebox. Then the two lines that fit the
    seatbelts and brakes.
-8. **Done.** "Your car is ready, and Simone has the keys", the summary and "Open the doors".
+8. **Done.** "Your car is ready, and Ninine has the keys", the summary and "Open the doors".
 
 Every wizard frame has the same skeleton: step dots, title, content, Back and Next.
 
@@ -53,7 +53,7 @@ artifact) are the reference; the onboarding follows them.
   `litterbox/sort.py`, the two install lines.
 - **The Welcome step opens with the tagline:** "All your Claude chats, in one cozy café."
 - **How it works says the connection start to finish** in the five lines of frame 7 (since 4 October, the five parts
-  of the car: Simone drives, the windshield and the dashboard, seatbelts and brakes, the intercom, the glovebox). `frames.js`
+  of the car: Ninine drives, the windshield and the dashboard, seatbelts and brakes, the intercom, the glovebox). `frames.js`
   and `openSetup()` hold the same five, word for word: change both, and quote neither here beyond its title.
   Hooks and skills are not named: the step is five sentences and the two install lines, for whoever wants them.
 - **Be honest about where it stands.** Running your own café is open today (a clone, the public `catio` skill, a
@@ -75,7 +75,8 @@ someone's to fix; this change neither caused it nor hides it.
 Charlotte's words, the first time: "It's like driving a really nice car in perfect weather. Whereas driving regular
 code UIs requires knowledge a regular schmuck like me doesn't have." And what she meant: "The car is the harness. The
 driver is Simone (AI runner) the queen cat. And the way you normally drive Claude is comparable to starting a totally
-stripped car. No seatbelts. No windshield. No tires. Etc. Explain and onboard tooling."
+stripped car. No seatbelts. No windshield. No tires. Etc. Explain and onboard tooling." The same day: "Rename her
+everywhere to Ninine."
 
 So the car isn't a line beside the explanation: it **is** the explanation, and the wizard fits it part by part.
 Claude on its own is the engine of a stripped car: brilliant, and nothing else. Everything the harness adds is a
@@ -84,7 +85,7 @@ part, and each step that sets one up names it first.
 | The car | The harness | Where the wizard fits it |
 |---|---|---|
 | The engine | Claude: the same in both, still the person's own | Welcome (named, not fitted) |
-| The driver | Simone, the queen cat: her runner (`harness/runner/queen.py`) on the person's computer. Routines, homework, passing words on | Welcome, How it works, Done |
+| The driver | Ninine, the queen cat: her runner (`harness/runner/queen.py`) on the person's computer. Routines, homework, passing words on | Welcome, How it works, Done |
 | The tires | GitHub: the repositories, where the work meets the road, each parked in a room | GitHub |
 | The windshield | The café page: every session a cat, in view (`list_sessions`, the saved copy when blocked) | Sessions |
 | The dashboard | The gateway, where every cat checks in (`report.py`), and the badge that counts who needs you | How it works |
@@ -94,8 +95,9 @@ part, and each step that sets one up names it first.
 | The glovebox | The litter box: the brain's tray in the page, `litterbox/` in a clone | Litter box |
 | The keys | Opening the doors: nothing is written until Done | Done |
 
-- **The driver has a name.** The page says the queen's own name (`queenOf().name`), which is Simone in every café
-  that hasn't named her: `QUEEN_NAMES[hash("queen:house")]`. The wireframe says Simone.
+- **The driver has a name.** The page says the queen's own name (`queenOf().name`), which is Ninine in every café
+  that hasn't named her: `QUEEN_NAMES[hash("queen:house")]`, the slot that held Simone until her rename of 4 October.
+  Her own café names her too (`queens/house.name`). The wireframe says Ninine.
 - **The steps that instruct still name the real thing** ("Say it like the café", above): a part's name opens the step,
   then the step says what to click or type, as before. The Rooms step has no part: rooms are the café's, not the car's.
 - **The page and the wireframe say the same,** word for word for How it works (its intro, the five parts and the line

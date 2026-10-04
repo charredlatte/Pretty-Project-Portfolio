@@ -65,7 +65,7 @@ function step(n, title, content, nextLabel = "Next") {
 screen("Layout: the shell", false);
 
 // 2. Welcome.
-{ const c = col(12); c.appendChild(text("All your Claude chats, in one cozy café. Each chat becomes a cat, each project a room. Claude on its own is a stripped car: a brilliant engine, with no seatbelts, no windshield and no tires. The café is the rest of the car, and Simone, the queen cat, drives. Give the café a name.", 14, REG, INK, 560));
+{ const c = col(12); c.appendChild(text("All your Claude chats, in one cozy café. Each chat becomes a cat, each project a room. Claude on its own is a stripped car: a brilliant engine, with no seatbelts, no windshield and no tires. The café is the rest of the car, and Ninine, the queen cat, drives. Give the café a name.", 14, REG, INK, 560));
   c.appendChild(text("Name your café", 12, BOLD, GREY)); c.appendChild(field("KittyChat Café", 400)); step(1, "Welcome", c); }
 
 // 3. Rooms.
@@ -106,7 +106,7 @@ screen("Layout: the shell", false);
 // 7. How it works.
 { const c = col(10);
   c.appendChild(text("Claude on its own is a stripped car: an engine, and nothing else. The café is the rest of it:", 14, REG, INK, 560));
-  for (const l of [["Simone drives.", "The queen cat at the wheel: she runs your routines, passes your words to the cats and tells you what they're up to, from your own computer."],
+  for (const l of [["Ninine drives.", "The queen cat at the wheel: she runs your routines, passes your words to the cats and tells you what they're up to, from your own computer."],
     ["The windshield and the dashboard.", "Each chat is a cat in its project's room, checking in as it works: busy, finished, or stuck and needs you. The badge counts who needs you."],
     ["Seatbelts and brakes.", "Checks run before a cat may change or publish anything, and Claude can't talk its way round them. Anything it guessed waits for you."],
     ["The intercom.", "The café can't wake a cat. What you say is kept, and the cat hears it the next time it checks in."],
@@ -117,7 +117,7 @@ screen("Layout: the shell", false);
   step(6, "How it works", c); }
 
 // 8. Done.
-{ const c = col(8); c.appendChild(text("Your car is ready, and Simone has the keys.", 14, REG, INK, 560)); for (const l of ["KittyChat Café", "4 rooms open", "4 repositories filed", "5 cats at the door"]) c.appendChild(text("✓  " + l, 14));
+{ const c = col(8); c.appendChild(text("Your car is ready, and Ninine has the keys.", 14, REG, INK, 560)); for (const l of ["KittyChat Café", "4 rooms open", "4 repositories filed", "5 cats at the door"]) c.appendChild(text("✓  " + l, 14));
   step(7, "Done", c, "Open the doors"); }
 
 return { createdNodeIds: ids };

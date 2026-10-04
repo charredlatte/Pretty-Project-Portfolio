@@ -15,7 +15,7 @@ the business plan's figures go once she has chosen them. The plan itself is priv
    access", a screenshot box, the two cars side by side (below, "The car"), the three ways to get it (self-host, named as the developers' door since the headline promises no terminal; hosted;
    set up for you from 90 €), and the legal footer every page
    carries (mentions légales, CGV, confidentialité, rétractation, contact).
-2. **Pricing.** Opens on the car: every plan is the whole car and Simone drives, Claude is its engine, and the buyer
+2. **Pricing.** Opens on the car: every plan is the whole car and Ninine drives, Claude is its engine, and the buyer
    buys the fuel from Anthropic. Then four columns from her paywall (2 and 3 October), each with its place in the car under its
    price: Free (one repository, the page), Basic (up to five
    repositories, requests and gateway calls capped at `[cap]` a month, no sorter, quiz or homework: files dropped on a
@@ -42,17 +42,17 @@ the business plan's figures go once she has chosen them. The plan itself is priv
    médiateur), politique de confidentialité (what the gateway stores, sub-processors, RGPD rights), and the model
    withdrawal form.
 8. **Home (phone)** and 9. **Pricing (phone)**, at 390 wide, with the tiers stacked. The phone's home says the car
-   in one line ("Claude is the engine. The café is the rest of the car, and Simone drives."), and each stacked tier keeps its line.
+   in one line ("Claude is the engine. The café is the rest of the car, and Ninine drives."), and each stacked tier keeps its line.
 
 ## The car
 
 Her ask of 4 October, in two goes: "It's like driving a really nice car in perfect weather. Whereas driving regular
 code UIs requires knowledge a regular schmuck like me doesn't have." Then: "The car is the harness. The driver is
 Simone (AI runner) the queen cat. And the way you normally drive Claude is comparable to starting a totally stripped
-car. No seatbelts. No windshield. No tires."
+car. No seatbelts. No windshield. No tires." Then the queen's new name: "Rename her everywhere to Ninine."
 
 The home page sets the two side by side (`STORM` and `SUN` in `frames.js`): **Claude on its own**, a stripped car,
-and **Claude in the café**, the whole car with Simone at the wheel. Which part is which piece of the harness is the
+and **Claude in the café**, the whole car with Ninine at the wheel. Which part is which piece of the harness is the
 table in `docs/onboarding/README.md`, "Decided 4 October 2026: the harness is a car"; the wizard fits them one step
 at a time. The shop adds only what a price needs:
 

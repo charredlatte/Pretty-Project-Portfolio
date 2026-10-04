@@ -36,13 +36,13 @@ How it connects, start to finish:
    short quiz. She thinks on your own computer.
 
 **Or think of it as a car.** Claude on its own is a stripped car: a brilliant engine and nothing else. No seatbelts,
-no windshield, no brakes, no tires. You can drive it if you know engines. The café is the rest of the car, and Simone,
+no windshield, no brakes, no tires. You can drive it if you know engines. The café is the rest of the car, and Ninine,
 the queen cat, drives.
 
 | The car | What it is here |
 |---|---|
 | The engine | Claude, your own |
-| The driver | Simone, the queen cat: she runs your routines and passes your words on, from your own computer |
+| The driver | Ninine, the queen cat: she runs your routines and passes your words on, from your own computer |
 | The tires | Your GitHub repositories, where the work meets the road |
 | The windshield and the dashboard | The café page, and the front desk every cat checks in at: who's busy, who needs you |
 | The seatbelts and brakes | The house rules: checks Claude can't skip, and anything guessed waits for you |

@@ -723,7 +723,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
   // The house has one queen: she is not a session, she never leaves, she keeps what matters, and she is the
   // one you talk to (her runner, harness/runner, is her brain). An older, statelier name than the working cats'.
   const QUEEN_NAMES = ["Mémé", "Duchesse", "Joséphine", "Colette", "Berthe", "Augustine", "Odette",
-    "Simone", "Marguerite", "Hortense", "Célestine", "Philomène"];
+    "Ninine", "Marguerite", "Hortense", "Célestine", "Philomène"];
   const QUEEN_ROOM = "hall";   // her seat: the pink armchair in the entrance hall
   const QUEEN_ID = "queen";    // her cat on the gateway: her conversation with you, and her runner's presence
   const MANNER = "Elizabethan English, warm and a touch grand: \"my lady\", \"prithee\", \"'tis\", \"mayhap\", \"anon\". The news first, plain enough to act on; the flourish after.";
@@ -3241,7 +3241,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
     const door = () => (A.door && A.open.includes(A.door) ? A.door : open()[0]);
     const nameOf = (k) => A.names[k].trim() || GEOM[k].name;
     const sessions = () => (S.liveSessions || []).filter((s) => !isWarmStart(s)).length;
-    const queen = () => queenOf().name;   // she drives the car: Simone, unless the café has named her
+    const queen = () => queenOf().name;   // she drives the car: Ninine, unless the café has named her
     let step = 0, timer = null;
 
     const steps = [
