@@ -258,9 +258,8 @@ address, and in claude.ai once a publish passes `quizzes` and `answer`; the deci
 2. Read the live artifact in full (`Artifact` read, then every line of the saved file), and compare it with
    the branch's page. If the live one is newer, merge it first; never overwrite it.
 3. Publish `catio/index.html` to the café's URL (`kittychat-cafe` in `artifacts.json`) with `files` and
-   `capabilities` as CLAUDE.md's "Republishing" says. In short: leave `capabilities` out to keep the stored set,
-   unless "The stored capabilities" says a tool joined since the last publish (`decide`, `quizzes`, `answer` and
-   `downloads` have, on 3 and 4 October): then pass that whole set.
+   `capabilities` as CLAUDE.md's "Republishing" says: leave `capabilities` out to keep the stored set, unless "The
+   stored capabilities" there says a tool joined since the last publish, and then pass that whole set.
 4. Afterwards: list the files, read back and look at any art that changed, list `rooms`, and create, update
    and delete one probe in `cats`.
 5. Add a line to `docs/history.md`.
@@ -270,8 +269,8 @@ address, and in claude.ai once a publish passes `quizzes` and `answer`; the deci
 - **No Claude attribution lines** (`Co-Authored-By: Claude`, `Claude-Session:`) in commits on her public
   repos or forks: this one, the grocery app, Snail-Mail-Trail and the LibreSprite fork. She asked on
   1 October; the gate hook enforces it (`harness/rules.json`).
-- The gateway's three secrets live only in Cloudflare and one other place each: `CATIO_TOKEN` where her sessions run (her Claude
-  environments and her PC's Claude settings), `CATIO_PASSWORD` nowhere but her password manager, `CATIO_QUEEN` on the queen's runner. Never in the repo,
+- The gateway's three secrets live only in Cloudflare and one other place each: `CATIO_TOKEN` in her Claude
+  environments, `CATIO_PASSWORD` nowhere but her password manager, `CATIO_QUEEN` on the queen's runner. Never in the repo,
   the chat or a test.
 - Never commit `art/licensed/`, `catio/data/sessions.json`, `catio/dist/` or anything from her sessions.
 

@@ -195,8 +195,9 @@ small meow.
 ### How what you send reaches a session
 
 Files dropped on a cat, messages written to it, and pause or wrap-up requests are saved the moment you send them.
-With the gateway, a running session gets them when its current turn ends. Without it they wait in the outbox, and the
-session collects them when it next starts: a session that runs the house-rules plugin has its `catio` skill handle
+With the gateway, a running session gets them when its current turn ends. Without it, the page tries to post them
+into the session; claude.ai refuses that today, so they wait in the café's outbox, and the session collects them
+when it next starts: a session that runs the house-rules plugin has its `catio` skill handle
 what's there, answer on the cat and mark it delivered. Only claude.ai can wake a session that has
 stopped, and it doesn't let a page do it; why is in
 [`harness/README.md`](harness/README.md#why-the-café-cant-push-into-a-session).
