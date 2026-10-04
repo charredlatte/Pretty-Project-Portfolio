@@ -287,8 +287,8 @@ The page's test and its screenshots drive a headless Chromium through Playwright
 cloud sessions preinstall it. Elsewhere, set `PLAYWRIGHT` to your own install; `CHROMIUM` is optional, and without a
 usable one Playwright uses its own browser. Each run starts a fresh temporary profile with no logins or saved
 passwords, and as the page stands it loads only local files, the test's own server on 127.0.0.1 and the page's Google
-Fonts. What else a run needs (the licensed art, the house rules' browser preflight) is in `CLAUDE.md`, "Checking a
-change".
+Fonts. A run also needs the licensed art (`CLAUDE.md`, "Checking a change"), and sessions under the house rules run
+the browser preflight first ([`harness/README.md`](harness/README.md)).
 
 ## Licence
 
