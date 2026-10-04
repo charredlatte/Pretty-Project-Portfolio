@@ -2683,6 +2683,21 @@ await check("tools/skin.py reads every slot, token and size range the page has",
     await page.evaluate(() => { delete window.__catio.store["skin/cursor"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
     await page.waitForTimeout(400);
   });
+  await check("two colours changed one after the other, quickly, are both kept; one set back to the café's isn't hers", async () => {
+    await page.evaluate(() => { delete window.__catio.store["skin/theme"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(400);
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    await page.evaluate(() => {
+      for (const [n, v] of [["--ink", "#101010"], ["--tan", "#202020"], ["--go", "#C0D470"]]) {   // the last is the café's own
+        const i = document.querySelector("#artDlg li[data-token='" + n + "'] input"); i.value = v; i.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+    await page.waitForTimeout(800);
+    const d = await page.evaluate(() => window.__catio.store["skin/theme"]);
+    expect(d && d.tokens["--ink"] === "#101010" && d.tokens["--tan"] === "#202020" && !("--go" in d.tokens), JSON.stringify(d));
+    if (await page.locator("#toast .btn").isVisible()) await page.click("#toast .btn");
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
   await check("a font of hers for the text goes ahead of the café's", async () => {
     await page.evaluate(() => window.__catio.put("skin/font-body", { src: "art/licensed/ui/sprout.ttf", at: 1 }));
     await page.waitForTimeout(800);

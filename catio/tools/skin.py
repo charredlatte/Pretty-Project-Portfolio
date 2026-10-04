@@ -123,19 +123,28 @@ def from_dtcg(doc, groups):
         if name not in groups:
             foreign += 1
             continue
-        if isinstance(v, str):
-            css = v[:7] if re.fullmatch(r"#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?", v) else v
-        elif isinstance(v, dict) and isinstance(v.get("hex"), str):
-            css = v["hex"][:7]
-        elif isinstance(v, dict) and isinstance(v.get("components"), list) and v.get("colorSpace", "srgb") == "srgb":
-            css = "#" + "".join(f"{round(min(1, max(0, c)) * 255):02x}" for c in v["components"][:3])
-        elif isinstance(v, dict) and isinstance(v.get("value"), (int, float)) and v.get("unit") in ("px", "rem"):
-            css = f"{round(v['value'], 3):g}{v['unit']}"
+        try:
+            css = to_css(v)
+        except (TypeError, ValueError):   # numbers that aren't: the page counts it as not the café's, so does this
+            css = None
         if token_ok(groups, name, css):
             found[name] = css
         else:
             foreign += 1
     return found, foreign
+
+
+def to_css(v):
+    css = None
+    if isinstance(v, str):
+        css = v[:7] if re.fullmatch(r"#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?", v) else v
+    elif isinstance(v, dict) and isinstance(v.get("hex"), str):
+        css = v["hex"][:7]
+    elif isinstance(v, dict) and isinstance(v.get("components"), list) and v.get("colorSpace", "srgb") == "srgb":
+        css = "#" + "".join(f"{round(min(1, max(0, c)) * 255):02x}" for c in v["components"][:3])
+    elif isinstance(v, dict) and isinstance(v.get("value"), (int, float)) and v.get("unit") in ("px", "rem"):
+        css = f"{round(v['value'], 3):g}{v['unit']}"
+    return css
 
 
 def ints(v, n, lo, hi):
@@ -177,7 +186,7 @@ def main():
     modes = {m: {k: v for k, v in (old.get(key) or {}).items() if token_ok(groups, k, v)} if isinstance(old.get(key), dict) else {}
              for m, key in (("light", "tokens"), ("dark", "dark"))}
     for key, was in old.items():   # a slot pointed by hand at art outside art/skin/ (another pack's): kept while it is there
-        f = was.get("file") if isinstance(was, dict) else was if isinstance(was, str) else None
+        f = (was.get("file") or was.get("src")) if isinstance(was, dict) else was if isinstance(was, str) else None
         if key in art and isinstance(f, str) and f.startswith("art/") and not f.startswith("art/skin/"):
             if (ROOT / f).is_file():
                 skin[key] = was
@@ -190,7 +199,7 @@ def main():
                 said.append(f"  {key}: {k} = {v!r} left out (a colour is #rrggbb; a size stays in its range, SIZES in the page)")
     # a mode that has its files is what the files say (so a token taken out of one goes), but only once a file of it
     # could be read: a half-saved one leaves the mode as it was
-    from_files = {}
+    from_files, broken = {}, set()
     for p in files:
         if p.name.endswith(".tokens.json"):
             mode = "dark" if "dark" in p.name.lower() else "light"
@@ -198,10 +207,11 @@ def main():
                 found, foreign = from_dtcg(json.loads(p.read_text(encoding="utf-8")), groups)
             except (ValueError, UnicodeDecodeError):
                 said.append(f"  {p.name}: not a tokens file (it isn't JSON): {mode} kept as it was")
+                broken.add(mode)
                 continue
             from_files.setdefault(mode, {}).update(found)
             said.append(f"  {p.name}: {len(found)} tokens into {mode}" + (f", {foreign} not the cafe's" if foreign else ""))
-    modes.update(from_files)
+    modes.update({m: t for m, t in from_files.items() if m not in broken})
     for p in files:
         if p.name.endswith(".tokens.json"):
             continue
