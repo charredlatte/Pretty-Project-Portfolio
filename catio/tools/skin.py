@@ -35,11 +35,24 @@ PAGE = ROOT / "index.html"
 SKIN = ROOT / "art" / "skin"
 OUT = ROOT / "art" / "skin.json"
 FONTS = {".ttf", ".otf", ".woff", ".woff2"}
+_PAGE = []
+
+
+def page():
+    """The page's text, read once."""
+    if not _PAGE:
+        _PAGE.append(PAGE.read_text(encoding="utf-8"))
+    return _PAGE[0]
+
+
+def file_of(entry):
+    """An entry's file, as the page reads it: "file" or "src", or the entry itself when it is a path."""
+    return (entry.get("file") or entry.get("src")) if isinstance(entry, dict) else entry if isinstance(entry, str) else None
 
 
 def slots():
     """The slot table, read from the page itself so the two can't disagree."""
-    text = PAGE.read_text(encoding="utf-8")
+    text = page()
     block = text[text.index("const ART = {"):text.index("const SPR0")]
     atlases = json.loads(re.search(r'"atlases":(\{[^}]*\})', text).group(1))   # MANOR's, which furniture.py writes
     out = {}
@@ -74,19 +87,22 @@ def slots():
 
 
 def token_names():
-    text = PAGE.read_text(encoding="utf-8")
+    text = page()
     block = text[text.index("const TOKENS = {"):text.index("const tokenOk")]
     return dict(re.findall(r'"(--[\w-]+)": \["([^"]+)"', block))
 
 
 def sizes():
     """The page's SIZES, each size token's range in px, read from the page so the two can't disagree."""
-    text = PAGE.read_text(encoding="utf-8")
+    if _SIZES:
+        return _SIZES
+    text = page()
     block = text[text.index("const SIZES = {"):text.index("function sizeOk")]
-    return {n: (float(lo), float(hi)) for n, lo, hi in re.findall(r'"(--[\w-]+)": \[([\d.]+), ([\d.]+)\]', block)}
+    _SIZES.update({n: (float(lo), float(hi)) for n, lo, hi in re.findall(r'"(--[\w-]+)": \[([\d.]+), ([\d.]+)\]', block)})
+    return _SIZES
 
 
-SIZES = sizes()
+_SIZES = {}
 
 
 def token_ok(groups, name, v):
@@ -95,7 +111,7 @@ def token_ok(groups, name, v):
     if groups[name] != "Type":
         return bool(re.fullmatch(r"#[0-9a-fA-F]{6}", v))
     m = re.fullmatch(r"(\d{1,3}(?:\.\d{1,3})?)(px|rem)", v)
-    lo, hi = SIZES.get(name, (0, 0))
+    lo, hi = sizes().get(name, (0, 0))
     return bool(m) and lo <= float(m.group(1)) * (16 if m.group(2) == "rem" else 1) <= hi
 
 
@@ -159,7 +175,7 @@ def number(v, lo, hi):
 SETTINGS = {
     "slice": lambda v: ints(v, 4, 0, 1024), "frames": lambda v: isinstance(v, int) and not isinstance(v, bool) and 1 <= v <= 64,
     "secs": lambda v: number(v, 0.1, 20), "anchor": lambda v: isinstance(v, list) and len(v) == 2 and all(number(x, 0, 1024) for x in v),
-    "scale": lambda v: number(v, 0.001, 8), "pixel": lambda v: v is True, "hot": lambda v: ints(v, 2, 0, 127),
+    "scale": lambda v: number(v, 0.001, 64), "pixel": lambda v: v is True, "hot": lambda v: ints(v, 2, 0, 127),
     "w": lambda v: isinstance(v, int), "h": lambda v: isinstance(v, int),
 }
 
@@ -186,7 +202,9 @@ def main():
     modes = {m: {k: v for k, v in (old.get(key) or {}).items() if token_ok(groups, k, v)} if isinstance(old.get(key), dict) else {}
              for m, key in (("light", "tokens"), ("dark", "dark"))}
     for key, was in old.items():   # a slot pointed by hand at art outside art/skin/ (another pack's): kept while it is there
-        f = (was.get("file") or was.get("src")) if isinstance(was, dict) else was if isinstance(was, str) else None
+        f = file_of(was)
+        if any(p.stem == key and not p.name.endswith(".tokens.json") for p in files):
+            continue   # a drawing of hers in art/skin/ takes the slot
         if key in art and isinstance(f, str) and f.startswith("art/") and not f.startswith("art/skin/"):
             if (ROOT / f).is_file():
                 skin[key] = was
@@ -270,10 +288,9 @@ def main():
     # its file is, or the pack's when hers was left out)
     for key in [k for k in skin if k in art and art[k]["kind"] == "slice" and "slice" not in art[k] and art[k].get("fam")]:
         head = next(k for k, h in art.items() if h.get("fam") == art[key]["fam"] and "slice" in h)
-        hf = skin.get(head, {}).get("file") if isinstance(skin.get(head), dict) else skin.get(head)
-        hw, hh = (png_size(ROOT / hf) if hf and (ROOT / hf).is_file() and png_size(ROOT / hf) else None) or art[head]["size"]
-        mf = skin[key]["file"] if isinstance(skin[key], dict) else skin[key]
-        mw, mh = png_size(ROOT / mf) or (0, 0)
+        hf, mf = file_of(skin.get(head)), file_of(skin[key])
+        hw, hh = (png_size(ROOT / hf) if hf and (ROOT / hf).is_file() else None) or art[head]["size"]
+        mw, mh = (png_size(ROOT / mf) if mf and (ROOT / mf).is_file() else None) or (0, 0)
         if [mw, mh] != [hw, hh]:
             said.append(f"  {key}: {mw} x {mh}, but it shares {head}'s border, so it must be {hw} x {hh}: left out")
             del skin[key]

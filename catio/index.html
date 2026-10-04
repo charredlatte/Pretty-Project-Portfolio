@@ -984,12 +984,13 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   const MODES = ["light", "dark"];
   const modeTokens = (doc) => ({ light: cleanTokens(doc && doc.tokens), dark: cleanTokens(doc && doc.dark) });
   // a token's value now: hers, else the stylesheet's
-  const tok = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  // pass the style when reading many, so it is read once
+  const tok = (name, cs = getComputedStyle(document.documentElement)) => cs.getPropertyValue(name).trim();
   const SPR0 = JSON.parse(JSON.stringify(SPR));   // the pack's frames, for putting a cat back
   const SKIN = { file: {}, db: {}, live: {}, problems: {}, set: new Set(), seq: 0, blobs: {}, fonts: {}, sizes: {}, standIn: {},
     fileTokens: { light: {}, dark: {} }, dbTokens: { light: {}, dark: {} }, tokens: { light: {}, dark: {} } };
   const TOKENS0 = {};   // the café's own value of each token, read before any skin: what export and Put back start from
-  { const cs = getComputedStyle(document.documentElement); for (const n of [...Object.keys(TOKENS), "--pixel", "--body", "--display"]) TOKENS0[n] = cs.getPropertyValue(n).trim(); }
+  { const cs = getComputedStyle(document.documentElement); for (const n of [...Object.keys(TOKENS), "--pixel", "--body", "--display"]) TOKENS0[n] = tok(n, cs); }
 
   // The design tokens format (W3C Design Tokens Community Group, 2025.10), which Figma's variables import and export as
   // they are: a file of groups and tokens, each token a $value with its $type. The café writes one file per mode, its
@@ -1042,7 +1043,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (!safeSrc(e.src)) return null;
     const out = { src: e.src, w: num(v.w, 1, 8192), h: num(v.h, 1, 8192), at: num(v.at, 0, 1e14), asset: typeof v.asset === "string" ? v.asset : null, name: typeof v.name === "string" ? v.name.slice(0, 120) : "" };
     if (Array.isArray(v.slice) && v.slice.length === 4 && v.slice.every((n) => num(n, 0, 1024) !== null && Number.isInteger(n))) out.slice = v.slice.slice();
-    if (num(v.scale, 0.001, 8) !== null) out.scale = v.scale;
+    if (num(v.scale, 0.001, 64) !== null) out.scale = v.scale;
     if (v.pixel === true) out.pixel = true;
     if (num(v.frames, 1, 64) !== null && Number.isInteger(v.frames)) out.frames = v.frames;
     if (num(v.secs, 0.1, 20) !== null) out.secs = v.secs;
@@ -2739,11 +2740,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   const ownerOf = () => Object.assign({ hair: "long", hairColor: 0, skin: 0, top: 0, extra: "bow" }, (S.house && S.house.owner) || {});
   const tone = (hex, f) => "#" + [1, 3, 5].map((i) => Math.max(0, Math.min(255, Math.round(parseInt(hex.slice(i, i + 2), 16) * f))).toString(16).padStart(2, "0")).join("");
   function ownerSVG(o) {
-    const cs = getComputedStyle(document.documentElement), tok = (n) => cs.getPropertyValue(n).trim();   // its colours, read once
+    const cs = getComputedStyle(document.documentElement), t = (n) => tok(n, cs);   // its colours, the style read once
     if (skinOf("owner")) { const i = el("img", "ownerimg"); i.src = skinOf("owner").url; i.alt = ""; return i; }
     const W = 30, H = 40, px = Array.from({ length: H }, () => Array(W).fill(null));
     const pick = (list, i) => (list[i] || list[0])[1];
-    const hair = pick(OWNER.hairColor, o.hairColor), skin = pick(OWNER.skin, o.skin), top = pick(OWNER.top, o.top), chair = tok("--owner-chair"), accent = tok("--owner-accent");
+    const hair = pick(OWNER.hairColor, o.hairColor), skin = pick(OWNER.skin, o.skin), top = pick(OWNER.top, o.top), chair = t("--owner-chair"), accent = t("--owner-accent");
     // paint(test, colour): every grid cell whose centre passes test, in her own coordinates (one cell in from the edge)
     const paint = (test, colour) => { for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const u = x - .5, v = y - .5; if (test(u, v)) px[y][x] = typeof colour === "function" ? colour(u, v) : colour; } };
     const circle = (cx, cy, r) => (x, y) => (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
@@ -2764,13 +2765,13 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (o.extra === "ears") {
       const ear = (cx, k, b) => (x, y) => y >= b && y <= 5 && Math.abs(x - cx) <= (y - b) * k + .5;
       paint((x, y) => ear(9, .6, 0)(x, y) || ear(19, .6, 0)(x, y), hair);
-      paint((x, y) => ear(9, .35, 2.2)(x, y) || ear(19, .35, 2.2)(x, y), tok("--owner-ears"));
+      paint((x, y) => ear(9, .35, 2.2)(x, y) || ear(19, .35, 2.2)(x, y), t("--owner-ears"));
     }
-    if (o.extra === "flower") { paint(circle(20.5, 4.5, 2.3), tok("--owner-flower")); paint(circle(20.5, 4.5, 1), tok("--owner-flower-heart")); }
+    if (o.extra === "flower") { paint(circle(20.5, 4.5, 2.3), t("--owner-flower")); paint(circle(20.5, 4.5, 1), t("--owner-flower-heart")); }
     paint((x, y) => rect(.5, 26, 27.5, 38.4)(x, y) && !(y < 29 && ((x < 3 && (x - 3) ** 2 + (y - 29) ** 2 > 9) || (x > 25 && (x - 25) ** 2 + (y - 29) ** 2 > 9))),
       (x, y) => (y < 27.5 ? tone(chair, 1.08) : x < 4 || x > 24 ? tone(chair, .86) : chair));
     // the outline: every empty cell that touches her, in the panels' ink
-    const ink = tok("--ink"), out = px.map((row) => row.slice());
+    const ink = t("--ink"), out = px.map((row) => row.slice());
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!px[y][x] && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => (px[y + dy] || [])[x + dx])) out[y][x] = ink;
     let rects = "";
     for (let y = 0; y < H; y++) for (let x = 0; x < W; ) {
@@ -3319,7 +3320,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
 
   // A project's map, from graphify (the catio skill's graph_doc.py saves it as graphs/<repo>): its ideas as
   // dots coloured by neighbourhood, the hubs, the surprising links, and questions a cat can answer from it.
-  const hues = () => { const cs = getComputedStyle(document.documentElement), t = (n) => cs.getPropertyValue(n).trim(); return [1, 2, 3, 4, 5, 6, 7, 8].map((i) => t("--hue-" + i)).concat(t("--hue-none")); };   // the design system's, so a skin recolours them
+  const hues = () => { const cs = getComputedStyle(document.documentElement); return [1, 2, 3, 4, 5, 6, 7, 8].map((i) => tok("--hue-" + i, cs)).concat(tok("--hue-none", cs)); };   // the design system's, so a skin recolours them
   function projectMap(gm, cat) {
     const H = hues(), hue = (i) => H[i >= 0 && i < 8 ? i : 8];   // read once a map; -1 and the ninth on are the rest
     const d = el("details", "gmap");
@@ -4434,7 +4435,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const { found, foreign } = fromDTCG(j), n = Object.keys(found).length;
     if (!n) { toast(file.name + " has none of the café's tokens" + (foreign ? " (" + foreign + " of its own)." : "."), "alert"); return; }
     // what is the same as it would be anyway is taken out by editTokens: an export re-imported stays a few changes, not 56
-    await editTokens((next) => Object.assign(next[m], found), n + " " + (n === 1 ? "token" : "tokens") + " from " + file.name + " in " + (m === "light" ? "Light" : "Dark") + (foreign ? "; " + foreign + " not the café's, left out." : "."));
+    await editTokens((next) => Object.assign(next[m], found), n + " " + (n === 1 ? "token" : "tokens") + " from " + file.name + " in " + (m === "light" ? "Light" : "Dark") + (foreign ? "; " + foreign + " not the café's, left out." : "."), true);
   }
   // a colour or a size, in the mode The look is on: a picker, what it colours, and Put back when it is hers
   function tokenRow(n) {
@@ -4475,13 +4476,16 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // and a value the same as it would be anyway (the café's in light, light's in dark) is taken out rather than kept.
   let TOKENQ = Promise.resolve();
   const anyway = (m, t, next) => { const f = SKIN.fileTokens; return m === "dark" ? f.dark[t] || next.light[t] || f.light[t] || TOKENS0[t] : f.light[t] || TOKENS0[t]; };
-  function editTokens(edit, ok) {
+  // Only what this change touched is weighed, so an earlier choice is never undone by a later one. A dark value she
+  // picks is hers even when it matches light (she may change light later); an imported one that matches is not.
+  function editTokens(edit, ok, imported) {
     SKIN.saving = (SKIN.saving || 0) + 1;
     const run = TOKENQ.then(async () => {
-      const next = copyTokens();
+      const was = copyTokens(), next = copyTokens();
       edit(next);
-      for (const m of MODES) for (const [t, v] of Object.entries(next[m])) if (String(v).toLowerCase() === String(anyway(m, t, next)).toLowerCase()) delete next[m][t];
-      await saveTokensNow(next, ok);
+      const touched = MODES.flatMap((m) => [...new Set([...Object.keys(was[m]), ...Object.keys(next[m])])].filter((t) => was[m][t] !== next[m][t]).map((t) => [m, t]));
+      for (const [m, t] of touched) if (next[m][t] && (m === "light" || imported) && String(next[m][t]).toLowerCase() === String(anyway(m, t, next)).toLowerCase()) delete next[m][t];
+      if (!(await saveTokensNow(next, ok))) for (const [, t] of touched) { document.documentElement.style.removeProperty(t); SKIN.set.delete(t); }   // not kept: not shown
     }).finally(() => { SKIN.saving--; });
     TOKENQ = run.catch(() => {});
     return run;
@@ -4490,8 +4494,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   async function saveTokensNow(tokens, ok) {
     const clean = { light: cleanTokens(tokens.light), dark: cleanTokens(tokens.dark) };
     const empty = !Object.keys(clean.light).length && !Object.keys(clean.dark).length;
-    if (await save((db) => (empty ? db.doc("skin/theme").delete() : db.doc("skin/theme").set({ tokens: clean.light, dark: clean.dark, at: Date.now() })), ok)) SKIN.dbTokens = clean;
-    applySkin();   // kept or not, what shows is what is kept: a preview that failed to save goes
+    const kept = await save((db) => (empty ? db.doc("skin/theme").delete() : db.doc("skin/theme").set({ tokens: clean.light, dark: clean.dark, at: Date.now() })), ok);
+    if (kept) SKIN.dbTokens = clean;
+    applySkin();   // kept or not, what shows is what is kept
+    return kept;
   }
   function artRow(k) {
     const a = ART[k], e = skinOf(k), li = el("li"); li.dataset.slot = k;
@@ -4605,7 +4611,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       delete SKIN.db[k];
       if (id && S.assets) S.assets.delete(id).catch(() => {});
     }
-    toast(gone.length < keys.length ? "Couldn't put back " + (keys.length - gone.length) + " of them. Try again." : keys.length > 1 ? "Every piece is the pack's again." : ART[keys[0]].name + ": the pack's again.", gone.length < keys.length ? "alert" : undefined);
+    const refused = done.some((d) => d.status === "rejected" && d.reason && d.reason.code === "invalid_argument");
+    toast(refused ? "You can look but not change things on this page." : gone.length < keys.length ? "Couldn't put back " + (keys.length - gone.length) + " of them. Try again." : keys.length > 1 ? "Every piece is the pack's again." : ART[keys[0]].name + ": the pack's again.", gone.length < keys.length ? "alert" : undefined);
     applySkin();
   }
   function openRules() {
