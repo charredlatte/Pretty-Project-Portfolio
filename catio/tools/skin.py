@@ -284,6 +284,10 @@ def check(art, key, rel, was, said, where="", filled=None):
         entry["scale"] = round(a["scale"] * want[0] / w, 4)   # drawn smooth, shown the pack's size
         worked.append("scale")
         note += f" (scale {entry['scale']}, smooth; \"pixel\": true instead if it is pixel art)"
+    loud = entry.get("slice") or a.get("slice")
+    if entry.get("pixel") and "scale" in a and loud and max(loud) > max(a["slice"]) * a["scale"]:   # the page's pixelLoud()
+        said.append(f"  {name}: drawn as pixel art, its border of {max(loud)} would show {2 * max(loud)} px wide, more than twice the pack's: left out (draw it smaller, or \"pixel\": false)")
+        return None
     if entry.get("slice") and max(entry["slice"]) > (256 if "scale" in a else 64):
         said.append(f"  {name}: its border {entry['slice']} is over {256 if 'scale' in a else 64}, more than the page takes: left out")
         return None

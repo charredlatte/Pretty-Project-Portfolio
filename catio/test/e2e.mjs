@@ -2730,6 +2730,9 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     // and standing in for the green and pink buttons, her frame keeps their colour inside it: go-ahead and letting go still read
     const faces = await page.evaluate(() => ["green", "pink"].map((c) => { const b = document.createElement("button"); b.className = "btn " + c; document.body.appendChild(b); const cs = getComputedStyle(b); const r = [cs.borderImageSource, cs.borderImageSlice]; b.remove(); return r; }));
     expect(faces.every(([src, slice]) => src.includes("ui/button.png") && !/fill/.test(slice)), JSON.stringify(faces));
+    const tag = await page.evaluate(() => { const r = document.createElement("div"); r.className = "rt"; r.setAttribute("aria-selected", "true"); const t = document.createElement("span"); t.className = "tag"; r.appendChild(t); document.body.appendChild(r);
+      const cs = getComputedStyle(t), go = getComputedStyle(document.documentElement).getPropertyValue("--go").trim(); const out = [cs.borderImageSlice, cs.backgroundColor, go]; r.remove(); return out; });
+    expect(!/fill/.test(tag[0]) && tag[1] === "rgb(" + [1, 3, 5].map((i) => parseInt(tag[2].slice(i, i + 2), 16)).join(", ") + ")", "the chosen room's tag: " + tag.join(" | "));
     await page.evaluate(() => { const st = window.__catio.store; delete st["skin/button"]; window.__catio.put("skin/zz", {}); delete st["skin/zz"]; });
     await page.waitForTimeout(500);
   });
@@ -2804,6 +2807,14 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
       expect((await page.inputValue("#artPixel-map-button")) === was, w + ": " + await page.inputValue("#artPixel-map-button"));
     }
     await page.click("#artDlg li[data-slot='map-button'] .swap button:has-text('Cancel')"); await settle(page);
+    // a map panel drawn at the pack's own size, called pixel art, would show its 28-pixel border 56 px wide: refused
+    await page.locator("#artFile-map-panel").setInputFiles({ name: "map-panel.png", mimeType: "image/png", buffer: png(300, 150) });
+    await page.waitForTimeout(400);
+    await page.selectOption("#artPixel-map-panel", "pixel");
+    await page.click("#artDlg li[data-slot='map-panel'] .swap button[type=submit]"); await settle(page);
+    expect(/would show 56 px wide/.test(await toast(page)) && !(await page.evaluate(() => "skin/map-panel" in window.__catio.store)), await toast(page));
+    await page.click("#toast .btn");
+    await page.click("#artDlg li[data-slot='map-panel'] .swap button:has-text('Cancel')"); await settle(page);
     // her armchair's colour, while she is still choosing it: her picture in The look follows, and goes back if she lets go
     const me = () => page.evaluate(() => document.querySelector("#artDlg li[data-slot='owner'] > .pic").innerHTML);
     const was = await me();
