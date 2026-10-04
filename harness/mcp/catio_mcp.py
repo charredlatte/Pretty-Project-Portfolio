@@ -403,8 +403,19 @@ def _verdict(a):
     return None
 
 
+def _confidence(a):
+    if not isinstance(a, dict):
+        return 0
+    if isinstance(a.get("confidence"), (int, float)):
+        return a["confidence"]
+    if isinstance(a.get("noul"), (int, float)):
+        return max(a["noul"], 1 - a["noul"])
+    return 0
+
+
 def decide(args):
-    """A typed decision from a System One model at CATIO_DECIDE_URL. With kind, logged beside old (what the old path chose)."""
+    """A typed decision from a System One model at CATIO_DECIDE_URL. With kind, logged beside old (what the old path chose);
+    under floor it is the decider not deciding (sure False, agree None); ref names what was decided about."""
     body = _shape(args)
     if not DECIDE_URL:
         raise ValueError("no decider: set CATIO_DECIDE_URL to a System One server (laya-serve on this computer, or Jev)")
@@ -423,11 +434,19 @@ def decide(args):
     if args.get("kind"):
         first = next(iter(out["answers"]), None)
         old = None if args.get("old") is None else str(args["old"])[:200]
+        got = _verdict(out["answers"].get(first))
+        floor = args["floor"] if isinstance(args.get("floor"), (int, float)) else None
+        sure = floor is None or _confidence(out["answers"].get(first)) >= floor
         with LOCK:
             s = load()
             log = s.setdefault("decisions", [])
-            log.append({"id": new_id(), "at": now(), "kind": str(args["kind"])[:40], "model": out["model"], "questions": list(out["answers"]),
-                        "answers": out["answers"], "old": old, "agree": None if old is None else _verdict(out["answers"].get(first)) == old})
+            entry = {"id": new_id(), "at": now(), "kind": str(args["kind"])[:40], "model": out["model"], "questions": list(out["answers"]),
+                     "answers": out["answers"], "verdict": got, "sure": sure, "old": old, "agree": None if old is None or not sure else got == old}
+            if floor is not None:
+                entry["floor"] = floor
+            if args.get("ref") is not None:
+                entry["ref"] = str(args["ref"])[:200]
+            log.append(entry)
             del log[:-KEEP_DECISIONS]
             store(s)
     return out
@@ -476,7 +495,9 @@ TOOLS = {
                "(criteria: ordered levels; a weighted score). No prose, milliseconds. preset easy asks the six questions of the easy-task "
                "rubric about state. With kind, the decision is logged beside old (what you would have chosen).",
                {"state": {"description": "The text or JSON the questions are about"}, "questions": {"type": "object"}, "preset": {"type": "string", "enum": ["easy"]},
-                "model": S, "kind": dict(S, description="A label for the log, e.g. sort"), "old": dict(S, description="What the old path chose, for the log")},
+                "model": S, "kind": dict(S, description="A label for the log, e.g. sort"), "old": dict(S, description="What the old path chose, for the log"),
+                "floor": {"type": "number", "description": "For the log: the confidence under which you would not act on the answer (it then neither agrees nor disagrees with old)"},
+                "ref": dict(S, description="For the log: what was decided about (the page's brain id), to check the decision against what happened")},
                ["state"]),
     "answer": (answer, "Hand homework in (the owner only): one answer per question, in order. An unblock quiz's answers reach the cat, as the owner's words, and the queen; a litterbox or decision card's are only kept, for filing.",
                {"quiz": S, "answers": {"type": "array", "items": S}}, ["quiz", "answers"]),

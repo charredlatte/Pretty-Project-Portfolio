@@ -6,7 +6,7 @@
 import { DurableObject } from "cloudflare:workers";
 import RULES from "../../rules.json";
 import { MOODS } from "./tools.js";
-import { BadQuestion, NoAnswer, decide, verdict } from "./decide.js";
+import { BadQuestion, NoAnswer, confidence, decide, verdict } from "./decide.js";
 
 const FIELDS = ["name", "model", "provider", "title", "project", "repo", "branch", "ask", "link", "session", "via", "cwd", "room"];
 const MAX_FILE = 1024 * 1024;   // a free Worker gets 10 ms of CPU a request: bigger files go through the brain
@@ -298,7 +298,9 @@ const TOOLS = {
 	// A typed decision from a System One model (src/decide.js), for the one-bit questions the café asks: where a file
 	// goes, whether a task is easy, who needs her first. Anyone in the house may ask. With kind, the decision is
 	// logged as decisions/<id> beside old (what the old path chose), so a week of the two side by side says whether
-	// to switch; agree compares the first question's verdict with old.
+	// to switch; agree compares the first question's verdict with old. With floor, a verdict less sure than it is the
+	// decider not deciding (sure: false, agree: null), as the caller would treat it; ref names what was decided (the
+	// page's brain id), so the log can be checked against where the file went in the end.
 	async decide(h, args, who) {
 		let out;
 		try {
@@ -311,11 +313,14 @@ const TOOLS = {
 		if (args.kind) {
 			const first = Object.keys(out.answers)[0];
 			const got = verdict(out.answers[first]);
+			const floor = typeof args.floor === "number" ? args.floor : null;
+			const sure = floor == null ? true : confidence(out.answers[first]) >= floor;
 			const old = args.old == null ? null : String(args.old).slice(0, 200);
 			const id = newId();
 			h.sql.exec("INSERT INTO docs (path, data, at) VALUES (?, ?, ?)", "decisions/" + id, JSON.stringify({
 				at: Date.now(), kind: String(args.kind).slice(0, 40), by: who, model: out.model, preset: args.preset ? String(args.preset) : undefined,
-				questions: Object.keys(out.answers), answers: out.answers, old, agree: old == null ? null : got === old, usage: out.usage,
+				ref: args.ref == null ? undefined : String(args.ref).slice(0, 200), questions: Object.keys(out.answers), answers: out.answers,
+				verdict: got, floor: floor ?? undefined, sure, old, agree: old == null || !sure ? null : got === old, usage: out.usage,
 			}), Date.now());
 			h.sql.exec("DELETE FROM docs WHERE path LIKE 'decisions/%' AND path NOT IN (SELECT path FROM docs WHERE path LIKE 'decisions/%' ORDER BY at DESC LIMIT ?)", KEEP_DECISIONS);
 		}
