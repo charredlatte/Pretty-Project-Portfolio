@@ -4,28 +4,32 @@ Issue #3: "An AI harness that presents itself as a cat cafe." The KittyChat Caf�
 private artifact) is the harness. Every Claude Code session and every other agent is a cat in a two-floor
 manor. Files dropped on the page go to the right cat, and cats can be talked to and managed.
 
-Last revised 2 October 2026. How it got here, version by version, is in `docs/history.md`; what she has asked
+Last revised 4 October 2026. How it got here, version by version, is in `docs/history.md`; what she has asked
 for, in `docs/requests.md`; the audit behind phase 0, in `docs/audit-2026-10-01.md`.
 
 ## Where it stands
 
-- **Live:** version 18 (1 October): the KittyChat Café, made honest.
-  - The brand is the House button; quiet maps and short menus; the Game UI Pastel map panel and minimap.
-  - Posts go to the outbox: the page tries `send_message`, claude.ai refuses it, and the page says so.
-  - Counts show only what really waits on her.
-- **`main`** has everything live, plus:
-  - the house rules, on in all seven repos, with the rule against Claude attribution in commits on her public
-    repos and forks (PR #18);
-  - the gateway, built and tested, waiting for her setup (PR #19);
-  - the litter box's sifter;
-  - the digest of her sessions;
-  - the drawing plan.
-- **Tests:**
-  - e2e: 158 passed;
-  - harness: 44 passed;
-  - the gateway in workerd, with the real hook: 9 passed;
-  - the sifter: 12 passed;
-  - `furniture.check()` empty.
+Updated 4 October 2026.
+
+- **Live:** the café's artifact (`kittychat-cafe` in `artifacts.json`), republished on her say-so, so it can trail `main` until the next
+  publish.
+- **`main`** has, beyond phase 0's honest café:
+  - the house rules, on in all seven repos, with no Claude attribution on her public repos, and semi-automatic
+    merging where a repo opts in;
+  - the gateway, set up on 2 October (her `CATIO` connector): live cats, the café on its own address behind her
+    password, and accounts phase 1 (`docs/accounts.md`);
+  - the queen of the house and her runner, her routines, and the quest log: homework, the litter box and decisions
+    as cards in her card;
+  - the decider, logging beside the sorter (`docs/delegation.md`);
+  - onboarding (phase 7), Project maps, and outlines on hover;
+  - the open-source licence (AGPL-3.0), the shop's wireframes and plans, and the Buy Me a Coffee and Ulule kit
+    (`docs/kittychat-shop/`);
+  - plug-and-play design: every colour, font and size a token and every piece of art a slot, changed from The look
+    or `art/skin.json` (`CLAUDE.md`);
+  - the engine under the café, for builders (`docs/engine.md`);
+  - the C++ phone app, whose core draws the manor (`docs/mobile-app.md`).
+- **Tests:** the commands are in the README's Files section. The page's suite needs the licensed art
+  (`CLAUDE.md`, "Checking a change").
 
 ## How what she sends reaches a session
 
@@ -141,7 +145,7 @@ merge to `main`.
 
 1. **She sets it up once** (`harness/gateway/README.md`):
    - deploy the Worker from this repo;
-   - two secrets;
+   - its secrets (`harness/gateway/README.md`);
    - `CATIO_URL` and `CATIO_TOKEN` in each Claude environment, with the Worker allowed in the network policy;
    - the `Catio` connector in claude.ai, its tools set to Always allow.
 2. **The page reads the gateway. Done (2 October):**
@@ -159,7 +163,8 @@ merge to `main`.
    - a Telegram channel;
    - agent cats through `host:catio` (only the Claude desktop app can declare it). Agents that report to the
      gateway show up anywhere, through the `Catio` connector;
-   - `catio-plugin/` listed in the marketplace beside `kittychat-house-rules`.
+   - ~~`catio-plugin/` listed in the marketplace beside `kittychat-house-rules`~~: done
+     (`.claude-plugin/marketplace.json`).
    - accounts, one café per person: the recommendation is `docs/accounts.md`.
 
 ### Phase 6: the Catio as the UI for all her sessions, in OpenClaw's shape
@@ -190,7 +195,7 @@ Claude Code sessions in claude.ai stay claude.ai's: their full conversation open
    ($5/month Workers Paid, sleeps when idle, about 7¢ a working hour at 4 GB), Hetzner CAX11 (€5.99 + €0.50 a month),
    Oracle's Always Free ARM machine (2 cores, 12 GB since June 2026), a Raspberry Pi. Claude Code needs 4 GB.
 
-### Phase 6: onboarding. Built
+### Phase 7: onboarding. Built
 
 A café with no rooms opens a seven-step wizard (`docs/onboarding/`): name, rooms (the rest closed), repositories
 through `list_repos`, sessions, the litter box, how it works, done. The public `catio` skill asks the same
@@ -203,14 +208,15 @@ page. A hosted café is planned, not open: the onboarding offers running your ow
 
 ## Waiting on Charlotte
 
-The decisions below are dealt as cards in the decisions quiz (`decisions-quiz` in `artifacts.json`): answer them there
-and say "File my decisions." The small facts (who made `plants.zip`) stay here.
+The decisions below are dealt as decision cards in the queen's quest log (her card in the café; the decisions quiz
+page is retired). The small facts (who made `plants.zip`) stay here.
 
-1. **The gateway is set up** (2 October): the Worker, both secrets, `CATIO_URL` and `CATIO_TOKEN` in her
+1. **The gateway is set up** (2 October): the Worker, the two secrets of the time (the queen's key came later, below), `CATIO_URL` and `CATIO_TOKEN` in her
    environment, the setup script that installs the plugin, and the connector, signed in. A session reported
    through the hook and showed in `list_agents`, once PR #26 gave the hook its own User-Agent (Cloudflare refuses
    Python's). Left for her: set the connector's tools to Always allow, if she hasn't.
-2. **Which comes first:** phase 2 (the camera) or the page reading the gateway (phase 5).
+2. ~~Which comes first: phase 2 (the camera) or the page reading the gateway (phase 5)~~: the page reads the
+   gateway (2 October).
 3. ~~The posts waiting since 30 September~~: delivered from a session on 2 October with Claude Code Remote's
    `send_message` (four messages, one archive; two were already done) and marked delivered.
 4. **Rotate the MCPmarket token** in her plugin zip's `.mcp.json`.
@@ -251,14 +257,10 @@ and say "File my decisions." The small facts (who made `plants.zip`) stay here.
 1. CLAUDE.md's "Checking a change": looked at against her words, then `sh catio/test/run.sh`, everything passing.
 2. Read the live artifact in full (`Artifact` read, then every line of the saved file), and compare it with
    the branch's page. If the live one is newer, merge it first; never overwrite it.
-3. Publish `catio/index.html` to `artifacts.json`'s URL with only the files that changed, and **omit
+3. Publish `catio/index.html` to the café's URL (`kittychat-cafe` in `artifacts.json`) with only the files that changed, and **omit
    `capabilities`** to keep the stored set:
-   - Claude Code Remote's nine tools: `list_sessions`, `list_repos`, `send_message`, `delete_trigger`,
-     `create_session`, `set_session_title`, `archive_session`, `unarchive_session` and `interrupt_session`;
-   - `db`, `assets` and `sample`.
-
-   Pass `capabilities` only to add something on purpose (the `Catio` connector, in phase 5), and then pass
-   the whole set.
+   the whole set is in `CLAUDE.md` ("The stored capabilities"). Pass `capabilities` when CLAUDE.md says a tool
+   joined the set since the last publish, or to add one on purpose, and then pass that whole set.
 4. Afterwards: list the files, read back and look at any art that changed, list `rooms`, and create, update
    and delete one probe in `cats`.
 5. Add a line to `docs/history.md`.
@@ -268,8 +270,9 @@ and say "File my decisions." The small facts (who made `plants.zip`) stay here.
 - **No Claude attribution lines** (`Co-Authored-By: Claude`, `Claude-Session:`) in commits on her public
   repos or forks: this one, the grocery app, Snail-Mail-Trail and the LibreSprite fork. She asked on
   1 October; the gate hook enforces it (`harness/rules.json`).
-- The gateway's two secrets (`CATIO_TOKEN`, `CATIO_PASSWORD`) live only in Cloudflare and her Claude
-  environments: never in the repo, the chat or a test.
+- The gateway's three secrets live only in Cloudflare and one other place each: `CATIO_TOKEN` in her Claude
+  environments, `CATIO_PASSWORD` nowhere but her password manager, `CATIO_QUEEN` on the queen's runner. Never in the repo,
+  the chat or a test.
 - Never commit `art/licensed/`, `catio/data/sessions.json`, `catio/dist/` or anything from her sessions.
 
 ## Known limits

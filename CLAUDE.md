@@ -19,10 +19,9 @@ Publish `catio/index.html` with:
   and `sprout.ttf`), and the map panel in `art/licensed/pastel/` (`panel`, `panel-dark`, `frame`, `button`,
   `button-hover`, `button-down`, `icons` `.png`); and, once she has pieces of her own in `art/skin/`,
   `art/skin.json` and each file it lists (below, "Plug-and-play design");
-- `capabilities`: omit it on a republish to keep what's stored: Claude Code Remote's nine tools and the
-  gateway's five (below), `db`, `assets` and `sample`. Pass it only to add a tool on purpose, and then pass the whole set
-  (the first republish after PR #31 must, to add `list_repos`: until it has, the wizard's GitHub step says the page
-  isn't allowed to ask).
+- `capabilities`: omit it on a republish to keep what's stored. Pass it, as the whole set in "The stored capabilities"
+  below, to add a tool on purpose or when that section says a tool joined since the last publish (the first republish
+  after PR #31 must, to add `list_repos`: until it has, the wizard's GitHub step says the page isn't allowed to ask).
 
 `catio/data/` is **not** published: it is for the localhost copy (below).
 
@@ -422,12 +421,11 @@ The page now **writes** through Claude Code Remote, always on an explicit action
   page says it is waiting; the session's own catch-up (catio skill) finds them. Never bind a Routine
   (`create_trigger` with `persistent_session_id`, then `fire_trigger`): it starts a stray new session instead
   (tried 30 September).
-- **Talking**: `notes/<id>` `{cat, text, author: charlotte|session|agent, at, via}`; replies show live.
-- **Managing**: `set_session_title` (a cat's new name retitles its session too, her call on 3 October), `interrupt_session`, `archive_session` (+ `delete_trigger`),
 - **Talking**: `notes/<id>` `{cat, text, author: owner|session|agent, at, via}` (`charlotte` in notes from before
   accounts: the page reads both, writes `owner`); replies show live.
-- **Managing**: `set_session_title`, `interrupt_session`, `archive_session` (+ `delete_trigger`),
-  `unarchive_session`, `create_session` (New cat, model from `rooms/<k>.model`).
+- **Managing**: `set_session_title` (a cat's new name retitles its session too, her call on 3 October),
+  `interrupt_session`, `archive_session` (+ `delete_trigger`), `unarchive_session`, `create_session` (New cat, model
+  from `rooms/<k>.model`).
 - **Agents, and the sessions that report**: the gateway through her `CATIO` connector (`GATEWAY` in the page),
   else `host:catio` (on localhost, `/api/*` when served by `catio_mcp.py --serve`): `list_agents` every 30 s,
   `comments`, `comment`, `drop_file`, `manage`. A session that reports to the gateway is one cat with its

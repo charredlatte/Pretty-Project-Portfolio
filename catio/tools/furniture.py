@@ -18,8 +18,9 @@ stations   where a cat goes to show its state: (state, dx, dy), the point under 
            the steps of the stair, foot to top, which cats climb on their way to the attic.
 
 Sheets are named by the end of their path, which finds them both in Charlotte's zips and in an unpacked
-copy. "cc" is Cosy Cabin (committable: art/furniture.png); every other sheet is licensed and goes into
-art/licensed/furniture.png, which ships only inside the private artifact.
+copy (folder_loader); "wg:<file>" is one of Wood Garden's one-piece files. "cc" is Cosy Cabin (committable:
+art/furniture.png); every other sheet is licensed and goes into art/licensed/furniture.png, which ships only
+inside the private artifact.
 
     python3 catio/tools/furniture.py      writes the page's generated MANOR block (no zips needed: atlas
                                           positions depend only on the pieces' sizes)
@@ -30,7 +31,6 @@ from pathlib import Path
 
 from PIL import Image
 
-WG = "Wood_Garden_Asset_Pack/Wood Garden Asset Pack/"   # rowdy41: one piece per file; a sheet named "wg:<file>"
 SHEETS = {
     "cc": "CosyCabin_Objects.png",
     "tc": "CatRoomFree/Furnitures.png",
@@ -418,21 +418,6 @@ def check(only=None):
             if k != key and r == room and fx <= sx < fx + fw and fy <= sy < fy + fh:
                 bad.append((s, sx, sy, key, "on", k))
     return bad
-
-
-def render(img, packs, only=None, marks=False):
-    """Draw the layout over the shell (previews and the old build path). marks=True dots the stations."""
-    from PIL import ImageDraw
-    out = img.copy()
-    for k, x, y, room in placed(only):
-        out.alpha_composite(sprite(k, packs), (x, y))
-    if marks:
-        d = ImageDraw.Draw(out)
-        colour = {"needs": (230, 60, 60), "review": (230, 160, 40), "work": (60, 120, 230), "fail": (160, 60, 200),
-                  "sleep": (60, 180, 90), "queen": (250, 210, 0)}
-        for s, x, y, room, k in stations(only):
-            d.rectangle([x - 1, y - 1, x + 1, y + 1], fill=colour[s])
-    return out
 
 
 if __name__ == "__main__":

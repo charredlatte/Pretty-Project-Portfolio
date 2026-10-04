@@ -30,9 +30,9 @@ planned and not open yet.
 
 ## Say this first: the art is theirs to bring
 
-**The cats are not in the repository and cannot be, and nor is the interface.** Eight of the ten
-art packs the page is built from forbid redistributing their files (and a ninth came with no licence at
-all), so `catio/art/licensed/` is gitignored. A fresh clone draws only the Cosy Cabin furniture, its
+**The cats are not in the repository and cannot be, and nor is the interface.** Seven of the ten
+art packs the page is built from forbid redistributing their files, an eighth is drawn into the same pictures
+as theirs, and a ninth came with no licence at all, so `catio/art/licensed/` is gitignored. A fresh clone draws only the Cosy Cabin furniture, its
 menus on plain colour: no house and no cats.
 
 Tell the person this before anything else, because it decides whether the rest is worth their time.

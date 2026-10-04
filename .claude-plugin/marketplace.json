@@ -12,7 +12,7 @@
     {
       "name": "catio",
       "source": "./catio-plugin",
-      "description": "Set up your own Catio, and the litter box quiz for checking the sifter's piles."
+      "description": "Set up your own KittyChat Café, and the litter box quiz for checking the sifter's piles."
     }
   ]
 }
