@@ -1681,6 +1681,7 @@ async function dropFiles(page, sel, files) {
     expect(d[2].kind === "sort" && d[2].old === "session_blocked1", JSON.stringify(d[2]).slice(0, 200));
     const q = d[2].questions.cat;
     expect(q.type === "choice" && q.criteria.none && q.criteria.session_blocked1 && d[2].state.file.name === "untitled.txt", JSON.stringify(q).slice(0, 300));
+    expect(d[2].floor === 0.6 && typeof d[2].ref === "string" && d[2].ref, "the log can't tell how sure counts, or which file: " + JSON.stringify(d[2]).slice(0, 200));
   });
   // house/main.decide "on": the decider sorts first, when it is sure
   await T(page, () => { window.__catio.decideAnswer = { model: "stub", answers: { cat: { type: "choice", choice: "session_work1", confidence: 0.91, probabilities: { session_work1: 0.91 } } } }; window.__catio.put("house/main", { name: "KittyChat Café", decide: "on" }); });
@@ -1698,6 +1699,7 @@ async function dropFiles(page, sel, files) {
   });
   await page.click("#brainDlg button:has-text('Cancel')");
   await T(page, () => { window.__catio.put("house/main", { name: "KittyChat Café" }); window.__catio.decideAnswer.answers.cat = { type: "choice", choice: "none", confidence: 0.9, probabilities: { none: 0.9 } }; });
+  await page.waitForTimeout(100);   // back to observe before the next drop
 
   // the sorter can't tell either: it waits on the tray, and is filed from the brain
   await T(page, () => { window.__catio.sampleAnswer = { cat: null, reason: "no idea" }; });
@@ -1707,6 +1709,11 @@ async function dropFiles(page, sel, files) {
   await check("a file nobody claims waits on the brain's tray", async () => {
     const d = Object.entries(await T(page, () => window.__catio.store)).find(([p, v]) => p.startsWith("brain/") && v.name === "mystery.bin");
     expect(d && d[1].status === "unsorted" && d[1].cat === null, JSON.stringify(d));
+  });
+  await check("the decider's log says the sorter found nobody, and names the file as the brain keeps it", async () => {
+    const d = (await tools(page, "decide")).pop();
+    const kept = Object.keys(await T(page, () => window.__catio.store)).find((p) => p === "brain/" + d[2].ref);
+    expect(d[2].state.file.name === "mystery.bin" && d[2].old === "none" && kept, JSON.stringify({ old: d[2].old, ref: d[2].ref, kept }));
   });
   await openHouse(page);
   await menuButton(page, "The brain, 1 on the tray").click();

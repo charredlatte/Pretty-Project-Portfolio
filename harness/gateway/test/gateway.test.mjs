@@ -754,14 +754,23 @@ describe("the gateway", () => {
 		assert.match((await tool(TOKEN, "decide", { state: "", preset: "easy" })).refused, /state is empty/);
 		assert.match((await tool(TOKEN, "decide", { state: "x", preset: "hard" })).refused, /preset is one of easy/);
 		assert.equal(asked.length, n);
+		// under the caller's floor the decider hasn't decided: it neither agrees nor disagrees, and ref names the file
+		await tool(TOKEN, "decide", { state: { file: "notes.md" }, kind: "sort", old: "shop", floor: 0.9, ref: "b-1",
+			questions: { cat: { type: "choice", criteria: { shop: "the shop", catio: "the café" } } } });
 		// the log: only the call with a kind, with old and whether the two agreed; the café's database shows it
 		const docs = (await (await fetch(base + "/api/db", { headers: { Cookie: herCookie } })).json()).docs;
 		const log = Object.entries(docs).filter(([p]) => p.startsWith("decisions/"));
-		assert.equal(log.length, 1);
+		assert.equal(log.length, 2);
+		log.sort((x, y) => x[1].at - y[1].at);
 		assert.equal(log[0][1].kind, "sort");
 		assert.equal(log[0][1].old, "catio");
 		assert.equal(log[0][1].agree, false);
+		assert.equal(log[0][1].sure, true);
 		assert.equal(log[0][1].answers.cat.choice, "shop");
+		assert.equal(log[1][1].verdict, "shop");
+		assert.equal(log[1][1].sure, false);
+		assert.equal(log[1][1].agree, null);
+		assert.equal(log[1][1].ref, "b-1");
 	});
 
 	test("takes a session's reports from its hook, and hands her messages in at its Stop", async () => {

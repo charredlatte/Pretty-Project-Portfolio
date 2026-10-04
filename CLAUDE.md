@@ -455,7 +455,10 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
   `AI` binding, Clef (`@cf/cloudflare/clef-flash`, free plan) by default or `DECIDE_MODEL` (`typesafe/jev` is Jev
   itself, paid from AI Gateway credits); or `DECIDE_URL`, any System One server such as `laya-serve`. `preset: easy`
   is the easy-task rubric of `docs/delegation.md`. With `kind`, the decision is logged as `decisions/<id>` beside
-  `old`, what the old path chose, and `agree`. The page asks it where a dropped file goes (`decideSort`):
+  `old`, what the old path chose, and `agree`; with `floor`, a pick less sure than it is `sure: false` and
+  `agree: null` (the decider didn't decide), and `ref` names what was decided (the page's `brain/<id>`, so a pick can
+  be checked against where she sent the file). No `old` when the sorter didn't answer. The page asks it where a
+  dropped file goes (`decideSort`):
   `house/main.decide` unset or `"observe"` logs beside the sorter's pick and changes nothing; `"on"` lets it sort
   first above `DECIDE_FLOOR`. Switch it on only after a week of the log agrees. The plan is `docs/delegation.md`.
 - **Test** with `cd harness/gateway && npm install && npm test` (workerd, the real hook included) and
