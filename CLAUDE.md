@@ -272,7 +272,7 @@ Format 2025.10). Figma keeps a variable's value per **mode** and moves a whole p
   dark mode).
 
 Not taken from Figma, on purpose: a primitives layer under the semantic tokens (Figma's skill keeps one collection
-for under 50 to 60 tokens, and the café has 56), scopes and code syntax (Figma's own metadata; a token's name here is
+for under 50 to 60 tokens, and the café has 57), scopes and code syntax (Figma's own metadata; a token's name here is
 already its CSS variable), and more modes than light and dark (none asked for).
 
 What a slot takes, checked before it is drawn (`misfit()`): **exact** (the house, upstairs, the grounds, both

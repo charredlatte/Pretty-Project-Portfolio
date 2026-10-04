@@ -305,11 +305,18 @@ def check(art, key, rel, was, said, where="", filled=None):
         said.append(f"  {name}: the border {' '.join(map(str, sl))} doesn't fit inside {w} x {h}: left out" + ("" if entry.get("slice") else " (give it its own, \"slice\")"))
         return None
     if a["kind"] == "cat":
-        n = entry.get("frames") or (w // h if w % h == 0 and w // h <= 64 else a.get("frames", 1))
+        # square frames are worked out; a count an earlier run guessed for frames that aren't square is kept as hers,
+        # so a drawing once used isn't dropped now that nothing is guessed
+        f0 = was.get("frames")
+        kept = f0 if SETTINGS["frames"](f0) and [was.get("w"), was.get("h")] == [w, h] else None   # a count the page takes, for this very drawing
+        n = entry.get("frames") or (w // h if w % h == 0 and w // h <= 64 else kept)
+        if not n:   # the page's framesOf(): not guessed, or her cat would be cut in pieces
+            said.append(f"  {name}: its frames aren't square ({w} x {h}): set \"frames\" in skin.json")
+            return None
         if w % n:
             said.append(f"  {name}: {w} px wide doesn't split into {n} frames: set \"frames\" in skin.json")
             return None
-        if "frames" not in entry:
+        if "frames" not in entry and w % h == 0:   # worked out from square frames; one kept from before is written as hers
             worked.append("frames")
         entry["frames"] = n
         note = f" ({n} frames of {w // n} x {h})"
@@ -441,8 +448,8 @@ def main():
                 continue
             if f.startswith("art/skin/") and Path(f).stem == key:
                 continue   # one named after its slot was weighed with the folder
-            if not re.fullmatch(r"art/[^\"'()\\\x00-\x1f]+", f) or ".." in f:   # the page's safeSrc()
-                said.append(f"  {key}: {f} is a path the page won't read (quotes, brackets, a backslash or ..): left out")
+            if not re.fullmatch(r"art/[^\"'()%\\\x00-\x1f]+", f) or ".." in f:   # the page's safeSrc()
+                said.append(f"  {key}: {f} is a path the page won't read (quotes, brackets, %, a backslash or ..): left out")
                 continue
             if not (ROOT / f).is_file():
                 said.append(f"  {key}: {f} has gone, so it was dropped")
