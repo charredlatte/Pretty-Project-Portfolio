@@ -36,7 +36,7 @@ const card = (w, pad = 16, name = "card") => {
 
 const ids = [];
 let x = 0;
-const NAV = ["Pricing", "How it works", "Docs", "Account", "Cart (0)"];
+const NAV = ["Pricing", "How it works", "About", "Docs", "Account", "Cart (0)"];
 // The car (Charlotte, 4 October): the harness is the car, Ninine the queen cat drives it, Claude is the engine.
 // README, "The car", and docs/onboarding/README.md, which fits it part by part.
 const STORM = ["Claude on its own", "A stripped car: a brilliant engine and nothing else. No seatbelts, no windshield, no brakes, no tires. You can drive it if you know engines."];
@@ -160,6 +160,32 @@ function page(name, width = 1280, height = 900) {
   r2.appendChild(tile("Politique de confidentialité", ["What the gateway stores: session titles and states, notes, dropped files, keys (hashed)", "Why and how long; deletion 30 days after the subscription ends", "Sub-processors: Cloudflare, Shopify (orders and payment)", "Your rights (RGPD): access, export, erasure; contact"]));
   r2.appendChild(tile("Formulaire de rétractation", ["Model form of annex to art. R221-1 C. conso.", "Only before the service has started, or if the waiver wasn't ticked", "Where to send it, and the refund delay (14 days)"]));
   grid.appendChild(r1); grid.appendChild(r2); body.appendChild(grid); }
+
+// 10. About: the promotion's brief (Charlotte, 4 October): who to contact, when it ends, what it is, its links in
+// full, and the mentions légales on the page itself.
+{ const { body, w } = page("10 About", 1280, 1100);
+  body.appendChild(text("About the KittyChat Café", 32, BOLD));
+  body.appendChild(text("One person, in the open, while it is in development. Everything on this page is current as of [date updated].", 14, REG, GREY, 640));
+  const two = row(24, "contact and dates");
+  const contact = card(508, 20, "point of contact"); contact.appendChild(text("Point of contact", 16, BOLD));
+  for (const l of ["Charlotte Badot, EI · founder and the only person who answers", "[email] (replies within two working days)", "[address, city, France]", "Hours: [HH:MM]–[HH:MM] Paris time, Monday to Friday"]) contact.appendChild(text(l, 13, REG, INK, 468));
+  contact.appendChild(button("Write to Charlotte", true)); two.appendChild(contact);
+  const dates = card(508, 20, "due date"); dates.appendChild(text("Due date", 16, BOLD));
+  dates.appendChild(text("[DD Month YYYY]", 26, BOLD)); dates.appendChild(text("The early-access promotion ends on this date at 23:59 Paris time. Orders placed before it keep the launch price for the length of their subscription.", 13, REG, INK, 468));
+  dates.appendChild(text("Launched: [DD Month YYYY] · Last updated: [date updated]", 12, REG, GREY, 468)); two.appendChild(dates);
+  body.appendChild(two);
+  const promo = card(w, 20, "the promotion"); promo.appendChild(text("The promotion, in short", 16, BOLD));
+  promo.appendChild(text("Early access to the hosted KittyChat Café at the launch price, [monthly] € a month HT instead of [full] €, for every café opened before the due date. It includes every room, the brain's sorter, the litter box quiz and the queen's homework, and new features as they land until the app ships. The price is held for as long as the subscription stays open. TVA non applicable, art. 293 B du CGI.", 13, REG, INK, w - 40));
+  body.appendChild(promo);
+  body.appendChild(text("Links", 16, BOLD));
+  body.appendChild(text("Every link is shown in full, exactly as it is: no shortened or tracking addresses (no bit.ly, tinyurl or the like).", 12, REG, GREY, w));
+  const links = col(6, "links in full");
+  for (const [label, url] of [["The hosted café", "https://catio-gateway.[subdomain].workers.dev"], ["The code, open source (AGPL-3.0)", "https://github.com/charredlatte/Pretty-Project-Portfolio"], ["Buy me a coffee", "https://buymeacoffee.com/[handle]"], ["Back the app on Ulule", "https://ulule.com/[campaign]"], ["The shop", "https://kittychatcafe.com"]]) {
+    const r = row(12, "link"); r.appendChild(text(label, 13, BOLD, INK, 300)); r.appendChild(text(url, 13, REG, GREY, 700)); links.appendChild(r); }
+  body.appendChild(links);
+  const legal = card(w, 20, "mentions légales"); legal.appendChild(text("Mentions légales", 16, BOLD));
+  for (const l of ["Éditeur : Charlotte Badot, entrepreneur individuel (EI), nom commercial KittyChat Café · SIREN [SIREN] · RNE [RNE] · [address] · [email]", "Directrice de la publication : Charlotte Badot", "Hébergeur : Cloudflare, Inc., 101 Townsend St, San Francisco, CA 94107, USA (Workers, données en Europe lorsque disponible) · Boutique : Shopify International Ltd, Dublin, Irlande", "TVA non applicable, art. 293 B du CGI · Médiateur de la consommation : [name, address]", "Les CGV, la politique de confidentialité et le formulaire de rétractation sont sur la page Legal."]) legal.appendChild(text("•  " + l, 12, REG, INK, w - 40));
+  body.appendChild(legal); }
 
 // 8 and 9. The phone: home and pricing at 390 wide.
 { const { body, w } = page("8 Home (phone)", 390, 900);
