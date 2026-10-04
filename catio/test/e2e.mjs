@@ -2242,6 +2242,7 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
   await check("How it works: the five lines and the two install lines", async () => {
     expect((await title()) === "How it works", await title());
     expect(await page.locator("#setupDlg ul.how li").count() === 5, "lines");
+    expect((await page.locator("#setupDlg").innerText()).includes("a really nice car in perfect weather"), "the car");
     expect((await page.locator("#installLines").innerText()).includes("claude plugin install kittychat-house-rules@kittychat"), "install line");
     expect(await page.locator("#copyInstall").isVisible(), "copy");
   });

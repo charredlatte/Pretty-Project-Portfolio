@@ -105,6 +105,7 @@ screen("Layout: the shell", false);
 
 // 7. How it works.
 { const c = col(10);
+  c.appendChild(text("Coding with AI is usually a kit car in a storm: you have to know the engine to get anywhere. The café is a really nice car in perfect weather. The engine is the same, your own Claude: you see the road, and you just drive. Five things to know before you set off:", 14, REG, INK, 560));
   for (const l of [["Chats are cats.", "Each Claude chat or coding session walks into the room of its project."],
     ["The café asks who's awake.", "Each cat shows what its chat is doing: working, finished, or stuck and needs you. The badge beside the café's name counts who needs you."],
     ["Some rules can't be talked around.", "Small checks run on their own before a cat may change or publish anything. Claude can't skip them."],

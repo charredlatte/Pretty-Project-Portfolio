@@ -11,11 +11,13 @@ the business plan's figures go once she has chosen them. The plan itself is priv
 
 1. **Home.** The headline speaks to someone who has never opened a terminal ("Your projects as a cat café. Every task
    is a cat; it meows when it needs you. No terminal required."): her ask of 3 October, to advertise to small business
-   owners using AI for the first time, with the café as a video-game way into a coding environment. Then a screenshot box, "Start free: self-host" and "Join the café: early
-   access", the three ways to get it (self-host, named as the developers' door since the headline promises no terminal; hosted;
+   owners using AI for the first time, with the café as a video-game way into a coding environment. Then "Start free: self-host" and "Join the café: early
+   access", a screenshot box, the two cars side by side (below, "The car"), the three ways to get it (self-host, named as the developers' door since the headline promises no terminal; hosted;
    set up for you from 90 €), and the legal footer every page
    carries (mentions légales, CGV, confidentialité, rétractation, contact).
-2. **Pricing.** Four columns from her paywall (2 and 3 October): Free (one repository, the page), Basic (up to five
+2. **Pricing.** Opens on the car: every plan is the same nice car, Claude its engine, and the buyer buys the fuel
+   from Anthropic. Then four columns from her paywall (2 and 3 October), each with its place in the car under its
+   price: Free (one repository, the page), Basic (up to five
    repositories, requests and gateway calls capped at `[cap]` a month, no sorter, quiz or homework: files dropped on a
    cat arrive unsorted), Early access (unlimited repositories, uncapped, the brain's sorter, the litter box quiz, the
    queen's homework, new features until the app ships) and Support, which is not a tier but two buttons: "Buy me a coffee" (one-off coffees and small memberships, thanks
@@ -39,7 +41,33 @@ the business plan's figures go once she has chosen them. The plan itself is priv
 7. **Legal pages.** Four tiles: mentions légales (EI, SIREN, host), CGV (object, price, renewal, withdrawal,
    médiateur), politique de confidentialité (what the gateway stores, sub-processors, RGPD rights), and the model
    withdrawal form.
-8. **Home (phone)** and 9. **Pricing (phone)**, at 390 wide, with the tiers stacked.
+8. **Home (phone)** and 9. **Pricing (phone)**, at 390 wide, with the tiers stacked. The phone's home says the car
+   in one line ("Like driving a really nice car in perfect weather."), and each stacked tier keeps its line.
+
+## The car
+
+Her ask of 4 October: "It's like driving a really nice car in perfect weather. Whereas driving regular code UIs
+requires knowledge a regular schmuck like me doesn't have." The cats say what is in the café; the car says what the
+café is for, to someone who has never opened a terminal, which is who the home page speaks to.
+
+| The car | The café |
+|---|---|
+| A kit car in a storm | Coding with AI in a terminal: commands, jargon, nothing tells you who's stuck |
+| A really nice car | The café |
+| The engine, the same in both | Claude, the buyer's own |
+| The fuel, bought at the pump | Their Claude plan, paid to Anthropic: the café never resells it |
+| Perfect weather | The house rules (checks run before anything changes) and nothing shipping behind your back |
+| The dashboard | The badge and the meowing cats: who needs you |
+| Mileage | Requests and gateway calls |
+| The co-pilot | The queen: the sorter, the litter box quiz, her homework |
+| Driving lessons | Set up for you: the DIY course, and the afternoon with Charlotte |
+
+So the tiers read: **Free**, take it round the block (one repository); **Basic**, your own car with a mileage cap
+(`[cap]` a month, no co-pilot); **Early access**, unlimited mileage and a co-pilot; **Support**, chip in for the next
+model (the app). The lines are `DRIVE` in `frames.js`, beside `STORM` and `SUN`, the two cars on the home page.
+
+Keep the car outside the café: the store, the pricing and the wizard's one line in How it works
+(`docs/onboarding/README.md`). Inside the page it is cats and rooms; two metaphors in one sentence is one too many.
 
 ## Redrawing
 

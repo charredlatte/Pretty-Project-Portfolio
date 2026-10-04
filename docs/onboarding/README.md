@@ -18,8 +18,8 @@ Nothing in it is art: plain grey boxes and Figma's Inter. Nothing from `catio/da
 5. **Sessions.** What `list_sessions` found. **4b** is the blocked state, with the saved copy in one line.
 6. **Litter box.** What it is and a drop zone. (The frame's switch for holding pull requests was dropped in
    the build: holding is the merging rule's doing, `harness/README.md`, not a page setting.)
-7. **How it works.** The harness in five plain lines: chats are cats, the café asks who's awake, some rules
-   can't be talked around, messages wait on the mat, the queen and the litter box.
+7. **How it works.** The car first, in one line (below), then the harness in five plain lines: chats are cats, the
+   café asks who's awake, some rules can't be talked around, messages wait on the mat, the queen and the litter box.
 8. **Done.** The summary and "Open the doors".
 
 Every wizard frame has the same skeleton: step dots, title, content, Back and Next.
@@ -69,7 +69,23 @@ own address the café is live through the gateway, with no warning sign", the sa
 with no `art/licensed/` the sign shows what is missing, so it shows in gateway mode too. It is a real failure and
 someone's to fix; this change neither caused it nor hides it.
 
+## Decided 4 October 2026: the car
+
+Charlotte's words: "It's like driving a really nice car in perfect weather. Whereas driving regular code UIs requires
+knowledge a regular schmuck like me doesn't have." The café metaphor says what is *in* the café; the car says what the
+café is *for*, next to everything else, so it comes once, before the five lines.
+
+- **Where:** one line opening How it works, in `frames.js` and `openSetup()` alike. How it works is still word for word
+  the same in both, the car line included. Nowhere else in the wizard: the other steps instruct, and inside the café
+  everything stays cats and rooms. Two metaphors in one sentence is one too many.
+- **What it maps:** the storm and the kit car are the terminal and its jargon; the nice car is the café; the engine is
+  Claude, the same on both sides and still the person's own; perfect weather is the house rules (checks run before
+  anything changes, nothing ships behind your back) and the badge that says who needs you. The shop's pricing carries
+  the rest of the car (`docs/kittychat-shop/README.md`); the wizard needs only this much.
+- **The check:** the suite's How it works step looks for "a really nice car in perfect weather" beside its five lines.
+
 ## Still to build
 
-- Republish the page to its one artifact, so the wizard's new wording reaches the café in claude.ai.
+- Republish the page to its one artifact, so the wizard's new wording (the plain words of 3 October and the car of
+  4 October) reaches the café in claude.ai.
 - Where the litter box lives in the page: the brain's unsorted tray and the repo's `litterbox/`.
