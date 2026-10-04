@@ -76,6 +76,8 @@ def slots():
         v = re.search(r'atlas: "(\w+)"', line)
         if v:
             a["size"] = atlases[v.group(1)]
+        if re.search(r"smooth: true", line):
+            a["smooth"] = True
         v = re.search(r'fam: "(\w+)"', line)
         if v:
             a["fam"] = v.group(1)
@@ -189,7 +191,7 @@ SETTINGS = {
     "slice": lambda v: ints(v, 4, 0, 256),   # the page takes 64, or 256 for a smooth map piece (checked in check())
     "frames": lambda v: isinstance(v, int) and not isinstance(v, bool) and 1 <= v <= 64,
     "secs": lambda v: number(v, 0.1, 20), "anchor": lambda v: isinstance(v, list) and len(v) == 2 and all(number(x, 0, 1024) for x in v),
-    "scale": lambda v: number(v, 0.001, 64), "pixel": lambda v: v is True, "hot": lambda v: ints(v, 2, 0, 127),
+    "scale": lambda v: number(v, 0.001, 64), "pixel": lambda v: isinstance(v, bool), "hot": lambda v: ints(v, 2, 0, 127),
     "w": lambda v: isinstance(v, int), "h": lambda v: isinstance(v, int),
 }
 
@@ -254,6 +256,11 @@ def check(art, key, rel, was, said, where="", filled=None):
             note = f" (border {' '.join(map(str, entry['slice']))}, scaled from the pack's; set \"slice\" if it isn't)"
         else:
             note = f" (another size than the pack's {want[0]} x {want[1]}: give its border, \"slice\": [t, r, b, l], or it keeps {a['slice']})"
+    smooth = "scale" in a or a.get("smooth")
+    if smooth and want and "pixel" not in entry and "scale" not in entry and w <= want[0] / 2:
+        entry["pixel"] = True   # as The look starts it: half the pack's width or less is pixel art
+        worked.append("pixel")
+        note += " (pixel art; \"pixel\": false if it is smooth)"
     if entry.get("pixel"):
         entry.pop("scale", None)   # pixel art is drawn at the art pixel: a scale has nothing to say
     if a["kind"] == "slice" and "scale" in a and want and w != want[0] and "scale" not in entry and not entry.get("pixel"):
@@ -334,7 +341,8 @@ def main():
             from_files.setdefault(mode, {}).update(found)
             said.append(f"  {p.name}: {len(found)} tokens into {mode}" + (f", {foreign} not the cafe's" if foreign else ""))
     base = defaults()
-    filed = set(old.get("tokensFromFiles") or [])   # modes built from files last time: with their files gone, so are they
+    tf = old.get("tokensFromFiles")   # modes built from files last time: with their files gone, so are they
+    filed = {m for m in tf if m in ("light", "dark")} if isinstance(tf, list) else set()
     for mode in filed - set(from_files) - broken:
         said.append(f"  {mode}: its tokens files have gone, so its tokens were dropped")
         modes[mode] = {}
@@ -346,8 +354,8 @@ def main():
         modes["dark"] = {t: v for t, v in from_files["dark"].items() if v.lower() != (modes["light"].get(t) or base.get(t, "")).lower()}
     for key, was in old.items():   # a drawing of hers in art/skin/ that has gone
         f = file_of(was)
-        if key in art and isinstance(f, str) and f.startswith("art/skin/") and not (ROOT / f).is_file():
-            said.append(f"  {key}: {f} has gone, so the pack's is back")
+        if key in art and isinstance(f, str) and f.startswith("art/skin/") and Path(f).stem == key and not (ROOT / f).is_file():
+            said.append(f"  {key}: {f} has gone, so the pack's is back")   # one under another name is said with the hand-pointed
     names, filled = {}, {}   # filled: what each slot's drawing fills, said once the family check has run
     for p in files:
         if not p.name.endswith(".tokens.json"):
@@ -371,7 +379,10 @@ def main():
         if key in skin or key not in art or not isinstance(f, str) or not f.startswith("art/"):
             continue
         if f.startswith("art/skin/") and Path(f).stem == key:
-            continue   # one named after its slot was weighed with the folder   # a drawing of hers in art/skin/ took the slot (one refused there leaves this one to be weighed)
+            continue   # one named after its slot was weighed with the folder
+        if not re.fullmatch(r"art/[^\"'()\\\x00-\x1f]+", f) or ".." in f:   # the page's safeSrc()
+            said.append(f"  {key}: {f} is a path the page won't read (quotes, brackets, a backslash or ..): left out")
+            continue
         if not (ROOT / f).is_file():
             said.append(f"  {key}: {f} has gone, so it was dropped")
             continue

@@ -1082,12 +1082,14 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // A family member is checked against its head in the skin given (`live`; the one on screen when left out), or not at
   // all while the skin is still being measured (`false`): applySkin checks members once every head is.
   // `picking`: a file just chosen in The look, whose form will ask for its frames and border, so those aren't held against it yet
+  // a cat sheet's frames: what its entry says, else square frames when it splits into them (as skin.py reads it), else the pack's
+  const framesOf = (a, e, w, h) => (e && e.frames) || (w % h === 0 && w / h <= 64 ? w / h : a.frames);
   // `e`: what the entry says about itself (slice, frames, hot) that must fit the picture
   function misfit(key, w, h, live = SKIN.live, e = {}, picking = false) {
     const { slice = null, frames = null, hot = null } = e || {};
     const a = ART[key];
     if (a.hot && hot && (hot[0] >= w || hot[1] >= h)) return "Its tip " + hot.join(" ") + " is outside its " + w + " × " + h + ".";
-    if (a.kind === "cat" && !picking && w % (frames || a.frames)) return "It is " + w + " pixels wide, which doesn't split into " + (frames || a.frames) + " frames.";
+    if (a.kind === "cat" && !picking && w % framesOf(a, { frames }, w, h)) return "It is " + w + " pixels wide, which doesn't split into " + framesOf(a, { frames }, w, h) + " frames.";
     if (a.kind === "slice" && !a.slice && live) {   // the button's hover, green and pink, the map's dark panel…: cut with the head's border
       const head = headOf(key), e = live[head], [hw, hh] = e ? [e.w, e.h] : ART[head].size;
       if (w !== hw || h !== hh) return "It is " + w + " × " + h + ": it shares the " + ART[head].name.toLowerCase() + "'s border, so draw it the same size, " + hw + " × " + hh + ".";
@@ -1151,17 +1153,18 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (a.kind === "slice" || a.kind === "sheet" || a.kind === "exact") put("--art-" + k, cssUrl(e.url));
       if (a.hot) put("--" + k + "-hot", (e.hot || a.hot).join(" "));   // her paw points where she says
       if (a.smooth && e.pixel) put("--" + k + "-render", "pixelated");   // a smooth slot's piece drawn as pixel art
-      if (a.kind === "slice" && a.slice && e.slice) {
-        e.slice.forEach((n, i) => put("--" + a.fam + "-" + "trbl"[i], String(n)));
-        if (a.bw) put("--" + a.fam + "-bw", "var(--" + a.fam + "-" + a.bw + ")");   // her border's box, side by side
-        if (a.iw) put("--" + a.fam + "-iw", "var(--" + a.fam + "-" + a.iw + ")");   // and her art drawn at its own widths
+      if (a.kind === "slice" && a.slice) {
+        if (e.slice) e.slice.forEach((n, i) => put("--" + a.fam + "-" + "trbl"[i], String(n)));
+        // hers, with her border or the pack's: its own box side by side, and drawn at its own widths
+        if (a.bw) put("--" + a.fam + "-bw", "var(--" + a.fam + "-" + a.bw + ")");
+        if (a.iw) put("--" + a.fam + "-iw", "var(--" + a.fam + "-" + a.iw + ")");
       }
       if (a.kind === "slice" && a.scale && (e.scale || e.pixel)) {
         put("--" + a.fam + "-k", e.pixel ? "var(--u)" : e.scale + "px");   // pixel art at the art pixel, whatever scale was worked out
         if (e.pixel) put("--" + a.fam + "-render", "pixelated");
       }
       if (a.kind === "cat") {
-        const n = e.frames || a.frames, fw = Math.round(e.w / n), fh = e.h, [ax, ay] = e.anchor || [Math.round(fw / 2), fh], secs = e.secs || a.secs;
+        const n = framesOf(a, e, e.w, e.h), fw = Math.round(e.w / n), fh = e.h, [ax, ay] = e.anchor || [Math.round(fw / 2), fh], secs = e.secs || a.secs;
         const play = "a-skin-" + a.mood + " " + secs + "s steps(" + n + ") infinite";
         const sheet = "background: " + cssUrl(e.url) + " 0 0 / " + n * fw + "px " + fh + "px no-repeat; width: " + fw + "px; height: " + fh + "px;";
         css.push("@keyframes a-skin-" + a.mood + " { from { background-position: 0 0; } to { background-position: " + -n * fw + "px 0; } }");
@@ -1209,6 +1212,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     }
     for (const [fam, f] of Object.entries(faces)) { if (SKIN.fonts[fam]) document.fonts.delete(SKIN.fonts[fam].face); document.fonts.add(f.face); SKIN.fonts[fam] = f; }
     for (const [fam, f] of Object.entries(SKIN.fonts)) if (!live[fam.slice("KittySkin-".length)]) { document.fonts.delete(f.face); delete SKIN.fonts[fam]; }   // a font put back
+    for (const key of Object.keys(SKIN.faces)) { const [k, url] = [key.slice(0, key.indexOf(" ")), key.slice(key.indexOf(" ") + 1)]; if (!live[k] || live[k].url !== url) delete SKIN.faces[key]; }
     for (const m of Object.keys(SPR)) delete SPR[m];
     Object.assign(SPR, spr);
     $("skinCss").textContent = [":root { " + vars.join(" ") + " }",
@@ -4401,7 +4405,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const a = ART[k], e = skinOf(k);
     if (a.kind === "font") return (e ? e.name || "Yours" : a.file ? "The pack's" : "Google Fonts'") + ". A font file: .ttf, .otf, .woff or .woff2.";
     if (a.kind === "cat") {
-      if (e) { const n = e.frames || a.frames; return n + " frames of " + Math.round(e.w / n) + " × " + e.h + ", " + (e.secs || a.secs) + " s a loop."; }
+      if (e) { const n = framesOf(a, e, e.w, e.h); return n + " frames of " + Math.round(e.w / n) + " × " + e.h + ", " + (e.secs || a.secs) + " s a loop."; }
       return a.file ? a.frames + " frames of " + SPR0[a.mood].w + " × " + SPR0[a.mood].h + ". Yours: one row of frames, the feet at the bottom middle." : "One row of " + a.frames + " frames, the feet at the bottom middle.";
     }
     if (a.kind === "slice") return (e ? e.w + " × " + e.h : a.size[0] + " × " + a.size[1]) + ", border " + borderOf(k).join(" ") + ": the corners stay as drawn, the rest stretches.";
@@ -4611,6 +4615,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (a.kind === "font") {   // tried before anything is kept: a file that isn't a font is said at once
       // its bytes, not a URL: no rule of the page's frame can refuse the try
       try { await new FontFace("KittySkin-try", await file.arrayBuffer()).load(); } catch (e) { URL.revokeObjectURL(p.url); toast(file.name + " isn't a font the browser can read.", "alert"); return; }
+      if (!$("artDlg").open) { URL.revokeObjectURL(p.url); return; }   // she closed the card while it was read
     } else {
       try { [p.w, p.h] = await natural(p.url); } catch (e) { URL.revokeObjectURL(p.url); toast(file.name + " isn't a picture the browser can read.", "alert"); return; }
       if (!$("artDlg").open) { URL.revokeObjectURL(p.url); return; }   // she closed the card while it was read
@@ -4625,6 +4630,14 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // what she picked, before it is kept: the picture, what it needs, and Use it
   function artForm(k) {
     const a = ART[k], p = ARTPICK[k], f = el("form", "swap");
+    // pixel art or smooth, for a piece of a smooth slot: half the pack's width or less starts as pixel art
+    const drawnAs = (labels) => {
+      const x = el("select"); x.id = "artPixel-" + k;
+      ["pixel", "smooth"].forEach((v, i) => { const o = el("option", null, labels[i]); o.value = v; x.appendChild(o); });
+      x.value = p.typed.pixel ?? (p.w <= a.size[0] / 2 ? "pixel" : "smooth");
+      fields.appendChild(field("Drawn as", x));
+      return x;
+    };
     if (a.kind !== "font") { const i = el("img"); i.src = p.url; i.alt = "Your " + a.name.toLowerCase(); f.appendChild(i); }
     const fields = el("div", "fields");
     f.appendChild(fields);
@@ -4635,19 +4648,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       const now = skinOf(headOf(k)), nw = now ? now.w : a.size[0], nh = now ? now.h : a.size[1];   // the border is the one drawn now, at that width
       bd = el("input"); bd.id = "artBorder-" + k; bd.value = p.typed.border ?? (p.w === nw && p.h === nh ? borderOf(k) : a.scale ? borderOf(k).map((n) => Math.max(1, Math.round(n * p.w / nw))) : borderOf(k)).join(" ");
       fields.appendChild(field("Border, in its pixels: top right bottom left", bd));
-      if (a.scale) {
-        px = el("select"); px.id = "artPixel-" + k;
-        for (const [v, l] of [["pixel", "Pixel art, two screen pixels to one"], ["smooth", "Smooth, drawn at twice its size"]]) { const o = el("option", null, l); o.value = v; px.appendChild(o); }
-        px.value = p.typed.pixel ?? (p.w <= a.size[0] / 2 ? "pixel" : "smooth");
-        fields.appendChild(field("Drawn as", px));
-      }
+      if (a.scale) px = drawnAs(["Pixel art, two screen pixels to one", "Smooth, drawn at twice its size"]);
     }
-    if (!p.why && a.smooth) {   // a smooth sheet: hers may be pixel art
-      px = el("select"); px.id = "artPixel-" + k;
-      for (const [v, l] of [["pixel", "Pixel art"], ["smooth", "Smooth"]]) { const o = el("option", null, l); o.value = v; px.appendChild(o); }
-      px.value = p.typed.pixel ?? (p.w <= a.size[0] / 2 ? "pixel" : "smooth");
-      fields.appendChild(field("Drawn as", px));
-    }
+    if (!p.why && a.smooth) px = drawnAs(["Pixel art", "Smooth"]);   // a smooth sheet: hers may be pixel art
     if (!p.why && a.hot) {
       hot = el("input"); hot.id = "artHot-" + k; hot.value = p.typed.hot ?? a.hot.join(" ");
       fields.appendChild(field("Where it points, in its pixels: x y", hot));
