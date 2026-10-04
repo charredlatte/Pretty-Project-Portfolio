@@ -224,6 +224,9 @@ def png_size(path):
     return (w, h) if w and h else None
 
 
+ART_PX = 2   # the desk's art pixel in px (--u-desk), hers when her tokens say: what a pixel-art border is shown at
+
+
 def check(art, key, rel, was, said, where="", filled=None):
     """One drawing for one slot, checked as the page checks it: its entry for skin.json, or None and why, said. What it
     fills is told through `filled` when given (a family member's, once its head is known), else said at once."""
@@ -285,8 +288,8 @@ def check(art, key, rel, was, said, where="", filled=None):
         worked.append("scale")
         note += f" (scale {entry['scale']}, smooth; \"pixel\": true instead if it is pixel art)"
     loud = entry.get("slice") or a.get("slice")
-    if entry.get("pixel") and "scale" in a and loud and max(loud) > max(a["slice"]) * a["scale"]:   # the page's pixelLoud()
-        said.append(f"  {name}: drawn as pixel art, its border of {max(loud)} would show {2 * max(loud)} px wide, more than twice the pack's: left out (draw it smaller, or \"pixel\": false)")
+    if entry.get("pixel") and "scale" in a and loud and max(loud) * ART_PX > 2 * max(a["slice"]) * a["scale"]:   # the page's pixelLoud()
+        said.append(f"  {name}: drawn as pixel art, its border of {max(loud)} would show {max(loud) * ART_PX:g} px wide, more than twice the pack's: left out (draw it smaller, or \"pixel\": false)")
         return None
     if entry.get("slice") and max(entry["slice"]) > (256 if "scale" in a else 64):
         said.append(f"  {name}: its border {entry['slice']} is over {256 if 'scale' in a else 64}, more than the page takes: left out")
@@ -330,6 +333,9 @@ def family(art, skin, said):
         if [mw, mh] != [hw, hh]:
             said.append(f"  {key}: {mw} x {mh}, but it shares {head}'s border, so it must be {hw} x {hh}: left out")
             del skin[key]
+        elif "scale" in art[head] and isinstance(skin[key], dict) and skin[key].get("pixel") and not (isinstance(skin.get(head), dict) and skin[head].get("pixel")):
+            said.append(f"  {key}: pixel art, but it shares {head}'s drawing, which is smooth: left out (draw {head} as pixel art too)")
+            del skin[key]   # as the page: pixel art or smooth is the head's, for the whole family
 
 
 def main():
@@ -376,6 +382,9 @@ def main():
         modes["light"] = from_files["light"]
     if "dark" in from_files and "dark" not in broken:   # what differs from light as it now stands (The look's export repeats it)
         modes["dark"] = {t: v for t, v in from_files["dark"].items() if v.lower() != (modes["light"].get(t) or base.get(t, "")).lower()}
+    global ART_PX
+    u = modes["light"].get("--u-desk", "")
+    ART_PX = float(u[:-2]) if u.endswith("px") else 2
     for key, was in old.items():   # a drawing of hers in art/skin/ that has gone
         f = file_of(was)
         if key in art and isinstance(f, str) and f.startswith("art/skin/") and Path(f).stem == key and not (ROOT / f).is_file():

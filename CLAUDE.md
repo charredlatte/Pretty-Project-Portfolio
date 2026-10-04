@@ -277,7 +277,9 @@ furniture sheets, the two cursors) only its own size, because the rooms are meas
 icons, meadow, logo…) any size of the same shape; a **slice** any size, with its border in its own pixels (a
 family shares its head's: the button's hover, green and pink take the button's, so each is drawn the head's size, and
 while she hasn't drawn one, her head stands in for it (`SKIN.standIn`), so a hover never turns back into the pack's;
-a map piece can be drawn as pixel art, `pixel: true`, its family alone then `pixelated`, or smooth at a `scale`;
+a map piece can be drawn as pixel art, `pixel: true`, its family alone then `pixelated`, or smooth at a `scale`
+(as pixel art its border shows at the art pixel, at most twice the pack's on screen, and the family follows its head:
+a member called pixel art beside a smooth head is refused, `pixelLoud()` and `misfit()`);
 what sits inside a frame follows its border: the HUD and the map panel inside the screen's panel, the portrait inside
 its frame, a plan's tag and door inside its brackets); a **cat** one row of frames, any frame size, its feet at the bottom
 middle unless `anchor` says, its loop in `secs` (the generated rules go in `#skinCss`, and `SPR` takes its frame

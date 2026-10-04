@@ -2745,6 +2745,27 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     await page.evaluate(() => { delete window.__catio.store["skin/faces"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
     await page.waitForTimeout(500);
   });
+  await check("a map piece called pixel art beside its family's smooth head is refused, with why", async () => {
+    await page.evaluate(() => window.__catio.put("skin/map-panel-dark", { src: "art/licensed/pastel/panel-dark.png", pixel: true, at: 1 }));
+    await page.waitForTimeout(600);
+    expect(!(await rootVar("--mpanel-render")).includes("pixelated"), await rootVar("--mpanel-render"));
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const row = await page.locator("#artDlg li[data-slot='map-panel-dark']").textContent();
+    expect(/shares the map panel's drawing, which is smooth/.test(row), row);
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+    await page.evaluate(() => { delete window.__catio.store["skin/map-panel-dark"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(500);
+  });
+  await check("the logo is drawn at the art pixel, so it grows and shrinks with her --u-desk", async () => {
+    const logo = () => page.evaluate(() => { const r = document.querySelector("#houseBtn .logo").getBoundingClientRect(); return r.width + "x" + r.height; });
+    expect((await logo()) === "42x36", await logo());
+    const kept = await page.evaluate(() => window.__catio.store["skin/theme"]);
+    await page.evaluate(() => window.__catio.put("skin/theme", { tokens: { "--u-desk": "3px" }, at: 9 }));
+    await page.waitForTimeout(600);
+    expect((await logo()) === "63x54", await logo());
+    await page.evaluate((t) => { if (t) window.__catio.put("skin/theme", t); else { delete window.__catio.store["skin/theme"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; } }, kept);
+    await page.waitForTimeout(600);
+  });
   await check("a project map's dots outside its eight neighbourhoods are the rest's grey", async () => {
     await page.evaluate(() => window.__catio.put("graphs/grey-test", { repo: "example/grey-test", at: Date.now(), nodes: 3, edges: 1, communities: 1, gods: [], groups: [{ name: "One", size: 2 }], surprises: [], questions: [],
       map: { n: [{ t: "A", g: 0, d: 3, x: 50, y: 50 }, { t: "B", g: -1, d: 2, x: 150, y: 80 }, { t: "C", g: 11, d: 1, x: 250, y: 120 }], l: [0, 1] } }));

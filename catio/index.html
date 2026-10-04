@@ -194,8 +194,8 @@ a { color: var(--ink); }
   border-image: var(--art-button) var(--btn-s) fill / var(--btn-w) stretch; image-rendering: pixelated; }
 .brand:hover { border-image-source: var(--art-button-hover); }
 .brand[aria-expanded="true"] { border-image: var(--art-button-down) var(--down-s) fill / var(--down-w) stretch; translate: 0 calc(2 * var(--u)); background-color: var(--pressed); }
-.brand .logo { width: 21px; height: 18px; flex: none; margin: -2px 0 -2px -2px; background: var(--art-logo) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; }
-@media (min-width: 561px) { .brand .logo { width: 42px; height: 36px; background-size: 42px 36px; margin: -8px 0 -10px -8px; } }
+.brand .logo { width: calc(21 * var(--u)); height: calc(18 * var(--u)); flex: none; margin: -2px 0 -2px -2px; background: var(--art-logo) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; }
+@media (min-width: 561px) { .brand .logo { margin: -8px 0 -10px -8px; } }   /* 21 × 18 art pixels: 42 × 36 at the desk's */
 #tally { display: inline-flex; }
 #tally:empty { display: none; }
 .hud .status:not(.warn) { display: none; }
@@ -1102,8 +1102,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   const pixelish = (a, w) => w <= (a.scale ? a.size[0] * a.scale * PIXELISH[0] : a.size[0] * PIXELISH[1]);
   // a map piece drawn as pixel art shows its border at the art pixel: more of it than the pack shows on screen would
   // bury the map panel (the pack's 28 at half size is 14 px; hers, 14 pixels of art at most)
-  const pixelLoud = (a, b) => !!(a.scale && b && Math.max(...b) > Math.max(...a.slice) * a.scale);
-  const LOUD = (b) => "Drawn as pixel art, its border of " + Math.max(...b) + " would show " + 2 * Math.max(...b) + " px wide, more than twice the pack's: draw it smaller, or as smooth.";
+  // shown at the art pixel on screen now (--u: the desk's or the phone's, hers if she set them)
+  const artPx = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--u")) || 2;
+  const pixelLoud = (a, b) => !!(a.scale && b && Math.max(...b) * artPx() > 2 * Math.max(...a.slice) * a.scale);
+  const LOUD = (b) => "Drawn as pixel art, its border of " + Math.max(...b) + " would show " + Math.max(...b) * artPx() + " px wide, more than twice the pack's: draw it smaller, or as smooth.";
   const framesOf = (a, e, w, h) => (e && e.frames) || (w % h === 0 && w / h <= 64 ? w / h : a.frames);
   // `e`: what the entry says about itself (slice, frames, hot) that must fit the picture
   function misfit(key, w, h, live = SKIN.live, e = {}, picking = false) {
@@ -1113,8 +1115,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (a.hot && hot && (hot[0] >= w || hot[1] >= h)) return "Its tip " + hot.join(" ") + " is outside its " + w + " × " + h + ".";
     if (a.kind === "cat" && !picking && w % framesOf(a, { frames }, w, h)) return "It is " + w + " pixels wide, which doesn't split into " + framesOf(a, { frames }, w, h) + " frames.";
     if (a.kind === "slice" && !a.slice && live) {   // the button's hover, green and pink, the map's dark panel…: cut with the head's border
-      const head = headOf(key), e = live[head], [hw, hh] = e ? [e.w, e.h] : ART[head].size;
+      const head = headOf(key), he = live[head], [hw, hh] = he ? [he.w, he.h] : ART[head].size;
       if (w !== hw || h !== hh) return "It is " + w + " × " + h + ": it shares the " + ART[head].name.toLowerCase() + "'s border, so draw it the same size, " + hw + " × " + hh + ".";
+      // pixel art or smooth is the head's, for the whole family: one called pixel art beside a smooth head would blur
+      if (ART[head].scale && e && e.pixel && !(he && he.pixel)) return "Drawn as pixel art, it shares the " + ART[head].name.toLowerCase() + "'s drawing, which is smooth: draw that as pixel art too, or this one smooth.";
     }
     if (a.kind === "slice" && e && e.pixel && pixelLoud(a, slice || a.slice)) return LOUD(slice || a.slice);
     if (a.kind === "exact" && (w !== a.size[0] || h !== a.size[1])) return "It is " + w + " × " + h + ": the " + a.name.toLowerCase() + " must be " + a.size[0] + " × " + a.size[1] + (a.measured ? ", as the rooms are measured on it." : ".");
@@ -1156,7 +1160,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     for (const k of Object.keys(tried)) if (!(ART[k].kind === "slice" && !ART[k].slice)) choose(k, () => true);
     for (const k of Object.keys(tried)) if (ART[k].kind === "slice" && !ART[k].slice) {   // members once every head is chosen: the head's size
       const whys = new Map();
-      choose(k, (e) => { const why = misfit(k, e.w, e.h, live); if (why) whys.set(e, why); return !why; });
+      choose(k, (e) => { const why = misfit(k, e.w, e.h, live, e); if (why) whys.set(e, why); return !why; });
       const first = tried[k][0] && tried[k][0].e;
       if (first && whys.has(first)) problems[k] = whys.get(first);   // hers turned down: said, whichever is drawn
     }
