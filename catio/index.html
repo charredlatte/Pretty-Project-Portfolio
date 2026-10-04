@@ -1215,6 +1215,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       // back into the pack's
       for (const m of Object.keys(ART)) if (ART[m].fam === a.fam && m !== h && !live[m]) { put("--art-" + m, cssUrl(e.url)); standIn[m] = h; }
     }
+    // her plain button standing in for the green or the pink one keeps its frame, but not its face: the go-ahead and the
+    // letting-go keep their colours (--go, --letgo) until she draws them
+    if (standIn["button-green"]) css.push('.btn.green, .menu .moods .btn[aria-pressed="true"] { border-image-slice: var(--btn-s); }');
+    if (standIn["button-pink"]) css.push(".btn.pink { border-image-slice: var(--btn-s); }");
     if (live.button && !live["button-down"]) put("--down-iw", "var(--down-w)");   // her button, the pack's pressed one: each at its own widths
     if (live.button && !live.bubble) put("--bubble-iw", "var(--bubble-px)");   // and the pack's bubble at its own
     const dark = Object.entries(tokens.dark).map(([n, t]) => n + ": " + t.value + ";").join(" ");
@@ -4458,7 +4462,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   function artPic(k) {
     const a = ART[k], e = skinOf(k), pic = el("span", "pic");
     if (a.kind === "font") { const aa = el("span", "aa", "Aé"); aa.style.fontFamily = "var(" + a.token + ")"; pic.appendChild(aa); return pic; }
-    if (a.kind === "cat" && a.mood !== "walk") { pic.appendChild(sprite(a.mood)); return pic; }
+    if (a.kind === "cat" && a.mood !== "walk") {   // the whole cat, made small enough for the box rather than cut
+      const sp = sprite(a.mood), [w, h] = [SPR[a.mood].w, SPR[a.mood].h];
+      sp.style.zoom = String(Math.min(1, 56 / w, 40 / h));
+      pic.appendChild(sp); return pic;
+    }
     if (k === "owner") { pic.appendChild(ownerSVG(ownerOf())); return pic; }
     const src = e ? e.url : a.file;
     if (src) { const i = el("img"); i.src = src; i.alt = ""; pic.appendChild(i); }
@@ -4556,7 +4564,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const name = "kittychat-" + m + ".tokens.json", text = JSON.stringify(toDTCG(m), null, 2) + "\n";
     const dl = await use("downloads").catch(() => null);
     try { if (dl) { await dl.save({ filename: name, data: text }); return; } }
-    catch (e) { if (e && e.code === "declined") return; if (e && e.code === "rate_limited") { toast("A save is already open: finish it first.", "alert"); return; } }   // otherwise the browser's own download
+    catch (e) {
+      if (e && e.code === "declined") return;
+      if (e && e.code === "rate_limited") { toast("A save is already open: finish it first.", "alert"); return; }
+      // the permission missing: the browser's own download, below; anything else is said as it is
+      if (!(e && ["capability_disabled", "capability_removed", "not_granted"].includes(e.code))) { toast("Couldn't save " + name + " (" + ((e && (e.code || e.message)) || "error") + ").", "alert"); return; }
+    }
     const a = el("a"); a.href = URL.createObjectURL(new Blob([text], { type: "application/design-tokens+json" })); a.download = name;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
     toast(local || VIA_GATEWAY ? name + " is in your downloads." : "Your browser is saving " + name + ". If nothing arrives, the café needs its downloads permission: ask Claude to republish it.", local || VIA_GATEWAY ? undefined : "stay");

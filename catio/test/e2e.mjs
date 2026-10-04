@@ -2727,6 +2727,9 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     await page.waitForTimeout(600);
     const [iw, px, btn] = [await rootVar("--bubble-iw"), await rootVar("--bubble-px"), await rootVar("--btn-px")];
     expect(iw === px && iw !== btn, [iw, px, btn].join(" | "));
+    // and standing in for the green and pink buttons, her frame keeps their colour inside it: go-ahead and letting go still read
+    const faces = await page.evaluate(() => ["green", "pink"].map((c) => { const b = document.createElement("button"); b.className = "btn " + c; document.body.appendChild(b); const cs = getComputedStyle(b); const r = [cs.borderImageSource, cs.borderImageSlice]; b.remove(); return r; }));
+    expect(faces.every(([src, slice]) => src.includes("ui/button.png") && !/fill/.test(slice)), JSON.stringify(faces));
     await page.evaluate(() => { const st = window.__catio.store; delete st["skin/button"]; window.__catio.put("skin/zz", {}); delete st["skin/zz"]; });
     await page.waitForTimeout(500);
   });
