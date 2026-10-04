@@ -1,12 +1,12 @@
-# Pretty-Project-Portfolio
+# KittyChat Café
 
-**The KittyChat Café** (the Catio page) is one page where every Claude project Charlotte has on the go lives as a cat in a
-little pixel-art manor with a fenced catio. Each Claude Code session is a cat that plays while it
-works, sleeps when it's done, and **meows** when it's
-waiting on her: point at it and it says what it needs. Chats on claude.ai, like business plans and legal questions, can't be read by any
-connector, so she adopts those as cats by hand.
+Every Claude project you have on the go, as a cat in a little pixel-art café. Each Claude Code session is a cat that
+plays while it works, sleeps when it's done, and **meows** when it's waiting on you: point at it and it says what it
+needs. Chats on claude.ai that no connector can read, like a business plan or a legal question, you adopt as cats by
+hand. One queen cat, Ninine, runs the place for you.
 
-The page is a private claude.ai artifact; its link is in [`artifacts.json`](artifacts.json).
+Made in the open by Charlotte Badot. [Run your own](#running-your-own) ·
+[What you get](#what-you-get) · [Open source, and the hosted café](#open-source-and-what-stays-behind-the-paywall)
 
 ## In plain words
 
@@ -35,105 +35,150 @@ How it connects, start to finish:
 5. The queen handles the rest: she keeps what you give her, runs your routines, and can set a stuck cat's homework as a
    short quiz. She thinks on your own computer.
 
+**Or think of it as a car.** Claude on its own is a stripped car: a brilliant engine and nothing else. No seatbelts,
+no windshield, no brakes, no tires. You can drive it if you know engines. The café is the rest of the car, and Ninine,
+the queen cat, drives.
+
+| The car | What it is here |
+|---|---|
+| The engine | Claude, your own |
+| The driver | Ninine, the queen cat: she runs your routines and passes your words on, from your own computer |
+| The tires | Your GitHub repositories, where the work meets the road |
+| The windshield and the dashboard | The café page, and the front desk every cat checks in at: who's busy, who needs you |
+| The seatbelts and brakes | The house rules: checks Claude can't skip, and anything guessed waits for you |
+| The glovebox | The litter box: loose notes and held pull requests |
+
 Your private chats stay in your own account, never in this repository.
 
 **Where it stands.** The code is open source and you can run your own café today (see [Running your own](#running-your-own)).
-A hosted café with nothing to install is planned and not open yet. The pixel art comes from third-party packs that
-cannot be shared, so check each pack's terms before posting screenshots.
+A hosted café with nothing to install is planned and not open yet. Separately, Charlotte plans to launch the KittyChat
+Café app in December 2027. The pixel art comes from third-party packs that cannot be shared, so check each pack's terms before
+posting screenshots.
 
 Everything below is the detail.
 
-## What's on the page
+## Running your own
 
-- **The manor fills the screen**, seen from above in a meadow, **one floor at a time**. Downstairs
-  is the cat café; upstairs are her own rooms, with the ground floor faded underneath. Each room is
-  a space for one kind of work. There are no signs on the map: a room says its name when you point
-  at it. Nothing is drawn on the cats: point at one and it says what it needs.
-- **The stair** in the entrance hall goes up and down, and so do the floor tabs under the minimap
-  and Page Up / Page Down. The other floor's tab carries a badge when cats there need you, so nothing
-  hides upstairs.
-- **Moving around**: drag the house to pan it (with the left, right or middle button), and use the
-  wheel or a pinch to zoom around the pointer. The map panel's buttons zoom in, out and back to the
-  whole house. Zoom in until one room fills the screen and you're in that room.
-- **Hover over a room or a cat** and it lights up and says its name. **Click it** for its menu,
-  beside it, until you click elsewhere or press Escape. On a phone a tap does the same. Every menu is
-  short: the name and one line, who needs you (and the queen, when she has something to say), then a
-  list of actions with the pack's little triangle pointing at the one you're on. A room's are **Look
-  in**, Files, Add files, Add a cat and Edit room; a cat's are **Open session**, Talk, Add files and
-  Look in. Talk opens the cat's card: its conversation first, and everything else (the facts,
-  pausing, archiving, its name, room and title) folded under Manage. Double-click a room to look in,
-  or a cat for its card.
-- **The brand**, top left (ToffeeCraft's cat-face bubble and the name), is the House button. It
-  carries a badge when cats need you, and its menu holds what belongs to the whole house: whether
-  the cats are live, the brain, the house rules, Edit rooms, the cats napping in the attic, Check now
-  and the sound.
-- **The map panel**, top right (bottom right on a phone), is the only other control on screen:
-  zoom out, zoom in and the whole house; the floor tabs; and a **minimap** of the floor you're on,
-  with the part you're looking at framed. Click it to go somewhere, drag the frame to move around,
-  double-click a room to look in. It folds away with its arrow (or M) and remembers.
-- **With a keyboard**, Tab lands on the house once. Arrow keys move the brackets from room to room
-  on the floor you're on (or, inside a room, walk into the next one). Enter steps into the room's
-  menu and Escape steps back out. Page Up / Page Down change floor, + / − / 0 zoom, and Shift with
-  the arrows moves the view.
-- **Edit rooms** opens the manor as a plan in a wooden frame, a floor at a time. Pick a room (its
-  brackets and a green sign show which) to rename it, say what lives there and list the repositories
-  whose cats move in. Choose once which room new cats come in to; it's marked on the plan with an
-  arrow.
-- **The house has a queen**, in the entrance hall: a cat who is nobody's session, never leaves, and is the one
-  you talk to, like a character in a game. She keeps what you give her, looks after the other cats for you,
-  answers in Elizabethan English (aloud, if you turn her voice on), and runs the routines you set her. Cats
-  bring her what they have to say. Her brain runs on your own computer (`harness/runner`).
-  - Click her for the room in one line: who needs you and why, or the thing she is keeping for you.
-  - Open her to give her something to keep, take it back, or have her say it out loud in her room
-    until you take it.
-  - She is never counted among the cats that need you; she is the one who tells you about them.
-- **The sign** under the brand only shows when something is wrong, and then it says how to fix it.
-  When Claude's saved copy is standing in for the live sessions it is one line, "Saved copy" and
-  the time; point at it for why.
-- **Filing cabinets** stand in every room but the terrace and the ensuite, and the catio deck has a chest. Each holds
-  the projects filed in that room with all their cats, the ones needing you first, including the ones
-  archived or napping in the attic. A project with a map (from graphify, made by the catio skill)
-  shows it there: its main ideas and how they connect, and questions a cat of it can be asked.
-- **Cats walk.** When a cat changes room it walks there through the doorways. When it goes to nap in the
-  attic it climbs the stair (or, upstairs, the landing's ladder), and it comes back down when it wakes.
-  New cats come in by the front door, and working cats get up for a little wander now and then.
+`catio-plugin/` is a Claude Code plugin. Point Claude Code at it and ask it to set up your café:
 
-Cats wear their project: every cat of one project has the same coat. The look can be changed from the
-project's cabinet.
+```bash
+git clone https://github.com/charredlatte/Pretty-Project-Portfolio
+claude --plugin-dir Pretty-Project-Portfolio/catio-plugin
+```
 
-The manor is a real two-storey plan, drawn in a storybook Transylvanian Baroque: ochre limewash with
-stucco corners outside, plaster and oak inside, stained glass, and a pediment over the front door. It
-stands among spruce woods, with lamp posts along the drive, a fountain, a well and a pond. Both floors
-stand on one grid, so every upstairs wall stands on a downstairs wall. It runs from public to private: the
-café downstairs, her own rooms upstairs.
+The skill walks you through your rooms, your sessions, publishing the page as your own private claude.ai artifact,
+and a folder that runs on your own computer. The page does the same on its own: a café with no rooms yet opens a
+seven-step wizard (name it, open the rooms you need, file your repositories, see your sessions, the litter box, how
+it works), and "Set up again…" in the House menu replays it.
 
-| Floor | Room | Who lives there (her rooms can be renamed and reassigned) |
+**What a fork changes.** The house rules (`harness/`, the `kittychat-house-rules` plugin) are what make your sessions
+report to the gateway, collect what you send them and follow the rules below. Today the harness and the page are set
+for Charlotte's own café: her café's link, her GitHub name, her public repositories and her install lines are
+written into them. [`docs/self-hosting.md`](docs/self-hosting.md) lists what to change in your fork before you
+publish your café or install the plugin from it (the install lines are in [`harness/README.md`](harness/README.md):
+give them your fork's address).
+
+For cats that stay live wherever you open the café, and a queen you can talk to, add the gateway: a free Cloudflare
+Worker that every session checks in at, set up in five steps ([`harness/gateway/README.md`](harness/gateway/README.md)).
+The queen's brain runs on your own computer ([`harness/runner/README.md`](harness/runner/README.md)).
+
+**Bring your own cats.** Seven of the ten art packs the café is drawn from forbid sharing their files, an eighth is
+drawn into the same pictures as theirs, and plants.zip came with no licence, so `catio/art/licensed/` is not in
+this repository. A fresh clone draws only the Cosy Cabin furniture, its menus on plain colour: no house and no
+cats. It says so on its own sign, with the three steps to fix it: buy the packs yourself and run
+`catio/tools/build-art.py` over your own zips. Only Cosy Cabin, whose licence allows it, is included.
+
+## What you get
+
+- **A manor that fills the screen**, seen from above in a meadow, one floor at a time: a cat café downstairs, private
+  rooms upstairs, with the ground floor faded underneath. Each room is a space for one kind of work, and each project
+  files into a room. There are no signs on the map and nothing is drawn on the cats: point at a room and it says its
+  name, point at a cat and it says what it needs.
+- **Cats that show what your sessions are doing.** A working session plays, a finished one sleeps and one waiting on
+  you meows. Every cat waiting on you lines up at the front door, the longest wait first, and the brand counts them.
+  Cats walk: through the doorways when they change room, up the stair to nap in the attic, and in by the front door
+  when they're new. Every cat of one project wears the same coat, which you choose from the project's cabinet.
+- **Answer from the café.** Click a cat to talk to it, drop a file on it, pause it or wrap it up. Drop a file on a
+  room or the house instead and the brain sorts it to the right cat, or keeps it in its tray.
+- **A queen who runs the place.** Ninine sits in the entrance hall, is nobody's session and never leaves. She keeps what
+  you give her, looks after the other cats for you, runs the routines you set her and talks in the manner you give
+  her, aloud if you turn her voice on. Cats bring her what they have to say. Anything waiting on you, a stuck cat's
+  question, a loose note to file or a decision, comes to her as homework: a card you answer with a tap. She is
+  never counted among the cats that need you; she is the one who tells you about them.
+- **Filing cabinets** in the rooms hold their projects with all their cats, archived and napping ones included, and
+  each project's map: its main ideas, how they connect, and questions you can ask a cat with one click. Project maps,
+  in the House menu, lays every map out as a dashboard you can pin and arrange.
+- **Make it yours.** Every colour, font and size, and most of the art, can be swapped with no code change, from The
+  look in the House menu or a skin file beside the page (`art/skin.json`), so the café can wear your own drawings.
+- **House rules** that every session with the house-rules plugin follows, and Claude can't talk its way around: a
+  read-only audit before any change, a check before any browser, and nothing pushed to your default branch. A
+  repository can let its sessions merge their own pull requests; then anything guessed is held for you to review
+  ([`harness/README.md`](harness/README.md)).
+- **Other agents too.** Codex, Gemini CLI, Cursor or anything else that speaks MCP joins as a cat through the Catio
+  MCP server.
+
+### Getting around
+
+- **Moving**: drag the house to pan it (with any mouse button) and use the wheel or a pinch to zoom around the
+  pointer. The map panel, top right (bottom right on a phone), zooms in, out and back to the whole house, and holds a
+  minimap of the floor you're on with your view framed: click it to go somewhere, drag the frame, double-click a room
+  to look in. It folds away with its arrow (or M) and remembers.
+- **Floors**: the stair in the entrance hall, the floor tabs under the minimap, or Page Up / Page Down. The other
+  floor's tab carries a badge when cats there need you, so nothing hides upstairs.
+- **Hover and click**: a room or a cat lights up and says its name when you point at it; click it for its menu, beside
+  it, until you click elsewhere or press Escape. On a phone a tap does the same. Every menu is short: the name and one
+  line, who needs you, then a list of actions. A room's are Look in, Files, Add files, Add a cat and Edit room; a
+  cat's are Open session, Talk, Add files and Look in. Double-click a room to look in, or a cat for its card.
+- **The brand**, top left, is the House button: whether the cats are live, then Homework when anything waits, the
+  brain, the house rules, Project maps, Edit rooms, The look, Set up again…, the cats napping in the attic, Check now,
+  sound and still cats.
+- **With a keyboard**, Tab lands on the house once. The arrow keys move from room to room, Enter steps into a room's
+  menu and Escape steps back out. + / − / 0 zoom, and Shift with the arrows moves the view.
+- **Edit rooms** shows the manor as a plan, a floor at a time: rename a room, say what lives there, list the
+  repositories whose cats move in, open or close it, and choose the room new cats come in to.
+- **The sign** under the brand shows only when something is wrong, and then it says how to fix it.
+
+### The manor
+
+A real two-storey plan, drawn in a storybook Transylvanian Baroque: ochre limewash with stucco corners outside,
+plaster and oak inside, stained glass, and a pediment over the front door. It stands among spruce woods, with lamp
+posts along the drive, a fountain, a well and a pond. Both floors stand on one grid, so every upstairs wall stands
+on a downstairs wall. It runs from public to private: the café downstairs, the quiet rooms upstairs.
+
+| Floor | Room | What's there |
 |---|---|---|
-| Ground | Café | tables, and business plans round the big one |
-| Ground | Kitchen | the counter, straight ahead from the front door behind the stair. The grocery app |
-| Ground | Cat lounge | a fireplace between tall windows, and a cat tree. New cats arrive here |
-| Ground | Craft room | the shop (Recollée, formerly Montfortoise), bottom left. Its bay window is its shop window on the drive |
-| Ground | Entrance hall | the front door, and the stair up the middle. Snail mail |
-| Ground | Terrace | the café's glass verrière, with the cat flap out to the catio. TikTok saves |
-| Outdoors | Catio | fenced decking at the bottom right, with a cat tree, a shade tree and a rose-arch gate. This portfolio lives here |
-| Upstairs | Library | over the café: the brain, where dropped files are sorted |
-| Upstairs | Bedroom and ensuite | over the cat lounge. Legal questions, kept quiet, and a spare |
+| Ground | Café | tables, and a big one for plans |
+| Ground | Kitchen | the counter, straight ahead from the front door, behind the stair |
+| Ground | Cat lounge | a fireplace between tall windows, and a cat tree. New cats arrive here unless you choose another room |
+| Ground | Craft room | bottom left. Its bay window is a shop window on the drive |
+| Ground | Entrance hall | the front door, the stair up the middle, and the queen's seat |
+| Ground | Terrace | a glass verrière, with the cat flap out to the catio |
+| Outdoors | Catio | fenced decking at the bottom right, with a cat tree, a shade tree and a rose-arch gate |
+| Upstairs | Library | over the café: the brain, where dropped files are sorted, and the litter box |
+| Upstairs | Bedroom and ensuite | over the cat lounge, for what is kept quiet |
 | Upstairs | Landing | open over the kitchen and the hall, round the stairwell. The attic ladder is here |
 
-Outside, the drive runs from the front steps round a fountain with a praying statue to a stone
-archway with its wooden doors open. Parterres, a bench and a signpost to the catio stand either side.
+Every room can be renamed, closed, or pointed at your own repositories. Outside, the drive runs from the front steps
+round a fountain with a praying statue to a stone archway with its wooden doors open, with parterres, a bench and a
+signpost to the catio either side.
 
-## How it knows what the cats are doing
+## How it works
 
-- **Claude Code sessions** come live from the built-in *Claude Code Remote* connector
-  (`list_sessions`), called as Charlotte from inside the page and checked every minute. A
-  session's state decides its mood; its GitHub repository decides its room.
-- **Rooms, renames, moves, adopted chats and what the queen keeps** live in the artifact's own
-  database, so they follow her between phone and PC. Nothing she does on the page is written back
-  to this repo.
-- **When the live read is blocked**, the page shows the copy of her sessions Claude last saved,
-  with the time it was saved. Claude Code Remote is built into claude.ai, so it is not in her
-  Connectors list and has no per-tool switch she can flip; the copy is refreshed by Claude.
+### How it knows what the cats are doing
+
+- **Claude Code sessions** come live from claude.ai's built-in *Claude Code Remote* connector (`list_sessions`),
+  read as you from inside the page every minute. A session's state decides its mood; its GitHub repository decides
+  its room.
+- **With the gateway**, every session also checks in at your own front desk (`harness/gateway/`) when it starts,
+  when it needs you and when it finishes, so its cat is live wherever you open the café.
+- **Rooms, renames, moves, adopted chats and what the queen keeps** live in the café's own database, so they follow
+  you between phone and computer. Nothing you do on the page is written to a repository.
+- **When claude.ai refuses that read** (it did when last checked, 2 October), the cats come from a copy of your
+  sessions that a Claude session saved to the database, and the sign under the brand gives its time: "Saved copy ·
+  17:02". There is nothing for you to switch on: Claude Code Remote is built into claude.ai rather than added as a
+  connector, so it has no setting in your Connectors list. The copy only changes when a session saves a new one, so
+  ask a session to refresh it. Sessions that report to the gateway stay live either way. Each refusal, and how to
+  refresh the copy: [`docs/live-sessions.md`](docs/live-sessions.md).
 
 | Mood | Session state | Cat |
 |---|---|---|
@@ -143,63 +188,39 @@ archway with its wooden doors open. Parterres, a bench and a signpost to the cat
 | Working | working or running | Mochi, tail swishing |
 | Asleep | finished or idle | Pochi curled up |
 
-Sleeping sessions and ones waiting for review, once they're a week old, and archived sessions nap in the
-attic, out of sight; the brand's count is only what really waits on her. Turn on
-Sound and a cat that starts meowing makes a small meow.
+Sleeping sessions and ones waiting for review, once they're a week old, and archived sessions nap in the attic, out
+of sight: the brand's count is only what really waits on you. Turn on Sound and a cat that starts meowing makes a
+small meow.
 
-## How what she sends reaches a session
+### How what you send reaches a session
 
-Files dropped on a cat, messages written to it, and pause or wrap-up requests are kept in the artifact's
-database the moment she sends them: the file in the brain, the message as a note, the request on the
-session. The page then tries to push them into the session with Claude Code Remote's `send_message`.
-claude.ai refuses that call to pages (tried 1 October 2026), so the page says it is **waiting in the
-outbox**, and the session collects it: sessions in her repos run the house-rules plugin, whose
-`catio` skill checks the café when the session starts, handles what's there, answers on the cat and marks
-it delivered. Why it can't simply be pushed, by a server or otherwise, is in
+Files dropped on a cat, messages written to it, and pause or wrap-up requests are saved the moment you send them.
+With the gateway, a running session gets them when its current turn ends. Without it they wait on the mat, and the
+session collects them when it next starts: a session that runs the house-rules plugin has its `catio` skill handle
+what's there, answer on the cat and mark it delivered. Only claude.ai can wake a session that has
+stopped, and it doesn't let a page do it; why is in
 [`harness/README.md`](harness/README.md#why-the-café-cant-push-into-a-session).
 
-## On her own computer
+## On your own computer
 
-The page also runs from a folder, off a USB stick, in VS Code, with no claude.ai at all.
-`python3 catio/tools/bundle.py` makes `catio/dist/catio-local/` (and a zip of it): the page as a
-complete HTML file, all the art, the rooms from `catio/data/rooms.json`, and
-`catio/data/sessions.json`, the copy of her sessions Claude saved. Serve the folder with VS
-Code's Live Server, `python -m http.server 8000` or `php -S localhost:8000`, and open
-<http://localhost:8000>. It's plain HTML: there is no PHP. The folder also carries the Catio MCP server:
-`python3 harness/mcp/catio_mcp.py --serve . --port 8791` serves the page and lets agents that aren't
-Claude Code sessions (Codex, Gemini CLI, Cursor) join as cats.
+The café also runs from a folder, with no claude.ai at all. `python3 catio/tools/bundle.py` makes
+`catio/dist/catio-local/` (and a zip of it): the page as one HTML file, all the art, the rooms in
+`catio/data/rooms.json` (Charlotte's; a browser takes them once, then Edit rooms or Set up again… changes them), and
+`catio/data/sessions.json`, the last copy of your sessions Claude saved (`catio/tools/save-sessions.py`). Serve the
+folder with any static server, such as VS Code's Live Server or `python -m http.server 8000`, and open
+<http://localhost:8000>. The page is plain HTML and needs no server of its own.
 
-On localhost the cats come from that saved copy, not live, and adopted chats, room names and
-project looks are kept in that browser. For newer cats, ask Claude to refresh
-`data/sessions.json` (`catio/tools/save-sessions.py`) and copy it into the folder.
+The folder also carries the Catio MCP server, which serves the page and lets agents that aren't Claude Code
+sessions join as cats: from inside the folder, `python3 harness/mcp/catio_mcp.py --serve . --port 8791`, then open
+<http://localhost:8791>. On localhost the sessions' cats are the saved copy, not live (agents that join the MCP
+server are), and adopted chats, room names and project looks are kept in that browser.
 
-The folder holds the licensed art and her session list, so it is for her own use: it is never
-committed and never shared.
-
-## Running your own
-
-`catio-plugin/` is a Claude Code plugin. Point Claude Code at it and ask it to set up your Catio:
-
-```bash
-git clone https://github.com/charredlatte/Pretty-Project-Portfolio
-claude --plugin-dir Pretty-Project-Portfolio/catio-plugin
-```
-
-The skill walks you through your rooms, your sessions, publishing the page as your own private
-artifact, and the folder that runs off a USB stick. The page does the same on its own: a café with no rooms
-yet opens a seven-step wizard (name it, open the rooms you need, file your repositories, see your sessions,
-the litter box, how it works), and "Set up again…" in the House menu replays it.
-
-**It cannot give you the cats, or the interface.** Eight of the ten packs below forbid redistributing
-their files (and plants.zip came with no licence), so `catio/art/licensed/` is gitignored and a fresh clone draws the manor on plain
-panels and nothing else — the page says so on its own sign, and tells you the three steps. You buy the packs yourself and run
-`catio/tools/build-art.py` over your own zips. Only Cosy Cabin, whose licence allows it, is in this
-repository.
+The folder holds your licensed art and your session titles, so it is for your own use: never commit it or share it.
 
 ## Open source, and what stays behind the paywall
 
 The code is open source: the page, the harness, the gateway and the queen's runner, under the
-[GNU AGPL-3.0](LICENSE). Anyone with GitHub can run their own café, free, with the two lines above and a
+[GNU AGPL-3.0](LICENSE). Anyone with GitHub can run their own café, free, with the clone and the plugin above and a
 Cloudflare Worker for the gateway (`harness/gateway/README.md`). The licence asks one thing back: whoever runs a
 changed gateway as a service publishes the change.
 
@@ -207,7 +228,10 @@ What is not open is the art, and what the hosted café sells is the running. The
 house and the interface drawn for the café, are Charlotte's, all rights reserved, and ship only to the hosted cafés
 (the packs the page is built from today have their own terms, below); the hosted café adds accounts, keys, an address
 of your own, and the calls that reach your sessions without a terminal. The repository is the developers' door; the
-hosted café is everyone else's.
+hosted café is everyone else's. The plans planned for it, Free, Basic, Early access and Set up for you, are drawn in
+[`docs/kittychat-shop/README.md`](docs/kittychat-shop/README.md); their prices come with the hosted café. Building on it, or setting
+cafés up for other people? The engine underneath, and what it still lacks as a product, is
+[`docs/engine.md`](docs/engine.md).
 
 **Support the work.** The café is built by one person, in the open, while it is in development:
 
@@ -255,29 +279,43 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
   docstring).
 - `catio/tools/bundle.py`: the folder that runs on localhost.
 - `catio/tools/save-sessions.py`: trims a `list_sessions` result to the saved copy.
-- `catio/data/rooms.json`: the rooms, for the localhost copy. `sessions.json` is never committed.
+- `catio/data/rooms.json`: Charlotte's rooms, for the localhost copy. `sessions.json` is never committed.
 - `catio/art/`: the committed art. `licensed/` is rebuilt, not committed.
-- `catio/test/`: the end-to-end test (`sh catio/test/run.sh`).
+- `catio/test/`: the end-to-end test (`sh catio/test/run.sh`), and screenshots to look at
+  (`sh catio/test/run.sh look kitchen study`, into `catio/test/.look/`).
 - `CLAUDE.md`: how to change and republish the page.
 - `catio/tools/digest.py`: compiles the saved sessions and adopted chats into a per-project digest of
-  what needs her (`catio/data/digest.md`, never committed).
-- `artifacts.json`: the published page's one URL.
+  what needs you (`catio/data/digest.md`, never committed).
+- `artifacts.json`: the published pages' URLs: the café, and two retired quiz pages.
 - `harness/`: the KittyChat harness, the `kittychat-house-rules` plugin (hooks, the `catio` skill,
-  graphify), on in all seven of her repos, and the Catio MCP server for other agents. See [its README](harness/README.md).
-- `catio-plugin/`: the plugin that sets up someone else's own Catio; `.claude-plugin/marketplace.json`
-  lists the harness plugin as the `kittychat` marketplace.
+  graphify), on in all of Charlotte's repos, and the Catio MCP server for other agents. See [its README](harness/README.md).
+- `catio-plugin/`: the plugin that sets up your own café; `.claude-plugin/marketplace.json` lists it and the
+  harness plugin as the `kittychat` marketplace.
 - `litterbox/`: the back burner, where loose notes land; `litterbox/sort.py` piles them up by project
   and files a pile into that project's repo once it has been checked. See [its README](litterbox/README.md).
-- `docs/`: the plan, her requests compiled, the camera and minimap plan, renovation mode's constraints,
-  the drawing plan for her own art, and what the litter box filed here.
-- `catio-app/`: a **draft** of the café as a native C++ app for a phone, for her to judge: nine headers
-  of declarations, the generated floor plan, and build files for desktop, Android and iOS. Nothing
-  compiles into an app yet, and it ships with no pack art — the app fetches that from her gateway on
-  first run, because the packs may not be redistributed. The case for it and the whole design are in
+- `docs/`: the plan, the specs, the shop and the record, each listed by what it is for in
+  [`docs/README.md`](docs/README.md).
+- `catio-app/`: the café as a native C++ app for a phone, in progress. Its core draws the manor --
+  matching the page's own render pixel for pixel -- but there is no window loop, interface or network
+  yet, and it has not run on a phone. It ships with no pack art: the app fetches that from the gateway,
+  behind your sign-in, on first run, because the packs may not be redistributed. The design and where it stands are in
   [`docs/mobile-app.md`](docs/mobile-app.md).
 
-The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harness/test` and
-`python3 -m unittest litterbox/test_sort.py`.
+The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harness/test`,
+`(cd harness/gateway && npm install && npm test)` (the gateway), and `python3 -m unittest litterbox/test_sort.py
+litterbox/test_quiz.py`.
+
+The page's test and its screenshots drive a headless Chromium through Playwright. `run.sh` is set up for the copies
+preinstalled in Claude's cloud sessions. Elsewhere (it needs `sh`, `python3` and Node), set `PLAYWRIGHT` to the
+absolute path of a `playwright` package folder (after `npm i -g playwright`, that is `$(npm root -g)/playwright`), and
+either set `CHROMIUM` to a Chromium executable or run `node "$PLAYWRIGHT/cli.js" install chromium` so that Playwright
+has its own browser. Each run
+starts a fresh temporary profile with no logins or saved passwords, and as the page stands it loads only local files
+and the page's Google Fonts, plus, for the test (not the screenshots), its own server on 127.0.0.1 port 8791. Set
+`PORT` if something else, like `catio_mcp.py --serve`, holds that port: `run.sh` doesn't notice. Without the licensed art (see
+[Running your own](#running-your-own)), the check "on its own address the café is live through the gateway, with no
+warning sign" fails, as `run.sh` warns.
+Sessions under the house rules run the browser preflight first ([`harness/README.md`](harness/README.md)).
 
 ## Licence
 

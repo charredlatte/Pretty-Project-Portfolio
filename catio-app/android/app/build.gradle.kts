@@ -47,7 +47,7 @@ android {
 }
 
 dependencies {
-    // tools/fetch-sdl-android.sh puts these in app/libs/. VERIFY THE VERSIONS AND FILENAMES AGAINST
-    // THE CURRENT SDL RELEASE: the archive coordinates moved between the 3.1 previews and 3.2.
-    implementation(fileTree("libs") { include("SDL3-*.aar", "SDL3_image-*.aar", "SDL3_ttf-*.aar") })
+    // tools/fetch-sdl-android.sh puts these in app/libs/. No SDL_image: SDL 3.4's core loads PNG itself,
+    // and every pack file is a PNG. SDL_ttf is for the pixel font, when there is text to draw.
+    implementation(fileTree("libs") { include("SDL3-*.aar", "SDL3_ttf-*.aar") })
 }

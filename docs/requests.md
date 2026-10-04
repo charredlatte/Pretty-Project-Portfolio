@@ -8,15 +8,9 @@ compressed. Read this before starting something new. Last updated 2 October 2026
 | Place | What's there |
 |---|---|
 | `CLAUDE.md` | The operating brief: how to work on the page, the licences, the data, publishing |
-| `README.md` | What the page is, the rooms, the packs |
+| `README.md` | What the café is, what you get, and how to run your own |
 | `docs/requests.md` | This file: her requests |
-| `docs/from-the-litterbox.md` | Everything the litter box held, sorted: open questions, ideas not built (with the art and sound still missing: what to buy, what to draw, and at what sizes), facts learned, the compressed 29 September harness chat and the UI/UX audit |
-| `docs/plan.md` | The roadmap: phases in order, what's waiting on her, how to publish |
-| `docs/audit-2026-10-01.md` | The project audit of 1 October: what's broken, what's stale, what to fix first |
-| `docs/history.md` | How it got here, version by version |
-| `docs/camera-and-minimap.md` | The map panel, the minimap and the Sims-style camera |
-| `docs/renovation-mode.md` | The renovation mode spec: moving, adding and removing furniture, the cabinets' looks |
-| `docs/drawing-plan.md` | Every asset she will draw herself, at what size and scale, and the new pieces (litterbox, café tables…) |
+| `docs/README.md` | Every other doc, by what it is for: the plan, the specs, the shop, the record |
 | `litterbox/` | The back burner: new notes land here, `litterbox/sort.py` piles them by project for her to check, then files each checked pile into its project's own repo and pushes it |
 | `catio/art/CREDITS.md` | Every pack, its artist and its licence |
 | `harness/README.md`, `harness/rules.json` | The KittyChat house rules and the Catio MCP server |
@@ -55,8 +49,9 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
   | Hall | Snail mail |
   | Catio | This portfolio |
 
-- **A saved copy of her sessions** shows when the live read is blocked. A Routine refreshes it every two
-  hours, from 07:59 to 19:59 Paris time.
+- **A saved copy of her sessions** shows when the live read is blocked. A Routine refreshed it every two
+  hours, from 07:59 to 19:59 Paris time, until she paused it on 30 September; it is refreshed by hand now
+  (`docs/live-sessions.md`).
 - **A copy that runs off a USB stick**, on localhost.
 - **One queen of the house** (2 October: "merge the queen cats to make one main character queen cat that you
   chat with that does everything for you. The way you would interact with a real harness"), in the entrance
@@ -214,6 +209,9 @@ The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.
 - **Open source, with a paywall on the hosted café and the art** (3 October): the gateway's code "is open source for
   anyone with GitHub to use" (AGPL-3.0, her choice); "certain features should stay behind the paywall like certain
   breeds of cats (or all custom assets)"; the Buy Me a Coffee and Ulule links in the README, to help with crowdfunding.
+- **Set up the Buy Me a Coffee and Ulule accounts** (4 October). The accounts are hers to open (her identity, IBAN and
+  ID check); `docs/kittychat-shop/support-pages.md` holds every step and every line to paste, and why neither page may
+  show the café's current art.
 
 ## The queen's quest log (3 October)
 

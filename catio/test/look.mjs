@@ -97,6 +97,41 @@ for (const name of names) {
     await page.evaluate(() => document.getElementById("mapsDlg").close());   // the looks after it see the house, not the dialog
     continue;
   }
+  // "art": The look, from the House menu; "art-swap": the house drawn with other pieces in some slots (pieces of the
+  // packs themselves, so no new file is needed), then the card with them, and one that doesn't fit
+  if (name === "art" || name === "art-swap") {
+    await page.evaluate(() => { for (const d of document.querySelectorAll("dialog[open]")) d.close(); });
+    if (name === "art-swap") {
+      await page.evaluate(() => {
+        window.__catio.put("skin/panel", { src: "art/licensed/ui/button-green.png", slice: [4, 4, 6, 4], w: 26, h: 28, at: 1 });
+        window.__catio.put("skin/button", { src: "art/licensed/ui/button-pink.png", slice: [4, 4, 6, 4], w: 26, h: 28, at: 1 });
+        window.__catio.put("skin/cat-work", { src: "art/licensed/mochi-box.png", frames: 4, secs: 0.8, at: 1 });
+        window.__catio.put("skin/cat-walk-side", { src: "art/licensed/mochi-idle.png", frames: 10, secs: 1, at: 1 });
+        window.__catio.put("skin/house", { src: "art/licensed/meadow.png", at: 1 });
+        window.__catio.put("skin/theme", { tokens: { "--ink": "#1d3557", "--tan": "#a8dadc", "--cream": "#f1faee", "--grass": "#457b9d", "--map-btn": "#e9c46a" }, at: 1 });
+      });
+      await page.waitForTimeout(800);
+      await page.keyboard.press("0");
+      await page.waitForTimeout(600);
+      await page.click("#houseBtn");
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: join(out, "art-swap-house.png") });
+      console.log(join(out, "art-swap-house.png"));
+      await page.keyboard.press("Escape");
+    }
+    await page.click("#houseBtn");
+    await page.locator("#menu .mi", { hasText: "The look" }).click();
+    await page.waitForTimeout(500);
+    if (name === "art-swap") await page.evaluate(() => { for (const d of document.querySelectorAll("#artDlg details")) d.open = true; document.querySelector('#artDlg li[data-slot="house"]').scrollIntoView(); });
+    await page.screenshot({ path: join(out, name + ".png") });
+    console.log(join(out, name + ".png"));
+    await page.evaluate(() => document.getElementById("artDlg").close());
+    if (name === "art-swap") {   // the looks after it see the café as it is, not this skin
+      await page.evaluate(() => { for (const k of Object.keys(window.__catio.store)) if (k.startsWith("skin/")) window.__catio.drop(k); });
+      await page.waitForTimeout(800);
+    }
+    continue;
+  }
   const floor = UPPER.has(name) ? "upper" : "ground";
   if ((await page.locator("#world").getAttribute("data-floor")) !== floor) await page.click("#floor-" + floor);
   await page.keyboard.press("0");   // the whole house, then into the room named
