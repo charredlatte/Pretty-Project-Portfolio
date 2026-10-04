@@ -130,7 +130,9 @@ def from_dtcg(doc, groups):
     """The page's fromDTCG(): the café's tokens in a design tokens file, and how many weren't the café's."""
     flat, found, foreign = {}, {}, 0
 
-    def walk(node, path):
+    def walk(node, path):   # as the page's walk: objects and lists alike
+        if isinstance(node, list):
+            node = {str(i): v for i, v in enumerate(node)}
         if not isinstance(node, dict):
             return
         if "$value" in node:
@@ -167,7 +169,7 @@ def to_css(v):
         css = v[:7] if re.fullmatch(r"#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?", v) else v
     elif isinstance(v, dict) and isinstance(v.get("hex"), str):
         css = v["hex"][:7]
-    elif isinstance(v, dict) and isinstance(v.get("components"), list) and v.get("colorSpace", "srgb") == "srgb":
+    elif isinstance(v, dict) and isinstance(v.get("components"), list) and (v.get("colorSpace") or "srgb") == "srgb":
         css = "#" + "".join(f"{round(min(1, max(0, c)) * 255):02x}" for c in v["components"][:3])
     elif isinstance(v, dict) and number(v.get("value"), 0, float("inf")) and v.get("unit") in ("px", "rem"):
         css = f"{round(v['value'], 3):g}{v['unit']}"
@@ -193,11 +195,16 @@ SETTINGS = {
 
 
 def png_size(path):
-    with open(path, "rb") as f:
-        head = f.read(24)
-    if head[:8] != b"\x89PNG\r\n\x1a\n" or head[12:16] != b"IHDR":
+    """A PNG's width and height from its header, or None when it isn't one (or is cut short, or has no size)."""
+    try:
+        with open(path, "rb") as f:
+            head = f.read(24)
+        if head[:8] != b"\x89PNG\r\n\x1a\n" or head[12:16] != b"IHDR":
+            return None
+        w, h = struct.unpack(">II", head[16:24])
+    except (OSError, struct.error):
         return None
-    return struct.unpack(">II", head[16:24])
+    return (w, h) if w and h else None
 
 
 def check(art, key, rel, was, said, where="", filled=None):
@@ -335,9 +342,8 @@ def main():
         from_files["light"] = {t: v for t, v in from_files["light"].items() if v.lower() != base.get(t, "").lower()}
     if "light" in from_files and "light" not in broken:
         modes["light"] = from_files["light"]
-    if "dark" in from_files:   # dark says only what differs from light as it now stands: The look's own export repeats it
-        from_files["dark"] = {t: v for t, v in from_files["dark"].items() if v.lower() != (modes["light"].get(t) or base.get(t, "")).lower()}
-    modes.update({m: t for m, t in from_files.items() if m not in broken})
+    if "dark" in from_files and "dark" not in broken:   # what differs from light as it now stands (The look's export repeats it)
+        modes["dark"] = {t: v for t, v in from_files["dark"].items() if v.lower() != (modes["light"].get(t) or base.get(t, "")).lower()}
     for key, was in old.items():   # a drawing of hers in art/skin/ that has gone
         f = file_of(was)
         if key in art and isinstance(f, str) and f.startswith("art/skin/") and not (ROOT / f).is_file():
@@ -362,8 +368,10 @@ def main():
     family(art, skin, said)   # members of art/skin/ first: one refused there leaves a hand-pointed one its chance
     for key, was in old.items():   # a slot pointed by hand at art outside art/skin/ (another pack's): checked the same way
         f = file_of(was)
-        if key in skin or key not in art or not isinstance(f, str) or not f.startswith("art/") or f.startswith("art/skin/"):
-            continue   # a drawing of hers in art/skin/ took the slot (one refused there leaves this one to be weighed)
+        if key in skin or key not in art or not isinstance(f, str) or not f.startswith("art/"):
+            continue
+        if f.startswith("art/skin/") and Path(f).stem == key:
+            continue   # one named after its slot was weighed with the folder   # a drawing of hers in art/skin/ took the slot (one refused there leaves this one to be weighed)
         if not (ROOT / f).is_file():
             said.append(f"  {key}: {f} has gone, so it was dropped")
             continue

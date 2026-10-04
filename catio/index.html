@@ -1071,10 +1071,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // a local: source lives in this browser's IndexedDB: open it as a blob URL, once
   async function resolved(src) {
     if (!src.startsWith("local:")) return src;
-    if (SKIN.blobs[src]) return SKIN.blobs[src];
-    const href = S.assets && S.assets.href ? await S.assets.href(src.slice(6)) : null;
-    if (!href) throw new Error("not in this browser");
-    return (SKIN.blobs[src] = href);
+    if (!SKIN.blobs[src]) {   // the promise is kept, not its answer, so two runs asking at once share one URL
+      SKIN.blobs[src] = (S.assets && S.assets.href ? S.assets.href(src.slice(6)) : Promise.resolve(null))
+        .then((href) => { if (!href) throw new Error("not in this browser"); return href; })
+        .catch((err) => { delete SKIN.blobs[src]; throw err; });
+    }
+    return SKIN.blobs[src];
   }
   // Is this picture right for the slot? null if it is, else why not, in her words.
   // A family member is checked against its head in the skin given (`live`; the one on screen when left out), or not at
@@ -1201,7 +1203,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     SKIN.lookSig = artSig + JSON.stringify(tokens);   // what restyle() draws from
     SKIN.houseSig = houseSig;
     const using = new Set(Object.values(cands).flat().map((e) => e.src));
-    for (const src of Object.keys(SKIN.blobs)) if (!using.has(src)) { URL.revokeObjectURL(SKIN.blobs[src]); delete SKIN.blobs[src]; }   // a piece of hers put back
+    for (const src of Object.keys(SKIN.blobs)) if (!using.has(src)) {   // a piece of hers put back: its URL and its size go
+      const b = SKIN.blobs[src]; delete SKIN.blobs[src];
+      b.then((u) => { URL.revokeObjectURL(u); delete SKIN.sizes[u]; }, () => {});
+    }
     for (const [fam, f] of Object.entries(faces)) { if (SKIN.fonts[fam]) document.fonts.delete(SKIN.fonts[fam].face); document.fonts.add(f.face); SKIN.fonts[fam] = f; }
     for (const [fam, f] of Object.entries(SKIN.fonts)) if (!live[fam.slice("KittySkin-".length)]) { document.fonts.delete(f.face); delete SKIN.fonts[fam]; }   // a font put back
     for (const m of Object.keys(SPR)) delete SPR[m];
@@ -4603,7 +4608,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   async function pickArt(k, file) {
     if (file.size > 20 * 1024 * 1024) { toast(file.name + " is over 20 MB.", "alert"); return; }
     const a = ART[k], p = { file, url: URL.createObjectURL(file), typed: {} };
-    if (a.kind !== "font") {
+    if (a.kind === "font") {   // tried before anything is kept: a file that isn't a font is said at once
+      // its bytes, not a URL: no rule of the page's frame can refuse the try
+      try { await new FontFace("KittySkin-try", await file.arrayBuffer()).load(); } catch (e) { URL.revokeObjectURL(p.url); toast(file.name + " isn't a font the browser can read.", "alert"); return; }
+    } else {
       try { [p.w, p.h] = await natural(p.url); } catch (e) { URL.revokeObjectURL(p.url); toast(file.name + " isn't a picture the browser can read.", "alert"); return; }
       if (!$("artDlg").open) { URL.revokeObjectURL(p.url); return; }   // she closed the card while it was read
       p.why = misfit(k, p.w, p.h, SKIN.live, {}, true);
@@ -4630,7 +4638,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (a.scale) {
         px = el("select"); px.id = "artPixel-" + k;
         for (const [v, l] of [["pixel", "Pixel art, two screen pixels to one"], ["smooth", "Smooth, drawn at twice its size"]]) { const o = el("option", null, l); o.value = v; px.appendChild(o); }
-        px.value = p.typed.pixel ?? (p.w < a.size[0] / 2 ? "pixel" : "smooth");
+        px.value = p.typed.pixel ?? (p.w <= a.size[0] / 2 ? "pixel" : "smooth");
         fields.appendChild(field("Drawn as", px));
       }
     }
