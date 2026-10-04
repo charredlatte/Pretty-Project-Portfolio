@@ -169,7 +169,7 @@ def to_css(v):
         css = v["hex"][:7]
     elif isinstance(v, dict) and isinstance(v.get("components"), list) and v.get("colorSpace", "srgb") == "srgb":
         css = "#" + "".join(f"{round(min(1, max(0, c)) * 255):02x}" for c in v["components"][:3])
-    elif isinstance(v, dict) and number(v.get("value"), 0, 999) and v.get("unit") in ("px", "rem"):
+    elif isinstance(v, dict) and number(v.get("value"), 0, float("inf")) and v.get("unit") in ("px", "rem"):
         css = f"{round(v['value'], 3):g}{v['unit']}"
     return css
 
@@ -184,7 +184,8 @@ def number(v, lo, hi):
 
 # the page's skinEntry(), for what a slot's entry may carry
 SETTINGS = {
-    "slice": lambda v: ints(v, 4, 0, 256),   # the page takes 64, or 256 for a smooth map piece (checked in check()) "frames": lambda v: isinstance(v, int) and not isinstance(v, bool) and 1 <= v <= 64,
+    "slice": lambda v: ints(v, 4, 0, 256),   # the page takes 64, or 256 for a smooth map piece (checked in check())
+    "frames": lambda v: isinstance(v, int) and not isinstance(v, bool) and 1 <= v <= 64,
     "secs": lambda v: number(v, 0.1, 20), "anchor": lambda v: isinstance(v, list) and len(v) == 2 and all(number(x, 0, 1024) for x in v),
     "scale": lambda v: number(v, 0.001, 64), "pixel": lambda v: v is True, "hot": lambda v: ints(v, 2, 0, 127),
     "w": lambda v: isinstance(v, int), "h": lambda v: isinstance(v, int),
@@ -356,8 +357,9 @@ def main():
         if [mw, mh] != [hw, hh]:
             said.append(f"  {key}: {mw} x {mh}, but it shares {head}'s border, so it must be {hw} x {hh}: left out")
             del skin[key]
-    if from_files:
-        skin["tokensFromFiles"] = sorted(set(from_files) - broken | (filed & broken))
+    still = (set(from_files) - broken) | (filed & broken)   # built from files now, or still waiting on one half-saved
+    if still:
+        skin["tokensFromFiles"] = sorted(still)
     for mode, key in (("light", "tokens"), ("dark", "dark")):
         if modes[mode]:
             skin[key] = dict(sorted(modes[mode].items()))

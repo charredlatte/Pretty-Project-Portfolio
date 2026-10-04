@@ -78,6 +78,8 @@
   --art-map-button-down: url(art/licensed/pastel/button-down.png); --art-map-frame: url(art/licensed/pastel/frame.png);
   --art-map-icons: url(art/licensed/pastel/icons.png);
   --art-meadow: url(art/licensed/meadow.png); --art-house: url(art/licensed/house.png);
+  --art-house-upper: url(art/licensed/house-upper.png); --art-decor: url(art/licensed/decor.png);   /* drawn as <img>, from srcOf() */
+  --art-furniture: url(art/licensed/furniture.png); --art-furniture-cabin: url(art/furniture.png);   /* drawn by drawFurniture() */
   --art-cat-work: url(art/licensed/mochi-idle.png); --art-cat-review: url(art/licensed/mochi-box.png);
   --art-cat-cry: url(art/licensed/pochi.png); --art-cat-meow: url(art/licensed/pochi.png); --art-cat-sleep: url(art/licensed/pochi.png);
   --panel-t: 6; --panel-r: 6; --panel-b: 6; --panel-l: 6; --panel-s: var(--panel-t) var(--panel-r) var(--panel-b) var(--panel-l);
@@ -1185,6 +1187,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const dark = Object.entries(tokens.dark).map(([n, t]) => n + ": " + t.value + ";").join(" ");
     const artWas = SKIN.artSig, artSig = JSON.stringify([Object.entries(live).map(([k, e]) => [k, e.url, e.slice, e.frames, e.secs, e.anchor, e.scale, e.pixel]), standIn]);
     SKIN.live = live; SKIN.problems = problems; SKIN.tokens = tokens; SKIN.standIn = standIn; SKIN.artSig = artSig;
+    SKIN.lookSig = artSig + JSON.stringify(tokens);   // what restyle() draws from
     const using = new Set(Object.values(cands).flat().map((e) => e.src));
     for (const src of Object.keys(SKIN.blobs)) if (!using.has(src)) { URL.revokeObjectURL(SKIN.blobs[src]); delete SKIN.blobs[src]; }   // a piece of hers put back
     for (const [fam, f] of Object.entries(faces)) { if (SKIN.fonts[fam]) document.fonts.delete(SKIN.fonts[fam].face); document.fonts.add(f.face); SKIN.fonts[fam] = f; }
@@ -1202,11 +1205,17 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     }
     // a colour alone redraws only what reads one as it draws (the CSS follows by itself): her look, the maps' hues
     restyle();
+    if ($("artDlg").open) drawArt();
   }
   // What the script draws with a colour (her figure, a map's dots) and the frame's thickness, again: after a skin, and
   // when the page turns light or dark, since a dark token can differ from its light one
-  function restyle() {
-    if (frameWidth()) { if (S.cam) setCam(S.cam, false); else layout(true); }
+  function restyle(force) {
+    // a thicker or thinner frame: the whole house or the room she looked into is fitted again; a view she moved herself
+    // is kept, inside it
+    const whole = S.cam && Math.abs(S.cam.s - limits()[0]) < 1e-3;   // on the whole house, measured inside the frame as it was
+    if (frameWidth()) { if (!S.cam || S.focus || whole) layout(true); else setCam(S.cam, false); }
+    if (!force && SKIN.drawnSig === SKIN.lookSig) return;   // nothing the script draws with has changed
+    SKIN.drawnSig = SKIN.lookSig;
     if ($("queenOwnerFig")) $("queenOwnerFig").replaceChildren(ownerSVG(ownerOf()));
     const you = document.querySelector("#queenYou .ownerprev .pic");
     if (you) {   // the look she is choosing there, as the selects hold it
@@ -1219,7 +1228,6 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if ($("mapsDlg").open) redrawMaps();
     const H = hues();   // a map open anywhere else (a filing cabinet's card) takes its new colours in place
     for (const d of document.querySelectorAll("[data-hue]")) { if (d.tagName === "rect") d.setAttribute("fill", H[+d.dataset.hue]); else d.style.background = H[+d.dataset.hue]; }
-    if ($("artDlg").open) drawArt();
   }
   // art/skin.json beside the page: her own pieces, dropped in a folder and listed (tools/skin.py lists them)
   async function loadSkinFile() {
@@ -4618,7 +4626,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     }
     if (!p.why && a.kind === "cat") {
       frames = el("input"); frames.id = "artFrames"; frames.type = "number"; frames.min = 1; frames.max = 64;
-      frames.value = p.typed.frames ?? (p.w % p.h === 0 ? p.w / p.h : a.frames);
+      frames.value = p.typed.frames ?? (p.w % p.h === 0 && p.w / p.h <= 64 ? p.w / p.h : a.frames);
       secs = el("input"); secs.id = "artSecs"; secs.type = "number"; secs.min = 0.1; secs.max = 20; secs.step = 0.05; secs.value = p.typed.secs ?? a.secs;
       const row = el("div", "row"); row.append(field("Frames", frames), field("Seconds a loop", secs)); fields.appendChild(row);
     }
@@ -5007,8 +5015,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   checkArt();
   loadSkinFile();
   // light or dark, by the system or by claude.ai's own switch: what the script drew follows
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", restyle);
-  new MutationObserver(restyle).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => restyle(true));
+  new MutationObserver(() => restyle(true)).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   new ResizeObserver(() => { hideMenu(); hideTip(); frameWidth(); layout(true); }).observe($("stage"));
   // Clicking or tapping the open meadow closes the menu.
   // The path is taken when the event is dispatched, so a button the menu replaced while handling

@@ -2503,7 +2503,6 @@ await check("each slot's default in ART is the one the CSS draws with: its file,
     const m = line.match(/^\s+"([\w-]+)":\s*\{.*kind: "(\w+)".*file: (?:LIC \+ )?"([^"]+)"/);
     if (!m || m[2] === "font" || m[2] === "cat") continue;   // the font is @font-face's; a cat's sheet is its mood's rule
     const file = line.includes("file: LIC + ") ? "art/licensed/" + m[3] : m[3];
-    if (["furniture", "furniture-cabin", "house-upper", "decor"].includes(m[1])) continue;   // drawn from the script (srcOf), not a variable
     if (!css.includes("--art-" + m[1] + ": url(" + file + ")")) wrong.push(m[1] + " is not " + file);
     const sl = line.match(/slice: \[(\d+), (\d+), (\d+), (\d+)\]/), fam = line.match(/fam: "(\w+)"/);
     if (sl && fam && !css.includes("--" + fam[1] + "-t: " + sl[1] + "; --" + fam[1] + "-r: " + sl[2] + "; --" + fam[1] + "-b: " + sl[3] + "; --" + fam[1] + "-l: " + sl[4] + ";")) wrong.push(m[1] + "'s border is not " + sl.slice(1).join(" "));
@@ -2697,6 +2696,17 @@ await check("tools/skin.py reads every slot, token and size range the page has",
     expect(d && d.tokens["--ink"] === "#101010" && d.tokens["--tan"] === "#202020" && !("--go" in d.tokens), JSON.stringify(d));
     if (await page.locator("#toast .btn").isVisible()) await page.click("#toast .btn");
     await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
+  await check("a thicker frame refits the whole house inside it", async () => {
+    await closeMenu(page); await page.keyboard.press("0"); await page.waitForTimeout(300);
+    const before = await page.evaluate(() => getComputedStyle(document.getElementById("world")).transform);
+    await page.evaluate(() => window.__catio.put("skin/theme", { tokens: { "--u-desk": "4px" }, at: 9 }));
+    await page.waitForTimeout(700);
+    const after = await page.evaluate(() => getComputedStyle(document.getElementById("world")).transform);
+    const trim = await page.evaluate(() => getComputedStyle(document.querySelector(".trim")).borderTopWidth);
+    expect(trim === "24px" && before !== after, trim + " | " + before + " → " + after);
+    await page.evaluate(() => { delete window.__catio.store["skin/theme"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(500);
   });
   await check("a font of hers for the text goes ahead of the café's", async () => {
     await page.evaluate(() => window.__catio.put("skin/font-body", { src: "art/licensed/ui/sprout.ttf", at: 1 }));
