@@ -51,7 +51,8 @@ Still missing for a product:
   sign-in, both named in `docs/accounts.md`;
 - the decider's model locked for buyers (today any caller can pass `model`, a paid one included);
 - each agent key kept to its own cats and files (today most agent tools take any cat's id, the queen's included;
-  `pick_up` takes any file, `quizzes` returns every card, and `decide` lets a key write to the decision log);
+  `comments` reads the owner's thread with the queen, `inbox` can mark her notes as handed over before her runner
+  sees them, `pick_up` takes any file, `quizzes` returns every card, and `decide` writes to the decision log);
 - features gated by tier (nothing checks a plan today: every account gets the quiz, homework and the decider);
 - OAuth for clients other than Claude's (the gateway only lets claude.ai and claude.com connectors sign in);
 - the licensed packs kept from other accounts (today one copy is served to every signed-in user,
@@ -64,7 +65,7 @@ itself; each needs a little runner code once, and after that choosing one is con
 
 | Driver | How it is driven | Status |
 | --- | --- | --- |
-| Claude (Claude Code) | `claude -p` turns from the runner; hooks enforce the rules | Built, for the queen; other agents report but aren't run by it |
+| Claude (Claude Code) | `claude -p` turns from the runner, held in by a tool allowlist (`--allowedTools mcp__catio`), not by the hooks; every driver needs the same | Built, for the queen; other agents report but aren't run by it |
 | OpenAI (Codex CLI) | `codex exec`: woken by `catio_mcp.py`'s `wake` command on the same machine; on the hosted gateway it checks its inbox | Joins today; runner driver to build |
 | Gemini (Gemini CLI) | `gemini -p`, the same way | Joins today; runner driver to build |
 | Any OpenAI-compatible endpoint (OpenRouter, Mistral, Ollama) | A small tool-calling loop in the runner, with the gateway's tools | To build |
@@ -72,7 +73,7 @@ itself; each needs a little runner code once, and after that choosing one is con
 
 | Environment | What runs there |
 | --- | --- |
-| A laptop or PC | The runner, any CLI, the local café |
+| A laptop or PC | The runner (talking to a gateway), any CLI; or the local café over `catio_mcp.py --serve`, which has no runner |
 | A Raspberry Pi or a small VPS | The runner, always on |
 | Cloudflare Containers, on the buyer's own account | The runner, kept awake: it long-polls the gateway, so a sleeping one hears nothing |
 | Claude Code on the web | Cloud sessions with the rules plugin, reporting by hook |
@@ -81,12 +82,13 @@ itself; each needs a little runner code once, and after that choosing one is con
 
 The code is open source under the AGPL (graphify, vendored, is Apache-2.0 with parts under MIT), and anyone can
 self-host it; the art is not, and a clone shows the café without it. What is sold is not having to. Free is the
-self-hosted repository. Basic runs the gateway, the house and the café for you, with a cap on calls. Early access
-adds the paid features: the brain's sorter, the litter box quiz and homework. In claude.ai the sorter runs on the
-buyer's own plan; on the gateway's café it is the decider, once it is switched from observing to sorting. The
-runner stays on the buyer's side in every tier. Buyers' model keys stay with the runner, on their machine or their
-own cloud account; the gateway holds none of them. It does spend the operator's own Workers AI account (or
-`DECIDE_KEY`) on decisions, which is why the decider's model must be locked.
+self-hosted repository (the shop's Free column, one repository on the page, predates this and needs reconciling).
+Basic runs the gateway, the house and the café for you, with a cap on calls. Early access adds the paid features:
+the brain's sorter, the litter box quiz and homework. On the gateway's café, which is what buyers get, the sorter
+is the decider, once it is switched from observing to sorting. The runner stays on the buyer's side in every tier.
+Buyers' model keys stay with the runner, on their machine or their own cloud account; the gateway holds none of
+them. It does spend the operator's own Workers AI account (or `DECIDE_KEY`) on decisions, which is why the
+decider's model must be locked.
 
 ## Who it is for
 
@@ -100,7 +102,8 @@ own cloud account; the gateway holds none of them. It does spend the operator's 
 Besides the hosted tiers, two things are sold. **Builds** are harnesses made to order (the shop's "Set up for
 you"): lifetime access and the course on setting one up yourself; an afternoon of Charlotte doing it with you is a
 higher price. Sold from the day the store opens. **Parts** are rule packs, skills and skins sold by their makers in
-a gallery, later. The shop wireframes (`docs/kittychat-shop/`) predate MCPWay and have no Team column yet.
+a gallery, later. The shop wireframes (`docs/kittychat-shop/`) predate MCPWay: they have no Team column, and they
+ask buyers for claude.ai with Claude Code, which becomes one choice among the drivers.
 
 ## Competition
 
