@@ -59,10 +59,11 @@ async function resize(page, width, height) {
 }
 // Run a check that moves the viewport about, then put it back. A restore that fails must not replace the failure
 // it follows, and must not be swallowed when there was none: the checks after it would run at the wrong size.
-async function atSizes(page, body, width = 1440, height = 900) {
+async function atSizes(page, body, to) {
+  const back = to || page.viewportSize();   // this context's own size, not a desktop guess
   let failed = null;
   try { await body(); } catch (e) { failed = e; }
-  try { await resize(page, width, height); } catch (e) { failed = failed || e; }
+  try { await resize(page, back.width, back.height); } catch (e) { failed = failed || e; }
   if (failed) throw failed;
 }
 // the manor's upstairs rooms; every other room is on the ground floor
@@ -902,6 +903,13 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
         expect(m.overTalk === 0, "at " + at + "one of them stands over the words, by " + m.overTalk + " square px");
         expect(m.talk >= 20, "at " + at + "the talk is " + m.talk + " px: the two of them squeezed it out");
         expect(m.homework >= 20, "at " + at + "her homework is " + m.homework + " px: the talk's floor squeezed it out");
+        // where the window has the room, not squeezed out isn't enough: a whole bubble, and a question with its
+        // options, have to be readable without scrolling for the card to be worth opening. Below this the card is
+        // shorter than the two of them plus both of those, so each pane scrolls and the floors above are what hold.
+        if (h >= 600) {
+          expect(m.talk >= 46, "at " + at + "the talk is " + m.talk + " px, under one bubble");
+          expect(m.homework >= 92, "at " + at + "her homework is " + m.homework + " px, under a question and its options");
+        }
       }
     });
   });
@@ -1640,7 +1648,11 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(talk.width > stage * .9, "the words don't cross the scene: " + Math.round(talk.width) + " of " + stage);
     expect(await page.locator("#queenThread").evaluate((u) => u.scrollWidth - u.clientWidth) <= 0, "her words scroll sideways");
   });
-  await T(page, () => window.__catio.setQuiz({ for: "cse_blocked1", title: "Unblock Caramel", questions: [{ q: "Which project is this one for?", options: ["montfortoise-shopify", "Pretty-Project-Portfolio"] }] }));
+  await T(page, () => window.__catio.setQuiz({ for: "cse_blocked1", title: "Unblock Caramel", questions: [
+    { q: "Which project is this one for?", options: ["montfortoise-shopify", "Pretty-Project-Portfolio"] },
+    { q: "Does the menu fix go in first?", options: ["Yes", "No", "Ask me again on Sunday"] },
+    { q: "Anything else I should know?" },
+  ] }));   // taller than a phone's scene, so the branch that scrolls is the one this check runs
   await page.waitForTimeout(500);
   // a quiz taller than a phone's scene has to scroll; what must hold is that the talk keeps a bubble's worth of
   // room under it, and that what doesn't fit can be reached rather than being cut off
@@ -1659,6 +1671,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
       const hr = hand && hand.getBoundingClientRect();
       return { over, reached: e.scrollTop > 0, hand: !!hr && hr.bottom <= box.bottom + 1 && hr.top >= box.top - 1 };
     });
+    expect(hw.over > 0, "the quiz fits, so this proves nothing about what doesn't: " + JSON.stringify(hw));
     expect(hw.reached, "her homework is cut off with no way to scroll to the rest: " + JSON.stringify(hw));
     expect(hw.hand, "Hand it in can't be reached even scrolled to the bottom: " + JSON.stringify(hw));
     const over = await fits();

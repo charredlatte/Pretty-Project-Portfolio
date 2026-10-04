@@ -498,7 +498,7 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); height: 792px; }   /* dial
 .ownerprev .pic { padding: 6px 8px 0; background: #7D8579 padding-box; border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; }
 /* a card this narrow has no width to spare for them: drawn smaller, they leave the words two thirds of the scene
    instead of half. Without this step the talk is back to the strip this whole change is about. */
-@media (max-width: 780px) {
+@media (max-width: 780px), (max-height: 560px) {
   .owner, .qchar { --fz: .6; }
 }
 @media (max-width: 560px) {
@@ -515,6 +515,8 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); height: 792px; }   /* dial
   .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(2.6); }
   .qchar .crown, .qchar[data-mood] .crown { top: auto; bottom: 74px; }
   .qchar[data-mood="sleep"] .crown { bottom: 44px; }
+  /* a phone with the keyboard up is half as tall: the two of them give way again so a bubble still shows */
+  @media (max-height: 620px) { .owner, .qchar { --fz: .7; } }
   .ownerprev { grid-template-columns: minmax(0, 1fr); justify-items: start; }
 }
 /* her homework: a quiz a blocked cat, answered by tapping */
