@@ -222,10 +222,11 @@ def check(art, key, rel, was, said, where=""):
         return None
     w, h = size
     entry.pop("w", None), entry.pop("h", None)
-    if entry.keys() - {"file"} and was.get("w") is not None and [was.get("w"), was.get("h")] != [w, h]:
-        # settings given for a drawing of another size don't fit this one: they go, and it's said
-        said.append(f"  {name}: redrawn at {w} x {h}, so its " + ", ".join(sorted(entry.keys() - {"file"})) + " were dropped: give them again if it needs them")
-        entry = {"file": rel}
+    sized = entry.keys() & {"slice", "frames", "anchor", "hot", "scale"}   # what depends on the drawing's size (not secs, not pixel)
+    if sized and was.get("w") is not None and [was.get("w"), was.get("h")] != [w, h]:
+        said.append(f"  {name}: redrawn at {w} x {h}, so its " + ", ".join(sorted(sized)) + " were dropped: give them again if it needs them")
+        for k in sized:
+            del entry[k]
     entry["w"], entry["h"] = w, h
     want = a.get("size")
     if a["kind"] == "exact" and want and [w, h] != want:
@@ -237,7 +238,7 @@ def check(art, key, rel, was, said, where=""):
     note = ""
     if a["kind"] == "slice" and "slice" in a and want and [w, h] != want and "slice" not in entry:
         if "scale" in a and not entry.get("pixel"):   # as The look does: the pack's border, scaled to her drawing
-            entry["slice"] = [max(1, round(n * w / want[0])) for n in a["slice"]]
+            entry["slice"] = [min(64, max(1, round(n * w / want[0]))) for n in a["slice"]]   # the page takes 64 at most
             worked.append("slice")
             note = f" (border {' '.join(map(str, entry['slice']))}, scaled from the pack's; set \"slice\" if it isn't)"
         else:

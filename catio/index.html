@@ -85,6 +85,7 @@
   --btn-t: 4; --btn-r: 4; --btn-b: 6; --btn-l: 4; --btn-s: var(--btn-t) var(--btn-r) var(--btn-b) var(--btn-l);
   --btn-w: calc(var(--btn-t) * var(--u)) calc(var(--btn-r) * var(--u)) calc(var(--btn-b) * var(--u)) calc(var(--btn-l) * var(--u));
   --btn-px: calc(var(--btn-t) * 1px) calc(var(--btn-r) * 1px) calc(var(--btn-b) * 1px) calc(var(--btn-l) * 1px);
+  --btn-thin: max(0px, calc(var(--btn-t) * 1px - 1px)) max(0px, calc(var(--btn-r) * 1px - 1px)) max(0px, calc(var(--btn-b) * 1px - 1px)) max(0px, calc(var(--btn-l) * 1px - 1px));   /* a count's: one pixel thinner */
   --down-t: 4; --down-r: 4; --down-b: 4; --down-l: 4; --down-s: var(--down-t) var(--down-r) var(--down-b) var(--down-l);
   --down-w: calc(var(--down-t) * var(--u)) calc(var(--down-r) * var(--u)) calc(var(--down-b) * var(--u)) calc(var(--down-l) * var(--u));
   --down-px: calc(var(--down-t) * 1px) calc(var(--down-r) * 1px) calc(var(--down-b) * 1px) calc(var(--down-l) * 1px);
@@ -101,11 +102,12 @@
   /* the box a few pieces leave for their border: one width all round for the pack's (as it was drawn for), each side
      its own once a skin gives the piece a border, so uneven art never covers what it frames */
   --field-bw: calc(var(--field-t) * var(--u)); --bubble-bw: calc(var(--bubble-t) * 1px); --corners-bw: calc(var(--corners-t) * 1px);
+  --bubble-iw: var(--btn-px);   /* a thread's reply draws the pack's bubble at the button's widths, as it always has; hers at its own */
   --divider-t: 4; --divider-r: 1; --divider-b: 0; --divider-l: 1; --divider-s: var(--divider-t) var(--divider-r) var(--divider-b) var(--divider-l);
   --divider-w: calc(var(--divider-t) * var(--u)) calc(var(--divider-r) * var(--u)) calc(var(--divider-b) * var(--u)) calc(var(--divider-l) * var(--u));
   /* the map panel's pieces are smooth art drawn at twice their size or more: -k is one of its pixels on screen */
   --mpanel-k: .5px; --mbtn-k: .5px; --mframe-k: calc(6px / 28);
-  --mpanel-render: auto; --mbtn-render: auto; --mframe-render: auto;   /* pixelated for a piece she draws as pixel art */
+  --mpanel-render: auto; --mbtn-render: auto; --mframe-render: auto; --micons-render: auto;   /* pixelated for a piece she draws as pixel art */
   --mpanel-t: 28; --mpanel-r: 28; --mpanel-b: 28; --mpanel-l: 28; --mpanel-s: var(--mpanel-t) var(--mpanel-r) var(--mpanel-b) var(--mpanel-l);
   --mpanel-w: calc(var(--mpanel-t) * var(--mpanel-k)) calc(var(--mpanel-r) * var(--mpanel-k)) calc(var(--mpanel-b) * var(--mpanel-k)) calc(var(--mpanel-l) * var(--mpanel-k));
   --mbtn-t: 20; --mbtn-r: 22; --mbtn-b: 24; --mbtn-l: 22; --mbtn-s: var(--mbtn-t) var(--mbtn-r) var(--mbtn-b) var(--mbtn-l);
@@ -230,7 +232,7 @@ a { color: var(--ink); }
 .pbtn:active, .pbtn[aria-checked="true"], .pbtn[aria-expanded="true"]:not(.fold) { border-image-source: var(--art-map-button-down); background-color: var(--map-btn-down); }
 .pbtn:disabled { opacity: .5; cursor: default; }
 .pbtn.sq { width: 40px; padding: 0; }
-.pbtn .ico { --i: 0; width: 18px; height: 18px; flex: none; background: var(--art-map-icons) calc(var(--i) * -18px) 0 / 90px 18px no-repeat; }
+.pbtn .ico { --i: 0; width: 18px; height: 18px; flex: none; image-rendering: var(--micons-render); background: var(--art-map-icons) calc(var(--i) * -18px) 0 / 90px 18px no-repeat; }
 .pbtn svg { width: 14px; height: 14px; fill: currentColor; shape-rendering: crispEdges; }
 /* a floor with cats that need you: a pink pip and how many (red if one is upset) */
 .pip { display: inline-grid; place-items: center; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; font: 800 11px/1 var(--body); color: var(--ink);
@@ -298,7 +300,7 @@ a { color: var(--ink); }
 .cat .spr { display: block; }
 /* a count: the pack's white button at one pixel a pixel */
 .badge .n { font: 800 11px/1 var(--body); color: var(--ink); padding: 0 1px;
-  border-style: solid; border-color: transparent; border-width: max(0px, calc(var(--btn-t) * 1px - 1px)) max(0px, calc(var(--btn-r) * 1px - 1px)) max(0px, calc(var(--btn-b) * 1px - 1px)) max(0px, calc(var(--btn-l) * 1px - 1px)); border-image: var(--art-button-hover) var(--btn-s) fill / max(0px, calc(var(--btn-t) * 1px - 1px)) max(0px, calc(var(--btn-r) * 1px - 1px)) max(0px, calc(var(--btn-b) * 1px - 1px)) max(0px, calc(var(--btn-l) * 1px - 1px)) stretch; }
+  border-style: solid; border-color: transparent; border-width: var(--btn-thin); border-image: var(--art-button-hover) var(--btn-s) fill / var(--btn-thin) stretch; }
 /* a queen's crown: the pack's crown icon, gilded */
 .crown { position: absolute; width: 14px; height: 13px; pointer-events: none; image-rendering: pixelated; background: var(--art-crown) 0 0 / 100% 100% no-repeat; }
 .crown.inline { position: static; display: inline-block; flex: none; }
@@ -509,7 +511,7 @@ ul.files .why { grid-column: 1 / -1; font-size: .78rem; color: var(--ink-soft); 
 ul.files select { max-width: 190px; }
 ul.thread li { padding: 0 4px; font-size: .88rem; overflow-wrap: anywhere; white-space: pre-wrap; background: var(--cream) padding-box;
   border-style: solid; border-color: transparent; border-width: var(--btn-px); border-image: var(--art-button) var(--btn-s) fill / var(--btn-px) stretch; }
-ul.thread li.them { background-color: var(--well); border-image-source: var(--art-bubble); border-image-slice: var(--bubble-s) fill; border-width: var(--bubble-px); border-image-width: var(--bubble-px); margin-right: 24px; }
+ul.thread li.them { background-color: var(--well); border-image-source: var(--art-bubble); border-image-slice: var(--bubble-s) fill; border-width: var(--bubble-px); border-image-width: var(--bubble-iw); margin-right: 24px; }
 ul.thread li.me { margin-left: 24px; }
 ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-soft); }
 /* the queen's card: her dialogue, like an NPC's */
@@ -911,7 +913,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "button-pink":   { group: "Interface", kind: "slice", fam: "btn", name: "Pink button", file: LIC + "ui/button-pink.png", size: [26, 28], what: "The one that lets go. Its border is the button's." },
     "button-down":   { group: "Interface", kind: "slice", fam: "down", name: "Button, pressed", file: LIC + "ui/button-down.png", size: [26, 26], slice: [4, 4, 4, 4], what: "Pressed in, and the wells things sit in." },
     "field":         { group: "Interface", kind: "slice", fam: "field", bw: "w", name: "Field", file: LIC + "ui/field.png", size: [26, 26], slice: [4, 4, 5, 4], what: "Where she types." },
-    "bubble":        { group: "Interface", kind: "slice", fam: "bubble", bw: "px", name: "Bubble", file: LIC + "ui/bubble.png", size: [42, 42], slice: [5, 5, 6, 5], what: "A cat's ask, and the replies in its thread." },
+    "bubble":        { group: "Interface", kind: "slice", fam: "bubble", bw: "px", iw: "px", name: "Bubble", file: LIC + "ui/bubble.png", size: [42, 42], slice: [5, 5, 6, 5], what: "A cat's ask, and the replies in its thread." },
     "frame":         { group: "Interface", kind: "slice", fam: "frame", name: "Picture frame", file: LIC + "ui/frame.png", size: [30, 30], slice: [7, 7, 7, 7], what: "Portraits, the queen's scene and the Edit rooms plan." },
     "corners":       { group: "Interface", kind: "slice", fam: "corners", bw: "px", name: "Brackets", file: LIC + "ui/corners.png", size: [20, 20], slice: [9, 8, 9, 8], what: "The four corners a room or a cat lights up with; the middle stays empty." },
     "divider":       { group: "Interface", kind: "slice", fam: "divider", name: "Divider", file: LIC + "ui/divider.png", size: [58, 4], slice: [4, 1, 0, 1], what: "The line between parts of a menu." },
@@ -1136,9 +1138,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       const a = ART[k];
       if (a.kind === "slice" || a.kind === "sheet" || a.kind === "exact") put("--art-" + k, cssUrl(e.url));
       if (a.hot) put("--" + k + "-hot", (e.hot || a.hot).join(" "));   // her paw points where she says
+      if (k === "map-icons" && e.pixel) put("--micons-render", "pixelated");   // hers drawn as pixel art
       if (a.kind === "slice" && a.slice && e.slice) {
         e.slice.forEach((n, i) => put("--" + a.fam + "-" + "trbl"[i], String(n)));
         if (a.bw) put("--" + a.fam + "-bw", "var(--" + a.fam + "-" + a.bw + ")");   // her border's box, side by side
+        if (a.iw) put("--" + a.fam + "-iw", "var(--" + a.fam + "-" + a.iw + ")");   // and her art drawn at its own widths
       }
       if (a.kind === "slice" && a.scale && (e.scale || e.pixel)) {
         put("--" + a.fam + "-k", e.pixel ? "var(--u)" : e.scale + "px");   // pixel art at the art pixel, whatever scale was worked out
@@ -1196,6 +1200,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       checkArt();
       render();
     }
+    if (frameWidth()) layout(true);   // a thicker or thinner frame: the view fits inside it again
     // a colour alone redraws only what reads one as it draws (the CSS follows by itself): her look, the maps' hues
     if ($("queenOwnerFig")) $("queenOwnerFig").replaceChildren(ownerSVG(ownerOf()));
     const you = document.querySelector("#queenYou .ownerprev .pic");
@@ -1207,6 +1212,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (note) note.textContent = skinOf("owner") ? "Your own picture is in the hall (The look, in the House menu). These choices draw you again once you put it back." : "How you sit in the hall when you talk to her, seen from behind.";
     }
     if ($("mapsDlg").open) redrawMaps();
+    const H = hues();   // a map open anywhere else (a filing cabinet's card) takes its new colours in place
+    for (const d of document.querySelectorAll("[data-hue]")) { if (d.tagName === "rect") d.setAttribute("fill", H[+d.dataset.hue]); else d.style.background = H[+d.dataset.hue]; }
     if ($("artDlg").open) drawArt();
   }
   // art/skin.json beside the page: her own pieces, dropped in a folder and listed (tools/skin.py lists them)
@@ -1864,10 +1871,16 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // and a close look at one room. Look in and Whole house fly it to a room or to the house. S.focus is the
   // room you're in: the one Look in chose, or the one filling the view after you move it yourself.
   const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const margin = () => {   // keep the house clear of the frame, as thick as its art and the art pixel make it
+  // keep the house clear of the frame, as thick as its art and the art pixel make it: read when a skin or the screen
+  // changes (frameWidth()), not on every move of the camera
+  let MARGIN = null;
+  function frameWidth() {
     const cs = getComputedStyle(document.querySelector(".trim"));
-    return Math.max(...["Top", "Right", "Bottom", "Left"].map((side) => parseFloat(cs["border" + side + "Width"]) || 0)) + 8;
-  };
+    const m = Math.max(...["Top", "Right", "Bottom", "Left"].map((side) => parseFloat(cs["border" + side + "Width"]) || 0)) + 8, was = MARGIN;
+    MARGIN = m;
+    return was !== null && was !== m;   // it changed
+  }
+  const margin = () => (MARGIN === null ? (frameWidth(), MARGIN) : MARGIN);
   const padded = (k) => { const [x, y, w, h] = GEOM[k].r; const p = 6; return [x - p, y - p, w + 2 * p, h + 2 * p]; };
   function frame(r) {   // the camera that fits a box of the grounds (native px) in the stage
     const st = $("stage"), W = st.clientWidth, H = st.clientHeight, m = margin();
@@ -3362,14 +3375,14 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     }
     for (const { t: label, g, d: deg, x, y } of n) {
       const s = 3 + 2 * Math.round(3 * deg / big), r = document.createElementNS(NS, "rect");
-      r.setAttribute("x", x - s / 2); r.setAttribute("y", y - s / 2); r.setAttribute("width", s); r.setAttribute("height", s); r.setAttribute("fill", hue(g));
+      r.setAttribute("x", x - s / 2); r.setAttribute("y", y - s / 2); r.setAttribute("width", s); r.setAttribute("height", s); r.setAttribute("fill", hue(g)); r.dataset.hue = g >= 0 && g < 8 ? g : 8;
       const t = document.createElementNS(NS, "title"); t.textContent = label + " (" + deg + " links)"; r.appendChild(t);
       svg.appendChild(r);
     }
     const art = el("div", "gart"); art.appendChild(svg);
     d.appendChild(art);
     const keyList = (title, rows) => { if (!rows.length) return; d.appendChild(el("p", "kicker", title)); const ul = el("ul", "gkey"); rows.forEach((r) => ul.appendChild(r)); d.appendChild(ul); };
-    keyList("Neighbourhoods", (gm.groups || []).map((g, i) => { const li = el("li"); const sw = el("span", "sw"); sw.style.background = hue(i); li.append(sw, el("span", null, g.name + " · " + g.size)); return li; }));
+    keyList("Neighbourhoods", (gm.groups || []).map((g, i) => { const li = el("li"); const sw = el("span", "sw"); sw.style.background = hue(i); sw.dataset.hue = i < 8 ? i : 8; li.append(sw, el("span", null, g.name + " · " + g.size)); return li; }));
     keyList("Hubs", (gm.gods || []).map((g) => { const li = el("li"); li.append(el("b", null, g.label), el("span", "what", " " + g.degree + " links" + (g.file ? " · " + g.file : ""))); return li; }));
     keyList("Surprises", (gm.surprises || []).map((x) => { const li = el("li"); li.append(el("b", null, x.a), document.createTextNode(" " + x.rel + " "), el("b", null, x.b), el("div", "what", x.where + (x.how === "INFERRED" ? " · inferred" : ""))); return li; }));
     keyList(cat ? "Ask " + cat.name : "Questions it can answer", (gm.questions || []).map((q) => {
@@ -4979,7 +4992,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   render();
   checkArt();
   loadSkinFile();
-  new ResizeObserver(() => { hideMenu(); hideTip(); layout(true); }).observe($("stage"));
+  new ResizeObserver(() => { hideMenu(); hideTip(); frameWidth(); layout(true); }).observe($("stage"));
   // Clicking or tapping the open meadow closes the menu.
   // The path is taken when the event is dispatched, so a button the menu replaced while handling
   // the click (Sound, Bring them down, anything that redraws the menu under your pointer) is
