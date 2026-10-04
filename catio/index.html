@@ -288,8 +288,8 @@ a { color: var(--ink); }
 .prop { position: absolute; pointer-events: none; }
 /* a piece of furniture: one cell of an atlas, at two screen pixels an art pixel, in the cats' z-space */
 .piece { position: absolute; pointer-events: none; image-rendering: pixelated; background-repeat: no-repeat; }
-/* rooms, cabinets and cats light up with the pack's white selection brackets: a room under the pointer,
-   with keyboard focus, or whose menu is open. A room's brackets keep one size on screen at any zoom
+/* rooms light up with the pack's white selection brackets: a room under the pointer, with keyboard focus, or
+   whose menu is open (cats and cabinets are outlined instead, below). A room's brackets keep one size on screen at any zoom
    (--cs is the camera scale). */
 .roomhit, .cabinet, .cat { position: absolute; background: transparent; border: 0; padding: 0; cursor: var(--point); }
 .roomhit { --bw: calc(var(--u) * var(--corners-t) / var(--cs, 1)) calc(var(--u) * var(--corners-r) / var(--cs, 1)) calc(var(--u) * var(--corners-b) / var(--cs, 1)) calc(var(--u) * var(--corners-l) / var(--cs, 1)); }
@@ -303,6 +303,15 @@ a { color: var(--ink); }
    as shares, so her own frame is trimmed alike); walking there, it is whole */
 .cat[data-line] { clip-path: inset(0 21.875% 0 9.375%); }
 .cat.walking[data-line] { clip-path: none; }
+.cat:focus-visible { outline: 0; }
+.cabinet:focus-visible { outline: 0; border: 9px solid transparent; border-image: url(art/licensed/ui/corners.png) 9 8 / 9px 8px stretch; border-image-outset: 5px; }
+/* a cat, the queen, a pile, a filing cabinet or the litter box under the pointer (or with its menu open, or keyboard
+   focus) is outlined around its own shape, not boxed: one art pixel of the pack's white, traced from the sprite's
+   pixels (her ask, 4 October: "it outlines the object boundaries of the 2D asset") */
+.cat.hot, .cat.lit, .cat:focus-visible, .piece.hot { --ol: #FFF8E4;
+  filter: drop-shadow(2px 0 0 var(--ol)) drop-shadow(-2px 0 0 var(--ol)) drop-shadow(0 2px 0 var(--ol)) drop-shadow(0 -2px 0 var(--ol)); }
+/* a cat in the line is close to the next: only its own body answers the pointer */
+.cat[data-line] { clip-path: inset(0 14px 0 6px); }
 .spr { display: inline-block; vertical-align: bottom; filter: var(--tint, none); image-rendering: pixelated; background-repeat: no-repeat; }
 .cat .spr { display: block; }
 /* a count: the pack's white button at one pixel a pixel */
@@ -533,8 +542,15 @@ ul.thread li.handoff.new .who::after { content: " · new"; color: var(--ink); }
    from the house art, in the pack's picture frame. Every setting sits in an overlay over the scene.
    The words get as much of the scene as the two of them leave: the gap between them used to be a column a third of
    the card wide, with her answers running off the side of it ("make this window useable", 3 October). */
-dialog.scene { width: min(920px, calc(100vw - 24px)); }
-.dlg.queen { position: relative; }
+/* the card fills the window it is given and the scene takes what the head and the saybar leave: a share of the
+   window (62vh and the like) fits one window and spills out of a short one, pushing Send off the bottom. The
+   height is set on the dialog, which already states the cap and draws the panel, so the card has no chrome of its
+   own to allow for, and the scene's floor is on its row rather than a min-height of its own: a min-height
+   overflows the row it sits in and, the scene being positioned, is drawn over the saybar, so Send would be on
+   screen and still not clickable. Under the floor the card is taller than the window and the dialog scrolls. */
+dialog.scene { width: min(920px, calc(100vw - 24px)); height: 792px; }   /* dialog's own max-height brings it down to the window */
+.dlg.queen { position: relative; height: 100%; display: grid; grid-template-rows: auto minmax(200px, 1fr) auto; }
+.dlg.queen:has(> .qsettings:not([hidden])) { overflow: hidden; }
 .qhead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: start; }
 .qhead h2 { display: flex; align-items: center; gap: 10px; }
 .qhead h2 .crown { position: static; flex: none; transform: scale(2); margin: 0 6px; }
@@ -546,12 +562,18 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
   overflow: hidden; image-rendering: pixelated; background: var(--scene-face) var(--art-house) no-repeat; background-size: 3840px 2304px;
   background-position: -1120px -1010px; border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
 .qstage::before { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--scene-shade) 30%, transparent); pointer-events: none; }
+.qstage { position: relative; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  overflow: hidden; image-rendering: pixelated; background: #7D8579 url(art/licensed/house.png) no-repeat; background-size: 3840px 2304px;
+  background-position: -1120px -1010px; border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; }
+.qstage::before { content: ""; position: absolute; inset: 0; background: rgba(28, 22, 16, .3); pointer-events: none; }
 .qstage::after { content: ""; position: absolute; inset: 0; pointer-events: none; filter: var(--scene); }
 .qstage > * { position: relative; min-width: 0; min-height: 0; }
-/* zoom, not a transform: it scales the figure's own pixel offsets too, so the crown stays on her head. What it
-   multiplies has to land on a whole number of art pixels, so each step below sets the crown's own scale to suit
-   (.8 × 2.5 and .6 × 10/3 are both 2): drawn on a fraction of a pixel, the pack's art blurs. */
-.owner, .qchar { zoom: .8; }
+/* zoom, not a transform: it scales the figure's own pixel offsets too, so the crown stays on her head. A step
+   narrower than this only changes --fz; the crown's own scale is derived from it, so it is always drawn on two
+   whole art pixels rather than a fraction of one, which blurs the pack's art. That holds its size as she shrinks,
+   so she wears it a little larger at the narrow steps: the whole numbers either side, 1 and 3, are further off.
+   (The cat sheet keeps the scales it was tuned at, 2.6 and 5, which were never whole either.) */
+.owner, .qchar { --fz: .8; zoom: var(--fz); }
 .owner { align-self: end; justify-self: start; margin: 0 0 -2px 4px; }
 .owner svg, .owner img { display: block; width: 150px; height: auto; }
 .ownerprev svg, .ownerprev img { display: block; width: 112px; height: auto; }
@@ -560,25 +582,26 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 .qchar .spr { position: absolute; left: 50%; bottom: 2px; transform-origin: 50% 100%; transform: translateX(-50%) scale(calc(2.6 * var(--fs, 1))); }   /* the sheets face left: toward her */
 .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(calc(5 * var(--fs, 1))); }
 .qchar .crown { position: absolute; left: 50%; top: 22px; transform: translateX(-50%) scale(2.5); transform-origin: 50% 0; }   /* × the .8 zoom: 2 whole art pixels */
+.qchar .spr { position: absolute; left: 50%; bottom: 2px; transform-origin: 50% 100%; transform: translateX(-50%) scale(2.6); }   /* the sheets face left: toward her */
+.qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(5); }
+.qchar .crown { position: absolute; left: 50%; top: 22px; transform: translateX(-50%) scale(calc(2 / var(--fz, .8))); transform-origin: 50% 0; }   /* × the zoom: 2 whole art pixels, whatever the step */
 .qchar[data-mood="meow"] .crown, .qchar[data-mood="cry"] .crown { top: 54px; }   /* on her head, for each pose */
 .qchar[data-mood="idle"] .crown { top: 58px; }
 .qchar[data-mood="box"] .crown { top: 40px; }
 .qchar[data-mood="sleep"] .crown { top: 104px; left: 34%; }
 .qchar.talking { animation: talk .5s steps(2) infinite; }
 @keyframes talk { 50% { translate: 0 -3px; } }
-.qchar .nameplate, .owner .nameplate { position: absolute; bottom: 4px; white-space: nowrap; }
-/* her homework over the talk. Both columns are stated, never left to the content: an auto column grows to the
-   longest word in a bubble or a quiz, and the words then scroll sideways instead of wrapping. */
-/* her homework takes what a card needs and no more, down to a floor of talk under it: a flat share of the scene
-   cut the card off above its Hand it in on a short screen */
-.qtalk { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(calc(100% - 96px)) minmax(0, 1fr); gap: 6px; padding: 8px 4px 10px; }
+/* her homework over the talk, taking what a card needs and no more, down to a floor of talk under it: a flat share
+   of the scene cut the card off above its Hand it in on a short screen. The column is stated, never left to the
+   content: an auto column grows to the longest word in a bubble or a quiz, and her words then scroll sideways. */
+.qtalk { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(max(50%, calc(100% - 96px))) minmax(0, 1fr); gap: 6px; padding: 8px 4px 10px; }
 .qtalk .homework { min-width: 0; overflow: auto; }   /* the row is what caps her homework: max-height: 46% on it resolved against nothing, so homework took the lot and left the talk no height at all */
-#queenThread { grid-row: 2; min-width: 0; height: 100%; overflow-y: auto; overflow-x: clip; display: flex; flex-direction: column; gap: 6px; padding: 0 2px; overscroll-behavior: contain; }
+#queenThread { grid-row: 2; min-width: 0; height: 100%; overflow: auto; display: flex; flex-direction: column; gap: 6px; padding: 0 2px; overscroll-behavior: contain; }
 #queenThread li { max-width: min(86%, 460px); margin: 0; }   /* wide enough to read, narrow enough to stay a bubble */
-#queenThread li .open { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }   /* .btn is nowrap: a cat with a long name would run off the side, and clip has nothing to scroll */
+#queenThread li .open { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }   /* .btn is nowrap: without this a cat with a long name runs off the side */
 #queenThread li.me { align-self: flex-start; }
 #queenThread li.them { align-self: flex-end; }
-#queenThread li.handoff { align-self: center; max-width: 92%; }
+#queenThread li.handoff { align-self: center; max-width: min(92%, 460px); }
 #queenThread > li:first-child { margin-top: auto; }   /* a short conversation sits at the bottom, by the speakers */
 .saybar { align-items: end; }
 .saybar > .field { flex: 1 1 220px; }
@@ -590,9 +613,8 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 .ownerprev .pic { padding: 6px 8px 0; background: var(--scene-face) padding-box; border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
 /* a card this narrow has no width to spare for them: drawn smaller, they leave the words two thirds of the scene
    instead of half. Without this step the talk is back to the strip this whole change is about. */
-@media (max-width: 780px) {
-  .owner, .qchar { zoom: .6; }
-  .qchar .crown { transform: translateX(-50%) scale(3.3333); }   /* × the .6 zoom: 2 whole art pixels again */
+@media (max-width: 780px), (max-height: 560px) {
+  .owner, .qchar { --fz: .6; }
 }
 @media (max-width: 560px) {
   /* a phone is tall and narrow, so the two of them stand side by side along the foot of the scene and the
@@ -606,7 +628,19 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
   .qchar .spr { transform: translateX(-50%) scale(calc(1.4 * var(--fs, 1))); }
   .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(calc(2.6 * var(--fs, 1))); }
   .qchar .crown, .qchar[data-mood] .crown { top: auto; bottom: 74px; transform: translateX(-50%) scale(2); }
+  /* the words keep a floor and the two of them give way: their row is what the talk was squeezed to nothing by */
+  .qstage { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(72px, 1fr) auto; }
+  .qtalk { grid-area: 1 / 1; }
+  .owner, .qchar { grid-area: 2 / 1; --fz: 1; }
+  .qhead h2 { font: 18px/24px var(--pixel); }   /* the pack's font draws at 18 or 36: at 36 her name broke mid-word beside Settings and Close */
+  .owner svg { width: 62px; }
+  .qchar { width: 76px; height: 110px; }
+  .qchar .spr { transform: translateX(-50%) scale(1.4); }
+  .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(2.6); }
+  .qchar .crown, .qchar[data-mood] .crown { top: auto; bottom: 74px; }
   .qchar[data-mood="sleep"] .crown { bottom: 44px; }
+  /* a phone with the keyboard up is half as tall: the two of them give way again so a bubble still shows */
+  @media (max-height: 620px) { .owner, .qchar { --fz: .7; } }
   .ownerprev { grid-template-columns: minmax(0, 1fr); justify-items: start; }
 }
 /* her homework: a quiz a blocked cat, answered by tapping */
@@ -1608,6 +1642,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       b.tabIndex = -1;   // the room's menu has Files
       b.dataset.room = k; b.dataset.floor = levelOf(k);
       b.setAttribute("aria-label", "Filing cabinet in the " + GEOM[k].name);
+      b.piece = $("props").querySelector('.piece[data-room="' + k + '"]:is([data-piece="filing_cabinet"], [data-piece="catio_chest"])');
       Object.assign(b.style, { left: box[0] * 2 + "px", top: box[1] * 2 + "px", width: box[2] * 2 + "px", height: box[3] * 2 + "px", zIndex: zOf(k) ? zOf(k) - 40 : "" });
       b.addEventListener("click", (e) => { e.stopPropagation(); hideMenu(); openCabinet(k); });
       hoverable(b, "room", k);
@@ -1622,6 +1657,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       b.type = "button"; b.tabIndex = -1;   // the House menu has Homework, and the library's has The brain
       b.dataset.room = k; b.dataset.floor = levelOf(k);
       b.setAttribute("aria-label", "The litter box");
+      b.piece = $("props").querySelector('.piece[data-room="' + k + '"][data-piece="brain_chest"]');
       Object.assign(b.style, { left: box[0] * 2 + "px", top: box[1] * 2 + "px", width: box[2] * 2 + "px", height: box[3] * 2 + "px", zIndex: zOf(k) ? zOf(k) - 40 : "" });
       b.addEventListener("click", (e) => { e.stopPropagation(); hideMenu(); hideTip(); if (deckOf("litterbox").length) openQueen("litterbox"); else openBrain(); });
       hoverable(b, "litter", k);
@@ -1704,7 +1740,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // counts, faces, bubbles or crowns (her call, 2 October 2026). Hovering a cat says what it needs.
   function dress(b, c, mood, spot, room) {
     const sp = SPR[mood];
-    b.className = "cat m-" + mood;
+    b.className = ["cat", "m-" + mood, ...["hot", "lit"].filter((k) => b.classList.contains(k))].join(" ");
     Object.assign(b.style, { left: spot[0] * 2 - sp.ax + "px", top: spot[1] * 2 - sp.ay + "px", width: sp.w + "px", height: sp.h + "px", zIndex: zOf(room) + 1000 + spot[1] * 2 });
     b.replaceChildren(sprite(mood, c.coat));
   }
@@ -2245,10 +2281,18 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const x = Math.max(t.offsetWidth / 2 + 8, Math.min(st.width - t.offsetWidth / 2 - 8, a.left - st.left + a.width / 2));
     const y = Math.max(t.offsetHeight + 8, a.top - st.top + (kind === "room" ? Math.min(a.height / 2, 60) : -4));
     Object.assign(t.style, { left: x + "px", top: y + "px" });
+    outline(tipFor, false);
     tipFor = node;
+    outline(node, true);
     mmHot(kind === "room" ? key : null);
   }
-  function hideTip(node) { if (node && node !== tipFor) return; $("tip").hidden = true; tipFor = null; if (MM.hot) mmHot(null); }
+  function hideTip(node) { if (node && node !== tipFor) return; $("tip").hidden = true; outline(tipFor, false); tipFor = null; if (MM.hot) mmHot(null); }
+  // what gets the outline: a cat (or the queen, or a pile) itself; for a filing cabinet or the litter box, the piece of
+  // furniture it stands over. A room keeps its brackets.
+  function outline(node, on) {
+    const t = node && (node.piece || (node.classList.contains("cat") ? node : null));
+    if (t) t.classList.toggle("hot", on);
+  }
   // a click closes the menu a click opened; one that keyboard focus opened stays, now pinned by the click
   function toggleMenu(kind, key, node) {
     hideTip();
@@ -2259,7 +2303,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     MENU.kind = MENU.key = MENU.anchor = MENU.at = MENU.sub = MENU.src = null;
     $("menu").hidden = true;
     $("houseBtn").setAttribute("aria-expanded", "false");
-    for (const b of $("hits").querySelectorAll(".lit")) b.classList.remove("lit");
+    for (const b of document.querySelectorAll("#hits .lit, #cats .lit")) b.classList.remove("lit");
   }
   function anchorOf(kind, key) {
     if (kind === "house") return $("houseBtn");
@@ -2282,8 +2326,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     menu.hidden = false;
     menu.scrollTop = keepScroll;
     $("houseBtn").setAttribute("aria-expanded", String(kind === "house"));
-    for (const b of $("hits").querySelectorAll(".lit")) b.classList.remove("lit");
+    for (const b of document.querySelectorAll("#hits .lit, #cats .lit")) b.classList.remove("lit");
     if (kind === "room") { const h = anchorOf("room", key); if (h) h.classList.add("lit"); }
+    else if (kind !== "house") { const h = anchorOf(kind, key); if (h) h.classList.add("lit"); }   // the cat whose menu this is keeps its outline
     // place it beside what it belongs to, inside the stage
     const a = (node || anchorOf(kind, key) || $("stage")).getBoundingClientRect();
     const st = $("stage").getBoundingClientRect();

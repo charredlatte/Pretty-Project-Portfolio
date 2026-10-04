@@ -135,7 +135,11 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
 - **Room controls**: a control for one room or cat goes in its menu.
 - **The camera is free**: drag to pan (left, right or middle button, or Space), wheel or pinch to zoom,
   + / − / 0 and Shift+arrows. `S.focus` is the room that fills the view.
-- **Hover names a thing** in a line (`#tip`). **A click opens its menu** beside it, pinned until a click
+- **Hover names a thing** in a line (`#tip`), and outlines it if it is a sprite (her ask, 4 October: "it outlines
+  the object boundaries of the 2D asset"): a cat, the queen, a pile, a filing cabinet or the litter box gets one art
+  pixel of the pack's white traced around its own shape (`outline()`, `.hot`; a `drop-shadow` filter, not a box),
+  and a cat, the queen or a pile keeps it while its menu is open (`.lit`) or it has keyboard focus. A room, and a
+  cabinet with keyboard focus, keep their brackets. **A click opens its menu** beside it, pinned until a click
   elsewhere or Escape (`toggleMenu`); a tap does the same. Keyboard focus opens a menu only when
   `:focus-visible`, and a click never closes a menu keyboard focus opened.
 - **Every menu has the same shape, as short as it can be** ("make the menus less bloated and minimize
@@ -177,7 +181,7 @@ The interface is Cup Nooble's Sprout Lands UI pack, cut by `build-art.py` into
 `art/licensed/ui/`. Menus, dialogs, the sign and the screen's frame are its tan panel; buttons are
 its cream square button (white on hover, pressed in when held; `green` and `pink` are recoloured
 copies); inputs are its grey pressed-in button; a cat's ask and the replies in its thread are its grey bubble;
-a filing cabinet's project sits in its pressed cream well; rooms and cabinets light up with its
+a filing cabinet's project sits in its pressed cream well; rooms light up with its
 white selection brackets (on a room they stay one size on screen at any zoom), and so does the
 chosen room on the Edit rooms plan, which sits in its picture frame with its arrow, on its white
 button, pointing into the room new cats come in to. Each is a 9-slice `border-image`. The mood faces are its cat emoji
@@ -335,9 +339,16 @@ that inflates "3 need you" makes the sign a liar.
   them the hall's own floor from `house.png`, in the pack's picture frame. **The words come first**
   ("make this window useable", 3 October): the two of them are drawn small enough to leave the thread most of the
   scene's width (`zoom` on `.owner` and `.qchar`, in steps, each with a crown scale that lands on whole art pixels),
-  and on a phone they stand side by side along the foot of the scene with the thread across the whole of it. Every
-  grid column around the thread and her homework is stated, never left to the content, and every button in them
-  wraps: an `auto` column grows to the longest word in a bubble or a quiz, and then her words scroll off the side.
+  the scene's own columns are `auto`, so the two of them take only what they are drawn at, and on a phone they
+  stand side by side along the foot of the scene with the thread across the whole of it. The column the thread and
+  her homework sit in is stated, never left to the content, and every button in them wraps: an `auto` column there
+  grows to the longest word in a bubble or a quiz, and then her words scroll off the side. The card fills the
+  window (the height is on `dialog.scene`, which already states the cap and draws the panel) and the scene takes
+  what the head and the saybar leave, down to a floor on its row: under that the card is taller than the window
+  and the dialog scrolls, which is reachable, where a scene given a `min-height` of its own would simply be drawn
+  over the saybar. Every row inside the scene can shrink, because the scene clips what it cannot hold and a
+  clipped bubble can't be scrolled to; her homework and the talk each keep a share of what is left, so neither
+  can squeeze the other out, and whichever is too tall for its share scrolls.
   **Every setting is in an overlay**
   (`#queenSettings`, Settings in the card's head, "Back to her" to leave): her voice switch and voice, What she keeps,
   Her character, Routines, and You. On the map she is as before: hovering names her, a click opens her menu. `speak()` is the browser's `speechSynthesis`
@@ -534,22 +545,25 @@ are the saved copy.
 
 ## The app draft
 
-`catio-app/` is a **draft** of the café as a native C++ app for a phone (`docs/mobile-app.md`), written
-3 October. It is not an app: the nine headers in `catio-app/include/catio/` are declarations, `src/` is
-empty, and `android/` and `ios/` have never been configured. What builds is the header check,
-`cmake -S catio-app -B build && cmake --build build`, which needs neither SDL nor libcurl because no
-public header names a type from either.
+`catio-app/` is the café as a native C++ app for a phone (`docs/mobile-app.md`, which says exactly where it
+stands). Its core is built -- the plan, the house, the art, drawing and the view -- and it draws the manor; the
+window loop, the interface and the network are not. Nothing has run on a phone, and `android/` and `ios/` have
+never been configured.
 
-Two things to keep if you touch it:
-
-- **The plan is generated.** `write_page()` in `catio/tools/furniture.py` writes the page's `MANOR`
-  block **and** `catio-app/generated/manor.json` from one `page_data()` call, so the page and the app
-  can never hold different plans. Never hand-copy those numbers into C++. `manor.json` is committed:
-  generated from committed code, and no art in it.
-- **The app ships with no pack art, and never will.** It fetches the art from the gateway's
-  `GET /art/*` on first run, behind her sign-in, into app-private storage. An APK or IPA on a store
-  would redistribute packs that forbid it, so a store release waits for her own art
-  (`docs/drawing-plan.md`). Nothing under `catio-app/` is ever a place to put a pack file.
+- **Build:** the default, `cmake -S catio-app -B build && cmake --build build`, is the header check and needs
+  nothing installed. `-DCATIO_HEADERS_ONLY=OFF -DCATIO_HEADLESS=ON` fetches SDL3 and nlohmann/json, builds the
+  core, `catio_look` and `catio_tests` (`ctest`). No SDL_image: SDL 3.4's core loads PNG.
+- **Look first, here too.** `catio_look catio catio-app/generated/manor.json catio-app/test/fixtures out.png
+  ground` (or `upper`, or a room key) renders with no window. Open it and hold it against the page. Its frames
+  contain the licensed art: `catio-app/.look/` is gitignored, never commit one.
+- **The port is line for line.** Each rule in `src/` names the page's original (`GEOM`, `roomFor`, `render()`'s
+  placement, `drawFurniture`'s z formula, `COATS`). Change the page's rule and the app's together; the manor
+  matches the page's own `#world` pixel for pixel, the coats match Chromium byte for byte, and a change that
+  breaks either is a regression.
+- **The plan is generated.** `write_page()` in `catio/tools/furniture.py` writes the page's `MANOR` block **and**
+  `catio-app/generated/manor.json` from one `page_data()` call. Never hand-copy those numbers into C++.
+- **No pack art in it, ever.** The app fetches the art from the gateway's `GET /art/*` on first run, behind her
+  sign-in. A store release waits for her own art (`docs/drawing-plan.md`).
 
 ## Checking a change
 
