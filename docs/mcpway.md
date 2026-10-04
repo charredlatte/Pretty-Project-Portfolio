@@ -15,10 +15,11 @@ already uses.
 
 - **Any model.** Claude today; OpenAI, Gemini, Mistral and a local model through Ollama once the runner's
   drivers are in (below), and a small model for yes/no decisions. Buyers bring their own keys and plans: MCPWay
-  never resells Claude, OpenAI or Gemini access. The one model it runs itself is the decider's small one, inside
-  the price (once buyers' keys can't pick another, below).
+  never resells Claude, OpenAI or Gemini access. The one model it runs itself is the decider's, on its default
+  small model, inside the price (once buyers' keys can't pick another, below).
 - **Any environment.** Claude Code, Codex, Gemini CLI, Cursor, Claude Desktop, claude.ai. On a laptop, a Raspberry
-  Pi or a cloud container. One gateway, the same tools everywhere.
+  Pi or a cloud container. One gateway everywhere; the owner's tools (handing in homework, dropping files,
+  managing cats) wherever you sign in as the owner.
 - **Any face.** The KittyChat Café is the flagship: a pixel-art manor where every session is a cat. Teams who
   want a plain dashboard will get one from the same gateway (not built yet).
 
@@ -46,7 +47,8 @@ Still missing for a product:
 - metering, and a house several people can share;
 - the decider's model locked for buyers' keys (today any caller can pass `model`, a paid one included);
 - OAuth for clients other than Claude's (the gateway only lets claude.ai and claude.com connectors sign in);
-- art Charlotte owns (`docs/drawing-plan.md`).
+- art Charlotte owns (`docs/drawing-plan.md`). Until it is in, the café serves the licensed packs to every
+  signed-in account (`harness/gateway/src/cafe.js`), so no other account may open: the packs forbid it.
 
 ## Your way, concretely
 
@@ -55,7 +57,7 @@ product.
 
 | Driver | How it is driven | Status |
 | --- | --- | --- |
-| Claude (Claude Code) | `claude -p` turns from the runner; hooks enforce the rules | Built |
+| Claude (Claude Code) | `claude -p` turns from the runner; hooks enforce the rules | Built, for the queen; other agents report but aren't run by it |
 | OpenAI (Codex CLI) | `codex exec`: woken by `catio_mcp.py`'s `wake` command on the same machine; on the hosted gateway it checks its inbox | Joins today; runner driver to build |
 | Gemini (Gemini CLI) | `gemini -p`, the same way | Joins today; runner driver to build |
 | Any OpenAI-compatible endpoint (OpenRouter, Mistral, Ollama) | A small tool-calling loop in the runner, with the gateway's tools | To build |
@@ -65,15 +67,16 @@ product.
 | --- | --- |
 | A laptop or PC | The runner, any CLI, the local café |
 | A Raspberry Pi or a small VPS | The runner, always on |
-| Cloudflare Containers, on the buyer's own account | The runner, asleep when idle |
+| Cloudflare Containers, on the buyer's own account | The runner, kept awake: it long-polls the gateway, so a sleeping one hears nothing |
 | Claude Code on the web | Cloud sessions with the rules plugin, reporting by hook |
 | claude.ai, Claude Desktop | The gateway as a connector, signed in as the owner |
 | Cursor, other MCP clients | The gateway with an agent key: report and read, never write as the owner |
 
-Everything here is open source under the AGPL, and anyone can self-host it. What is sold is not having to: the
+The code is open source under the AGPL (graphify, vendored, is Apache-2.0), and anyone can self-host it; the
+art is not, and a clone shows the café without it. What is sold is not having to: the
 gateway, the house and the café run for you, with the hosted features (the decider, the litter box, homework)
-turned on. The runner stays on the buyer's side in every tier. Model keys stay with the runner, on the buyer's machine or their own cloud account; the gateway
-never holds them.
+turned on. The runner stays on the buyer's side in every tier. Buyers' model keys stay with the runner, on their machine or
+their own cloud account; the gateway holds none of them, only the operator's own key for the decider, if set.
 
 ## Who it is for
 
@@ -91,9 +94,9 @@ have no Team column yet.
 
 ## Competition
 
-Every MCP gateway in the 2026 roundups governs which tools an agent may call. None shows sessions, runs agents,
-or enforces rules on how they work. MCPWay is the gateway agents report to: it runs them with Claude today, and
-with the model of your choice once the drivers are in.
+Every MCP gateway in the 2026 roundups governs which tools an agent may call. None shows sessions, keeps one inbox
+of what is waiting on a person, or enforces rules on how agents work. MCPWay is the gateway agents report to,
+whichever vendor runs them.
 
 | Category | Examples | What they leave open |
 | --- | --- | --- |
@@ -123,9 +126,11 @@ name ready. The "-Way" echo of PCBWay is fine as a name; "the PCBWay of MCP" in 
 
 | Phase | When | What | Gate to the next |
 | --- | --- | --- | --- |
-| Make it a product | October 2026 | Sign-up and keys, runner drivers, a plain face, the name and domain | A stranger's cat reports within 10 minutes |
-| Ten by invite | November and December 2026 | Her own art, the legal pages, metering, the store | Ten paying houses, no data lost |
+| Make it a product | October 2026 | Sign-up (closed), the keys button, runner drivers, a plain face, the name and domain | A test account's cat reports within 10 minutes, with no pack art served to it |
+| Ten by invite | November and December 2026 | Her own art first, then the legal pages, metering, the store | Ten paying houses, no data lost |
 | Public launch | January to March 2027 | MCP registries and the plugin marketplace, a launch post, Builds on sale, café videos, the app campaign | A hundred paying houses |
 | Parts and teams | From April 2027 | The Team plan, the parts gallery, the app itself if the campaign funds it | |
 
-October's work is under `harness/`, so each pull request waits for Charlotte, as the merging rule says.
+Most of October's work is under `harness/`, so those pull requests wait for Charlotte, as the merging rule says.
+The keys button and the plain face are page changes and merge like any other. Sign-up opens to anyone only once
+no pack art reaches other accounts.
