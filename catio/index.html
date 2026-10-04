@@ -86,6 +86,7 @@
   --panel-w: calc(var(--panel-t) * var(--u)) calc(var(--panel-r) * var(--u)) calc(var(--panel-b) * var(--u)) calc(var(--panel-l) * var(--u));
   --btn-t: 4; --btn-r: 4; --btn-b: 6; --btn-l: 4; --btn-s: var(--btn-t) var(--btn-r) var(--btn-b) var(--btn-l);
   --green-s: var(--btn-s) fill; --pink-s: var(--btn-s) fill;   /* her plain button standing in drops the fill: --go and --letgo show */
+  --mbtn-hover-s: var(--mbtn-s) fill; --mbtn-down-s: var(--mbtn-s) fill; --mpanel-dark-s: var(--mpanel-s) fill;   /* and the map's lit, pressed and night pieces */
   --btn-w: calc(var(--btn-t) * var(--u)) calc(var(--btn-r) * var(--u)) calc(var(--btn-b) * var(--u)) calc(var(--btn-l) * var(--u));
   --btn-px: calc(var(--btn-t) * 1px) calc(var(--btn-r) * 1px) calc(var(--btn-b) * 1px) calc(var(--btn-l) * 1px);
   --btn-thin: max(0px, calc(var(--btn-t) * 1px - 1px)) max(0px, calc(var(--btn-r) * 1px - 1px)) max(0px, calc(var(--btn-b) * 1px - 1px)) max(0px, calc(var(--btn-l) * 1px - 1px));   /* a count's: one pixel thinner */
@@ -220,7 +221,7 @@ a { color: var(--ink); }
 /* the map panel, top right (bottom right on a phone): zoom and the fold on top, the minimap, then the
    floors. It is SC_siosio's Game UI Pastel (art/licensed/pastel/), not Sprout Lands: what works the camera
    comes from that pack, what talks about the cats stays Sprout. Pastel art is smooth, drawn at twice its
-   screen size, so it is scaled with smoothing, never pixelated. Each piece has its own face colour under it,
+   screen size, so it is scaled with smoothing, never pixelated (a piece she draws as pixel art is hers: --mpanel-render…). Each piece has its own face colour under it,
    so a copy without the licensed art is still a panel of buttons. */
 .mappanel { position: fixed; z-index: 31; top: calc(var(--panel-t) * var(--u) + 8px + env(safe-area-inset-top, 0px)); right: calc(var(--panel-r) * var(--u) + 8px);
   display: grid; gap: 6px; padding: 4px; border: 6px solid transparent; border-radius: 12px; background: var(--map-face);
@@ -232,8 +233,8 @@ a { color: var(--ink); }
 .pbtn { font: var(--px-size)/var(--px-size) var(--pixel); color: var(--ink); height: 40px; padding: 0 2px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;
   border-style: solid; border-color: transparent; border-width: var(--mbtn-w); border-radius: 8px; background: var(--map-btn);
   border-image: var(--art-map-button) var(--mbtn-s) fill / var(--mbtn-w) stretch; image-rendering: var(--mbtn-render); }
-.pbtn:hover { border-image-source: var(--art-map-button-hover); background-color: var(--map-btn-lit); }
-.pbtn:active, .pbtn[aria-checked="true"], .pbtn[aria-expanded="true"]:not(.fold) { border-image-source: var(--art-map-button-down); background-color: var(--map-btn-down); }
+.pbtn:hover { border-image-source: var(--art-map-button-hover); border-image-slice: var(--mbtn-hover-s); background-color: var(--map-btn-lit); }
+.pbtn:active, .pbtn[aria-checked="true"], .pbtn[aria-expanded="true"]:not(.fold) { border-image-source: var(--art-map-button-down); border-image-slice: var(--mbtn-down-s); background-color: var(--map-btn-down); }
 .pbtn:disabled { opacity: .5; cursor: default; }
 .pbtn.sq { width: 40px; padding: 0; }
 .pbtn .ico { --i: 0; width: 18px; height: 18px; flex: none; image-rendering: var(--map-icons-render); background: var(--art-map-icons) calc(var(--i) * -18px) 0 / 90px 18px no-repeat; }
@@ -261,8 +262,8 @@ a { color: var(--ink); }
   .pbtn { height: 44px; } .pbtn.sq { width: 44px; }
   .credits { display: none; }
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mappanel { border-image-source: var(--art-map-panel-dark); background-color: var(--map-face-dark); } }
-:root[data-theme="dark"] .mappanel { border-image-source: var(--art-map-panel-dark); background-color: var(--map-face-dark); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mappanel { border-image-source: var(--art-map-panel-dark); border-image-slice: var(--mpanel-dark-s); background-color: var(--map-face-dark); } }
+:root[data-theme="dark"] .mappanel { border-image-source: var(--art-map-panel-dark); border-image-slice: var(--mpanel-dark-s); background-color: var(--map-face-dark); }
 @media (prefers-reduced-motion: reduce) { .mm-view { transition: none; } }
 .world { position: absolute; left: 0; top: 0; width: 1920px; height: 1152px; transform-origin: 0 0; transition: transform .55s cubic-bezier(.3,.7,.2,1);
   background: var(--art-meadow) 0 0 / 224px 64px repeat; image-rendering: pixelated; filter: var(--scene); }
@@ -1230,10 +1231,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     }
     // the pack's faces sit a pixel inside each 32 px cell, so their box is cut a pixel in; hers fill their cells: shown whole
     if (live.faces) css.push(".face-ico { background-position: calc(var(--f) * -30px) 0; background-size: 180px 30px; }");
-    // her plain button standing in for the green or the pink one keeps its frame, but not its face: the go-ahead and the
-    // letting-go keep their colours (--go, --letgo) until she draws them
-    if (standIn["button-green"]) put("--green-s", "var(--btn-s)");
-    if (standIn["button-pink"]) put("--pink-s", "var(--btn-s)");
+    // a piece of hers standing in for one whose meaning is its colour keeps its frame, but not its face: the go-ahead, the
+    // letting-go, the map's lit and pressed buttons and its night panel keep their colours until she draws them
+    const FACES = { "button-green": "--green-s", "button-pink": "--pink-s", "map-button-hover": "--mbtn-hover-s", "map-button-down": "--mbtn-down-s", "map-panel-dark": "--mpanel-dark-s" };
+    for (const [m, v] of Object.entries(FACES)) if (standIn[m]) put(v, "var(--" + ART[m].fam + "-s)");
     if (live.button && !live["button-down"]) put("--down-iw", "var(--down-w)");   // her button, the pack's pressed one: each at its own widths
     if (live.button && !live.bubble) put("--bubble-iw", "var(--bubble-px)");   // and the pack's bubble at its own
     const dark = Object.entries(tokens.dark).map(([n, t]) => n + ": " + t.value + ";").join(" ");
@@ -2652,8 +2653,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     // her own design: one document a slot, and skin/theme for the tokens, as The look writes them, drawn as they land
     db.collection("skin").onSnapshot((snap) => {
       const out = {}, theme = snap.docs.find((d) => d.id === "theme"), tokens = modeTokens(theme && theme.data());
-      SKIN.dbIds = snap.docs.map((d) => d.id).filter((id) => id !== "theme");
-      SKIN.dbAssets = Object.fromEntries(snap.docs.map((d) => [d.id, d.data() && d.data().asset]).filter(([, a]) => typeof a === "string"));   // so a refused one's file goes too   // every one, a refused or unknown one too: Put everything back takes them all
+      SKIN.dbIds = snap.docs.map((d) => d.id).filter((id) => id !== "theme");   // every one, a refused or unknown one too: Put everything back takes them all
+      SKIN.dbAssets = Object.fromEntries(snap.docs.map((d) => [d.id, d.data() && d.data().asset]).filter(([, a]) => typeof a === "string"));   // and their files, so a refused one's goes too
       for (const d of snap.docs) { const e = skinEntry(d.id, d.data()); if (e) out[d.id] = e; }
       if (sameData(out, SKIN.db) && sameData(tokens, SKIN.dbTokens)) return;   // what she just saved, coming back
       SKIN.db = out; SKIN.dbTokens = tokens; applySkin();
@@ -4532,7 +4533,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       const all = el("button", "btn pink", "Put everything back"); all.type = "button"; all.id = "artResetAll";
       all.addEventListener("click", async () => {
         const slots = [...new Set([...Object.keys(SKIN.db), ...(SKIN.dbIds || [])])];   // as they are now, not as the card was drawn
-        if (keptTokens) await saveTokens({ light: {}, dark: {} });
+        if (keptTokens) await saveTokens({ light: {}, dark: {} }, slots.length ? undefined : "Every colour and size is the café's again.");
         if (slots.length) await putBack(slots);
         const folder = Object.keys(SKIN.file).length + Object.keys(SKIN.fileTokens.light).length + Object.keys(SKIN.fileTokens.dark).length;
         if (folder) toast("What you set here is the café's again. " + folder + " from art/skin.json stay: they're in the folder.");

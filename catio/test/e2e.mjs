@@ -2796,6 +2796,14 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     await page.evaluate((t) => { if (t) window.__catio.put("skin/theme", t); else { delete window.__catio.store["skin/theme"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; } }, kept);
     await page.waitForTimeout(600);
   });
+  await check("her map button standing in for the pressed one lets the floor on screen keep its colour", async () => {
+    await page.evaluate(() => window.__catio.put("skin/map-button", { src: "art/licensed/pastel/button-hover.png", at: 1 }));
+    await page.waitForTimeout(600);
+    const tab = await page.evaluate(() => { const b = document.querySelector('.floors .pbtn[aria-checked="true"]'); const cs = getComputedStyle(b); return [cs.borderImageSource, cs.borderImageSlice]; });
+    expect(tab[0].includes("pastel/button-hover.png") && !/fill/.test(tab[1]), tab.join(" | "));
+    await page.evaluate(() => window.__catio.drop("skin/map-button"));
+    await page.waitForTimeout(500);
+  });
   await check("a project map's dots outside its eight neighbourhoods are the rest's grey", async () => {
     await page.evaluate(() => window.__catio.put("graphs/grey-test", { repo: "example/grey-test", at: Date.now(), nodes: 3, edges: 1, communities: 1, gods: [], groups: [{ name: "One", size: 2 }], surprises: [], questions: [],
       map: { n: [{ t: "A", g: 0, d: 3, x: 50, y: 50 }, { t: "B", g: -1, d: 2, x: 150, y: 80 }, { t: "C", g: 11, d: 1, x: 250, y: 120 }], l: [0, 1] } }));

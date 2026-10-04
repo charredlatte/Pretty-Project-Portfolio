@@ -55,7 +55,7 @@ def defaults():
 
 
 def file_of(entry):
-    """An entry's file, as the page reads it: "file" or "src", or the entry itself when it is a path."""
+    """An entry's file, as the page reads it: "src" or "file", or the entry itself when it is a path."""
     return (entry.get("src") or entry.get("file")) if isinstance(entry, dict) else entry if isinstance(entry, str) else None   # src first, as skinEntry()
 
 
@@ -387,7 +387,7 @@ def main():
         modes["dark"] = {t: v for t, v in from_files["dark"].items() if v.lower() != (modes["light"].get(t) or base.get(t, "")).lower()}
     global ART_PX
     u = modes["light"].get("--u-desk", "")
-    ART_PX = float(u[:-2]) if u.endswith("px") else 2
+    ART_PX = float(u[:-2]) if u.endswith("px") else float(defaults().get("--u-desk", "2px")[:-2])   # hers, else the page's own
     for key, was in old.items():   # a drawing of hers in art/skin/ that has gone
         f = file_of(was)
         if key in art and isinstance(f, str) and f.startswith("art/skin/") and Path(f).stem == key and not (ROOT / f).is_file():

@@ -196,7 +196,7 @@ what works the camera and what builds the house: the map panel and minimap, its 
 house, floors, fold), and Build's tools (the Live / Build switch, the catalogue bar, a filing cabinet's
 "Looks like…" panel, undo and redo). Everything that talks about cats and rooms stays Sprout Lands. Draw each
 panel from one pack, never both. The Pastel art is smooth, not pixel art: scale it down with ordinary
-smoothing, never `pixelated`. See `docs/camera-and-minimap.md`.
+smoothing, never `pixelated` (a map piece she draws as pixel art of her own is the one exception: "Plug-and-play design"). See `docs/camera-and-minimap.md`.
 
 Titles, labels, buttons and names use the pack's pixel font (`--pixel`, `sprout.ttf`) at **18px** (`--px-size`),
 where one font pixel is one screen pixel (36px for a cat's name on its card); anything else blurs.
