@@ -2798,6 +2798,12 @@ await check("tools/skin.py reads every slot, token and size range the page has",
     const d = await page.evaluate(() => window.__catio.store["skin/cat-meow"]);
     expect(d && d.frames === 10 && d.secs === 0.5, JSON.stringify(d));
   });
+  await check("a working cat of 4 frames, where the pack's has 10, is asked for its frames rather than refused", async () => {
+    await page.locator("#artFile-cat-work").setInputFiles({ name: "work.png", mimeType: "image/png", buffer: readFileSync(join(here, "..", "art", "licensed", "mochi-box.png")) });
+    await page.waitForTimeout(400);
+    expect((await page.locator("#artFrames").inputValue()) === "4" && (await page.locator("#artDlg li[data-slot='cat-work'] .swap button[type=submit]").count()) === 1, await page.locator("#artDlg li[data-slot='cat-work'] .swap").innerText());
+    await page.click("#artDlg li[data-slot='cat-work'] .swap button:has-text('Cancel')"); await settle(page);
+  });
   await check("Put back gives a slot the pack's piece again, and lets her file go", async () => {
     await page.click("#artDlg li[data-slot='panel'] button:has-text('Put back')");
     await page.waitForTimeout(600);

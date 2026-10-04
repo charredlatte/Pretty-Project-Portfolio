@@ -1074,15 +1074,16 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // Is this picture right for the slot? null if it is, else why not, in her words.
   // A family member is checked against its head in the skin given (`live`; the one on screen when left out), or not at
   // all while the skin is still being measured (`false`): applySkin checks members once every head is.
-  function misfit(key, w, h, live = SKIN.live, slice = null, frames = null) {
+  // `picking`: a file just chosen in The look, whose form will ask for its frames and border, so those aren't held against it yet
+  function misfit(key, w, h, live = SKIN.live, slice = null, frames = null, picking = false) {
     const a = ART[key];
-    if (a.kind === "cat" && w % (frames || a.frames)) return "It is " + w + " pixels wide, which doesn't split into " + (frames || a.frames) + " frames.";
+    if (a.kind === "cat" && !picking && w % (frames || a.frames)) return "It is " + w + " pixels wide, which doesn't split into " + (frames || a.frames) + " frames.";
     if (a.kind === "slice" && !a.slice && live) {   // the button's hover, green and pink, the map's dark panel…: cut with the head's border
       const head = headOf(key), e = live[head], [hw, hh] = e ? [e.w, e.h] : ART[head].size;
       if (w !== hw || h !== hh) return "It is " + w + " × " + h + ": it shares the " + ART[head].name.toLowerCase() + "'s border, so draw it the same size, " + hw + " × " + hh + ".";
     }
     if (a.kind === "exact" && (w !== a.size[0] || h !== a.size[1])) return "It is " + w + " × " + h + ": the " + a.name.toLowerCase() + " must be " + a.size[0] + " × " + a.size[1] + (a.measured ? ", as the rooms are measured on it." : ".");
-    const b = a.kind === "slice" && (slice || (a.slice && !a.scale && a.slice));   // hers, or the pack's it would be cut with
+    const b = a.kind === "slice" && !picking && (slice || a.slice);   // hers, or the pack's it would be cut with (in its own pixels, whatever its scale)
     if (b && (b[1] + b[3] > w || b[0] + b[2] > h || !b.some(Boolean))) return "Its border " + b.join(" ") + " doesn't fit inside its " + w + " × " + h + (slice ? "." : ": give it its own.");
     if (a.kind === "sheet" && Math.abs(w / h - a.size[0] / a.size[1]) > 0.02) return "It is " + w + " × " + h + ": draw it the shape of " + a.size[0] + " × " + a.size[1] + " (any size of that shape fits).";
     return null;
@@ -1102,7 +1103,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
           if (why) return { why };
           Object.assign(e, { w, h });
         } else if (!SKIN.fonts["KittySkin-" + k] || SKIN.fonts["KittySkin-" + k].url !== url) {   // the fonts load together, each once
-          e.face = await (SKIN.faces[url] || (SKIN.faces[url] = new FontFace("KittySkin-" + k, cssUrl(url)).load().catch((err) => { delete SKIN.faces[url]; throw err; })));
+          const key = k + " " + url;   // a face carries its slot's family: two slots sharing a file get one each
+          e.face = await (SKIN.faces[key] || (SKIN.faces[key] = new FontFace("KittySkin-" + k, cssUrl(url)).load().catch((err) => { delete SKIN.faces[key]; throw err; })));
         }
         return { e: Object.assign(e, { url }) };
       } catch (err) { return { why: ART[k].kind === "font" ? "The font couldn't be read." : "It couldn't be read (" + ((err && err.message) || "error") + ")." }; }
@@ -1126,8 +1128,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     // the page's dark mode is, then the cats. A stylesheet, not inline styles, so dark mode can still win in the dark.
     const root = document.documentElement.style;
     const making = document.activeElement && document.activeElement.closest && document.activeElement.closest("#artDlg li[data-token]");
-    for (const p of SKIN.set) if (!making || making.dataset.token !== p) root.removeProperty(p);   // what The look was previewing, but the one under her hand
-    for (const p of [...SKIN.set]) if (!making || making.dataset.token !== p) SKIN.set.delete(p);
+    for (const p of [...SKIN.set]) if (!making || making.dataset.token !== p) { root.removeProperty(p); SKIN.set.delete(p); }   // what The look was previewing, but the one under her hand
     const vars = [], put = (p, v) => vars.push(p + ": " + v + ";"), standIn = {}, faces = {};   // faces: fonts loaded here, put in place if this run lands
     const css = [];
     const spr = JSON.parse(JSON.stringify(SPR0));   // built here, and only the run that lands sets SPR
@@ -1178,7 +1179,6 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       for (const m of Object.keys(ART)) if (ART[m].fam === a.fam && m !== h && !live[m]) { put("--art-" + m, cssUrl(e.url)); standIn[m] = h; }
     }
     const dark = Object.entries(tokens.dark).map(([n, t]) => n + ": " + t.value + ";").join(" ");
-    if (seq !== SKIN.seq) return;
     const artWas = SKIN.artSig, artSig = JSON.stringify([Object.entries(live).map(([k, e]) => [k, e.url, e.slice, e.frames, e.secs, e.anchor, e.scale, e.pixel]), standIn]);
     SKIN.live = live; SKIN.problems = problems; SKIN.tokens = tokens; SKIN.standIn = standIn; SKIN.artSig = artSig;
     const using = new Set(Object.values(cands).flat().map((e) => e.src));
@@ -1864,7 +1864,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // and a close look at one room. Look in and Whole house fly it to a room or to the house. S.focus is the
   // room you're in: the one Look in chose, or the one filling the view after you move it yourself.
   const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const margin = () => 6 * (innerWidth <= 560 ? 1 : 2) + 8;   // keep the house clear of the frame
+  const margin = () => {   // keep the house clear of the frame, as thick as its art and the art pixel make it
+    const cs = getComputedStyle(document.querySelector(".trim"));
+    return Math.max(...["Top", "Right", "Bottom", "Left"].map((side) => parseFloat(cs["border" + side + "Width"]) || 0)) + 8;
+  };
   const padded = (k) => { const [x, y, w, h] = GEOM[k].r; const p = 6; return [x - p, y - p, w + 2 * p, h + 2 * p]; };
   function frame(r) {   // the camera that fits a box of the grounds (native px) in the stage
     const st = $("stage"), W = st.clientWidth, H = st.clientHeight, m = margin();
@@ -2760,8 +2763,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   const ownerOf = () => Object.assign({ hair: "long", hairColor: 0, skin: 0, top: 0, extra: "bow" }, (S.house && S.house.owner) || {});
   const tone = (hex, f) => "#" + [1, 3, 5].map((i) => Math.max(0, Math.min(255, Math.round(parseInt(hex.slice(i, i + 2), 16) * f))).toString(16).padStart(2, "0")).join("");
   function ownerSVG(o) {
-    const cs = getComputedStyle(document.documentElement), t = (n) => tok(n, cs);   // its colours, the style read once
     if (skinOf("owner")) { const i = el("img", "ownerimg"); i.src = skinOf("owner").url; i.alt = ""; return i; }
+    const cs = getComputedStyle(document.documentElement), t = (n) => tok(n, cs);   // its colours, the style read once
     const W = 30, H = 40, px = Array.from({ length: H }, () => Array(W).fill(null));
     const pick = (list, i) => (list[i] || list[0])[1];
     const hair = pick(OWNER.hairColor, o.hairColor), skin = pick(OWNER.skin, o.skin), top = pick(OWNER.top, o.top), chair = t("--owner-chair"), accent = t("--owner-accent");
@@ -4555,7 +4558,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (a.kind !== "font") {
       try { [p.w, p.h] = await natural(p.url); } catch (e) { URL.revokeObjectURL(p.url); toast(file.name + " isn't a picture the browser can read.", "alert"); return; }
       if (!$("artDlg").open) { URL.revokeObjectURL(p.url); return; }   // she closed the card while it was read
-      p.why = misfit(k, p.w, p.h);
+      p.why = misfit(k, p.w, p.h, SKIN.live, null, null, true);
     }
     if (ARTPICK[k]) URL.revokeObjectURL(ARTPICK[k].url);
     ARTPICK[k] = p;

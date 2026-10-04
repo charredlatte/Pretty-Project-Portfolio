@@ -151,7 +151,7 @@ def from_dtcg(doc, groups):
             foreign += 1
             continue
         try:
-            css = to_css(v)
+            css = to_css(v) if not (number(v, 0, 999) and groups.get(name) == "Type") else f"{round(v, 3):g}px"   # Figma's number variable
         except (TypeError, ValueError):   # numbers that aren't: the page counts it as not the café's, so does this
             css = None
         if token_ok(groups, name, css):
@@ -248,7 +248,7 @@ def check(art, key, rel, was, said, where=""):
         entry["scale"] = round(a["scale"] * want[0] / w, 4)   # drawn smooth, shown the pack's size
         worked.append("scale")
         note += f" (scale {entry['scale']}, smooth; \"pixel\": true instead if it is pixel art)"
-    sl = entry.get("slice") or (a.get("slice") if "scale" not in a else None)   # hers, or the pack's it would be cut with
+    sl = entry.get("slice") or a.get("slice")   # hers, or the pack's it would be cut with, in its own pixels
     if a["kind"] == "slice" and sl and (sl[1] + sl[3] > w or sl[0] + sl[2] > h or not any(sl)):
         said.append(f"  {name}: the border {' '.join(map(str, sl))} doesn't fit inside {w} x {h}: left out" + ("" if entry.get("slice") else " (give it its own, \"slice\")"))
         return None
