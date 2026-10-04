@@ -1227,15 +1227,23 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     await settle(page);
   });
   await check("after a skin redraws the furniture, a filing cabinet under the pointer still outlines the cabinet", async () => {
-    await page.evaluate(() => window.__catio.put("skin/cat-work", { src: "art/licensed/mochi-idle.png", at: 1 }));   // a cat of hers: the house is drawn again
-    await page.waitForTimeout(800);
-    const cab = await page.locator('#hits .cabinet[data-room="kitchen"]').boundingBox();
-    await page.mouse.move(cab.x + cab.width / 2, cab.y + cab.height / 2, { steps: 3 });
-    await settle(page);
-    const on = await page.evaluate(() => [...document.querySelectorAll("#props .piece")].filter((e) => getComputedStyle(e).filter.includes("drop-shadow")).map((e) => e.dataset.room + "/" + e.dataset.piece));
-    await page.mouse.move(8, 8); await settle(page);
-    await page.evaluate(() => window.__catio.drop("skin/cat-work")); await page.waitForTimeout(600);
-    expect(on.length === 1 && on[0] === "kitchen/filing_cabinet", "outlined: " + JSON.stringify(on));
+    await page.evaluate(() => { for (const p of document.querySelectorAll("#props .piece")) p.dataset.old = "1"; window.__catio.put("skin/cat-work", { src: "art/licensed/mochi-idle.png", at: 1 }); });   // a cat of hers: the house is drawn again
+    try {
+      await page.waitForFunction(() => document.querySelector("#props .piece") && !document.querySelector("#props .piece[data-old]"), null, { timeout: 5000 });
+      const cab = await page.locator('#hits .cabinet[data-room="kitchen"]').boundingBox();
+      await page.mouse.move(cab.x + cab.width / 2, cab.y + cab.height / 2, { steps: 3 });
+      await settle(page);
+      const on = await page.evaluate(() => [...document.querySelectorAll("#props .piece")].filter((e) => getComputedStyle(e).filter.includes("drop-shadow")).map((e) => e.dataset.room + "/" + e.dataset.piece));
+      expect(on.length === 1 && on[0] === "kitchen/filing_cabinet", "outlined: " + JSON.stringify(on));
+      // and with the pointer still on it, a redraw outlines the new piece
+      await page.evaluate(() => { for (const p of document.querySelectorAll("#props .piece")) p.dataset.old = "1"; window.__catio.drop("skin/cat-work"); });
+      await page.waitForFunction(() => document.querySelector("#props .piece") && !document.querySelector("#props .piece[data-old]"), null, { timeout: 5000 });
+      const still = await page.evaluate(() => [...document.querySelectorAll("#props .piece")].filter((e) => getComputedStyle(e).filter.includes("drop-shadow")).map((e) => e.dataset.room + "/" + e.dataset.piece));
+      expect(still.length === 1 && still[0] === "kitchen/filing_cabinet", "after the redraw, outlined: " + JSON.stringify(still));
+    } finally {
+      await page.mouse.move(8, 8); await settle(page);
+      await page.evaluate(() => { if (window.__catio.store["skin/cat-work"]) window.__catio.drop("skin/cat-work"); }); await page.waitForTimeout(300);
+    }
   });
   await openRoom(page, "kitchen");
   await check("the room under the pointer, and the one its menu belongs to, light up with the white brackets", async () => {
@@ -3100,8 +3108,8 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     await page.evaluate(() => { window.__catio.put("skin/panel", { src: "art/%2e%2e/%2e%2e/files/x", at: 1 }); window.__catio.put("skin/cat-meow", { src: "art/licensed/ui/logo.png", at: 1 }); });
     try {
       await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
-      // The look redraws as the skin lands: wait for the cat's verdict rather than for a guess at how long it takes
-      await page.waitForFunction(() => /frames aren't square/.test((document.querySelector("#artDlg li[data-slot='cat-meow']") || {}).textContent || ""), null, { timeout: 5000 }).catch(() => {});
+      // The look redraws as the skin lands: wait for both verdicts rather than for a guess at how long they take
+      await page.waitForFunction(() => ["panel", "cat-meow"].every((k) => /Yours isn't used/.test((document.querySelector("#artDlg li[data-slot='" + k + "']") || {}).textContent || "")), null, { timeout: 5000 });
       // refused as an address, never even fetched: not "couldn't be read", which is what a fetched one that failed says
       const panel = await page.locator("#artDlg li[data-slot='panel']").textContent();
       expect(/isn't a file the café can read/.test(panel), panel);

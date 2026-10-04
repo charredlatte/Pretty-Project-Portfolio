@@ -315,8 +315,8 @@ a { color: var(--ink); }
 /* a cat in the line is close to the next: only its own body answers the pointer (14 and 6 of the sitting frame's 64,
    as shares, so her own frame is trimmed alike); walking there, it is whole */
 .cat[data-line] { clip-path: inset(0 21.875% 0 9.375%); }
-.cat.walking[data-line] { clip-path: none; }
 .cat[data-line]:is(.hot, .lit, :focus-visible) { clip-path: inset(-2px calc(21.875% - 2px) -2px calc(9.375% - 2px)); }   /* room for its outline */
+.cat.walking[data-line] { clip-path: none; }   /* after it: walking, it is whole, outlined or not */
 .spr { display: inline-block; vertical-align: bottom; filter: var(--tint, none); image-rendering: pixelated; background-repeat: no-repeat; }
 .cat .spr { display: block; }
 /* a count: the pack's white button at one pixel a pixel */
@@ -1183,7 +1183,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (a.hot && hot && (hot[0] >= w || hot[1] >= h)) return "Its tip " + hot.join(" ") + " is outside its " + w + " × " + h + ".";
     if (a.kind === "cat" && !picking) {
       const n = framesOf(a, { frames }, w, h);
-      if (!n && h > 0 && w % h === 0) return "That is " + w / h + " frames: 64 at most.";
+      if (!n && h > 0 && w % h === 0) return "Cut square, that is " + w / h + " frames, and 64 is the most: if its frames are wider, say how many there are.";
       if (!n) return "Its frames aren't square: say how many there are (\"frames\" in skin.json, or Frames in The look).";
       if (w % n) return "It is " + w + " pixels wide, which doesn't split into " + n + " frames.";
     }
@@ -1330,6 +1330,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (houseSig !== houseWas) {   // the house, its furniture or its cats changed: drawn again (a button or a face needs only the CSS)
       for (const i of document.querySelectorAll("img[data-art]")) i.src = srcOf(i.dataset.art);
       drawFurniture();
+      if (tipFor) outline(tipFor, true);   // the piece under a still pointer is a new one: outlined again
       render();
       SKIN.houseSig = houseSig;   // once drawn: a run that threw tries again next time
     }
@@ -2542,7 +2543,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         return mi("Project maps", () => { hideMenu(); MAPS.visit++; try { openMaps(); } catch (e) { toast("A project map couldn't be drawn (" + (e && e.message || "error") + ").", "alert"); } }, { aside: shown || "" });
       })(),
       mi("Edit rooms", () => { hideMenu(); openRooms(curRoom()); }),
-      (() => { const n = Object.values(SKIN.live).filter((e) => e.from === "db").length + Object.keys(SKIN.dbTokens.light).length + Object.keys(SKIN.dbTokens.dark).length; return mi("The look", () => { hideMenu(); openArt(); }, { aside: n ? n + " yours" : "" }); })(),
+      (() => { const n = Object.values(SKIN.live).filter((e) => e.from === "db").length + new Set([...Object.keys(SKIN.dbTokens.light), ...Object.keys(SKIN.dbTokens.dark)]).size;   /* a token once, as The look's groups count it */ return mi("The look", () => { hideMenu(); openArt(); }, { aside: n ? n + " yours" : "" }); })(),
       S.db && mi("Set up again…", () => { hideMenu(); openSetup(true); }),
       (VIEW.attic || S.showOld) && mi(S.showOld ? "Send them back up" : "Bring them down", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }),
       S.mcp && mi("Check now", () => watch(true)),
