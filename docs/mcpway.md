@@ -61,10 +61,10 @@ Still missing for a product:
 - each agent key kept to its own cats and files (today most agent tools take any cat's id, the queen's included:
   `report_status` can overwrite the queen's record and fake her presence, `comment` posts into any cat's thread,
   `comments` reads the owner's thread with the queen, `inbox` can mark her notes as handed over before her runner
-  sees them, `pick_up` takes any file, `quizzes` returns every card, and `decide` writes to the decision log); -
-  features gated by plan (nothing checks a plan today: every account gets the quiz, homework and the decider); -
-  OAuth for clients other than Claude's (the gateway only lets claude.ai and claude.com connectors sign in); - the
-  licensed packs kept from other accounts (today one copy is served to every signed-in user,
+  sees them, `pick_up` takes any file, `quizzes` returns every card, and `decide` writes to the decision log);
+- features gated by plan (nothing checks a plan today: every account gets the quiz, homework and the decider);
+- OAuth for clients other than Claude's (the gateway only lets claude.ai and claude.com connectors sign in);
+- the licensed packs kept from other accounts (today one copy is served to every signed-in user,
   `harness/gateway/src/cafe.js`), and art Charlotte owns (`docs/drawing-plan.md`) before anyone else signs up.
 
 ## The hosted runner
