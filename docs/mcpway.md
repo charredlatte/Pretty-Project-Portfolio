@@ -74,15 +74,17 @@ gateway, driven by an API key they paste in once. Nothing to install, it never s
 
 - **How it runs.** The queen's turns become a tool-calling loop inside the gateway, calling Anthropic, OpenAI or an
   OpenAI-compatible provider such as OpenRouter with the buyer's key and the gateway's own tools. Kits that run
-  scripts get a small Cloudflare container per house, started when needed. The Workers Paid plan includes 25 GiB-
-  hours of container memory a month ([Cloudflare](https://developers.cloudflare.com/containers/pricing/)). - **Why
-  an API key, not a Claude subscription.** Since February 2026 Anthropic's terms allow a Pro or Max login only in
-  Claude Code and claude.ai, never inside another product, and say products should use API keys
+  scripts get a small Cloudflare container per house, started when needed. The Workers Paid plan includes 25
+  GiB-hours of container memory a month ([Cloudflare](https://developers.cloudflare.com/containers/pricing/)).
+- **Why an API key, not a Claude subscription.** Since February 2026 Anthropic's terms allow a Pro or Max login
+  only in Claude Code and claude.ai, never inside another product, and say products should use API keys
   ([Gigazine](https://gigazine.net/gsc_news/en/20260220-anthropic-third-party-block)). The hosted runner never asks
-  for a subscription login. - **The keys.** Encrypted in the buyer's own house with a secret only the Worker holds,
-  never logged, revocable in one click. The setup asks buyers to set a monthly spend limit with their provider, and
-  the café shows this month's spend. - **The step it leaves.** Creating an API account is the one technical step a
-  buyer still takes; the onboarding walks through it.
+  for a subscription login.
+- **The keys.** Encrypted in the buyer's own house with a secret only the Worker holds, never logged, revocable in
+  one click. The setup asks buyers to set a monthly spend limit with their provider, and the café shows this
+  month's spend.
+- **The step it leaves.** Creating an API account is the one technical step a buyer still takes; the onboarding
+  walks through it.
 
 `harness/runner/queen.py` stays for self-hosters, who run it themselves with Claude Code.
 
