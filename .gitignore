@@ -20,3 +20,7 @@ graphify-out/
 
 # the gateway test's copy of wrangler.jsonc without the AI binding
 harness/gateway/.wrangler.test.jsonc
+
+# the C++ app draft: its build, and the frames catio_look renders (they show the licensed art)
+catio-app/build/
+catio-app/.look/

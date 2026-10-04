@@ -1,22 +1,30 @@
-# The KittyChat Café as a native app — a DRAFT. See docs/mobile-app.md.
+# The KittyChat Café as a native app. See docs/mobile-app.md.
 #
-# Nothing is implemented yet: catio-app/src/ is empty and include/catio/*.h are declarations. So the
-# DEFAULT target is not the app, it is the one thing a declaration-only branch can honestly verify:
-# that every header is self-contained and real C++. It compiles one translation unit per header, each
-# including only that header, and needs neither SDL nor libcurl:
+# Two builds:
 #
-#     cmake -S catio-app -B build && cmake --build build
+#   cmake -S catio-app -B build && cmake --build build
+#       The DEFAULT, and it needs nothing installed: one translation unit per public header, each
+#       including only that header, which proves every header is self-contained C++20. The public
+#       headers name no SDL, curl or JSON type, which is what makes this possible.
 #
-# The app itself is -DCATIO_HEADERS_ONLY=OFF, and waits for the bodies.
+#   cmake -S catio-app -B build -DCATIO_HEADERS_ONLY=OFF -DCATIO_HEADLESS=ON && cmake --build build
+#       The core for real: the floor plan, the house, the art, drawing and the view, plus
+#       catio_look, which renders a floor to a PNG with no window and no GPU, and catio_tests.
+#       SDL3 and nlohmann/json are fetched and built from source (about 35 s for SDL).
+#
+# The app proper -- a window, the loop, input, the interface and the net layer -- is still to come
+# (cmake/sources.cmake lists it). This builds what exists, and nothing pretends otherwise.
 
 cmake_minimum_required(VERSION 3.24)
-project(catio_app LANGUAGES CXX)
+project(catio_app LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(CATIO_HEADERS_ONLY "Compile each header alone. There is no app yet." ON)
+option(CATIO_HEADERS_ONLY "Compile each header alone, needing nothing installed." ON)
+option(CATIO_FETCH_DEPS "Fetch and build SDL3 and nlohmann/json rather than find them installed." ON)
+option(CATIO_HEADLESS "Build SDL with no windowing system: the software renderer only, for CI and cloud sessions." OFF)
 option(CATIO_TTS "The queen's voice: a platform TTS backend. Not in v1." OFF)
 set(CATIO_GATEWAY_ORIGIN "" CACHE STRING
     "Her gateway's origin, baked in. Empty means the sign-in screen asks for it.")
@@ -28,9 +36,6 @@ if(CATIO_GATEWAY_ORIGIN)
   target_compile_definitions(catio_headers INTERFACE CATIO_GATEWAY_ORIGIN="${CATIO_GATEWAY_ORIGIN}")
 endif()
 
-# The headers deliberately name no SDL, curl or JSON type: own Rect/Colour, opaque handles, string
-# bodies. That is the seam that lets the net layer be libcurl on a desktop and the platform's own HTTPS
-# on a phone (docs/mobile-app.md), and it is what makes the check below possible with nothing installed.
 set(CATIO_PUBLIC_HEADERS net house manor art draw view ui voice app)
 
 if(CATIO_HEADERS_ONLY)
@@ -42,33 +47,62 @@ if(CATIO_HEADERS_ONLY)
   endforeach()
   add_library(catio_selftest OBJECT ${CATIO_SELFTEST_SOURCES})
   target_link_libraries(catio_selftest PRIVATE catio_headers)
-  message(STATUS "catio-app: header self-containment check only; there is no app yet.")
-  message(STATUS "catio-app: pass -DCATIO_HEADERS_ONLY=OFF once src/ has bodies.")
+  message(STATUS "catio-app: header self-containment check. -DCATIO_HEADERS_ONLY=OFF builds the core.")
   return()
 endif()
 
-# ---- the app proper, once src/ has bodies -------------------------------------------------------
-find_package(SDL3 CONFIG REQUIRED)          # SDL3::SDL3 — window, input, 2D renderer, 9-grid panels
-find_package(SDL3_image CONFIG REQUIRED)    # the packs' PNGs
-find_package(SDL3_ttf CONFIG REQUIRED)      # sprout.ttf at 18px, and the bundled body font
-
-include(cmake/sources.cmake)                # CATIO_SOURCES, shared with ios/
-
-if(ANDROID)
-  add_library(catio_app SHARED ${CATIO_SOURCES})   # SDLActivity loads it by name
-else()
-  add_executable(catio_app ${CATIO_SOURCES})
+# ---- dependencies --------------------------------------------------------------------------------
+# SDL3 only: since 3.4 its core loads and saves PNG (SDL_LoadPNG, SDL_SavePNG), and every pack file is a
+# PNG, so SDL_image is not needed. SDL_ttf arrives with the pixel font.
+if(CATIO_FETCH_DEPS)
+  include(FetchContent)
+  FetchContent_Declare(nlohmann_json
+      URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+  set(CATIO_FETCHED nlohmann_json)
+  if(NOT ANDROID)   # on Android, SDL3 comes from its .aar, found by prefab
+    set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+    set(SDL_STATIC ON CACHE BOOL "" FORCE)
+    set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+    if(CATIO_HEADLESS)
+      # No X11, no Wayland, no GL: only the software renderer, which draws into a plain surface. SDL
+      # refuses a Unix build with no windowing system unless told it is meant.
+      foreach(o X11 WAYLAND KMSDRM OPENGL OPENGLES VULKAN GPU AUDIO JOYSTICK HAPTIC HIDAPI SENSOR CAMERA DIALOG TRAY)
+        set(SDL_${o} OFF CACHE BOOL "" FORCE)
+      endforeach()
+      set(SDL_UNIX_CONSOLE_BUILD ON CACHE BOOL "" FORCE)
+    endif()
+    FetchContent_Declare(SDL3
+        GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+        GIT_TAG release-3.4.18
+        GIT_SHALLOW TRUE)
+    list(APPEND CATIO_FETCHED SDL3)
+  endif()
+  FetchContent_MakeAvailable(${CATIO_FETCHED})
 endif()
-target_link_libraries(catio_app PRIVATE catio_headers SDL3::SDL3 SDL3_image::SDL3_image SDL3_ttf::SDL3_ttf)
-
-# HTTPS. There is no system libcurl on the Android NDK or on iOS, so the net layer has a per-platform
-# body: net_curl.cpp on a desktop, net_android.cpp over JNI, net_apple.cpp over NSURLSession. See
-# docs/mobile-app.md, "HTTPS on a phone" — the first of the hard problems.
-if(NOT ANDROID AND NOT IOS)
-  find_package(CURL REQUIRED)
-  target_link_libraries(catio_app PRIVATE CURL::libcurl)
+if(NOT TARGET SDL3::SDL3)
+  find_package(SDL3 CONFIG REQUIRED)
+endif()
+if(NOT TARGET nlohmann_json::nlohmann_json)
+  find_package(nlohmann_json CONFIG REQUIRED)
 endif()
 
-if(CATIO_TTS)
-  target_compile_definitions(catio_app PRIVATE CATIO_TTS=1)
-endif()
+# ---- the core ------------------------------------------------------------------------------------
+include(cmake/sources.cmake)   # CATIO_CORE_SOURCES, shared with ios/
+
+add_library(catio_core STATIC ${CATIO_CORE_SOURCES})
+target_include_directories(catio_core PRIVATE src)
+target_link_libraries(catio_core PUBLIC catio_headers SDL3::SDL3 nlohmann_json::nlohmann_json)
+
+# catio_look: render a floor to a PNG, with no window and no GPU. What CLAUDE.md's "look first" is for:
+#   catio_look <catio dir> <manor.json> <fixtures dir> <out.png> [ground|upper|<room>]
+add_executable(catio_look src/look.cpp)
+target_include_directories(catio_look PRIVATE src)
+target_link_libraries(catio_look PRIVATE catio_core)
+
+# catio_tests: the floor plan and the house, driven from JSON with no graphics.
+enable_testing()
+add_executable(catio_tests test/tests.cpp)
+target_include_directories(catio_tests PRIVATE src)
+target_link_libraries(catio_tests PRIVATE catio_core)
+add_test(NAME catio_tests
+         COMMAND catio_tests "${CMAKE_CURRENT_SOURCE_DIR}/generated/manor.json" "${CMAKE_CURRENT_SOURCE_DIR}/test/fixtures")

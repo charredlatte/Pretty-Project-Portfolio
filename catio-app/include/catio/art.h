@@ -16,7 +16,7 @@
 // This module does not fetch. It says what is missing and takes bytes, so the cache can be tested over
 // a directory of files with no network at all.
 //
-// DRAFT: declarations only. Nothing here is implemented yet.
+// Implemented in src/art.cpp.
 
 #ifndef CATIO_ART_H
 #define CATIO_ART_H
