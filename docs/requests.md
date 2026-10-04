@@ -16,6 +16,7 @@ compressed. Read this before starting something new. Last updated 2 October 2026
 | `docs/history.md` | How it got here, version by version |
 | `docs/camera-and-minimap.md` | The map panel, the minimap and the Sims-style camera |
 | `docs/renovation-mode.md` | The renovation mode spec: moving, adding and removing furniture, the cabinets' looks |
+| `docs/live-sessions.md` | The live read of her sessions, every way claude.ai can refuse it, and the saved copy it falls back on |
 | `docs/drawing-plan.md` | Every asset she will draw herself, at what size and scale, and the new pieces (litterbox, café tables…) |
 | `litterbox/` | The back burner: new notes land here, `litterbox/sort.py` piles them by project for her to check, then files each checked pile into its project's own repo and pushes it |
 | `catio/art/CREDITS.md` | Every pack, its artist and its licence |
@@ -55,8 +56,9 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
   | Hall | Snail mail |
   | Catio | This portfolio |
 
-- **A saved copy of her sessions** shows when the live read is blocked. A Routine refreshes it every two
-  hours, from 07:59 to 19:59 Paris time.
+- **A saved copy of her sessions** shows when the live read is blocked. A Routine refreshed it every two
+  hours, from 07:59 to 19:59 Paris time, until she paused it on 30 September; it is refreshed by hand now
+  (`docs/live-sessions.md`).
 - **A copy that runs off a USB stick**, on localhost.
 - **One queen of the house** (2 October: "merge the queen cats to make one main character queen cat that you
   chat with that does everything for you. The way you would interact with a real harness"), in the entrance

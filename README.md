@@ -132,9 +132,14 @@ archway with its wooden doors open. Parterres, a bench and a signpost to the cat
 - **Rooms, renames, moves, adopted chats and what the queen keeps** live in the artifact's own
   database, so they follow her between phone and PC. Nothing she does on the page is written back
   to this repo.
-- **When the live read is blocked**, the page shows the copy of her sessions Claude last saved,
-  with the time it was saved. Claude Code Remote is built into claude.ai, so it is not in her
-  Connectors list and has no per-tool switch she can flip; the copy is refreshed by Claude.
+- **When claude.ai refuses that read** (it did when last checked, 2 October), the cats come from a copy of her
+  sessions that a Claude session saved to the database, and the sign under the brand gives its
+  time: "Saved copy · 17:02". There is nothing for her to switch on: Claude Code Remote is built
+  into claude.ai rather than added as a connector, so it has no setting in her Connectors list.
+  The copy only changes when a session saves a new one, and the Routine that did that every two
+  hours has been paused since 30 September, so ask a session to refresh it. Sessions that report to
+  the gateway stay live either way. Each refusal, and how to refresh the copy:
+  [`docs/live-sessions.md`](docs/live-sessions.md).
 
 | Mood | Session state | Cat |
 |---|---|---|
@@ -271,13 +276,9 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `litterbox/`: the back burner, where loose notes land; `litterbox/sort.py` piles them up by project
   and files a pile into that project's repo once it has been checked. See [its README](litterbox/README.md).
 - `docs/`: the plan, her requests compiled, the camera and minimap plan, renovation mode's constraints,
-  the drawing plan for her own art, the engine under the café ([`docs/engine.md`](docs/engine.md)), and
-  what the litter box filed here.
-- `catio-app/`: a **draft** of the café as a native C++ app for a phone, for her to judge: nine headers
-  of declarations, the generated floor plan, and build files for desktop, Android and iOS. Nothing
-  compiles into an app yet, and it ships with no pack art — the app fetches that from her gateway on
-  first run, because the packs may not be redistributed. The case for it and the whole design are in
-  the drawing plan for her own art, and what the litter box filed here.
+  the drawing plan for her own art, the engine under the café ([`docs/engine.md`](docs/engine.md)), what
+  the café does when it can't read her sessions live ([`docs/live-sessions.md`](docs/live-sessions.md)),
+  and what the litter box filed here.
 - `catio-app/`: the café as a native C++ app for a phone, in progress. Its core draws the manor --
   matching the page's own render pixel for pixel -- but there is no window loop, interface or network
   yet, and it has not run on a phone. It ships with no pack art: the app fetches that from her gateway
