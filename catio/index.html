@@ -107,7 +107,7 @@
   --divider-w: calc(var(--divider-t) * var(--u)) calc(var(--divider-r) * var(--u)) calc(var(--divider-b) * var(--u)) calc(var(--divider-l) * var(--u));
   /* the map panel's pieces are smooth art drawn at twice their size or more: -k is one of its pixels on screen */
   --mpanel-k: .5px; --mbtn-k: .5px; --mframe-k: calc(6px / 28);
-  --mpanel-render: auto; --mbtn-render: auto; --mframe-render: auto; --micons-render: auto;   /* pixelated for a piece she draws as pixel art */
+  --mpanel-render: auto; --mbtn-render: auto; --mframe-render: auto; --map-icons-render: auto;   /* pixelated for a piece she draws as pixel art */
   --mpanel-t: 28; --mpanel-r: 28; --mpanel-b: 28; --mpanel-l: 28; --mpanel-s: var(--mpanel-t) var(--mpanel-r) var(--mpanel-b) var(--mpanel-l);
   --mpanel-w: calc(var(--mpanel-t) * var(--mpanel-k)) calc(var(--mpanel-r) * var(--mpanel-k)) calc(var(--mpanel-b) * var(--mpanel-k)) calc(var(--mpanel-l) * var(--mpanel-k));
   --mbtn-t: 20; --mbtn-r: 22; --mbtn-b: 24; --mbtn-l: 22; --mbtn-s: var(--mbtn-t) var(--mbtn-r) var(--mbtn-b) var(--mbtn-l);
@@ -232,7 +232,7 @@ a { color: var(--ink); }
 .pbtn:active, .pbtn[aria-checked="true"], .pbtn[aria-expanded="true"]:not(.fold) { border-image-source: var(--art-map-button-down); background-color: var(--map-btn-down); }
 .pbtn:disabled { opacity: .5; cursor: default; }
 .pbtn.sq { width: 40px; padding: 0; }
-.pbtn .ico { --i: 0; width: 18px; height: 18px; flex: none; image-rendering: var(--micons-render); background: var(--art-map-icons) calc(var(--i) * -18px) 0 / 90px 18px no-repeat; }
+.pbtn .ico { --i: 0; width: 18px; height: 18px; flex: none; image-rendering: var(--map-icons-render); background: var(--art-map-icons) calc(var(--i) * -18px) 0 / 90px 18px no-repeat; }
 .pbtn svg { width: 14px; height: 14px; fill: currentColor; shape-rendering: crispEdges; }
 /* a floor with cats that need you: a pink pip and how many (red if one is upset) */
 .pip { display: inline-grid; place-items: center; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; font: 800 11px/1 var(--body); color: var(--ink);
@@ -937,7 +937,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "map-button-hover": { group: "Map panel", kind: "slice", fam: "mbtn", name: "Map button, lit", file: LIC + "pastel/button-hover.png", size: [270, 81], what: "Its border is the map button's." },
     "map-button-down": { group: "Map panel", kind: "slice", fam: "mbtn", name: "Map button, pressed", file: LIC + "pastel/button-down.png", size: [270, 81], what: "And the floor on screen. Its border is the map button's." },
     "map-frame":     { group: "Map panel", kind: "slice", fam: "mframe", name: "View frame", file: LIC + "pastel/frame.png", size: [300, 150], slice: [28, 28, 28, 28], scale: 6 / 28, what: "The camera's view on the minimap: a border, empty in the middle." },
-    "map-icons":     { group: "Map panel", kind: "sheet", name: "Map icons", file: LIC + "pastel/icons.png", size: [180, 36], what: "Five cells: plus, minus, up, down, the whole house." },
+    "map-icons":     { group: "Map panel", kind: "sheet", smooth: true, name: "Map icons", file: LIC + "pastel/icons.png", size: [180, 36], what: "Five cells: plus, minus, up, down, the whole house." },
   };
   // The rest of the design system: every colour, font size and scale the CSS uses is a token in :root, and these are
   // they, for The look. A skin sets any of them ("tokens" in art/skin.json, or skin/theme), checked first: a colour is
@@ -1047,7 +1047,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const e = typeof v === "string" ? { src: v } : v && typeof v === "object" ? { src: v.src || v.file } : {};
     if (!safeSrc(e.src)) return null;
     const out = { src: e.src, w: num(v.w, 1, 8192), h: num(v.h, 1, 8192), at: num(v.at, 0, 1e14), asset: typeof v.asset === "string" ? v.asset : null, name: typeof v.name === "string" ? v.name.slice(0, 120) : "" };
-    if (Array.isArray(v.slice) && v.slice.length === 4 && v.slice.every((n) => num(n, 0, 64) !== null && Number.isInteger(n))) out.slice = v.slice.slice();
+    if (Array.isArray(v.slice) && v.slice.length === 4 && v.slice.every((n) => num(n, 0, a.scale ? 256 : 64) !== null && Number.isInteger(n))) out.slice = v.slice.slice();
     if (num(v.scale, 0.001, 64) !== null) out.scale = v.scale;
     if (v.pixel === true) out.pixel = true;
     if (num(v.frames, 1, 64) !== null && Number.isInteger(v.frames)) out.frames = v.frames;
@@ -1138,7 +1138,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       const a = ART[k];
       if (a.kind === "slice" || a.kind === "sheet" || a.kind === "exact") put("--art-" + k, cssUrl(e.url));
       if (a.hot) put("--" + k + "-hot", (e.hot || a.hot).join(" "));   // her paw points where she says
-      if (k === "map-icons" && e.pixel) put("--micons-render", "pixelated");   // hers drawn as pixel art
+      if (a.smooth && e.pixel) put("--" + k + "-render", "pixelated");   // a smooth slot's piece drawn as pixel art
       if (a.kind === "slice" && a.slice && e.slice) {
         e.slice.forEach((n, i) => put("--" + a.fam + "-" + "trbl"[i], String(n)));
         if (a.bw) put("--" + a.fam + "-bw", "var(--" + a.fam + "-" + a.bw + ")");   // her border's box, side by side
@@ -1200,8 +1200,13 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       checkArt();
       render();
     }
-    if (frameWidth()) layout(true);   // a thicker or thinner frame: the view fits inside it again
     // a colour alone redraws only what reads one as it draws (the CSS follows by itself): her look, the maps' hues
+    restyle();
+  }
+  // What the script draws with a colour (her figure, a map's dots) and the frame's thickness, again: after a skin, and
+  // when the page turns light or dark, since a dark token can differ from its light one
+  function restyle() {
+    if (frameWidth()) { if (S.cam) setCam(S.cam, false); else layout(true); }
     if ($("queenOwnerFig")) $("queenOwnerFig").replaceChildren(ownerSVG(ownerOf()));
     const you = document.querySelector("#queenYou .ownerprev .pic");
     if (you) {   // the look she is choosing there, as the selects hold it
@@ -4383,9 +4388,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     return pic;
   }
   // "4 4 6 4", "6" or "9 8": a border as CSS writes one, to four whole numbers
-  function border(text, w, h) {
+  // the most a border side may be: 64 of the art's pixels for a piece drawn at the art pixel (a panel can't swallow the
+  // screen), more for a smooth map piece drawn big, which is shown smaller
+  const maxBorder = (k) => (ART[k].scale ? 256 : 64);
+  function border(text, w, h, most = 64) {
     const parts = String(text).trim().split(/[\s,]+/).filter(Boolean), n = parts.map(Number);
-    if (!n.length || n.length > 4 || n.some((x) => !Number.isInteger(x) || x < 0 || x > 64)) return null;   // 64: a panel can't swallow the screen
+    if (!n.length || n.length > 4 || n.some((x) => !Number.isInteger(x) || x < 0 || x > most)) return null;
     const [t, r = t, b = t, l = r] = n;
     if (t + r + b + l === 0 || (w && (l + r > w || t + b > h))) return null;   // a frame that fits its picture (it may meet itself: the divider does)
     return [t, r, b, l];
@@ -4598,6 +4606,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         fields.appendChild(field("Drawn as", px));
       }
     }
+    if (!p.why && a.smooth) {   // a smooth sheet: hers may be pixel art
+      px = el("select"); px.id = "artPixel";
+      for (const [v, l] of [["pixel", "Pixel art"], ["smooth", "Smooth"]]) { const o = el("option", null, l); o.value = v; px.appendChild(o); }
+      px.value = p.typed.pixel ?? (p.w <= a.size[0] / 2 ? "pixel" : "smooth");
+      fields.appendChild(field("Drawn as", px));
+    }
     if (!p.why && a.hot) {
       hot = el("input"); hot.id = "artHot"; hot.value = p.typed.hot ?? a.hot.join(" ");
       fields.appendChild(field("Where it points, in its pixels: x y", hot));
@@ -4621,12 +4635,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (p.why || p.busy) return;   // on the pick, not the form: a redraw makes a new form
       const doc = { name: p.file.name, at: Date.now() };
       if (p.w) Object.assign(doc, { w: p.w, h: p.h });
-      if (bd) { doc.slice = border(bd.value, p.w, p.h); if (!doc.slice) { toast("A border is one to four whole numbers up to 64, like 4 4 6 4, that fit inside its " + p.w + " × " + p.h + ".", "alert"); bd.focus(); return; } }
+      if (bd) { doc.slice = border(bd.value, p.w, p.h, maxBorder(k)); if (!doc.slice) { toast("A border is one to four whole numbers up to " + maxBorder(k) + ", like 4 4 6 4, that fit inside its " + p.w + " × " + p.h + ".", "alert"); bd.focus(); return; } }
       if (hot) {
         doc.hot = hot.value.trim().split(/[\s,]+/).map(Number);
         if (doc.hot.length !== 2 || doc.hot.some((n, i) => !Number.isInteger(n) || n < 0 || n >= Math.min(i ? p.h : p.w, 128))) { toast("Where it points is two whole numbers inside it, like 9 5.", "alert"); hot.focus(); return; }
       }
-      if (px) { if (px.value === "pixel") doc.pixel = true; else if (p.w !== a.size[0]) doc.scale = a.scale * a.size[0] / p.w; }
+      if (px) { if (px.value === "pixel") doc.pixel = true; else if (a.scale && p.w !== a.size[0]) doc.scale = a.scale * a.size[0] / p.w; }
       if (frames) {
         doc.frames = Number(frames.value); doc.secs = Number(secs.value);
         if (!Number.isInteger(doc.frames) || doc.frames < 1 || doc.frames > 64 || p.w % doc.frames) { toast("The frames must split its " + p.w + " pixels evenly.", "alert"); frames.focus(); return; }
@@ -4992,6 +5006,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   render();
   checkArt();
   loadSkinFile();
+  // light or dark, by the system or by claude.ai's own switch: what the script drew follows
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", restyle);
+  new MutationObserver(restyle).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   new ResizeObserver(() => { hideMenu(); hideTip(); frameWidth(); layout(true); }).observe($("stage"));
   // Clicking or tapping the open meadow closes the menu.
   // The path is taken when the event is dispatched, so a button the menu replaced while handling

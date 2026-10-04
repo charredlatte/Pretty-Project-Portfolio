@@ -184,7 +184,7 @@ def number(v, lo, hi):
 
 # the page's skinEntry(), for what a slot's entry may carry
 SETTINGS = {
-    "slice": lambda v: ints(v, 4, 0, 64), "frames": lambda v: isinstance(v, int) and not isinstance(v, bool) and 1 <= v <= 64,
+    "slice": lambda v: ints(v, 4, 0, 256),   # the page takes 64, or 256 for a smooth map piece (checked in check()) "frames": lambda v: isinstance(v, int) and not isinstance(v, bool) and 1 <= v <= 64,
     "secs": lambda v: number(v, 0.1, 20), "anchor": lambda v: isinstance(v, list) and len(v) == 2 and all(number(x, 0, 1024) for x in v),
     "scale": lambda v: number(v, 0.001, 64), "pixel": lambda v: v is True, "hot": lambda v: ints(v, 2, 0, 127),
     "w": lambda v: isinstance(v, int), "h": lambda v: isinstance(v, int),
@@ -202,8 +202,10 @@ def png_size(path):
 def check(art, key, rel, was, said, where=""):
     """One drawing for one slot, checked as the page checks it: its entry for skin.json, or None and why, said."""
     a, path, name = art[key], ROOT / rel, Path(rel).name
-    auto = set(was.get("auto") or [])   # what this worked out itself last time: worked out again, never "dropped"
-    entry = {k: v for k, v in was.items() if k in ("slice", "frames", "secs", "anchor", "scale", "pixel", "hot", "w", "h") and k not in auto}
+    # what this worked out itself last time, with the values it gave: worked out again, never "dropped" - unless she has
+    # changed one since, which makes it hers
+    auto = was.get("auto") if isinstance(was.get("auto"), dict) else {}
+    entry = {k: v for k, v in was.items() if k in ("slice", "frames", "secs", "anchor", "scale", "pixel", "hot", "w", "h") and not (k in auto and auto[k] == v)}
     for k, ok in SETTINGS.items():   # what the page would drop, dropped here, and said
         if k in entry and not ok(entry[k]):
             said.append(f"  {name}: its \"{k}\" ({entry[k]!r}) isn't one the page can use, so it was dropped")
@@ -238,7 +240,7 @@ def check(art, key, rel, was, said, where=""):
     note = ""
     if a["kind"] == "slice" and "slice" in a and want and [w, h] != want and "slice" not in entry:
         if "scale" in a and not entry.get("pixel"):   # as The look does: the pack's border, scaled to her drawing
-            entry["slice"] = [min(64, max(1, round(n * w / want[0]))) for n in a["slice"]]   # the page takes 64 at most
+            entry["slice"] = [min(256, max(1, round(n * w / want[0]))) for n in a["slice"]]   # a smooth map piece: up to 256
             worked.append("slice")
             note = f" (border {' '.join(map(str, entry['slice']))}, scaled from the pack's; set \"slice\" if it isn't)"
         else:
@@ -249,6 +251,9 @@ def check(art, key, rel, was, said, where=""):
         entry["scale"] = round(a["scale"] * want[0] / w, 4)   # drawn smooth, shown the pack's size
         worked.append("scale")
         note += f" (scale {entry['scale']}, smooth; \"pixel\": true instead if it is pixel art)"
+    if entry.get("slice") and max(entry["slice"]) > (256 if "scale" in a else 64):
+        said.append(f"  {name}: its border {entry['slice']} is over {256 if 'scale' in a else 64}, more than the page takes: left out")
+        return None
     sl = entry.get("slice") or a.get("slice")   # hers, or the pack's it would be cut with, in its own pixels
     if a["kind"] == "slice" and sl and (sl[1] + sl[3] > w or sl[0] + sl[2] > h or not any(sl)):
         said.append(f"  {name}: the border {' '.join(map(str, sl))} doesn't fit inside {w} x {h}: left out" + ("" if entry.get("slice") else " (give it its own, \"slice\")"))
@@ -263,7 +268,7 @@ def check(art, key, rel, was, said, where=""):
         entry["frames"] = n
         note = f" ({n} frames of {w // n} x {h})"
     if worked:
-        entry["auto"] = worked
+        entry["auto"] = {k: entry[k] for k in worked}
     said.append(f"  {name}: {key}{note}{where}")
     return entry
 
@@ -306,6 +311,21 @@ def main():
         light = modes["light"] if "light" in broken else from_files.get("light", modes["light"])
         from_files["dark"] = {t: v for t, v in from_files["dark"].items() if v.lower() != (light.get(t) or base.get(t, "")).lower()}
     modes.update({m: t for m, t in from_files.items() if m not in broken})
+    filed = set(old.get("tokensFromFiles") or [])   # modes built from files last time: with their files gone, so are they
+    for mode in filed - set(from_files) - broken:
+        said.append(f"  {mode}: its tokens files have gone, so its tokens were dropped")
+        modes[mode] = {}
+    for key, was in old.items():   # a drawing of hers in art/skin/ that has gone
+        f = file_of(was)
+        if key in art and isinstance(f, str) and f.startswith("art/skin/") and not (ROOT / f).is_file():
+            said.append(f"  {key}: {f} has gone, so the pack's is back")
+    names = {}
+    for p in files:
+        if not p.name.endswith(".tokens.json"):
+            names.setdefault(p.stem, []).append(p.name)
+    for stem, both in names.items():
+        if len(both) > 1:
+            said.append(f"  {', '.join(both)} all name {stem}: {both[-1]} is the one used, unless it is left out")
     for p in files:
         if p.name.endswith(".tokens.json"):
             continue
@@ -336,13 +356,15 @@ def main():
         if [mw, mh] != [hw, hh]:
             said.append(f"  {key}: {mw} x {mh}, but it shares {head}'s border, so it must be {hw} x {hh}: left out")
             del skin[key]
+    if from_files:
+        skin["tokensFromFiles"] = sorted(set(from_files) - broken | (filed & broken))
     for mode, key in (("light", "tokens"), ("dark", "dark")):
         if modes[mode]:
             skin[key] = dict(sorted(modes[mode].items()))
             said.append(f"  {key}: {len(modes[mode])} ({mode})")
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(skin, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"{OUT.relative_to(ROOT.parent)}: {len(skin) - ('tokens' in skin) - ('dark' in skin)} of {len(art)} slots are hers")
+    print(f"{OUT.relative_to(ROOT.parent)}: {sum(k in art for k in skin)} of {len(art)} slots are hers")
     print("\n".join(said) if said else f"  (nothing in {SKIN.relative_to(ROOT.parent)} yet)")
 
 
