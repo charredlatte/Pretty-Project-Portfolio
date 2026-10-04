@@ -278,15 +278,18 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
   first run, because the packs may not be redistributed. The case for it and the whole design are in
   [`docs/mobile-app.md`](docs/mobile-app.md).
 
-The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harness/test` and
-`python3 -m unittest litterbox/test_sort.py`.
+The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harness/test`,
+`cd harness/gateway && npm install && npm test` (the gateway), and `python3 -m unittest litterbox/test_sort.py
+litterbox/test_quiz.py`.
 
 The page's test and its screenshots drive a headless Chromium through Playwright. `run.sh` is set up for the copies
-preinstalled in Claude's cloud sessions. Elsewhere, set `PLAYWRIGHT` to the absolute path of your own Playwright
-install, and either set `CHROMIUM` or run `npx playwright install chromium` so Playwright has its own browser. Each run
+preinstalled in Claude's cloud sessions. Elsewhere (it needs `sh`, `python3` and Node), set `PLAYWRIGHT` to the
+absolute path of a `playwright` package folder, such as `$(npm root -g)/playwright`, and either set `CHROMIUM` or run
+`node "$PLAYWRIGHT/cli.js" install chromium` so that Playwright has its own browser. Each run
 starts a fresh temporary profile with no logins or saved passwords, and as the page stands it loads only local files,
 the test's own server on 127.0.0.1 and the page's Google Fonts. Without the licensed art (see
-[Running your own](#running-your-own)), one check fails, the one that wants no warning sign, as `run.sh` warns.
+[Running your own](#running-your-own)), the check "on its own address the café is live through the gateway, with no
+warning sign" fails, as `run.sh` warns.
 Sessions under the house rules run the browser preflight first ([`harness/README.md`](harness/README.md)).
 
 ## Licence
