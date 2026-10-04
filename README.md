@@ -58,22 +58,21 @@ and a folder that runs on your own computer. The page does the same on its own: 
 seven-step wizard (name it, open the rooms you need, file your repositories, see your sessions, the litter box, how
 it works), and "Set up again…" in the House menu replays it.
 
-Then give your sessions the house rules, and the `catio` skill that collects what you send them from the café (the
-same two lines the wizard shows):
-
-```bash
-claude plugin marketplace add https://github.com/charredlatte/Pretty-Project-Portfolio.git
-claude plugin install kittychat-house-rules@kittychat --scope user
-```
+**The house rules** (`harness/`, the `kittychat-house-rules` plugin) are what make your sessions report to the
+gateway, collect what you send them and follow the rules below. Today they are Charlotte's own harness: the café
+they point at and the list of public repositories are hers (`harness/rules.json`), and two of the rules call skills
+that aren't in this repository (`ponytail-audit` and `browser-agent-preflight`). Fork it and set yours before you
+install it; the install lines are in [`harness/README.md`](harness/README.md).
 
 For cats that stay live wherever you open the café, and a queen you can talk to, add the gateway: a free Cloudflare
 Worker that every session checks in at, set up in five steps ([`harness/gateway/README.md`](harness/gateway/README.md)).
 The queen's brain runs on your own computer ([`harness/runner/README.md`](harness/runner/README.md)).
 
-**Bring your own cats.** Eight of the ten art packs the café is drawn from forbid sharing their files (and plants.zip
-came with no licence), so `catio/art/licensed/` is not in this repository. A fresh clone draws the manor on plain
-panels, says so on its own sign, and gives the three steps to fix it: buy the packs yourself and run
-`catio/tools/build-art.py` over your own zips. Only Cosy Cabin, whose licence allows it, is included.
+**Bring your own cats.** Seven of the ten art packs the café is drawn from forbid sharing their files, an eighth is
+drawn into the same picture as two of them, and plants.zip came with no licence, so `catio/art/licensed/` is not in
+this repository. A fresh clone draws the manor on plain panels, says so on its own sign, and gives the three steps
+to fix it: buy the packs yourself and run `catio/tools/build-art.py` over your own zips. Only Cosy Cabin, whose
+licence allows it, is included.
 
 ## What you get
 
@@ -116,8 +115,9 @@ panels, says so on its own sign, and gives the three steps to fix it: buy the pa
   it, until you click elsewhere or press Escape. On a phone a tap does the same. Every menu is short: the name and one
   line, who needs you, then a list of actions. A room's are Look in, Files, Add files, Add a cat and Edit room; a
   cat's are Open session, Talk, Add files and Look in. Double-click a room to look in, or a cat for its card.
-- **The brand**, top left, is the House button: whether the cats are live, the brain, the house rules, Project maps,
-  The look, Edit rooms, the cats napping in the attic, Check now and sound.
+- **The brand**, top left, is the House button: whether the cats are live, then Homework when anything waits, the
+  brain, the house rules, Project maps, Edit rooms, The look, Set up again…, the cats napping in the attic, Check now,
+  sound and still cats.
 - **With a keyboard**, Tab lands on the house once. The arrow keys move from room to room, Enter steps into a room's
   menu and Escape steps back out. + / − / 0 zoom, and Shift with the arrows moves the view.
 - **Edit rooms** shows the manor as a plan, a floor at a time: rename a room, say what lives there, list the
@@ -182,30 +182,31 @@ small meow.
 
 Files dropped on a cat, messages written to it, and pause or wrap-up requests are saved the moment you send them.
 With the gateway, a running session gets them when its current turn ends. Without it they wait on the mat, and the
-session collects them when it next starts: sessions in your repositories run the house-rules plugin, whose `catio`
-skill handles what's there, answers on the cat and marks it delivered. Only claude.ai can wake a session that has
+session collects them when it next starts: a session that runs the house-rules plugin has its `catio` skill handle
+what's there, answer on the cat and mark it delivered. Only claude.ai can wake a session that has
 stopped, and it doesn't let a page do it; why is in
 [`harness/README.md`](harness/README.md#why-the-café-cant-push-into-a-session).
 
 ## On your own computer
 
 The café also runs from a folder, with no claude.ai at all. `python3 catio/tools/bundle.py` makes
-`catio/dist/catio-local/` (and a zip of it): the page as one HTML file, all the art, your rooms from
-`catio/data/rooms.json`, and `catio/data/sessions.json`, the last copy of your sessions Claude saved
-(`catio/tools/save-sessions.py`). Serve the folder with any static server, such as VS Code's Live Server or
-`python -m http.server 8000`, and open <http://localhost:8000>. It's plain HTML, with no server code.
+`catio/dist/catio-local/` (and a zip of it): the page as one HTML file, all the art, the rooms in
+`catio/data/rooms.json` (Charlotte's: change them there, or with Set up again… in the House menu), and
+`catio/data/sessions.json`, the last copy of your sessions Claude saved (`catio/tools/save-sessions.py`). Serve the
+folder with any static server, such as VS Code's Live Server or `python -m http.server 8000`, and open
+<http://localhost:8000>. The page is plain HTML and needs no server of its own.
 
 The folder also carries the Catio MCP server, which serves the page and lets agents that aren't Claude Code
 sessions join as cats: from inside the folder, `python3 harness/mcp/catio_mcp.py --serve . --port 8791`, then open
-<http://localhost:8791>. On localhost the cats are the saved copy, not live, and adopted chats, room names and
-project looks are kept in that browser.
+<http://localhost:8791>. On localhost the sessions' cats are the saved copy, not live (agents that join the MCP
+server are), and adopted chats, room names and project looks are kept in that browser.
 
 The folder holds your licensed art and your session titles, so it is for your own use: never commit it or share it.
 
 ## Open source, and what stays behind the paywall
 
 The code is open source: the page, the harness, the gateway and the queen's runner, under the
-[GNU AGPL-3.0](LICENSE). Anyone with GitHub can run their own café, free, with the two lines above and a
+[GNU AGPL-3.0](LICENSE). Anyone with GitHub can run their own café, free, with the clone and the plugin above and a
 Cloudflare Worker for the gateway (`harness/gateway/README.md`). The licence asks one thing back: whoever runs a
 changed gateway as a service publishes the change.
 
@@ -264,28 +265,28 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
   docstring).
 - `catio/tools/bundle.py`: the folder that runs on localhost.
 - `catio/tools/save-sessions.py`: trims a `list_sessions` result to the saved copy.
-- `catio/data/rooms.json`: the rooms, for the localhost copy. `sessions.json` is never committed.
+- `catio/data/rooms.json`: Charlotte's rooms, for the localhost copy. `sessions.json` is never committed.
 - `catio/art/`: the committed art. `licensed/` is rebuilt, not committed.
 - `catio/test/`: the end-to-end test (`sh catio/test/run.sh`), and screenshots to look at
   (`sh catio/test/run.sh look kitchen study`, into `catio/test/.look/`).
 - `CLAUDE.md`: how to change and republish the page.
 - `catio/tools/digest.py`: compiles the saved sessions and adopted chats into a per-project digest of
-  what needs her (`catio/data/digest.md`, never committed).
-- `artifacts.json`: the published page's one URL.
+  what needs you (`catio/data/digest.md`, never committed).
+- `artifacts.json`: the published pages' URLs: the café, and two retired quiz pages.
 - `harness/`: the KittyChat harness, the `kittychat-house-rules` plugin (hooks, the `catio` skill,
-  graphify), on in all seven of her repos, and the Catio MCP server for other agents. See [its README](harness/README.md).
+  graphify), on in all of Charlotte's repos, and the Catio MCP server for other agents. See [its README](harness/README.md).
 - `catio-plugin/`: the plugin that sets up your own café; `.claude-plugin/marketplace.json` lists it and the
   harness plugin as the `kittychat` marketplace.
 - `litterbox/`: the back burner, where loose notes land; `litterbox/sort.py` piles them up by project
   and files a pile into that project's repo once it has been checked. See [its README](litterbox/README.md).
-- `docs/`: the plan, her requests compiled, the camera and minimap plan, renovation mode's constraints,
-  the drawing plan for her own art, the engine under the café ([`docs/engine.md`](docs/engine.md)), what
-  the café does when it can't read her sessions live ([`docs/live-sessions.md`](docs/live-sessions.md)),
-  and what the litter box filed here.
+- `docs/`: every doc, by what it is for, in [`docs/README.md`](docs/README.md): the plan, Charlotte's requests
+  compiled, the camera and minimap plan, renovation mode's constraints, the drawing plan for the café's own art, the
+  engine under the café ([`docs/engine.md`](docs/engine.md)), what the café does when it can't read your sessions
+  live ([`docs/live-sessions.md`](docs/live-sessions.md)), and what the litter box filed here.
 - `catio-app/`: the café as a native C++ app for a phone, in progress. Its core draws the manor --
   matching the page's own render pixel for pixel -- but there is no window loop, interface or network
-  yet, and it has not run on a phone. It ships with no pack art: the app fetches that from her gateway
-  on first run, because the packs may not be redistributed. The design and where it stands are in
+  yet, and it has not run on a phone. It ships with no pack art: the app fetches that from the gateway,
+  behind your sign-in, on first run, because the packs may not be redistributed. The design and where it stands are in
   [`docs/mobile-app.md`](docs/mobile-app.md).
 
 The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harness/test`,

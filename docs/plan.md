@@ -11,7 +11,7 @@ for, in `docs/requests.md`; the audit behind phase 0, in `docs/audit-2026-10-01.
 
 Updated 4 October 2026.
 
-- **Live:** the artifact in `artifacts.json`, republished on her say-so, so it can trail `main` until the next
+- **Live:** the café's artifact (`kittychat-cafe` in `artifacts.json`), republished on her say-so, so it can trail `main` until the next
   publish.
 - **`main`** has, beyond phase 0's honest café:
   - the house rules, on in all seven repos, with no Claude attribution on her public repos, and semi-automatic
