@@ -19,8 +19,8 @@ already uses.
   which can be inside the price only once its model is locked (below; today any caller can pick a paid one).
 - **Any environment.** Claude Code, Codex, Gemini CLI, Cursor, Claude Desktop, claude.ai. On a laptop, a Raspberry
   Pi or a cloud container. One gateway everywhere. The owner's tools (handing in homework, dropping files,
-  managing cats) need the owner's sign-in: claude.ai, Claude Desktop, or the café on the gateway's
-  address in any browser.
+  managing cats) need the owner's sign-in on the hosted gateway: claude.ai, Claude Desktop, or the café on its address in any
+  browser. The local stdio twin has no roles.
 - **Any face.** The KittyChat Café is the flagship: a pixel-art manor where every session is a cat. Teams who
   want a plain dashboard will get one from the same gateway (not built yet).
 
@@ -33,7 +33,7 @@ them.
 
 | Part | What it does | Where |
 | --- | --- | --- |
-| The gateway | A Cloudflare Worker that speaks MCP at `/mcp`, with 14 tools | `harness/gateway/` |
+| The gateway | A Cloudflare Worker that speaks MCP at `/mcp`, with the tools in `src/tools.js` | `harness/gateway/` |
 | Accounts | A house per user, OAuth for claude.ai, hashed agent keys | `harness/gateway/src/registry.js`, `docs/accounts.md` |
 | House rules | The Claude Code plugin whose hooks enforce the rules | `harness/rules.json`, `harness/hooks/` |
 | The runner | Waits on the gateway and runs one model turn per message or routine | `harness/runner/queen.py` |
@@ -48,7 +48,9 @@ Still missing for a product:
 - a plain face, for teams;
 - metering, and a house several people can share;
 - the decider's model locked for buyers (today any caller can pass `model`, a paid one included);
-- each agent key kept to its own cats (today `inbox` and `pick_up` take any cat's id, the queen's included);
+- each agent key kept to its own cats (today `report_status`, `inbox`, `pick_up`, `comment` and `comments` take
+  any cat's id, the queen's included);
+- features gated by tier (nothing checks a plan today: every account gets the quiz, homework and the decider);
 - OAuth for clients other than Claude's (the gateway only lets claude.ai and claude.com connectors sign in);
 - art Charlotte owns (`docs/drawing-plan.md`). Until it is in, the café serves the licensed packs to every
   signed-in account (`harness/gateway/src/cafe.js`), so no other account may open: the packs forbid it.
@@ -93,10 +95,10 @@ which is why the decider's model must be locked.
 3. **Small business owners new to AI**, the café's first audience, through the manor and a harness built for them.
 4. **Makers of rule packs, skills and skins**, later, through a parts gallery.
 
-Besides the hosted tiers, two things are sold. **Builds** are harnesses made to order: Charlotte sets one up for
-the buyer, with the course on changing it (the shop's "Set up for you"), sold from the day the store opens.
-**Parts** are rule packs, skills and skins sold by their makers in a gallery, later. The shop wireframes
-(`docs/kittychat-shop/`) predate MCPWay and have no Team column yet.
+Besides the hosted tiers, two things are sold. **Builds** are harnesses made to order (the shop's "Set up for
+you"): lifetime access and the course on setting one up yourself, with an afternoon of Charlotte doing it with you
+on top, sold from the day the store opens. **Parts** are rule packs, skills and skins sold by their makers in a
+gallery, later. The shop wireframes (`docs/kittychat-shop/`) predate MCPWay and have no Team column yet.
 
 ## Competition
 
@@ -139,5 +141,5 @@ name ready. The "-Way" echo of PCBWay is fine as a name; "the PCBWay of MCP" in 
 
 Most of October's work is under `harness/` and waits for Charlotte, as the merging rule says; the plain face needs
 a route in the gateway too. The keys button is a page change, for the café on the gateway's address (the claude.ai
-artifact has no café sign-in), and the key routes behind it are built. Sign-up opens to anyone only once no pack
-art reaches other accounts.
+artifact has no café sign-in), and the key routes behind it are built. Sign-up opens to anyone only once her own
+art is in.
