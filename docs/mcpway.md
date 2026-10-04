@@ -16,7 +16,7 @@ already uses.
 - **Any model.** Claude today; OpenAI, Gemini, Mistral and a local model through Ollama once the runner's drivers
   are in (below), and a small model for typed decisions (yes/no, a choice, a score). Buyers bring their own keys
   and plans: MCPWay never resells Claude, OpenAI or Gemini access. The one model it runs itself is the decider's,
-  on its default small model, inside the price (once buyers can't pick another, below).
+  which can be inside the price only once its model is locked (below; today any caller can pick a paid one).
 - **Any environment.** Claude Code, Codex, Gemini CLI, Cursor, Claude Desktop, claude.ai. On a laptop, a Raspberry
   Pi or a cloud container. One gateway everywhere. The owner's tools (handing in homework, dropping files,
   managing cats) need the owner's sign-in: claude.ai, Claude Desktop, or the café on the gateway's
@@ -38,7 +38,7 @@ them.
 | House rules | The Claude Code plugin whose hooks enforce the rules | `harness/rules.json`, `harness/hooks/` |
 | The runner | Waits on the gateway and runs one model turn per message or routine | `harness/runner/queen.py` |
 | The decider | Typed decisions from a small model, logged beside the old path | `harness/gateway/src/decide.js` |
-| Other agents | The stdio twin of the gateway, for Codex, Gemini CLI, Cursor and Claude Desktop on the same machine | `harness/mcp/catio_mcp.py` |
+| Other agents | The stdio twin of the gateway, for Codex, Gemini CLI, Cursor and Claude Desktop on the same machine; it has no roles, so whoever runs it acts as the owner | `harness/mcp/catio_mcp.py` |
 | The café | The manor, the onboarding, the queen, served from the gateway behind a sign-in | `catio/index.html`, `harness/gateway/cafe/` |
 
 Still missing for a product:
@@ -48,6 +48,7 @@ Still missing for a product:
 - a plain face, for teams;
 - metering, and a house several people can share;
 - the decider's model locked for buyers (today any caller can pass `model`, a paid one included);
+- each agent key kept to its own cats (today `inbox` and `pick_up` take any cat's id, the queen's included);
 - OAuth for clients other than Claude's (the gateway only lets claude.ai and claude.com connectors sign in);
 - art Charlotte owns (`docs/drawing-plan.md`). Until it is in, the café serves the licensed packs to every
   signed-in account (`harness/gateway/src/cafe.js`), so no other account may open: the packs forbid it.
@@ -72,14 +73,16 @@ after that, choosing one is configuration.
 | Cloudflare Containers, on the buyer's own account | The runner, kept awake: it long-polls the gateway, so a sleeping one hears nothing |
 | Claude Code on the web | Cloud sessions with the rules plugin, reporting by hook |
 | claude.ai, Claude Desktop | The gateway as a connector, signed in as the owner |
-| Cursor, other MCP clients | The gateway with an agent key: report, read its own inbox, never act as the owner |
+| Cursor, other MCP clients | The gateway with an agent key: report and use the agent tools, never act as the owner |
 
-The code is open source under the AGPL (graphify, vendored, is Apache-2.0), and anyone can self-host it; the art is
-not, and a clone shows the café without it. What is sold is not having to: the gateway, the house and the café run
-for you, and on the Early access tier the hosted features (the brain's sorter, the litter box quiz, homework),
-which Basic leaves out. The runner stays on the buyer's side in every tier. Buyers' model keys stay with the
-runner, on their machine or their own cloud account; the gateway holds none of them. It does spend the operator's
-own Workers AI account (or `DECIDE_KEY`) on decisions, which is why the decider's model must be locked.
+The code is open source under the AGPL (graphify, vendored, is Apache-2.0 with parts under MIT), and anyone can
+self-host it; the art is not, and a clone shows the café without it. What is sold is not having to: the gateway,
+the house and the café run for you, and on the Early access tier the paid features (the brain's sorter, the litter
+box quiz, homework; the sorter runs on the buyer's own plan in claude.ai, and on the gateway's café it is the
+decider, once it is switched from observing to sorting), which Basic leaves out. The runner stays on the buyer's
+side in every tier. Buyers' model keys stay with the runner, on their machine or their own cloud account; the
+gateway holds none of them. It does spend the operator's own Workers AI account (or `DECIDE_KEY`) on decisions,
+which is why the decider's model must be locked.
 
 ## Who it is for
 
@@ -129,11 +132,12 @@ name ready. The "-Way" echo of PCBWay is fine as a name; "the PCBWay of MCP" in 
 
 | Phase | When | What | Gate to the next |
 | --- | --- | --- | --- |
-| Make it a product | October 2026 | Pack art kept from other accounts, the decider's model locked for buyers, sign-up (closed), the keys button, runner drivers, a plain face, the name and domain | A test account's cat reports within 10 minutes, with no pack art served to it |
+| Make it a product | October 2026 | Pack art kept from other accounts, the decider's model locked for buyers, each agent key kept to its own cats, sign-up (closed), the keys button, runner drivers, a plain face, the name and domain | A test account's cat reports within 10 minutes, with no pack art served to it |
 | Ten by invite | November and December 2026 | Her own art first, then the legal pages, metering, the store (Builds on sale from here) | Ten paying houses, no data lost |
 | Public launch | January to March 2027 | MCP registries and the plugin marketplace, a launch post, café videos selling Builds, the app campaign | A hundred paying houses |
 | Parts and teams | From April 2027 | The Team plan, the parts gallery, OAuth for clients other than Claude's, the app itself if the campaign funds it | |
 
-October's work waits for Charlotte, as the merging rule says: most of it is under `harness/`, the keys button needs
-the gateway's key routes, and the plain face needs a route in the gateway. Sign-up opens to anyone only once no
-pack art reaches other accounts.
+Most of October's work is under `harness/` and waits for Charlotte, as the merging rule says; the plain face needs
+a route in the gateway too. The keys button is a page change, for the café on the gateway's address (the claude.ai
+artifact has no café sign-in), and the key routes behind it are built. Sign-up opens to anyone only once no pack
+art reaches other accounts.
