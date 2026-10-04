@@ -3,7 +3,7 @@
 Every Claude project you have on the go, as a cat in a little pixel-art café. Each Claude Code session is a cat that
 plays while it works, sleeps when it's done, and **meows** when it's waiting on you: point at it and it says what it
 needs. Chats on claude.ai that no connector can read, like a business plan or a legal question, you adopt as cats by
-hand. One queen cat runs the place for you.
+hand. One queen cat, Ninine, runs the place for you.
 
 Made in the open by Charlotte Badot. [Run your own](#running-your-own) ·
 [What you get](#what-you-get) · [Open source, and the hosted café](#open-source-and-what-stays-behind-the-paywall)
@@ -100,7 +100,7 @@ cats. It says so on its own sign, with the three steps to fix it: buy the packs 
   when they're new. Every cat of one project wears the same coat, which you choose from the project's cabinet.
 - **Answer from the café.** Click a cat to talk to it, drop a file on it, pause it or wrap it up. Drop a file on a
   room or the house instead and the brain sorts it to the right cat, or keeps it in its tray.
-- **A queen who runs the place.** She sits in the entrance hall, is nobody's session and never leaves. She keeps what
+- **A queen who runs the place.** Ninine sits in the entrance hall, is nobody's session and never leaves. She keeps what
   you give her, looks after the other cats for you, runs the routines you set her and talks in the manner you give
   her, aloud if you turn her voice on. Cats bring her what they have to say. Anything waiting on you, a stuck cat's
   question, a loose note to file or a decision, comes to her as homework: a card you answer with a tap. She is
