@@ -7,6 +7,6 @@ import org.libsdl.app.SDLActivity;
 public class MainActivity extends SDLActivity {
     @Override
     protected String[] getLibraries() {
-        return new String[] { "SDL3", "SDL3_image", "SDL3_ttf", "catio_app" };
+        return new String[] { "SDL3", "SDL3_ttf", "catio_app" };
     }
 }

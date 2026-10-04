@@ -18,15 +18,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 get_filename_component(CATIO_APP_DIR "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
 find_package(SDL3 CONFIG REQUIRED)
-find_package(SDL3_image CONFIG REQUIRED)
 find_package(SDL3_ttf CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 include("${CATIO_APP_DIR}/cmake/sources.cmake")
-list(TRANSFORM CATIO_SOURCES PREPEND "${CATIO_APP_DIR}/")
+list(TRANSFORM CATIO_CORE_SOURCES PREPEND "${CATIO_APP_DIR}/")
 
-add_executable(catio_app MACOSX_BUNDLE ${CATIO_SOURCES})
+# The core exists; the app around it -- main, the loop, the interface, net_apple.cpp -- does not yet,
+# so this target will not build until it does (cmake/sources.cmake lists what is to come).
+add_executable(catio_app MACOSX_BUNDLE ${CATIO_CORE_SOURCES})
 target_include_directories(catio_app PRIVATE "${CATIO_APP_DIR}/include")
-target_link_libraries(catio_app PRIVATE SDL3::SDL3 SDL3_image::SDL3_image SDL3_ttf::SDL3_ttf)
+target_include_directories(catio_app PRIVATE "${CATIO_APP_DIR}/src")
+target_link_libraries(catio_app PRIVATE SDL3::SDL3 SDL3_ttf::SDL3_ttf nlohmann_json::nlohmann_json)
 
 # The bundled body font: the one font the app ships, because sprout.ttf is licensed and the page's own
 # body font comes off Google Fonts. Without it there is nothing to draw the sign-in screen with.

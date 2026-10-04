@@ -15,7 +15,7 @@
 // outbox/<id>. Those are claude.ai's path, keyed off list_sessions ids a native client never sees. On
 // the gateway the same things are the notes and files tables, reached through the tools.
 //
-// DRAFT: declarations only. Nothing here is implemented yet.
+// Implemented in src/house.cpp, and tested in test/tests.cpp.
 
 #ifndef CATIO_HOUSE_H
 #define CATIO_HOUSE_H
@@ -51,8 +51,11 @@ struct Room {
 
 /// One cat: a reporting agent (list_agents) or an adopted chat (cats/<id>). Never the queen.
 struct Cat {
-    std::string id, name, title, ask, link, repo, project, room, model;
+    std::string id, name, title, ask, link, repo, model;
+    std::string project;              ///< the project's key (a slug): projects/<key>, its filing cabinet
+    std::string room;                 ///< the room it lives in, already resolved by room_for()
     Mood mood = Mood::Idle;
+    int coat = 0;                     ///< one of the eight coats: projects/<key>.coat, else a hash of the key
     std::int64_t updated = 0;
     int waiting = 0;                  ///< files dropped on it and not yet picked up
     bool archived = false;
@@ -71,6 +74,7 @@ struct Note {
 /// queens/house. She is deliberately outside cats(): never in a count, a pile or the badge.
 struct Queen {
     std::string name, manner, greeting;
+    int coat = 0;                     ///< queens/house.coat, else a hash of "queen:house"
     std::vector<Note> keeps;
     std::int64_t read_at = 0;         ///< when her card was last opened; older `said` are handoffs
     bool voice_on = false;
@@ -134,7 +138,12 @@ public:
 
     // ---- the queen ------------------------------------------------------------------------------
     const Queen& queen() const;
+    /// Her seat is the hall's; when the hall is closed she sits in the catch-all room.
+    std::string queen_room() const;
     QueenState queen_state() const;
+    /// queenMood: asleep when away, at work while she answers, a box when homework or a handoff waits,
+    /// meowing when she has something to say aloud, else at work.
+    Mood queen_mood() const;
     /// What a cat brought her: a `said` newer than queens/house.readAt.
     std::vector<const Cat*> handoffs() const;
     /// Her hover line counts each kind: "Homework: 2 notes to sort, 1 decision".

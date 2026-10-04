@@ -1,35 +1,21 @@
-# The app's translation units, in one list so the desktop build, android/ and ios/ share it.
-#
-# EVERY FILE BELOW IS STILL TO BE WRITTEN: this branch is declarations only (docs/mobile-app.md). The
-# list is here so the three builds cannot drift apart the moment the first body lands.
+# The translation units, in one list so the desktop build and ios/ share it.
 
-set(CATIO_SOURCES
-    src/main.cpp
-    src/house.cpp
+# What exists: the floor plan, the house, the art, drawing and the view.
+set(CATIO_CORE_SOURCES
     src/manor.cpp
+    src/house.cpp
     src/art.cpp
     src/draw.cpp
     src/view.cpp
-    src/ui.cpp
-    src/app.cpp
 )
 
-# One net body per platform: the header names no curl type precisely so this choice is possible.
-if(ANDROID)
-  list(APPEND CATIO_SOURCES src/net_android.cpp)
-elseif(IOS OR APPLE)
-  list(APPEND CATIO_SOURCES src/net_apple.cpp)
-else()
-  list(APPEND CATIO_SOURCES src/net_curl.cpp)
-endif()
-
-# The queen's voice, off in v1 (include/catio/voice.h says why).
-if(CATIO_TTS)
-  if(ANDROID)
-    list(APPEND CATIO_SOURCES src/voice_android.cpp)
-  elseif(APPLE)
-    list(APPEND CATIO_SOURCES src/voice_apple.cpp)
-  else()
-    list(APPEND CATIO_SOURCES src/voice_null.cpp)
-  endif()
-endif()
+# Still to come: the app proper. It is not a target yet because its sources do not exist, and a target
+# naming files that are not there would only fail the build.
+#
+#   src/main.cpp  src/app.cpp  src/ui.cpp
+#   one net body per platform -- the header names no curl type precisely so this choice is possible:
+#     src/net_curl.cpp     desktop
+#     src/net_android.cpp  HttpsURLConnection over JNI (no system libcurl on the NDK)
+#     src/net_apple.cpp    NSURLSession (no system libcurl on iOS)
+#   the queen's voice, behind -DCATIO_TTS=ON (include/catio/voice.h says why it is not in v1):
+#     src/voice_android.cpp  src/voice_apple.cpp  src/voice_null.cpp
