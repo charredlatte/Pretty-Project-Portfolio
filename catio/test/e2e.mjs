@@ -1156,7 +1156,10 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
       expect(still.length === 1 && still[0] === "kitchen/filing_cabinet", "after the redraw, outlined: " + JSON.stringify(still));
     } finally {
       await page.mouse.move(8, 8); await settle(page);
-      await page.evaluate(() => { if (window.__catio.store["skin/cat-work"]) window.__catio.drop("skin/cat-work"); }); await page.waitForTimeout(300);
+      if (await page.evaluate(() => !!window.__catio.store["skin/cat-work"])) {
+        await page.evaluate(() => { for (const p of document.querySelectorAll("#props .piece")) p.dataset.old = "1"; window.__catio.drop("skin/cat-work"); });
+        await page.waitForFunction(() => !document.querySelector("#props .piece[data-old]"), null, { timeout: 5000 });
+      }
     }
   });
   await openRoom(page, "kitchen");
