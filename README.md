@@ -287,9 +287,9 @@ preinstalled in Claude's cloud sessions. Elsewhere (it needs `sh`, `python3` and
 absolute path of a `playwright` package folder (after `npm i -g playwright`, that is `$(npm root -g)/playwright`), and
 either set `CHROMIUM` to a Chromium executable or run `node "$PLAYWRIGHT/cli.js" install chromium` so that Playwright
 has its own browser. Each run
-starts a fresh temporary profile with no logins or saved passwords, and as the page stands it loads only local files,
-the test's own server on 127.0.0.1 (port 8791; set `PORT` if something else, like `catio_mcp.py --serve`, holds it)
-and the page's Google Fonts. Without the licensed art (see
+starts a fresh temporary profile with no logins or saved passwords, and as the page stands it loads only local files
+and the page's Google Fonts, plus, for the test (not the screenshots), its own server on 127.0.0.1 port 8791. Set
+`PORT` if something else, like `catio_mcp.py --serve`, holds that port: `run.sh` doesn't notice. Without the licensed art (see
 [Running your own](#running-your-own)), the check "on its own address the café is live through the gateway, with no
 warning sign" fails, as `run.sh` warns.
 Sessions under the house rules run the browser preflight first ([`harness/README.md`](harness/README.md)).
