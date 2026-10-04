@@ -133,8 +133,10 @@ queen runner acts in that account's house:
 - `POST /api/runner/wait` is held up to 25 seconds and comes back with what Charlotte said to her (the cat
   `queen`'s notes, each handed out once), a routine come due, a stop, and her character (`queens/house`: name,
   manner, greeting).
-- `POST /api/runner/say` `{turn, text, done, routine}` streams her answer: every open café gets a `queen` push
-  as she speaks, and `done` stores it as her note (author `queen`, with the routine that asked it).
+- `POST /api/runner/say` `{turn, text, done, routine, steps}` streams her answer: every open café gets a `queen` push
+  as she speaks, and `done` stores it as her note (author `queen`, with the routine that asked it). The runner says
+  once as soon as she is up (empty `text`), and again each time she reaches for a tool: `steps` is the last twelve
+  `{tool, cat, action}` this turn, which the café's loading strip names. They are passed on, never kept.
 - With her key on `/mcp`, the queen uses the same tools as everyone, as `queen`: she may `comment` as `queen`
   (a cat's hook hands it in as `[Catio] The queen says: …`), `manage` and `drop_file`, never write as `owner`.
   The agents' key may do none of it: the cats act on what she says.

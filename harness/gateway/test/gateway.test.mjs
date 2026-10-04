@@ -429,6 +429,27 @@ describe("the queen", () => {
 		assert.equal((await runner("/api/runner/say", { text: "x".repeat(70000), done: true })).status, 413);
 	});
 
+	test("passes on what she is doing to an open café, trimmed, and keeps none of it", async () => {
+		const heard = [];
+		const ws = new WebSocket(base.replace("http", "ws") + "/ws", { headers: { Cookie: cookie, Origin: base } });
+		ws.onmessage = (e) => heard.push(JSON.parse(e.data));
+		await new Promise((ok, no) => { ws.onopen = ok; ws.onerror = no; });
+		const many = Array.from({ length: 20 }, (_, i) => ({ tool: "comments", cat: "cse_" + i, extra: "dropped" }));
+		assert.equal((await say({ turn: "t5", text: "", done: false, steps: [] })).status, 200);
+		assert.equal((await say({ turn: "t5", text: "", done: false, steps: [...many, null, { cat: "no tool" }, { tool: "x".repeat(99), action: 7 }] })).status, 200);
+		assert.equal((await say({ turn: "t5", text: "Done.", done: true, steps: many })).status, 200);
+		await sleep(300);
+		ws.close();
+		const q = heard.filter((m) => m.type === "queen");
+		assert.deepEqual(q[0].steps, [], "awake, nothing done yet");
+		assert.equal(q[1].steps.length, 10, "the last twelve, less the two that aren't steps");
+		assert.deepEqual(q[1].steps[0], { tool: "comments", cat: "cse_11" });
+		assert.deepEqual(q[1].steps.at(-1), { tool: "x".repeat(60) });
+		assert.equal(q[2].steps, undefined, "a finished turn has no steps");
+		const kept = (await tool(her, "comments", { cat: "queen" })).notes.at(-1);
+		assert.deepEqual([kept.text, kept.steps], ["Done.", undefined]);
+	});
+
 	test("stops the turn she is on when Charlotte says so", async () => {
 		const waiting = wait();
 		await sleep(300);

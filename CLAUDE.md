@@ -330,6 +330,13 @@ that inflates "3 need you" makes the sign a liar.
   `owner`) and hers (author `queen`, which only the runner's key may write). In the gateway café a `{type:
   "queen"}` push (`catio:queen`) grows her live bubble as she speaks and her voice says each sentence; in claude.ai
   her card polls `comments` every 5 s. Stop is `manage {cat: "queen", action: "pause"}`.
+- **Her turn as it goes** (her ask, 4 October: a loading state like Claude's own, from the games of the early 2000s she
+  picked in `docs/queen-loading/wireframes.html`): `#queenWork`, under the talk on her side. From your Send until her
+  runner's first word it is Animal Crossing's pause (her name on a tab, the dots, the seconds); then The Sims' action
+  queue (each step done a ticked tile, the one she is on lit, unfolding to every step and its time; the runner sends
+  `steps`, the page names them with `stepWords()`); a wait over 45 s gets a loading tip; Stop turns the lit tile pink.
+  Her live bubble ends in the pack's triangle turned down, and she bobs only once she has words. Away, with your words
+  waiting, it is one line saying why. In claude.ai, with no push, it is "Thinking" until her answer turns up.
 - **Her card is a scene** (`openQueen(section)`, her ask of 3 October, like an RPG's dialogue): the owner of the house
   on the left, seen from behind in her armchair (`ownerSVG()`, pixel art drawn in code since no pack has people,
   dressed from `house/main.owner`: hair, hair colour, top, skin and a bow, cat ears or a flower); the queen on the

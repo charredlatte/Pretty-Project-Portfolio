@@ -15,6 +15,7 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, red
 const names = process.argv.length > 2 ? process.argv.slice(2) : ["ground", "upper"];
 // "setup": the first run's wizard, which opens over a café with no rooms (the stub's ?mode=empty)
 const query = process.env.LOOK_QUERY || (names.includes("setup") ? "?mode=empty" : "");
+if (names.includes("queen-work")) await page.clock.install();   // so a long wait can be skipped to, not waited for
 await page.goto("file://" + join(here, ".page.html") + query);
 await page.waitForTimeout(800);
 const UPPER = new Set(["upper", "brain", "bath", "bedroom"]);
@@ -31,7 +32,7 @@ for (const name of names) {
     continue;
   }
   // "queen": her card, the scene she talks in; "queen-settings": its Settings overlay, open at You
-  if (name.startsWith("queen")) {
+  if (name === "queen" || name === "queen-settings") {
     if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") await page.click("#floor-ground");
     if (!(await page.locator("#queenDlg").evaluate((d) => d.open))) {
       await page.keyboard.press("0");
@@ -46,6 +47,37 @@ for (const name of names) {
     }
     await page.screenshot({ path: join(out, name + ".png") });
     console.log(join(out, name + ".png"));
+    continue;
+  }
+  // "queen-work": her card while she works on an answer (her turn as it goes, 4 October): waking, at work,
+  // every step unfolded, answering, a long wait and stopping, one screenshot each
+  if (name === "queen-work") {
+    if (!(await page.locator("#queenDlg").evaluate((d) => d.open))) {
+      if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") await page.click("#floor-ground");
+      await page.keyboard.press("0");
+      await page.waitForTimeout(300);
+      await page.locator("#cats .cat.queen").dispatchEvent("dblclick");
+      await page.waitForTimeout(600);
+    }
+    const shot = async (n) => { await page.waitForTimeout(400); await page.locator("#queenDlg").screenshot({ path: join(out, n + ".png") }); console.log(join(out, n + ".png")); };
+    await page.fill("#queenSay", "What's left on the shop?");
+    await page.click("#queenSend");
+    await shot("queen-wake");
+    const cat = await page.evaluate(() => (window.__catio.gw.find((a) => a.id !== "queen") || {}).id);
+    const steps = [{ tool: "list_agents" }, { tool: "comments", cat }, { tool: "comment", cat }];
+    await page.evaluate((s) => window.__catio.queenSays("", false, "t1", s), steps);
+    await shot("queen-work");
+    await page.click("#queenWork summary");
+    await shot("queen-steps");
+    await page.click("#queenWork summary");
+    await page.evaluate((s) => window.__catio.queenSays("Two things, my lady: the French copy waits on thee, and ", false, "t1", s), steps);
+    await shot("queen-answer");
+    await page.evaluate((s) => window.__catio.queenSays("", false, "t2", s.slice(0, 1)), steps);
+    await page.clock.fastForward(70e3);   // over a minute: The Sims' loading tips
+    await shot("queen-long");
+    await page.click("#queenStop");
+    await shot("queen-stop");
+    await page.evaluate(() => window.__catio.queenSays("Stopped, my lady.", true, "t2"));
     continue;
   }
   // "maps": the project maps dashboard, from the House menu, with two invented maps

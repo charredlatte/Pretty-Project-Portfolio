@@ -116,10 +116,10 @@
   if (params.get("queen") !== "away") T.gw.push({ id: "queen", name: "The queen", via: "runner", provider: "anthropic", mood: "done", updated: now - 5e3 });
   T.gwNotes = [{ id: "g1", cat: "cse_blocked1", author: "session", text: "The French text is in, ready for you.", at: now - 50e3 }];
   // the queen speaking (what the gateway pushes to an open café), and a cat bringing her something new
-  T.queenSays = (text, done, turn) => {
+  T.queenSays = (text, done, turn, steps) => {   // steps: what her runner says she is doing, [{tool, cat, action}]
     const id = done ? "q" + Date.now() : null;
     if (done) T.gwNotes.push({ id, cat: "queen", author: "queen", text, at: Date.now() });
-    dispatchEvent(new CustomEvent("catio:queen", { detail: { type: "queen", turn: turn || "t1", text, done: !!done, routine: null, id } }));
+    dispatchEvent(new CustomEvent("catio:queen", { detail: { type: "queen", turn: turn || "t1", text, done: !!done, routine: null, id, steps } }));
   };
   T.handoff = (cat, text) => { const a = T.gw.find((x) => x.id === cat); a.said = { text, at: Date.now() }; dispatchEvent(new Event("catio:agents")); };
   // homework the queen set (what the gateway's quizzes tool lists), and her answers as the page hands them in

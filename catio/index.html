@@ -530,7 +530,10 @@ ul.thread li.me { margin-left: 24px; }
 ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-soft); }
 /* the queen's card: her dialogue, like an NPC's */
 ul.thread li.greet { font-style: italic; }
-ul.thread li.live::after { content: "▌"; margin-left: 2px; animation: blink 1s steps(2) infinite; }
+/* her words as they come end in the pack's triangle turned down and bouncing: the "more" arrow of every RPG's dialogue box */
+ul.thread li.live::after { content: ""; display: inline-block; width: 7px; height: 12px; margin-left: 6px; vertical-align: -1px; background: url(art/licensed/ui/pointer.png) no-repeat;
+  image-rendering: pixelated; rotate: 90deg; animation: more .6s steps(2) infinite; }
+@keyframes more { 50% { translate: 0 2px; } }
 @keyframes blink { 50% { opacity: 0; } }
 ul.thread li.handoff .open { margin-left: 6px; vertical-align: middle; }
 ul.thread li.handoff.new .who::after { content: " · new"; color: var(--ink); }
@@ -582,6 +585,12 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); height: 792px; }   /* dial
 .qchar[data-mood="sleep"] .crown { top: 104px; left: 34%; }
 .qchar.talking { animation: talk .5s steps(2) infinite; }
 @keyframes talk { 50% { translate: 0 -3px; } }
+.qchar .nameplate, .owner .nameplate { position: absolute; bottom: 4px; white-space: nowrap; }
+/* her homework over the talk. Both columns are stated, never left to the content: an auto column grows to the
+   longest word in a bubble or a quiz, and the words then scroll sideways instead of wrapping. */
+/* her homework takes what a card needs and no more, down to a floor of talk under it: a flat share of the scene
+   cut the card off above its Hand it in on a short screen */
+.qtalk { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(calc(100% - 96px)) minmax(0, 1fr) auto; gap: 6px; padding: 8px 4px 10px; }
 /* her homework over the talk, taking what a card needs and no more, down to a floor of talk under it: a flat share
    of the scene cut the card off above its Hand it in on a short screen. The column is stated, never left to the
    content: an auto column grows to the longest word in a bubble or a quiz, and her words then scroll sideways. */
@@ -595,6 +604,40 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); height: 792px; }   /* dial
 #queenThread li.handoff { align-self: center; max-width: min(92%, 460px); }
 #queenThread > li:first-child { margin-top: auto; }   /* a short conversation sits at the bottom, by the speakers */
 .saybar { align-items: end; }
+#queenStop:disabled { cursor: default; border-image-source: url(art/licensed/ui/button-down.png); translate: 0 calc(2 * var(--u)); filter: none; }   /* pressed, until she has stopped */
+/* her turn as it goes, under the talk on her side (4 October). Waking is Animal Crossing's pause: the grey bubble
+   with her name on a tab. At work it is The Sims' action queue: each step done a small pressed-in tile with the
+   pack's tick, the one she is on a lit cream tile. The dots are art pixels; stopping is the pink button and the cross. */
+#queenWork { grid-row: 3; justify-self: end; max-width: 100%; min-width: 0; display: grid; justify-items: end; gap: 2px; }
+#queenWork[hidden] { display: none; }
+.qwork .secs { font: 18px/22px var(--pixel); color: var(--ink-soft); flex: none; }
+.qwork .w { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qdots { display: inline-flex; gap: var(--u); flex: none; }
+.qdots i { width: calc(2 * var(--u)); height: calc(2 * var(--u)); background: var(--ink); animation: qdot 1.2s steps(1) infinite; }
+.qdots i:nth-child(2) { animation-delay: .4s; }
+.qdots i:nth-child(3) { animation-delay: .8s; }
+@keyframes qdot { 0% { opacity: 1; } 33% { opacity: .25; } }
+.qx, .qtick { width: 12px; height: 12px; flex: none; background: url(art/licensed/ui/status.png) -12px 0 / 24px 12px no-repeat; image-rendering: pixelated; }
+.qtick { background-position: 0 0; }
+.qwake { position: relative; display: flex; align-items: center; gap: 8px; max-width: 100%; margin-top: 14px; padding: 2px 8px 0; font: 18px/22px var(--pixel); background: #DCE0D2 padding-box;
+  border: solid transparent; border-width: 5px 5px 6px; border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / 5px 5px 6px stretch; }
+.qwake .tab { position: absolute; left: 6px; top: -22px; padding: 0 4px; font: 18px/16px var(--pixel); white-space: nowrap; background: var(--cream) padding-box;
+  border: solid transparent; border-width: 4px 4px 6px; border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / 4px 4px 6px stretch; }
+.qwork details { max-width: 100%; }
+.dlg .qwork details > summary { width: auto; max-width: 100%; gap: 4px; justify-content: flex-end; }
+.qwork .tile { flex: none; box-sizing: border-box; width: 24px; height: 24px; display: inline-grid; place-items: center; font: 18px/1 var(--pixel); background: #CDB793 padding-box;
+  border: 4px solid transparent; border-image: url(art/licensed/ui/button-down.png) 4 fill / 4px stretch; image-rendering: pixelated; }
+.qwork .tile.done::after { content: ""; width: 12px; height: 12px; background: url(art/licensed/ui/status.png) 0 0 / 24px 12px no-repeat; }
+.qwork .tile.more { width: auto; padding: 0 2px; }
+.qwork .tile.now { flex: 0 1 auto; width: auto; height: auto; min-width: 0; display: inline-flex; align-items: center; gap: 8px; padding: 2px 6px 0; background: var(--cream) padding-box;
+  border-width: 4px 4px 6px; border-image: url(art/licensed/ui/button.png) 4 4 6 4 fill / 4px 4px 6px stretch; }
+.qwork .tile.now.stop { border-image-source: url(art/licensed/ui/button-pink.png); }
+.qwork ol { list-style: none; margin: 4px 0 0; padding: 4px 8px; display: grid; gap: 2px; font-size: .84rem; background: #DCE0D2 padding-box;
+  border: solid transparent; border-width: 5px 5px 6px; border-image: url(art/licensed/ui/bubble.png) 5 5 6 5 fill / 5px 5px 6px stretch; }
+.qwork ol li { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.qwork ol .secs { font: .78rem var(--body); }
+.qwork ol li.on { font-weight: 800; }
+.qtip, .qaway { margin: 0; font-style: italic; font-size: .82rem; color: var(--ink); text-align: right; }
 .saybar > .field { flex: 1 1 220px; }
 .qsettings { position: absolute; inset: 0; z-index: 5; overflow: auto; display: grid; gap: 12px; align-content: start; padding: 6px calc(4 * var(--u));
   border: solid transparent; border-width: var(--panel-w); border-image: var(--art-panel) var(--panel-s) fill / var(--panel-w) stretch; background: var(--tan) padding-box; }
@@ -610,6 +653,11 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); height: 792px; }   /* dial
 @media (max-width: 560px) {
   /* a phone is tall and narrow, so the two of them stand side by side along the foot of the scene and the
      words take its whole width: flanking her they left a strip under 200 px wide */
+  .qstage { height: min(58vh, 520px); grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .qtalk { grid-area: 1 / 1; grid-template-rows: fit-content(calc(100% - 56px)) minmax(0, 1fr) auto; }   /* a smaller floor: a phone has barely the height for a whole quiz card */
+  .owner, .qchar { grid-area: 2 / 1; zoom: 1; }
+  .qhead h2 { font: 18px/24px var(--pixel); }   /* the pack's font draws at 18 or 36: at 36 her name broke mid-word beside Settings and Close */
+  .owner svg { width: 62px; }
   /* the words keep a floor and the two of them give way: their row is what the talk was squeezed to nothing by */
   .qstage { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(72px, 1fr) auto; }
   .qtalk { grid-area: 1 / 1; }
@@ -675,10 +723,10 @@ ul.gkey li > div.what { flex-basis: 100%; }
 /* the House menu's foot: the credits, which a phone's screen has no room for anywhere else */
 .menu .credits-line { margin: 0; font-size: .68rem; line-height: 1.35; color: var(--ink-soft); }
 /* Still cats: no animation at all, for an all-day dashboard (WCAG 2.2.2) */
-.still .spr, .still .cat.m-meow, .still .walker .spr { animation: none !important; }
+.still .spr, .still .cat.m-meow, .still .walker .spr, .still .qdots i, .still ul.thread li.live::after { animation: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
-  .spr, .cat.m-meow { animation: none !important; }
+  .spr, .cat.m-meow, .qdots i, ul.thread li.live::after { animation: none !important; }
   .world, .meadow { transition: none; }
 }
 /* The look: a slot or a token a row, its picture in the pack's pressed-in well, hers marked green */
@@ -1492,6 +1540,34 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (q.unread) return "Holding " + q.unread + (q.unread === 1 ? " thing" : " things") + " for you.";
     return "Here. Talk to her.";
   }
+
+  // Her turn as it goes (her ask, 4 October: a loading state like Claude's own, drawn from the games of the early
+  // 2000s): the steps her runner names, read as words. A cat is named as the café knows it; a tool the café
+  // doesn't know reads as its own name.
+  const QUEEN_TIPS = ["Licking a paw…", "Counting the cats…", "Consulting the litter box…", "Sharpening claws on the minutes…", "Chasing a thought under the sofa…"];
+  const STEP_WORDS = {
+    list_agents: () => "Looking in on the cats", comments: (c) => "Reading " + c + "'s notes", comment: (c) => "Writing to " + c,
+    inbox: () => "Reading her post", quizzes: () => "Checking the homework", quiz: (c) => "Setting " + c + " homework", answer: () => "Handing in homework",
+    house_rules: () => "Reading the house rules", drop_file: (c) => "Passing a file to " + c, pick_up: () => "Picking up a file",
+    forget: () => "Tidying the quest log", decide: () => "Making up her mind", report_status: () => "Saying how she is",
+    manage: (c, a) => ({ pause: "Pausing ", resume: "Waking ", archive: "Letting go of ", unarchive: "Bringing back ", rename: "Renaming " }[a] || "Seeing to ") + c,
+  };
+  function stepWords(s) {
+    const c = s.cat && (allCats(true).cats.find((x) => x.id === s.cat || x.agentId === s.cat) || {}).name;
+    const f = STEP_WORDS[s.tool];
+    if (f) return f(c || (s.cat === QUEEN_ID ? "herself" : "a cat"), s.action);
+    const t = String(s.tool || "").replace(/_/g, " ");
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  }
+  // her turn, as a list: Awake once her runner has answered, each step, then Answering once her words come
+  function turnSteps(t) {
+    const out = [];
+    if (t.awakeAt) out.push({ words: "Awake", at: t.awakeAt });
+    t.steps.forEach((s, i) => out.push({ words: stepWords(s), at: t.stepAt[i] || t.since }));
+    if (t.text) out.push({ words: "Answering", at: t.textAt || Date.now() });
+    return out;
+  }
+  const secsWords = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return s < 60 ? s + "s" : Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
 
   function roomInfo(key) {
     const d = S.rooms[key] || {};
@@ -2843,6 +2919,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     let p;
     try { p = await hostCall("comments", { cat: QUEEN_ID, limit: 40 }); } catch (e) { return; }
     const notes = (p && p.notes) || [];
+    // no live line in claude.ai: the Thinking strip you started with Send ends when her answer turns up here
+    const t = S.queenTurn;
+    if (t && t.local && notes.some((n) => n.author === QUEEN_ID && (n.at || 0) >= t.since - 2000)) S.queenTurn = null;
     if (!VIA_GATEWAY && S.queenNotes) {   // no live line in claude.ai: a new word of hers found by the poll is spoken
       const known = new Set(S.queenNotes.map((n) => n.id));
       for (const n of notes) if (n.author === QUEEN_ID && !known.has(n.id)) speak(n.text);
@@ -2992,7 +3071,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const owner = el("div", "owner"); owner.id = "queenOwnerFig"; owner.appendChild(ownerSVG(ownerOf()));
     const her = el("div", "qchar"); her.id = "queenFig"; her.setAttribute("aria-hidden", "true");
     const dress = () => {
-      const talking = q.state === "busy" || !!S.queenTurn;
+      const talking = !!(S.queenTurn && S.queenTurn.text);   // words, not thinking: she sits still while she thinks, and bobs once she speaks
       const mood = talking ? "meow" : queenMood(q);
       her.replaceChildren(sprite(mood, q.coat), el("span", "crown"));
       her.classList.toggle("talking", talking);
@@ -3152,10 +3231,80 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         if (it.kind === "handoff" && VIEW.cats.some((x) => x.id === it.cat.id)) { const o = plainBtn("Open " + it.cat.name, "tiny open", () => { dlg.close(); openCat(it.cat.id); }); li.appendChild(o); }
         ul.appendChild(li);
       }
-      if (S.queenTurn) { const li = el("li", "them live"); li.id = "queenLive"; li.append(el("span", "who", q.name + " · speaking"), document.createTextNode(S.queenTurn.text || "…")); ul.appendChild(li); }
+      if (S.queenTurn && S.queenTurn.text) { const li = el("li", "them live"); li.id = "queenLive"; li.append(el("span", "who", q.name + " · speaking"), document.createTextNode(S.queenTurn.text)); ul.appendChild(li); }
       ul.scrollTop = ul.scrollHeight;
+      drawWork();
     };
     talk.appendChild(ul);
+    // ---- her turn as it goes, under the talk, on her side (her ask, 4 October, from the games of the early 2000s) ----
+    // Waking: Animal Crossing's pause, her name on a tab over the dots. At work: The Sims' action queue, each step
+    // done a small ticked tile, the step she is on lit; unfolded, every step and how long it took. A long wait gets
+    // The Sims' loading tips. Away, with your words waiting: one line saying why.
+    const work = el("div", "qwork"); work.id = "queenWork"; work.hidden = true;
+    talk.appendChild(work);
+    let workKey = "", workOpen = false, ticker = null;
+    const dots = () => { const d = el("span", "qdots"); d.setAttribute("aria-hidden", "true"); d.append(el("i"), el("i"), el("i")); return d; };
+    const secs = (from) => { const t = el("time", "secs", secsWords(Date.now() - from)); t.dataset.from = from; t.setAttribute("aria-hidden", "true"); return t; };
+    const calm = () => S.still || matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const tick = () => {
+      const t = S.queenTurn;
+      if (t && Date.now() - t.since > 10 * 60e3) { S.queenTurn = null; drawThreadQ(); return; }   // a turn that never ended
+      for (const x of work.querySelectorAll("time[data-from]")) x.textContent = secsWords(Date.now() - +x.dataset.from);
+      const tip = work.querySelector(".qtip"), long = t ? Date.now() - t.since - 45e3 : -1;
+      if (tip) { tip.hidden = long < 0; tip.textContent = QUEEN_TIPS[calm() ? 0 : Math.max(0, Math.floor(long / 8e3)) % QUEEN_TIPS.length]; }
+    };
+    function drawWork() {
+      const t = S.queenTurn;
+      stop.hidden = !(t || q.state === "busy"); stop.disabled = !!(t && t.stopping);
+      if (t) st.textContent = "Queen of the house · " + (t.stopping ? "stopping" : t.text ? "answering" : "thinking");
+      if (!t) { clearInterval(ticker); ticker = null; }
+      else if (!ticker) ticker = setInterval(tick, 1000);
+      const last = (S.queenNotes || []).filter((n) => fromOwner(n) || n.author === QUEEN_ID).pop();
+      const waiting = !t && q.state === "away" && last && fromOwner(last);
+      const list = t ? turnSteps(t) : [];
+      const key = !t ? (waiting ? "away" : "") : list.length < 2 && !t.text ? "wake" + (t.stopping ? "!" : "") : "q" + (t.stopping ? "!" : "") + list.map((s) => s.words).join("|");
+      if (key === workKey) return tick();
+      workKey = key;
+      const was = work.querySelector("details"); if (was) workOpen = was.open;   // its toggle event may not have run yet
+      work.replaceChildren(); work.hidden = !key; work.className = "qwork";
+      if (!key) return;
+      if (key === "away") { work.classList.add("away"); work.appendChild(el("p", "qaway", "She's asleep: start her runner. She'll answer when she wakes.")); return; }
+      const label = el("span", "sr");   // what a screen reader hears: the step, not the ticking seconds
+      label.setAttribute("role", "status");
+      if (key.startsWith("wake")) {   // Animal Crossing: her name on a tab, the dots stepping in
+        work.classList.add("waking");
+        const b = el("div", "qwake");
+        b.append(el("span", "tab", q.name), t.stopping ? el("span", "qx") : dots(), el("span", "w", t.stopping ? "Stopping…" : "Thinking"), secs(t.since));
+        label.textContent = q.name + (t.stopping ? " is stopping" : " is thinking");
+        work.append(b, label);
+      } else {   // The Sims: the steps done as tiles, the one she is on lit
+        const det = el("details", "qsteps"); det.open = workOpen;
+        det.addEventListener("toggle", () => { workOpen = det.open; });
+        const sum = el("summary");
+        const done = list.slice(0, -1), cur = list[list.length - 1];
+        sum.setAttribute("aria-label", (t.stopping ? "Stopping" : cur.words) + ", step " + list.length + ". Show every step");
+        const hid = Math.max(0, done.length - 6);
+        if (hid) sum.appendChild(el("span", "tile more", "+" + hid));
+        done.slice(hid).forEach((s) => { const d = el("span", "tile done"); d.title = s.words; sum.appendChild(d); });
+        const now = el("span", "tile now" + (t.stopping ? " stop" : ""));
+        now.append(t.stopping ? el("span", "qx") : dots(), el("span", "w", t.stopping ? "Stopping…" : cur.words), secs(t.since));
+        sum.appendChild(now);
+        const ol = el("ol");
+        list.forEach((s, i) => {
+          const li = el("li", i === list.length - 1 ? "on" : "done");
+          li.append(i === list.length - 1 ? dots() : el("span", "qtick"), el("span", null, s.words));
+          const nx = list[i + 1];
+          li.appendChild(nx ? el("span", "secs", secsWords(nx.at - s.at)) : secs(s.at));
+          ol.appendChild(li);
+        });
+        det.append(sum, ol);
+        label.textContent = q.name + ": " + (t.stopping ? "stopping" : cur.words);
+        work.append(det, label);
+      }
+      const tip = el("p", "qtip"); tip.setAttribute("aria-hidden", "true"); tip.hidden = true;
+      work.appendChild(tip);
+      tick();
+    }
     const say = el("textarea"); say.id = "queenSay"; say.rows = 2; say.maxLength = 4000; say.placeholder = "Ask " + q.name + "…";
     say.setAttribute("aria-label", "Say to " + q.name);
     const send = plainBtn("Send", "green", async () => {
@@ -3166,6 +3315,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         await hostCall("comment", { cat: QUEEN_ID, text, author: "owner" });
         say.value = "";
         S.queenNotes = (S.queenNotes || []).concat([{ id: "me" + Date.now(), cat: QUEEN_ID, author: "owner", text, at: Date.now() }]);
+        if (queenState() !== "away" && !S.queenTurn) S.queenTurn = { turn: "", local: true, text: "", steps: [], stepAt: [], since: Date.now(), awakeAt: 0, textAt: 0 };   // Thinking, from your Send
         drawThreadQ();
         if (queenState() === "away") toast("Kept for her: she answers once her runner is on.");
       } catch (e) { toast(gatewayProblem(e), "alert"); }
@@ -3175,10 +3325,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     send.id = "queenSend";
     say.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send.click(); } });
     const stop = plainBtn("Stop", "pink", async () => {
-      try { await hostCall("manage", { cat: QUEEN_ID, action: "pause" }); toast("She stops there."); }
+      try { await hostCall("manage", { cat: QUEEN_ID, action: "pause" }); toast("She stops there."); if (S.queenTurn) { S.queenTurn.stopping = true; drawWork(); } }
       catch (e) { toast(gatewayProblem(e), "alert"); }
     });
-    stop.id = "queenStop"; stop.hidden = q.state !== "busy";
+    stop.id = "queenStop"; stop.hidden = !(S.queenTurn || q.state === "busy");
     const row = el("div", "row saybar");
     const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (Rec) {   // voice to text: the browser's own (Chrome, Edge); what it heard stays in the box for her to send or fix
@@ -3355,12 +3505,15 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       state: () => {
         q.state = queenState(); q.unread = unreadHandoffs(q); q.homework = openQuizzes().length;
         st.textContent = "Queen of the house · " + stateWord(q.state); st.className = "mood " + (q.state === "away" ? "sleep" : "work");
-        stop.hidden = q.state !== "busy";
+        // a Thinking strip with no live line (claude.ai) ends when she stops being busy, or falls asleep
+        const t = S.queenTurn;
+        if (t && t.local) { if (q.state === "busy") t.busy = true; else if (t.busy || q.state === "away") S.queenTurn = null; }
         ln.textContent = queenLine(q);
         dress();
+        drawWork();
       },
     };
-    dlg.addEventListener("close", () => { QUEEN_UI = null; if (QUEEN_POLL) { clearInterval(QUEEN_POLL); QUEEN_POLL = null; } }, { once: true });
+    dlg.addEventListener("close", () => { QUEEN_UI = null; clearInterval(ticker); ticker = null; if (QUEEN_POLL) { clearInterval(QUEEN_POLL); QUEEN_POLL = null; } }, { once: true });
     drawThreadQ();
     loadQueenThread();
     if (!VIA_GATEWAY && S.host) QUEEN_POLL = setInterval(loadQueenThread, 5000);   // no live line in claude.ai: look every few seconds while her card is open
@@ -5012,7 +5165,14 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // voice says each sentence, and when she is done her answer is in the thread
   addEventListener("catio:queen", (e) => {
     const m = e.detail || {};
-    S.queenTurn = m.done ? null : { turn: m.turn, text: m.text || "", routine: m.routine };
+    // the turn keeps the page's own clock: when it was first seen (your Send, if it came first), and when each
+    // step first showed, so her PC's clock never skews the seconds
+    const was = S.queenTurn, same = was && (was.turn === m.turn || was.local), now = Date.now();
+    const steps = Array.isArray(m.steps) ? m.steps : same ? was.steps : [];
+    S.queenTurn = m.done ? null : {
+      turn: m.turn, text: m.text || "", routine: m.routine, steps, since: same ? was.since : now, awakeAt: (same && was.awakeAt) || now,
+      stepAt: steps.map((s, i) => (same && was.stepAt[i]) || now), textAt: (same && was.textAt) || (m.text ? now : 0), stopping: !!(same && was.stopping),
+    };
     if (m.done) loadQueenThread();
     if (QUEEN_UI) QUEEN_UI.draw();
     speakTurn(m);
