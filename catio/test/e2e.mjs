@@ -2646,6 +2646,22 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     await page.click("#toast .btn"); await settle(page);   // the warning waits for her OK
     await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
   });
+  await check("a colour she is choosing when the card is redrawn under her stays, and is kept when she leaves it", async () => {
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const sel = "#artDlg li[data-token='--tan'] input";
+    await page.evaluate((sel) => { const i = document.querySelector(sel); i.focus(); i.value = "#aabbcc"; i.dispatchEvent(new Event("input", { bubbles: true })); i.dataset.old = "1"; }, sel);
+    // a change from elsewhere (another device, Claude) redraws The look while she is in the picker
+    await page.evaluate(() => { window.__catio.put("skin/theme", { tokens: { "--ink": "#202020" }, at: 5 }); });
+    await page.waitForTimeout(600);
+    const now = await page.evaluate((sel) => { const i = document.querySelector(sel); return [!i.dataset.old, i.value, document.activeElement === i]; }, sel);
+    expect(now[0] && now[1] === "#aabbcc" && now[2], "after the redraw: " + now.join(" | "));
+    await page.evaluate(() => document.activeElement.blur()); await settle(page);
+    const kept = await page.evaluate(() => window.__catio.store["skin/theme"].tokens);
+    expect(String(kept["--tan"]).toLowerCase() === "#aabbcc" && kept["--ink"] === "#202020", JSON.stringify(kept));
+    await page.evaluate(() => { const st = window.__catio.store; delete st["skin/theme"]; window.__catio.put("skin/zy", {}); delete st["skin/zy"]; });
+    await page.waitForTimeout(500);
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
   await check("a lit button drawn the size of her own button, given with it, is used", async () => {
     await page.evaluate(() => {   // both in one snapshot, as a skin.json or a first load brings them
       window.__catio.store["skin/button"] = { src: "art/licensed/ui/bubble.png", slice: [5, 5, 6, 5], at: 1 };

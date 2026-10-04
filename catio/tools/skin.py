@@ -381,6 +381,10 @@ def main():
                 said.append(f"  {p.name}: no slot is called {p.stem} (the slots are in ART, catio/index.html)")
             continue
         was = old.get(p.stem)
+        f = file_of(was)
+        if isinstance(f, str) and f != "art/skin/" + p.name:   # skin.json named another file for it: the folder's drawing wins, with its own settings
+            said.append(f"  {p.name}: takes {p.stem} over {f}, which skin.json named for it")
+            was = {}
         entry = check(art, p.stem, "art/skin/" + p.name, was if isinstance(was, dict) else {}, said, filled=filled)
         if entry:
             skin[p.stem] = entry

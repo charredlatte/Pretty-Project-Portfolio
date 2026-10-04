@@ -2473,13 +2473,17 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     Promise.all(seen).then((r) => {
       if (run !== checkArt.run) return;
       S.art = r.every(Boolean) ? "ok" : "missing";
-      S.artHouse = probe.some((k, i) => !r[i] && (k === "house" || k === "cat-cry"));   // the house or its cats, rather than a piece of the interface
+      S.artGone = probe.filter((k, i) => !r[i]);   // which: the house, its cats, or a piece of the interface
       renderStatus();
     });
   }
 
   // what the sign says when the packs' art isn't here: the house and its cats, or only what she hasn't drawn herself
-  const noArt = () => "The cat art isn't here: art/licensed/ is licensed and never shipped, so " + (S.artHouse ? "neither the house nor its cats can draw" : "the pieces you haven't drawn yourself can't draw") + ". Buy the packs in catio/art/CREDITS.md, drop the zips in, and run catio/tools/build-art.py.";
+  const noArt = () => {
+    const gone = S.artGone || [], house = gone.includes("house"), cats = gone.includes("cat-cry");
+    return "The cat art isn't here: art/licensed/ is licensed and never shipped, so " + (house && cats ? "neither the house nor its cats can draw" : house ? "the house can't draw" : cats ? "its cats can't draw" : "the pieces you haven't drawn yourself can't draw") +
+      ". Buy the packs in catio/art/CREDITS.md, drop the zips in, and run catio/tools/build-art.py.";
+  };
   function renderStatus() {
     const st = $("status"); st.replaceChildren();
     const L = S.live;
@@ -3411,9 +3415,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // A project's map, from graphify (the catio skill's graph_doc.py saves it as graphs/<repo>): its ideas as
   // dots coloured by neighbourhood, the hubs, the surprising links, and questions a cat can answer from it.
   const hueIx = (i) => (i >= 0 && i < 8 ? i : 8);   // a neighbourhood's hue: its own for the first eight, the rest's after (and for -1)
+  // light or dark, as the page is drawn: claude.ai's own switch, else the system's
+  const themeOnScreen = () => document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
   let HUES = null;   // [key, the nine hues]: read again when the look or light and dark change
   const hues = () => {
-    const key = (SKIN.lookSig || "") + (document.documentElement.dataset.theme || "") + matchMedia("(prefers-color-scheme: dark)").matches;
+    const key = (SKIN.lookSig || "") + themeOnScreen();
     if (!HUES || HUES[0] !== key) { const cs = getComputedStyle(document.documentElement); HUES = [key, [1, 2, 3, 4, 5, 6, 7, 8].map((i) => tok("--hue-" + i, cs)).concat(tok("--hue-none", cs))]; }
     return HUES[1];
   };   // the design system's, so a skin recolours them
@@ -4457,7 +4463,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const dlg = $("artDlg"), top = dlg.scrollTop, first = !dlg.querySelector("details.artgroup"), open = new Set([...dlg.querySelectorAll("details[open]")].map((d) => d.dataset.group));
     const note = dlg.contains(TOAST);   // a note shown in it (what was just saved) outlives the redraw
     const was = dlg.contains(document.activeElement) && document.activeElement.id;   // and so does where she was
-    const typing = was && document.activeElement.closest("li[data-token]") && document.activeElement.type === "text" ? document.activeElement.value : null;
+    const typing = was && document.activeElement.closest("li[data-token]") && document.activeElement.tagName === "INPUT" ? document.activeElement.value : null;   // a size or a colour
     SKIN.redrawing = true; dlg.replaceChildren(); SKIN.redrawing = false;   // the focused picker leaves with it: that is no blur of hers
     dlg.classList.add("wide");
     const box = el("div", "dlg");
@@ -4494,7 +4500,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     dlg.appendChild(box);
     if (note) dlg.appendChild(TOAST);
     dlg.scrollTop = top;
-    if (was && $(was)) { if (typing !== null) $(was).value = typing; $(was).focus({ preventScroll: true }); }
+    if (was && $(was)) {
+      // what she had typed or picked comes back, and is kept when she leaves it, as her change would have been
+      if (typing !== null && typing.toLowerCase() !== $(was).value.toLowerCase()) { $(was).value = typing; $(was).dataset.carried = "1"; }
+      $(was).focus({ preventScroll: true });
+    }
   }
   // the same data, whatever order its keys came in (a snapshot's aren't the order the page wrote them)
   const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
@@ -4541,10 +4551,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const { found, foreign } = fromDTCG(j), n = Object.keys(found).length;
     if (!n) { toast(file.name + " has none of the café's tokens" + (foreign ? " (" + foreign + " of its own)." : "."), "alert"); return; }
     // what is the same as it would be anyway is taken out by editTokens: an export re-imported stays a few changes, not 56
-    const was = copyTokens(), kept = Object.entries(found).filter(([t, v]) => v.toLowerCase() !== String(anyway(m, t, was)).toLowerCase()).length;
+    const kept = Object.entries(found).filter(([t, v]) => v.toLowerCase() !== String(valueIn(m, t)).toLowerCase()).length;   // new: not what shows now
     // run even when nothing is new: a value the same as it would be anyway takes back one of hers it matches
     await editTokens((next) => Object.assign(next[m], found), (kept ? kept + " " + (kept === 1 ? "token" : "tokens") + " from " + file.name + " in " + (m === "light" ? "Light" : "Dark")
-      : "Nothing new in " + file.name + ": every one is already the café's" + (m === "dark" ? " or as in Light" : "")) + (foreign ? "; " + foreign + " not the café's, left out." : "."), true);
+      : "Nothing new in " + file.name + ": the café already looks like that" + (m === "dark" ? " at night" : "")) + (foreign ? "; " + foreign + " not the café's, left out." : "."), true);
   }
   // a colour or a size, in the mode The look is on: a picker, what it colours, and Put back when it is hers
   function tokenRow(n) {
@@ -4554,17 +4564,22 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     input.type = size ? "text" : "color"; input.value = valueIn(m, n); input.disabled = !S.db;
     if (size) input.size = 6;
     // she sees it at once (in the mode on screen); it is kept when she lets go (a size when it reads as one)
-    const screen = () => document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    const onScreen = () => screen() === m || (m === "light" && !SKIN.tokens.dark[n]);   // dark says only what differs
+    const onScreen = () => themeOnScreen() === m || (m === "light" && !SKIN.tokens.dark[n]);   // dark says only what differs
     input.addEventListener("input", () => { if (tokenOk(n, input.value) && onScreen()) { document.documentElement.style.setProperty(n, input.value); SKIN.set.add(n); previewDrawn(); } });
-    input.addEventListener("blur", () => { if (!SKIN.saving && !SKIN.redrawing && SKIN.set.has(n)) { document.documentElement.style.removeProperty(n); SKIN.set.delete(n); previewDrawn(); } });   // a preview she let go of unchanged
-    input.addEventListener("change", () => {
+    const keep = () => {
+      delete input.dataset.carried;
       if (!tokenOk(n, input.value)) {
         document.documentElement.style.removeProperty(n); SKIN.set.delete(n); previewDrawn();   // the preview goes with the value
         toast(name + " is a size from " + SIZES[n][0] + " to " + SIZES[n][1] + "px" + (WHOLE_PX.includes(n) ? ", in whole pixels." : " (or the same in rem)."), "alert"); input.value = valueIn(m, n); return;
       }
       editTokens((next) => { next[m][n] = input.value; }, name + ": yours now" + (m === "dark" ? ", at night." : "."));
+    };
+    input.addEventListener("blur", () => {
+      if (SKIN.redrawing) return;   // the card redrawn under her: not hers
+      if (input.dataset.carried && input.value.toLowerCase() !== valueIn(m, n).toLowerCase()) keep();   // carried through a redraw, so no change will come
+      else if (!SKIN.saving && SKIN.set.has(n)) { document.documentElement.style.removeProperty(n); SKIN.set.delete(n); previewDrawn(); }   // a preview she let go of unchanged
     });
+    input.addEventListener("change", keep);
     pic.appendChild(input);
     const txt = el("div", "txt");
     txt.append(el("b", null, name));
@@ -4678,7 +4693,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     }
     if (!p.why && a.kind === "cat") {
       frames = el("input"); frames.id = "artFrames-" + k; frames.type = "number"; frames.min = 1; frames.max = 64;
-      frames.value = p.typed.frames ?? (p.w % p.h === 0 && p.w / p.h <= 64 ? p.w / p.h : a.frames);
+      frames.value = p.typed.frames ?? framesOf(a, null, p.w, p.h);
       secs = el("input"); secs.id = "artSecs-" + k; secs.type = "number"; secs.min = 0.1; secs.max = 20; secs.step = 0.05; secs.value = p.typed.secs ?? a.secs;
       const row = el("div", "row"); row.append(field("Frames", frames), field("Seconds a loop", secs)); fields.appendChild(row);
     }
