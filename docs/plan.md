@@ -209,7 +209,8 @@ page. A hosted café is planned, not open: the onboarding offers running your ow
 ## Waiting on Charlotte
 
 The decisions below are dealt as decision cards in the queen's quest log (her card in the café on the gateway's
-address, and in claude.ai once a publish passes `quizzes` and `answer`; the decisions quiz page is retired). The small facts (who made `plants.zip`) stay here.
+address, and in claude.ai once a publish passes the whole stored set, which now has `quizzes` and `answer`; the
+decisions quiz page is retired). The small facts (who made `plants.zip`) stay here.
 
 1. **The gateway is set up** (2 October): the Worker, the two secrets of the time (the queen's key came later, below), `CATIO_URL` and `CATIO_TOKEN` in her
    environment, the setup script that installs the plugin, and the connector, signed in. A session reported
@@ -259,7 +260,8 @@ address, and in claude.ai once a publish passes `quizzes` and `answer`; the deci
    the branch's page. If the live one is newer, merge it first; never overwrite it.
 3. Publish `catio/index.html` to the café's URL (`kittychat-cafe` in `artifacts.json`) with `files` and
    `capabilities` as CLAUDE.md's "Republishing" says: leave `capabilities` out to keep the stored set, unless "The
-   stored capabilities" there says a tool joined since the last publish, and then pass that whole set.
+   stored capabilities" there says a tool joined since the last publish, or to add one on purpose, and then pass that
+   whole set.
 4. Afterwards: list the files, read back and look at any art that changed, list `rooms`, and create, update
    and delete one probe in `cats`.
 5. Add a line to `docs/history.md`.
