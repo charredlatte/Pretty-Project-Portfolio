@@ -27,6 +27,7 @@ The page also takes art from The look in its House menu; that wins over this fil
 """
 import functools
 import json
+import math
 import re
 import struct
 import sys
@@ -186,7 +187,7 @@ def to_css(v):
     elif isinstance(v, dict) and isinstance(v.get("hex"), str):
         css = v["hex"][:7]
     elif isinstance(v, dict) and isinstance(v.get("components"), list) and (v.get("colorSpace") or "srgb") == "srgb":
-        css = "#" + "".join(f"{round(min(1, max(0, c)) * 255):02x}" for c in v["components"][:3])
+        css = "#" + "".join(f"{math.floor(min(1, max(0, c)) * 255 + 0.5):02x}" for c in v["components"][:3])   # halves up, as Math.round
     elif isinstance(v, dict) and number(v.get("value"), 0, float("inf")) and v.get("unit") in ("px", "rem"):
         css = f"{round(v['value'], 3):g}{v['unit']}"
     return css
@@ -392,7 +393,9 @@ def main():
             continue
         was = old.get(p.stem)
         f = file_of(was)
-        if isinstance(f, str) and f != "art/skin/" + p.name:   # skin.json named another file for it: the folder's drawing wins, with its own settings
+        if isinstance(f, str) and f.startswith("art/skin/") and Path(f).stem == p.stem and (ROOT / f).is_file():
+            was = was if f == "art/skin/" + p.name else {}   # one of two drawings of hers named after the slot: said with the names above
+        elif isinstance(f, str) and f != "art/skin/" + p.name:   # skin.json named another file for it: the folder's drawing wins, with its own settings
             said.append(f"  {p.name}: takes {p.stem} over {f}, which skin.json named for it")
             was = {}
         entry = check(art, p.stem, "art/skin/" + p.name, was if isinstance(was, dict) else {}, said, filled=filled)

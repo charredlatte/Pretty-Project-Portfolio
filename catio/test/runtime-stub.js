@@ -189,7 +189,7 @@
   };
   // assets: kept in memory; sample: answers with T.sampleAnswer, recording each prompt
   T.uploads = []; T.assetsDeleted = [];
-  const assets = { upload: async (blob) => { const id = "a" + (T.uploads.length + 1) + "0123456789abcdef0123456789abcd".slice(0, 30); T.uploads.push({ id, name: blob.name, size: blob.size, type: blob.type }); return { id, url: "/_blob/" + id, sizeBytes: blob.size, contentType: blob.type }; },
+  const assets = { upload: async (blob, opts) => { const id = "a" + (T.uploads.length + 1) + "0123456789abcdef0123456789abcd".slice(0, 30); T.uploads.push({ id, name: blob.name, size: blob.size, type: (opts && opts.type) || blob.type }); return { id, url: "/_blob/" + id, sizeBytes: blob.size, contentType: blob.type }; },
     delete: async (id) => { T.assetsDeleted.push(id); return { deleted: true }; }, list: async () => ({ assets: [], usage: {} }) };
   T.prompts = []; T.sampleAnswer = { cat: null, reason: "nothing fits" };
   // the decider (the gateway's decide tool): what it answers a sort question, until a test changes it

@@ -2920,6 +2920,16 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     expect(await page.evaluate(() => window.__catio.uploads.length) === before + 1, "not uploaded");
     expect(d && /^\/_blob\//.test(d.src) && d.asset && JSON.stringify(d.slice) === "[5,5,6,5]" && d.w === 42 && d.h === 42 && d.name === "my-field.png", JSON.stringify(d));
   });
+  await check("a font picked with no type of its own is kept as a font, its type from its name", async () => {
+    await page.locator("#artFile-font-body").setInputFiles({ name: "MyFont.ttf", mimeType: "", buffer: readFileSync(join(here, "..", "art", "licensed", "ui", "sprout.ttf")) });
+    await page.waitForTimeout(600);
+    await page.click("#artDlg li[data-slot='font-body'] .swap button[type=submit]");
+    await page.waitForTimeout(600);
+    const up = await page.evaluate(() => window.__catio.uploads[window.__catio.uploads.length - 1]);
+    expect(up.name === "MyFont.ttf" && up.type === "font/ttf" && (await page.evaluate(() => !!window.__catio.store["skin/font-body"])), JSON.stringify(up));
+    await page.evaluate(() => { delete window.__catio.store["skin/font-body"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(500);
+  });
   await check("a cat's sheet asks for its frames, and refuses a count that doesn't split it", async () => {
     await page.locator("#artFile-cat-meow").setInputFiles({ name: "meow.png", mimeType: "image/png", buffer: readFileSync(join(here, "..", "art", "licensed", "mochi-idle.png")) });
     await page.waitForTimeout(400);

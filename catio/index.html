@@ -2479,7 +2479,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // Ask the browser for one of them and, if it isn't there, tell the viewer how to put it right.
   function checkArt() {
     const packs = Object.keys(ART).filter((k) => !SKIN.live[k] && ART[k].file && ART[k].file.startsWith(LIC) && ART[k].kind !== "font");
-    const probe = [...new Set(["house", "cat-cry", packs[0]].filter((k) => k && packs.includes(k)))];
+    // the house, a piece of each sheet the pack's cats still draw from (two moods can share one), and one more pack piece
+    const cats = Object.keys(ART).filter((k) => ART[k].kind === "cat" && packs.includes(k));
+    const sheets = [...new Map(cats.map((k) => [ART[k].file, k])).values()];
+    const probe = [...new Set(["house", ...sheets, packs[0]].filter((k) => k && packs.includes(k)))];
     const seen = probe.map((k) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(true); i.onerror = () => ok(false); i.src = srcOf(k); }));
     const run = (checkArt.run = (checkArt.run || 0) + 1);
     Promise.all(seen).then((r) => {
@@ -2492,7 +2495,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
 
   // what the sign says when the packs' art isn't here: the house and its cats, or only what she hasn't drawn herself
   const noArt = () => {
-    const gone = S.artGone || [], house = gone.includes("house"), cats = gone.includes("cat-cry");
+    const gone = S.artGone || [], house = gone.includes("house"), cats = gone.some((k) => ART[k].kind === "cat");
     return "The cat art isn't here: art/licensed/ is licensed and never shipped, so " + (house && cats ? "neither the house nor its cats can draw" : house ? "the house can't draw" : cats ? "its cats can't draw" : "the pieces you haven't drawn yourself can't draw") +
       ". Buy the packs in catio/art/CREDITS.md, drop the zips in, and run catio/tools/build-art.py.";
   };
@@ -4738,7 +4741,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       }
       p.busy = true;
       try {
-        const up = await S.assets.upload(p.file, { type: p.file.type || undefined });
+        // a font's own type, from its name: a browser often gives none, or an old one the store won't take
+        const ext = (p.file.name.match(/\.(ttf|otf|woff2?)$/i) || [])[1];
+        const up = await S.assets.upload(p.file, { type: a.kind === "font" && ext ? "font/" + ext.toLowerCase() : p.file.type || undefined });
         doc.asset = up.id;
         doc.src = /^\/files\/|^local:/.test(up.url || "") ? up.url : "/_blob/" + up.id;   // claude.ai serves an asset at /_blob/<id> in every view
         const old = SKIN.db[k] && SKIN.db[k].asset;
