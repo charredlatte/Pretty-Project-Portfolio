@@ -51,6 +51,7 @@ a stranger can install it.
 Still missing for a product:
 
 - self sign-up and a `/keys` page (phase 2 of `docs/accounts.md`; the key routes themselves are built);
+- the phone layout, then the Android app (below);
 - the hosted runner (below), so that nobody who buys a café has to run anything on their own computer;
 - kits packaged so a stranger can install them;
 - a plain face, for teams;
@@ -69,8 +70,9 @@ Still missing for a product:
 
 ## The hosted runner
 
-Charlotte's choice of 4 October: for people who don't code, the runner moves off their computer and onto the
-gateway, driven by an API key they paste in once. Nothing to install, it never sleeps, and any provider works.
+Charlotte's choice of 4 October: the runner moves off the buyer's computer and onto the gateway, driven by an API
+key they paste in once. Developers take it as the DIY path; the Android app (below) sets it up for first-timers,
+who bring their own key too. Nothing to install, it never sleeps, and any provider works.
 
 - **How it runs.** The queen's turns become a tool-calling loop inside the gateway, calling Anthropic, OpenAI or an
   OpenAI-compatible provider such as OpenRouter with the buyer's key and the gateway's own tools. Kits that run
@@ -87,6 +89,19 @@ gateway, driven by an API key they paste in once. Nothing to install, it never s
   walks through it.
 
 `harness/runner/queen.py` stays for self-hosters, who run it themselves with Claude Code.
+
+## The Android app
+
+Charlotte's priority for distribution, 4 October: one button from the Play Store installs the café. It is the
+café's own page made installable, with notifications (a meowing cat becomes one), wrapped for the Play Store with
+Google's Bubblewrap tool, so web and phone share one codebase. Not a downloadable APK: from 30 September 2026 (four
+countries first, everywhere in 2027) Android installs an app normally only if its developer is verified, and a Play
+Console account registers its developer automatically
+([Android developers](https://developer.android.com/developer-verification/guides?authuser=0)).
+
+Two things come first: the phone layout (her audit in `docs/from-the-litterbox.md` found the house tiny on a phone
+and the cats too small to tap, `docs/mobile-app.md`), and her own art, since a Play Store app shows the café to
+strangers. The C++ app in `catio-app/` stays a draft.
 
 ## Your way, concretely
 
@@ -165,8 +180,8 @@ name ready. The "-Way" echo of PCBWay is fine as a name; "the PCBWay of MCP" in 
 
 | Phase | When | What | Gate to the next |
 | --- | --- | --- | --- |
-| Make it a product | October 2026 | Pack art kept from other accounts, the decider's model locked for buyers, each agent key kept to its own cats, sign-up (closed), the keys page, the hosted runner, the shop kit, the name and domain | A test account's first task finishes within an hour, with no pack art served to it |
-| Ten by invite | November and December 2026 | Her own art first, then the legal pages, metering and plan gating, the Workers Paid plan and a sign-in rate limit, the store (Builds on sale from here) | Ten paying houses, no data lost |
+| Make it a product | October 2026 | Pack art kept from other accounts, the decider's model locked for buyers, each agent key kept to its own cats, sign-up (closed), the keys page, the hosted runner, the phone layout, the shop kit, the name and domain | A test account's first task finishes within an hour, with no pack art served to it |
+| Ten by invite | November and December 2026 | Her own art first, then the Android app on the Play Store, the legal pages, metering and plan gating, the Workers Paid plan and a sign-in rate limit, the store (Builds on sale from here) | Ten paying houses, no data lost |
 | Public launch | January to March 2027 | Coworking (a house several people share) and a plain face for teams, maintenance plans, OAuth for clients other than Claude's, café videos selling Builds, the app campaign | A hundred paying houses |
 | Helpers and kits | From April 2027 | Freelancers reselling Builds and maintenance, the kits gallery, the app itself if the campaign funds it | |
 
