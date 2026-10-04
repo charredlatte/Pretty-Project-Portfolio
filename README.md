@@ -38,8 +38,9 @@ How it connects, start to finish:
 Your private chats stay in your own account, never in this repository.
 
 **Where it stands.** The code is open source and you can run your own café today (see [Running your own](#running-your-own)).
-A hosted café with nothing to install is planned and not open yet. The pixel art comes from third-party packs that
-cannot be shared, so check each pack's terms before posting screenshots.
+A hosted café with nothing to install is planned and not open yet. Separately, Charlotte plans to launch the KittyChat
+Café app in December 2027. The pixel art comes from third-party packs that cannot be shared, so check each pack's terms before
+posting screenshots.
 
 Everything below is the detail.
 
@@ -257,7 +258,8 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `catio/tools/save-sessions.py`: trims a `list_sessions` result to the saved copy.
 - `catio/data/rooms.json`: the rooms, for the localhost copy. `sessions.json` is never committed.
 - `catio/art/`: the committed art. `licensed/` is rebuilt, not committed.
-- `catio/test/`: the end-to-end test (`sh catio/test/run.sh`).
+- `catio/test/`: the end-to-end test (`sh catio/test/run.sh`), and screenshots to look at
+  (`sh catio/test/run.sh look kitchen study`, into `catio/test/.look/`).
 - `CLAUDE.md`: how to change and republish the page.
 - `catio/tools/digest.py`: compiles the saved sessions and adopted chats into a per-project digest of
   what needs her (`catio/data/digest.md`, never committed).
@@ -275,10 +277,28 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
   of declarations, the generated floor plan, and build files for desktop, Android and iOS. Nothing
   compiles into an app yet, and it ships with no pack art — the app fetches that from her gateway on
   first run, because the packs may not be redistributed. The case for it and the whole design are in
+  the drawing plan for her own art, and what the litter box filed here.
+- `catio-app/`: the café as a native C++ app for a phone, in progress. Its core draws the manor --
+  matching the page's own render pixel for pixel -- but there is no window loop, interface or network
+  yet, and it has not run on a phone. It ships with no pack art: the app fetches that from her gateway
+  on first run, because the packs may not be redistributed. The design and where it stands are in
   [`docs/mobile-app.md`](docs/mobile-app.md).
 
-The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harness/test` and
-`python3 -m unittest litterbox/test_sort.py`.
+The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harness/test`,
+`(cd harness/gateway && npm install && npm test)` (the gateway), and `python3 -m unittest litterbox/test_sort.py
+litterbox/test_quiz.py`.
+
+The page's test and its screenshots drive a headless Chromium through Playwright. `run.sh` is set up for the copies
+preinstalled in Claude's cloud sessions. Elsewhere (it needs `sh`, `python3` and Node), set `PLAYWRIGHT` to the
+absolute path of a `playwright` package folder (after `npm i -g playwright`, that is `$(npm root -g)/playwright`), and
+either set `CHROMIUM` to a Chromium executable or run `node "$PLAYWRIGHT/cli.js" install chromium` so that Playwright
+has its own browser. Each run
+starts a fresh temporary profile with no logins or saved passwords, and as the page stands it loads only local files
+and the page's Google Fonts, plus, for the test (not the screenshots), its own server on 127.0.0.1 port 8791. Set
+`PORT` if something else, like `catio_mcp.py --serve`, holds that port: `run.sh` doesn't notice. Without the licensed art (see
+[Running your own](#running-your-own)), the check "on its own address the café is live through the gateway, with no
+warning sign" fails, as `run.sh` warns.
+Sessions under the house rules run the browser preflight first ([`harness/README.md`](harness/README.md)).
 
 ## Licence
 

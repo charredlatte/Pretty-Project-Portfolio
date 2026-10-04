@@ -27,7 +27,8 @@
 // copy. One guard instead, in catio/test/: assert the committed manor.json still matches the page's
 // MANOR block.
 //
-// DRAFT: declarations only. Nothing here is implemented yet.
+// Implemented in src/manor.cpp, and tested in test/tests.cpp -- all but way_to, which arrives with
+// walking.
 
 #ifndef CATIO_MANOR_H
 #define CATIO_MANOR_H

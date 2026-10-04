@@ -1,12 +1,14 @@
 # The KittyChat Café on a phone: a C++ app, drafted
 
-A sketch for her to judge, not an app to run. The code on this branch is
-[`catio-app/`](../catio-app/): nine headers of declarations, the floor plan generated into
-`catio-app/generated/manor.json`, and build files for three platforms. Nothing compiles into an app
-yet, and nothing here has been run on a phone.
+The design for the café as a C++ app on a phone, and the first of it built. The code is
+[`catio-app/`](../catio-app/): nine headers, a working core that draws the manor, the floor plan
+generated into `catio-app/generated/manor.json`, and build files for three platforms. **It is not an
+app yet** -- there is no window loop, no interface and no network -- and nothing here has run on a phone.
+"Where it stands", at the end, says exactly what exists.
 
 Drafted 3 October 2026. Her four choices before it was written: a design and stubs rather than a
-prototype, SDL3 with libcurl, the gateway as the only backend, and all three platforms scaffolded.
+prototype, SDL3 with libcurl, the gateway as the only backend, and all three platforms scaffolded. The
+same evening she asked for it to be built, first milestone "it opens a window".
 
 ## In plain words
 
@@ -319,26 +321,77 @@ perfectly readable without a voice, nothing else needs any of it, and `voice.h` 
 so the switch can be in the card from the start. The backends come behind `-DCATIO_TTS=ON` when the rest
 works.
 
-## What is on this branch
+## Where it stands
+
+### Built: the core, and the first frame
+
+The first milestone was "it opens a window". There is no display in the cloud session that built it,
+so it was met the way CLAUDE.md asks of the page: draw it, then look at it. `catio_look` renders a floor
+or a room to a PNG with no window and no GPU -- SDL's software renderer over a plain surface -- and
+every frame was looked at against the page's own.
+
+| | |
+|---|---|
+| `src/manor.cpp` | the plan, and `GEOM`, `stationsOf`, `freeFloor`, `LINE`, `NEXT`, ported line for line |
+| `src/house.cpp` | the documents and `list_agents` into rooms, cats, the queen and her homework: `catFromAgent`, `catFromAdopted`, `roomFor`, `queenMood` |
+| `src/art.cpp` | the cache: surfaces, not textures, so it needs no renderer |
+| `src/draw.cpp` | `SDL_RenderTexture9Grid` panels, blits, and the eight coats |
+| `src/view.cpp` | the camera in whole art pixels, `render()`'s placement, and the draw list in the page's one z-order |
+| `src/look.cpp` | `catio_look` |
+| `test/tests.cpp` | `catio_tests`: 58 checks of the plan, the house and the draw list, with no window |
+
+How it was checked, against things the C++ did not produce:
+
+- **The manor matches the page pixel for pixel.** The page's own `#world`, rendered by Chromium at
+  scale 1 with its cats and interface hidden, against `view::world` with nobody in it: identical on 98.4%
+  of 2.2 million pixels, and the rest differ by at most 2 levels in 255 -- two renderers rounding the
+  soft shadows baked into the art differently. Nothing missing, nothing misplaced.
+- **The coats match Chromium byte for byte.** The page's `COATS` filter strings, pulled from
+  `index.html` and rendered by Chromium, against the port of the CSS filter functions' colour matrices:
+  zero difference on every opaque pixel of every coat.
+- **Names and coats come from the page's own hash**, run in node; `café` names its cat Réglisse only if
+  the hash walks code points as JavaScript does, not bytes.
+- **The `GEOM` numbers** -- the queen's seat at (348, 370), the cabinets, the litter box, the
+  fourteen places in the queue -- are the ones the page computes.
+- **The layering rules** are tested without a window: a cat wins an exact tie with furniture (as
+  `#cats` paints after `#props`), a piece set into a counter draws one above it, queued cats are clipped
+  to their middle 44 pixels as the page's `clip-path` does, and the upper floor dims the ground at 3850
+  under its own plate at 3900.
+
+Two things the build itself settled. **SDL_image is not needed**: since 3.4 SDL's core loads and saves
+PNG, and every pack file is one, so it is gone from every build file. And **SDL3 is not in Ubuntu's
+packages**, so it is fetched and built from source (about 35 seconds); a headless build needs
+`SDL_UNIX_CONSOLE_BUILD`, or SDL refuses to build without a windowing system.
+
+```sh
+cmake -S catio-app -B build -DCATIO_HEADERS_ONLY=OFF -DCATIO_HEADLESS=ON && cmake --build build
+ctest --test-dir build
+build/catio_look catio catio-app/generated/manor.json catio-app/test/fixtures ground.png ground
+```
+
+The default build is still the header check, which needs nothing installed. The frames `catio_look`
+writes contain the licensed art, so `catio-app/.look/` is gitignored with the build.
+
+### Not built yet
+
+- **The app**: `main`, the loop, input, the interface (`ui.h`), and `app.h`'s one function that writes.
+- **The net layer**: `net_curl.cpp` for a desktop, then a body per phone. It is to be tested against a
+  stand-in gateway, the way `harness/test/test_queen.py` tests the queen's runner -- never against hers.
+- **Walking** (`way_to`, `Walks`), **the fonts** (`Pixel`, `Body`, with SDL_ttf), **the voice**.
+- **`android/` and `ios/` have never been configured.** No Android SDK or NDK was in reach and no Mac
+  at all. The versions in them are now SDL's real current releases; the gradle lines, plist keys and
+  `.aar` filenames are still read from the documentation, not tried.
 
 ```
 catio-app/
-  CMakeLists.txt         the header check today; the app at -DCATIO_HEADERS_ONLY=OFF
-  cmake/sources.cmake    the translation units, shared by all three builds
-  include/catio/*.h      the nine headers above
+  CMakeLists.txt         the header check by default; the core, catio_look and catio_tests with -DCATIO_HEADERS_ONLY=OFF
+  cmake/sources.cmake    the core's sources, and the app's still to come
+  include/catio/*.h      the nine headers; each says what of it is implemented
+  src/                   the core, and catio_look
+  test/                  catio_tests, and invented fixtures
   generated/manor.json   written by catio/tools/furniture.py
-  src/                   empty
-  assets/  third_party/  the one font to commit, the one library to vendor, and why
+  assets/  third_party/  the one font to commit, and why nothing is vendored
   android/  ios/         never configured
   tools/                 fetch SDL's Android archives
 docs/mobile-app.md       this
 ```
-
-Verified: the nine headers each compile alone as C++20 with neither SDL nor curl installed, and
-`cmake -S catio-app -B build && cmake --build build` configures and builds that check. `manor.json`
-parses and is identical to the page's `MANOR` block, `furniture.check()` is empty, and `index.html` is
-untouched by the new writer.
-
-Not verified, and not pretended: **`android/` and `ios/` have never been configured.** No Android SDK or
-NDK was in reach, and no Mac at all. Both were written from the documentation. Treat every version,
-coordinate and gradle line in them as a guess until one of them builds on her machine.

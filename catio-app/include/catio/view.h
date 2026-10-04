@@ -8,7 +8,8 @@
 // still an open item in docs/camera-and-minimap.md. Here Cam::u is a whole number of device pixels per
 // art pixel, zoom steps are u +/- 1, and panning rounds to whole device pixels. Nothing can blur.
 //
-// DRAFT: declarations only. Nothing here is implemented yet.
+// Implemented in src/view.cpp, and tested in test/tests.cpp -- all but Walks, which arrives with the
+// loop.
 
 #ifndef CATIO_VIEW_H
 #define CATIO_VIEW_H
@@ -50,7 +51,9 @@ std::string room_in_view(const Cam& c, Stage stage);
 
 /// Where one cat stands this frame.
 struct Spot {
-    const Cat* cat = nullptr;
+    const Cat* cat = nullptr;         ///< null for the queen, who is not a cat
+    Mood mood = Mood::Idle;           ///< what to draw: the cat's mood, or the queen's
+    int coat = 0;                     ///< and in which of the eight coats
     manor::Point at;
     std::string room;
     int queue_place = -1;   ///< its place in the line at the front door, or -1
@@ -75,6 +78,32 @@ struct Scene {
 
 /// One frame's placement: stations, the free floor for wanderers, the piles, and the queue at the door.
 Scene build(const House& h, manor::Level floor);
+
+/// One thing to put on screen: a cut of one pack file and where it goes, or a flat fill.
+///
+/// `dst` is in WORLD pixels -- the page's #world, twice the art -- because that is the resolution the
+/// cats are drawn at: a cat sprite is blitted 1:1 into world pixels while the house is doubled, so a
+/// world drawn at art resolution would lose half of every cat. Draw the list into one world-sized
+/// target, then scale that once to the screen: that is how the page avoids seams between blits.
+struct Blit {
+    art::Id sheet = art::Id::Meadow;
+    draw::Rect src;                   ///< in the sheet's own pixels
+    draw::Rect dst;                   ///< in world pixels
+    int z = 0;                        ///< the page's one z-order; ties keep the list's order
+    int coat = 0;                     ///< a cat's tint; 0 is the untinted cream
+    bool fill = false;                ///< no sheet: fill `dst` with `colour` (the upper floor's dim)
+    draw::Colour colour;
+};
+
+/// The world size in world pixels: the art doubled, 1920 x 1152.
+draw::Rect world_rect();
+
+/// Everything to draw for one floor, in the page's order: the meadow, the plates, every piece of
+/// furniture and every cat, sorted into the page's single z-order -- rugs at 900, wall pieces at 950,
+/// floor pieces and cats at 1000 + 2 x their bottom edge (a cat wins a tie; a "top" piece sits one
+/// above its counter), the upper floor lifted by 4000 over a dimmed ground floor. Pure: it draws
+/// nothing, so the order is testable without a window. `now` picks each sprite's frame.
+std::vector<Blit> world(const Scene& s, manor::Level floor, double now);
 
 enum class Thing { None, Room, Cat, Queen, Pile, Cabinet, Litter, Stairs, Attic };
 
