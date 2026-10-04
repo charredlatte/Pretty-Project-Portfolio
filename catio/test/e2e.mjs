@@ -2242,7 +2242,9 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
   await check("How it works: the five lines and the two install lines", async () => {
     expect((await title()) === "How it works", await title());
     expect(await page.locator("#setupDlg ul.how li").count() === 5, "lines");
-    expect((await page.locator("#setupDlg").innerText()).includes("a really nice car in perfect weather"), "the car");
+    // the harness as a car (her ask, 4 October): Claude alone is a stripped car, the café the rest of it, the queen drives
+    expect((await page.locator("#setupDlg").innerText()).includes("stripped car"), "the stripped car");
+    expect(/^\S+ drives\.$/i.test(await page.locator("#setupDlg ul.how li b").first().innerText()), "the queen at the wheel");
     expect((await page.locator("#installLines").innerText()).includes("claude plugin install kittychat-house-rules@kittychat"), "install line");
     expect(await page.locator("#copyInstall").isVisible(), "copy");
   });
@@ -2251,6 +2253,7 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
     expect((await title()) === "Done", await title());
     const t = await page.locator("#setupDlg").innerText();
     for (const w of ["Mochi's Café", "3 rooms open", "2 repositories filed", "3 cats at the door", "OPEN THE DOORS"]) expect(t.toUpperCase().includes(w.toUpperCase()), w + " missing: " + t);
+    expect(t.includes("has the keys"), "the keys");
     expect((await T(page, () => window.__catio.writes.length)) === 0, "wrote before the doors opened");
   });
   await nextStep();

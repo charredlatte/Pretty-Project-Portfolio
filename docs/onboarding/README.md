@@ -10,17 +10,18 @@ Nothing in it is art: plain grey boxes and Figma's Inter. Nothing from `catio/da
 
 1. **Layout.** The shell: the house filling the screen, the brand and House button top left, the map panel top
    right. The wizard sits centred over the dimmed house.
-2. **Welcome.** The tagline, then name your café.
+2. **Welcome.** The tagline, the stripped car and who drives it, then name your café.
 3. **Rooms.** How many rooms (− N +). The manor's ten rooms as a grid: N open from the front of the house, the rest
    closed, and a name field per open room. The house itself never changes: a closed room is dimmed and gets no
    cats, and opens later under Edit rooms.
-4. **GitHub.** Connect GitHub, then each repository with the room it lives in. **3b** is the not-connected state.
-5. **Sessions.** What `list_sessions` found. **4b** is the blocked state, with the saved copy in one line.
-6. **Litter box.** What it is and a drop zone. (The frame's switch for holding pull requests was dropped in
+4. **GitHub.** The tires. Connect GitHub, then each repository with the room it lives in. **3b** is the not-connected state.
+5. **Sessions.** The windshield: what `list_sessions` found. **4b** is the blocked state, with the saved copy in one line.
+6. **Litter box.** The glovebox: what it is and a drop zone. (The frame's switch for holding pull requests was dropped in
    the build: holding is the merging rule's doing, `harness/README.md`, not a page setting.)
-7. **How it works.** The car first, in one line (below), then the harness in five plain lines: chats are cats, the
-   café asks who's awake, some rules can't be talked around, messages wait on the mat, the queen and the litter box.
-8. **Done.** The summary and "Open the doors".
+7. **How it works.** The whole car, part by part (below): the stripped car, then five parts: Simone drives, the
+   windshield and the dashboard, seatbelts and brakes, the intercom, the glovebox. Then the two lines that fit the
+   seatbelts and brakes.
+8. **Done.** "Your car is ready, and Simone has the keys", the summary and "Open the doors".
 
 Every wizard frame has the same skeleton: step dots, title, content, Back and Next.
 
@@ -51,8 +52,8 @@ artifact) are the reference; the onboarding follows them.
   thing, because they have to type or find it: Claude Code Remote, `list_repos`, `data/sessions.json`,
   `litterbox/sort.py`, the two install lines.
 - **The Welcome step opens with the tagline:** "All your Claude chats, in one cozy café."
-- **How it works says the connection start to finish** in the five lines of frame 7 (chats are cats, the café asks
-  who's awake, rules can't be talked around, messages wait on the mat, the queen and the litter box). `frames.js`
+- **How it works says the connection start to finish** in the five lines of frame 7 (since 4 October, the five parts
+  of the car: Simone drives, the windshield and the dashboard, seatbelts and brakes, the intercom, the glovebox). `frames.js`
   and `openSetup()` hold the same five, word for word: change both, and quote neither here beyond its title.
   Hooks and skills are not named: the step is five sentences and the two install lines, for whoever wants them.
 - **Be honest about where it stands.** Running your own café is open today (a clone, the public `catio` skill, a
@@ -69,20 +70,39 @@ own address the café is live through the gateway, with no warning sign", the sa
 with no `art/licensed/` the sign shows what is missing, so it shows in gateway mode too. It is a real failure and
 someone's to fix; this change neither caused it nor hides it.
 
-## Decided 4 October 2026: the car
+## Decided 4 October 2026: the harness is a car
 
-Charlotte's words: "It's like driving a really nice car in perfect weather. Whereas driving regular code UIs requires
-knowledge a regular schmuck like me doesn't have." The café metaphor says what is *in* the café; the car says what the
-café is *for*, next to everything else, so it comes once, before the five lines.
+Charlotte's words, the first time: "It's like driving a really nice car in perfect weather. Whereas driving regular
+code UIs requires knowledge a regular schmuck like me doesn't have." And what she meant: "The car is the harness. The
+driver is Simone (AI runner) the queen cat. And the way you normally drive Claude is comparable to starting a totally
+stripped car. No seatbelts. No windshield. No tires. Etc. Explain and onboard tooling."
 
-- **Where:** one line opening How it works, in `frames.js` and `openSetup()` alike. How it works is still word for word
-  the same in both, the car line included. Nowhere else in the wizard: the other steps instruct, and inside the café
-  everything stays cats and rooms. Two metaphors in one sentence is one too many.
-- **What it maps:** the storm and the kit car are the terminal and its jargon; the nice car is the café; the engine is
-  Claude, the same on both sides and still the person's own; perfect weather is the house rules (checks run before
-  anything changes, nothing ships behind your back) and the badge that says who needs you. The shop's pricing carries
-  the rest of the car (`docs/kittychat-shop/README.md`); the wizard needs only this much.
-- **The check:** the suite's How it works step looks for "a really nice car in perfect weather" beside its five lines.
+So the car isn't a line beside the explanation: it **is** the explanation, and the wizard fits it part by part.
+Claude on its own is the engine of a stripped car: brilliant, and nothing else. Everything the harness adds is a
+part, and each step that sets one up names it first.
+
+| The car | The harness | Where the wizard fits it |
+|---|---|---|
+| The engine | Claude: the same in both, still the person's own | Welcome (named, not fitted) |
+| The driver | Simone, the queen cat: her runner (`harness/runner/queen.py`) on the person's computer. Routines, homework, passing words on | Welcome, How it works, Done |
+| The tires | GitHub: the repositories, where the work meets the road, each parked in a room | GitHub |
+| The windshield | The café page: every session a cat, in view (`list_sessions`, the saved copy when blocked) | Sessions |
+| The dashboard | The gateway, where every cat checks in (`report.py`), and the badge that counts who needs you | How it works |
+| The seatbelts | The house rules' enforced hooks (`gates.py`, `ship_gate.py`): the browser preflight, the opening audit, no pushes to the default branch | How it works, with the two install lines |
+| The brakes | The merging rule: anything guessed waits for her (`ship_gate.py`, the litter box) | How it works |
+| The intercom | Notes, the inbox and the outbox: what she says waits for a cat until it checks in | How it works |
+| The glovebox | The litter box: the brain's tray in the page, `litterbox/` in a clone | Litter box |
+| The keys | Opening the doors: nothing is written until Done | Done |
+
+- **The driver has a name.** The page says the queen's own name (`queenOf().name`), which is Simone in every café
+  that hasn't named her: `QUEEN_NAMES[hash("queen:house")]`. The wireframe says Simone.
+- **The steps that instruct still name the real thing** ("Say it like the café", above): a part's name opens the step,
+  then the step says what to click or type, as before. The Rooms step has no part: rooms are the café's, not the car's.
+- **The page and the wireframe say the same,** word for word for How it works (its intro, the five parts and the line
+  before the install lines), the part lines of GitHub, Sessions and Litter box, and Done's keys. Welcome differs by its
+  last sentence alone, as before.
+- **The check:** the suite's How it works step wants the stripped car and a first part that is "<her name> drives.",
+  still five parts and the install lines; Done wants the keys.
 
 ## Still to build
 

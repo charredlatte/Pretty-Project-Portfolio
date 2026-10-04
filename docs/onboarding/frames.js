@@ -65,7 +65,7 @@ function step(n, title, content, nextLabel = "Next") {
 screen("Layout: the shell", false);
 
 // 2. Welcome.
-{ const c = col(12); c.appendChild(text("All your Claude chats, in one cozy café. Each chat becomes a cat, each project a room. Give the café a name.", 14, REG, INK, 560));
+{ const c = col(12); c.appendChild(text("All your Claude chats, in one cozy café. Each chat becomes a cat, each project a room. Claude on its own is a stripped car: a brilliant engine, with no seatbelts, no windshield and no tires. The café is the rest of the car, and Simone, the queen cat, drives. Give the café a name.", 14, REG, INK, 560));
   c.appendChild(text("Name your café", 12, BOLD, GREY)); c.appendChild(field("KittyChat Café", 400)); step(1, "Welcome", c); }
 
 // 3. Rooms.
@@ -81,22 +81,22 @@ screen("Layout: the shell", false);
   step(2, "Rooms", c); }
 
 // 4. GitHub, connected, and the not-connected state beside it.
-{ const c = col(12); c.appendChild(text("Each repository lives in a room. Its sessions are that room's cats.", 14, REG, INK, 560));
+{ const c = col(12); c.appendChild(text("The tires. Your repositories are where the work meets the road.", 14, BOLD, INK, 560)); c.appendChild(text("Each repository lives in a room. Its sessions are that room's cats.", 14, REG, INK, 560));
   c.appendChild(button("Connect GitHub", true));
   const list = col(6, "repos"); for (const r of [["my-portfolio", "Lounge"], ["grocery-app", "Kitchen"], ["shop-theme", "Craft room"], ["tiktok-saves", "Lounge"]]) {
     const li = row(12, "repo"); li.appendChild(text(r[0], 14, REG, INK, 240)); li.appendChild(field(r[1] + " ▾", 160)); list.appendChild(li); }
   c.appendChild(list); c.appendChild(text("Anything not listed goes to the lounge.", 12, REG, GREY)); step(3, "GitHub", c); }
-{ const c = col(12); c.appendChild(text("Not connected.", 14, BOLD)); c.appendChild(text("Connect GitHub in claude.ai (Settings → Connectors), and install the Claude GitHub App on your repositories. Then check again.", 14, REG, INK, 560));
+{ const c = col(12); c.appendChild(text("The tires. Your repositories are where the work meets the road.", 14, BOLD, INK, 560)); c.appendChild(text("Not connected.", 14, BOLD)); c.appendChild(text("Connect GitHub in claude.ai (Settings → Connectors), and install the Claude GitHub App on your repositories. Then check again.", 14, REG, INK, 560));
   c.appendChild(button("Check again", true)); const f = step(3, "GitHub", c, "Skip for now"); f.name = "Wizard 3b: GitHub, not connected"; }
 
 // 5. Sessions, and the blocked state.
-{ const c = col(12); c.appendChild(text("5 sessions found. They'll move in when you open the doors.", 14, REG, INK, 560));
+{ const c = col(12); c.appendChild(text("The windshield. Through it you see every chat on the road, each one a cat.", 14, BOLD, INK, 560)); c.appendChild(text("5 sessions found. They'll move in when you open the doors.", 14, REG, INK, 560));
   const list = col(6, "sessions"); for (const s of ["Fix the basket total · grocery-app · needs you", "Draw the terrace · my-portfolio · working", "Theme colours · shop-theme · done"]) { const li = row(8); li.appendChild(box(24, 24, BOX, "cat")); li.appendChild(text(s, 13)); list.appendChild(li); }
   c.appendChild(list); step(4, "Sessions", c); }
-{ const c = col(12); c.appendChild(text("claude.ai didn't let the page read your sessions. A saved copy shows instead, and Claude refreshes it from a session.", 14, REG, INK, 560)); const f = step(4, "Sessions", c, "Skip for now"); f.name = "Wizard 4b: Sessions, blocked"; }
+{ const c = col(12); c.appendChild(text("The windshield. Through it you see every chat on the road, each one a cat.", 14, BOLD, INK, 560)); c.appendChild(text("claude.ai didn't let the page read your sessions. A saved copy shows instead, and Claude refreshes it from a session.", 14, REG, INK, 560)); const f = step(4, "Sessions", c, "Skip for now"); f.name = "Wizard 4b: Sessions, blocked"; }
 
 // 6. Litter box.
-{ const c = col(12); c.appendChild(text("Loose notes, half-ideas, things for later. Drop them in. The sifter guesses whose they are, and nothing leaves until you've checked.", 14, REG, INK, 560));
+{ const c = col(12); c.appendChild(text("The glovebox. Loose notes, half-ideas, things for later. Drop them in. The sifter guesses whose they are, and nothing leaves until you've checked.", 14, REG, INK, 560));
   const drop = figma.createAutoLayout("VERTICAL", { name: "drop zone", paddingTop: 28, paddingBottom: 28, primaryAxisAlignItems: "CENTER", counterAxisAlignItems: "CENTER" });
   drop.fills = solid({ r: 1, g: 1, b: 1 }); drop.strokes = solid(GREY); drop.strokeWeight = 1; drop.dashPattern = [6, 4]; drop.cornerRadius = 6;
   drop.appendChild(text("Drop a note here", 14, REG, GREY)); c.appendChild(drop); drop.resize(560, drop.height);
@@ -105,17 +105,19 @@ screen("Layout: the shell", false);
 
 // 7. How it works.
 { const c = col(10);
-  c.appendChild(text("Coding with AI is usually a kit car in a storm: you have to know the engine to get anywhere. The café is a really nice car in perfect weather. The engine is the same, your own Claude: you see the road, and you just drive. Five things to know before you set off:", 14, REG, INK, 560));
-  for (const l of [["Chats are cats.", "Each Claude chat or coding session walks into the room of its project."],
-    ["The café asks who's awake.", "Each cat shows what its chat is doing: working, finished, or stuck and needs you. The badge beside the café's name counts who needs you."],
-    ["Some rules can't be talked around.", "Small checks run on their own before a cat may change or publish anything. Claude can't skip them."],
-    ["Messages wait on the mat.", "The café can't wake a cat. What you send is kept, and the cat picks it up the next time it checks in."],
-    ["The queen and the litter box.", "The queen keeps what matters and tells you what the cats are up to. Loose notes and held pull requests wait in the litter box until you check them."]]) {
-    const li = col(2, "rule"); li.appendChild(text(l[0], 14, BOLD)); li.appendChild(text(l[1], 13, REG, GREY, 560)); c.appendChild(li); }
+  c.appendChild(text("Claude on its own is a stripped car: an engine, and nothing else. The café is the rest of it:", 14, REG, INK, 560));
+  for (const l of [["Simone drives.", "The queen cat at the wheel: she runs your routines, passes your words to the cats and tells you what they're up to, from your own computer."],
+    ["The windshield and the dashboard.", "Each chat is a cat in its project's room, checking in as it works: busy, finished, or stuck and needs you. The badge counts who needs you."],
+    ["Seatbelts and brakes.", "Checks run before a cat may change or publish anything, and Claude can't talk its way round them. Anything it guessed waits for you."],
+    ["The intercom.", "The café can't wake a cat. What you say is kept, and the cat hears it the next time it checks in."],
+    ["The glovebox.", "Loose notes and held pull requests wait in the litter box until you check them."]]) {
+    const li = col(2, "part"); li.appendChild(text(l[0], 14, BOLD)); li.appendChild(text(l[1], 13, REG, GREY, 560)); c.appendChild(li); }
+  c.appendChild(text("The seatbelts and brakes come as a Claude Code plugin. Two lines fit them:", 13, REG, GREY, 560));
+  const code = col(4, "install lines"); for (const l of ["claude plugin marketplace add https://github.com/charredlatte/Pretty-Project-Portfolio.git", "claude plugin install kittychat-house-rules@kittychat --scope user"]) code.appendChild(text(l, 12, REG, INK, 560)); c.appendChild(code);
   step(6, "How it works", c); }
 
 // 8. Done.
-{ const c = col(8); for (const l of ["KittyChat Café", "4 rooms open", "4 repositories filed", "5 cats at the door"]) c.appendChild(text("✓  " + l, 14));
+{ const c = col(8); c.appendChild(text("Your car is ready, and Simone has the keys.", 14, REG, INK, 560)); for (const l of ["KittyChat Café", "4 rooms open", "4 repositories filed", "5 cats at the door"]) c.appendChild(text("✓  " + l, 14));
   step(7, "Done", c, "Open the doors"); }
 
 return { createdNodeIds: ids };

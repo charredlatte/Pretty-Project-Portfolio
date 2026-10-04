@@ -37,10 +37,11 @@ const card = (w, pad = 16, name = "card") => {
 const ids = [];
 let x = 0;
 const NAV = ["Pricing", "How it works", "Docs", "Account", "Cart (0)"];
-// The car (Charlotte, 4 October): what the café is for, next to coding in a terminal. README, "The car".
-const STORM = ["Coding with AI, usually", "A kit car in a storm. You have to know the engine to get anywhere: the terminal, its commands, its jargon."];
-const SUN = ["Coding with AI, in the café", "A really nice car in perfect weather. The same engine, your own Claude. You see the road, the dashboard says who needs you, and checks run before anything changes. You just drive."];
-const DRIVE = { Free: "Take it round the block", Basic: "Your own car, with a mileage cap", "Early access": "Unlimited mileage, and a co-pilot", Support: "Chip in for the next model" };
+// The car (Charlotte, 4 October): the harness is the car, Simone the queen cat drives it, Claude is the engine.
+// README, "The car", and docs/onboarding/README.md, which fits it part by part.
+const STORM = ["Claude on its own", "A stripped car: a brilliant engine and nothing else. No seatbelts, no windshield, no brakes, no tires. You can drive it if you know engines."];
+const SUN = ["Claude in the café", "The whole car, and Simone, the queen cat, drives. A windshield to see who's working and who needs you, seatbelts and brakes Claude can't talk its way round, tires on your GitHub. You tell her where you're going."];
+const DRIVE = { Free: "Take it round the block", Basic: "Your own car, with a mileage cap", "Early access": "Unlimited mileage, and the sat-nav", Support: "Chip in for the next model" };
 
 // A storefront page: header with the name and the nav, a content column, the legal footer.
 function page(name, width = 1280, height = 900) {
@@ -74,7 +75,7 @@ function page(name, width = 1280, height = 900) {
 // 2. Pricing.
 { const { body, w } = page("2 Pricing", 1280, 1180);
   body.appendChild(text("Pricing", 32, BOLD));
-  body.appendChild(text("Every plan is the same nice car. Claude is its engine, and you buy the fuel from Anthropic yourself: the café never resells it. Prices HT. TVA non applicable, art. 293 B du CGI.", 13, REG, GREY, w));
+  body.appendChild(text("Every plan is the whole car, and Simone drives. Claude is its engine, and you buy the fuel from Anthropic yourself: the café never resells it. Prices HT. TVA non applicable, art. 293 B du CGI.", 13, REG, GREY, w));
   const tiers = row(16, "tiers");
   for (const [t, p, lines, primary] of [
     ["Free", "0 €", ["Self-host or hosted", "One repository, one room", "Hover, menus, the saved copy", "Community help"], false],
@@ -164,7 +165,7 @@ function page(name, width = 1280, height = 900) {
 { const { body, w } = page("8 Home (phone)", 390, 900);
   body.appendChild(text("Your projects as a cat café.", 24, BOLD, INK, w));
   body.appendChild(text("Every task is a cat; it meows when it needs you. No terminal required.", 14, REG, GREY, w));
-  body.appendChild(text("Like driving a really nice car in perfect weather.", 14, BOLD, INK, w));
+  body.appendChild(text("Claude is the engine. The café is the rest of the car, and Simone drives.", 14, BOLD, INK, w));
   body.appendChild(button("Start free: self-host", true)); body.appendChild(button("Join the café"));
   body.appendChild(box(w, 240, BOX, "screenshot")); }
 { const { body, w } = page("9 Pricing (phone)", 390, 1240);
