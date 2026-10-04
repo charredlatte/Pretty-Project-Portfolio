@@ -1046,6 +1046,25 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect((await page.locator("#houseBtn .badge .n").innerText()) === "1", "brand badge");
     expect(await page.locator("#houseBtn .badge.need .face-ico").count() === 1, "no meowing face");
   });
+  // her ask, 4 October 2026: hovering the cats, the chats, the sessions "outlines the object boundaries of the 2D asset"
+  await check("the cat under the pointer is outlined around its own shape, not boxed, and only while it is pointed at", async () => {
+    const hot = () => page.evaluate(() => [...document.querySelectorAll("#cats .cat, #props .piece")].filter((e) => getComputedStyle(e).filter.includes("drop-shadow")).map((e) => e.getAttribute("aria-label") || e.dataset.piece));
+    const on = await hot();
+    expect(on.length === 1 && on[0].includes("Shop about page"), "outlined: " + JSON.stringify(on));
+    expect(await page.locator("#cats .cat.hot").evaluate((e) => getComputedStyle(e).borderImageSource === "none" && getComputedStyle(e).borderTopWidth === "0px"), "a box around the cat");
+    await page.mouse.move(8, 8);
+    await settle(page);
+    expect((await hot()).length === 0, "still outlined after the pointer left: " + JSON.stringify(await hot()));
+  });
+  await check("a filing cabinet under the pointer outlines the cabinet itself", async () => {
+    const cab = await page.locator('#hits .cabinet[data-room="kitchen"]').boundingBox();
+    await page.mouse.move(cab.x + cab.width / 2, cab.y + cab.height / 2, { steps: 3 });
+    await settle(page);
+    const on = await page.evaluate(() => [...document.querySelectorAll("#props .piece")].filter((e) => getComputedStyle(e).filter.includes("drop-shadow")).map((e) => e.dataset.room + "/" + e.dataset.piece));
+    expect(on.length === 1 && on[0] === "kitchen/filing_cabinet", "outlined: " + JSON.stringify(on));
+    await page.mouse.move(8, 8);
+    await settle(page);
+  });
   await openRoom(page, "kitchen");
   await check("the room under the pointer, and the one its menu belongs to, light up with the white brackets", async () => {
     const ring = await page.locator("#room-kitchen").evaluate((e) => e.classList.contains("lit") && getComputedStyle(e).borderImageSource);
