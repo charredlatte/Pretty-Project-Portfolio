@@ -1034,7 +1034,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     return { found, foreign };
   }
   // a source the page made or wrote: the art beside it, an asset, a gateway file or one kept in this browser
-  const safeSrc = (v) => typeof v === "string" && /^(?:art\/[^"'()\\\n]+|\/_blob\/[\w-]+|\/files\/[\w.-]+|local:[\w-]+|blob:[^\s"'()\\]+)$/.test(v) && !v.includes("..");
+  const safeSrc = (v) => typeof v === "string" && /^(?:art\/[^"'()\\\x00-\x1f]+|\/_blob\/[\w-]+|\/files\/[\w.-]+|local:[\w-]+|blob:[^\s"'()\\]+)$/.test(v) && !v.includes("..");
   const num = (v, lo, hi) => (typeof v === "number" && isFinite(v) && v >= lo && v <= hi ? v : null);
   const cssUrl = (src) => 'url("' + src + '")';
   // one skin entry, from art/skin.json or the collection, made safe: what isn't understood is left out
@@ -1112,9 +1112,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     };
     for (const k of Object.keys(tried)) if (!(ART[k].kind === "slice" && !ART[k].slice)) choose(k, () => true);
     for (const k of Object.keys(tried)) if (ART[k].kind === "slice" && !ART[k].slice) {   // members once every head is chosen: the head's size
-      let why = null;
-      choose(k, (e) => !(why = misfit(k, e.w, e.h, live)));
-      if (!live[k] && why) problems[k] = why;
+      const whys = new Map();
+      choose(k, (e) => { const why = misfit(k, e.w, e.h, live); if (why) whys.set(e, why); return !why; });
+      const first = tried[k][0] && tried[k][0].e;
+      if (first && whys.has(first)) problems[k] = whys.get(first);   // hers turned down: said, whichever is drawn
     }
     if (seq !== SKIN.seq) return;   // a newer skin came in while this one loaded
     // The skin is one stylesheet, #skinCss, after the page's own: the slots and light tokens on :root, the dark tokens where
@@ -4535,8 +4536,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       input.addEventListener("change", () => { const f = input.files && input.files[0]; if (f) pickArt(k, f); });
       const rp = el("button", "btn tiny", "Replace…"); rp.type = "button"; rp.addEventListener("click", () => input.click());
       acts.append(input, rp);
-      if (SKIN.db[k]) { const pb = el("button", "btn tiny", "Put back"); pb.type = "button"; pb.addEventListener("click", () => putBack([k])); acts.appendChild(pb); }
     }
+    if (S.db && SKIN.db[k]) { const pb = el("button", "btn tiny", "Put back"); pb.type = "button"; pb.addEventListener("click", () => putBack([k])); acts.appendChild(pb); }
     li.append(artPic(k), txt, acts);
     if (ARTPICK[k]) li.appendChild(artForm(k));
     return li;
@@ -4626,10 +4627,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   }
   async function putBack(keys) {
     if (!S.db) { toast("Saving isn't available in this view.", "alert"); return; }
+    const ids = Object.fromEntries(keys.map((k) => [k, SKIN.db[k] && SKIN.db[k].asset]));   // read first: a snapshot may land before the deletes do
     const done = await Promise.allSettled(keys.map((k) => S.db.doc("skin/" + k).delete()));
     const gone = keys.filter((k, i) => done[i].status === "fulfilled");
     for (const k of gone) {   // each one put back lets its file go, whatever happened to the others
-      const id = SKIN.db[k] && SKIN.db[k].asset;
+      const id = ids[k];
       delete SKIN.db[k];
       if (id && S.assets) S.assets.delete(id).catch(() => {});
     }

@@ -16,7 +16,8 @@ The rest of the design system is tokens, kept here in two modes, as Figma keeps 
 "tokens": {"--ink": "#3F2A20", "--px-size": "16px"} for light and "dark": {...} for what differs at night (TOKENS in
 the page lists them: colours as six hex digits, sizes in px or rem). Drop a design tokens file in art/skin/ too (the
 W3C format Figma's variables export, or The look's own export: *.tokens.json, "dark" in its name for the dark mode)
-and its tokens are read into that mode; a token is matched by its own name (ink, go, px-size...) wherever it sits.
+and its tokens are read into that mode; a token is matched by its own name (ink, go, px-size...) wherever it sits,
+and one the same as it would be anyway (the cafe's own in light, light's in dark) is left out, as The look does.
 A mode with a tokens file in art/skin/ is rebuilt from its files alone on every run, so a token taken out of the file
 goes; a mode with no file keeps the tokens written in skin.json by hand. A drawing's settings (its border, frames...)
 are kept while it stays the size they were given for ("w" and "h" in its entry); redrawn at another size, they go,
@@ -24,6 +25,7 @@ and this says so.
 
 The page also takes art from The look in its House menu; that wins over this file. Needs nothing but Python.
 """
+import functools
 import json
 import re
 import struct
@@ -35,14 +37,20 @@ PAGE = ROOT / "index.html"
 SKIN = ROOT / "art" / "skin"
 OUT = ROOT / "art" / "skin.json"
 FONTS = {".ttf", ".otf", ".woff", ".woff2"}
-_PAGE = []
 
 
+@functools.cache
 def page():
     """The page's text, read once."""
-    if not _PAGE:
-        _PAGE.append(PAGE.read_text(encoding="utf-8"))
-    return _PAGE[0]
+    return PAGE.read_text(encoding="utf-8")
+
+
+@functools.cache
+def defaults():
+    """Each token's own value in the page's :root, as the page's TOKENS0 reads it."""
+    text = page()
+    root = text[text.index(":root {"):text.index("color-scheme: light;")]
+    return {n: v.strip() for n, v in re.findall(r"(--[\w-]+):\s*([^;]+);", root)}
 
 
 def file_of(entry):
@@ -92,19 +100,15 @@ def token_names():
     return dict(re.findall(r'"(--[\w-]+)": \["([^"]+)"', block))
 
 
+@functools.cache
 def sizes():
     """The page's SIZES, each size token's range in px, read from the page so the two can't disagree."""
-    if _SIZES:
-        return _SIZES
     text = page()
     block = text[text.index("const SIZES = {"):text.index("function sizeOk")]
-    _SIZES.update({n: (float(lo), float(hi)) for n, lo, hi in re.findall(r'"(--[\w-]+)": \[([\d.]+), ([\d.]+)\]', block)})
-    return _SIZES
+    return {n: (float(lo), float(hi)) for n, lo, hi in re.findall(r'"(--[\w-]+)": \[([\d.]+), ([\d.]+)\]', block)}
 
 
-_SIZES = {}
-
-
+@functools.cache
 def whole():
     """The page's WHOLE_PX: the sizes kept to whole screen pixels."""
     return set(re.findall(r'"(--[\w-]+)"', re.search(r"const WHOLE_PX = \[([^\]]*)\]", page()).group(1)))
@@ -165,7 +169,7 @@ def to_css(v):
         css = v["hex"][:7]
     elif isinstance(v, dict) and isinstance(v.get("components"), list) and v.get("colorSpace", "srgb") == "srgb":
         css = "#" + "".join(f"{round(min(1, max(0, c)) * 255):02x}" for c in v["components"][:3])
-    elif isinstance(v, dict) and isinstance(v.get("value"), (int, float)) and v.get("unit") in ("px", "rem"):
+    elif isinstance(v, dict) and number(v.get("value"), 0, 999) and v.get("unit") in ("px", "rem"):
         css = f"{round(v['value'], 3):g}{v['unit']}"
     return css
 
@@ -226,6 +230,12 @@ def main():
                 continue
             from_files.setdefault(mode, {}).update(found)
             said.append(f"  {p.name}: {len(found)} tokens into {mode}" + (f", {foreign} not the cafe's" if foreign else ""))
+    base = defaults()
+    if "light" in from_files:
+        from_files["light"] = {t: v for t, v in from_files["light"].items() if v.lower() != base.get(t, "").lower()}
+    if "dark" in from_files:   # dark says only what differs from light: The look's own dark export repeats every light value
+        light = modes["light"] if "light" in broken else from_files.get("light", modes["light"])
+        from_files["dark"] = {t: v for t, v in from_files["dark"].items() if v.lower() != (light.get(t) or base.get(t, "")).lower()}
     modes.update({m: t for m, t in from_files.items() if m not in broken})
     for p in files:
         if p.name.endswith(".tokens.json"):
