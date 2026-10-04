@@ -2643,6 +2643,11 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     const t = await page.evaluate(() => window.__catio.store["skin/theme"].tokens);
     expect(t["--grass"] === "#112233" && !("--go" in t) && !("--tan" in t) && !("--px-size" in t), JSON.stringify(t));
     expect(/1 token from mixed\.tokens\.json in Light/.test(await toast(page)) && /3 the café's with a value it can't take/.test(await toast(page)) && !/not the café's/.test(await toast(page)), await toast(page));
+    // a namesake refused elsewhere in the file isn't counted when the café's own group gave the token
+    await page.locator("#tokensFile").setInputFiles({ name: "twice.tokens.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ primitives: { ink: { $value: "#11223380" } }, colours: { ink: { $value: "#112233" } } })) });
+    await page.waitForFunction(() => /twice/.test(document.getElementById("toast").textContent));
+    const said = await toast(page);
+    expect(/1 token from twice/.test(said) && !/can't take/.test(said), said);
     // a size typed back to the café's own is said to be the café's again, not hers
     const f = page.locator("#artDlg li[data-token='--px-size'] input");
     await page.locator("#artDlg details[data-group='Type'] > summary").click();
@@ -2678,6 +2683,9 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     expect(/42 × 42/.test(row) && /26 × 28/.test(row) && /shares the button's border/.test(row), row);
   });
   await check("Put everything back clears what is kept, a refused piece and the tokens too", async () => {
+    // one the page can't read at all (an address it won't load) goes too, though it was never shown
+    await page.evaluate(() => window.__catio.put("skin/panel-x", { src: "https://example.com/x.png", at: 1 }));
+    await page.waitForTimeout(500);
     await page.click("#artResetAll");
     await page.waitForTimeout(800);
     const left = await page.evaluate(() => Object.keys(window.__catio.store).filter((p) => p.startsWith("skin/")));
@@ -2743,6 +2751,13 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     await page.waitForTimeout(600);
     expect((await box()) === "180px 30px -90px 0px", await box());
     await page.evaluate(() => { delete window.__catio.store["skin/faces"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(500);
+  });
+  await check("a family member carrying its head's border, however big, is used: its own border is never read", async () => {
+    await page.evaluate(() => window.__catio.put("skin/map-button-hover", { src: "art/licensed/pastel/button-down.png", slice: [40, 44, 48, 44], at: 1 }));
+    await page.waitForTimeout(600);
+    expect((await rootVar("--art-map-button-hover")).includes("pastel/button-down.png"), await rootVar("--art-map-button-hover"));
+    await page.evaluate(() => { delete window.__catio.store["skin/map-button-hover"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
     await page.waitForTimeout(500);
   });
   await check("a map piece called pixel art beside its family's smooth head is refused, with why", async () => {

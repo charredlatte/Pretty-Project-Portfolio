@@ -1031,7 +1031,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     })(file, []);
     const resolve = (v, depth) => (typeof v === "string" && /^\{[^}]+\}$/.test(v) && depth < 10 ? resolve(flat[v.slice(1, -1)], depth + 1) : v);
     const own = {};   // a token found in the café's own group (colours, type…) wins over one of the same name elsewhere
-    let refused = 0;   // the café's, but a value it can't take: see-through, or a size out of its range
+    const bad = new Set();   // the café's, but a value it can't take: counted once the file is read, if no other value for it was
     for (const [path, v] of Object.entries(flat)) {
       const n = "--" + path.split(".").pop().trim().toLowerCase().replace(/[\s_]+/g, "-"), val = resolve(v, 0);   // Figma's "Px size" is px-size
       if (!TOKENS[n]) { foreign++; continue; }
@@ -1043,12 +1043,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       else if (val && Array.isArray(val.components) && (val.colorSpace || "srgb") === "srgb") css = "#" + val.components.slice(0, 3).map((c) => Math.round(Math.min(1, Math.max(0, c)) * 255).toString(16).padStart(2, "0")).join("");
       else if (val && typeof val.value === "number" && /^(px|rem)$/.test(val.unit)) css = String(+val.value.toFixed(3)) + val.unit;
       else if (typeof val === "number" && TOKENS[n] && TOKENS[n][0] === "Type") css = String(+val.toFixed(3)) + "px";   // Figma's number variable: px
-      if (clear || !tokenOk(n, css)) { refused++; continue; }
+      if (clear || !tokenOk(n, css)) { bad.add(n); continue; }
       const mine = path.split(".")[0] === groupKey(TOKENS[n][0]);
       if (n in found && (own[n] || !mine)) continue;   // the first, unless a later one is in the café's own group
       found[n] = css; own[n] = mine;
     }
-    return { found, foreign, refused };
+    return { found, foreign, refused: [...bad].filter((n) => !(n in found)).length };
   }
   // a source the page made or wrote: the art beside it, an asset, a gateway file or one kept in this browser
   const safeSrc = (v) => typeof v === "string" && /^(?:art\/[^"'()\\\x00-\x1f]+|\/_blob\/[\w-]+|\/files\/[\w.-]+|local:[\w-]+|blob:[^\s"'()\\]+)$/.test(v) && !v.includes("..");
@@ -1061,7 +1061,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const e = typeof v === "string" ? { src: v } : v && typeof v === "object" ? { src: v.src || v.file } : {};
     if (!safeSrc(e.src)) return null;
     const out = { src: e.src, w: num(v.w, 1, 8192), h: num(v.h, 1, 8192), at: num(v.at, 0, 1e14), asset: typeof v.asset === "string" ? v.asset : null, name: typeof v.name === "string" ? v.name.slice(0, 120) : "" };
-    if (Array.isArray(v.slice) && v.slice.length === 4 && v.slice.every((n) => num(n, 0, a.scale ? 256 : 64) !== null && Number.isInteger(n))) out.slice = v.slice.slice();
+    if (!a.slice && a.fam) {}   // a family member is cut with its head's border: one of its own is never used, so never held against it
+    else if (Array.isArray(v.slice) && v.slice.length === 4 && v.slice.every((n) => num(n, 0, a.scale ? 256 : 64) !== null && Number.isInteger(n))) out.slice = v.slice.slice();
     else if (typeof v === "object" && v.slice != null) out.bad = "Its border isn't four whole numbers from 0 to " + (a.scale ? 256 : 64) + ".";   // refused, not cut with the pack's
     if (num(v.scale, 0.001, 64) !== null) out.scale = v.scale;
     if (v.pixel === true) out.pixel = true;
@@ -1102,10 +1103,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   const pixelish = (a, w) => w <= (a.scale ? a.size[0] * a.scale * PIXELISH[0] : a.size[0] * PIXELISH[1]);
   // a map piece drawn as pixel art shows its border at the art pixel: more of it than the pack shows on screen would
   // bury the map panel (the pack's 28 at half size is 14 px; hers, 14 pixels of art at most)
-  // shown at the art pixel on screen now (--u: the desk's or the phone's, hers if she set them)
-  const artPx = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--u")) || 2;
+  // shown at the art pixel: the desk's (--u-desk, hers if she set it)
+  const artPx = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--u-desk")) || 2;   // the desk's, the larger: the same answer on any screen
   const pixelLoud = (a, b) => !!(a.scale && b && Math.max(...b) * artPx() > 2 * Math.max(...a.slice) * a.scale);
-  const LOUD = (b) => "Drawn as pixel art, its border of " + Math.max(...b) + " would show " + Math.max(...b) * artPx() + " px wide, more than twice the pack's: draw it smaller, or as smooth.";
+  const LOUD = (b) => "Drawn as pixel art, its border of " + Math.max(...b) + " would show " + Math.max(...b) * artPx() + " px wide on a desk, more than twice the pack's: draw it smaller, or as smooth.";
   const framesOf = (a, e, w, h) => (e && e.frames) || (w % h === 0 && w / h <= 64 ? w / h : a.frames);
   // `e`: what the entry says about itself (slice, frames, hot) that must fit the picture
   function misfit(key, w, h, live = SKIN.live, e = {}, picking = false) {
@@ -1239,7 +1240,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const houseWas = SKIN.houseSig, houseSig = JSON.stringify(Object.entries(live).filter(([k]) => HOUSE(k)).map(([k, e]) => [k, e.url, e.frames, e.secs, e.anchor]));
     SKIN.live = live; SKIN.problems = problems; SKIN.tokens = tokens; SKIN.standIn = standIn;
     SKIN.lookSig = artSig + JSON.stringify(tokens);   // what restyle() draws from
-    SKIN.houseSig = houseSig;
+    const artWas = SKIN.artSig; SKIN.artSig = artSig;
     const using = new Set(Object.values(cands).flat().map((e) => e.src));
     for (const src of Object.keys(SKIN.blobs)) if (!using.has(src)) {   // a piece of hers put back: its URL and its size go
       const b = SKIN.blobs[src]; delete SKIN.blobs[src];
@@ -1256,9 +1257,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (houseSig !== houseWas) {   // the house, its furniture or its cats changed: drawn again (a button or a face needs only the CSS)
       for (const i of document.querySelectorAll("img[data-art]")) i.src = srcOf(i.dataset.art);
       drawFurniture();
-      checkArt();
       render();
+      SKIN.houseSig = houseSig;   // once drawn: a run that threw tries again next time
     }
+    if (artSig !== artWas) checkArt();   // what is still the pack's changed: is it here?
     // a colour alone redraws only what reads one as it draws (the CSS follows by itself): her look, the maps' hues
     restyle();
     if ($("artDlg").open) drawArt();
@@ -2647,6 +2649,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     // her own design: one document a slot, and skin/theme for the tokens, as The look writes them, drawn as they land
     db.collection("skin").onSnapshot((snap) => {
       const out = {}, theme = snap.docs.find((d) => d.id === "theme"), tokens = modeTokens(theme && theme.data());
+      SKIN.dbIds = snap.docs.map((d) => d.id).filter((id) => id !== "theme");   // every one, a refused or unknown one too: Put everything back takes them all
       for (const d of snap.docs) { const e = skinEntry(d.id, d.data()); if (e) out[d.id] = e; }
       if (sameData(out, SKIN.db) && sameData(tokens, SKIN.dbTokens)) return;   // what she just saved, coming back
       SKIN.db = out; SKIN.dbTokens = tokens; applySkin();
@@ -4504,7 +4507,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     dlg.classList.add("wide");
     const box = el("div", "dlg");
     const h = el("h2", null, "The look"); h.id = "artTitle";
-    const keptTokens = Object.keys(SKIN.dbTokens.light).length + Object.keys(SKIN.dbTokens.dark).length, keptSlots = Object.keys(SKIN.db);
+    const keptTokens = Object.keys(SKIN.dbTokens.light).length + Object.keys(SKIN.dbTokens.dark).length, keptSlots = [...new Set([...Object.keys(SKIN.db), ...(SKIN.dbIds || [])])];
     const mine = keptTokens + keptSlots.length;   // what is kept, used or refused: all of it goes back
     box.append(h, el("p", "note", "The whole design is yours to change: every colour, font, size and piece of art. Change one and the whole café follows. Draw at the size shown; docs/drawing-plan.md lists them all."));
     box.appendChild(tokensBar());
@@ -4524,8 +4527,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (mine && S.db) {
       const all = el("button", "btn pink", "Put everything back"); all.type = "button"; all.id = "artResetAll";
       all.addEventListener("click", async () => {
+        const slots = [...new Set([...Object.keys(SKIN.db), ...(SKIN.dbIds || [])])];   // as they are now, not as the card was drawn
         if (keptTokens) await saveTokens({ light: {}, dark: {} });
-        if (keptSlots.length) await putBack(keptSlots);
+        if (slots.length) await putBack(slots);
         const folder = Object.keys(SKIN.file).length + Object.keys(SKIN.fileTokens.light).length + Object.keys(SKIN.fileTokens.dark).length;
         if (folder) toast("What you set here is the café's again. " + folder + " from art/skin.json stay: they're in the folder.");
       });
@@ -4801,7 +4805,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (id && S.assets) S.assets.delete(id).catch(() => {});
     }
     const refused = done.some((d) => d.status === "rejected" && d.reason && d.reason.code === "invalid_argument");
-    toast(refused ? "You can look but not change things on this page." : gone.length < keys.length ? "Couldn't put back " + (keys.length - gone.length) + " of them. Try again." : keys.length > 1 ? "Every piece is the pack's again." : ART[keys[0]].name + ": the pack's again.", gone.length < keys.length ? "alert" : undefined);
+    toast(refused ? "You can look but not change things on this page." : gone.length < keys.length ? "Couldn't put back " + (keys.length - gone.length) + " of them. Try again." : keys.length > 1 ? "Every piece is the pack's again." : (ART[keys[0]] ? ART[keys[0]].name : keys[0]) + ": the pack's again.", gone.length < keys.length ? "alert" : undefined);
     applySkin();
   }
   function openRules() {

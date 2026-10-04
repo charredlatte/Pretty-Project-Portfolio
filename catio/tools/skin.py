@@ -158,7 +158,7 @@ def from_dtcg(doc, groups):
         if isinstance(v, str) and re.fullmatch(r"\{[^}]+\}", v) and depth < 10:
             return resolve(flat.get(v[1:-1]), depth + 1)
         return v
-    own, refused = {}, 0   # as the page: the café's own group wins a name; a value it can't take is refused, not foreign
+    own, bad = {}, set()   # as the page: the café's own group wins a name; a value it can't take is refused, not foreign
     for path, raw in flat.items():
         name, v, css = "--" + re.sub(r"[\s_]+", "-", path.split(".")[-1].strip().lower()), resolve(raw), None   # Figma's "Px size" is px-size
         if name not in groups:
@@ -171,13 +171,13 @@ def from_dtcg(doc, groups):
         except (TypeError, ValueError):   # numbers that aren't: refused, as the page does
             css = None
         if clear or not token_ok(groups, name, css):
-            refused += 1
+            bad.add(name)
             continue
         mine = path.split(".")[0] == re.sub(r"[^a-z0-9]+", "-", groups[name].lower())   # the page's groupKey()
         if name in found and (own[name] or not mine):
             continue
         found[name], own[name] = css, mine
-    return found, foreign, refused
+    return found, foreign, len(bad - found.keys())   # refused: a name no other value in the file filled
 
 
 def to_css(v):
@@ -235,6 +235,8 @@ def check(art, key, rel, was, said, where="", filled=None):
     # changed one since, which makes it hers
     auto = was.get("auto") if isinstance(was.get("auto"), dict) else {}
     entry = {k: v for k, v in was.items() if k in ("slice", "frames", "secs", "anchor", "scale", "pixel", "hot", "w", "h") and not (k in auto and auto[k] == v)}
+    if a["kind"] == "slice" and "slice" not in a and a.get("fam"):
+        entry.pop("slice", None)   # a family member is cut with its head's border: one of its own is never used
     for k, ok in SETTINGS.items():   # what the page would drop, dropped here, and said
         if k in entry and not ok(entry[k]):
             said.append(f"  {name}: its \"{k}\" ({entry[k]!r}) isn't one the page can use, so it was dropped")
@@ -289,7 +291,7 @@ def check(art, key, rel, was, said, where="", filled=None):
         note += f" (scale {entry['scale']}, smooth; \"pixel\": true instead if it is pixel art)"
     loud = entry.get("slice") or a.get("slice")
     if entry.get("pixel") and "scale" in a and loud and max(loud) * ART_PX > 2 * max(a["slice"]) * a["scale"]:   # the page's pixelLoud()
-        said.append(f"  {name}: drawn as pixel art, its border of {max(loud)} would show {max(loud) * ART_PX:g} px wide, more than twice the pack's: left out (draw it smaller, or \"pixel\": false)")
+        said.append(f"  {name}: drawn as pixel art, its border of {max(loud)} would show {max(loud) * ART_PX:g} px wide on a desk, more than twice the pack's: left out (draw it smaller, or \"pixel\": false)")
         return None
     if entry.get("slice") and max(entry["slice"]) > (256 if "scale" in a else 64):
         said.append(f"  {name}: its border {entry['slice']} is over {256 if 'scale' in a else 64}, more than the page takes: left out")
