@@ -18,10 +18,11 @@ model they choose, and kits that package one business automation each. The name 
 circuit design, quotes it, fabricates the board and assembles the parts. MCPWay takes a harness design (rules,
 kits, which model drives what), deploys the gateway, and installs the pieces.
 
-- **Any model.** Claude through Claude Code today. Anthropic, OpenAI or any OpenAI-compatible provider once the
-  hosted runner is in (below), each on the buyer's own API key, paid to that provider directly: MCPWay never resells
-  tokens. A small model makes typed decisions (yes/no, a choice, a score); it is the one model MCPWay runs itself,
-  and it can be inside the price only once its model is locked (today any caller can pick a paid one).
+- **Any model.** Claude through Claude Code today. Anthropic, OpenAI or an OpenAI-compatible provider such as
+  OpenRouter once the hosted runner is in (below), each on the buyer's own API key, paid to that provider directly:
+  MCPWay never resells tokens. A small model makes typed decisions (yes/no, a choice, a score); it is the one model
+  MCPWay runs itself, and it can be inside the price only once its model is locked (today any caller can pick a
+  paid one).
 - **Any environment.** Claude Code, Codex, Gemini CLI, Cursor, Claude Desktop, claude.ai, and the café on its own
   address in any browser. The owner's tools (handing in homework, dropping files, managing cats) need the owner's
   sign-in on the hosted gateway: claude.ai, Claude Desktop, or the café. The local stdio twin has no roles.
@@ -57,12 +58,13 @@ Still missing for a product:
 - the Workers Paid plan (the free plan's KV allows 1,000 writes a day, a few dozen accounts) and a rate limit on
   sign-in, both named in `docs/accounts.md`;
 - the decider's model locked for buyers (today any caller can pass `model`, a paid one included);
-- each agent key kept to its own cats and files (today most agent tools take any cat's id, the queen's included;
+- each agent key kept to its own cats and files (today most agent tools take any cat's id, the queen's included:
+  `report_status` can overwrite the queen's record and fake her presence, `comment` posts into any cat's thread,
   `comments` reads the owner's thread with the queen, `inbox` can mark her notes as handed over before her runner
-  sees them, `pick_up` takes any file, `quizzes` returns every card, and `decide` writes to the decision log);
-- features gated by plan (nothing checks a plan today: every account gets the quiz, homework and the decider);
-- OAuth for clients other than Claude's (the gateway only lets claude.ai and claude.com connectors sign in);
-- the licensed packs kept from other accounts (today one copy is served to every signed-in user,
+  sees them, `pick_up` takes any file, `quizzes` returns every card, and `decide` writes to the decision log); -
+  features gated by plan (nothing checks a plan today: every account gets the quiz, homework and the decider); -
+  OAuth for clients other than Claude's (the gateway only lets claude.ai and claude.com connectors sign in); - the
+  licensed packs kept from other accounts (today one copy is served to every signed-in user,
   `harness/gateway/src/cafe.js`), and art Charlotte owns (`docs/drawing-plan.md`) before anyone else signs up.
 
 ## The hosted runner
@@ -70,19 +72,17 @@ Still missing for a product:
 Charlotte's choice of 4 October: for people who don't code, the runner moves off their computer and onto the
 gateway, driven by an API key they paste in once. Nothing to install, it never sleeps, and any provider works.
 
-- **How it runs.** The queen's turns become a tool-calling loop inside the gateway, calling Anthropic, OpenAI or
-  OpenRouter with the buyer's key and the gateway's own tools. Kits that run scripts get a small Cloudflare
-  container per house, started when needed. The Workers Paid plan includes 25 GiB-hours of container memory a
-  month ([Cloudflare](https://developers.cloudflare.com/containers/pricing/)).
-- **Why an API key, not a Claude subscription.** Since February 2026 Anthropic's terms allow a Pro or Max login only
-  in Claude Code and claude.ai, never inside another product, and say products should use API keys
+- **How it runs.** The queen's turns become a tool-calling loop inside the gateway, calling Anthropic, OpenAI or an
+  OpenAI-compatible provider such as OpenRouter with the buyer's key and the gateway's own tools. Kits that run
+  scripts get a small Cloudflare container per house, started when needed. The Workers Paid plan includes 25 GiB-
+  hours of container memory a month ([Cloudflare](https://developers.cloudflare.com/containers/pricing/)). - **Why
+  an API key, not a Claude subscription.** Since February 2026 Anthropic's terms allow a Pro or Max login only in
+  Claude Code and claude.ai, never inside another product, and say products should use API keys
   ([Gigazine](https://gigazine.net/gsc_news/en/20260220-anthropic-third-party-block)). The hosted runner never asks
-  for a subscription login.
-- **The keys.** Encrypted in the buyer's own house with a secret only the Worker holds, never logged, revocable in
-  one click. The setup asks buyers to set a monthly spend limit with their provider, and the café shows this
-  month's spend.
-- **The step it leaves.** Creating an API account is the one technical step a buyer still takes; the onboarding
-  walks through it.
+  for a subscription login. - **The keys.** Encrypted in the buyer's own house with a secret only the Worker holds,
+  never logged, revocable in one click. The setup asks buyers to set a monthly spend limit with their provider, and
+  the café shows this month's spend. - **The step it leaves.** Creating an API account is the one technical step a
+  buyer still takes; the onboarding walks through it.
 
 `harness/runner/queen.py` stays for self-hosters, who run it themselves with Claude Code.
 
@@ -94,8 +94,8 @@ each needs a little code once, and after that choosing one is configuration.
 | Driver | How it is driven | Status |
 | --- | --- | --- |
 | Hosted runner | A tool-calling loop in the gateway with the buyer's API key (Anthropic, OpenAI, OpenRouter); a container for kits that run scripts | To build: the path for buyers |
-| Claude (Claude Code) | `claude -p` turns from the self-hosted runner, held in by a tool allowlist (`--allowedTools mcp__catio`), not by the hooks; every driver needs the same | Built, for the queen; other agents report but aren't run by it |
-| OpenAI (Codex CLI) | `codex exec`: woken by `catio_mcp.py`'s `wake` command on the same machine; on the hosted gateway it checks its inbox | Joins today |
+| Claude (Claude Code) | `claude -p` turns from the self-hosted runner, held in by restricted mode and `--strict-mcp-config`, which leave it only the Catio's tools, not by the hooks; every driver needs the same containment | Built, for the queen; other agents report but aren't run by it |
+| OpenAI (Codex CLI) | `codex exec`, registered as the agent's `wake` command through `report_status`: the local stdio twin runs it; the hosted gateway ignores it, so there the agent checks its inbox | Joins today |
 | Gemini (Gemini CLI) | `gemini -p`, the same way | Joins today |
 | Typed decisions (yes/no, a choice, a score) | Workers AI on the gateway, or any server in `DECIDE_URL` | Built |
 
@@ -111,10 +111,10 @@ each needs a little code once, and after that choosing one is configuration.
 The code is open source under the AGPL (graphify, vendored, is Apache-2.0 with parts under MIT), and anyone can
 self-host it; the art is not, and a clone shows the café without it. What is sold is not having to: the hosted
 plans run the gateway, the house, the café and the runner for you, and the upper plan adds the paid features (the
-brain's sorter, the litter box quiz and homework). On the gateway's café the sorter is the decider, once it is
-switched from observing to sorting. The model bill stays the buyer's, paid to their provider. The gateway also
-spends the operator's own Workers AI account (or `DECIDE_KEY`) on decisions, which is why the decider's model must
-be locked.
+brain's sorter, the litter box quiz and homework). Wherever the café reaches the gateway (on its address, or in
+claude.ai through the connector) the decider can sort, once it is switched from observing to sorting. The model
+bill stays the buyer's, paid to their provider. The gateway also spends the operator's own Workers AI account (or
+`DECIDE_KEY`) on decisions, which is why the decider's model must be locked.
 
 ## Who builds on it
 
@@ -163,11 +163,11 @@ name ready. The "-Way" echo of PCBWay is fine as a name; "the PCBWay of MCP" in 
 
 | Phase | When | What | Gate to the next |
 | --- | --- | --- | --- |
-| Make it a product | October 2026 | Pack art kept from other accounts, the decider's model locked for buyers, each agent key kept to its own cats, sign-up (closed), the keys page, the hosted runner, the shop kit, a plain face, the name and domain | A test account's first task finishes within an hour, with no pack art served to it |
+| Make it a product | October 2026 | Pack art kept from other accounts, the decider's model locked for buyers, each agent key kept to its own cats, sign-up (closed), the keys page, the hosted runner, the shop kit, the name and domain | A test account's first task finishes within an hour, with no pack art served to it |
 | Ten by invite | November and December 2026 | Her own art first, then the legal pages, metering and plan gating, the Workers Paid plan and a sign-in rate limit, the store (Builds on sale from here) | Ten paying houses, no data lost |
-| Public launch | January to March 2027 | Coworking (a house several people share), maintenance plans, OAuth for clients other than Claude's, café videos selling Builds, the app campaign | A hundred paying houses |
+| Public launch | January to March 2027 | Coworking (a house several people share) and a plain face for teams, maintenance plans, OAuth for clients other than Claude's, café videos selling Builds, the app campaign | A hundred paying houses |
 | Helpers and kits | From April 2027 | Freelancers reselling Builds and maintenance, the kits gallery, the app itself if the campaign funds it | |
 
-October's work waits for Charlotte, as the merging rule says: it is under `harness/`, and the keys page is a
-`/keys` page the gateway serves (phase 2 of `docs/accounts.md`). Sign-up opens to anyone only once her own art is
-in.
+Most of October's code is under `harness/`, the keys page included (a `/keys` page the gateway serves, phase 2 of
+`docs/accounts.md`), so it waits for Charlotte, as the merging rule says. The shop kit is packaged in her shop's
+own repository, and the name and domain are her decisions. Sign-up opens to anyone only once her own art is in.
