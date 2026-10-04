@@ -30,7 +30,6 @@ rm -rf "$N"; mkdir -p "$N/art"; cp "$P/art/furniture.png" "$N/art/"
 sed "s#<base href=\"file://$P/\">#<base href=\"file://$N/\">#" "$T/.page.html" > "$T/.page-noart.html"
 : "${PLAYWRIGHT:=/opt/node22/lib/node_modules/playwright}"
 : "${CHROMIUM:=/opt/pw-browsers/chromium-1194/chrome-linux/chrome}"
-[ -e "$PLAYWRIGHT" ] || unset PLAYWRIGHT
 [ -x "$CHROMIUM" ] || unset CHROMIUM
 export PLAYWRIGHT CHROMIUM
 # sh catio/test/run.sh look [room…]: screenshots to look at instead of the test (CLAUDE.md, "Checking a change")

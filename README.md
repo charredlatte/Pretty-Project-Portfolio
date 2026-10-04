@@ -215,7 +215,8 @@ hosted café is everyone else's.
 
 - **Buy me a coffee** *(page coming)*. One-off coffees and small memberships;
   they pay for the gateway's hosting and the médiateur, and put your name in the café's credits.
-- **Back the app on Ulule** *(campaign coming, once the first cafés are open)*. It funds the app; the rewards are a year of the hosted café and a drawn cat of your own.
+- **Back the app on Ulule** *(campaign coming, once the first cafés are open)*. It funds the app; the rewards are a
+  year of the hosted café and a drawn cat of your own.
 
 ## Made from ten asset packs
 
@@ -281,12 +282,12 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harness/test` and
 `python3 -m unittest litterbox/test_sort.py`.
 
-The page's test and its screenshots drive a headless Chromium through Playwright. `run.sh` uses the copies Claude's
-cloud sessions preinstall when they are there, and otherwise your own (`npm i playwright`, then
-`npx playwright install chromium`); `PLAYWRIGHT` and `CHROMIUM` override either. Each run starts a fresh temporary
-profile with no logins or saved passwords, and as the page stands it loads only local files, the test's own server on
-127.0.0.1 and the page's Google Fonts. Without the licensed art, one check fails (the no-art sign), as `run.sh` warns.
-Sessions under the house rules run the browser preflight first ([`harness/README.md`](harness/README.md)).
+The page's test and its screenshots drive a headless Chromium through Playwright. `run.sh` is set up for the copies
+preinstalled in Claude's cloud sessions; elsewhere, set `PLAYWRIGHT` to the path of your own Playwright install and
+`CHROMIUM` to a Chromium that matches it. Each run starts a fresh temporary profile with no logins or saved passwords,
+and as the page stands it loads only local files, the test's own server on 127.0.0.1 and the page's Google Fonts.
+Without the licensed art, one check fails (the one that wants no warning sign), as `run.sh` warns. Sessions under the
+house rules run the browser preflight first ([`harness/README.md`](harness/README.md)).
 
 ## Licence
 
