@@ -301,9 +301,9 @@ a { color: var(--ink); }
 .roomhit.here:focus-visible { border-style: solid; }
 .cat:focus-visible { outline: 0; }
 .cabinet:focus-visible { outline: 0; border: solid transparent; border-width: var(--corners-bw); border-image: var(--art-corners) var(--corners-s) / var(--corners-px) stretch; border-image-outset: 5px; }
-/* a cat, the queen, a pile, a filing cabinet or the litter box under the pointer (or with its menu open, or keyboard
-   focus) is outlined around its own shape, not boxed: one art pixel of the pack's white, traced from the sprite's
-   pixels (her ask, 4 October: "it outlines the object boundaries of the 2D asset") */
+/* a cat, the queen, a pile, a filing cabinet or the litter box under the pointer (or with its menu open; a cat with
+   keyboard focus too, while a cabinet keeps its brackets, above) is outlined around its own shape, not boxed: one art
+   pixel of the pack's white (2 px of the world, whatever the camera's scale), traced from the sprite's pixels (her ask, 4 October: "it outlines the object boundaries of the 2D asset") */
 .cat.hot, .cat.lit, .cat:focus-visible, .piece.hot {
   filter: drop-shadow(2px 0 0 var(--outline)) drop-shadow(-2px 0 0 var(--outline)) drop-shadow(0 2px 0 var(--outline)) drop-shadow(0 -2px 0 var(--outline)); }
 /* a cat in the line is close to the next: only its own body answers the pointer (14 and 6 of the sitting frame's 64,
@@ -1136,8 +1136,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (bad) return bad;
     if (!(w > 0 && h > 0)) return "It has no size the browser can read: save it as a PNG.";   // an SVG with none, say
     if (a.hot && hot && (hot[0] >= w || hot[1] >= h)) return "Its tip " + hot.join(" ") + " is outside its " + w + " × " + h + ".";
-    if (a.kind === "cat" && !picking && !framesOf(a, { frames }, w, h)) return "Its frames aren't square: say how many there are (\"frames\" in skin.json, or Frames in The look).";
-    if (a.kind === "cat" && !picking && w % framesOf(a, { frames }, w, h)) return "It is " + w + " pixels wide, which doesn't split into " + framesOf(a, { frames }, w, h) + " frames.";
+    if (a.kind === "cat" && !picking) {
+      const n = framesOf(a, { frames }, w, h);
+      if (!n) return "Its frames aren't square: say how many there are (\"frames\" in skin.json, or Frames in The look).";
+      if (w % n) return "It is " + w + " pixels wide, which doesn't split into " + n + " frames.";
+    }
     if (a.kind === "slice" && !a.slice && live) {   // the button's hover, green and pink, the map's dark panel…: cut with the head's border
       const head = headOf(key), he = live[head], [hw, hh] = he ? [he.w, he.h] : ART[head].size;
       if (w !== hw || h !== hh) return "It is " + w + " × " + h + ": it shares the " + ART[head].name.toLowerCase() + "'s border, so draw it the same size, " + hw + " × " + hh + ".";

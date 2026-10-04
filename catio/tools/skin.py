@@ -305,14 +305,17 @@ def check(art, key, rel, was, said, where="", filled=None):
         said.append(f"  {name}: the border {' '.join(map(str, sl))} doesn't fit inside {w} x {h}: left out" + ("" if entry.get("slice") else " (give it its own, \"slice\")"))
         return None
     if a["kind"] == "cat":
-        n = entry.get("frames") or (w // h if w % h == 0 and w // h <= 64 else None)
+        # square frames are worked out; a count an earlier run guessed for frames that aren't square is kept as hers,
+        # so a drawing once used isn't dropped now that nothing is guessed
+        kept = was.get("frames") if isinstance(was.get("frames"), int) and not isinstance(was.get("frames"), bool) else None
+        n = entry.get("frames") or (w // h if w % h == 0 and w // h <= 64 else kept)
         if not n:   # the page's framesOf(): not guessed, or her cat would be cut in pieces
             said.append(f"  {name}: its frames aren't square ({w} x {h}): set \"frames\" in skin.json")
             return None
         if w % n:
             said.append(f"  {name}: {w} px wide doesn't split into {n} frames: set \"frames\" in skin.json")
             return None
-        if "frames" not in entry:
+        if "frames" not in entry and w % h == 0:   # worked out from square frames; one kept from before is written as hers
             worked.append("frames")
         entry["frames"] = n
         note = f" ({n} frames of {w // n} x {h})"
