@@ -2460,7 +2460,7 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
 
 // Her words (3 October 2026): "Allow all assets to be plug-n-plays". Every piece of art is a slot: the page names the
 // slot, never the file, so a piece of her own (or another pack's) drops in where the pack's was, with no code change,
-// from The art in the House menu or art/skin.json beside the page. These swaps use pieces of the packs themselves, so
+// from The look in the House menu or art/skin.json beside the page. These swaps use pieces of the packs themselves, so
 // no new file is needed: what matters is that the slot takes them, and that a piece that doesn't fit is refused.
 await check("no piece of art is named by its file outside the list of slots", async () => {
   const src = readFileSync(join(here, "..", "index.html"), "utf8");
@@ -2472,11 +2472,70 @@ await check("no piece of art is named by its file outside the list of slots", as
   const named = (js.slice(0, js.indexOf("the art: every piece a slot")) + js.slice(js.indexOf("const SPR0"))).match(/["'(]art\/licensed\/[^"')]*/g) || [];
   expect(!named.length, named.join(" "));
 });
+// Her words (4 October 2026): "Make sure the entire design system is plug-n-play". Not only the art: every colour,
+// font, type size and the art pixel is a token in :root, and a skin sets any of them the same two ways.
+await check("no colour or pixel-font size is written into a rule: each is a token", async () => {
+  const src = readFileSync(join(here, "..", "index.html"), "utf8");
+  const css = src.slice(src.indexOf("<style>"), src.indexOf("</style>"));
+  const rules = css.replace(/\/\*[\s\S]*?\*\//g, "").split("}").filter((r) => !/^\s*(@media[^{]*\{\s*)?:root\b/.test(r));   // :root rules define the tokens
+  const colours = rules.join("}").match(/#[0-9A-Fa-f]{3,8}\b|rgba?\(/g) || [];
+  expect(!colours.length, colours.join(" "));
+  const sizes = css.match(/\d+px\/\d+px var\(--pixel\)/g) || [];
+  expect(!sizes.length, sizes.join(" "));
+  const js = src.slice(src.indexOf("<script>"));
+  const owner = js.indexOf("const OWNER = {"), ownerEnd = js.indexOf("};", owner);
+  const hexes = (js.slice(0, owner) + js.slice(ownerEnd)).match(/["']#[0-9A-Fa-f]{3,8}["']/g) || [];   // her look's choices are data
+  expect(!hexes.length, hexes.join(" "));
+});
 {
   const { page, ctx, errors } = await open();
   const rootVar = (n) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), n);
-  const openArt = async () => { await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The art" }).click(); await settle(page); };
-  await check("The art lists every slot, in groups, each with the size to draw it at", async () => {
+  await check("tokens in the skin recolour and resize the whole café", async () => {
+    await page.evaluate(() => window.__catio.put("skin/theme", { tokens: { "--ink": "#1d3557", "--px-size": "16px", "--hue-1": "#123456" }, at: 1 }));
+    await page.waitForTimeout(600);
+    const b = await page.evaluate(() => { const c = getComputedStyle(document.getElementById("houseBtn")); return [c.color, c.fontSize]; });
+    expect(b[0] === "rgb(29, 53, 87)" && b[1] === "16px", b.join(" | "));
+    expect((await rootVar("--hue-1")) === "#123456", await rootVar("--hue-1"));
+  });
+  await check("a token that isn't a colour or a size is refused, and so is one that isn't a token", async () => {
+    await page.evaluate(() => window.__catio.put("skin/theme", { tokens: { "--ink": "red; background: url(x)", "--nope": "#000000", "--px-size": "huge" }, at: 2 }));
+    await page.waitForTimeout(600);
+    expect((await rootVar("--ink")) === "#3F2A20" && (await rootVar("--px-size")) === "18px" && !(await rootVar("--nope")), [await rootVar("--ink"), await rootVar("--px-size")].join(" | "));
+  });
+  await check("The look changes a colour, keeps it in skin/theme, and puts it back", async () => {
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const input = page.locator("#artDlg li[data-token='--go'] input");
+    await input.evaluate((i) => { i.value = "#ff8800"; i.dispatchEvent(new Event("input", { bubbles: true })); i.dispatchEvent(new Event("change", { bubbles: true })); });
+    await page.waitForTimeout(500);
+    expect(await page.evaluate(() => window.__catio.store["skin/theme"].tokens["--go"]) === "#ff8800", "not kept");
+    expect((await rootVar("--go")) === "#ff8800", await rootVar("--go"));
+    expect(/Yours/.test(await page.locator("#artDlg li[data-token='--go']").innerText()), "not marked");
+    await page.click("#artDlg li[data-token='--go'] button:has-text('Put back')");
+    await page.waitForTimeout(500);
+    expect((await rootVar("--go")) === "#C0D470" && !(await page.evaluate(() => "skin/theme" in window.__catio.store)), await rootVar("--go"));
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
+  await check("a font of hers for the text goes ahead of the café's", async () => {
+    await page.evaluate(() => window.__catio.put("skin/font-body", { src: "art/licensed/ui/sprout.ttf", at: 1 }));
+    await page.waitForTimeout(800);
+    expect((await rootVar("--body")).startsWith('"KittySkin-font-body", "Nunito"'), await rootVar("--body"));
+  });
+  await check("a picture of her that isn't the owner's shape is refused, and she is drawn as before", async () => {
+    await page.evaluate(() => window.__catio.put("skin/owner", { src: "art/licensed/ui/logo.png", at: 1 }));
+    await page.waitForTimeout(600);
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const row = await page.locator("#artDlg li[data-slot='owner']").textContent();
+    expect(/21 × 18/.test(row) && /30 × 40/.test(row) && (await page.locator("#artDlg li[data-slot='owner'] .pic svg").count()) === 1, row);
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+    expect(!errors.length, errors.join(" | "));
+  });
+  await ctx.close();
+}
+{
+  const { page, ctx, errors } = await open();
+  const rootVar = (n) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), n);
+  const openArt = async () => { await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page); };
+  await check("The look lists every slot, in groups, each with the size to draw it at", async () => {
     await openArt();
     const rows = await page.locator("#artDlg li[data-slot]").count();
     const slots = await page.evaluate(() => [...document.querySelectorAll("#artDlg li[data-slot]")].map((l) => l.dataset.slot));
@@ -2578,10 +2637,11 @@ await check("no piece of art is named by its file outside the list of slots", as
 }
 {
   const { page, ctx } = await open("?mode=nodb");
-  await check("with no database, The art still says what each piece is, with nothing to change", async () => {
-    await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The art" }).click(); await settle(page);
+  await check("with no database, The look still says what each piece is, with nothing to change", async () => {
+    await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
     expect((await page.locator("#artDlg li[data-slot]").count()) >= 40, "no slots");
     expect(!(await page.locator("#artDlg button:has-text('Replace')").count()), "Replace offered");
+    expect(await page.locator("#artDlg li[data-token] input").count() > 40 && !(await page.locator("#artDlg li[data-token] input:enabled").count()), "a token can be changed");
   });
   await ctx.close();
 }

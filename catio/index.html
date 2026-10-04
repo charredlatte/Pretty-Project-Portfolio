@@ -18,15 +18,51 @@
   --ink-soft: #654535;
   --tan: #DCB98A;          /* the panel's face */
   --cream: #E8CFA6;
-  --pixel: "Sprout", "Fredoka", ui-rounded, system-ui, sans-serif;   /* 18px draws the pack's font one pixel to a pixel */
+  /* The design system. Every colour, font and size the rules use is a token here (TOKENS in the script names
+     them for The look): a skin changes any of them without touching a rule, as it does the art below. A colour
+     used see-through is mixed from its token (color-mix), so it keeps its hue whatever the skin gives it. */
+  --grass: #5E8F34;        /* behind everything, past the meadow */
+  --lawn: #8FBF4F;         /* the ground under the house, and the Edit rooms plan's */
+  --well: #DCE0D2;         /* the pale grey wells: an ask, a thread's reply, a quiz, the drop zone */
+  --field-face: #C1C8B9;   /* where she types */
+  --placeholder: #4E574D;  /* 4.6:1 on the field */
+  --go: #C0D470;           /* green buttons, a chosen mood, a file over the drop zone */
+  --letgo: #EBB7AE;        /* pink buttons */
+  --pressed: #CDB793;      /* a button held in */
+  --disabled: #D9C3A0;
+  --accent: #93B259;       /* switches, ticks and sliders the browser draws */
+  --good: #3D5A1E; --bad: #8A2B1F;
+  --credits: #FFF8EA; --credits-edge: #2C4A18;
+  --paper: #F4E6C8;        /* behind a project map */
+  --scene-face: #7D8579;   /* behind the queen's scene and her look */
+  --scene-shade: #1C1610;  /* over the scene's floor, so the words read */
+  --glow: #FFFAE1;         /* a lit room, cat or stair */
+  --mi-lit: #FFF8E4;       /* the menu item under the pointer */
+  --shade: #122414;        /* a closed room, and behind a dialog */
+  --dim: #162214;          /* the ground floor, under the upper one */
+  --veil: #28180A;         /* over a room while files are dropped */
+  --night-sky: #081422;    /* dark mode's night over the meadow */
+  --map-face: #FBF3E4; --map-face-dark: #1E2937;
+  --map-btn: #F3D08A; --map-btn-lit: #F7DCAB; --map-btn-down: #E3BC6F;
+  --pip: #F0B5CA; --pip-fail: #E79A95;
+  --minimap: #DCE6A0; --mm-here: #B8D799; --mm-edge: #695522;
+  --owner-chair: #E7B9A8; --owner-accent: #E06C8C; --owner-ears: #F2A7BA; --owner-flower: #FFF6E0; --owner-flower-heart: #E8B23A;
+  --hue-1: #5E8F34; --hue-2: #C0587A; --hue-3: #3F7FA6; --hue-4: #D08A2E; --hue-5: #7B5EA7; --hue-6: #2E8C7F; --hue-7: #A6503A; --hue-8: #8C7B2E;
+  --hue-none: #9A8878;     /* a project map's neighbourhoods, in order, then the rest */
+  --pixel: "Sprout", "Fredoka", ui-rounded, system-ui, sans-serif;
+  --px-size: 18px;         /* the pixel font's size: one font pixel a screen pixel (36 is twice it) */
+  --px-line: 22px;
   --display: "Fredoka", "Nunito", ui-rounded, system-ui, sans-serif;
   --body: "Nunito", ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --body-size: 0.95rem;
+  --mono: ui-monospace, "Cascadia Mono", monospace;
   --night: rgba(8, 20, 34, 0);
   --scene: none;
-  --u: 2px;                /* one art pixel on screen */
+  --u-desk: 2px; --u-phone: 1px;   /* one art pixel on screen, and on a phone */
+  --u: var(--u-desk);
   /* The art. Every piece is a slot (ART in the script lists them, with their sizes): the rules below name the
      slot, never the file, so a skin swaps any piece without touching the CSS (art/skin.json beside the page, or
-     The art in the House menu). A 9-slice keeps its border here too, top right bottom left in its own pixels,
+     The look in the House menu). A 9-slice keeps its border here too, top right bottom left in its own pixels,
      and pieces of one family (the button and its hover, green and pink) share their head's. */
   --art-panel: url(art/licensed/ui/panel.png);
   --art-button: url(art/licensed/ui/button.png); --art-button-hover: url(art/licensed/ui/button-hover.png);
@@ -77,14 +113,14 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --night: rgba(8, 20, 34, .62); --scene: brightness(.7) saturate(.85) hue-rotate(-12deg); }
+  :root:not([data-theme="light"]) { --night: color-mix(in srgb, var(--night-sky) 62%, transparent); --scene: brightness(.7) saturate(.85) hue-rotate(-12deg); }
 }
-:root[data-theme="dark"] { --night: rgba(8, 20, 34, .62); --scene: brightness(.7) saturate(.85) hue-rotate(-12deg); }
-@media (max-width: 560px) { :root { --u: 1px; } }
+:root[data-theme="dark"] { --night: color-mix(in srgb, var(--night-sky) 62%, transparent); --scene: brightness(.7) saturate(.85) hue-rotate(-12deg); }
+@media (max-width: 560px) { :root { --u: var(--u-phone); } }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-body { margin: 0; overflow: hidden; color: var(--ink); font: 500 0.95rem/1.5 var(--body); background: #5E8F34; image-rendering: pixelated; cursor: var(--paw); }
+body { margin: 0; overflow: hidden; color: var(--ink); font: 500 var(--body-size)/1.5 var(--body); background: var(--grass); image-rendering: pixelated; cursor: var(--paw); }
 .screen { position: fixed; inset: 0; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button, a, select, summary, label:has(input[type="radio"]) { cursor: var(--point); }
@@ -96,19 +132,19 @@ a { color: var(--ink); }
    own face: the art paints over it, and a copy without the licensed art is still readable. */
 .menu, dialog, .toast, .stage-msg {
   border: solid transparent; border-width: var(--panel-w); border-image: var(--art-panel) var(--panel-s) fill / var(--panel-w) stretch; background: var(--tan) padding-box; image-rendering: pixelated; }
-.btn { font: 18px/22px var(--pixel); color: var(--ink); padding: 0 calc(2 * var(--u)); text-decoration: none; display: inline-block; background: var(--cream) padding-box; white-space: nowrap;
+.btn { font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); padding: 0 calc(2 * var(--u)); text-decoration: none; display: inline-block; background: var(--cream) padding-box; white-space: nowrap;
   border-style: solid; border-color: transparent; border-width: var(--btn-w);
   border-image: var(--art-button) var(--btn-s) fill / var(--btn-w) stretch; }
 .btn:hover { border-image-source: var(--art-button-hover); }
-.btn.green { border-image-source: var(--art-button-green); background-color: #C0D470; }
-.btn.pink { border-image-source: var(--art-button-pink); background-color: #EBB7AE; }
+.btn.green { border-image-source: var(--art-button-green); background-color: var(--go); }
+.btn.pink { border-image-source: var(--art-button-pink); background-color: var(--letgo); }
 .btn.green:hover, .btn.pink:hover { filter: brightness(1.06); }
 .btn:active { border-image: var(--art-button-down) var(--down-s) fill / var(--down-w) stretch; translate: 0 calc(2 * var(--u)); filter: none; }
 .field input, .field select, .field textarea { border: solid transparent; border-width: calc(var(--field-t) * var(--u)); border-image: var(--art-field) var(--field-s) fill / var(--field-w) stretch;
-  background: #C1C8B9 padding-box; padding: 1px 4px; width: 100%; min-width: 0; image-rendering: pixelated; }
+  background: var(--field-face) padding-box; padding: 1px 4px; width: 100%; min-width: 0; image-rendering: pixelated; }
 .field select { appearance: none; -webkit-appearance: none; padding-right: calc(14 * var(--u)); border-image-slice: var(--field-s);   /* no fill: the arrow is a background, under the frame */
-  background: var(--art-arrow) right calc(2 * var(--u)) center / calc(10 * var(--u)) calc(9 * var(--u)) no-repeat, #C1C8B9 padding-box; }
-.field input::placeholder, .field textarea::placeholder { color: #4E574D; }   /* 4.6:1 on the field */
+  background: var(--art-arrow) right calc(2 * var(--u)) center / calc(10 * var(--u)) calc(9 * var(--u)) no-repeat, var(--field-face) padding-box; }
+.field input::placeholder, .field textarea::placeholder { color: var(--placeholder); }   /* 4.6:1 on the field */
 .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--ink); outline-offset: 1px; }
 /* a divider: the pack's underline, capped at both ends */
 .rule, .bar { border-top: calc(var(--divider-t) * var(--u)) solid transparent; border-image: var(--art-divider) var(--divider-s) / var(--divider-w) stretch; }
@@ -130,7 +166,7 @@ a { color: var(--ink); }
 .status .dot.wait { opacity: .45; }
 
 /* the stage: the whole screen, the meadow tiled to follow the camera, the frame laid over the edge */
-.stage { position: absolute; inset: 0; overflow: clip; touch-action: none; background: #8FBF4F; }
+.stage { position: absolute; inset: 0; overflow: clip; touch-action: none; background: var(--lawn); }
 .stage.panning, .stage.panning * { cursor: grabbing !important; }
 .meadow { position: absolute; inset: 0; background: var(--art-meadow) repeat; image-rendering: pixelated; filter: var(--scene);
   transition: background-size .55s cubic-bezier(.3,.7,.2,1), background-position .55s cubic-bezier(.3,.7,.2,1); }
@@ -142,11 +178,11 @@ a { color: var(--ink); }
 .hud { position: fixed; z-index: 31; top: calc(6 * var(--u) + 8px + env(safe-area-inset-top, 0px)); left: calc(6 * var(--u) + 8px); max-width: min(460px, calc(100vw - 12 * var(--u) - 16px));
   display: grid; gap: 6px; justify-items: start; }
 .hud h1 { margin: 0; font: inherit; }
-.brand { display: inline-flex; align-items: center; gap: 6px; font: 18px/22px var(--pixel); color: var(--ink); padding: 0 calc(3 * var(--u)) 0 0; background: var(--cream) padding-box; white-space: nowrap;
+.brand { display: inline-flex; align-items: center; gap: 6px; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); padding: 0 calc(3 * var(--u)) 0 0; background: var(--cream) padding-box; white-space: nowrap;
   border-style: solid; border-color: transparent; border-width: var(--btn-w);
   border-image: var(--art-button) var(--btn-s) fill / var(--btn-w) stretch; image-rendering: pixelated; }
 .brand:hover { border-image-source: var(--art-button-hover); }
-.brand[aria-expanded="true"] { border-image: var(--art-button-down) var(--down-s) fill / var(--down-w) stretch; translate: 0 calc(2 * var(--u)); background-color: #CDB793; }
+.brand[aria-expanded="true"] { border-image: var(--art-button-down) var(--down-s) fill / var(--down-w) stretch; translate: 0 calc(2 * var(--u)); background-color: var(--pressed); }
 .brand .logo { width: 21px; height: 18px; flex: none; margin: -2px 0 -2px -2px; background: var(--art-logo) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; }
 @media (min-width: 561px) { .brand .logo { width: 42px; height: 36px; background-size: 42px 36px; margin: -8px 0 -10px -8px; } }
 #tally { display: inline-flex; }
@@ -157,10 +193,10 @@ a { color: var(--ink); }
 .hud .status .more { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .hud .status:hover .more, .hud .status:focus-within .more { position: static; width: auto; height: auto; clip-path: none; white-space: normal; }
 .hud .status.warn { padding: 0 calc(2 * var(--u)); border: solid transparent; border-width: var(--panel-w); border-image: var(--art-panel) var(--panel-s) fill / var(--panel-w) stretch; background: var(--tan) padding-box; image-rendering: pixelated; }
-.credits { position: fixed; z-index: 19; left: calc(6 * var(--u) + 8px); bottom: calc(6 * var(--u) + 4px + env(safe-area-inset-bottom, 0px)); margin: 0; font-size: .66rem; color: #FFF8EA; opacity: .75;
-  text-shadow: 0 1px 0 #2C4A18, 1px 0 0 #2C4A18, -1px 0 0 #2C4A18, 0 -1px 0 #2C4A18; max-width: calc(100vw - 12 * var(--u) - 16px); }
+.credits { position: fixed; z-index: 19; left: calc(6 * var(--u) + 8px); bottom: calc(6 * var(--u) + 4px + env(safe-area-inset-bottom, 0px)); margin: 0; font-size: .66rem; color: var(--credits); opacity: .75;
+  text-shadow: 0 1px 0 var(--credits-edge), 1px 0 0 var(--credits-edge), -1px 0 0 var(--credits-edge), 0 -1px 0 var(--credits-edge); max-width: calc(100vw - 12 * var(--u) - 16px); }
 .btn.sq { width: 40px; height: 40px; padding: 0; display: grid; place-items: center; }
-.btn.sq:disabled { cursor: default; background-color: #D9C3A0; }
+.btn.sq:disabled { cursor: default; background-color: var(--disabled); }
 .btn.sq:disabled > * { opacity: .35; }
 /* icons from SC_siosio's Game UI Pack (Pastel Edition), pixelated onto the page's grid by build-art.py: one
    20 px cell each, in PASTEL order (up, down, plus, minus, house, pause, play, check, lock, unlock) */
@@ -176,36 +212,36 @@ a { color: var(--ink); }
    screen size, so it is scaled with smoothing, never pixelated. Each piece has its own face colour under it,
    so a copy without the licensed art is still a panel of buttons. */
 .mappanel { position: fixed; z-index: 31; top: calc(6 * var(--u) + 8px + env(safe-area-inset-top, 0px)); right: calc(6 * var(--u) + 8px);
-  display: grid; gap: 6px; padding: 4px; border: 6px solid transparent; border-radius: 12px; background: #FBF3E4;
+  display: grid; gap: 6px; padding: 4px; border: 6px solid transparent; border-radius: 12px; background: var(--map-face);
   border-image: var(--art-map-panel) var(--mpanel-s) fill / var(--mpanel-w) stretch; image-rendering: var(--map-render); }
 .mp-row { display: flex; gap: 4px; align-items: center; }
 .mp-row .pbtn { flex: 1; }
 .floors { display: flex; gap: 4px; }
 .floors .pbtn { flex: 1; }
-.pbtn { font: 18px/18px var(--pixel); color: var(--ink); height: 40px; padding: 0 2px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;
-  border-style: solid; border-color: transparent; border-width: var(--mbtn-w); border-radius: 8px; background: #F3D08A;
+.pbtn { font: var(--px-size)/var(--px-size) var(--pixel); color: var(--ink); height: 40px; padding: 0 2px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;
+  border-style: solid; border-color: transparent; border-width: var(--mbtn-w); border-radius: 8px; background: var(--map-btn);
   border-image: var(--art-map-button) var(--mbtn-s) fill / var(--mbtn-w) stretch; image-rendering: var(--map-render); }
-.pbtn:hover { border-image-source: var(--art-map-button-hover); background-color: #F7DCAB; }
-.pbtn:active, .pbtn[aria-checked="true"], .pbtn[aria-expanded="true"]:not(.fold) { border-image-source: var(--art-map-button-down); background-color: #E3BC6F; }
+.pbtn:hover { border-image-source: var(--art-map-button-hover); background-color: var(--map-btn-lit); }
+.pbtn:active, .pbtn[aria-checked="true"], .pbtn[aria-expanded="true"]:not(.fold) { border-image-source: var(--art-map-button-down); background-color: var(--map-btn-down); }
 .pbtn:disabled { opacity: .5; cursor: default; }
 .pbtn.sq { width: 40px; padding: 0; }
 .pbtn .ico { --i: 0; width: 18px; height: 18px; flex: none; background: var(--art-map-icons) calc(var(--i) * -18px) 0 / 90px 18px no-repeat; }
 .pbtn svg { width: 14px; height: 14px; fill: currentColor; shape-rendering: crispEdges; }
 /* a floor with cats that need you: a pink pip and how many (red if one is upset) */
 .pip { display: inline-grid; place-items: center; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; font: 800 11px/1 var(--body); color: var(--ink);
-  background: #F0B5CA; box-shadow: inset 0 -2px 0 rgba(105, 85, 34, .35); }
-.pip.fail { background: #E79A95; }
+  background: var(--pip); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--mm-edge) 35%, transparent); }
+.pip.fail { background: var(--pip-fail); }
 /* the minimap: the floor as a plan of rooms, the other floor faint underneath, the camera's view framed */
-.minimap { position: relative; width: 250px; height: 132px; border-radius: 6px; overflow: hidden; background: #DCE6A0; touch-action: none; cursor: var(--point); }
+.minimap { position: relative; width: 250px; height: 132px; border-radius: 6px; overflow: hidden; background: var(--minimap); touch-action: none; cursor: var(--point); }
 .mappanel.folded .minimap { display: none; }
-.mm-room { position: absolute; background: #F3D08A; box-shadow: inset 0 0 0 1px rgba(105, 85, 34, .45); pointer-events: none; }
-.mm-room.faint { background: rgba(243, 208, 138, .35); box-shadow: none; }
-.mm-room.landing { background: #F7DCAB; }
-.mm-room.hot { background: #F7DCAB; box-shadow: inset 0 0 0 1px rgba(105, 85, 34, .8); }
-.mm-room.here { background: #B8D799; }
+.mm-room { position: absolute; background: var(--map-btn); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mm-edge) 45%, transparent); pointer-events: none; }
+.mm-room.faint { background: color-mix(in srgb, var(--map-btn) 35%, transparent); box-shadow: none; }
+.mm-room.landing { background: var(--map-btn-lit); }
+.mm-room.hot { background: var(--map-btn-lit); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mm-edge) 80%, transparent); }
+.mm-room.here { background: var(--mm-here); }
 .mm-room .pip { position: absolute; right: 2px; top: 2px; min-width: 8px; height: 8px; padding: 0; }
-.mm-stairs { position: absolute; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(105, 85, 34, .45) 0 1px, transparent 1px 3px); }
-.mm-view { position: absolute; pointer-events: none; border: 2px solid #3F2A20; border-radius: 6px; border-image: var(--art-map-frame) var(--mframe-s) / var(--mframe-w) stretch;
+.mm-stairs { position: absolute; pointer-events: none; background: repeating-linear-gradient(0deg, color-mix(in srgb, var(--mm-edge) 45%, transparent) 0 1px, transparent 1px 3px); }
+.mm-view { position: absolute; pointer-events: none; border: 2px solid var(--ink); border-radius: 6px; border-image: var(--art-map-frame) var(--mframe-s) / var(--mframe-w) stretch;
   transition: left .55s cubic-bezier(.3,.7,.2,1), top .55s cubic-bezier(.3,.7,.2,1), width .55s cubic-bezier(.3,.7,.2,1), height .55s cubic-bezier(.3,.7,.2,1); }
 .minimap.instant .mm-view { transition: none; }
 @media (max-width: 560px) {
@@ -214,8 +250,8 @@ a { color: var(--ink); }
   .pbtn { height: 44px; } .pbtn.sq { width: 44px; }
   .credits { display: none; }
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mappanel { border-image-source: var(--art-map-panel-dark); background-color: #1E2937; } }
-:root[data-theme="dark"] .mappanel { border-image-source: var(--art-map-panel-dark); background-color: #1E2937; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mappanel { border-image-source: var(--art-map-panel-dark); background-color: var(--map-face-dark); } }
+:root[data-theme="dark"] .mappanel { border-image-source: var(--art-map-panel-dark); background-color: var(--map-face-dark); }
 @media (prefers-reduced-motion: reduce) { .mm-view { transition: none; } }
 .world { position: absolute; left: 0; top: 0; width: 1920px; height: 1152px; transform-origin: 0 0; transition: transform .55s cubic-bezier(.3,.7,.2,1);
   background: var(--art-meadow) 0 0 / 224px 64px repeat; image-rendering: pixelated; filter: var(--scene); }
@@ -223,15 +259,15 @@ a { color: var(--ink); }
 /* two floors, one shown at a time. Upstairs, the ground floor stays underneath, faded and out of reach, and
    the upper floor's pieces sit above everything on it (their z-index is lifted by 4000). */
 .world[data-floor="ground"] [data-floor="upper"], .world[data-floor="ground"] .upper { display: none; }
-.dim { position: absolute; inset: 0; z-index: 3850; background: rgba(22, 34, 20, .5); pointer-events: none; }
-.stage[data-floor="upper"] .meadow::after { content: ""; position: absolute; inset: 0; background: rgba(22, 34, 20, .5); }
+.dim { position: absolute; inset: 0; z-index: 3850; background: color-mix(in srgb, var(--dim) 50%, transparent); pointer-events: none; }
+.stage[data-floor="upper"] .meadow::after { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--dim) 50%, transparent); }
 .world[data-floor="upper"] .walker[data-floor="ground"], .world[data-floor="upper"] .cat[data-floor="ground"], .world[data-floor="upper"] .roomhit[data-floor="ground"], .world[data-floor="upper"] .cabinet[data-floor="ground"] { display: none; }
 .house.upper { z-index: 3900; }
 /* the stair: the way between the floors, lit like a room */
 .stairs { position: absolute; z-index: 4990; background: transparent; border: 0; padding: 0; cursor: var(--point); }
-.stairs:hover, .stairs:focus-visible, .stairs.lit { outline: 0; background: rgba(255, 250, 225, .14); border: solid transparent; border-width: calc(var(--corners-t) * 1px); border-image: var(--art-corners) var(--corners-s) / calc(var(--corners-t) * 1px / var(--cs, 1)) calc(var(--corners-r) * 1px / var(--cs, 1)) calc(var(--corners-b) * 1px / var(--cs, 1)) calc(var(--corners-l) * 1px / var(--cs, 1)) stretch; }
+.stairs:hover, .stairs:focus-visible, .stairs.lit { outline: 0; background: color-mix(in srgb, var(--glow) 14%, transparent); border: solid transparent; border-width: calc(var(--corners-t) * 1px); border-image: var(--art-corners) var(--corners-s) / calc(var(--corners-t) * 1px / var(--cs, 1)) calc(var(--corners-r) * 1px / var(--cs, 1)) calc(var(--corners-b) * 1px / var(--cs, 1)) calc(var(--corners-l) * 1px / var(--cs, 1)) stretch; }
 /* what's under the pointer, named in a line */
-.tip { pointer-events: none; z-index: 21; transform: translate(-50%, -100%); font: 18px/18px var(--pixel); gap: 6px; flex-wrap: wrap; max-width: 240px; }
+.tip { pointer-events: none; z-index: 21; transform: translate(-50%, -100%); font: var(--px-size)/var(--px-size) var(--pixel); gap: 6px; flex-wrap: wrap; max-width: 240px; }
 .tip small { font: 700 .74rem var(--body); color: var(--ink-soft); }
 /* what a cat needs, or what a queen is keeping: under the name, only while she hovers it */
 .tip .says { flex-basis: 100%; white-space: normal; font: 500 12.5px/1.3 var(--body); padding-bottom: 2px;
@@ -245,7 +281,7 @@ a { color: var(--ink); }
    (--cs is the camera scale). */
 .roomhit, .cabinet, .cat { position: absolute; background: transparent; border: 0; padding: 0; cursor: var(--point); }
 .roomhit { --bw: calc(var(--u) * var(--corners-t) / var(--cs, 1)) calc(var(--u) * var(--corners-r) / var(--cs, 1)) calc(var(--u) * var(--corners-b) / var(--cs, 1)) calc(var(--u) * var(--corners-l) / var(--cs, 1)); }
-.roomhit:hover, .roomhit.lit, .roomhit:focus-visible { background: rgba(255, 250, 225, .12); outline: 0; border: 0 solid transparent;
+.roomhit:hover, .roomhit.lit, .roomhit:focus-visible { background: color-mix(in srgb, var(--glow) 12%, transparent); outline: 0; border: 0 solid transparent;
   border-image: var(--art-corners) var(--corners-s) / var(--bw) stretch; }
 .roomhit.here { cursor: var(--paw); background: transparent; border: 0; }
 .roomhit.here:focus-visible { border-style: solid; }
@@ -272,7 +308,7 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .btn.tiny { border-width: var(--btn-px); border-image-width: var(--btn-px); padding: 0 2px; }
 .btn.tiny:active { border-image-width: var(--down-px); translate: 0 2px; }
 .queen-line { margin-top: 2px; }
-.dlg > p.sub { margin: 0; font: 18px/22px var(--pixel); }
+.dlg > p.sub { margin: 0; font: var(--px-size)/var(--px-line) var(--pixel); }
 
 /* sprite sheets: one step() animation per mood */
 .s-idle  { width: 32px; height: 32px; background-image: var(--art-cat-work); animation: a-idle 1.25s steps(10) infinite; }
@@ -293,7 +329,7 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .cat.m-meow { animation: hop 1s steps(2) infinite; }
 @keyframes hop { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
 
-.tag { position: absolute; font: 18px/18px var(--pixel); padding: 0 2px; white-space: nowrap; display: flex; gap: 5px; align-items: center; color: var(--ink); background: var(--cream) padding-box;
+.tag { position: absolute; font: var(--px-size)/var(--px-size) var(--pixel); padding: 0 2px; white-space: nowrap; display: flex; gap: 5px; align-items: center; color: var(--ink); background: var(--cream) padding-box;
   border-style: solid; border-color: transparent; border-width: var(--btn-px); border-image: var(--art-button) var(--btn-s) fill / var(--btn-px) stretch; image-rendering: pixelated; }
 /* a badge: the face of the most urgent cat that needs you, and how many */
 .badge { flex: none; display: inline-flex; align-items: center; gap: 0; }
@@ -308,16 +344,16 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .menu { position: absolute; z-index: 20; width: min(248px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow: auto; display: grid; gap: 6px; color: var(--ink); padding: 2px calc(2 * var(--u)) calc(2 * var(--u)); }
 .menu .mh { display: grid; gap: 0; }
 .menu .mt { display: flex; gap: 6px; align-items: center; }
-.menu h3 { margin: 0; flex: 1; min-width: 0; font: 18px/22px var(--pixel); display: flex; gap: 4px; align-items: center; overflow-wrap: anywhere; }
+.menu h3 { margin: 0; flex: 1; min-width: 0; font: var(--px-size)/var(--px-line) var(--pixel); display: flex; gap: 4px; align-items: center; overflow-wrap: anywhere; }
 .menu h3 .face-ico { margin: -4px 0 -4px -4px; }
 .menu .sub { margin: 0; font-size: .8rem; line-height: 1.35; color: var(--ink-soft); overflow-wrap: anywhere; }
 .menu .mh .sub { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .menu .rule { margin: 0; }
 .menu .list { display: grid; margin: 0 calc(-1 * var(--u)); }
 .mi { position: relative; display: flex; align-items: center; gap: 6px; width: 100%; min-height: 28px; padding: 2px 6px 2px 18px; background: none; border: 0;
-  font: 18px/22px var(--pixel); color: var(--ink); text-align: left; text-decoration: none; white-space: nowrap; }
+  font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); text-align: left; text-decoration: none; white-space: nowrap; }
 .mi::before { content: ""; position: absolute; left: 5px; top: 50%; margin-top: -6px; width: 7px; height: 12px; background: var(--art-pointer) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; visibility: hidden; }
-.mi:hover, .mi:focus-visible { background: rgba(255, 248, 228, .5); outline: 0; }
+.mi:hover, .mi:focus-visible { background: color-mix(in srgb, var(--mi-lit) 50%, transparent); outline: 0; }
 .mi:hover::before, .mi:focus-visible::before, .list:not(:hover):not(:focus-within) .mi.primary::before { visibility: visible; }
 .mi .aside { margin-left: auto; padding-left: 8px; font: 800 .75rem var(--body); color: var(--ink-soft); }
 .mi.sw { padding-left: 4px; }
@@ -326,15 +362,15 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .menu ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .menu .mini { display: flex; gap: 6px; align-items: center; width: 100%; text-align: left; background: none; border: 0; padding: 0; font-size: .82rem; }
 .menu .mini > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.menu .mini b { font: 18px/22px var(--pixel); font-weight: normal; }
+.menu .mini b { font: var(--px-size)/var(--px-line) var(--pixel); font-weight: normal; }
 .menu .mini:hover span:last-child { text-decoration: underline; }
 .menu .says { display: flex; gap: 6px; align-items: center; text-align: left; font-size: .85rem; padding: 0 4px; cursor: var(--point); }
 .menu .moods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
 .menu .moods .btn { width: 100%; text-align: center; padding: 0; overflow: hidden; text-overflow: ellipsis; }
 .menu .keys { margin: 0; font-size: .75rem; color: var(--ink-soft); }
-.menu .moods .btn[aria-pressed="true"] { border-image-source: var(--art-button-green); background-color: #C0D470; }
+.menu .moods .btn[aria-pressed="true"] { border-image-source: var(--art-button-green); background-color: var(--go); }
 /* the sound switch: the pack's toggle, off or on */
-.sound { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; font: 18px/22px var(--pixel); color: var(--ink); }
+.sound { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); }
 .sound .switch { width: 28px; height: 18px; flex: none; background: var(--art-toggle) 0 0 / 56px 18px no-repeat; }
 .sound .switch.on { background-position: -28px 0; }
 .item { position: relative; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; align-items: start; width: 100%; height: 100%; text-align: left; color: inherit;
@@ -346,63 +382,63 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .thumb .spr, .portrait .spr { position: absolute; left: 50%; bottom: 0; transform-origin: 50% 100%; }
 .item .thumb .spr { transform: translateX(-50%) scale(.72); }
 .item .thumb .spr.s-idle, .item .thumb .spr.s-box { transform: translateX(-50%) scale(1.4); }
-.item .who { font: 18px/22px var(--pixel); }
+.item .who { font: var(--px-size)/var(--px-line) var(--pixel); }
 .item .what { font-size: .8rem; color: var(--ink-soft); overflow-wrap: anywhere; }
 .item .ask { margin-top: 3px; overflow-wrap: anywhere; }
 .empty { font-size: .9rem; color: var(--ink-soft); margin: 0; }
 
 /* a closed room: dimmed, no sign; its queen is away and no cat is sent there */
-.roomhit[data-closed] { background: rgba(18, 36, 20, .3); }
-.roomhit[data-closed]:hover, .roomhit[data-closed].lit, .roomhit[data-closed]:focus-visible { background: rgba(18, 36, 20, .18); }
+.roomhit[data-closed] { background: color-mix(in srgb, var(--shade) 30%, transparent); }
+.roomhit[data-closed]:hover, .roomhit[data-closed].lit, .roomhit[data-closed]:focus-visible { background: color-mix(in srgb, var(--shade) 18%, transparent); }
 .mm-room.closed { opacity: .4; }
 /* the first run: the wizard, one step at a time, in the pack's panel */
 .steps { display: flex; gap: 6px; justify-content: center; }
 .steps span { width: 8px; height: 8px; background: var(--ink); opacity: .25; }
 .steps span.on { opacity: 1; }
 .counter { display: flex; align-items: center; gap: 12px; }
-.counter b { font: 36px/44px var(--pixel); min-width: 2ch; text-align: center; }
+.counter b { font: calc(2 * var(--px-size))/calc(2 * var(--px-line)) var(--pixel); min-width: 2ch; text-align: center; }
 ul.roomgrid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
-.roomgrid .btn { width: 100%; text-align: center; padding: 0; overflow: hidden; text-overflow: ellipsis; font-size: 18px; }
+.roomgrid .btn { width: 100%; text-align: center; padding: 0; overflow: hidden; text-overflow: ellipsis; font-size: var(--px-size); }
 .roomgrid li[data-open="false"] .btn { opacity: .4; }
 .repo { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .repo code { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; font-size: .85rem; }
 .repo select { flex: 0 1 180px; }
 ul.how { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: .85rem; }
-ul.how b { display: block; font: 18px/22px var(--pixel); font-weight: normal; }
+ul.how b { display: block; font: var(--px-size)/var(--px-line) var(--pixel); font-weight: normal; }
 /* the install lines and the drop zone: the pack's pressed-in field */
-.dlg pre, .dropzone { margin: 0; padding: 8px 10px; font-size: .8rem; white-space: pre-wrap; overflow-wrap: anywhere; background: #DCE0D2 padding-box;
+.dlg pre, .dropzone { margin: 0; padding: 8px 10px; font-size: .8rem; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--well) padding-box;
   border: solid transparent; border-width: calc(var(--field-t) * var(--u)); border-image: var(--art-field) var(--field-s) fill / var(--field-w) stretch; }
-.dropzone { text-align: center; color: var(--ink-soft); font: 18px/22px var(--pixel); padding: 18px 10px; }
-.dropzone.drop-on { background-color: #C0D470; }
+.dropzone { text-align: center; color: var(--ink-soft); font: var(--px-size)/var(--px-line) var(--pixel); padding: 18px 10px; }
+.dropzone.drop-on { background-color: var(--go); }
 .dlg ul.sum { margin: 0; padding: 0 0 0 18px; font-size: .9rem; }
 /* dialogs: a panel over the dimmed cabin */
 dialog { padding: calc(2 * var(--u)) calc(4 * var(--u)); width: min(500px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); color: var(--ink); overflow: auto; }
-dialog::backdrop { background: rgba(18, 36, 20, .55); }
+dialog::backdrop { background: color-mix(in srgb, var(--shade) 55%, transparent); }
 .dlg { padding: 4px 2px; display: grid; gap: 12px; }
-.dlg h2 { font: 36px/44px var(--pixel); margin: 0; text-wrap: balance; overflow-wrap: anywhere; }
-.dlg h2.long { font-size: 18px; line-height: 24px; }
+.dlg h2 { font: calc(2 * var(--px-size))/calc(2 * var(--px-line)) var(--pixel); margin: 0; text-wrap: balance; overflow-wrap: anywhere; }
+.dlg h2.long { font-size: var(--px-size); line-height: calc(var(--px-size) + 6px); }
 .dlg .head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: end; }
 .portrait { width: calc(112px + 14 * var(--u)); height: calc(96px + 14 * var(--u)); position: relative; overflow: hidden; background: var(--art-meadow) 0 0 / 224px 64px padding-box;
   border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
 .portrait .spr { bottom: 2px; transform: translateX(-50%) scale(1.4); }
 .portrait .spr.s-idle, .portrait .spr.s-box { transform: translateX(-50%) scale(2.4); }
 .mood { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; font-weight: 800; }
-.ask-box { display: flex; gap: 8px; align-items: center; padding: 0 4px; overflow-wrap: anywhere; font-weight: 700; background: #DCE0D2 padding-box;
+.ask-box { display: flex; gap: 8px; align-items: center; padding: 0 4px; overflow-wrap: anywhere; font-weight: 700; background: var(--well) padding-box;
   border-style: solid; border-color: transparent; border-width: var(--bubble-w); border-image: var(--art-bubble) var(--bubble-s) fill / var(--bubble-w) stretch; }
 div.ask-box:not(:has(.face-ico)) { font-weight: 600; }
 dl.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: .9rem; }
 dl.facts dt { color: var(--ink-soft); font-weight: 700; }
 dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 .field { display: grid; gap: 2px; font-size: .9rem; }
-.field > span { font: 18px/22px var(--pixel); }
-.field input[type="radio"] { border: 0; border-image: none; width: auto; accent-color: #93B259; }
+.field > span { font: var(--px-size)/var(--px-line) var(--pixel); }
+.field input[type="radio"] { border: 0; border-image: none; width: auto; accent-color: var(--accent); }
 .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
 .row > .field { flex: 1 1 160px; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; }
 .actions .spacer { flex: 1; }
 .note { font-size: .8rem; color: var(--ink-soft); margin: 0; }
 /* a folded section (Manage on a card, a project's map and audit): the pack's triangle turns down when open */
-.dlg details > summary { display: flex; align-items: center; gap: 8px; width: max-content; max-width: 100%; list-style: none; font: 18px/22px var(--pixel); cursor: var(--point); }
+.dlg details > summary { display: flex; align-items: center; gap: 8px; width: max-content; max-width: 100%; list-style: none; font: var(--px-size)/var(--px-line) var(--pixel); cursor: var(--point); }
 .dlg details > summary::-webkit-details-marker { display: none; }
 .dlg details > summary::before { content: ""; flex: none; width: 7px; height: 12px; background: var(--art-pointer) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; }
 .dlg details[open] > summary::before { transform: rotate(90deg); }
@@ -412,17 +448,17 @@ details.more > * + * { margin-top: 10px; }
 /* the Rooms editor: the cabin cropped to the house in the pack's frame, each room a tab (brackets and a green
    sign when chosen, the arrow on the room new cats come in to), then the chosen room's card */
 dialog.wide { width: min(600px, calc(100vw - 24px)); }
-.plan { position: relative; box-sizing: content-box; overflow: clip; background: #8FBF4F padding-box;
+.plan { position: relative; box-sizing: content-box; overflow: clip; background: var(--lawn) padding-box;
   border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; image-rendering: pixelated; }
 .plan-art { position: absolute; filter: var(--scene); }
 .plan-art img { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
 .plan[data-floor="ground"] .plan-art .upper { display: none; }
 .planfloors { display: flex; gap: 6px; }
 .planfloors .fl { display: flex; align-items: center; gap: 6px; }
-.planfloors .fl[aria-checked="true"] { border-image-source: var(--art-button-down); border-image-slice: var(--down-s) fill; translate: 0 calc(2 * var(--u)); background-color: #CDB793; }
+.planfloors .fl[aria-checked="true"] { border-image-source: var(--art-button-down); border-image-slice: var(--down-s) fill; translate: 0 calc(2 * var(--u)); background-color: var(--pressed); }
 .rt { position: absolute; padding: 0; background: transparent; border: 0 solid transparent; }
-.rt:hover { background: rgba(255, 250, 225, .16); }
-.rt[aria-selected="true"], .rt:focus-visible { outline: 0; background: rgba(255, 250, 225, .2);
+.rt:hover { background: color-mix(in srgb, var(--glow) 16%, transparent); }
+.rt[aria-selected="true"], .rt:focus-visible { outline: 0; background: color-mix(in srgb, var(--glow) 20%, transparent);
   border-image: var(--art-corners) var(--corners-s) / var(--corners-w) stretch; }
 .rt .tag { left: calc(8 * var(--u)); top: calc(9 * var(--u)); max-width: calc(100% - 16 * var(--u)); display: block; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .rt:not([aria-selected="true"]):not(:hover):not(:focus-visible) .tag { display: none; }
@@ -436,27 +472,27 @@ dialog.wide { width: min(600px, calc(100vw - 24px)); }
 .rcard { display: grid; gap: 8px; }
 .rcard .open { justify-self: start; }
 .rcard[hidden] { display: none; }
-.rcard h3 { margin: 0; font: 18px/22px var(--pixel); overflow-wrap: anywhere; }
+.rcard h3 { margin: 0; font: var(--px-size)/var(--px-line) var(--pixel); overflow-wrap: anywhere; }
 .rcard h3 span { font: 500 .8rem var(--body); color: var(--ink-soft); }
-.kicker { margin: 0; font: 18px/22px var(--pixel); color: var(--ink-soft); }
+.kicker { margin: 0; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink-soft); }
 .dlg .blurb { margin: 0; color: var(--ink-soft); overflow-wrap: anywhere; }
 .pilelist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 /* a project in a cabinet: the pack's pressed-in button, a well in the panel */
 .proj { display: grid; gap: 8px; padding: 2px 4px;
   border-style: solid; border-color: transparent; border-width: var(--down-w); border-image: var(--art-button-down) var(--down-s) fill / var(--down-w) stretch; image-rendering: pixelated; }
 .proj-head { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; align-items: center; }
-.proj-head h3 { margin: 0; font: 18px/22px var(--pixel); overflow-wrap: anywhere; }
+.proj-head h3 { margin: 0; font: var(--px-size)/var(--px-line) var(--pixel); overflow-wrap: anywhere; }
 .proj-pic { width: 56px; height: 48px; position: relative; overflow: hidden; background: var(--art-meadow) 0 0 / 112px 32px; }
 .proj-pic .spr { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%) scale(1.3); transform-origin: 50% 100%; }
 .item.file { padding-right: 4px; text-decoration: none; }
-.item .branch { font: 600 .75rem/1.3 ui-monospace, "Cascadia Mono", monospace; }
+.item .branch { font: 600 .75rem/1.3 var(--mono); }
 .status .copy { color: var(--ink-soft); font-weight: 500; flex-basis: 100%; }
-.status .btn { font-size: 18px; }
+.status .btn { font-size: var(--px-size); }
 
 /* the brain: a veil while files are dragged over the house, the cat or room they'd go to lit up */
-.veil { position: absolute; inset: 0; z-index: 25; pointer-events: none; background: rgba(40, 24, 10, .28); display: grid; place-items: start center; padding-top: calc(10 * var(--u) + 40px); }
-.veil .tag { position: static; font-size: 18px; }
-.cat.drop-on, .roomhit.drop-on { outline: 0; border: solid transparent; border-width: calc(var(--corners-t) * 1px); border-image: var(--art-corners) var(--corners-s) / var(--corners-px) stretch; border-image-outset: 5px; background: rgba(255, 250, 225, .18); }
+.veil { position: absolute; inset: 0; z-index: 25; pointer-events: none; background: color-mix(in srgb, var(--veil) 28%, transparent); display: grid; place-items: start center; padding-top: calc(10 * var(--u) + 40px); }
+.veil .tag { position: static; font-size: var(--px-size); }
+.cat.drop-on, .roomhit.drop-on { outline: 0; border: solid transparent; border-width: calc(var(--corners-t) * 1px); border-image: var(--art-corners) var(--corners-s) / var(--corners-px) stretch; border-image-outset: 5px; background: color-mix(in srgb, var(--glow) 18%, transparent); }
 .roomhit.drop-on { border-image-outset: 0; }
 .cat.dragging { opacity: .35; }
 .ghost { position: fixed; z-index: 45; pointer-events: none; transform: translate(-50%, -85%) scale(1.6); transform-origin: 50% 100%; }
@@ -468,7 +504,7 @@ ul.files .why { grid-column: 1 / -1; font-size: .78rem; color: var(--ink-soft); 
 ul.files select { max-width: 190px; }
 ul.thread li { padding: 0 4px; font-size: .88rem; overflow-wrap: anywhere; white-space: pre-wrap; background: var(--cream) padding-box;
   border-style: solid; border-color: transparent; border-width: var(--btn-px); border-image: var(--art-button) var(--btn-s) fill / var(--btn-px) stretch; }
-ul.thread li.them { background-color: #DCE0D2; border-image-source: var(--art-bubble); border-image-slice: var(--bubble-s) fill; border-width: var(--bubble-px); margin-right: 24px; }
+ul.thread li.them { background-color: var(--well); border-image-source: var(--art-bubble); border-image-slice: var(--bubble-s) fill; border-width: var(--bubble-px); margin-right: 24px; }
 ul.thread li.me { margin-left: 24px; }
 ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-soft); }
 /* the queen's card: her dialogue, like an NPC's */
@@ -493,9 +529,9 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 /* they take only as much width as they are drawn at, and the talk has the rest: the fixed 168 and 160 px columns
    left the words a strip too narrow to read on her screen */
 .qstage { position: relative; height: min(62vh, 520px); min-height: 300px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
-  overflow: hidden; image-rendering: pixelated; background: #7D8579 var(--art-house) no-repeat; background-size: 3840px 2304px;
+  overflow: hidden; image-rendering: pixelated; background: var(--scene-face) var(--art-house) no-repeat; background-size: 3840px 2304px;
   background-position: -1120px -1010px; border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
-.qstage::before { content: ""; position: absolute; inset: 0; background: rgba(28, 22, 16, .3); pointer-events: none; }
+.qstage::before { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--scene-shade) 30%, transparent); pointer-events: none; }
 .qstage::after { content: ""; position: absolute; inset: 0; pointer-events: none; filter: var(--scene); }
 .qstage > * { position: relative; min-width: 0; min-height: 0; }
 /* zoom, not a transform: it scales the figure's own pixel offsets too, so the crown stays on her head. What it
@@ -503,8 +539,9 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
    (.8 × 2.5 and .6 × 10/3 are both 2): drawn on a fraction of a pixel, the pack's art blurs. */
 .owner, .qchar { zoom: .8; }
 .owner { align-self: end; justify-self: start; margin: 0 0 -2px 4px; }
-.owner svg { display: block; width: 150px; height: auto; }
-.ownerprev svg { display: block; width: 112px; height: auto; }
+.owner svg, .owner img { display: block; width: 150px; height: auto; }
+.ownerprev svg, .ownerprev img { display: block; width: 112px; height: auto; }
+.ownerimg { image-rendering: pixelated; }
 .qchar { align-self: end; justify-self: end; width: 150px; height: 190px; margin-right: 4px; }
 .qchar .spr { position: absolute; left: 50%; bottom: 2px; transform-origin: 50% 100%; transform: translateX(-50%) scale(2.6); }   /* the sheets face left: toward her */
 .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(5); }
@@ -534,9 +571,9 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 .qsettings { position: absolute; inset: 0; z-index: 5; overflow: auto; display: grid; gap: 12px; align-content: start; padding: 6px calc(4 * var(--u));
   border: solid transparent; border-width: var(--panel-w); border-image: var(--art-panel) var(--panel-s) fill / var(--panel-w) stretch; background: var(--tan) padding-box; }
 .qsettings .shead { display: flex; align-items: center; gap: 8px; }
-.qsettings .shead h3 { margin: 0; flex: 1; font: 36px/44px var(--pixel); }
+.qsettings .shead h3 { margin: 0; flex: 1; font: calc(2 * var(--px-size))/calc(2 * var(--px-line)) var(--pixel); }
 .ownerprev { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: end; }
-.ownerprev .pic { padding: 6px 8px 0; background: #7D8579 padding-box; border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
+.ownerprev .pic { padding: 6px 8px 0; background: var(--scene-face) padding-box; border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
 /* a card this narrow has no width to spare for them: drawn smaller, they leave the words two thirds of the scene
    instead of half. Without this step the talk is back to the strip this whole change is about. */
 @media (max-width: 780px) {
@@ -549,8 +586,8 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
   .qstage { height: min(58vh, 520px); grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
   .qtalk { grid-area: 1 / 1; grid-template-rows: fit-content(calc(100% - 56px)) minmax(0, 1fr); }   /* a smaller floor: a phone has barely the height for a whole quiz card */
   .owner, .qchar { grid-area: 2 / 1; zoom: 1; }
-  .qhead h2 { font: 18px/24px var(--pixel); }   /* the pack's font draws at 18 or 36: at 36 her name broke mid-word beside Settings and Close */
-  .owner svg { width: 62px; }
+  .qhead h2 { font: var(--px-size)/calc(var(--px-size) + 6px) var(--pixel); }   /* the pack's font draws at 18 or 36: at 36 her name broke mid-word beside Settings and Close */
+  .owner svg, .owner img { width: 62px; }
   .qchar { width: 76px; height: 110px; }
   .qchar .spr { transform: translateX(-50%) scale(1.4); }
   .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(2.6); }
@@ -560,8 +597,8 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 }
 /* her homework: a quiz a blocked cat, answered by tapping */
 .homework { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }   /* stated, so a long option can't widen the card and scroll her card sideways */
-.homework .quiz { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 4px 6px 6px; background: #DCE0D2 padding-box; border: solid transparent; border-width: calc(var(--bubble-t) * 1px); border-image: var(--art-bubble) var(--bubble-s) fill / var(--bubble-px) stretch; }
-.homework .quiz h3 { margin: 0; font: 18px/22px var(--pixel); }
+.homework .quiz { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 4px 6px 6px; background: var(--well) padding-box; border: solid transparent; border-width: calc(var(--bubble-t) * 1px); border-image: var(--art-bubble) var(--bubble-s) fill / var(--bubble-px) stretch; }
+.homework .quiz h3 { margin: 0; font: var(--px-size)/var(--px-line) var(--pixel); }
 .homework .quiz fieldset { border: 0; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; }   /* a fieldset is min-content wide by default: without this one option sets the card's width */
 .homework .quiz legend { padding: 0; font-weight: 700; font-size: .9rem; }
 .homework .quiz .opts { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -572,7 +609,7 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 .homework .card .note-text { white-space: pre-wrap; max-height: 30vh; overflow: auto; font-size: .9rem; margin: 0; }
 .days { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: .9rem; }
 .days label { display: inline-flex; align-items: center; gap: 3px; }
-.days input, .field input[type="range"] { accent-color: #93B259; }
+.days input, .field input[type="range"] { accent-color: var(--accent); }
 .field input[type="range"] { border: 0; border-image: none; padding: 0; }
 .routines > * + * { margin-top: 8px; }
 .rules li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: start; }
@@ -586,12 +623,12 @@ dialog.maps { width: min(1120px, calc(100vw - 24px)); }
 .mapgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 10px; align-items: start; }
 .mapcard.wide { grid-column: 1 / -1; }   /* the whole row, however many columns fit */
 .mapcard .mt { display: flex; align-items: center; gap: 6px; }
-.mapcard .mt h3 { flex: 1; margin: 0; font: 18px/22px var(--pixel); overflow-wrap: anywhere; }
+.mapcard .mt h3 { flex: 1; margin: 0; font: var(--px-size)/var(--px-line) var(--pixel); overflow-wrap: anywhere; }
 .mapcard .star { flex: none; width: 10px; height: 8px; transform: scale(2); margin: 0 6px; image-rendering: pixelated; background: var(--art-stars) 0 0 / 20px 8px no-repeat; }
 .mapcard .tools { display: flex; flex-wrap: wrap; gap: 4px; }
 .mapcard .tools .btn .pi { margin: -2px 0; }
-.mapcard .manage-tools > summary { font-size: 18px; }
-.gart { background: #F4E6C8 padding-box; border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; image-rendering: pixelated; }
+.mapcard .manage-tools > summary { font-size: var(--px-size); }
+.gart { background: var(--paper) padding-box; border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; image-rendering: pixelated; }
 .gart svg { display: block; width: 100%; height: auto; }
 .gart line { stroke: var(--ink-soft); stroke-opacity: .35; stroke-width: 1; }
 ul.gkey { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: .82rem; overflow-wrap: anywhere; }
@@ -614,24 +651,26 @@ ul.gkey li > div.what { flex-basis: 100%; }
   .spr, .cat.m-meow { animation: none !important; }
   .world, .meadow { transition: none; }
 }
-/* The art: a slot a row, its picture in the pack's pressed-in well, hers marked green */
-.artgroup > summary { font: 18px/22px var(--pixel); cursor: var(--point); display: flex; gap: 6px; align-items: center; padding: 2px 0; }
+/* The look: a slot or a token a row, its picture in the pack's pressed-in well, hers marked green */
+ul.art .pic input[type="color"] { width: 44px; height: 32px; padding: 0; border: 0; background: none; cursor: var(--point); }
+ul.art .pic input[type="text"] { width: 56px; font: inherit; font-size: .8rem; text-align: center; background: var(--field-face); border: 0; padding: 2px; }
+.artgroup > summary { font: var(--px-size)/var(--px-line) var(--pixel); cursor: var(--point); display: flex; gap: 6px; align-items: center; padding: 2px 0; }
 ul.art { list-style: none; margin: 4px 0 8px; padding: 0; display: grid; gap: 8px; }
 ul.art > li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; }
-ul.art .pic { width: 64px; height: 48px; display: grid; place-items: center; overflow: hidden; background: #DCE0D2 padding-box;
+ul.art .pic { width: 64px; height: 48px; display: grid; place-items: center; overflow: hidden; background: var(--well) padding-box;
   border: solid transparent; border-width: var(--down-px); border-image: var(--art-button-down) var(--down-s) fill / var(--down-px) stretch; image-rendering: pixelated; }
 ul.art .pic img { max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: pixelated; }
-ul.art .pic .aa { font: 18px/18px var(--pixel); }
+ul.art .pic .aa { font: var(--px-size)/var(--px-size) var(--pixel); }
 ul.art .txt { display: grid; min-width: 0; font-size: .8rem; line-height: 1.35; }
-ul.art .txt b { font: 18px/22px var(--pixel); font-weight: normal; }
+ul.art .txt b { font: var(--px-size)/var(--px-line) var(--pixel); font-weight: normal; }
 ul.art .what, ul.art .size { color: var(--ink-soft); }
 ul.art .from { font-weight: 800; }
-ul.art .from.mine { color: #3D5A1E; }
-ul.art .problem, .swap .problem { color: #8A2B1F; font-weight: 700; margin: 0; }
+ul.art .from.mine { color: var(--good); }
+ul.art .problem, .swap .problem { color: var(--bad); font-weight: 700; margin: 0; }
 ul.art .acts { display: grid; gap: 4px; justify-items: end; }
-.swap { grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 6px; background: #DCE0D2 padding-box;
+.swap { grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 6px; background: var(--well) padding-box;
   border: solid transparent; border-width: var(--bubble-px); border-image: var(--art-bubble) var(--bubble-s) fill / var(--bubble-px) stretch; }
-.swap img { max-width: 120px; max-height: 96px; image-rendering: pixelated; background: #C1C8B9; }
+.swap img { max-width: 120px; max-height: 96px; image-rendering: pixelated; background: var(--field-face); }
 .swap .fields { display: grid; gap: 6px; min-width: 0; }
 @media (max-width: 560px) { ul.art > li { grid-template-columns: 48px minmax(0, 1fr); } ul.art .pic { width: 48px; height: 40px; } ul.art .acts { grid-column: 2; justify-items: start; grid-auto-flow: column; } .swap { grid-template-columns: minmax(0, 1fr); } }
 </style>
@@ -833,7 +872,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // slot, never the file, so any piece can be swapped for her own drawing, or another pack's, with no change to the
   // code: plug and play. A skin says which. It comes from art/skin.json beside the page (a folder copy, the bundle or
   // a publish: tools/skin.py writes it from art/skin/), then from the skin collection, one document a slot, which
-  // The art in the House menu writes; the collection wins. A slot says what it is and the size it is drawn at, so a
+  // The look in the House menu writes; the collection wins. A slot says what it is and the size it is drawn at, so a
   // swap is checked before it is used:
   //   slice  a 9-slice: any size, with its border (top, right, bottom, left, in its own pixels). A family (the
   //          button and its hover, green and pink) shares the head's border;
@@ -848,6 +887,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "cat-meow":      { group: "Cats", kind: "cat", name: "Meowing cat", file: LIC + "pochi.png", size: [256, 435], mood: "meow", frames: 2, secs: 0.5, what: "Needs her: sitting up, mouth open." },
     "cat-cry":       { group: "Cats", kind: "cat", name: "Upset cat", file: LIC + "pochi.png", size: [256, 435], mood: "cry", frames: 4, secs: 0.7, what: "The last run failed: hunched, ears flat." },
     "cat-sleep":     { group: "Cats", kind: "cat", name: "Sleeping cat", file: LIC + "pochi.png", size: [256, 435], mood: "sleep", frames: 4, secs: 2.4, what: "Nothing to do: curled up, breathing." },
+    "owner":         { group: "Cats", kind: "sheet", name: "You, from behind", file: null, size: [30, 40], what: "You in your armchair, in the queen's scene. Until there is one, you are drawn from the look you chose there." },
     "cat-walk-side": { group: "Cats", kind: "cat", name: "Walking cat", file: null, mood: "walk", frames: 6, secs: 0.6, what: "Every walk, drawn facing right. Until there is one, a walking cat is the working cat, hopping." },
     "house":         { group: "The house", kind: "exact", name: "Ground floor", file: LIC + "house.png", size: [960, 576], what: "Floors, walls, glass and the facade, downstairs." },
     "house-upper":   { group: "The house", kind: "exact", name: "Upstairs", file: LIC + "house-upper.png", size: [960, 576], what: "Her own rooms, over the back of the house." },
@@ -877,7 +917,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "logo":          { group: "Interface", kind: "sheet", name: "Logo", file: LIC + "ui/logo.png", size: [21, 18], what: "The brand: a cat face in a bubble." },
     "cursor":        { group: "Interface", kind: "exact", name: "Paw", file: LIC + "ui/cursor.png", size: [32, 32], what: "The pointer: a cursor isn't scaled, so draw it at 16 and save it doubled." },
     "cursor-point":  { group: "Interface", kind: "exact", name: "Pointing paw", file: LIC + "ui/cursor-point.png", size: [32, 32], what: "The pointer over something to click." },
-    "font":          { group: "Interface", kind: "font", name: "Pixel font", file: LIC + "ui/sprout.ttf", what: "Titles, labels and buttons, at 18 px." },
+    "font":          { group: "Type", kind: "font", name: "Pixel font", file: LIC + "ui/sprout.ttf", token: "--pixel", what: "Titles, labels and buttons. Set its size under Sizes, one font pixel a screen pixel." },
+    "font-body":     { group: "Type", kind: "font", name: "Text font", file: null, token: "--body", what: "Everything you read: Nunito from Google Fonts until you give one." },
+    "font-display":  { group: "Type", kind: "font", name: "Round font", file: null, token: "--display", what: "Where the pixel font has no letter: Fredoka from Google Fonts until you give one." },
     "map-panel":     { group: "Map panel", kind: "slice", fam: "mpanel", name: "Map panel", file: LIC + "pastel/panel.png", size: [300, 150], slice: [28, 28, 28, 28], scale: 0.5, what: "The camera's panel, top right." },
     "map-panel-dark": { group: "Map panel", kind: "slice", fam: "mpanel", name: "Map panel, at night", file: LIC + "pastel/panel-dark.png", size: [300, 150], what: "The same in the dark theme. Its border is the panel's." },
     "map-button":    { group: "Map panel", kind: "slice", fam: "mbtn", name: "Map button", file: LIC + "pastel/button.png", size: [270, 81], slice: [20, 22, 24, 22], scale: 0.5, what: "Zoom, the whole house, the floors and the fold." },
@@ -886,8 +928,44 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "map-frame":     { group: "Map panel", kind: "slice", fam: "mframe", name: "View frame", file: LIC + "pastel/frame.png", size: [300, 150], slice: [28, 28, 28, 28], scale: 6 / 28, what: "The camera's view on the minimap: a border, empty in the middle." },
     "map-icons":     { group: "Map panel", kind: "sheet", name: "Map icons", file: LIC + "pastel/icons.png", size: [180, 36], what: "Five cells: plus, minus, up, down, the whole house." },
   };
+  // The rest of the design system: every colour, font size and scale the CSS uses is a token in :root, and these are
+  // they, for The look. A skin sets any of them ("tokens" in art/skin.json, or skin/theme), checked first: a colour is
+  // six hex digits, a size a length in px or rem.
+  const TOKENS = {
+    "--ink": ["Colours", "Ink", "Outlines and words."], "--ink-soft": ["Colours", "Soft ink", "Second lines, captions."],
+    "--tan": ["Colours", "Panel", "A menu's and a dialog's face, under the panel art."], "--cream": ["Colours", "Cream", "A button's face, under the button art."],
+    "--well": ["Colours", "Well", "An ask, a thread's reply, a quiz, the drop zone."], "--field-face": ["Colours", "Field", "Where you type."],
+    "--placeholder": ["Colours", "Hint", "The hint in an empty field."], "--go": ["Colours", "Go", "Green buttons, a chosen mood."],
+    "--letgo": ["Colours", "Let go", "Pink buttons."], "--pressed": ["Colours", "Pressed", "A button held in."],
+    "--disabled": ["Colours", "Off", "A button that can't be used yet."], "--accent": ["Colours", "Accent", "Switches, ticks and sliders."],
+    "--good": ["Colours", "Good", "Yours, done, kept."], "--bad": ["Colours", "Wrong", "What went wrong."],
+    "--grass": ["Colours", "Grass", "Behind everything."], "--lawn": ["Colours", "Lawn", "The ground under the house, and the plan's."],
+    "--credits": ["Colours", "Credits", "The line of credits at the foot."], "--credits-edge": ["Colours", "Credits' edge", "Its outline, so it reads on the grass."],
+    "--paper": ["Colours", "Paper", "Behind a project map."], "--scene-face": ["Colours", "Scene", "Behind the queen's scene."],
+    "--scene-shade": ["Colours", "Scene shade", "Over the scene's floor, so the words read."], "--glow": ["Colours", "Glow", "A lit room, cat or stair."],
+    "--mi-lit": ["Colours", "Menu glow", "The menu item under the pointer."], "--shade": ["Colours", "Shade", "A closed room, and behind a dialog."],
+    "--dim": ["Colours", "Downstairs, dimmed", "The ground floor under the upper one."], "--veil": ["Colours", "Veil", "Over a room while files are dropped."],
+    "--night-sky": ["Colours", "Night", "Over the meadow in the dark theme."],
+    "--owner-chair": ["Colours", "Your armchair", "In the queen's scene."], "--owner-accent": ["Colours", "Your bow", "And what else you wear in red."],
+    "--owner-ears": ["Colours", "Your cat ears", "Their pink."], "--owner-flower": ["Colours", "Your flower", "Its petals."], "--owner-flower-heart": ["Colours", "Your flower's heart", "Its middle."],
+    "--map-face": ["Map colours", "Map panel", "Under the map panel's art."], "--map-face-dark": ["Map colours", "Map panel, at night", "The same in the dark theme."],
+    "--map-btn": ["Map colours", "Map button", "And a room on the minimap."], "--map-btn-lit": ["Map colours", "Map button, lit", "And a room that needs you."],
+    "--map-btn-down": ["Map colours", "Map button, pressed", "And the floor on screen."], "--minimap": ["Map colours", "Minimap", "Its grounds."],
+    "--mm-here": ["Map colours", "Where you are", "The room in view."], "--mm-edge": ["Map colours", "Minimap lines", "Its walls and stair."],
+    "--pip": ["Map colours", "Pip", "A dot where a cat needs you."], "--pip-fail": ["Map colours", "Pip, upset", "Where a cat's run failed."],
+    "--hue-1": ["Map colours", "Neighbourhood 1", "A project map's first group."], "--hue-2": ["Map colours", "Neighbourhood 2", ""], "--hue-3": ["Map colours", "Neighbourhood 3", ""],
+    "--hue-4": ["Map colours", "Neighbourhood 4", ""], "--hue-5": ["Map colours", "Neighbourhood 5", ""], "--hue-6": ["Map colours", "Neighbourhood 6", ""],
+    "--hue-7": ["Map colours", "Neighbourhood 7", ""], "--hue-8": ["Map colours", "Neighbourhood 8", ""], "--hue-none": ["Map colours", "The rest", "Every group after the eighth."],
+    "--px-size": ["Type", "Pixel font size", "One font pixel a screen pixel: 18px for the pack's font. Titles are twice it."],
+    "--px-line": ["Type", "Pixel font line", "The height of a line of it."], "--body-size": ["Type", "Text size", "Everything you read."],
+    "--u-desk": ["Type", "Art pixel", "How big one pixel of the art is on screen."], "--u-phone": ["Type", "Art pixel, on a phone", "The same on a narrow screen."],
+  };
+  const tokenOk = (name, v) => TOKENS[name] && typeof v === "string" && (TOKENS[name][0] === "Type" ? /^\d{1,3}(\.\d{1,3})?(px|rem)$/.test(v) : /^#[0-9a-fA-F]{6}$/.test(v));
+  const cleanTokens = (t) => Object.fromEntries(Object.entries(t && typeof t === "object" ? t : {}).filter(([k, v]) => tokenOk(k, v)));
+  // a token's value now: hers, else the stylesheet's
+  const tok = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const SPR0 = JSON.parse(JSON.stringify(SPR));   // the pack's frames, for putting a cat back
-  const SKIN = { file: {}, db: {}, live: {}, problems: {}, set: [], seq: 0, blobs: {} };
+  const SKIN = { file: {}, db: {}, live: {}, problems: {}, set: [], seq: 0, blobs: {}, fileTokens: {}, dbTokens: {}, tokens: {} };
   // a source the page made or wrote: the art beside it, an asset, a gateway file or one kept in this browser
   const safeSrc = (v) => typeof v === "string" && /^(?:art\/[\w./-]+|\/_blob\/[\w-]+|\/files\/[\w.-]+|local:[\w-]+|blob:[^\s"'()\\]+)$/.test(v) && !v.includes("..");
   const num = (v, lo, hi) => (typeof v === "number" && isFinite(v) && v >= lo && v <= hi ? v : null);
@@ -981,10 +1059,15 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         }
       }
       if (a.kind === "font") {
-        try { const f = new FontFace("KittySkin", cssUrl(e.url)); await f.load(); document.fonts.add(f); put("--pixel", '"KittySkin", "Sprout", "Fredoka", ui-rounded, system-ui, sans-serif'); }
+        const fam = "KittySkin-" + k, base = tok(a.token);
+        try { const f = new FontFace(fam, cssUrl(e.url)); await f.load(); document.fonts.add(f); put(a.token, '"' + fam + '", ' + base); }
         catch (err) { problems[k] = "The font couldn't be read."; delete live[k]; }
       }
     }
+    // the tokens: the file's, then hers from The look
+    SKIN.tokens = {};
+    for (const [from, set] of [["file", SKIN.fileTokens], ["db", SKIN.dbTokens]]) for (const [n, v] of Object.entries(set)) SKIN.tokens[n] = { value: v, from };
+    for (const [n, t] of Object.entries(SKIN.tokens)) put(n, t.value);
     if (seq !== SKIN.seq) return;
     $("skinCss").textContent = css.join("\n");
     for (const i of document.querySelectorAll("img[data-art]")) i.src = srcOf(i.dataset.art);
@@ -1000,7 +1083,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (!r.ok) return;
       const j = await r.json(), out = {};
       for (const [k, v] of Object.entries(j || {})) { const e = skinEntry(k, v); if (e) out[k] = e; }
-      SKIN.file = out;
+      SKIN.file = out; SKIN.fileTokens = cleanTokens(j && j.tokens);
       applySkin();
     } catch (e) {}   // none, or not readable here: the pack's art
   }
@@ -2114,7 +2197,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         return mi("Project maps", () => { hideMenu(); MAPS.visit++; try { openMaps(); } catch (e) { toast("A project map couldn't be drawn (" + (e && e.message || "error") + ").", "alert"); } }, { aside: shown || "" });
       })(),
       mi("Edit rooms", () => { hideMenu(); openRooms(curRoom()); }),
-      mi("The art", () => { hideMenu(); openArt(); }, { aside: Object.keys(SKIN.live).length ? Object.keys(SKIN.live).length + " yours" : "" }),
+      (() => { const n = Object.keys(SKIN.live).length + Object.keys(SKIN.tokens).length; return mi("The look", () => { hideMenu(); openArt(); }, { aside: n ? n + " yours" : "" }); })(),
       S.db && mi("Set up again…", () => { hideMenu(); openSetup(true); }),
       (VIEW.attic || S.showOld) && mi(S.showOld ? "Send them back up" : "Bring them down", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }),
       S.mcp && mi("Check now", () => watch(true)),
@@ -2322,11 +2405,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     db.collection("queens").onSnapshot((snap) => { const q = {}; for (const d of snap.docs) q[d.id] = d.data(); S.queens = q; render(); }, fail);
     db.collection("routines").onSnapshot((snap) => { const r = {}; for (const d of snap.docs) r[d.id] = d.data(); S.routines = r; if (QUEEN_UI) QUEEN_UI.routines(); }, fail);
     const list = (name, into) => db.collection(name).onSnapshot((snap) => { into(snap.docs.map((d) => Object.assign({ id: d.id }, d.data()))); render(); }, fail);
-    // her own art, one document a slot: what The art writes, drawn as soon as it lands
+    // her own design: one document a slot, and skin/theme for the tokens, as The look writes them, drawn as they land
     db.collection("skin").onSnapshot((snap) => {
-      const out = {};
+      const out = {}, theme = snap.docs.find((d) => d.id === "theme"), tokens = cleanTokens(theme && theme.data().tokens);
       for (const d of snap.docs) { const e = skinEntry(d.id, d.data()); if (e) out[d.id] = e; }
-      if (JSON.stringify(out) !== JSON.stringify(SKIN.db)) { SKIN.db = out; applySkin(); }
+      if (JSON.stringify(out) !== JSON.stringify(SKIN.db) || JSON.stringify(tokens) !== JSON.stringify(SKIN.dbTokens)) { SKIN.db = out; SKIN.dbTokens = tokens; applySkin(); }
     }, fail);
     list("brain", (v) => { S.brain = v; });
     list("notes", (v) => {
@@ -2543,9 +2626,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   const ownerOf = () => Object.assign({ hair: "long", hairColor: 0, skin: 0, top: 0, extra: "bow" }, (S.house && S.house.owner) || {});
   const tone = (hex, f) => "#" + [1, 3, 5].map((i) => Math.max(0, Math.min(255, Math.round(parseInt(hex.slice(i, i + 2), 16) * f))).toString(16).padStart(2, "0")).join("");
   function ownerSVG(o) {
+    if (skinOf("owner")) { const i = el("img", "ownerimg"); i.src = skinOf("owner").url; i.alt = ""; return i; }
     const W = 30, H = 40, px = Array.from({ length: H }, () => Array(W).fill(null));
     const pick = (list, i) => (list[i] || list[0])[1];
-    const hair = pick(OWNER.hairColor, o.hairColor), skin = pick(OWNER.skin, o.skin), top = pick(OWNER.top, o.top), chair = "#E7B9A8", accent = "#E06C8C";
+    const hair = pick(OWNER.hairColor, o.hairColor), skin = pick(OWNER.skin, o.skin), top = pick(OWNER.top, o.top), chair = tok("--owner-chair"), accent = tok("--owner-accent");
     // paint(test, colour): every grid cell whose centre passes test, in her own coordinates (one cell in from the edge)
     const paint = (test, colour) => { for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const u = x - .5, v = y - .5; if (test(u, v)) px[y][x] = typeof colour === "function" ? colour(u, v) : colour; } };
     const circle = (cx, cy, r) => (x, y) => (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
@@ -2566,13 +2650,13 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (o.extra === "ears") {
       const ear = (cx, k, b) => (x, y) => y >= b && y <= 5 && Math.abs(x - cx) <= (y - b) * k + .5;
       paint((x, y) => ear(9, .6, 0)(x, y) || ear(19, .6, 0)(x, y), hair);
-      paint((x, y) => ear(9, .35, 2.2)(x, y) || ear(19, .35, 2.2)(x, y), "#F2A7BA");
+      paint((x, y) => ear(9, .35, 2.2)(x, y) || ear(19, .35, 2.2)(x, y), tok("--owner-ears"));
     }
-    if (o.extra === "flower") { paint(circle(20.5, 4.5, 2.3), "#FFF6E0"); paint(circle(20.5, 4.5, 1), "#E8B23A"); }
+    if (o.extra === "flower") { paint(circle(20.5, 4.5, 2.3), tok("--owner-flower")); paint(circle(20.5, 4.5, 1), tok("--owner-flower-heart")); }
     paint((x, y) => rect(.5, 26, 27.5, 38.4)(x, y) && !(y < 29 && ((x < 3 && (x - 3) ** 2 + (y - 29) ** 2 > 9) || (x > 25 && (x - 25) ** 2 + (y - 29) ** 2 > 9))),
       (x, y) => (y < 27.5 ? tone(chair, 1.08) : x < 4 || x > 24 ? tone(chair, .86) : chair));
     // the outline: every empty cell that touches her, in the panels' ink
-    const ink = "#3F2A20", out = px.map((row) => row.slice());
+    const ink = tok("--ink"), out = px.map((row) => row.slice());
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!px[y][x] && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => (px[y + dy] || [])[x + dx])) out[y][x] = ink;
     let rects = "";
     for (let y = 0; y < H; y++) for (let x = 0; x < W; ) {
@@ -3120,8 +3204,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
 
   // A project's map, from graphify (the catio skill's graph_doc.py saves it as graphs/<repo>): its ideas as
   // dots coloured by neighbourhood, the hubs, the surprising links, and questions a cat can answer from it.
-  const HUES = ["#5E8F34", "#C0587A", "#3F7FA6", "#D08A2E", "#7B5EA7", "#2E8C7F", "#A6503A", "#8C7B2E"];
-  const hue = (i) => HUES[i] || "#9A8878";
+  const hue = (i) => tok(i < 8 ? "--hue-" + (i + 1) : "--hue-none");   // the design system's, so a skin recolours them
   function projectMap(gm, cat) {
     const d = el("details", "gmap");
     d.appendChild(el("summary", null, "Project map, " + ago(gm.at)));
@@ -4112,7 +4195,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     }
     return bar;
   }
-  /* ---------- The art: her own pieces, a slot at a time ---------- */
+  /* ---------- The look: her own design, a token or a slot at a time ---------- */
   // The House menu's card for the skin: every slot, what it is and the size it is drawn at, hers in place of the
   // pack's where she gave one. Replace… takes a file and checks it against the slot, asks for a 9-slice's border or
   // a cat's frames, keeps it with assets and writes skin/<slot>; Put back deletes that document. A reader sees the
@@ -4123,7 +4206,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   const borderOf = (k) => { const h = headOf(k), e = skinOf(h); return (e && e.slice) || ART[h].slice; };
   function artLine(k) {
     const a = ART[k], e = skinOf(k);
-    if (a.kind === "font") return "A font file: .ttf, .otf or .woff.";
+    if (a.kind === "font") return (e ? e.name || "Yours" : a.file ? "The pack's" : "Google Fonts'") + ". A font file: .ttf, .otf or .woff.";
     if (a.kind === "cat") {
       if (e) { const n = e.frames || a.frames; return n + " frames of " + Math.round(e.w / n) + " × " + e.h + ", " + (e.secs || a.secs) + " s a loop."; }
       return a.file ? a.frames + " frames of " + SPR0[a.mood].w + " × " + SPR0[a.mood].h + ". Yours: one row of frames, the feet at the bottom middle." : "One row of " + a.frames + " frames, the feet at the bottom middle.";
@@ -4134,8 +4217,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   }
   function artPic(k) {
     const a = ART[k], e = skinOf(k), pic = el("span", "pic");
-    if (a.kind === "font") { pic.appendChild(el("span", "aa", "Aé")); return pic; }
+    if (a.kind === "font") { const aa = el("span", "aa", "Aé"); aa.style.fontFamily = "var(" + a.token + ")"; pic.appendChild(aa); return pic; }
     if (a.kind === "cat" && a.mood !== "walk") { pic.appendChild(sprite(a.mood)); return pic; }
+    if (k === "owner") { pic.appendChild(ownerSVG(ownerOf())); return pic; }
     const src = e ? e.url : a.file;
     if (src) { const i = el("img"); i.src = src; i.alt = ""; pic.appendChild(i); }
     return pic;
@@ -4151,30 +4235,65 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const dlg = $("artDlg"), top = dlg.scrollTop, open = new Set([...dlg.querySelectorAll("details[open]")].map((d) => d.dataset.group));
     dlg.replaceChildren(); dlg.classList.add("wide");
     const box = el("div", "dlg");
-    const h = el("h2", null, "The art"); h.id = "artTitle";
-    const mine = Object.values(SKIN.live).filter((e) => e.from === "db").length;
-    box.append(h, el("p", "note", "Every piece is a slot: give one your own drawing and the whole café draws with it. Draw at the size shown; docs/drawing-plan.md lists them all."));
-    const groups = [...new Set(Object.values(ART).map((a) => a.group))];
+    const h = el("h2", null, "The look"); h.id = "artTitle";
+    const mine = Object.values(SKIN.live).filter((e) => e.from === "db").length + Object.keys(SKIN.dbTokens).length;
+    box.append(h, el("p", "note", "The whole design is yours to change: every colour, font, size and piece of art. Change one and the whole café follows. Draw at the size shown; docs/drawing-plan.md lists them all."));
+    const groups = ["Colours", "Type", "Cats", "The house", "Interface", "Map panel", "Map colours"];
     for (const g of groups) {
-      const keys = Object.keys(ART).filter((k) => ART[k].group === g);
-      const yours = keys.filter((k) => skinOf(k)).length;
+      const keys = Object.keys(ART).filter((k) => ART[k].group === g), toks = Object.keys(TOKENS).filter((n) => TOKENS[n][0] === g);
+      const yours = keys.filter((k) => skinOf(k)).length + toks.filter((n) => SKIN.tokens[n]).length;
       const det = el("details", "artgroup"); det.dataset.group = g;   // redrawn as the skin changes: what she had open stays open
       det.open = (open.size ? open.has(g) : g === groups[0] || keys.some((k) => SKIN.problems[k])) || keys.some((k) => ARTPICK[k]);   // first, a piece of hers that isn't used shows
       det.appendChild(el("summary", null, g + (yours ? " · " + yours + " yours" : "")));
       const ul = el("ul", "art");
       for (const k of keys) ul.appendChild(artRow(k));
+      for (const n of toks) ul.appendChild(tokenRow(n));
       det.appendChild(ul); box.appendChild(det);
     }
     const acts = el("div", "actions");
-    if (mine && S.assets) {
-      const all = el("button", "btn pink", "Put every piece back"); all.type = "button"; all.id = "artResetAll";
-      all.addEventListener("click", () => putBack(Object.keys(SKIN.db)));
+    if (mine && S.db) {
+      const all = el("button", "btn pink", "Put everything back"); all.type = "button"; all.id = "artResetAll";
+      all.addEventListener("click", async () => { if (Object.keys(SKIN.dbTokens).length) await saveTokens({}); if (Object.keys(SKIN.db).length) await putBack(Object.keys(SKIN.db)); });
       acts.appendChild(all);
     }
     acts.append(el("span", "spacer"), closeBtn(dlg));
     box.appendChild(acts);
     dlg.appendChild(box);
     dlg.scrollTop = top;
+  }
+  // a colour or a size: a picker, what it colours, and Put back when it is hers
+  function tokenRow(n) {
+    const [, name, what] = TOKENS[n], t = SKIN.tokens[n], li = el("li"); li.dataset.token = n;
+    const size = TOKENS[n][0] === "Type", pic = el("span", "pic"), input = el("input");
+    input.id = "tok" + n; input.setAttribute("aria-label", name);
+    input.type = size ? "text" : "color"; input.value = tok(n); input.disabled = !S.db;
+    if (size) input.size = 6;
+    // she sees it at once; it is kept when she lets go (a size when it reads as one)
+    input.addEventListener("input", () => { if (tokenOk(n, input.value)) { document.documentElement.style.setProperty(n, input.value); SKIN.set.push(n); } });
+    input.addEventListener("change", () => {
+      if (!tokenOk(n, input.value)) { toast(name + " is a size like 18px or 0.95rem.", "alert"); input.value = tok(n); return; }
+      saveTokens(Object.assign({}, SKIN.dbTokens, { [n]: input.value }), name + ": yours now.");
+    });
+    pic.appendChild(input);
+    const txt = el("div", "txt");
+    txt.append(el("b", null, name));
+    if (what) txt.appendChild(el("span", "what", what));
+    txt.appendChild(el("span", "from" + (t ? " mine" : ""), t ? (t.from === "db" ? "Yours" : "From art/skin.json") : "The café's"));
+    const acts = el("div", "acts");
+    if (S.db && SKIN.dbTokens[n]) {
+      const pb = el("button", "btn tiny", "Put back"); pb.type = "button";
+      pb.addEventListener("click", () => { const left = Object.assign({}, SKIN.dbTokens); delete left[n]; saveTokens(left, name + ": the café's again."); });
+      acts.appendChild(pb);
+    }
+    li.append(pic, txt, acts);
+    return li;
+  }
+  // skin/theme holds her tokens, all in one document: written whole, from the tokens she has now
+  async function saveTokens(tokens, ok) {
+    const clean = cleanTokens(tokens);
+    if (await save((db) => (Object.keys(clean).length ? db.doc("skin/theme").set({ tokens: clean, at: Date.now() }) : db.doc("skin/theme").delete()), ok)) {
+      SKIN.dbTokens = clean; applySkin();
+    }
   }
   function artRow(k) {
     const a = ART[k], e = skinOf(k), li = el("li"); li.dataset.slot = k;

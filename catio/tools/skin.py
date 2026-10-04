@@ -11,7 +11,10 @@ frames must split its width. A 9-slice drawn at another size than the pack's nee
 its frames when they aren't square: say so in art/skin.json ("slice": [top, right, bottom, left],
 "frames": 6, "secs": 0.6), which this keeps on every run. Entries for files that have gone are dropped.
 
-The page also takes art from The art in its House menu; that wins over this file. Needs nothing but Python.
+The rest of the design system is tokens, also kept here: "tokens": {"--ink": "#3F2A20", "--px-size": "16px"}
+(TOKENS in the page lists them: colours as six hex digits, sizes in px or rem). This keeps them as they are.
+
+The page also takes art from The look in its House menu; that wins over this file. Needs nothing but Python.
 """
 import json
 import re
@@ -99,9 +102,13 @@ def main():
             note = f" ({n} frames of {w // n} x {h})"
         skin[key] = entry
         said.append(f"  {p.name}: {key}{note}")
+    tokens = old.get("tokens") if isinstance(old.get("tokens"), dict) else {}
+    if tokens:
+        skin["tokens"] = tokens
+        said.append(f"  tokens: {len(tokens)} kept ({', '.join(sorted(tokens))})")
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(skin, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"{OUT.relative_to(ROOT.parent)}: {len(skin)} of {len(art)} slots are hers")
+    print(f"{OUT.relative_to(ROOT.parent)}: {len(skin) - ('tokens' in skin)} of {len(art)} slots are hers")
     print("\n".join(said) if said else f"  (nothing in {SKIN.relative_to(ROOT.parent)} yet)")
 
 
