@@ -54,6 +54,11 @@ def slots():
         if v:
             a["frames"] = int(v.group(1))
         out[m.group(1)] = a
+    # every slot is one line of ART; a line this can't read is a change of shape to bring here, never a slot to drop
+    keys = re.findall(r'^\s+"([\w-]+)":\s*\{', block, re.M)
+    if sorted(keys) != sorted(out):
+        sys.exit(f"skin.py can't read these slots in catio/index.html's ART: {', '.join(sorted(set(keys) - set(out)))}. "
+                 "Keep each on one line with its kind, or teach slots() the new shape.")
     return out
 
 

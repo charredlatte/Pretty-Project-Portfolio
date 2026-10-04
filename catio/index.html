@@ -179,7 +179,7 @@ a { color: var(--ink); }
 /* the brand, top left: ToffeeCraft's cat-face bubble and the name on the pack's cream button. It is the House
    button: its menu holds what belongs to the whole house. When cats need you it carries a badge; the status
    sign under it shows only when something is wrong, and says how to fix it. */
-.hud { position: fixed; z-index: 31; top: calc(6 * var(--u) + 8px + env(safe-area-inset-top, 0px)); left: calc(6 * var(--u) + 8px); max-width: min(460px, calc(100vw - 12 * var(--u) - 16px));
+.hud { position: fixed; z-index: 31; top: calc(var(--panel-t) * var(--u) + 8px + env(safe-area-inset-top, 0px)); left: calc(var(--panel-l) * var(--u) + 8px); max-width: min(460px, calc(100vw - (var(--panel-l) + var(--panel-r)) * var(--u) - 16px));
   display: grid; gap: 6px; justify-items: start; }
 .hud h1 { margin: 0; font: inherit; }
 .brand { display: inline-flex; align-items: center; gap: 6px; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); padding: 0 calc(3 * var(--u)) 0 0; background: var(--cream) padding-box; white-space: nowrap;
@@ -197,8 +197,8 @@ a { color: var(--ink); }
 .hud .status .more { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .hud .status:hover .more, .hud .status:focus-within .more { position: static; width: auto; height: auto; clip-path: none; white-space: normal; }
 .hud .status.warn { padding: 0 calc(2 * var(--u)); border: solid transparent; border-width: var(--panel-w); border-image: var(--art-panel) var(--panel-s) fill / var(--panel-w) stretch; background: var(--tan) padding-box; image-rendering: pixelated; }
-.credits { position: fixed; z-index: 19; left: calc(6 * var(--u) + 8px); bottom: calc(6 * var(--u) + 4px + env(safe-area-inset-bottom, 0px)); margin: 0; font-size: .66rem; color: var(--credits); opacity: .75;
-  text-shadow: 0 1px 0 var(--credits-edge), 1px 0 0 var(--credits-edge), -1px 0 0 var(--credits-edge), 0 -1px 0 var(--credits-edge); max-width: calc(100vw - 12 * var(--u) - 16px); }
+.credits { position: fixed; z-index: 19; left: calc(var(--panel-l) * var(--u) + 8px); bottom: calc(var(--panel-b) * var(--u) + 4px + env(safe-area-inset-bottom, 0px)); margin: 0; font-size: .66rem; color: var(--credits); opacity: .75;
+  text-shadow: 0 1px 0 var(--credits-edge), 1px 0 0 var(--credits-edge), -1px 0 0 var(--credits-edge), 0 -1px 0 var(--credits-edge); max-width: calc(100vw - (var(--panel-l) + var(--panel-r)) * var(--u) - 16px); }
 .btn.sq { width: 40px; height: 40px; padding: 0; display: grid; place-items: center; }
 .btn.sq:disabled { cursor: default; background-color: var(--disabled); }
 .btn.sq:disabled > * { opacity: .35; }
@@ -215,7 +215,7 @@ a { color: var(--ink); }
    comes from that pack, what talks about the cats stays Sprout. Pastel art is smooth, drawn at twice its
    screen size, so it is scaled with smoothing, never pixelated. Each piece has its own face colour under it,
    so a copy without the licensed art is still a panel of buttons. */
-.mappanel { position: fixed; z-index: 31; top: calc(6 * var(--u) + 8px + env(safe-area-inset-top, 0px)); right: calc(6 * var(--u) + 8px);
+.mappanel { position: fixed; z-index: 31; top: calc(var(--panel-t) * var(--u) + 8px + env(safe-area-inset-top, 0px)); right: calc(var(--panel-r) * var(--u) + 8px);
   display: grid; gap: 6px; padding: 4px; border: 6px solid transparent; border-radius: 12px; background: var(--map-face);
   border-image: var(--art-map-panel) var(--mpanel-s) fill / var(--mpanel-w) stretch; image-rendering: var(--mpanel-render); }
 .mp-row { display: flex; gap: 4px; align-items: center; }
@@ -250,7 +250,7 @@ a { color: var(--ink); }
 .minimap.instant .mm-view { transition: none; }
 @media (max-width: 560px) {
   .btn.sq { width: 44px; height: 44px; }
-  .mappanel { top: auto; bottom: calc(6 * var(--u) + 8px + env(safe-area-inset-bottom, 0px)); }
+  .mappanel { top: auto; bottom: calc(var(--panel-b) * var(--u) + 8px + env(safe-area-inset-bottom, 0px)); }
   .pbtn { height: 44px; } .pbtn.sq { width: 44px; }
   .credits { display: none; }
 }
@@ -339,7 +339,7 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .badge { flex: none; display: inline-flex; align-items: center; gap: 0; }
 .badge .face-ico { margin: -7px -2px -7px 0; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.stage-msg { position: absolute; left: 50%; bottom: calc(6 * var(--u) + 10px); transform: translateX(-50%); font-size: .85rem; padding: 0 6px; max-width: calc(100% - 24px); text-align: center; }
+.stage-msg { position: absolute; left: 50%; bottom: calc(var(--panel-b) * var(--u) + 10px); transform: translateX(-50%); font-size: .85rem; padding: 0 6px; max-width: calc(100% - 24px); text-align: center; }
 
 /* a menu: the panel beside the room, cat or queen you clicked, or under the brand. Every one has the same
    shape, as short as it can be: the name (with a badge when cats need you) and one line under it; what
@@ -384,8 +384,8 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .item > .face-ico { position: absolute; right: 0; top: 0; }
 .item .thumb { width: 48px; height: 48px; position: relative; overflow: hidden; background: var(--art-meadow) 0 0 / 112px 32px; }
 .thumb .spr, .portrait .spr { position: absolute; left: 50%; bottom: 0; transform-origin: 50% 100%; }
-.item .thumb .spr { transform: translateX(-50%) scale(.72); }
-.item .thumb .spr.s-idle, .item .thumb .spr.s-box { transform: translateX(-50%) scale(1.4); }
+.item .thumb .spr { transform: translateX(-50%) scale(calc(.72 * var(--fs, 1))); }
+.item .thumb .spr.s-idle, .item .thumb .spr.s-box { transform: translateX(-50%) scale(calc(1.4 * var(--fs, 1))); }
 .item .who { font: var(--px-size)/var(--px-line) var(--pixel); }
 .item .what { font-size: .8rem; color: var(--ink-soft); overflow-wrap: anywhere; }
 .item .ask { margin-top: 3px; overflow-wrap: anywhere; }
@@ -422,10 +422,10 @@ dialog::backdrop { background: color-mix(in srgb, var(--shade) 55%, transparent)
 .dlg h2 { font: calc(2 * var(--px-size))/calc(2 * var(--px-line)) var(--pixel); margin: 0; text-wrap: balance; overflow-wrap: anywhere; }
 .dlg h2.long { font-size: var(--px-size); line-height: calc(var(--px-size) + 6px); }
 .dlg .head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: end; }
-.portrait { width: calc(112px + 14 * var(--u)); height: calc(96px + 14 * var(--u)); position: relative; overflow: hidden; background: var(--art-meadow) 0 0 / 224px 64px padding-box;
+.portrait { width: calc(112px + (var(--frame-l) + var(--frame-r)) * var(--u)); height: calc(96px + (var(--frame-t) + var(--frame-b)) * var(--u)); position: relative; overflow: hidden; background: var(--art-meadow) 0 0 / 224px 64px padding-box;
   border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
-.portrait .spr { bottom: 2px; transform: translateX(-50%) scale(1.4); }
-.portrait .spr.s-idle, .portrait .spr.s-box { transform: translateX(-50%) scale(2.4); }
+.portrait .spr { bottom: 2px; transform: translateX(-50%) scale(calc(1.4 * var(--fs, 1))); }
+.portrait .spr.s-idle, .portrait .spr.s-box { transform: translateX(-50%) scale(calc(2.4 * var(--fs, 1))); }
 .mood { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; font-weight: 800; }
 .ask-box { display: flex; gap: 8px; align-items: center; padding: 0 4px; overflow-wrap: anywhere; font-weight: 700; background: var(--well) padding-box;
   border-style: solid; border-color: transparent; border-width: var(--bubble-w); border-image: var(--art-bubble) var(--bubble-s) fill / var(--bubble-w) stretch; }
@@ -464,12 +464,12 @@ dialog.wide { width: min(600px, calc(100vw - 24px)); }
 .rt:hover { background: color-mix(in srgb, var(--glow) 16%, transparent); }
 .rt[aria-selected="true"], .rt:focus-visible { outline: 0; background: color-mix(in srgb, var(--glow) 20%, transparent);
   border-image: var(--art-corners) var(--corners-s) / var(--corners-w) stretch; }
-.rt .tag { left: calc(8 * var(--u)); top: calc(9 * var(--u)); max-width: calc(100% - 16 * var(--u)); display: block; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.rt .tag { left: calc(var(--corners-l) * var(--u)); top: calc(var(--corners-t) * var(--u)); max-width: calc(100% - (var(--corners-l) + var(--corners-r)) * var(--u)); display: block; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .rt:not([aria-selected="true"]):not(:hover):not(:focus-visible) .tag { display: none; }
 .rt[aria-selected="true"] { z-index: 1; }
 .rt[aria-selected="true"] .tag { border-image-source: var(--art-button-green); max-width: none; }
 /* the front door: the pack's arrow on its white button, pointing in */
-.rt .door { position: absolute; right: calc(8 * var(--u)); bottom: calc(9 * var(--u)); width: 32px; height: 30px; image-rendering: pixelated;
+.rt .door { position: absolute; right: calc(var(--corners-r) * var(--u)); bottom: calc(var(--corners-b) * var(--u)); width: 32px; height: 30px; image-rendering: pixelated;
   border-style: solid; border-color: transparent; border-width: var(--btn-px); border-image: var(--art-button-hover) var(--btn-s) fill / var(--btn-px) stretch; }
 .rt .door::after { content: ""; position: absolute; inset: 0; background: var(--art-arrow) center / 20px 18px no-repeat; }
 .rt.closed .tag { opacity: .55; }
@@ -487,7 +487,7 @@ dialog.wide { width: min(600px, calc(100vw - 24px)); }
 .proj-head { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; align-items: center; }
 .proj-head h3 { margin: 0; font: var(--px-size)/var(--px-line) var(--pixel); overflow-wrap: anywhere; }
 .proj-pic { width: 56px; height: 48px; position: relative; overflow: hidden; background: var(--art-meadow) 0 0 / 112px 32px; }
-.proj-pic .spr { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%) scale(1.3); transform-origin: 50% 100%; }
+.proj-pic .spr { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%) scale(calc(1.3 * var(--fs, 1))); transform-origin: 50% 100%; }
 .item.file { padding-right: 4px; text-decoration: none; }
 .item .branch { font: 600 .75rem/1.3 var(--mono); }
 .status .copy { color: var(--ink-soft); font-weight: 500; flex-basis: 100%; }
@@ -547,8 +547,8 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
 .ownerprev svg, .ownerprev img { display: block; width: 112px; height: auto; }
 .ownerimg { image-rendering: pixelated; }
 .qchar { align-self: end; justify-self: end; width: 150px; height: 190px; margin-right: 4px; }
-.qchar .spr { position: absolute; left: 50%; bottom: 2px; transform-origin: 50% 100%; transform: translateX(-50%) scale(2.6); }   /* the sheets face left: toward her */
-.qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(5); }
+.qchar .spr { position: absolute; left: 50%; bottom: 2px; transform-origin: 50% 100%; transform: translateX(-50%) scale(calc(2.6 * var(--fs, 1))); }   /* the sheets face left: toward her */
+.qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(calc(5 * var(--fs, 1))); }
 .qchar .crown { position: absolute; left: 50%; top: 22px; transform: translateX(-50%) scale(2.5); transform-origin: 50% 0; }   /* × the .8 zoom: 2 whole art pixels */
 .qchar[data-mood="meow"] .crown, .qchar[data-mood="cry"] .crown { top: 54px; }   /* on her head, for each pose */
 .qchar[data-mood="idle"] .crown { top: 58px; }
@@ -593,8 +593,8 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); }
   .qhead h2 { font: var(--px-size)/calc(var(--px-size) + 6px) var(--pixel); }   /* the pack's font draws at 18 or 36: at 36 her name broke mid-word beside Settings and Close */
   .owner svg, .owner img { width: 62px; }
   .qchar { width: 76px; height: 110px; }
-  .qchar .spr { transform: translateX(-50%) scale(1.4); }
-  .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(2.6); }
+  .qchar .spr { transform: translateX(-50%) scale(calc(1.4 * var(--fs, 1))); }
+  .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(calc(2.6 * var(--fs, 1))); }
   .qchar .crown, .qchar[data-mood] .crown { top: auto; bottom: 74px; transform: translateX(-50%) scale(2); }
   .qchar[data-mood="sleep"] .crown { bottom: 44px; }
   .ownerprev { grid-template-columns: minmax(0, 1fr); justify-items: start; }
@@ -659,7 +659,7 @@ ul.gkey li > div.what { flex-basis: 100%; }
 .lookbar { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin: 4px 0 6px; }
 .lookbar .note { flex-basis: 100%; margin: 0; }
 ul.art .pic input[type="color"] { width: 44px; height: 32px; padding: 0; border: 0; background: none; cursor: var(--point); }
-ul.art .pic input[type="text"] { width: 56px; font: inherit; font-size: .8rem; text-align: center; background: var(--field-face); border: 0; padding: 2px; }
+ul.art .pic.field input[type="text"] { width: 56px; padding: 0 2px; text-align: center; }
 .artgroup > summary { font: var(--px-size)/var(--px-line) var(--pixel); cursor: var(--point); display: flex; gap: 6px; align-items: center; padding: 2px 0; }
 ul.art { list-style: none; margin: 4px 0 8px; padding: 0; display: grid; gap: 8px; }
 ul.art > li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; }
@@ -985,7 +985,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // a token's value now: hers, else the stylesheet's
   const tok = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const SPR0 = JSON.parse(JSON.stringify(SPR));   // the pack's frames, for putting a cat back
-  const SKIN = { file: {}, db: {}, live: {}, problems: {}, set: [], seq: 0, blobs: {}, fonts: {}, sizes: {},
+  const SKIN = { file: {}, db: {}, live: {}, problems: {}, set: new Set(), seq: 0, blobs: {}, fonts: {}, sizes: {}, standIn: {},
     fileTokens: { light: {}, dark: {} }, dbTokens: { light: {}, dark: {} }, tokens: { light: {}, dark: {} } };
   const TOKENS0 = {};   // the café's own value of each token, read before any skin: what export and Put back start from
   for (const n of [...Object.keys(TOKENS), "--pixel", "--body", "--display"]) TOKENS0[n] = tok(n);
@@ -1041,7 +1041,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (!safeSrc(e.src)) return null;
     const out = { src: e.src, w: num(v.w, 1, 8192), h: num(v.h, 1, 8192), at: num(v.at, 0, 1e14), asset: typeof v.asset === "string" ? v.asset : null, name: typeof v.name === "string" ? v.name.slice(0, 120) : "" };
     if (Array.isArray(v.slice) && v.slice.length === 4 && v.slice.every((n) => num(n, 0, 1024) !== null && Number.isInteger(n))) out.slice = v.slice.slice();
-    if (num(v.scale, 0.05, 8) !== null) out.scale = v.scale;
+    if (num(v.scale, 0.001, 8) !== null) out.scale = v.scale;
     if (v.pixel === true) out.pixel = true;
     if (num(v.frames, 1, 64) !== null && Number.isInteger(v.frames)) out.frames = v.frames;
     if (num(v.secs, 0.1, 20) !== null) out.secs = v.secs;
@@ -1105,8 +1105,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     // the page's dark mode is, then the cats. A stylesheet, not inline styles, so dark mode can still win in the dark.
     const root = document.documentElement.style;
     for (const p of SKIN.set) root.removeProperty(p);   // what The look was previewing
-    SKIN.set = [];
-    const vars = [], put = (p, v) => vars.push(p + ": " + v + ";");
+    SKIN.set.clear();
+    const vars = [], put = (p, v) => vars.push(p + ": " + v + ";"), standIn = {};
     const css = [];
     const spr = JSON.parse(JSON.stringify(SPR0));   // built here, and only the run that lands sets SPR
     for (const [k, e] of Object.entries(live)) {
@@ -1131,7 +1131,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
             ".cat.walking.flip .spr, .walker.flip .spr { transform: none; }");
         } else {
           spr[a.mood] = Object.assign({}, spr[a.mood], { w: fw, h: fh, ax, ay });
-          css.push(".s-" + a.mood + " { " + sheet + " animation: " + play + "; }");
+          // drawn bigger or smaller than the pack's frame, it is scaled to fill the same place in a portrait, a thumb or the scene
+          css.push(".s-" + a.mood + " { " + sheet + " animation: " + play + "; --fs: " + +(SPR0[a.mood].h / fh).toFixed(4) + "; }");
           if (a.mood === "idle" && !live["cat-walk-side"]) css.push(".cat.walking .spr, .walker .spr { animation: " + play + ", step .32s steps(2) infinite; }");
         }
       }
@@ -1147,6 +1148,14 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     SKIN.tokens = { light: {}, dark: {} };
     for (const m of MODES) for (const [from, set] of [["file", SKIN.fileTokens[m]], ["db", SKIN.dbTokens[m]]]) for (const [n, v] of Object.entries(set)) SKIN.tokens[m][n] = { value: v, from };
     for (const [n, t] of Object.entries(SKIN.tokens.light)) put(n, t.value);
+    for (const [h, e] of Object.entries(live)) {
+      const a = ART[h];
+      if (a.kind !== "slice" || !a.slice) continue;
+      const same = (!e.slice || e.slice.join() === a.slice.join()) && e.w === a.size[0] && e.h === a.size[1] && !e.scale && !e.pixel;
+      if (same) continue;   // her head cut like the pack's: the pack's lit, green and pink still fit it
+      for (const m of Object.keys(ART)) if (ART[m].fam === a.fam && m !== h && !live[m]) { put("--art-" + m, cssUrl(e.url)); standIn[m] = h; }
+    }
+    SKIN.standIn = standIn;
     const dark = Object.entries(SKIN.tokens.dark).map(([n, t]) => n + ": " + t.value + ";").join(" ");
     if (seq !== SKIN.seq) return;
     SKIN.live = live; SKIN.problems = problems;
@@ -2356,7 +2365,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // Ask the browser for one of them and, if it isn't there, tell the viewer how to put it right.
   function checkArt() {
     const seen = ["house", "cat-cry"].map((k) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(true); i.onerror = () => ok(false); i.src = srcOf(k); }));
-    Promise.all(seen).then((r) => { S.art = r.every(Boolean) ? "ok" : "missing"; renderStatus(); });
+    const run = (checkArt.run = (checkArt.run || 0) + 1);
+    Promise.all(seen).then((r) => { if (run !== checkArt.run) return; S.art = r.every(Boolean) ? "ok" : "missing"; renderStatus(); });
   }
 
   const NOART = "The cat art isn't here: art/licensed/ is licensed and never shipped, so neither the house nor its cats can draw. Buy the packs in catio/art/CREDITS.md, drop the zips in, and run catio/tools/build-art.py.";
@@ -4398,19 +4408,24 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const { found, foreign } = fromDTCG(j), n = Object.keys(found).length;
     if (!n) { toast(file.name + " has none of the café's tokens" + (foreign ? " (" + foreign + " of its own)." : "."), "alert"); return; }
     const next = copyTokens();
-    Object.assign(next[m], found);
+    // a value the same as what it would be anyway isn't hers: the café's in light, light's in dark (an export re-imported
+    // stays a few changes, not 56)
+    for (const [t, v] of Object.entries(found)) {
+      const anyway = m === "dark" ? (next.light[t] || TOKENS0[t]) : TOKENS0[t];
+      if (v.toLowerCase() === String(anyway).toLowerCase()) delete next[m][t]; else next[m][t] = v;
+    }
     await saveTokens(next, n + " " + (n === 1 ? "token" : "tokens") + " from " + file.name + " in " + (m === "light" ? "Light" : "Dark") + (foreign ? "; " + foreign + " not the café's, left out." : "."));
   }
   // a colour or a size, in the mode The look is on: a picker, what it colours, and Put back when it is hers
   function tokenRow(n) {
     const m = LOOKMODE, [, name, what] = TOKENS[n], t = SKIN.tokens[m][n], li = el("li"); li.dataset.token = n;
-    const size = TOKENS[n][0] === "Type", pic = el("span", "pic"), input = el("input");
+    const size = TOKENS[n][0] === "Type", pic = el("span", size ? "pic field" : "pic"), input = el("input");
     input.id = "tok" + n; input.setAttribute("aria-label", name);
     input.type = size ? "text" : "color"; input.value = valueIn(m, n); input.disabled = !S.db;
     if (size) input.size = 6;
     // she sees it at once (in the mode on screen); it is kept when she lets go (a size when it reads as one)
     const onScreen = () => (document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === m;
-    input.addEventListener("input", () => { if (tokenOk(n, input.value) && onScreen()) { document.documentElement.style.setProperty(n, input.value); SKIN.set.push(n); } });
+    input.addEventListener("input", () => { if (tokenOk(n, input.value) && onScreen()) { document.documentElement.style.setProperty(n, input.value); SKIN.set.add(n); } });
     input.addEventListener("change", () => {
       if (!tokenOk(n, input.value)) {
         document.documentElement.style.removeProperty(n);   // the preview goes with the value
@@ -4448,8 +4463,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const a = ART[k], e = skinOf(k), li = el("li"); li.dataset.slot = k;
     const txt = el("div", "txt");
     txt.append(el("b", null, a.name), el("span", "what", a.what), el("span", "size", artLine(k)));
-    const from = e ? (e.from === "db" ? "Yours" : "From art/skin.json") : a.file ? "The pack's" : "None yet";
-    txt.appendChild(el("span", "from" + (e ? " mine" : ""), from));
+    const stand = !e && SKIN.standIn && SKIN.standIn[k];
+    const from = e ? (e.from === "db" ? "Yours" : "From art/skin.json") : stand ? "Your " + ART[stand].name.toLowerCase() + " stands in until you draw this one" : a.file ? "The pack's" : "None yet";
+    txt.appendChild(el("span", "from" + (e || stand ? " mine" : ""), from));
     if (SKIN.problems[k]) txt.appendChild(el("span", "problem", "Yours isn't used: " + SKIN.problems[k]));
     const acts = el("div", "acts");
     if (S.assets) {
@@ -4543,7 +4559,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const ok = await save(async (db) => { for (const k of keys) await db.doc("skin/" + k).delete(); }, keys.length > 1 ? "Every piece is the pack's again." : ART[keys[0]].name + ": the pack's again.");
     if (!ok) return;
     for (const k of keys) delete SKIN.db[k];
-    for (const id of olds) S.assets.delete(id).catch(() => {});
+    if (S.assets) for (const id of olds) S.assets.delete(id).catch(() => {});
     applySkin();
   }
   function openRules() {

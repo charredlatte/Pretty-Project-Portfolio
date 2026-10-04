@@ -2494,6 +2494,20 @@ await check("no colour or pixel-font size is written into a rule: each is a toke
   const hexes = (js.slice(0, owner) + js.slice(ownerEnd)).match(/["']#[0-9A-Fa-f]{3,8}["']/g) || [];   // her look's choices are data
   expect(!hexes.length, hexes.join(" "));
 });
+await check("tools/skin.py reads every slot, token and size range the page has", async () => {
+  const { mkdtempSync, mkdirSync, copyFileSync, writeFileSync } = await import("node:fs");
+  const { execFileSync } = await import("node:child_process");
+  const { tmpdir } = await import("node:os");
+  const dir = mkdtempSync(join(tmpdir(), "skin-")), c = join(dir, "catio");
+  mkdirSync(join(c, "tools"), { recursive: true }); mkdirSync(join(c, "art", "skin"), { recursive: true });
+  copyFileSync(join(here, "..", "index.html"), join(c, "index.html")); copyFileSync(join(here, "..", "tools", "skin.py"), join(c, "tools", "skin.py"));
+  writeFileSync(join(c, "art", "skin.json"), JSON.stringify({ tokens: { "--ink": "#123456", "--u-desk": "20px" } }));
+  const out = execFileSync("python3", [join(c, "tools", "skin.py")], { encoding: "utf8" });
+  const src = readFileSync(join(here, "..", "index.html"), "utf8");
+  const slots = (src.slice(src.indexOf("const ART = {"), src.indexOf("const SPR0")).match(/^\s+"[\w-]+":\s*\{/gm) || []).length;
+  expect(new RegExp("0 of " + slots + " slots").test(out) && /--u-desk = '20px' left out/.test(out), out);
+  expect(JSON.parse(readFileSync(join(c, "art", "skin.json"), "utf8")).tokens["--ink"] === "#123456", "token dropped");
+});
 {
   const { page, ctx, errors } = await open();
   const rootVar = (n) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), n);
@@ -2608,6 +2622,31 @@ await check("no colour or pixel-font size is written into a rule: each is a toke
     const fills = await page.evaluate(() => [...document.querySelectorAll("#mapsDlg svg rect[fill]")].map((r) => r.getAttribute("fill").toUpperCase()));
     expect(fills.includes("#5E8F34") && fills.filter((f) => f === "#9A8878").length === 2 && !fills.includes("UNDEFINED"), fills.join(" "));
     await page.evaluate(() => document.getElementById("mapsDlg").close()); await settle(page);
+  });
+  await check("a button of her own cut another way stands in for the lit, green and pink ones she hasn't drawn", async () => {
+    await page.evaluate(() => window.__catio.put("skin/button", { src: "art/licensed/ui/bubble.png", slice: [5, 5, 6, 5], at: 1 }));
+    await page.waitForTimeout(700);
+    expect((await rootVar("--art-button-pink")).includes("ui/bubble.png") && (await rootVar("--art-button-green")).includes("ui/bubble.png"), await rootVar("--art-button-pink"));
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    expect(/Your button stands in/.test(await page.locator("#artDlg li[data-slot='button-pink']").textContent()), "not said");
+    await page.locator("#artDlg details[data-group='Interface'] > summary").click();
+    await page.click("#artDlg li[data-slot='button'] button:has-text('Put back')"); await page.waitForTimeout(600);
+    expect((await rootVar("--art-button-pink")).includes("ui/button-pink.png"), await rootVar("--art-button-pink"));
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
+  await check("a café's own export, imported again, keeps only what differs", async () => {
+    await page.evaluate(() => window.__catio.put("skin/theme", { tokens: { "--ink": "#222222" }, dark: {}, at: 5 }));
+    await page.waitForTimeout(500);
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#tokensExport")]);
+    await page.click("#lookMode-dark"); await settle(page);
+    await page.locator("#tokensFile").setInputFiles(await dl.path());
+    await page.waitForTimeout(600);
+    const d = await page.evaluate(() => window.__catio.store["skin/theme"]);
+    expect(d && d.tokens["--ink"] === "#222222" && !Object.keys(d.dark || {}).length, JSON.stringify(d));
+    await page.click("#lookMode-light"); await settle(page);
+    if (await page.locator("#toast .btn").isVisible()) await page.click("#toast .btn");
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
   });
   await check("a font of hers for the text goes ahead of the café's", async () => {
     await page.evaluate(() => window.__catio.put("skin/font-body", { src: "art/licensed/ui/sprout.ttf", at: 1 }));
