@@ -212,10 +212,10 @@ hosted café is everyone else's.
 
 **Support the work.** The café is built by one person, in the open, while it is in development:
 
-- **Buy me a coffee** *(page coming)*. One-off coffees and small memberships;
+- **Buy me a coffee**: https://buymeacoffee.com/[handle] *(page coming)*. One-off coffees and small memberships;
   they pay for the gateway's hosting and the médiateur, and put your name in the café's credits.
-- **Back the app on Ulule** *(campaign coming, once the first cafés are open)*. It funds the app; the rewards are a
-  year of the hosted café and a drawn cat of your own.
+- **Back the app on Ulule**: https://ulule.com/[campaign] *(campaign coming, once the first cafés are open)*. It funds
+  the app; the rewards are a year of the hosted café and a drawn cat of your own.
 
 ## Made from ten asset packs
 
@@ -282,12 +282,12 @@ The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harn
 `python3 -m unittest litterbox/test_sort.py`.
 
 The page's test and its screenshots drive a headless Chromium through Playwright. `run.sh` is set up for the copies
-preinstalled in Claude's cloud sessions; elsewhere, set `PLAYWRIGHT` to the path of your own Playwright install
-(`CHROMIUM` is optional: without it, Playwright uses its own browser). Each run starts a fresh temporary profile with no logins or saved passwords,
-and as the page stands it loads only local files, the test's own server on 127.0.0.1 and the page's Google Fonts.
-Without the licensed art, one check fails (the one that wants no warning sign), as `run.sh` warns; a clone of this
-repository always lacks it unless you buy the packs and run `build-art.py`. Sessions under the
-house rules run the browser preflight first ([`harness/README.md`](harness/README.md)).
+preinstalled in Claude's cloud sessions. Elsewhere, set `PLAYWRIGHT` to the absolute path of your own Playwright
+install, and either set `CHROMIUM` or run `npx playwright install chromium` so Playwright has its own browser. Each run
+starts a fresh temporary profile with no logins or saved passwords, and as the page stands it loads only local files,
+the test's own server on 127.0.0.1 and the page's Google Fonts. Without the licensed art (see
+[Running your own](#running-your-own)), one check fails, the one that wants no warning sign, as `run.sh` warns.
+Sessions under the house rules run the browser preflight first ([`harness/README.md`](harness/README.md)).
 
 ## Licence
 
