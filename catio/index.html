@@ -112,6 +112,7 @@
   --divider-w: calc(var(--divider-t) * var(--u)) calc(var(--divider-r) * var(--u)) calc(var(--divider-b) * var(--u)) calc(var(--divider-l) * var(--u));
   /* the map panel's pieces are smooth art drawn at twice their size or more: -k is one of its pixels on screen */
   --mpanel-k: .5px; --mbtn-k: .5px; --mframe-k: calc(6px / 28);
+  --mpanel-bw: 6px;   /* the panel's own box: the pack's 6 px; hers, her border, so it never covers what it frames */
   --mpanel-render: auto; --mbtn-render: auto; --mframe-render: auto; --map-icons-render: auto;   /* pixelated for a piece she draws as pixel art */
   --mpanel-t: 28; --mpanel-r: 28; --mpanel-b: 28; --mpanel-l: 28; --mpanel-s: var(--mpanel-t) var(--mpanel-r) var(--mpanel-b) var(--mpanel-l);
   --mpanel-w: calc(var(--mpanel-t) * var(--mpanel-k)) calc(var(--mpanel-r) * var(--mpanel-k)) calc(var(--mpanel-b) * var(--mpanel-k)) calc(var(--mpanel-l) * var(--mpanel-k));
@@ -224,7 +225,7 @@ a { color: var(--ink); }
    screen size, so it is scaled with smoothing, never pixelated (a piece she draws as pixel art is hers: --mpanel-render…). Each piece has its own face colour under it,
    so a copy without the licensed art is still a panel of buttons. */
 .mappanel { position: fixed; z-index: 31; top: calc(var(--panel-t) * var(--u) + 8px + env(safe-area-inset-top, 0px)); right: calc(var(--panel-r) * var(--u) + 8px);
-  display: grid; gap: 6px; padding: 4px; border: 6px solid transparent; border-radius: 12px; background: var(--map-face);
+  display: grid; gap: 6px; padding: 4px; border: solid transparent; border-width: var(--mpanel-bw); border-radius: 12px; background: var(--map-face);
   border-image: var(--art-map-panel) var(--mpanel-s) fill / var(--mpanel-w) stretch; image-rendering: var(--mpanel-render); }
 .mp-row { display: flex; gap: 4px; align-items: center; }
 .mp-row .pbtn { flex: 1; }
@@ -972,7 +973,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "font":          { group: "Type", kind: "font", name: "Pixel font", file: LIC + "ui/sprout.ttf", token: "--pixel", rest: '"Sprout", var(--display)', what: "Titles, labels and buttons. Its size is under Type, Pixel font size: one font pixel a screen pixel." },
     "font-body":     { group: "Type", kind: "font", name: "Text font", file: null, token: "--body", what: "Everything you read: Nunito from Google Fonts until you give one." },
     "font-display":  { group: "Type", kind: "font", name: "Round font", file: null, token: "--display", what: "Where the pixel font has no letter: Fredoka from Google Fonts until you give one." },
-    "map-panel":     { group: "Map panel", kind: "slice", fam: "mpanel", name: "Map panel", file: LIC + "pastel/panel.png", size: [300, 150], slice: [28, 28, 28, 28], scale: 0.5, what: "The camera's panel, top right." },
+    "map-panel":     { group: "Map panel", kind: "slice", fam: "mpanel", bw: "w", name: "Map panel", file: LIC + "pastel/panel.png", size: [300, 150], slice: [28, 28, 28, 28], scale: 0.5, what: "The camera's panel, top right." },
     "map-panel-dark": { group: "Map panel", kind: "slice", fam: "mpanel", name: "Map panel, at night", file: LIC + "pastel/panel-dark.png", size: [300, 150], what: "The same in the dark theme. Its border is the panel's." },
     "map-button":    { group: "Map panel", kind: "slice", fam: "mbtn", name: "Map button", file: LIC + "pastel/button.png", size: [270, 81], slice: [20, 22, 24, 22], scale: 0.5, what: "Zoom, the whole house, the floors and the fold." },
     "map-button-hover": { group: "Map panel", kind: "slice", fam: "mbtn", name: "Map button, lit", file: LIC + "pastel/button-hover.png", size: [270, 81], what: "Its border is the map button's." },
@@ -1086,7 +1087,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     return { found, foreign, refused: [...bad].filter((n) => !(n in found)).length };
   }
   // a source the page made or wrote: the art beside it, an asset, a gateway file or one kept in this browser
-  const safeSrc = (v) => typeof v === "string" && /^(?:art\/[^"'()\\\x00-\x1f]+|\/_blob\/[\w-]+|\/files\/[\w.-]+|local:[\w-]+|blob:[^\s"'()\\]+)$/.test(v) && !v.includes("..");
+  const safeSrc = (v) => typeof v === "string" && /^(?:art\/[^"'()%\\\x00-\x1f]+|\/_blob\/[\w-]+|\/files\/[\w.-]+|local:[\w-]+|blob:[^\s"'()\\]+)$/.test(v) && !v.includes("..");
   const num = (v, lo, hi) => (typeof v === "number" && isFinite(v) && v >= lo && v <= hi ? v : null);
   const cssUrl = (src) => 'url("' + src + '")';
   // one skin entry, from art/skin.json or the collection, made safe: what isn't understood is left out
@@ -1145,7 +1146,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   const pixelLoud = (a, b) => !!(a.scale && b && (Math.max(...b) * artPx() > 2 * Math.max(...a.slice) * a.scale ||
     Math.max(b[0] + b[2], b[1] + b[3]) * artPx() >= a.size[1] * a.scale));
   const LOUD = (b) => "Drawn as pixel art, its border of " + Math.max(...b) + " would show " + Math.max(...b) * artPx() + " px wide on a desk, too much for the piece as it is shown: draw it smaller, or as smooth.";
-  const framesOf = (a, e, w, h) => (e && e.frames) || (w % h === 0 && w / h <= 64 ? w / h : a.frames);
+  // no frames given and not square: not guessed (the pack's count would cut her cat in pieces), so misfit asks for them
+  const framesOf = (a, e, w, h) => (e && e.frames) || (h > 0 && w % h === 0 && w / h <= 64 ? w / h : null);
   // `e`: what the entry says about itself (slice, frames, hot) that must fit the picture
   function misfit(key, w, h, live = SKIN.live, e = {}, picking = false) {
     const { slice = null, frames = null, hot = null, bad = null } = e || {};
@@ -1153,6 +1155,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (bad) return bad;
     if (!(w > 0 && h > 0)) return "It has no size the browser can read: save it as a PNG.";   // an SVG with none, say
     if (a.hot && hot && (hot[0] >= w || hot[1] >= h)) return "Its tip " + hot.join(" ") + " is outside its " + w + " × " + h + ".";
+    if (a.kind === "cat" && !picking && !framesOf(a, { frames }, w, h)) return "Its frames aren't square: say how many there are (\"frames\" in skin.json, or Frames in The look).";
     if (a.kind === "cat" && !picking && w % framesOf(a, { frames }, w, h)) return "It is " + w + " pixels wide, which doesn't split into " + framesOf(a, { frames }, w, h) + " frames.";
     if (a.kind === "slice" && !a.slice && live) {   // the button's hover, green and pink, the map's dark panel…: cut with the head's border
       const head = headOf(key), he = live[head], [hw, hh] = he ? [he.w, he.h] : ART[head].size;
@@ -2475,7 +2478,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         return mi("Project maps", () => { hideMenu(); MAPS.visit++; try { openMaps(); } catch (e) { toast("A project map couldn't be drawn (" + (e && e.message || "error") + ").", "alert"); } }, { aside: shown || "" });
       })(),
       mi("Edit rooms", () => { hideMenu(); openRooms(curRoom()); }),
-      (() => { const n = Object.keys(SKIN.live).length + new Set([...Object.keys(SKIN.tokens.light), ...Object.keys(SKIN.tokens.dark)]).size; return mi("The look", () => { hideMenu(); openArt(); }, { aside: n ? n + " yours" : "" }); })(),
+      (() => { const n = Object.keys(SKIN.db).length + new Set([...Object.keys(SKIN.dbTokens.light), ...Object.keys(SKIN.dbTokens.dark)]).size; return mi("The look", () => { hideMenu(); openArt(); }, { aside: n ? n + " yours" : "" }); })(),
       S.db && mi("Set up again…", () => { hideMenu(); openSetup(true); }),
       (VIEW.attic || S.showOld) && mi(S.showOld ? "Send them back up" : "Bring them down", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }),
       S.mcp && mi("Check now", () => watch(true)),
@@ -4802,7 +4805,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     }
     if (!p.why && a.kind === "cat") {
       frames = el("input"); frames.id = "artFrames-" + k; frames.type = "number"; frames.min = 1; frames.max = 64;
-      frames.value = p.typed.frames ?? framesOf(a, null, p.w, p.h);
+      frames.value = p.typed.frames ?? framesOf(a, null, p.w, p.h) ?? "";   // not square: hers to say
       secs = el("input"); secs.id = "artSecs-" + k; secs.type = "number"; secs.min = 0.1; secs.max = 20; secs.step = 0.05; secs.value = p.typed.secs ?? a.secs;
       const row = el("div", "row"); row.append(field("Frames", frames), field("Seconds a loop", secs)); fields.appendChild(row);
     }
