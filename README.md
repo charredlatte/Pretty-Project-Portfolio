@@ -194,12 +194,26 @@ small meow.
 
 ### How what you send reaches a session
 
-Files dropped on a cat, messages written to it, and pause or wrap-up requests are saved the moment you send them.
-With the gateway, a running session gets them when its current turn ends. Without it they wait on the mat, and the
-session collects them when it next starts: a session that runs the house-rules plugin has its `catio` skill handle
-what's there, answer on the cat and mark it delivered. Only claude.ai can wake a session that has
-stopped, and it doesn't let a page do it; why is in
-[`harness/README.md`](harness/README.md#why-the-café-cant-push-into-a-session).
+Files dropped on a cat, messages written to it, and pause or wrap-up requests are saved the moment you send them,
+and there are three roads from there, by who the message is for:
+
+- **To a session, without the gateway:** it waits in the café's database (`brain/`, `notes/`, `outbox/`), and the
+  session collects it at its next turn: the house-rules plugin's `catio` skill reads what is addressed to it, acts,
+  answers on the cat and marks it delivered.
+- **To a session, with the gateway:** the gateway's *house* (one SQLite-backed Durable Object per account, in the
+  Cloudflare Worker) keeps it in its inbox, and the plugin's `report.py` hook collects it at the end of the
+  session's current turn: one request that reports the cat's state and takes what is waiting, each item once, and
+  hands it to the session as its next turn (`[Catio] Charlotte says: …`). The reply comes back the same way and
+  shows in the cat's conversation at once.
+- **To the queen:** the house wakes her *runner*, `harness/runner/queen.py` on your own computer, which waits on the
+  gateway in a held request (so your PC needs no address), runs one restricted Claude Code turn per thing you say
+  or routine due, and streams her words back through the gateway to every open café as she speaks. The Worker is
+  her face, ears and memory; the runner is where she thinks. What she tells a cat reaches it by the road above.
+
+Only claude.ai can wake a session that has stopped, and it doesn't let a page do it; why is in
+[`harness/README.md`](harness/README.md#why-the-café-cant-push-into-a-session). Each hop, process by process, and
+how the design holds up on scale, speed, extensibility, security, debugging and tests:
+[`docs/delivery.md`](docs/delivery.md).
 
 ## On your own computer
 
