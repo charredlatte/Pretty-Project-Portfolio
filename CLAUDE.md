@@ -137,7 +137,8 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
 - **Hover names a thing** in a line (`#tip`), and outlines it if it is a sprite (her ask, 4 October: "it outlines
   the object boundaries of the 2D asset"): a cat, the queen, a pile, a filing cabinet or the litter box gets one art
   pixel of the pack's white traced around its own shape (`outline()`, `.hot`; a `drop-shadow` filter, not a box),
-  which it keeps while its menu is open (`.lit`) or it has keyboard focus. A room keeps its brackets. **A click opens its menu** beside it, pinned until a click
+  and a cat, the queen or a pile keeps it while its menu is open (`.lit`) or it has keyboard focus. A room, and a
+  cabinet with keyboard focus, keep their brackets. **A click opens its menu** beside it, pinned until a click
   elsewhere or Escape (`toggleMenu`); a tap does the same. Keyboard focus opens a menu only when
   `:focus-visible`, and a click never closes a menu keyboard focus opened.
 - **Every menu has the same shape, as short as it can be** ("make the menus less bloated and minimize

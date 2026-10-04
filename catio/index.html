@@ -201,7 +201,8 @@ a { color: var(--ink); }
   border-image: url(art/licensed/ui/corners.png) 9 8 / var(--by) var(--bx) stretch; }
 .roomhit.here { cursor: var(--paw); background: transparent; border: 0; }
 .roomhit.here:focus-visible { border-style: solid; }
-.cabinet:focus-visible, .cat:focus-visible { outline: 0; }
+.cat:focus-visible { outline: 0; }
+.cabinet:focus-visible { outline: 0; border: 9px solid transparent; border-image: url(art/licensed/ui/corners.png) 9 8 / 9px 8px stretch; border-image-outset: 5px; }
 /* a cat, the queen, a pile, a filing cabinet or the litter box under the pointer (or with its menu open, or keyboard
    focus) is outlined around its own shape, not boxed: one art pixel of the pack's white, traced from the sprite's
    pixels (her ask, 4 October: "it outlines the object boundaries of the 2D asset") */
