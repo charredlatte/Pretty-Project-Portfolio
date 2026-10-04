@@ -38,6 +38,7 @@
   --scene-shade: #1C1610;  /* over the scene's floor, so the words read */
   --glow: #FFFAE1;         /* a lit room, cat or stair */
   --mi-lit: #FFF8E4;       /* the menu item under the pointer */
+  --outline: #FFF8E4;      /* around a cat, the queen, a pile or a cabinet under the pointer: the pack's white */
   --shade: #122414;        /* a closed room, and behind a dialog */
   --dim: #162214;          /* the ground floor, under the upper one */
   --veil: #28180A;         /* over a room while files are dropped */
@@ -298,21 +299,17 @@ a { color: var(--ink); }
   border-image: var(--art-corners) var(--corners-s) / var(--bw) stretch; }
 .roomhit.here { cursor: var(--paw); background: transparent; border: 0; }
 .roomhit.here:focus-visible { border-style: solid; }
-.cabinet:hover, .cabinet:focus-visible, .cat:focus-visible { outline: 0; border: solid transparent; border-width: var(--corners-bw); border-image: var(--art-corners) var(--corners-s) / var(--corners-px) stretch; border-image-outset: 5px; }
-.cat:focus-visible { border-width: 0; }
+.cat:focus-visible { outline: 0; }
+.cabinet:focus-visible { outline: 0; border: solid transparent; border-width: var(--corners-bw); border-image: var(--art-corners) var(--corners-s) / var(--corners-px) stretch; border-image-outset: 5px; }
+/* a cat, the queen, a pile, a filing cabinet or the litter box under the pointer (or with its menu open, or keyboard
+   focus) is outlined around its own shape, not boxed: one art pixel of the pack's white, traced from the sprite's
+   pixels (her ask, 4 October: "it outlines the object boundaries of the 2D asset") */
+.cat.hot, .cat.lit, .cat:focus-visible, .piece.hot {
+  filter: drop-shadow(2px 0 0 var(--outline)) drop-shadow(-2px 0 0 var(--outline)) drop-shadow(0 2px 0 var(--outline)) drop-shadow(0 -2px 0 var(--outline)); }
 /* a cat in the line is close to the next: only its own body answers the pointer (14 and 6 of the sitting frame's 64,
    as shares, so her own frame is trimmed alike); walking there, it is whole */
 .cat[data-line] { clip-path: inset(0 21.875% 0 9.375%); }
 .cat.walking[data-line] { clip-path: none; }
-.cat:focus-visible { outline: 0; }
-.cabinet:focus-visible { outline: 0; border: 9px solid transparent; border-image: url(art/licensed/ui/corners.png) 9 8 / 9px 8px stretch; border-image-outset: 5px; }
-/* a cat, the queen, a pile, a filing cabinet or the litter box under the pointer (or with its menu open, or keyboard
-   focus) is outlined around its own shape, not boxed: one art pixel of the pack's white, traced from the sprite's
-   pixels (her ask, 4 October: "it outlines the object boundaries of the 2D asset") */
-.cat.hot, .cat.lit, .cat:focus-visible, .piece.hot { --ol: #FFF8E4;
-  filter: drop-shadow(2px 0 0 var(--ol)) drop-shadow(-2px 0 0 var(--ol)) drop-shadow(0 2px 0 var(--ol)) drop-shadow(0 -2px 0 var(--ol)); }
-/* a cat in the line is close to the next: only its own body answers the pointer */
-.cat[data-line] { clip-path: inset(0 14px 0 6px); }
 .spr { display: inline-block; vertical-align: bottom; filter: var(--tint, none); image-rendering: pixelated; background-repeat: no-repeat; }
 .cat .spr { display: block; }
 /* a count: the pack's white button at one pixel a pixel */
@@ -559,14 +556,10 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); height: 792px; }   /* dial
 .qhead .note { grid-column: 1 / -1; }
 /* they take only as much width as they are drawn at, and the talk has the rest: the fixed 168 and 160 px columns
    left the words a strip too narrow to read on her screen */
-.qstage { position: relative; height: min(62vh, 520px); min-height: 300px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+.qstage { position: relative; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
   overflow: hidden; image-rendering: pixelated; background: var(--scene-face) var(--art-house) no-repeat; background-size: 3840px 2304px;
   background-position: -1120px -1010px; border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
 .qstage::before { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--scene-shade) 30%, transparent); pointer-events: none; }
-.qstage { position: relative; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
-  overflow: hidden; image-rendering: pixelated; background: #7D8579 url(art/licensed/house.png) no-repeat; background-size: 3840px 2304px;
-  background-position: -1120px -1010px; border: calc(7 * var(--u)) solid transparent; border-image: url(art/licensed/ui/frame.png) 7 / calc(7 * var(--u)) stretch; }
-.qstage::before { content: ""; position: absolute; inset: 0; background: rgba(28, 22, 16, .3); pointer-events: none; }
 .qstage::after { content: ""; position: absolute; inset: 0; pointer-events: none; filter: var(--scene); }
 .qstage > * { position: relative; min-width: 0; min-height: 0; }
 /* zoom, not a transform: it scales the figure's own pixel offsets too, so the crown stays on her head. A step
@@ -582,9 +575,6 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); height: 792px; }   /* dial
 .qchar { align-self: end; justify-self: end; width: 150px; height: 190px; margin-right: 4px; }
 .qchar .spr { position: absolute; left: 50%; bottom: 2px; transform-origin: 50% 100%; transform: translateX(-50%) scale(calc(2.6 * var(--fs, 1))); }   /* the sheets face left: toward her */
 .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(calc(5 * var(--fs, 1))); }
-.qchar .crown { position: absolute; left: 50%; top: 22px; transform: translateX(-50%) scale(2.5); transform-origin: 50% 0; }   /* × the .8 zoom: 2 whole art pixels */
-.qchar .spr { position: absolute; left: 50%; bottom: 2px; transform-origin: 50% 100%; transform: translateX(-50%) scale(2.6); }   /* the sheets face left: toward her */
-.qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(5); }
 .qchar .crown { position: absolute; left: 50%; top: 22px; transform: translateX(-50%) scale(calc(2 / var(--fz, .8))); transform-origin: 50% 0; }   /* × the zoom: 2 whole art pixels, whatever the step */
 .qchar[data-mood="meow"] .crown, .qchar[data-mood="cry"] .crown { top: 54px; }   /* on her head, for each pose */
 .qchar[data-mood="idle"] .crown { top: 58px; }
@@ -620,24 +610,15 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); height: 792px; }   /* dial
 @media (max-width: 560px) {
   /* a phone is tall and narrow, so the two of them stand side by side along the foot of the scene and the
      words take its whole width: flanking her they left a strip under 200 px wide */
-  .qstage { height: min(58vh, 520px); grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
-  .qtalk { grid-area: 1 / 1; grid-template-rows: fit-content(calc(100% - 56px)) minmax(0, 1fr); }   /* a smaller floor: a phone has barely the height for a whole quiz card */
-  .owner, .qchar { grid-area: 2 / 1; zoom: 1; }
+  /* the words keep a floor and the two of them give way: their row is what the talk was squeezed to nothing by */
+  .qstage { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(72px, 1fr) auto; }
+  .qtalk { grid-area: 1 / 1; }
+  .owner, .qchar { grid-area: 2 / 1; --fz: 1; }
   .qhead h2 { font: var(--px-size)/calc(var(--px-size) + 6px) var(--pixel); }   /* the pack's font draws at 18 or 36: at 36 her name broke mid-word beside Settings and Close */
   .owner svg, .owner img { width: 62px; }
   .qchar { width: 76px; height: 110px; }
   .qchar .spr { transform: translateX(-50%) scale(calc(1.4 * var(--fs, 1))); }
   .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(calc(2.6 * var(--fs, 1))); }
-  .qchar .crown, .qchar[data-mood] .crown { top: auto; bottom: 74px; transform: translateX(-50%) scale(2); }
-  /* the words keep a floor and the two of them give way: their row is what the talk was squeezed to nothing by */
-  .qstage { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(72px, 1fr) auto; }
-  .qtalk { grid-area: 1 / 1; }
-  .owner, .qchar { grid-area: 2 / 1; --fz: 1; }
-  .qhead h2 { font: 18px/24px var(--pixel); }   /* the pack's font draws at 18 or 36: at 36 her name broke mid-word beside Settings and Close */
-  .owner svg { width: 62px; }
-  .qchar { width: 76px; height: 110px; }
-  .qchar .spr { transform: translateX(-50%) scale(1.4); }
-  .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(2.6); }
   .qchar .crown, .qchar[data-mood] .crown { top: auto; bottom: 74px; }
   .qchar[data-mood="sleep"] .crown { bottom: 44px; }
   /* a phone with the keyboard up is half as tall: the two of them give way again so a bubble still shows */
@@ -996,7 +977,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "--credits": ["Colours", "Credits", "The line of credits at the foot."], "--credits-edge": ["Colours", "Credits' edge", "Its outline, so it reads on the grass."],
     "--paper": ["Colours", "Paper", "Behind a project map."], "--scene-face": ["Colours", "Scene", "Behind the queen's scene."],
     "--scene-shade": ["Colours", "Scene shade", "Over the scene's floor, so the words read."], "--glow": ["Colours", "Glow", "A lit room, cat or stair."],
-    "--mi-lit": ["Colours", "Menu glow", "The menu item under the pointer."], "--shade": ["Colours", "Shade", "A closed room, and behind a dialog."],
+    "--mi-lit": ["Colours", "Menu glow", "The menu item under the pointer."], "--outline": ["Colours", "Outline", "Around a cat, the queen or a cabinet under the pointer."], "--shade": ["Colours", "Shade", "A closed room, and behind a dialog."],
     "--dim": ["Colours", "Downstairs, dimmed", "The ground floor under the upper one."], "--veil": ["Colours", "Veil", "Over a room while files are dropped."],
     "--night-sky": ["Colours", "Night", "Over the meadow in the dark theme."],
     "--owner-chair": ["Colours", "Your armchair", "In the queen's scene."], "--owner-accent": ["Colours", "Your bow", "And what else you wear in red."],
@@ -4652,7 +4633,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const { found, foreign, refused } = fromDTCG(j), n = Object.keys(found).length;
     const why = refused ? "; " + refused + " the café's with a value it can't take (a see-through colour, a size out of its range, or an alias to nothing in the file)" : "";
     if (!n) { toast(file.name + " has none of the café's tokens" + (foreign ? " (" + foreign + " of its own)" : "") + why + ".", "alert"); return; }
-    // what is the same as it would be anyway is taken out by editTokens: an export re-imported stays a few changes, not 56
+    // what is the same as it would be anyway is taken out by editTokens: an export re-imported stays a few changes, not 57
     const kept = Object.entries(found).filter(([t, v]) => v.toLowerCase() !== String(valueIn(m, t)).toLowerCase()).length;   // new: not what shows now
     // run even when nothing is new: a value the same as it would be anyway takes back one of hers it matches
     await editTokens((next) => Object.assign(next[m], found), (kept ? kept + " " + (kept === 1 ? "token" : "tokens") + " from " + file.name + " in " + (m === "light" ? "Light" : "Dark")
