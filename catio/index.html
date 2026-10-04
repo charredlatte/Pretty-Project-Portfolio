@@ -1083,6 +1083,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // all while the skin is still being measured (`false`): applySkin checks members once every head is.
   // `picking`: a file just chosen in The look, whose form will ask for its frames and border, so those aren't held against it yet
   // a cat sheet's frames: what its entry says, else square frames when it splits into them (as skin.py reads it), else the pack's
+  // a smooth slot's piece starts as pixel art when it is drawn nearer the art pixel than the screen: a map piece
+  // shown 135 px wide is pixel art at about 68 and smooth at 135 or more; a sheet, at half the pack's width or less
+  const pixelish = (a, w) => w <= (a.scale ? a.size[0] * a.scale * 0.75 : a.size[0] / 2);
   const framesOf = (a, e, w, h) => (e && e.frames) || (w % h === 0 && w / h <= 64 ? w / h : a.frames);
   // `e`: what the entry says about itself (slice, frames, hot) that must fit the picture
   function misfit(key, w, h, live = SKIN.live, e = {}, picking = false) {
@@ -1198,11 +1201,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       for (const m of Object.keys(ART)) if (ART[m].fam === a.fam && m !== h && !live[m]) { put("--art-" + m, cssUrl(e.url)); standIn[m] = h; }
     }
     if (live.button && !live["button-down"]) put("--down-iw", "var(--down-w)");   // her button, the pack's pressed one: each at its own widths
+    if (live.button && !live.bubble) put("--bubble-iw", "var(--bubble-px)");   // and the pack's bubble at its own
     const dark = Object.entries(tokens.dark).map(([n, t]) => n + ": " + t.value + ";").join(" ");
-    const artWas = SKIN.artSig, artSig = JSON.stringify([Object.entries(live).map(([k, e]) => [k, e.url, e.slice, e.frames, e.secs, e.anchor, e.scale, e.pixel]), standIn]);
+    const artSig = JSON.stringify([Object.entries(live).map(([k, e]) => [k, e.url, e.slice, e.frames, e.secs, e.anchor, e.scale, e.pixel]), standIn]);
     const HOUSE = (k) => ART[k].kind === "cat" || ART[k].measured;   // what the house, its furniture and its cats are drawn from
     const houseWas = SKIN.houseSig, houseSig = JSON.stringify(Object.entries(live).filter(([k]) => HOUSE(k)).map(([k, e]) => [k, e.url, e.frames, e.secs, e.anchor]));
-    SKIN.live = live; SKIN.problems = problems; SKIN.tokens = tokens; SKIN.standIn = standIn; SKIN.artSig = artSig;
+    SKIN.live = live; SKIN.problems = problems; SKIN.tokens = tokens; SKIN.standIn = standIn;
     SKIN.lookSig = artSig + JSON.stringify(tokens);   // what restyle() draws from
     SKIN.houseSig = houseSig;
     const using = new Set(Object.values(cands).flat().map((e) => e.src));
@@ -1230,6 +1234,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   }
   // What the script draws with a colour (her figure, a map's dots) and the frame's thickness, again: after a skin, and
   // when the page turns light or dark, since a dark token can differ from its light one
+  // a colour she is still choosing: what the script draws (her armchair, a map's neighbourhoods) follows it too, once a frame
+  let previewing = 0;
+  function previewDrawn() {
+    if (previewing) return;
+    previewing = requestAnimationFrame(() => { previewing = 0; HUES = null; restyle(true); });
+  }
   function restyle(force) {
     // a thicker or thinner frame: the whole house or the room she looked into is fitted again; a view she moved herself
     // is kept, inside it
@@ -1245,6 +1255,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       const note = document.querySelector("#queenYou > p.note");
       if (note) note.textContent = skinOf("owner") ? "Your own picture is in the hall (The look, in the House menu). These choices draw you again once you put it back." : "How you sit in the hall when you talk to her, seen from behind.";
     }
+    const me = document.querySelector('#artDlg li[data-slot="owner"] > .pic');   // her row in The look, while it is the drawn one
+    if (me && !skinOf("owner")) me.replaceChildren(ownerSVG(ownerOf()));
     if ($("mapsDlg").open) redrawMaps();
     const H = hues();   // a map open anywhere else (a filing cabinet's card) takes its new colours in place
     for (const d of document.querySelectorAll("[data-hue]")) { if (d.tagName === "rect") d.setAttribute("fill", H[+d.dataset.hue]); else d.style.background = H[+d.dataset.hue]; }
@@ -4535,8 +4547,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     // she sees it at once (in the mode on screen); it is kept when she lets go (a size when it reads as one)
     const screen = () => document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     const onScreen = () => screen() === m || (m === "light" && !SKIN.tokens.dark[n]);   // dark says only what differs
-    input.addEventListener("input", () => { if (tokenOk(n, input.value) && onScreen()) { document.documentElement.style.setProperty(n, input.value); SKIN.set.add(n); } });
-    input.addEventListener("blur", () => { if (!SKIN.saving && !SKIN.redrawing) { document.documentElement.style.removeProperty(n); SKIN.set.delete(n); } });   // a preview she let go of unchanged
+    input.addEventListener("input", () => { if (tokenOk(n, input.value) && onScreen()) { document.documentElement.style.setProperty(n, input.value); SKIN.set.add(n); previewDrawn(); } });
+    input.addEventListener("blur", () => { if (!SKIN.saving && !SKIN.redrawing) { document.documentElement.style.removeProperty(n); SKIN.set.delete(n); previewDrawn(); } });   // a preview she let go of unchanged
     input.addEventListener("change", () => {
       if (!tokenOk(n, input.value)) {
         document.documentElement.style.removeProperty(n);   // the preview goes with the value
@@ -4630,11 +4642,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // what she picked, before it is kept: the picture, what it needs, and Use it
   function artForm(k) {
     const a = ART[k], p = ARTPICK[k], f = el("form", "swap");
-    // pixel art or smooth, for a piece of a smooth slot: half the pack's width or less starts as pixel art
+    // pixel art or smooth, for a piece of a smooth slot: drawn near the art pixel's size, it starts as pixel art
     const drawnAs = (labels) => {
       const x = el("select"); x.id = "artPixel-" + k;
       ["pixel", "smooth"].forEach((v, i) => { const o = el("option", null, labels[i]); o.value = v; x.appendChild(o); });
-      x.value = p.typed.pixel ?? (p.w <= a.size[0] / 2 ? "pixel" : "smooth");
+      x.value = p.typed.pixel ?? (pixelish(a, p.w) ? "pixel" : "smooth");
       fields.appendChild(field("Drawn as", x));
       return x;
     };

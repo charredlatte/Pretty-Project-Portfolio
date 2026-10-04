@@ -250,15 +250,17 @@ def check(art, key, rel, was, said, where="", filled=None):
         return None
     note = ""
     if a["kind"] == "slice" and "slice" in a and want and [w, h] != want and "slice" not in entry:
-        if "scale" in a and not entry.get("pixel"):   # as The look does: the pack's border, scaled to her drawing
+        if "scale" in a:   # as The look does: the pack's border, scaled to her drawing, pixel art or smooth
             entry["slice"] = [min(256, max(1, round(n * w / want[0]))) for n in a["slice"]]   # a smooth map piece: up to 256
             worked.append("slice")
             note = f" (border {' '.join(map(str, entry['slice']))}, scaled from the pack's; set \"slice\" if it isn't)"
         else:
             note = f" (another size than the pack's {want[0]} x {want[1]}: give its border, \"slice\": [t, r, b, l], or it keeps {a['slice']})"
     smooth = "scale" in a or a.get("smooth")
-    if smooth and want and "pixel" not in entry and "scale" not in entry and w <= want[0] / 2:
-        entry["pixel"] = True   # as The look starts it: half the pack's width or less is pixel art
+    # as The look starts it: drawn nearer the art pixel than the screen (a map piece), or at half the pack's width or
+    # less (a sheet), it is pixel art
+    if smooth and want and "pixel" not in entry and "scale" not in entry and w <= (want[0] * a["scale"] * 0.75 if "scale" in a else want[0] / 2):
+        entry["pixel"] = True
         worked.append("pixel")
         note += " (pixel art; \"pixel\": false if it is smooth)"
     if entry.get("pixel"):
@@ -373,22 +375,28 @@ def main():
         entry = check(art, p.stem, "art/skin/" + p.name, was if isinstance(was, dict) else {}, said, filled=filled)
         if entry:
             skin[p.stem] = entry
-    family(art, skin, said)   # members of art/skin/ first: one refused there leaves a hand-pointed one its chance
-    for key, was in old.items():   # a slot pointed by hand at art outside art/skin/ (another pack's): checked the same way
-        f = file_of(was)
-        if key in skin or key not in art or not isinstance(f, str) or not f.startswith("art/"):
-            continue
-        if f.startswith("art/skin/") and Path(f).stem == key:
-            continue   # one named after its slot was weighed with the folder
-        if not re.fullmatch(r"art/[^\"'()\\\x00-\x1f]+", f) or ".." in f:   # the page's safeSrc()
-            said.append(f"  {key}: {f} is a path the page won't read (quotes, brackets, a backslash or ..): left out")
-            continue
-        if not (ROOT / f).is_file():
-            said.append(f"  {key}: {f} has gone, so it was dropped")
-            continue
-        entry = check(art, key, f, was if isinstance(was, dict) else {}, said, " (outside art/skin/)", filled=filled)
-        if entry:
-            skin[key] = entry
+    member = lambda k: art[k]["kind"] == "slice" and "slice" not in art[k] and art[k].get("fam")
+    # a slot pointed by hand at art outside art/skin/ (another pack's), checked the same way: the heads first, so the
+    # folder's members are weighed against the head that will be drawn; then the members, so one refused in the
+    # folder leaves a hand-pointed one its chance
+    for members in (False, True):
+        if members:
+            family(art, skin, said)
+        for key, was in old.items():
+            f = file_of(was)
+            if key in skin or key not in art or bool(member(key)) != members or not isinstance(f, str) or not f.startswith("art/"):
+                continue
+            if f.startswith("art/skin/") and Path(f).stem == key:
+                continue   # one named after its slot was weighed with the folder
+            if not re.fullmatch(r"art/[^\"'()\\\x00-\x1f]+", f) or ".." in f:   # the page's safeSrc()
+                said.append(f"  {key}: {f} is a path the page won't read (quotes, brackets, a backslash or ..): left out")
+                continue
+            if not (ROOT / f).is_file():
+                said.append(f"  {key}: {f} has gone, so it was dropped")
+                continue
+            entry = check(art, key, f, was if isinstance(was, dict) else {}, said, " (outside art/skin/)", filled=filled)
+            if entry:
+                skin[key] = entry
     family(art, skin, said)
     still = (set(from_files) - broken) | (filed & broken)   # built from files now, or still waiting on one half-saved
     if still:

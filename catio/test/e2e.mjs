@@ -2523,6 +2523,31 @@ await check("tools/skin.py reads every slot, token and size range the page has",
   expect(new RegExp("0 of " + slots + " slots").test(out) && /--u-desk = '20px' left out/.test(out), out);
   expect(JSON.parse(readFileSync(join(c, "art", "skin.json"), "utf8")).tokens["--ink"] === "#123456", "token dropped");
 });
+// a blank picture of any size, for a slot that is weighed by its size
+const { deflateSync, crc32 } = await import("node:zlib");
+const png = (w, h) => {
+  const chunk = (t, d) => { const n = Buffer.alloc(4); n.writeUInt32BE(d.length); const c = Buffer.alloc(4); c.writeUInt32BE(crc32(Buffer.concat([Buffer.from(t), d])) >>> 0); return Buffer.concat([n, Buffer.from(t), d, c]); };
+  const ih = Buffer.alloc(13); ih.writeUInt32BE(w, 0); ih.writeUInt32BE(h, 4); ih[8] = 8; ih[9] = 6;
+  const raw = Buffer.alloc((w * 4 + 1) * h, 255); for (let y = 0; y < h; y++) raw[y * (w * 4 + 1)] = 0;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ih), chunk("IDAT", deflateSync(raw)), chunk("IEND", Buffer.alloc(0))]);
+};
+await check("tools/skin.py: a map piece is pixel art only drawn near the art pixel, and a member is weighed against her head", async () => {
+  const { mkdtempSync, mkdirSync, copyFileSync, writeFileSync } = await import("node:fs");
+  const { execFileSync } = await import("node:child_process");
+  const { tmpdir } = await import("node:os");
+  const dir = mkdtempSync(join(tmpdir(), "skin-")), c = join(dir, "catio");
+  for (const d of ["tools", "art/skin", "art/other"]) mkdirSync(join(c, d), { recursive: true });
+  copyFileSync(join(here, "..", "index.html"), join(c, "index.html")); copyFileSync(join(here, "..", "tools", "skin.py"), join(c, "tools", "skin.py"));
+  // the map button is shown 135 px wide: drawn 135 wide it is smooth at that size, drawn 68 wide it is pixel art
+  writeFileSync(join(c, "art/skin/map-button.png"), png(135, 40)); writeFileSync(join(c, "art/skin/map-panel.png"), png(68, 34));
+  // her button, pointed at by hand outside the folder, and her lit one in the folder, drawn its size
+  writeFileSync(join(c, "art/other/button.png"), png(52, 56)); writeFileSync(join(c, "art/skin/button-hover.png"), png(52, 56));
+  writeFileSync(join(c, "art", "skin.json"), JSON.stringify({ button: { file: "art/other/button.png", slice: [8, 8, 8, 8] } }));
+  const out = execFileSync("python3", [join(c, "tools", "skin.py")], { encoding: "utf8" });
+  const j = JSON.parse(readFileSync(join(c, "art", "skin.json"), "utf8"));
+  expect(!j["map-button"].pixel && j["map-button"].scale === 1 && j["map-panel"].pixel === true && !j["map-panel"].scale, JSON.stringify([j["map-button"], j["map-panel"]]));
+  expect(j.button && j["button-hover"], out);
+});
 {
   const { page, ctx, errors } = await open();
   const rootVar = (n) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), n);
@@ -2629,6 +2654,14 @@ await check("tools/skin.py reads every slot, token and size range the page has",
     await page.evaluate(() => { const st = window.__catio.store; delete st["skin/button"]; delete st["skin/button-hover"]; window.__catio.put("skin/zz", {}); delete st["skin/zz"]; });
     await page.waitForTimeout(500);
   });
+  await check("her button, with the pack's bubble: a reply in a thread keeps the bubble's own border", async () => {
+    await page.evaluate(() => window.__catio.put("skin/button", { src: "art/licensed/ui/button.png", slice: [3, 4, 5, 4], at: 1 }));
+    await page.waitForTimeout(600);
+    const [iw, px, btn] = [await rootVar("--bubble-iw"), await rootVar("--bubble-px"), await rootVar("--btn-px")];
+    expect(iw === px && iw !== btn, [iw, px, btn].join(" | "));
+    await page.evaluate(() => { const st = window.__catio.store; delete st["skin/button"]; window.__catio.put("skin/zz", {}); delete st["skin/zz"]; });
+    await page.waitForTimeout(500);
+  });
   await check("a project map's dots outside its eight neighbourhoods are the rest's grey", async () => {
     await page.evaluate(() => window.__catio.put("graphs/grey-test", { repo: "example/grey-test", at: Date.now(), nodes: 3, edges: 1, communities: 1, gods: [], groups: [{ name: "One", size: 2 }], surprises: [], questions: [],
       map: { n: [{ t: "A", g: 0, d: 3, x: 50, y: 50 }, { t: "B", g: -1, d: 2, x: 150, y: 80 }, { t: "C", g: 11, d: 1, x: 250, y: 120 }], l: [0, 1] } }));
@@ -2681,6 +2714,26 @@ await check("tools/skin.py reads every slot, token and size range the page has",
     expect((await rootVar("--cursor-hot")) === "2 2" && /cursor-point\.png.*2 2/.test(await page.evaluate(() => getComputedStyle(document.body).cursor)), await page.evaluate(() => getComputedStyle(document.body).cursor));
     await page.evaluate(() => { delete window.__catio.store["skin/cursor"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
     await page.waitForTimeout(400);
+  });
+  await check("a map piece drawn near the art pixel starts as pixel art; drawn the size it is shown, smooth", async () => {
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    await page.locator("#artDlg details[data-group='Map panel'] > summary").click();
+    for (const [w, h, was] of [[135, 40, "smooth"], [68, 20, "pixel"]]) {
+      await page.locator("#artFile-map-button").setInputFiles({ name: "map-button.png", mimeType: "image/png", buffer: png(w, h) });
+      await page.waitForTimeout(400);
+      expect((await page.inputValue("#artPixel-map-button")) === was, w + ": " + await page.inputValue("#artPixel-map-button"));
+    }
+    await page.click("#artDlg li[data-slot='map-button'] .swap button:has-text('Cancel')"); await settle(page);
+    // her armchair's colour, while she is still choosing it: her picture in The look follows, and goes back if she lets go
+    const me = () => page.evaluate(() => document.querySelector("#artDlg li[data-slot='owner'] > .pic").innerHTML);
+    const was = await me();
+    await page.evaluate(() => { const i = document.querySelector("#artDlg li[data-token='--owner-chair'] input"); i.focus(); i.value = "#00ff00"; i.dispatchEvent(new Event("input", { bubbles: true })); });
+    await page.waitForTimeout(150);
+    const now = await me();
+    await page.evaluate(() => document.querySelector("#artDlg li[data-token='--owner-chair'] input").blur());
+    await page.waitForTimeout(150);
+    expect(now !== was && (await me()) === was && !(await page.evaluate(() => "skin/theme" in window.__catio.store && window.__catio.store["skin/theme"].tokens["--owner-chair"])), "no preview of her armchair");
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
   });
   await check("two colours changed one after the other, quickly, are both kept; one set back to the café's isn't hers", async () => {
     await page.evaluate(() => { delete window.__catio.store["skin/theme"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
