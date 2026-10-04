@@ -38,11 +38,11 @@ How it connects, start to finish:
 Your private chats stay in your own account, never in this repository.
 
 **Where it stands.** The code is open source and you can run your own café today (see [Running your own](#running-your-own)).
-A hosted café with nothing to install is planned and not open yet. The plan is to launch the KittyChat Café app in
-December 2027. The pixel art comes from third-party packs that cannot be shared, so check each pack's terms before
-posting screenshots.
+A hosted café with nothing to install is planned and not open yet. The pixel art comes from third-party packs that
+cannot be shared, so check each pack's terms before posting screenshots.
 
-Its making-of will be on Make n Break, a YouTube channel that isn't open yet.
+The plan is to launch the KittyChat Café app in December 2027, and to film the café's making-of on Make n Break, a
+YouTube channel that isn't open yet.
 
 Everything below is the detail.
 
@@ -214,7 +214,7 @@ hosted café is everyone else's.
 
 **Support the work.** The café is built by one person, in the open, while it is in development:
 
-- **Buy me a coffee** *(page coming; the link goes here once it exists)*. One-off coffees and small memberships;
+- **Buy me a coffee** *(page coming)*. One-off coffees and small memberships;
   they pay for the gateway's hosting and the médiateur, and put your name in the café's credits.
 - **Back the app on Ulule** *(campaign coming, once the first cafés are open, ahead of the app's launch in December
   2027)*. It funds the app; the rewards are a year of the hosted café and a drawn cat of your own.
@@ -283,11 +283,12 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harness/test` and
 `python3 -m unittest litterbox/test_sort.py`.
 
-The page's test and its screenshots drive a headless Chromium through Playwright. `run.sh` points `PLAYWRIGHT` and
-`CHROMIUM` at the copies preinstalled in Claude's cloud sessions; set both to your own elsewhere. Each run starts a
-fresh temporary profile with no logins or saved passwords, and loads only local files, the test's own server on
-127.0.0.1 and the page's Google Fonts. Under the house rules a session runs the `browser-agent-preflight` skill first.
-Without the licensed art, one check fails, as `run.sh` warns.
+The page's test and its screenshots drive a headless Chromium through Playwright, which `run.sh` finds where Claude's
+cloud sessions preinstall it. Elsewhere, set `PLAYWRIGHT` to your own install; `CHROMIUM` is optional, and without a
+usable one Playwright uses its own browser. Each run starts a fresh temporary profile with no logins or saved
+passwords, and as the page stands it loads only local files, the test's own server on 127.0.0.1 and the page's Google
+Fonts. What else a run needs (the licensed art, the house rules' browser preflight) is in `CLAUDE.md`, "Checking a
+change".
 
 ## Licence
 
