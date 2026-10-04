@@ -1115,13 +1115,15 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       try {
         const url = await resolved(e.src);
         if (ART[k].kind !== "font") {
-          const [w, h] = SKIN.sizes[url] || (SKIN.sizes[url] = await natural(url));   // each picture is measured once
+          const [w, h] = await (SKIN.sizes[url] || (SKIN.sizes[url] = natural(url).catch((err) => { delete SKIN.sizes[url]; throw err; })));   // each picture is measured once, overlapping runs too
           const why = misfit(k, w, h, false, e);
           if (why) return { why };
           Object.assign(e, { w, h });
         } else if (!SKIN.fonts["KittySkin-" + k] || SKIN.fonts["KittySkin-" + k].url !== url) {   // the fonts load together, each once
           const key = k + " " + url;   // a face carries its slot's family: two slots sharing a file get one each
-          e.face = await (SKIN.faces[key] || (SKIN.faces[key] = new FontFace("KittySkin-" + k, cssUrl(url)).load().catch((err) => { delete SKIN.faces[key]; throw err; })));
+          // by its URL, else from its bytes: a frame whose rules refuse a font's address may still take the font itself, as the pick did
+          const load = () => new FontFace("KittySkin-" + k, cssUrl(url)).load().catch(async () => new FontFace("KittySkin-" + k, await (await fetch(url)).arrayBuffer()).load());
+          e.face = await (SKIN.faces[key] || (SKIN.faces[key] = load().catch((err) => { delete SKIN.faces[key]; throw err; })));
         }
         return { e: Object.assign(e, { url }) };
       } catch (err) { return { why: ART[k].kind === "font" ? "The font couldn't be read." : "It couldn't be read (" + ((err && err.message) || "error") + ")." }; }
@@ -4565,11 +4567,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (size) input.size = 6;
     // she sees it at once (in the mode on screen); it is kept when she lets go (a size when it reads as one)
     const onScreen = () => themeOnScreen() === m || (m === "light" && !SKIN.tokens.dark[n]);   // dark says only what differs
-    input.addEventListener("input", () => { if (tokenOk(n, input.value) && onScreen()) { document.documentElement.style.setProperty(n, input.value); SKIN.set.add(n); previewDrawn(); } });
+    const drawn = /^--(hue-|owner-|ink$|u-)/.test(n);   // what the script draws with (the maps, her armchair, its outline) or the frame is measured by
+    input.addEventListener("input", () => { if (tokenOk(n, input.value) && onScreen()) { document.documentElement.style.setProperty(n, input.value); SKIN.set.add(n); if (drawn) previewDrawn(); } });
     const keep = () => {
       delete input.dataset.carried;
       if (!tokenOk(n, input.value)) {
-        document.documentElement.style.removeProperty(n); SKIN.set.delete(n); previewDrawn();   // the preview goes with the value
+        document.documentElement.style.removeProperty(n); SKIN.set.delete(n); if (drawn) previewDrawn();   // the preview goes with the value
         toast(name + " is a size from " + SIZES[n][0] + " to " + SIZES[n][1] + "px" + (WHOLE_PX.includes(n) ? ", in whole pixels." : " (or the same in rem)."), "alert"); input.value = valueIn(m, n); return;
       }
       editTokens((next) => { next[m][n] = input.value; }, name + ": yours now" + (m === "dark" ? ", at night." : "."));
@@ -4577,7 +4580,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     input.addEventListener("blur", () => {
       if (SKIN.redrawing) return;   // the card redrawn under her: not hers
       if (input.dataset.carried && input.value.toLowerCase() !== valueIn(m, n).toLowerCase()) keep();   // carried through a redraw, so no change will come
-      else if (!SKIN.saving && SKIN.set.has(n)) { document.documentElement.style.removeProperty(n); SKIN.set.delete(n); previewDrawn(); }   // a preview she let go of unchanged
+      else if (!SKIN.saving && SKIN.set.has(n)) { document.documentElement.style.removeProperty(n); SKIN.set.delete(n); if (drawn) previewDrawn(); }   // a preview she let go of unchanged
     });
     input.addEventListener("change", keep);
     pic.appendChild(input);
