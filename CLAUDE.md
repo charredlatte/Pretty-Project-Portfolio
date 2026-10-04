@@ -277,7 +277,8 @@ a map piece can be drawn as pixel art, `pixel: true`, its family alone then `pix
 what sits inside a frame follows its border: the HUD and the map panel inside the screen's panel, the portrait inside
 its frame, a plan's tag and door inside its brackets); a **cat** one row of frames, any frame size, its feet at the bottom
 middle unless `anchor` says, its loop in `secs` (the generated rules go in `#skinCss`, and `SPR` takes its frame
-size; `--fs` scales it to fill the pack's place in a portrait, a thumb or the queen's scene); `cat-walk-side` is a new slot, empty until she draws a walk: then every walking cat uses it, drawn facing
+size; `--fs` scales it to fill the pack's place in a portrait, a thumb or the queen's scene); a paw (`cursor`,
+`cursor-point`) says where its tip is, `hot: [x, y]` (`--cursor-hot`); `cat-walk-side` is a new slot, empty until she draws a walk: then every walking cat uses it, drawn facing
 right and mirrored going left; `owner` is her own picture of herself in the queen's scene (30 × 40 or that shape),
 drawn in code from her look until she gives one; `font-body` and `font-display` go ahead of Nunito and Fredoka. A
 piece that doesn't fit isn't used, and The look says why.

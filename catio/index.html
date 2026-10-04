@@ -112,8 +112,9 @@
   --mbtn-w: calc(var(--mbtn-t) * var(--mbtn-k)) calc(var(--mbtn-r) * var(--mbtn-k)) calc(var(--mbtn-b) * var(--mbtn-k)) calc(var(--mbtn-l) * var(--mbtn-k));
   --mframe-t: 28; --mframe-r: 28; --mframe-b: 28; --mframe-l: 28; --mframe-s: var(--mframe-t) var(--mframe-r) var(--mframe-b) var(--mframe-l);
   --mframe-w: calc(var(--mframe-t) * var(--mframe-k)) calc(var(--mframe-r) * var(--mframe-k)) calc(var(--mframe-b) * var(--mframe-k)) calc(var(--mframe-l) * var(--mframe-k));
-  --paw: var(--art-cursor) 9 5, default;
-  --point: var(--art-cursor-point) 9 3, pointer;
+  --cursor-hot: 9 5; --cursor-point-hot: 9 3;   /* where each paw's tip is, in its own pixels */
+  --paw: var(--art-cursor) var(--cursor-hot), default;
+  --point: var(--art-cursor-point) var(--cursor-point-hot), pointer;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -923,8 +924,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "pointer":       { group: "Interface", kind: "sheet", name: "Menu pointer", file: LIC + "ui/pointer.png", size: [7, 12], what: "The triangle beside the chosen menu item." },
     "crown":         { group: "Interface", kind: "sheet", name: "Crown", file: LIC + "ui/crown.png", size: [14, 13], what: "The queen's, in her menu and card." },
     "logo":          { group: "Interface", kind: "sheet", name: "Logo", file: LIC + "ui/logo.png", size: [21, 18], what: "The brand: a cat face in a bubble." },
-    "cursor":        { group: "Interface", kind: "exact", name: "Paw", file: LIC + "ui/cursor.png", size: [32, 32], what: "The pointer: a cursor isn't scaled, so draw it at 16 and save it doubled." },
-    "cursor-point":  { group: "Interface", kind: "exact", name: "Pointing paw", file: LIC + "ui/cursor-point.png", size: [32, 32], what: "The pointer over something to click." },
+    "cursor":        { group: "Interface", kind: "exact", name: "Paw", file: LIC + "ui/cursor.png", size: [32, 32], hot: [9, 5], what: "The pointer: a cursor isn't scaled, so draw it at 16 and save it doubled." },
+    "cursor-point":  { group: "Interface", kind: "exact", name: "Pointing paw", file: LIC + "ui/cursor-point.png", size: [32, 32], hot: [9, 3], what: "The pointer over something to click." },
     "font":          { group: "Type", kind: "font", name: "Pixel font", file: LIC + "ui/sprout.ttf", token: "--pixel", what: "Titles, labels and buttons. Set its size under Sizes, one font pixel a screen pixel." },
     "font-body":     { group: "Type", kind: "font", name: "Text font", file: null, token: "--body", what: "Everything you read: Nunito from Google Fonts until you give one." },
     "font-display":  { group: "Type", kind: "font", name: "Round font", file: null, token: "--display", what: "Where the pixel font has no letter: Fredoka from Google Fonts until you give one." },
@@ -1046,6 +1047,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (num(v.frames, 1, 64) !== null && Number.isInteger(v.frames)) out.frames = v.frames;
     if (num(v.secs, 0.1, 20) !== null) out.secs = v.secs;
     if (Array.isArray(v.anchor) && v.anchor.length === 2 && v.anchor.every((n) => num(n, 0, 1024) !== null)) out.anchor = v.anchor.slice();
+    if (Array.isArray(v.hot) && v.hot.length === 2 && v.hot.every((n) => Number.isInteger(n) && n >= 0 && n < 128)) out.hot = v.hot.slice();
     return out;
   }
   // what a slot draws with now: hers, or the pack's
@@ -1112,6 +1114,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     for (const [k, e] of Object.entries(live)) {
       const a = ART[k];
       if (a.kind === "slice" || a.kind === "sheet" || a.kind === "exact") put("--art-" + k, cssUrl(e.url));
+      if (a.hot) put("--" + k + "-hot", (e.hot || a.hot).join(" "));   // her paw points where she says
       if (a.kind === "slice" && a.slice && e.slice) {
         e.slice.forEach((n, i) => put("--" + a.fam + "-" + "trbl"[i], String(n)));
         if (a.bw) put("--" + a.fam + "-bw", "var(--" + a.fam + "-" + a.bw + ")");   // her border's box, side by side
@@ -1169,7 +1172,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       drawFurniture();
       checkArt();
     }
-    render();   // what reads a token as it draws (her look, a map's hues) draws again
+    render();   // what reads a token as it draws draws again: the house, her look in the hall, the maps' hues
+    if ($("queenOwnerFig")) $("queenOwnerFig").replaceChildren(ownerSVG(ownerOf()));
+    if ($("mapsDlg").open) redrawMaps();
     if ($("artDlg").open) drawArt();
   }
   // art/skin.json beside the page: her own pieces, dropped in a folder and listed (tools/skin.py lists them)
@@ -2366,7 +2371,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // anyone else's copy, draws the cabin and no cats at all, and used to say nothing about it.
   // Ask the browser for one of them and, if it isn't there, tell the viewer how to put it right.
   function checkArt() {
-    const seen = ["house", "cat-cry"].map((k) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(true); i.onerror = () => ok(false); i.src = srcOf(k); }));
+    const pack = Object.keys(ART).find((k) => !SKIN.live[k] && ART[k].file && ART[k].file.startsWith(LIC) && ART[k].kind !== "font");
+    const seen = [...new Set(["house", "cat-cry", pack].filter(Boolean))].map((k) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(true); i.onerror = () => ok(false); i.src = srcOf(k); }));
     const run = (checkArt.run = (checkArt.run || 0) + 1);
     Promise.all(seen).then((r) => { if (run !== checkArt.run) return; S.art = r.every(Boolean) ? "ok" : "missing"; renderStatus(); });
   }
@@ -4327,10 +4333,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     return pic;
   }
   // "4 4 6 4", "6" or "9 8": a border as CSS writes one, to four whole numbers
-  function border(text) {
-    const n = String(text).trim().split(/[\s,]+/).map(Number);
+  function border(text, w, h) {
+    const parts = String(text).trim().split(/[\s,]+/).filter(Boolean), n = parts.map(Number);
     if (!n.length || n.length > 4 || n.some((x) => !Number.isInteger(x) || x < 0 || x > 1024)) return null;
     const [t, r = t, b = t, l = r] = n;
+    if (t + r + b + l === 0 || (w && (l + r >= w || t + b >= h))) return null;   // a frame, with a middle left inside it
     return [t, r, b, l];
   }
   function drawArt() {
@@ -4511,7 +4518,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const fields = el("div", "fields");
     f.appendChild(fields);
     if (p.why) fields.appendChild(el("p", "problem", p.why));
-    let bd, px, frames, secs;
+    let bd, px, frames, secs, hot;
     if (!p.why && a.kind === "slice" && a.slice) {
       // the same size as the pack's keeps its border; another size needs hers
       bd = el("input"); bd.id = "artBorder"; bd.value = p.typed.border ?? (p.w === a.size[0] && p.h === a.size[1] ? borderOf(k) : a.scale ? borderOf(k).map((n) => Math.max(1, Math.round(n * p.w / a.size[0]))) : borderOf(k)).join(" ");
@@ -4523,6 +4530,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         fields.appendChild(field("Drawn as", px));
       }
     }
+    if (!p.why && a.hot) {
+      hot = el("input"); hot.id = "artHot"; hot.value = p.typed.hot ?? a.hot.join(" ");
+      fields.appendChild(field("Where it points, in its pixels: x y", hot));
+    }
     if (!p.why && a.kind === "cat") {
       frames = el("input"); frames.id = "artFrames"; frames.type = "number"; frames.min = 1; frames.max = 64;
       frames.value = p.typed.frames ?? (p.w % p.h === 0 ? p.w / p.h : a.frames);
@@ -4530,7 +4541,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       const row = el("div", "row"); row.append(field("Frames", frames), field("Seconds a loop", secs)); fields.appendChild(row);
     }
     // what she types is kept with the pick, so a redraw (a save elsewhere) gives it back
-    for (const [key, x] of [["border", bd], ["pixel", px], ["frames", frames], ["secs", secs]]) if (x) x.addEventListener("input", () => { p.typed[key] = x.value; });
+    for (const [key, x] of [["border", bd], ["pixel", px], ["frames", frames], ["secs", secs], ["hot", hot]]) if (x) x.addEventListener("input", () => { p.typed[key] = x.value; });
     const acts = el("div", "actions");
     const no = el("button", "btn", "Cancel"); no.type = "button";
     no.addEventListener("click", () => { URL.revokeObjectURL(p.url); delete ARTPICK[k]; drawArt(); });
@@ -4542,7 +4553,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (p.why || f.dataset.busy) return;
       const doc = { name: p.file.name, at: Date.now() };
       if (p.w) Object.assign(doc, { w: p.w, h: p.h });
-      if (bd) { doc.slice = border(bd.value); if (!doc.slice) { toast("A border is one to four whole numbers, like 4 4 6 4.", "alert"); bd.focus(); return; } }
+      if (bd) { doc.slice = border(bd.value, p.w, p.h); if (!doc.slice) { toast("A border is one to four whole numbers, like 4 4 6 4, that leave its " + p.w + " × " + p.h + " a middle.", "alert"); bd.focus(); return; } }
+      if (hot) {
+        doc.hot = hot.value.trim().split(/[\s,]+/).map(Number);
+        if (doc.hot.length !== 2 || doc.hot.some((n) => !Number.isInteger(n) || n < 0 || n >= Math.min(p.w, 128))) { toast("Where it points is two whole numbers inside it, like 9 5.", "alert"); hot.focus(); return; }
+      }
       if (px) { if (px.value === "pixel") doc.pixel = true; else if (p.w !== a.size[0]) doc.scale = a.scale * a.size[0] / p.w; }
       if (frames) {
         doc.frames = Number(frames.value); doc.secs = Number(secs.value);

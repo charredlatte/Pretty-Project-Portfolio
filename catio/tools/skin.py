@@ -9,7 +9,8 @@ the page draws with it: no code changes. It reads each PNG's size and checks it 
 the grounds, the furniture and the cursors must be their exact size, a sheet the same shape, and a cat's
 frames must split its width. A 9-slice drawn at another size than the pack's needs its border, and a cat
 its frames when they aren't square: say so in art/skin.json ("slice": [top, right, bottom, left],
-"frames": 6, "secs": 0.6), which this keeps on every run. Entries for files that have gone are dropped.
+"frames": 6, "secs": 0.6; a paw its tip, "hot": [x, y]), which this keeps on every run. Entries for files that have
+gone are dropped; one pointed by hand at art elsewhere under art/ (another pack's) is kept while its file is there.
 
 The rest of the design system is tokens, kept here in two modes, as Figma keeps a variable per mode:
 "tokens": {"--ink": "#3F2A20", "--px-size": "16px"} for light and "dark": {...} for what differs at night (TOKENS in
@@ -56,6 +57,9 @@ def slots():
         v = re.search(r"frames: (\d+)", line)
         if v:
             a["frames"] = int(v.group(1))
+        v = re.search(r"scale: ([\d.]+)(?: / ([\d.]+))?", line)
+        if v:
+            a["scale"] = float(v.group(1)) / (float(v.group(2)) if v.group(2) else 1)
         out[m.group(1)] = a
     # every slot is one line of ART; a line this can't read is a change of shape to bring here, never a slot to drop
     keys = re.findall(r'^\s+"([\w-]+)":\s*\{', block, re.M)
@@ -140,50 +144,67 @@ def png_size(path):
 
 def main():
     art = slots()
-    old = json.loads(OUT.read_text(encoding="utf-8")) if OUT.exists() else {}
+    try:
+        old = json.loads(OUT.read_text(encoding="utf-8")) if OUT.exists() else {}
+    except ValueError as e:
+        sys.exit(f"{OUT.relative_to(ROOT.parent)} isn't JSON any more ({e}): put it right, or delete it to start again.")
+    if not isinstance(old, dict):
+        sys.exit(f"{OUT.relative_to(ROOT.parent)} should be an object of slots and tokens: put it right, or delete it.")
     files = sorted(p for p in SKIN.iterdir() if p.is_file()) if SKIN.is_dir() else []
     skin, said = {}, []
     groups = token_names()
     modes = {m: {k: v for k, v in (old.get(key) or {}).items() if token_ok(groups, k, v)} if isinstance(old.get(key), dict) else {}
              for m, key in (("light", "tokens"), ("dark", "dark"))}
+    for key, was in old.items():   # a slot pointed by hand at art outside art/skin/ (another pack's): kept while it is there
+        f = was.get("file") if isinstance(was, dict) else was if isinstance(was, str) else None
+        if key in art and isinstance(f, str) and f.startswith("art/") and not f.startswith("art/skin/"):
+            if (ROOT / f).is_file():
+                skin[key] = was
+                said.append(f"  {key}: {f}, kept (outside art/skin/)")
+            else:
+                said.append(f"  {key}: {f} has gone, so it was dropped")
     for key in ("tokens", "dark"):
         for k, v in (old.get(key) or {}).items() if isinstance(old.get(key), dict) else []:
             if not token_ok(groups, k, v):
                 said.append(f"  {key}: {k} = {v!r} left out (a colour is #rrggbb; a size stays in its range, SIZES in the page)")
-    for mode in {"dark" if "dark" in p.name.lower() else "light" for p in files if p.name.endswith(".tokens.json")}:
-        modes[mode] = {}   # a mode that has its files is what the files say, so one taken out of a file goes
+    # a mode that has its files is what the files say (so a token taken out of one goes), but only once a file of it
+    # could be read: a half-saved one leaves the mode as it was
+    from_files = {}
     for p in files:
         if p.name.endswith(".tokens.json"):
             mode = "dark" if "dark" in p.name.lower() else "light"
             try:
                 found, foreign = from_dtcg(json.loads(p.read_text(encoding="utf-8")), groups)
             except (ValueError, UnicodeDecodeError):
-                said.append(f"  {p.name}: not a tokens file (it isn't JSON)")
+                said.append(f"  {p.name}: not a tokens file (it isn't JSON): {mode} kept as it was")
                 continue
-            modes[mode].update(found)
+            from_files.setdefault(mode, {}).update(found)
             said.append(f"  {p.name}: {len(found)} tokens into {mode}" + (f", {foreign} not the cafe's" if foreign else ""))
+    modes.update(from_files)
+    for p in files:
+        if p.name.endswith(".tokens.json"):
             continue
         key = p.stem
         if key not in art:
             said.append(f"  {p.name}: no slot is called {key} (the slots are in ART, catio/index.html)")
             continue
         a, was = art[key], old.get(key) if isinstance(old.get(key), dict) else {}
-        entry = {k: v for k, v in was.items() if k in ("slice", "frames", "secs", "anchor", "scale", "pixel")}
+        entry = {k: v for k, v in was.items() if k in ("slice", "frames", "secs", "anchor", "scale", "pixel", "hot", "w", "h")}
         entry["file"] = "art/skin/" + p.name
-        redrawn = False
         if a["kind"] == "font":
             if p.suffix.lower() not in FONTS:
-                said.append(f"  {p.name}: the font slot takes .ttf, .otf or .woff")
+                said.append(f"  {p.name}: a font slot takes .ttf, .otf or .woff")
                 continue
             skin[key] = entry
-            said.append(f"  {p.name}: the pixel font")
+            said.append(f"  {p.name}: {key} (" + {"font": "the pixel font", "font-body": "the text", "font-display": "the round font"}.get(key, "a font") + ")")
             continue
         size = png_size(p)
         if not size:
             said.append(f"  {p.name}: not a PNG")
             continue
         w, h = size
-        if entry.keys() - {"file"} and [was.get("w"), was.get("h")] != [w, h]:
+        entry.pop("w", None), entry.pop("h", None)
+        if entry.keys() - {"file"} and was.get("w") is not None and [was.get("w"), was.get("h")] != [w, h]:
             # settings given for a drawing of another size don't fit this one: they go, and it's said
             said.append(f"  {p.name}: redrawn at {w} x {h}, so its " + ", ".join(sorted(entry.keys() - {"file"})) + " were dropped: give them again if it needs them")
             entry = {"file": entry["file"]}
@@ -198,6 +219,9 @@ def main():
         note = ""
         if a["kind"] == "slice" and "slice" in a and want and [w, h] != want and "slice" not in entry:
             note = f" (another size than the pack's {want[0]} x {want[1]}: give its border, \"slice\": [t, r, b, l], or it keeps {a['slice']})"
+        if a["kind"] == "slice" and "scale" in a and want and w != want[0] and "scale" not in entry and not entry.get("pixel"):
+            entry["scale"] = round(a["scale"] * want[0] / w, 4)   # as The look does: drawn smooth, shown the pack's size
+            note += f" (scale {entry['scale']}, smooth; \"pixel\": true instead if it is pixel art)"
         if a["kind"] == "cat":
             n = entry.get("frames") or (w // h if w % h == 0 else a.get("frames", 1))
             if w % n:

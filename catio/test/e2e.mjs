@@ -2648,6 +2648,25 @@ await check("tools/skin.py reads every slot, token and size range the page has",
     if (await page.locator("#toast .btn").isVisible()) await page.click("#toast .btn");
     await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
   });
+  await check("a border that is empty or leaves no middle is refused; a paw points where she says", async () => {
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    await page.locator("#artDlg details[data-group='Interface'] > summary").click();
+    await page.locator("#artFile-panel").setInputFiles({ name: "panel.png", mimeType: "image/png", buffer: readFileSync(join(here, "..", "art", "licensed", "ui", "bubble.png")) });
+    await page.waitForTimeout(400);
+    for (const bad of ["", "0", "30"]) {   // "4," reads as 4 all round, which is fine
+      await page.fill("#artBorder", bad);
+      await page.click("#artDlg li[data-slot='panel'] .swap button[type=submit]"); await settle(page);
+      expect(/leave its 42 × 42 a middle/.test(await toast(page)) && !(await page.evaluate(() => "skin/panel" in window.__catio.store)), bad + ": " + await toast(page));
+      await page.click("#toast .btn");
+    }
+    await page.click("#artDlg li[data-slot='panel'] .swap button:has-text('Cancel')"); await settle(page);
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+    await page.evaluate(() => window.__catio.put("skin/cursor", { src: "art/licensed/ui/cursor-point.png", hot: [2, 2], at: 1 }));
+    await page.waitForTimeout(600);
+    expect((await rootVar("--cursor-hot")) === "2 2" && /cursor-point\.png.*2 2/.test(await page.evaluate(() => getComputedStyle(document.body).cursor)), await page.evaluate(() => getComputedStyle(document.body).cursor));
+    await page.evaluate(() => { delete window.__catio.store["skin/cursor"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(400);
+  });
   await check("a font of hers for the text goes ahead of the café's", async () => {
     await page.evaluate(() => window.__catio.put("skin/font-body", { src: "art/licensed/ui/sprout.ttf", at: 1 }));
     await page.waitForTimeout(800);
