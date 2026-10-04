@@ -1,4 +1,4 @@
-# MCPWay: the engine under the KittyChat Café
+# The KittyChat engine
 
 Written 4 October 2026, from Charlotte's asks that day: "Make the KittyChat Cafe into a real business plan. A
 framework that sells a harness gateway product in the form of MCP, but have it your way. Drive with whatever model
@@ -6,23 +6,24 @@ you want and adapt to any environment", then: "like Cursor, but for every day pe
 but don't know how to code. In other words, a business automation DIY kit that comes with maintenance and extra
 features at flexible price points and allows for coworking."
 
-The café is what buyers see and buy: they never need to hear "MCP". MCPWay is the engine underneath, and this page
-is for the people who build on it: developers, kit makers, and the freelancers who set cafés up and maintain them.
-The business plan, with its prices, figures and the legal setup, is private and lives in the café, not here.
+One name for everything, settled on 4 October: the KittyChat Café is what buyers see and buy, and they never need
+to hear "MCP". The engine underneath has no name of its own; this page is for the people who build on it:
+developers, kit makers, and the freelancers who set cafés up and maintain them. The business plan, with its prices,
+figures and the legal setup, is private and lives in the café, not here.
 
 ## In plain words
 
-MCPWay makes harnesses to order. Someone describes what they want automated, and gets back a working café: one
+The engine makes harnesses to order. Someone describes what they want automated, and gets back a working café: one
 MCP gateway every agent reports to, house rules that keep the agents safe, a runner that does the work with the
-model they choose, and kits that package one business automation each. The name follows PCBWay: PCBWay takes a
-circuit design, quotes it, fabricates the board and assembles the parts. MCPWay takes a harness design (rules,
-kits, which model drives what), deploys the gateway, and installs the pieces.
+model they choose, and kits that package one business automation each. It works the way PCBWay does for circuit
+boards: PCBWay takes a design, quotes it, fabricates the board and assembles the parts. The engine takes a harness
+design (rules, kits, which model drives what), deploys the gateway, and installs the pieces.
 
 - **Any model.** Claude through Claude Code today. Anthropic, OpenAI or an OpenAI-compatible provider such as
   OpenRouter once the hosted runner is in (below), each on the buyer's own API key, paid to that provider directly:
-  MCPWay never resells tokens. A small model makes typed decisions (yes/no, a choice, a score); it is the one model
-  MCPWay runs itself, and it can be inside the price only once its model is locked (today any caller can pick a
-  paid one).
+  the café never resells tokens. A small model makes typed decisions (yes/no, a choice, a score); it is the one
+  model the café runs itself, and it can be inside the price only once its model is locked (today any caller can
+  pick a paid one).
 - **Any environment.** Claude Code, Codex, Gemini CLI, Cursor, Claude Desktop, claude.ai, and the café on its own
   address in any browser. The owner's tools (handing in homework, dropping files, managing cats) need the owner's
   sign-in on the hosted gateway: claude.ai, Claude Desktop, or the café. The local stdio twin has no roles.
@@ -152,8 +153,9 @@ with an API key.
 ## Competition, for the engine
 
 Every MCP gateway in the 2026 roundups governs which tools an agent may call. None shows sessions, keeps one inbox
-of what is waiting on a person, or enforces rules on how agents work. MCPWay is the gateway agents report to,
-whichever vendor runs them. For the café's buyers the competition is different, and is weighed in the private plan.
+of what is waiting on a person, or enforces rules on how agents work. The KittyChat gateway is the one agents
+report to, whichever vendor runs them. For the café's buyers the competition is different, and is weighed in the
+private plan.
 
 | Category | Examples | What they leave open |
 | --- | --- | --- |
@@ -170,11 +172,11 @@ Sources, read 4 October 2026: [Traefik's 2026 comparison](https://traefik.io/com
 
 ## The name
 
-Not settled. [mcpway](https://github.com/drvova/mcpway) is already an MIT-licensed Rust tool that runs MCP stdio
-servers over SSE, WebSocket, HTTP and gRPC (0.2.1, 25 May 2026, [docs.rs](https://docs.rs/crate/mcpway/0.2.1)):
-same word, same protocol. Shopify's domain check on 4 October found mcpway.com taken and mcpway.shop, .store, .org
-and .net available that day. Search INPI and EUIPO in classes 9 and 42 before buying anything, and keep a second
-name ready. The "-Way" echo of PCBWay is fine as a name; "the PCBWay of MCP" in an advert, or its look, is not.
+KittyChat Café, for buyers and builders alike (4 October). MCPWay, the working name before that, is retired, which
+also ends its clash with [mcpway](https://github.com/drvova/mcpway), an MIT-licensed Rust tool of the same name.
+Before any money goes into the name: a search of INPI and EUIPO for "KittyChat" in classes 9 and 42. A quick web
+search on 4 October found no KittyChat app. The two lines for the copy are *Your business, your way* and *Coding
+that plays like a game*; not "have it your way", which is Burger King's slogan.
 
 ## The roadmap
 
