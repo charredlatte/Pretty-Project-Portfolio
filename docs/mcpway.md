@@ -18,9 +18,9 @@ already uses.
   and plans: MCPWay never resells Claude, OpenAI or Gemini access. The one model it runs itself is the decider's,
   which can be inside the price only once its model is locked (below; today any caller can pick a paid one).
 - **Any environment.** Claude Code, Codex, Gemini CLI, Cursor, Claude Desktop, claude.ai. On a laptop, a Raspberry
-  Pi or a cloud container. One gateway everywhere. The owner's tools (handing in homework, dropping files,
-  managing cats) need the owner's sign-in on the hosted gateway: claude.ai, Claude Desktop, or the café on its address in any
-  browser. The local stdio twin has no roles.
+  Pi or a cloud container. One gateway everywhere. The owner's tools (handing in homework, dropping files, managing
+  cats) need the owner's sign-in on the hosted gateway: claude.ai, Claude Desktop, or the café on its address in
+  any browser. The local stdio twin has no roles.
 - **Any face.** The KittyChat Café is the flagship: a pixel-art manor where every session is a cat. Teams who
   want a plain dashboard will get one from the same gateway (not built yet).
 
