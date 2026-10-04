@@ -228,7 +228,7 @@ The folder also carries the Catio MCP server, which serves the page and lets age
 sessions join as cats: from inside the folder, `python3 harness/mcp/catio_mcp.py --serve . --port 8791`, then open
 <http://localhost:8791>. On localhost the sessions' cats are the saved copy, not live (agents that join the MCP
 server are), and adopted chats, room names and project looks are kept in that browser. For newer cats, have a session
-refresh `catio/data/sessions.json` (`catio/tools/save-sessions.py`) and copy it into the folder's `data/`.
+refresh `catio/data/sessions.json` and send it to you, then copy it into the folder's `data/`.
 
 The folder holds your licensed art and your session titles, so it is for your own use: never commit it or share it.
 
