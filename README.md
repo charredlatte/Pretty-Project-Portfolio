@@ -38,8 +38,8 @@ How it connects, start to finish:
 Your private chats stay in your own account, never in this repository.
 
 **Where it stands.** The code is open source and you can run your own café today (see [Running your own](#running-your-own)).
-A hosted café with nothing to install is planned and not open yet, and the plan is to launch the KittyChat Café app in
-December 2027. The pixel art comes from third-party packs that cannot be shared, so check each pack's terms before
+A hosted café with nothing to install is planned and not open yet. Separately, Charlotte plans to launch the KittyChat
+Café app in December 2027. The pixel art comes from third-party packs that cannot be shared, so check each pack's terms before
 posting screenshots.
 
 Everything below is the detail.
@@ -288,7 +288,8 @@ absolute path of a `playwright` package folder (after `npm i -g playwright`, tha
 either set `CHROMIUM` to a Chromium executable or run `node "$PLAYWRIGHT/cli.js" install chromium` so that Playwright
 has its own browser. Each run
 starts a fresh temporary profile with no logins or saved passwords, and as the page stands it loads only local files,
-the test's own server on 127.0.0.1 and the page's Google Fonts. Without the licensed art (see
+the test's own server on 127.0.0.1 (port 8791; set `PORT` if something else, like `catio_mcp.py --serve`, holds it)
+and the page's Google Fonts. Without the licensed art (see
 [Running your own](#running-your-own)), the check "on its own address the café is live through the gateway, with no
 warning sign" fails, as `run.sh` warns.
 Sessions under the house rules run the browser preflight first ([`harness/README.md`](harness/README.md)).
