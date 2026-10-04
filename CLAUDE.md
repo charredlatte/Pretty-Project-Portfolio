@@ -231,7 +231,9 @@ A skin says which are hers, from two places; the second wins:
   "tokens": { "--ink": "#1D3557", "--px-size": "16px" } }`. `python3 catio/tools/skin.py` writes the slots from
   whatever is in `catio/art/skin/` (each file named after its slot), keeps the tokens, and says what each file fills
   or why it can't. Her own drawings may be committed there; **never put a pack's file in `art/skin/`**. The bundle
-  carries it; a publish needs `art/skin.json` and its files in `files`.
+  carries it; a publish needs `art/skin.json` and its files in `files`. The café on the gateway's address doesn't
+  get it yet: `cafe/move-in.py` uploads only the packs' art, and teaching it is a change under `harness/`, so hers
+  to approve. The look works there all the same.
 - **The look** in the House menu (`openArt()`): her colours, type and sizes, then every slot, what it is and the size
   to draw it at. A colour has its picker, a size its field, kept in `skin/theme` when she lets go; Replace… checks
   her file, asks a 9-slice drawn at another size for its border and a cat for its frames, keeps it with `assets`

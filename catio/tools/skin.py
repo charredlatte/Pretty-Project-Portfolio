@@ -16,7 +16,10 @@ The rest of the design system is tokens, kept here in two modes, as Figma keeps 
 the page lists them: colours as six hex digits, sizes in px or rem). Drop a design tokens file in art/skin/ too (the
 W3C format Figma's variables export, or The look's own export: *.tokens.json, "dark" in its name for the dark mode)
 and its tokens are read into that mode; a token is matched by its own name (ink, go, px-size...) wherever it sits.
-Tokens already in skin.json and not in a file are kept.
+A mode with a tokens file in art/skin/ is rebuilt from its files alone on every run, so a token taken out of the file
+goes; a mode with no file keeps the tokens written in skin.json by hand. A drawing's settings (its border, frames...)
+are kept while it stays the size they were given for ("w" and "h" in its entry); redrawn at another size, they go,
+and this says so.
 
 The page also takes art from The look in its House menu; that wins over this file. Needs nothing but Python.
 """
@@ -147,6 +150,8 @@ def main():
         for k, v in (old.get(key) or {}).items() if isinstance(old.get(key), dict) else []:
             if not token_ok(groups, k, v):
                 said.append(f"  {key}: {k} = {v!r} left out (a colour is #rrggbb; a size stays in its range, SIZES in the page)")
+    for mode in {"dark" if "dark" in p.name.lower() else "light" for p in files if p.name.endswith(".tokens.json")}:
+        modes[mode] = {}   # a mode that has its files is what the files say, so one taken out of a file goes
     for p in files:
         if p.name.endswith(".tokens.json"):
             mode = "dark" if "dark" in p.name.lower() else "light"
@@ -165,6 +170,7 @@ def main():
         a, was = art[key], old.get(key) if isinstance(old.get(key), dict) else {}
         entry = {k: v for k, v in was.items() if k in ("slice", "frames", "secs", "anchor", "scale", "pixel")}
         entry["file"] = "art/skin/" + p.name
+        redrawn = False
         if a["kind"] == "font":
             if p.suffix.lower() not in FONTS:
                 said.append(f"  {p.name}: the font slot takes .ttf, .otf or .woff")
@@ -177,6 +183,11 @@ def main():
             said.append(f"  {p.name}: not a PNG")
             continue
         w, h = size
+        if entry.keys() - {"file"} and [was.get("w"), was.get("h")] != [w, h]:
+            # settings given for a drawing of another size don't fit this one: they go, and it's said
+            said.append(f"  {p.name}: redrawn at {w} x {h}, so its " + ", ".join(sorted(entry.keys() - {"file"})) + " were dropped: give them again if it needs them")
+            entry = {"file": entry["file"]}
+        entry["w"], entry["h"] = w, h
         want = a.get("size")
         if a["kind"] == "exact" and want and [w, h] != want:
             said.append(f"  {p.name}: {w} x {h}, but it must be {want[0]} x {want[1]}: left out")

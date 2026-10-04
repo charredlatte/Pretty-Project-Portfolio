@@ -1145,29 +1145,31 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       }
     }
     // the tokens, in each mode: the file's, then hers from The look
-    SKIN.tokens = { light: {}, dark: {} };
-    for (const m of MODES) for (const [from, set] of [["file", SKIN.fileTokens[m]], ["db", SKIN.dbTokens[m]]]) for (const [n, v] of Object.entries(set)) SKIN.tokens[m][n] = { value: v, from };
-    for (const [n, t] of Object.entries(SKIN.tokens.light)) put(n, t.value);
+    const tokens = { light: {}, dark: {} };
+    for (const m of MODES) for (const [from, set] of [["file", SKIN.fileTokens[m]], ["db", SKIN.dbTokens[m]]]) for (const [n, v] of Object.entries(set)) tokens[m][n] = { value: v, from };
+    for (const [n, t] of Object.entries(tokens.light)) put(n, t.value);
     for (const [h, e] of Object.entries(live)) {
       const a = ART[h];
       if (a.kind !== "slice" || !a.slice) continue;
-      const same = (!e.slice || e.slice.join() === a.slice.join()) && e.w === a.size[0] && e.h === a.size[1] && !e.scale && !e.pixel;
+      const same = (!e.slice || e.slice.join() === a.slice.join()) && e.w === a.size[0] && e.h === a.size[1] && (!e.scale || e.scale === a.scale) && !e.pixel;
       if (same) continue;   // her head cut like the pack's: the pack's lit, green and pink still fit it
       for (const m of Object.keys(ART)) if (ART[m].fam === a.fam && m !== h && !live[m]) { put("--art-" + m, cssUrl(e.url)); standIn[m] = h; }
     }
-    SKIN.standIn = standIn;
-    const dark = Object.entries(SKIN.tokens.dark).map(([n, t]) => n + ": " + t.value + ";").join(" ");
+    const dark = Object.entries(tokens.dark).map(([n, t]) => n + ": " + t.value + ";").join(" ");
     if (seq !== SKIN.seq) return;
-    SKIN.live = live; SKIN.problems = problems;
+    const artWas = SKIN.artSig, artSig = JSON.stringify([Object.entries(live).map(([k, e]) => [k, e.url, e.slice, e.frames, e.secs, e.anchor, e.scale, e.pixel]), standIn]);
+    SKIN.live = live; SKIN.problems = problems; SKIN.tokens = tokens; SKIN.standIn = standIn; SKIN.artSig = artSig;
     for (const m of Object.keys(SPR)) delete SPR[m];
     Object.assign(SPR, spr);
     $("skinCss").textContent = [":root { " + vars.join(" ") + " }",
       dark && '@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { ' + dark + " } }",
       dark && ':root[data-theme="dark"] { ' + dark + " }", ...css].filter(Boolean).join("\n");
-    for (const i of document.querySelectorAll("img[data-art]")) i.src = srcOf(i.dataset.art);
-    drawFurniture();
-    render();
-    checkArt();
+    if (artSig !== artWas) {   // the art changed: the house, its furniture and its cats are drawn again
+      for (const i of document.querySelectorAll("img[data-art]")) i.src = srcOf(i.dataset.art);
+      drawFurniture();
+      checkArt();
+    }
+    render();   // what reads a token as it draws (her look, a map's hues) draws again
     if ($("artDlg").open) drawArt();
   }
   // art/skin.json beside the page: her own pieces, dropped in a folder and listed (tools/skin.py lists them)
@@ -2502,7 +2504,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     db.collection("skin").onSnapshot((snap) => {
       const out = {}, theme = snap.docs.find((d) => d.id === "theme"), tokens = modeTokens(theme && theme.data());
       for (const d of snap.docs) { const e = skinEntry(d.id, d.data()); if (e) out[d.id] = e; }
-      if (JSON.stringify(out) !== JSON.stringify(SKIN.db) || JSON.stringify(tokens) !== JSON.stringify(SKIN.dbTokens)) { SKIN.db = out; SKIN.dbTokens = tokens; applySkin(); }
+      if (sameData(out, SKIN.db) && sameData(tokens, SKIN.dbTokens)) return;   // what she just saved, coming back
+      SKIN.db = out; SKIN.dbTokens = tokens; applySkin();
     }, fail);
     list("brain", (v) => { S.brain = v; });
     list("notes", (v) => {
@@ -4366,6 +4369,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     dlg.scrollTop = top;
     if (was && $(was)) $(was).focus({ preventScroll: true });
   }
+  // the same data, whatever order its keys came in (a snapshot's aren't the order the page wrote them)
+  const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
+  const sameData = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
   const copyTokens = () => ({ light: Object.assign({}, SKIN.dbTokens.light), dark: Object.assign({}, SKIN.dbTokens.dark) });
   // the mode The look edits, and the tokens file: Light or Dark, Export (a .tokens.json for Figma or another café) and
   // Import… (one from Figma's variables, or one exported here), into the mode chosen
@@ -4400,7 +4406,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     catch (e) { if (e && e.code === "declined") return; if (e && e.code === "rate_limited") { toast("A save is already open: finish it first.", "alert"); return; } }   // otherwise the browser's own download
     const a = el("a"); a.href = URL.createObjectURL(new Blob([text], { type: "application/design-tokens+json" })); a.download = name;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-    toast(name + " is downloaded.");
+    toast(local || VIA_GATEWAY ? name + " is in your downloads." : "Your browser is saving " + name + ". If nothing arrives, the café needs its downloads permission: ask Claude to republish it.", local || VIA_GATEWAY ? undefined : "stay");
   }
   async function importTokens(file, m) {
     let j;
@@ -4411,7 +4417,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     // a value the same as what it would be anyway isn't hers: the café's in light, light's in dark (an export re-imported
     // stays a few changes, not 56)
     for (const [t, v] of Object.entries(found)) {
-      const anyway = m === "dark" ? (next.light[t] || TOKENS0[t]) : TOKENS0[t];
+      const f = SKIN.fileTokens, anyway = m === "dark" ? f.dark[t] || next.light[t] || f.light[t] || TOKENS0[t] : f.light[t] || TOKENS0[t];
       if (v.toLowerCase() === String(anyway).toLowerCase()) delete next[m][t]; else next[m][t] = v;
     }
     await saveTokens(next, n + " " + (n === 1 ? "token" : "tokens") + " from " + file.name + " in " + (m === "light" ? "Light" : "Dark") + (foreign ? "; " + foreign + " not the café's, left out." : "."));
@@ -4426,6 +4432,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     // she sees it at once (in the mode on screen); it is kept when she lets go (a size when it reads as one)
     const onScreen = () => (document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === m;
     input.addEventListener("input", () => { if (tokenOk(n, input.value) && onScreen()) { document.documentElement.style.setProperty(n, input.value); SKIN.set.add(n); } });
+    input.addEventListener("blur", () => { if (!SKIN.saving) { document.documentElement.style.removeProperty(n); SKIN.set.delete(n); } });   // a preview she let go of unchanged
     input.addEventListener("change", () => {
       if (!tokenOk(n, input.value)) {
         document.documentElement.style.removeProperty(n);   // the preview goes with the value
@@ -4454,6 +4461,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   }
   // skin/theme holds her tokens, both modes in one document: written whole, from the tokens she has now
   async function saveTokens(tokens, ok) {
+    SKIN.saving = true;
+    try { return await saveTokensNow(tokens, ok); } finally { SKIN.saving = false; }
+  }
+  async function saveTokensNow(tokens, ok) {
     const clean = { light: cleanTokens(tokens.light), dark: cleanTokens(tokens.dark) };
     const empty = !Object.keys(clean.light).length && !Object.keys(clean.dark).length;
     if (await save((db) => (empty ? db.doc("skin/theme").delete() : db.doc("skin/theme").set({ tokens: clean.light, dark: clean.dark, at: Date.now() })), ok)) SKIN.dbTokens = clean;
@@ -4481,8 +4492,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     return li;
   }
   async function pickArt(k, file) {
-    const a = ART[k], p = { file, url: URL.createObjectURL(file), typed: {} };
     if (file.size > 20 * 1024 * 1024) { toast(file.name + " is over 20 MB.", "alert"); return; }
+    const a = ART[k], p = { file, url: URL.createObjectURL(file), typed: {} };
     if (a.kind !== "font") {
       try { [p.w, p.h] = await natural(p.url); } catch (e) { toast(file.name + " isn't a picture the browser can read.", "alert"); return; }
       p.why = misfit(k, p.w, p.h);
@@ -4532,7 +4543,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       const doc = { name: p.file.name, at: Date.now() };
       if (p.w) Object.assign(doc, { w: p.w, h: p.h });
       if (bd) { doc.slice = border(bd.value); if (!doc.slice) { toast("A border is one to four whole numbers, like 4 4 6 4.", "alert"); bd.focus(); return; } }
-      if (px) { if (px.value === "pixel") doc.pixel = true; else doc.scale = a.scale * a.size[0] / p.w; }
+      if (px) { if (px.value === "pixel") doc.pixel = true; else if (p.w !== a.size[0]) doc.scale = a.scale * a.size[0] / p.w; }
       if (frames) {
         doc.frames = Number(frames.value); doc.secs = Number(secs.value);
         if (!Number.isInteger(doc.frames) || doc.frames < 1 || doc.frames > 64 || p.w % doc.frames) { toast("The frames must split its " + p.w + " pixels evenly.", "alert"); frames.focus(); return; }
