@@ -521,9 +521,11 @@ into `catio/data/digest.md` and `digest.json`: per project, what needs her, what
 (stale asks, empty reviews, untitled sessions, reruns, duplicates, misfiled repos). Both are gitignored: never
 commit them.
 
-A Routine, "Refresh the catio", does this every two hours from 07:59 to 19:59 Paris time. It fires
-into the Claude Code session it was created from, not a fresh one: a fresh routine session has
-neither `list_sessions` nor `ArtifactData`, so it can't refresh anything (tried September 2026).
+A Routine, "Refresh the catio", did this every two hours from 07:59 to 19:59 Paris time until she paused it
+on 30 September 2026; it is still off, so the copy is refreshed by hand when she asks. Turning it back on is her
+call. It fires into the Claude Code session it was created from, not a fresh one: a fresh routine session has
+neither `list_sessions` nor `ArtifactData`, so it can't refresh anything (tried September 2026). What each
+refusal means and the whole fallback: `docs/live-sessions.md`.
 
 ## Running on localhost
 

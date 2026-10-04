@@ -49,8 +49,9 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
   | Hall | Snail mail |
   | Catio | This portfolio |
 
-- **A saved copy of her sessions** shows when the live read is blocked. A Routine refreshes it every two
-  hours, from 07:59 to 19:59 Paris time.
+- **A saved copy of her sessions** shows when the live read is blocked. A Routine refreshed it every two
+  hours, from 07:59 to 19:59 Paris time, until she paused it on 30 September; it is refreshed by hand now
+  (`docs/live-sessions.md`).
 - **A copy that runs off a USB stick**, on localhost.
 - **One queen of the house** (2 October: "merge the queen cats to make one main character queen cat that you
   chat with that does everything for you. The way you would interact with a real harness"), in the entrance

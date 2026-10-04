@@ -159,8 +159,12 @@ signpost to the catio either side.
   when it needs you and when it finishes, so its cat is live wherever you open the café.
 - **Rooms, renames, moves, adopted chats and what the queen keeps** live in the café's own database, so they follow
   you between phone and computer. Nothing you do on the page is written to a repository.
-- **When the live read is blocked**, the page shows the last copy of your sessions Claude saved, and the time it was
-  saved, on one line.
+- **When claude.ai refuses that read** (it did when last checked, 2 October), the cats come from a copy of your
+  sessions that a Claude session saved to the database, and the sign under the brand gives its time: "Saved copy ·
+  17:02". There is nothing for you to switch on: Claude Code Remote is built into claude.ai rather than added as a
+  connector, so it has no setting in your Connectors list. The copy only changes when a session saves a new one, so
+  ask a session to refresh it. Sessions that report to the gateway stay live either way. Each refusal, and how to
+  refresh the copy: [`docs/live-sessions.md`](docs/live-sessions.md).
 
 | Mood | Session state | Cat |
 |---|---|---|
@@ -275,8 +279,9 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `litterbox/`: the back burner, where loose notes land; `litterbox/sort.py` piles them up by project
   and files a pile into that project's repo once it has been checked. See [its README](litterbox/README.md).
 - `docs/`: the plan, her requests compiled, the camera and minimap plan, renovation mode's constraints,
-  the drawing plan for her own art, the engine under the café ([`docs/engine.md`](docs/engine.md)), and
-  what the litter box filed here.
+  the drawing plan for her own art, the engine under the café ([`docs/engine.md`](docs/engine.md)), what
+  the café does when it can't read her sessions live ([`docs/live-sessions.md`](docs/live-sessions.md)),
+  and what the litter box filed here.
 - `catio-app/`: the café as a native C++ app for a phone, in progress. Its core draws the manor --
   matching the page's own render pixel for pixel -- but there is no window loop, interface or network
   yet, and it has not run on a phone. It ships with no pack art: the app fetches that from her gateway

@@ -22,6 +22,7 @@ What each file here is for. The README says what the café is; `CLAUDE.md` says 
 | [`camera-and-minimap.md`](camera-and-minimap.md) | The Sims-style camera (phase 2), and the minimap as it was planned |
 | [`renovation-mode.md`](renovation-mode.md) | Build mode's spec (phase 3): moving furniture and choosing each filing cabinet's look |
 | [`delegation.md`](delegation.md) | Handing easy work to smaller models, and the decider that sorts dropped files |
+| [`live-sessions.md`](live-sessions.md) | The live read of the sessions, every way claude.ai can refuse it, and the saved copy the café falls back on |
 
 ## The record
 
