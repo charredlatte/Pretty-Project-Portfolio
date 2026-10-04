@@ -245,7 +245,7 @@ def suffix(sheet):
 
 def folder_loader(packs):
     """Find a sheet by the end of its path in an unpacked folder of packs."""
-    files = [str(f) for f in Path(packs).rglob("*.png")]
+    files = [f.as_posix() for f in Path(packs).rglob("*.png")]
     def load(end):
         hit = [f for f in files if f == end or f.endswith("/" + end)]
         if not hit:

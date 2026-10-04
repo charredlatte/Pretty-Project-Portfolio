@@ -68,7 +68,7 @@ git clone https://github.com/charredlatte/Pretty-Project-Portfolio
 cd Pretty-Project-Portfolio
 ```
 
-`catio/index.html` is the whole page: no build step, no dependencies. `catio/CLAUDE.md` at the repo
+`catio/index.html` is the whole page: no build step, no dependencies. `CLAUDE.md` at the repo
 root is the operating brief — read it before changing the page itself.
 
 ### 2. Their art

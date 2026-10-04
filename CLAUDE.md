@@ -4,7 +4,7 @@
 
 ## Republishing
 
-The page is **one** private artifact. Its URL is in `artifacts.json`. Always republish to that
+The page is **one** private artifact. Its URL is `kittychat-cafe` in `artifacts.json`. Always republish to that
 URL (`Artifact` publish with `url`, after reading it back), never a new one: the database with
 her rooms, renames and adopted chats belongs to that artifact.
 

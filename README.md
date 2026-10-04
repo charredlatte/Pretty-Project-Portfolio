@@ -195,7 +195,7 @@ small meow.
 ### How what you send reaches a session
 
 Files dropped on a cat, messages written to it, and pause or wrap-up requests are saved the moment you send them.
-With the gateway, a running session gets them when its current turn ends. Without it they wait on the mat, and the
+With the gateway, a running session gets them when its current turn ends. Without it they wait in the outbox, and the
 session collects them when it next starts: a session that runs the house-rules plugin has its `catio` skill handle
 what's there, answer on the cat and mark it delivered. Only claude.ai can wake a session that has
 stopped, and it doesn't let a page do it; why is in
@@ -213,7 +213,8 @@ folder with any static server, such as VS Code's Live Server or `python -m http.
 The folder also carries the Catio MCP server, which serves the page and lets agents that aren't Claude Code
 sessions join as cats: from inside the folder, `python3 harness/mcp/catio_mcp.py --serve . --port 8791`, then open
 <http://localhost:8791>. On localhost the sessions' cats are the saved copy, not live (agents that join the MCP
-server are), and adopted chats, room names and project looks are kept in that browser.
+server are), and adopted chats, room names and project looks are kept in that browser. For newer cats, have a session
+refresh `catio/data/sessions.json` (`catio/tools/save-sessions.py`) and copy it into the folder's `data/`.
 
 The folder holds your licensed art and your session titles, so it is for your own use: never commit it or share it.
 

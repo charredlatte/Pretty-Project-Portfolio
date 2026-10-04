@@ -27,12 +27,14 @@ Making these one setting, read from one place, is the step that turns "run your 
 | The gateway | `CATIO_HANDLE` (a Worker variable) | Names the first account; `charlotte` when unset (`src/registry.js`) | Your handle |
 | `catio/data/rooms.json` | Her rooms | Seeds a fresh browser's localhost café once; after that, Edit rooms | Your rooms, or `{}` to get the wizard |
 | `artifacts.json` | Her published pages | Where republishing goes | Yours, once published |
+| `catio-plugin/skills/catio/SKILL.md` | `git clone https://github.com/charredlatte/…` | The setup skill clones this repository, not a fork | Your fork's address |
+| The publish's `capabilities` | The setup skill's set | Has no `CATIO` server, so the page can't reach a gateway | Once your gateway is set up, the whole set in `CLAUDE.md` ("The stored capabilities") |
 
 ## Where it only names her
 
 These work in a fork, but say "Charlotte" to every session, the queen or the person reading:
 
-- **The words before a message**, `[Catio] Charlotte says:`: written by the page, `harness/hooks/report.py`,
+- **The words before a message**, `[Catio] Charlotte says:` (and `Charlotte's note:` before a file's note): written by the page, `harness/hooks/report.py`,
   `harness/mcp/catio_mcp.py` and `harness/runner/queen.py`; read by the `catio` skill and `harness/runner/queen.md`;
   checked by the tests. Change them all together or not at all.
 - **The queen's character**: `harness/runner/queen.md` points to a section `queen.py` writes, "As Charlotte set you
