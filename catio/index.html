@@ -1079,8 +1079,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // A family member is checked against its head in the skin given (`live`; the one on screen when left out), or not at
   // all while the skin is still being measured (`false`): applySkin checks members once every head is.
   // `picking`: a file just chosen in The look, whose form will ask for its frames and border, so those aren't held against it yet
-  function misfit(key, w, h, live = SKIN.live, slice = null, frames = null, picking = false) {
+  // `e`: what the entry says about itself (slice, frames, hot) that must fit the picture
+  function misfit(key, w, h, live = SKIN.live, e = {}, picking = false) {
+    const { slice = null, frames = null, hot = null } = e || {};
     const a = ART[key];
+    if (a.hot && hot && (hot[0] >= w || hot[1] >= h)) return "Its tip " + hot.join(" ") + " is outside its " + w + " × " + h + ".";
     if (a.kind === "cat" && !picking && w % (frames || a.frames)) return "It is " + w + " pixels wide, which doesn't split into " + (frames || a.frames) + " frames.";
     if (a.kind === "slice" && !a.slice && live) {   // the button's hover, green and pink, the map's dark panel…: cut with the head's border
       const head = headOf(key), e = live[head], [hw, hh] = e ? [e.w, e.h] : ART[head].size;
@@ -1103,7 +1106,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         const url = await resolved(e.src);
         if (ART[k].kind !== "font") {
           const [w, h] = SKIN.sizes[url] || (SKIN.sizes[url] = await natural(url));   // each picture is measured once
-          const why = misfit(k, w, h, false, e.slice, e.frames);
+          const why = misfit(k, w, h, false, e);
           if (why) return { why };
           Object.assign(e, { w, h });
         } else if (!SKIN.fonts["KittySkin-" + k] || SKIN.fonts["KittySkin-" + k].url !== url) {   // the fonts load together, each once
@@ -1212,8 +1215,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   function restyle(force) {
     // a thicker or thinner frame: the whole house or the room she looked into is fitted again; a view she moved herself
     // is kept, inside it
-    const whole = S.cam && Math.abs(S.cam.s - limits()[0]) < 1e-3;   // on the whole house, measured inside the frame as it was
-    if (frameWidth()) { if (!S.cam || S.focus || whole) layout(true); else setCam(S.cam, false); }
+    if (frameWidth()) { if (!S.cam || S.cam === S.fitted) layout(true); else setCam(S.cam, false); }
     if (!force && SKIN.drawnSig === SKIN.lookSig) return;   // nothing the script draws with has changed
     SKIN.drawnSig = SKIN.lookSig;
     if ($("queenOwnerFig")) $("queenOwnerFig").replaceChildren(ownerSVG(ownerOf()));
@@ -1926,7 +1928,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     // once the camera has moved, an open menu finds its room again
     setCam.t = setTimeout(() => { if (MENU.kind) showMenu(MENU.kind, MENU.key, anchorOf(MENU.kind, MENU.key)); }, 560);
   }
-  function layout(instant) { setCam(frame(S.focus ? padded(S.focus) : WHOLE), !instant); }
+  function layout(instant) { setCam(frame(S.focus ? padded(S.focus) : WHOLE), !instant); S.fitted = S.cam; }   // S.fitted: the view the café chose, until she moves it
 
   // the part of the grounds on screen, and the room on this floor that fills it, if one does
   function roomInView() {
@@ -3369,9 +3371,15 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
 
   // A project's map, from graphify (the catio skill's graph_doc.py saves it as graphs/<repo>): its ideas as
   // dots coloured by neighbourhood, the hubs, the surprising links, and questions a cat can answer from it.
-  const hues = () => { const cs = getComputedStyle(document.documentElement); return [1, 2, 3, 4, 5, 6, 7, 8].map((i) => tok("--hue-" + i, cs)).concat(tok("--hue-none", cs)); };   // the design system's, so a skin recolours them
+  const hueIx = (i) => (i >= 0 && i < 8 ? i : 8);   // a neighbourhood's hue: its own for the first eight, the rest's after (and for -1)
+  let HUES = null;   // [key, the nine hues]: read again when the look or light and dark change
+  const hues = () => {
+    const key = (SKIN.lookSig || "") + (document.documentElement.dataset.theme || "") + matchMedia("(prefers-color-scheme: dark)").matches;
+    if (!HUES || HUES[0] !== key) { const cs = getComputedStyle(document.documentElement); HUES = [key, [1, 2, 3, 4, 5, 6, 7, 8].map((i) => tok("--hue-" + i, cs)).concat(tok("--hue-none", cs))]; }
+    return HUES[1];
+  };   // the design system's, so a skin recolours them
   function projectMap(gm, cat) {
-    const H = hues(), hue = (i) => H[i >= 0 && i < 8 ? i : 8];   // read once a map; -1 and the ninth on are the rest
+    const H = hues(), hue = (i) => H[hueIx(i)];   // read once a map
     const d = el("details", "gmap");
     d.appendChild(el("summary", null, "Project map, " + ago(gm.at)));
     d.appendChild(el("p", "note", gm.nodes + " ideas, " + gm.edges + " links, " + gm.communities + " neighbourhoods" + (gm.commit ? ", at " + gm.commit.slice(0, 7) : "") + "."));
@@ -3388,14 +3396,14 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     }
     for (const { t: label, g, d: deg, x, y } of n) {
       const s = 3 + 2 * Math.round(3 * deg / big), r = document.createElementNS(NS, "rect");
-      r.setAttribute("x", x - s / 2); r.setAttribute("y", y - s / 2); r.setAttribute("width", s); r.setAttribute("height", s); r.setAttribute("fill", hue(g)); r.dataset.hue = g >= 0 && g < 8 ? g : 8;
+      r.setAttribute("x", x - s / 2); r.setAttribute("y", y - s / 2); r.setAttribute("width", s); r.setAttribute("height", s); r.setAttribute("fill", hue(g)); r.dataset.hue = hueIx(g);
       const t = document.createElementNS(NS, "title"); t.textContent = label + " (" + deg + " links)"; r.appendChild(t);
       svg.appendChild(r);
     }
     const art = el("div", "gart"); art.appendChild(svg);
     d.appendChild(art);
     const keyList = (title, rows) => { if (!rows.length) return; d.appendChild(el("p", "kicker", title)); const ul = el("ul", "gkey"); rows.forEach((r) => ul.appendChild(r)); d.appendChild(ul); };
-    keyList("Neighbourhoods", (gm.groups || []).map((g, i) => { const li = el("li"); const sw = el("span", "sw"); sw.style.background = hue(i); sw.dataset.hue = i < 8 ? i : 8; li.append(sw, el("span", null, g.name + " · " + g.size)); return li; }));
+    keyList("Neighbourhoods", (gm.groups || []).map((g, i) => { const li = el("li"); const sw = el("span", "sw"); sw.style.background = hue(i); sw.dataset.hue = hueIx(i); li.append(sw, el("span", null, g.name + " · " + g.size)); return li; }));
     keyList("Hubs", (gm.gods || []).map((g) => { const li = el("li"); li.append(el("b", null, g.label), el("span", "what", " " + g.degree + " links" + (g.file ? " · " + g.file : ""))); return li; }));
     keyList("Surprises", (gm.surprises || []).map((x) => { const li = el("li"); li.append(el("b", null, x.a), document.createTextNode(" " + x.rel + " "), el("b", null, x.b), el("div", "what", x.where + (x.how === "INFERRED" ? " · inferred" : ""))); return li; }));
     keyList(cat ? "Ask " + cat.name : "Questions it can answer", (gm.questions || []).map((q) => {
@@ -4411,7 +4419,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const note = dlg.contains(TOAST);   // a note shown in it (what was just saved) outlives the redraw
     const was = dlg.contains(document.activeElement) && document.activeElement.id;   // and so does where she was
     const typing = was && document.activeElement.closest("li[data-token]") && document.activeElement.type === "text" ? document.activeElement.value : null;
-    dlg.replaceChildren(); dlg.classList.add("wide");
+    SKIN.redrawing = true; dlg.replaceChildren(); SKIN.redrawing = false;   // the focused picker leaves with it: that is no blur of hers
+    dlg.classList.add("wide");
     const box = el("div", "dlg");
     const h = el("h2", null, "The look"); h.id = "artTitle";
     const keptTokens = Object.keys(SKIN.dbTokens.light).length + Object.keys(SKIN.dbTokens.dark).length, keptSlots = Object.keys(SKIN.db);
@@ -4506,9 +4515,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     input.type = size ? "text" : "color"; input.value = valueIn(m, n); input.disabled = !S.db;
     if (size) input.size = 6;
     // she sees it at once (in the mode on screen); it is kept when she lets go (a size when it reads as one)
-    const onScreen = () => (document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === m;
+    const screen = () => document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const onScreen = () => screen() === m || (m === "light" && !SKIN.tokens.dark[n]);   // dark says only what differs
     input.addEventListener("input", () => { if (tokenOk(n, input.value) && onScreen()) { document.documentElement.style.setProperty(n, input.value); SKIN.set.add(n); } });
-    input.addEventListener("blur", () => { if (!SKIN.saving) { document.documentElement.style.removeProperty(n); SKIN.set.delete(n); } });   // a preview she let go of unchanged
+    input.addEventListener("blur", () => { if (!SKIN.saving && !SKIN.redrawing) { document.documentElement.style.removeProperty(n); SKIN.set.delete(n); } });   // a preview she let go of unchanged
     input.addEventListener("change", () => {
       if (!tokenOk(n, input.value)) {
         document.documentElement.style.removeProperty(n);   // the preview goes with the value
@@ -4587,7 +4597,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (a.kind !== "font") {
       try { [p.w, p.h] = await natural(p.url); } catch (e) { URL.revokeObjectURL(p.url); toast(file.name + " isn't a picture the browser can read.", "alert"); return; }
       if (!$("artDlg").open) { URL.revokeObjectURL(p.url); return; }   // she closed the card while it was read
-      p.why = misfit(k, p.w, p.h, SKIN.live, null, null, true);
+      p.why = misfit(k, p.w, p.h, SKIN.live, {}, true);
     }
     if (ARTPICK[k]) URL.revokeObjectURL(ARTPICK[k].url);
     ARTPICK[k] = p;
@@ -4661,7 +4671,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         doc.src = /^\/files\/|^local:/.test(up.url || "") ? up.url : "/_blob/" + up.id;   // claude.ai serves an asset at /_blob/<id> in every view
         const old = SKIN.db[k] && SKIN.db[k].asset;
         if (await save((db) => db.doc("skin/" + k).set(doc), a.name + ": yours now.")) {
-          URL.revokeObjectURL(p.url); delete ARTPICK[k];
+          URL.revokeObjectURL(p.url); if (ARTPICK[k] === p) delete ARTPICK[k];   // a newer pick for the slot stays
           if (old && old !== up.id) S.assets.delete(old).catch(() => {});
           SKIN.db[k] = skinEntry(k, doc); applySkin();
         } else S.assets.delete(up.id).catch(() => {});   // nothing points at it: don't leave it in the store

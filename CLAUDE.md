@@ -244,7 +244,8 @@ A skin says which are hers, from two places; the second wins:
 A token is checked as a slot is (`tokenOk()`): a colour is six hex digits, a size a length in px or rem inside its
 range (`SIZES`: the art pixel 1 to 4 px, the pixel font 8 to 48, its line 8 to 64, the text 10 to 24, a rem as 16;
 `WHOLE_PX`: the art pixel and the pixel font in whole px, or the pixel art blurs), and a 9-slice's border is at most 64
-of its pixels a side, so no skin can bury The look under its own borders, and a name that isn't in `TOKENS` is ignored.
+of its pixels a side (256 for a smooth map piece, drawn big and shown smaller), so no skin can bury The look under its
+own borders, and a name that isn't in `TOKENS` is ignored.
 
 **Modes and tokens files, as Figma has them** (her ask of 4 October, "reevaluate plug-n-play capabilities of design
 systems like Figma"; read against Figma's variables, its `figma-generate-library` skill and the W3C Design Tokens

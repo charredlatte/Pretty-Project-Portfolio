@@ -255,6 +255,9 @@ def check(art, key, rel, was, said, where=""):
     if entry.get("slice") and max(entry["slice"]) > (256 if "scale" in a else 64):
         said.append(f"  {name}: its border {entry['slice']} is over {256 if 'scale' in a else 64}, more than the page takes: left out")
         return None
+    if entry.get("hot") and (entry["hot"][0] >= w or entry["hot"][1] >= h):
+        said.append(f"  {name}: its tip {entry['hot']} is outside {w} x {h}, so it was dropped")
+        del entry["hot"]
     sl = entry.get("slice") or a.get("slice")   # hers, or the pack's it would be cut with, in its own pixels
     if a["kind"] == "slice" and sl and (sl[1] + sl[3] > w or sl[0] + sl[2] > h or not any(sl)):
         said.append(f"  {name}: the border {' '.join(map(str, sl))} doesn't fit inside {w} x {h}: left out" + ("" if entry.get("slice") else " (give it its own, \"slice\")"))
