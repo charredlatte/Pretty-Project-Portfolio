@@ -58,17 +58,11 @@ and a folder that runs on your own computer. The page does the same on its own: 
 seven-step wizard (name it, open the rooms you need, file your repositories, see your sessions, the litter box, how
 it works), and "Set up again…" in the House menu replays it.
 
-**Make the harness yours.** The house rules (`harness/`, the `kittychat-house-rules` plugin) are what make your
-sessions report to the gateway, collect what you send them and follow the rules below. Today they are Charlotte's
-own harness, so set these in your fork before you install it:
-
-- `harness/rules.json`: `catio`, your café's artifact link, and `public`, your public repositories.
-- The install lines in [`harness/README.md`](harness/README.md), and the same two in the wizard's How it works step
-  (`INSTALL` in `catio/index.html`): your fork's address instead of this one.
-- The skills the rules call that aren't in this repository: `ponytail-audit` and `browser-agent-preflight` (the
-  merging rule's `code-review` comes with Claude Code). Install them, or switch the rules that need them off in a
-  repository's `.claude/catio-rules.json`.
-- The gateway's first account is named by `CATIO_HANDLE` on the Worker, `charlotte` when it is unset.
+**What a fork changes.** The house rules (`harness/`, the `kittychat-house-rules` plugin) are what make your sessions
+report to the gateway, collect what you send them and follow the rules below. Today the harness and the page are set
+for Charlotte's own café: her café's link, her GitHub name, her public repositories and her install lines are
+written into them. [`docs/self-hosting.md`](docs/self-hosting.md) lists every one, and what to set it to in your
+fork before you install the plugin from it.
 
 For cats that stay live wherever you open the café, and a queen you can talk to, add the gateway: a free Cloudflare
 Worker that every session checks in at, set up in five steps ([`harness/gateway/README.md`](harness/gateway/README.md)).
@@ -197,7 +191,7 @@ stopped, and it doesn't let a page do it; why is in
 
 The café also runs from a folder, with no claude.ai at all. `python3 catio/tools/bundle.py` makes
 `catio/dist/catio-local/` (and a zip of it): the page as one HTML file, all the art, the rooms in
-`catio/data/rooms.json` (Charlotte's: change them there, or with Set up again… in the House menu), and
+`catio/data/rooms.json` (Charlotte's; a browser takes them once, then Edit rooms or Set up again… changes them), and
 `catio/data/sessions.json`, the last copy of your sessions Claude saved (`catio/tools/save-sessions.py`). Serve the
 folder with any static server, such as VS Code's Live Server or `python -m http.server 8000`, and open
 <http://localhost:8000>. The page is plain HTML and needs no server of its own.
@@ -285,10 +279,8 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
   harness plugin as the `kittychat` marketplace.
 - `litterbox/`: the back burner, where loose notes land; `litterbox/sort.py` piles them up by project
   and files a pile into that project's repo once it has been checked. See [its README](litterbox/README.md).
-- `docs/`: every doc, by what it is for, in [`docs/README.md`](docs/README.md): the plan, Charlotte's requests
-  compiled, the camera and minimap plan, renovation mode's constraints, the drawing plan for the café's own art, the
-  engine under the café ([`docs/engine.md`](docs/engine.md)), what the café does when it can't read your sessions
-  live ([`docs/live-sessions.md`](docs/live-sessions.md)), and what the litter box filed here.
+- `docs/`: the plan, the specs, the shop and the record, each listed by what it is for in
+  [`docs/README.md`](docs/README.md).
 - `catio-app/`: the café as a native C++ app for a phone, in progress. Its core draws the manor --
   matching the page's own render pixel for pixel -- but there is no window loop, interface or network
   yet, and it has not run on a phone. It ships with no pack art: the app fetches that from the gateway,

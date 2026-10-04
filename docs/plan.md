@@ -211,7 +211,7 @@ page. A hosted café is planned, not open: the onboarding offers running your ow
 The decisions below are dealt as decision cards in the queen's quest log (her card in the café; the decisions quiz
 page is retired). The small facts (who made `plants.zip`) stay here.
 
-1. **The gateway is set up** (2 October): the Worker, both secrets, `CATIO_URL` and `CATIO_TOKEN` in her
+1. **The gateway is set up** (2 October): the Worker, the two secrets of the time (the queen's came with item 10), `CATIO_URL` and `CATIO_TOKEN` in her
    environment, the setup script that installs the plugin, and the connector, signed in. A session reported
    through the hook and showed in `list_agents`, once PR #26 gave the hook its own User-Agent (Cloudflare refuses
    Python's). Left for her: set the connector's tools to Always allow, if she hasn't.
@@ -259,8 +259,8 @@ page is retired). The small facts (who made `plants.zip`) stay here.
    the branch's page. If the live one is newer, merge it first; never overwrite it.
 3. Publish `catio/index.html` to the café's URL (`kittychat-cafe` in `artifacts.json`) with only the files that changed, and **omit
    `capabilities`** to keep the stored set:
-   the whole set is in `CLAUDE.md` ("The stored capabilities"). Pass `capabilities` only to add something on
-   purpose, and then pass that whole set.
+   the whole set is in `CLAUDE.md` ("The stored capabilities"). Pass `capabilities` when CLAUDE.md says a tool
+   joined the set since the last publish, or to add one on purpose, and then pass that whole set.
 4. Afterwards: list the files, read back and look at any art that changed, list `rooms`, and create, update
    and delete one probe in `cats`.
 5. Add a line to `docs/history.md`.
