@@ -43,6 +43,9 @@ Updated 4 October 2026.
 - **The gateway (phase 5) makes it sooner and the cats live:**
   - a running session gets her message when its turn ends, from a hook;
   - every session reports its state to the gateway, so the page needn't ask claude.ai for the list.
+- **The queen is the third road:** her runner (`harness/runner/queen.py`) waits on the house in a held request,
+  runs one Claude Code turn per note or routine, and streams her words back. Every hop, and the design against
+  scale, speed, extensibility, security, debugging and tests: `docs/delivery.md`.
 - **What nothing can do: wake an idle session.** Only claude.ai can. Why is in `harness/README.md`.
 
 ## The roadmap, in order
