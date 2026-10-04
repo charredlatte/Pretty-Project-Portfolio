@@ -2515,6 +2515,42 @@ await check("no colour or pixel-font size is written into a rule: each is a toke
     expect((await rootVar("--go")) === "#C0D470" && !(await page.evaluate(() => "skin/theme" in window.__catio.store)), await rootVar("--go"));
     await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
   });
+  // Her words (4 October 2026): "reevaluate plug-n-play capabilities of design systems like Figma". Figma keeps a
+  // variable's value per mode and swaps whole themes as design tokens files (the W3C format, 2025.10); so does the café.
+  await check("a dark value of a token shows only in the dark, and light keeps its own", async () => {
+    await page.evaluate(() => window.__catio.put("skin/theme", { tokens: { "--ink": "#111111" }, dark: { "--ink": "#eeeeee" }, at: 3 }));
+    await page.waitForTimeout(600);
+    const light = await rootVar("--ink");
+    await page.evaluate(() => { document.documentElement.dataset.theme = "dark"; });
+    const dark = await rootVar("--ink");
+    await page.evaluate(() => { delete document.documentElement.dataset.theme; });
+    expect(light === "#111111" && dark === "#eeeeee", light + " | " + dark);
+  });
+  await check("The look exports the café's tokens as a design tokens file Figma can import", async () => {
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#tokensExport")]);
+    expect(dl.suggestedFilename() === "kittychat-light.tokens.json", dl.suggestedFilename());
+    const j = JSON.parse(readFileSync(await dl.path(), "utf8"));
+    expect(j.colours.$type === "color" && j.colours.ink.$value.hex === "#111111" && j.colours.ink.$value.colorSpace === "srgb" && j.colours.ink.$value.components.length === 3, JSON.stringify(j.colours.ink));
+    expect(j.type.$type === "dimension" && j.type["px-size"].$value.value === 18 && j.type["px-size"].$value.unit === "px", JSON.stringify(j.type["px-size"]));
+    expect(j["map-colours"]["hue-1"].$value.hex === "#5e8f34" && Object.keys(j.colours).filter((k) => !k.startsWith("$")).length > 25, "map colours");
+  });
+  await check("Import tokens… reads a Figma file into the mode chosen, following its aliases, and leaves out what isn't the café's", async () => {
+    await page.click("#lookMode-dark"); await settle(page);
+    const figma = { primitives: { $type: "color", navy: { $value: { colorSpace: "srgb", components: [0.1137, 0.2078, 0.3412], hex: "#1d3557" } } },
+      colours: { $type: "color", go: { $value: "{primitives.navy}" }, brand: { $value: { colorSpace: "srgb", components: [1, 0, 0] } } } };
+    await page.locator("#tokensFile").setInputFiles({ name: "Dark.tokens.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(figma)) });
+    await page.waitForTimeout(600);
+    const d = await page.evaluate(() => window.__catio.store["skin/theme"]);
+    expect(d.dark["--go"] === "#1d3557" && d.dark["--ink"] === "#eeeeee" && d.tokens["--ink"] === "#111111" && !("--go" in d.tokens), JSON.stringify(d));
+    expect(/1 token from Dark\.tokens\.json in Dark; 2 not the café's/.test(await toast(page)), await toast(page));
+    expect((await page.locator("#artDlg li[data-token='--go'] input").inputValue()) === "#1d3557", "the picker shows the dark value");
+    await page.locator("#tokensFile").setInputFiles({ name: "notes.json", mimeType: "application/json", buffer: Buffer.from("{nope") });
+    await page.waitForTimeout(300);
+    expect(/isn't JSON/.test(await toast(page)), await toast(page));
+    await page.click("#lookMode-light"); await settle(page);
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
   await check("a font of hers for the text goes ahead of the café's", async () => {
     await page.evaluate(() => window.__catio.put("skin/font-body", { src: "art/licensed/ui/sprout.ttf", at: 1 }));
     await page.waitForTimeout(800);

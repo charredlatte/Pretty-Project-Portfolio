@@ -652,6 +652,8 @@ ul.gkey li > div.what { flex-basis: 100%; }
   .world, .meadow { transition: none; }
 }
 /* The look: a slot or a token a row, its picture in the pack's pressed-in well, hers marked green */
+.lookbar { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin: 4px 0 6px; }
+.lookbar .note { flex-basis: 100%; margin: 0; }
 ul.art .pic input[type="color"] { width: 44px; height: 32px; padding: 0; border: 0; background: none; cursor: var(--point); }
 ul.art .pic input[type="text"] { width: 56px; font: inherit; font-size: .8rem; text-align: center; background: var(--field-face); border: 0; padding: 2px; }
 .artgroup > summary { font: var(--px-size)/var(--px-line) var(--pixel); cursor: var(--point); display: flex; gap: 6px; align-items: center; padding: 2px 0; }
@@ -962,10 +964,59 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   };
   const tokenOk = (name, v) => TOKENS[name] && typeof v === "string" && (TOKENS[name][0] === "Type" ? /^\d{1,3}(\.\d{1,3})?(px|rem)$/.test(v) : /^#[0-9a-fA-F]{6}$/.test(v));
   const cleanTokens = (t) => Object.fromEntries(Object.entries(t && typeof t === "object" ? t : {}).filter(([k, v]) => tokenOk(k, v)));
+  // A skin's tokens come in two modes, as Figma's variables and the design tokens format's themes do: light, and dark,
+  // which says only what differs (anything it leaves out stays as in light). skin/theme and art/skin.json keep light
+  // as "tokens" and dark as "dark".
+  const MODES = ["light", "dark"];
+  const modeTokens = (doc) => ({ light: cleanTokens(doc && doc.tokens), dark: cleanTokens(doc && doc.dark) });
   // a token's value now: hers, else the stylesheet's
   const tok = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const SPR0 = JSON.parse(JSON.stringify(SPR));   // the pack's frames, for putting a cat back
-  const SKIN = { file: {}, db: {}, live: {}, problems: {}, set: [], seq: 0, blobs: {}, fileTokens: {}, dbTokens: {}, tokens: {} };
+  const SKIN = { file: {}, db: {}, live: {}, problems: {}, set: [], seq: 0, blobs: {}, fonts: {}, sizes: {},
+    fileTokens: { light: {}, dark: {} }, dbTokens: { light: {}, dark: {} }, tokens: { light: {}, dark: {} } };
+  const TOKENS0 = {};   // the café's own value of each token, read before any skin: what export and Put back start from
+  for (const n of [...Object.keys(TOKENS), "--pixel", "--body", "--display"]) TOKENS0[n] = tok(n);
+
+  // The design tokens format (W3C Design Tokens Community Group, 2025.10), which Figma's variables import and export as
+  // they are: a file of groups and tokens, each token a $value with its $type. The café writes one file per mode, its
+  // groups named after The look's, and reads any such file back, Figma's included: a token is matched by its own name
+  // (ink, go, px-size…) wherever it sits, an alias ("{colours.ink}") is followed, and what isn't the café's is counted
+  // and left out.
+  const groupKey = (g) => g.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const valueIn = (m, n) => (SKIN.tokens[m][n] || SKIN.tokens.light[n] || {}).value || TOKENS0[n];
+  function toDTCG(m) {
+    const out = { $description: "The KittyChat Café's design tokens, " + m + " mode. Import into Figma's variables as a mode, or into The look." };
+    for (const [n, [g, name, what]] of Object.entries(TOKENS)) {
+      const grp = out[groupKey(g)] || (out[groupKey(g)] = { $type: g === "Type" ? "dimension" : "color" });
+      const v = valueIn(m, n), t = { $description: name + (what ? ". " + what : "") };
+      if (g === "Type") { const [, num, unit] = v.match(/^([\d.]+)(px|rem)$/) || [, "0", "px"]; t.$value = { value: +num, unit }; }
+      else { const h = v.toLowerCase(); t.$value = { colorSpace: "srgb", components: [1, 3, 5].map((i) => +(parseInt(h.slice(i, i + 2), 16) / 255).toFixed(4)), hex: h }; }
+      grp[n.slice(2)] = t;
+    }
+    return out;
+  }
+  function fromDTCG(file) {
+    const found = {}, flat = {};
+    let foreign = 0;
+    (function walk(node, path, type) {
+      if (!node || typeof node !== "object") return;
+      const t = node.$type || type;
+      if ("$value" in node) { flat[path.join(".")] = { v: node.$value, t }; return; }
+      for (const [k, v] of Object.entries(node)) if (!k.startsWith("$")) walk(v, path.concat(k), t);
+    })(file, [], null);
+    const resolve = (v, depth) => (typeof v === "string" && /^\{[^}]+\}$/.test(v) && depth < 10 ? resolve((flat[v.slice(1, -1)] || {}).v, depth + 1) : v);
+    for (const [path, { v }] of Object.entries(flat)) {
+      const n = "--" + path.split(".").pop(), val = resolve(v, 0);
+      if (!TOKENS[n]) { foreign++; continue; }
+      let css = null;
+      if (typeof val === "string") css = /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(val) ? val.slice(0, 7) : val;   // older files write a colour as its hex
+      else if (val && typeof val.hex === "string") css = val.hex.slice(0, 7);
+      else if (val && Array.isArray(val.components) && (val.colorSpace || "srgb") === "srgb") css = "#" + val.components.slice(0, 3).map((c) => Math.round(Math.min(1, Math.max(0, c)) * 255).toString(16).padStart(2, "0")).join("");
+      else if (val && typeof val.value === "number" && /^(px|rem)$/.test(val.unit)) css = String(+val.value.toFixed(3)) + val.unit;
+      if (tokenOk(n, css)) found[n] = css; else foreign++;
+    }
+    return { found, foreign };
+  }
   // a source the page made or wrote: the art beside it, an asset, a gateway file or one kept in this browser
   const safeSrc = (v) => typeof v === "string" && /^(?:art\/[\w./-]+|\/_blob\/[\w-]+|\/files\/[\w.-]+|local:[\w-]+|blob:[^\s"'()\\]+)$/.test(v) && !v.includes("..");
   const num = (v, lo, hi) => (typeof v === "number" && isFinite(v) && v >= lo && v <= hi ? v : null);
@@ -1019,7 +1070,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       try {
         const url = await resolved(e.src);
         if (ART[k].kind !== "font") {
-          const [w, h] = await natural(url);
+          const [w, h] = SKIN.sizes[url] || (SKIN.sizes[url] = await natural(url));   // each picture is measured once
           const why = misfit(k, w, h);
           if (why) { problems[k] = why; return; }
           Object.assign(e, { w, h });
@@ -1029,10 +1080,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     }));
     if (seq !== SKIN.seq) return;   // a newer skin came in while this one loaded
     SKIN.live = live; SKIN.problems = problems;
+    // The skin is one stylesheet, #skinCss, after the page's own: the slots and light tokens on :root, the dark tokens where
+    // the page's dark mode is, then the cats. A stylesheet, not inline styles, so dark mode can still win in the dark.
     const root = document.documentElement.style;
-    for (const p of SKIN.set) root.removeProperty(p);
+    for (const p of SKIN.set) root.removeProperty(p);   // what The look was previewing
     SKIN.set = [];
-    const put = (p, v) => { root.setProperty(p, v); SKIN.set.push(p); };
+    const vars = [], put = (p, v) => vars.push(p + ": " + v + ";");
     const css = [];
     Object.assign(SPR, JSON.parse(JSON.stringify(SPR0)));
     for (const [k, e] of Object.entries(live)) {
@@ -1059,17 +1112,22 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         }
       }
       if (a.kind === "font") {
-        const fam = "KittySkin-" + k, base = tok(a.token);
-        try { const f = new FontFace(fam, cssUrl(e.url)); await f.load(); document.fonts.add(f); put(a.token, '"' + fam + '", ' + base); }
-        catch (err) { problems[k] = "The font couldn't be read."; delete live[k]; }
+        const fam = "KittySkin-" + k;
+        try {
+          if (SKIN.fonts[fam] !== e.url) { const f = new FontFace(fam, cssUrl(e.url)); await f.load(); document.fonts.add(f); SKIN.fonts[fam] = e.url; }
+          put(a.token, '"' + fam + '", ' + TOKENS0[a.token]);
+        } catch (err) { problems[k] = "The font couldn't be read."; delete live[k]; }
       }
     }
-    // the tokens: the file's, then hers from The look
-    SKIN.tokens = {};
-    for (const [from, set] of [["file", SKIN.fileTokens], ["db", SKIN.dbTokens]]) for (const [n, v] of Object.entries(set)) SKIN.tokens[n] = { value: v, from };
-    for (const [n, t] of Object.entries(SKIN.tokens)) put(n, t.value);
+    // the tokens, in each mode: the file's, then hers from The look
+    SKIN.tokens = { light: {}, dark: {} };
+    for (const m of MODES) for (const [from, set] of [["file", SKIN.fileTokens[m]], ["db", SKIN.dbTokens[m]]]) for (const [n, v] of Object.entries(set)) SKIN.tokens[m][n] = { value: v, from };
+    for (const [n, t] of Object.entries(SKIN.tokens.light)) put(n, t.value);
+    const dark = Object.entries(SKIN.tokens.dark).map(([n, t]) => n + ": " + t.value + ";").join(" ");
     if (seq !== SKIN.seq) return;
-    $("skinCss").textContent = css.join("\n");
+    $("skinCss").textContent = [":root { " + vars.join(" ") + " }",
+      dark && '@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { ' + dark + " } }",
+      dark && ':root[data-theme="dark"] { ' + dark + " }", ...css].filter(Boolean).join("\n");
     for (const i of document.querySelectorAll("img[data-art]")) i.src = srcOf(i.dataset.art);
     drawFurniture();
     render();
@@ -1083,7 +1141,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (!r.ok) return;
       const j = await r.json(), out = {};
       for (const [k, v] of Object.entries(j || {})) { const e = skinEntry(k, v); if (e) out[k] = e; }
-      SKIN.file = out; SKIN.fileTokens = cleanTokens(j && j.tokens);
+      SKIN.file = out; SKIN.fileTokens = modeTokens(j);
       applySkin();
     } catch (e) {}   // none, or not readable here: the pack's art
   }
@@ -2197,7 +2255,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         return mi("Project maps", () => { hideMenu(); MAPS.visit++; try { openMaps(); } catch (e) { toast("A project map couldn't be drawn (" + (e && e.message || "error") + ").", "alert"); } }, { aside: shown || "" });
       })(),
       mi("Edit rooms", () => { hideMenu(); openRooms(curRoom()); }),
-      (() => { const n = Object.keys(SKIN.live).length + Object.keys(SKIN.tokens).length; return mi("The look", () => { hideMenu(); openArt(); }, { aside: n ? n + " yours" : "" }); })(),
+      (() => { const n = Object.keys(SKIN.live).length + new Set([...Object.keys(SKIN.tokens.light), ...Object.keys(SKIN.tokens.dark)]).size; return mi("The look", () => { hideMenu(); openArt(); }, { aside: n ? n + " yours" : "" }); })(),
       S.db && mi("Set up again…", () => { hideMenu(); openSetup(true); }),
       (VIEW.attic || S.showOld) && mi(S.showOld ? "Send them back up" : "Bring them down", () => { S.showOld = !S.showOld; try { localStorage.setItem("catio.showOld", S.showOld ? "on" : "off"); } catch (e) {} render(); }),
       S.mcp && mi("Check now", () => watch(true)),
@@ -2407,7 +2465,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const list = (name, into) => db.collection(name).onSnapshot((snap) => { into(snap.docs.map((d) => Object.assign({ id: d.id }, d.data()))); render(); }, fail);
     // her own design: one document a slot, and skin/theme for the tokens, as The look writes them, drawn as they land
     db.collection("skin").onSnapshot((snap) => {
-      const out = {}, theme = snap.docs.find((d) => d.id === "theme"), tokens = cleanTokens(theme && theme.data().tokens);
+      const out = {}, theme = snap.docs.find((d) => d.id === "theme"), tokens = modeTokens(theme && theme.data());
       for (const d of snap.docs) { const e = skinEntry(d.id, d.data()); if (e) out[d.id] = e; }
       if (JSON.stringify(out) !== JSON.stringify(SKIN.db) || JSON.stringify(tokens) !== JSON.stringify(SKIN.dbTokens)) { SKIN.db = out; SKIN.dbTokens = tokens; applySkin(); }
     }, fail);
@@ -4233,15 +4291,17 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   }
   function drawArt() {
     const dlg = $("artDlg"), top = dlg.scrollTop, open = new Set([...dlg.querySelectorAll("details[open]")].map((d) => d.dataset.group));
+    const note = dlg.contains(TOAST);   // a note shown in it (what was just saved) outlives the redraw
     dlg.replaceChildren(); dlg.classList.add("wide");
     const box = el("div", "dlg");
     const h = el("h2", null, "The look"); h.id = "artTitle";
-    const mine = Object.values(SKIN.live).filter((e) => e.from === "db").length + Object.keys(SKIN.dbTokens).length;
+    const mine = Object.values(SKIN.live).filter((e) => e.from === "db").length + Object.keys(SKIN.dbTokens.light).length + Object.keys(SKIN.dbTokens.dark).length;
     box.append(h, el("p", "note", "The whole design is yours to change: every colour, font, size and piece of art. Change one and the whole café follows. Draw at the size shown; docs/drawing-plan.md lists them all."));
+    box.appendChild(tokensBar());
     const groups = ["Colours", "Type", "Cats", "The house", "Interface", "Map panel", "Map colours"];
     for (const g of groups) {
       const keys = Object.keys(ART).filter((k) => ART[k].group === g), toks = Object.keys(TOKENS).filter((n) => TOKENS[n][0] === g);
-      const yours = keys.filter((k) => skinOf(k)).length + toks.filter((n) => SKIN.tokens[n]).length;
+      const yours = keys.filter((k) => skinOf(k)).length + toks.filter((n) => SKIN.tokens.light[n] || SKIN.tokens.dark[n]).length;
       const det = el("details", "artgroup"); det.dataset.group = g;   // redrawn as the skin changes: what she had open stays open
       det.open = (open.size ? open.has(g) : g === groups[0] || keys.some((k) => SKIN.problems[k])) || keys.some((k) => ARTPICK[k]);   // first, a piece of hers that isn't used shows
       det.appendChild(el("summary", null, g + (yours ? " · " + yours + " yours" : "")));
@@ -4253,45 +4313,97 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const acts = el("div", "actions");
     if (mine && S.db) {
       const all = el("button", "btn pink", "Put everything back"); all.type = "button"; all.id = "artResetAll";
-      all.addEventListener("click", async () => { if (Object.keys(SKIN.dbTokens).length) await saveTokens({}); if (Object.keys(SKIN.db).length) await putBack(Object.keys(SKIN.db)); });
+      all.addEventListener("click", async () => { if (mine - Object.keys(SKIN.db).length) await saveTokens({ light: {}, dark: {} }); if (Object.keys(SKIN.db).length) await putBack(Object.keys(SKIN.db)); });
       acts.appendChild(all);
     }
     acts.append(el("span", "spacer"), closeBtn(dlg));
     box.appendChild(acts);
     dlg.appendChild(box);
+    if (note) dlg.appendChild(TOAST);
     dlg.scrollTop = top;
   }
-  // a colour or a size: a picker, what it colours, and Put back when it is hers
+  // the mode The look edits, and the tokens file: Light or Dark, Export (a .tokens.json for Figma or another café) and
+  // Import… (one from Figma's variables, or one exported here), into the mode chosen
+  let LOOKMODE = "light";
+  function tokensBar() {
+    const bar = el("div", "lookbar");
+    const modes = el("div", "planfloors"); modes.setAttribute("role", "radiogroup"); modes.setAttribute("aria-label", "Mode the colours are for");
+    for (const m of MODES) {
+      const b = el("button", "btn fl", m === "light" ? "Light" : "Dark"); b.type = "button"; b.id = "lookMode-" + m;
+      b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(LOOKMODE === m));
+      b.addEventListener("click", () => { LOOKMODE = m; drawArt(); });
+      modes.appendChild(b);
+    }
+    const ex = el("button", "btn", "Export tokens"); ex.type = "button"; ex.id = "tokensExport";
+    ex.addEventListener("click", () => exportTokens(LOOKMODE));
+    bar.append(modes, ex);
+    if (S.db) {
+      const input = el("input"); input.type = "file"; input.hidden = true; input.id = "tokensFile"; input.accept = ".json,application/json,application/design-tokens+json";
+      input.addEventListener("change", () => { const f = input.files && input.files[0]; if (f) importTokens(f, LOOKMODE); input.value = ""; });
+      const im = el("button", "btn", "Import tokens…"); im.type = "button"; im.addEventListener("click", () => input.click());
+      bar.append(input, im);
+    }
+    bar.appendChild(el("p", "note", LOOKMODE === "dark"
+      ? "Dark: what the café looks like at night. A colour you leave alone stays as in Light."
+      : "A tokens file is the design tokens format Figma's variables use: export one to bring the café's colours into Figma as a mode, or import one from it."));
+    return bar;
+  }
+  async function exportTokens(m) {
+    const name = "kittychat-" + m + ".tokens.json", text = JSON.stringify(toDTCG(m), null, 2) + "\n";
+    const dl = await use("downloads").catch(() => null);
+    try { if (dl) { await dl.save({ filename: name, data: text }); return; } }
+    catch (e) { if (e && e.code === "declined") return; if (e && e.code === "rate_limited") { toast("A save is already open: finish it first.", "alert"); return; } }   // otherwise the browser's own download
+    const a = el("a"); a.href = URL.createObjectURL(new Blob([text], { type: "application/design-tokens+json" })); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    toast(name + " is downloaded.");
+  }
+  async function importTokens(file, m) {
+    let j;
+    try { j = JSON.parse(await file.text()); } catch (e) { toast(file.name + " isn't a tokens file: it isn't JSON.", "alert"); return; }
+    const { found, foreign } = fromDTCG(j), n = Object.keys(found).length;
+    if (!n) { toast(file.name + " has none of the café's tokens" + (foreign ? " (" + foreign + " of its own)." : "."), "alert"); return; }
+    const next = { light: Object.assign({}, SKIN.dbTokens.light), dark: Object.assign({}, SKIN.dbTokens.dark) };
+    Object.assign(next[m], found);
+    await saveTokens(next, n + " " + (n === 1 ? "token" : "tokens") + " from " + file.name + " in " + (m === "light" ? "Light" : "Dark") + (foreign ? "; " + foreign + " not the café's, left out." : "."));
+  }
+  // a colour or a size, in the mode The look is on: a picker, what it colours, and Put back when it is hers
   function tokenRow(n) {
-    const [, name, what] = TOKENS[n], t = SKIN.tokens[n], li = el("li"); li.dataset.token = n;
+    const m = LOOKMODE, [, name, what] = TOKENS[n], t = SKIN.tokens[m][n], li = el("li"); li.dataset.token = n;
     const size = TOKENS[n][0] === "Type", pic = el("span", "pic"), input = el("input");
     input.id = "tok" + n; input.setAttribute("aria-label", name);
-    input.type = size ? "text" : "color"; input.value = tok(n); input.disabled = !S.db;
+    input.type = size ? "text" : "color"; input.value = valueIn(m, n); input.disabled = !S.db;
     if (size) input.size = 6;
-    // she sees it at once; it is kept when she lets go (a size when it reads as one)
-    input.addEventListener("input", () => { if (tokenOk(n, input.value)) { document.documentElement.style.setProperty(n, input.value); SKIN.set.push(n); } });
+    // she sees it at once (in the mode on screen); it is kept when she lets go (a size when it reads as one)
+    const onScreen = () => (document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === m;
+    input.addEventListener("input", () => { if (tokenOk(n, input.value) && onScreen()) { document.documentElement.style.setProperty(n, input.value); SKIN.set.push(n); } });
     input.addEventListener("change", () => {
-      if (!tokenOk(n, input.value)) { toast(name + " is a size like 18px or 0.95rem.", "alert"); input.value = tok(n); return; }
-      saveTokens(Object.assign({}, SKIN.dbTokens, { [n]: input.value }), name + ": yours now.");
+      if (!tokenOk(n, input.value)) { toast(name + " is a size like 18px or 0.95rem.", "alert"); input.value = valueIn(m, n); return; }
+      const next = { light: Object.assign({}, SKIN.dbTokens.light), dark: Object.assign({}, SKIN.dbTokens.dark) };
+      next[m][n] = input.value;
+      saveTokens(next, name + ": yours now" + (m === "dark" ? ", at night." : "."));
     });
     pic.appendChild(input);
     const txt = el("div", "txt");
     txt.append(el("b", null, name));
     if (what) txt.appendChild(el("span", "what", what));
-    txt.appendChild(el("span", "from" + (t ? " mine" : ""), t ? (t.from === "db" ? "Yours" : "From art/skin.json") : "The café's"));
+    txt.appendChild(el("span", "from" + (t ? " mine" : ""), t ? (t.from === "db" ? "Yours" : "From art/skin.json") : m === "dark" && SKIN.tokens.light[n] ? "As in Light" : "The café's"));
     const acts = el("div", "acts");
-    if (S.db && SKIN.dbTokens[n]) {
+    if (S.db && SKIN.dbTokens[m][n]) {
       const pb = el("button", "btn tiny", "Put back"); pb.type = "button";
-      pb.addEventListener("click", () => { const left = Object.assign({}, SKIN.dbTokens); delete left[n]; saveTokens(left, name + ": the café's again."); });
+      pb.addEventListener("click", () => {
+        const next = { light: Object.assign({}, SKIN.dbTokens.light), dark: Object.assign({}, SKIN.dbTokens.dark) };
+        delete next[m][n]; saveTokens(next, name + ": the café's again.");
+      });
       acts.appendChild(pb);
     }
     li.append(pic, txt, acts);
     return li;
   }
-  // skin/theme holds her tokens, all in one document: written whole, from the tokens she has now
+  // skin/theme holds her tokens, both modes in one document: written whole, from the tokens she has now
   async function saveTokens(tokens, ok) {
-    const clean = cleanTokens(tokens);
-    if (await save((db) => (Object.keys(clean).length ? db.doc("skin/theme").set({ tokens: clean, at: Date.now() }) : db.doc("skin/theme").delete()), ok)) {
+    const clean = { light: cleanTokens(tokens.light), dark: cleanTokens(tokens.dark) };
+    const empty = !Object.keys(clean.light).length && !Object.keys(clean.dark).length;
+    if (await save((db) => (empty ? db.doc("skin/theme").delete() : db.doc("skin/theme").set({ tokens: clean.light, dark: clean.dark, at: Date.now() })), ok)) {
       SKIN.dbTokens = clean; applySkin();
     }
   }

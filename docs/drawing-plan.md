@@ -385,6 +385,10 @@ tables above, without `.png`; the cats are `cat-work`, `cat-review`, `cat-meow`,
 `font` (pixel), `font-body` and `font-display`. A pixel font of your own drawn on another grid than 18 px sets its size
 in The look (Type, Pixel font size).
 
+If you pick colours in Figma: keep them as variables, export the collection's mode as a design tokens file (right-click
+the mode, Export mode), and use Import tokens… in The look, on Light or Dark. Name a variable after the café's token
+(`ink`, `go`, `grass`…; The look's own Export tokens gives you every name to start from) and it lands there.
+
 What is left for Claude:
 
 - **Her art can be committed.** It is hers, so `art/licensed/` and its licence rules go away piece by piece, and

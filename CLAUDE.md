@@ -241,6 +241,30 @@ A skin says which are hers, from two places; the second wins:
 A token is checked as a slot is (`tokenOk()`): a colour is six hex digits, a size a length in px or rem, and a
 name that isn't in `TOKENS` is ignored.
 
+**Modes and tokens files, as Figma has them** (her ask of 4 October, "reevaluate plug-n-play capabilities of design
+systems like Figma"; read against Figma's variables, its `figma-generate-library` skill and the W3C Design Tokens
+Format 2025.10). Figma keeps a variable's value per **mode** and moves a whole palette as a **design tokens file**
+(`.tokens.json`, the W3C format it imports and exports natively). The café does both:
+
+- **Two modes**, `light` and `dark` (`MODES`): `skin/theme` is `{tokens, dark, at}` and `art/skin.json` has `tokens` and
+  `dark`. Dark says only what differs; the rest stays as in light. The look edits the mode its Light / Dark switch is
+  on. The whole skin is one stylesheet, `#skinCss`, after the page's own (light on `:root`, dark where the page's dark
+  mode is), never inline styles, so dark mode still wins in the dark.
+- **Export tokens** writes the mode on screen as `kittychat-<mode>.tokens.json` (`toDTCG()`): a group per section of
+  The look (`colours`, `type`, `map-colours`), `$type` on the group, each colour as `{colorSpace: "srgb", components,
+  hex}`, each size as `{value, unit}`, The look's words as `$description`. Through the `downloads` capability when
+  the artifact has it, else the browser's own download. Figma imports dimensions in px only, so `body-size` (rem)
+  doesn't reach it.
+- **Import tokens…** (`fromDTCG()`) reads any such file into the mode on screen: Figma's export, another café's, or
+  one written by hand. A token is matched by its own name (`ink`, `go`, `px-size`…) whatever group it sits in, an
+  alias (`"{primitives.navy}"`) is followed, a colour may be the object or a hex string, and what isn't the café's is
+  counted and left out. `skin.py` does the same for `*.tokens.json` dropped in `art/skin/` ("dark" in the name: the
+  dark mode).
+
+Not taken from Figma, on purpose: a primitives layer under the semantic tokens (Figma's skill keeps one collection
+for under 50 to 60 tokens, and the café has 56), scopes and code syntax (Figma's own metadata; a token's name here is
+already its CSS variable), and more modes than light and dark (none asked for).
+
 What a slot takes, checked before it is drawn (`misfit()`): **exact** (the house, upstairs, the grounds, both
 furniture sheets, the two cursors) only its own size, because the rooms are measured on it; a **sheet** (faces,
 icons, meadow, logo…) any size of the same shape; a **slice** any size, with its border in its own pixels (a
@@ -389,7 +413,10 @@ The page now **writes** through Claude Code Remote, always on an explicit action
 - `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet.
 
 The stored capabilities (the full set, to pass whole if a tool is ever added):
-`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","list_repos","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "CATIO", tools: ["list_agents","comment","comments","drop_file","manage","decide","quizzes","answer"] }] }, db: {}, assets: {}, sample: {} }`
+`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","list_repos","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "CATIO", tools: ["list_agents","comment","comments","drop_file","manage","decide","quizzes","answer"] }] }, db: {}, assets: {}, sample: {}, downloads: true }`
+
+`downloads` joined it on 4 October (The look's Export tokens): until a republish passes the whole set, Export falls
+back to the browser's own download, which claude.ai's frame may not allow.
 
 `decide` joined the set on 3 October (the decider, below): the first republish after it must pass the whole set, or in claude.ai the
 page cannot ask the decider and the brain simply keeps sorting the old way. `quizzes` and `answer` joined it the same evening (her
