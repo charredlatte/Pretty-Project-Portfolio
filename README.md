@@ -38,8 +38,12 @@ How it connects, start to finish:
 Your private chats stay in your own account, never in this repository.
 
 **Where it stands.** The code is open source and you can run your own café today (see [Running your own](#running-your-own)).
-A hosted café with nothing to install is planned and not open yet. The pixel art comes from third-party packs that
-cannot be shared, so check each pack's terms before posting screenshots.
+A hosted café with nothing to install is planned and not open yet. **The app launches in December 2027.** The pixel art
+comes from third-party packs that cannot be shared, so check each pack's terms before posting screenshots.
+
+**Make n Break.** The café is the first thing built on Make n Break, the channel where Char and Tosh build things with
+AI, try to break them, and show both halves. The videos, the monthly code updates and each step to the launch are
+listed by date on a calendar page on the shop. The YouTube channel is coming.
 
 Everything below is the detail.
 
@@ -211,10 +215,10 @@ hosted café is everyone else's.
 
 **Support the work.** The café is built by one person, in the open, while it is in development:
 
-- **Buy me a coffee**: https://buymeacoffee.com/[handle] *(page coming)*. One-off coffees and small memberships;
+- **Buy me a coffee** *(page coming; the link goes here once it exists)*. One-off coffees and small memberships;
   they pay for the gateway's hosting and the médiateur, and put your name in the café's credits.
-- **Back the app on Ulule**: https://ulule.com/[campaign] *(campaign coming, once the first cafés are open)*. It funds
-  the app; the rewards are a year of the hosted café and a drawn cat of your own.
+- **Back the app on Ulule** *(campaign coming, once the first cafés are open, ahead of the app's launch in December
+  2027)*. It funds the app; the rewards are a year of the hosted café and a drawn cat of your own.
 
 ## Made from ten asset packs
 
@@ -257,7 +261,8 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `catio/tools/save-sessions.py`: trims a `list_sessions` result to the saved copy.
 - `catio/data/rooms.json`: the rooms, for the localhost copy. `sessions.json` is never committed.
 - `catio/art/`: the committed art. `licensed/` is rebuilt, not committed.
-- `catio/test/`: the end-to-end test (`sh catio/test/run.sh`).
+- `catio/test/`: the end-to-end test (`sh catio/test/run.sh`), and screenshots to look at
+  (`sh catio/test/run.sh look kitchen study`, into `catio/test/.look/`).
 - `CLAUDE.md`: how to change and republish the page.
 - `catio/tools/digest.py`: compiles the saved sessions and adopted chats into a per-project digest of
   what needs her (`catio/data/digest.md`, never committed).
@@ -278,6 +283,14 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 
 The tests: `sh catio/test/run.sh` (the page), `python3 -m unittest discover harness/test` and
 `python3 -m unittest litterbox/test_sort.py`.
+
+The page's test and its screenshots drive a headless Chromium. In Claude's cloud sessions it is the one preinstalled
+at `/opt/pw-browsers` (`CHROMIUM` overrides it), launched fresh for each run with no profile, no logins and no saved
+passwords. It opens the page from local files and from the test's own server on 127.0.0.1, and the only thing it fetches
+from outside is the page's Google Fonts stylesheet. The house rules still run the `browser-agent-preflight` skill
+once per session before it starts. The suite also needs the licensed art in
+`catio/art/licensed/`: without it the page rightly shows its no-art warning and one check fails (`run.sh` says so).
+`CLAUDE.md`, "Republishing", has the two ways to get the art back.
 
 ## Licence
 
