@@ -58,7 +58,7 @@ Mind the quota: a Starter plan with a View seat gets six MCP calls a month.
 - **The store's name and domain.** A separate store from Montfortoise (her choice, 2 October). Shopify's domain
   check on "KittyChat Café" (2 October) offered no kittychat domain; it suggested purrchat.store, whiskerchat.com
   and meowmingle.store, each available that day. An INPI search for "KittyChat" is still to do. MCPWay, the name
-  for the gateway sold as a product (`docs/mcpway.md`), has its own clash to check first.
+  for the engine under the café (`docs/mcpway.md`), has its own clash to check first.
 - **Monthly or yearly first.** Shopify Subscriptions handles both; the wireframe shows both selling plans.
 - **Ulule or Kickstarter** for the campaign, and whether the coffee page is Buy Me a Coffee or Ko-fi. The business plan
   weighs them; the frame only links out.

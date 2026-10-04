@@ -269,7 +269,7 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `litterbox/`: the back burner, where loose notes land; `litterbox/sort.py` piles them up by project
   and files a pile into that project's repo once it has been checked. See [its README](litterbox/README.md).
 - `docs/`: the plan, her requests compiled, the camera and minimap plan, renovation mode's constraints,
-  the drawing plan for her own art, MCPWay (the gateway as a product, [`docs/mcpway.md`](docs/mcpway.md)),
+  the drawing plan for her own art, MCPWay (the engine under the café, [`docs/mcpway.md`](docs/mcpway.md)),
   and what the litter box filed here.
 - `catio-app/`: a **draft** of the café as a native C++ app for a phone, for her to judge: nine headers
   of declarations, the generated floor plan, and build files for desktop, Android and iOS. Nothing
