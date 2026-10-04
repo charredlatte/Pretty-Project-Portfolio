@@ -298,7 +298,7 @@ a { color: var(--ink); }
 .cat .spr { display: block; }
 /* a count: the pack's white button at one pixel a pixel */
 .badge .n { font: 800 11px/1 var(--body); color: var(--ink); padding: 0 1px;
-  border-style: solid; border-color: transparent; border-width: calc(var(--btn-t) * 1px - 1px) calc(var(--btn-r) * 1px - 1px) calc(var(--btn-b) * 1px - 1px) calc(var(--btn-l) * 1px - 1px); border-image: var(--art-button-hover) var(--btn-s) fill / calc(var(--btn-t) * 1px - 1px) calc(var(--btn-r) * 1px - 1px) calc(var(--btn-b) * 1px - 1px) calc(var(--btn-l) * 1px - 1px) stretch; }
+  border-style: solid; border-color: transparent; border-width: max(0px, calc(var(--btn-t) * 1px - 1px)) max(0px, calc(var(--btn-r) * 1px - 1px)) max(0px, calc(var(--btn-b) * 1px - 1px)) max(0px, calc(var(--btn-l) * 1px - 1px)); border-image: var(--art-button-hover) var(--btn-s) fill / max(0px, calc(var(--btn-t) * 1px - 1px)) max(0px, calc(var(--btn-r) * 1px - 1px)) max(0px, calc(var(--btn-b) * 1px - 1px)) max(0px, calc(var(--btn-l) * 1px - 1px)) stretch; }
 /* a queen's crown: the pack's crown icon, gilded */
 .crown { position: absolute; width: 14px; height: 13px; pointer-events: none; image-rendering: pixelated; background: var(--art-crown) 0 0 / 100% 100% no-repeat; }
 .crown.inline { position: static; display: inline-block; flex: none; }
@@ -509,7 +509,7 @@ ul.files .why { grid-column: 1 / -1; font-size: .78rem; color: var(--ink-soft); 
 ul.files select { max-width: 190px; }
 ul.thread li { padding: 0 4px; font-size: .88rem; overflow-wrap: anywhere; white-space: pre-wrap; background: var(--cream) padding-box;
   border-style: solid; border-color: transparent; border-width: var(--btn-px); border-image: var(--art-button) var(--btn-s) fill / var(--btn-px) stretch; }
-ul.thread li.them { background-color: var(--well); border-image-source: var(--art-bubble); border-image-slice: var(--bubble-s) fill; border-width: var(--bubble-px); margin-right: 24px; }
+ul.thread li.them { background-color: var(--well); border-image-source: var(--art-bubble); border-image-slice: var(--bubble-s) fill; border-width: var(--bubble-px); border-image-width: var(--bubble-px); margin-right: 24px; }
 ul.thread li.me { margin-left: 24px; }
 ul.thread .who { display: block; font: 800 .72rem var(--body); color: var(--ink-soft); }
 /* the queen's card: her dialogue, like an NPC's */
@@ -1022,7 +1022,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     })(file, []);
     const resolve = (v, depth) => (typeof v === "string" && /^\{[^}]+\}$/.test(v) && depth < 10 ? resolve(flat[v.slice(1, -1)], depth + 1) : v);
     for (const [path, v] of Object.entries(flat)) {
-      const n = "--" + path.split(".").pop(), val = resolve(v, 0);
+      const n = "--" + path.split(".").pop().trim().toLowerCase().replace(/[\s_]+/g, "-"), val = resolve(v, 0);   // Figma's "Px size" is px-size
       if (!TOKENS[n]) { foreign++; continue; }
       let css = null;
       if (typeof val === "string") css = /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(val) ? val.slice(0, 7) : val;   // older files write a colour as its hex
@@ -1073,13 +1073,14 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // Is this picture right for the slot? null if it is, else why not, in her words.
   // A family member is checked against its head in the skin given (`live`; the one on screen when left out), or not at
   // all while the skin is still being measured (`false`): applySkin checks members once every head is.
-  function misfit(key, w, h, live = SKIN.live) {
+  function misfit(key, w, h, live = SKIN.live, slice = null) {
     const a = ART[key];
     if (a.kind === "slice" && !a.slice && live) {   // the button's hover, green and pink, the map's dark panel…: cut with the head's border
       const head = headOf(key), e = live[head], [hw, hh] = e ? [e.w, e.h] : ART[head].size;
       if (w !== hw || h !== hh) return "It is " + w + " × " + h + ": it shares the " + ART[head].name.toLowerCase() + "'s border, so draw it the same size, " + hw + " × " + hh + ".";
     }
     if (a.kind === "exact" && (w !== a.size[0] || h !== a.size[1])) return "It is " + w + " × " + h + ": the " + a.name.toLowerCase() + " must be " + a.size[0] + " × " + a.size[1] + (a.measured ? ", as the rooms are measured on it." : ".");
+    if (a.kind === "slice" && slice && (slice[1] + slice[3] > w || slice[0] + slice[2] > h)) return "Its border " + slice.join(" ") + " doesn't fit inside its " + w + " × " + h + ".";
     if (a.kind === "sheet" && Math.abs(w / h - a.size[0] / a.size[1]) > 0.02) return "It is " + w + " × " + h + ": draw it the shape of " + a.size[0] + " × " + a.size[1] + " (any size of that shape fits).";
     return null;
   }
@@ -1094,7 +1095,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         const url = await resolved(e.src);
         if (ART[k].kind !== "font") {
           const [w, h] = SKIN.sizes[url] || (SKIN.sizes[url] = await natural(url));   // each picture is measured once
-          const why = misfit(k, w, h, false);
+          const why = misfit(k, w, h, false, e.slice);
           if (why) return { why };
           Object.assign(e, { w, h });
         } else if (!SKIN.fonts["KittySkin-" + k] || SKIN.fonts["KittySkin-" + k].url !== url) {   // the fonts load together
@@ -4532,7 +4533,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const acts = el("div", "acts");
     if (S.assets) {
       const input = el("input"); input.type = "file"; input.hidden = true; input.id = "artFile-" + k;
-      input.accept = a.kind === "font" ? ".ttf,.otf,.woff,.woff2,font/*" : "image/png,image/gif,image/webp";
+      input.accept = a.kind === "font" ? ".ttf,.otf,.woff,.woff2,font/*" : "image/png";   // pixel art is kept as PNG, here and in the folder
       input.addEventListener("change", () => { const f = input.files && input.files[0]; if (f) pickArt(k, f); });
       const rp = el("button", "btn tiny", "Replace…"); rp.type = "button"; rp.addEventListener("click", () => input.click());
       acts.append(input, rp);

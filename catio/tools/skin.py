@@ -146,7 +146,7 @@ def from_dtcg(doc, groups):
             return resolve(flat.get(v[1:-1]), depth + 1)
         return v
     for path, raw in flat.items():
-        name, v, css = "--" + path.split(".")[-1], resolve(raw), None
+        name, v, css = "--" + re.sub(r"[\s_]+", "-", path.split(".")[-1].strip().lower()), resolve(raw), None   # Figma's "Px size" is px-size
         if name not in groups:
             foreign += 1
             continue
@@ -199,6 +199,64 @@ def png_size(path):
     return struct.unpack(">II", head[16:24])
 
 
+def check(art, key, rel, was, said, where=""):
+    """One drawing for one slot, checked as the page checks it: its entry for skin.json, or None and why, said."""
+    a, path, name = art[key], ROOT / rel, Path(rel).name
+    entry = {k: v for k, v in was.items() if k in ("slice", "frames", "secs", "anchor", "scale", "pixel", "hot", "w", "h")}
+    for k, ok in SETTINGS.items():   # what the page would drop, dropped here, and said
+        if k in entry and not ok(entry[k]):
+            said.append(f"  {name}: its \"{k}\" ({entry[k]!r}) isn't one the page can use, so it was dropped")
+            del entry[k]
+    entry["file"] = rel
+    if a["kind"] == "font":
+        if path.suffix.lower() not in FONTS:
+            said.append(f"  {name}: a font slot takes .ttf, .otf, .woff or .woff2")
+            return None
+        said.append(f"  {name}: {key} (" + {"font": "the pixel font", "font-body": "the text", "font-display": "the round font"}.get(key, "a font") + f"){where}")
+        return entry
+    size = png_size(path)
+    if not size:
+        said.append(f"  {name}: not a PNG (pixel art is kept as PNG, here and in The look)")
+        return None
+    w, h = size
+    entry.pop("w", None), entry.pop("h", None)
+    if entry.keys() - {"file"} and was.get("w") is not None and [was.get("w"), was.get("h")] != [w, h]:
+        # settings given for a drawing of another size don't fit this one: they go, and it's said
+        said.append(f"  {name}: redrawn at {w} x {h}, so its " + ", ".join(sorted(entry.keys() - {"file"})) + " were dropped: give them again if it needs them")
+        entry = {"file": rel}
+    entry["w"], entry["h"] = w, h
+    want = a.get("size")
+    if a["kind"] == "exact" and want and [w, h] != want:
+        said.append(f"  {name}: {w} x {h}, but it must be {want[0]} x {want[1]}: left out")
+        return None
+    if a["kind"] == "sheet" and want and abs(w / h - want[0] / want[1]) > 0.02:
+        said.append(f"  {name}: {w} x {h}, but it must be the shape of {want[0]} x {want[1]}: left out")
+        return None
+    note = ""
+    if a["kind"] == "slice" and "slice" in a and want and [w, h] != want and "slice" not in entry:
+        if "scale" in a and not entry.get("pixel"):   # as The look does: the pack's border, scaled to her drawing
+            entry["slice"] = [max(1, round(n * w / want[0])) for n in a["slice"]]
+            note = f" (border {' '.join(map(str, entry['slice']))}, scaled from the pack's; set \"slice\" if it isn't)"
+        else:
+            note = f" (another size than the pack's {want[0]} x {want[1]}: give its border, \"slice\": [t, r, b, l], or it keeps {a['slice']})"
+    if a["kind"] == "slice" and "scale" in a and want and w != want[0] and "scale" not in entry and not entry.get("pixel"):
+        entry["scale"] = round(a["scale"] * want[0] / w, 4)   # drawn smooth, shown the pack's size
+        note += f" (scale {entry['scale']}, smooth; \"pixel\": true instead if it is pixel art)"
+    sl = entry.get("slice") or a.get("slice")
+    if a["kind"] == "slice" and entry.get("slice") and (sl[1] + sl[3] > w or sl[0] + sl[2] > h or not any(sl)):
+        said.append(f"  {name}: its border {' '.join(map(str, sl))} doesn't fit inside {w} x {h}: left out")
+        return None
+    if a["kind"] == "cat":
+        n = entry.get("frames") or (w // h if w % h == 0 and w // h <= 64 else a.get("frames", 1))
+        if w % n:
+            said.append(f"  {name}: {w} px wide doesn't split into {n} frames: set \"frames\" in skin.json")
+            return None
+        entry["frames"] = n
+        note = f" ({n} frames of {w // n} x {h})"
+    said.append(f"  {name}: {key}{note}{where}")
+    return entry
+
+
 def main():
     art = slots()
     try:
@@ -240,67 +298,23 @@ def main():
     for p in files:
         if p.name.endswith(".tokens.json"):
             continue
-        key = p.stem
-        if key not in art:
-            said.append(f"  {p.name}: no slot is called {key} (the slots are in ART, catio/index.html)")
+        if p.stem not in art:
+            said.append(f"  {p.name}: no slot is called {p.stem} (the slots are in ART, catio/index.html)")
             continue
-        a, was = art[key], old.get(key) if isinstance(old.get(key), dict) else {}
-        entry = {k: v for k, v in was.items() if k in ("slice", "frames", "secs", "anchor", "scale", "pixel", "hot", "w", "h")}
-        for k, ok in SETTINGS.items():   # what the page would drop, dropped here, and said
-            if k in entry and not ok(entry[k]):
-                said.append(f"  {p.name}: its \"{k}\" ({entry[k]!r}) isn't one the page can use, so it was dropped")
-                del entry[k]
-        entry["file"] = "art/skin/" + p.name
-        if a["kind"] == "font":
-            if p.suffix.lower() not in FONTS:
-                said.append(f"  {p.name}: a font slot takes .ttf, .otf, .woff or .woff2")
-                continue
-            skin[key] = entry
-            said.append(f"  {p.name}: {key} (" + {"font": "the pixel font", "font-body": "the text", "font-display": "the round font"}.get(key, "a font") + ")")
-            continue
-        size = png_size(p)
-        if not size:
-            said.append(f"  {p.name}: not a PNG")
-            continue
-        w, h = size
-        entry.pop("w", None), entry.pop("h", None)
-        if entry.keys() - {"file"} and was.get("w") is not None and [was.get("w"), was.get("h")] != [w, h]:
-            # settings given for a drawing of another size don't fit this one: they go, and it's said
-            said.append(f"  {p.name}: redrawn at {w} x {h}, so its " + ", ".join(sorted(entry.keys() - {"file"})) + " were dropped: give them again if it needs them")
-            entry = {"file": entry["file"]}
-        entry["w"], entry["h"] = w, h
-        want = a.get("size")
-        if a["kind"] == "exact" and want and [w, h] != want:
-            said.append(f"  {p.name}: {w} x {h}, but it must be {want[0]} x {want[1]}: left out")
-            continue
-        if a["kind"] == "sheet" and want and abs(w / h - want[0] / want[1]) > 0.02:
-            said.append(f"  {p.name}: {w} x {h}, but it must be the shape of {want[0]} x {want[1]}: left out")
-            continue
-        note = ""
-        if a["kind"] == "slice" and "slice" in a and want and [w, h] != want and "slice" not in entry:
-            note = f" (another size than the pack's {want[0]} x {want[1]}: give its border, \"slice\": [t, r, b, l], or it keeps {a['slice']})"
-        if a["kind"] == "slice" and "scale" in a and want and w != want[0] and "scale" not in entry and not entry.get("pixel"):
-            entry["scale"] = round(a["scale"] * want[0] / w, 4)   # as The look does: drawn smooth, shown the pack's size
-            note += f" (scale {entry['scale']}, smooth; \"pixel\": true instead if it is pixel art)"
-        if a["kind"] == "cat":
-            n = entry.get("frames") or (w // h if w % h == 0 and w // h <= 64 else a.get("frames", 1))
-            if w % n:
-                said.append(f"  {p.name}: {w} px wide doesn't split into {n} frames: set \"frames\" in skin.json")
-                continue
-            entry["frames"] = n
-            note = f" ({n} frames of {w // n} x {h})"
-        skin[key] = entry
-        said.append(f"  {p.name}: {key}{note}")
-    for key, was in old.items():   # a slot pointed by hand at art outside art/skin/ (another pack's): kept while it is there
+        was = old.get(p.stem)
+        entry = check(art, p.stem, "art/skin/" + p.name, was if isinstance(was, dict) else {}, said)
+        if entry:
+            skin[p.stem] = entry
+    for key, was in old.items():   # a slot pointed by hand at art outside art/skin/ (another pack's): checked the same way
         f = file_of(was)
-        if key in skin:
-            continue   # a drawing of hers in art/skin/ took the slot (one refused there leaves this one in place)
-        if key in art and isinstance(f, str) and f.startswith("art/") and not f.startswith("art/skin/"):
-            if (ROOT / f).is_file():
-                skin[key] = was
-                said.append(f"  {key}: {f}, kept (outside art/skin/)")
-            else:
-                said.append(f"  {key}: {f} has gone, so it was dropped")
+        if key in skin or key not in art or not isinstance(f, str) or not f.startswith("art/") or f.startswith("art/skin/"):
+            continue   # a drawing of hers in art/skin/ took the slot (one refused there leaves this one to be weighed)
+        if not (ROOT / f).is_file():
+            said.append(f"  {key}: {f} has gone, so it was dropped")
+            continue
+        entry = check(art, key, f, was if isinstance(was, dict) else {}, said, " (outside art/skin/)")
+        if entry:
+            skin[key] = entry
     # a family member is cut with its head's border, so it is the head's size: the head as it ended up (hers, wherever
     # its file is, or the pack's when hers was left out)
     for key in [k for k in skin if k in art and art[k]["kind"] == "slice" and "slice" not in art[k] and art[k].get("fam")]:
