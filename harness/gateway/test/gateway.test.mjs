@@ -393,10 +393,21 @@ describe("accounts", () => {
 		assert.equal((await signUp({ invite: code, user: "guest", password: "short" })).status, 400);
 		// a refused sign-up costs the invite nothing; two at once with one invite let one in
 		const both = await Promise.all(["guest", "guest-two"].map((user) => signUp({ invite: code, user, password: SIGNUP })));
-		assert.deepEqual(both.map((r) => r.status).sort(), [303, 400], "an invite works once");
-		const inRes = both.find((r) => r.status === 303);
+		// the first user test (5 October): a form sign-up now lands on "your café is ready", its first key shown once,
+		// instead of going straight into an empty café with no key and no word of the plugin
+		assert.deepEqual(both.map((r) => r.status).sort(), [200, 400], "an invite works once");
+		const inRes = both.find((r) => r.status === 200);
 		const guest = inRes === both[0] ? "guest" : "guest-two";
 		const guestCookie = inRes.headers.get("set-cookie").split(";")[0];
+		const ready = await inRes.text();
+		assert.match(ready, /Your café is ready/);
+		assert.match(ready, /kittychat-house-rules@kittychat/, "the plugin's install lines");
+		assert.ok(ready.includes("<code>" + base + "</code>"), "the café's own address");
+		const guestKey = /value="([0-9a-f]{64})" aria-label="Your key"/.exec(ready)?.[1];
+		assert.ok(guestKey, "the key, once");
+		await tool(guestKey, "report_status", { agent: "guest-cat", mood: "busy" });
+		assert.deepEqual((await tool(guestKey, "list_agents")).agents.map((a) => a.id), ["guest-cat"], "the key is theirs, in their café");
+		assert.ok(!(await tool(TOKEN, "list_agents")).agents.some((a) => a.id === "guest-cat"), "and not in hers");
 		assert.deepEqual((await (await as(guestCookie, "/api/db")).json()).docs, {}, "signed in to a café of their own");
 		assert.equal((await login(guest, SIGNUP)).status, 303);
 		assert.equal((await fetch(base + "/invite", { headers: { Cookie: guestCookie } })).status, 403, "a guest is no admin");

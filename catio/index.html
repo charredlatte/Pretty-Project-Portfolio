@@ -4055,8 +4055,6 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       () => {
         const sec = el("div", "dlg");
         sec.appendChild(el("p", "note", "All your Claude chats, in one cozy café. Each chat becomes a cat, each project a room. Claude on its own is a stripped car: a brilliant engine, with no seatbelts, no windshield and no tires. The café is the rest of the car, and " + queen() + ", the queen cat, drives. Seven short steps fit the parts, then the doors open."));
-        if (S.art === "missing") sec.appendChild(el("p", "note", NOART));
-        sec.appendChild(el("p", "note", "All your Claude chats, in one cozy café. Each chat becomes a cat, each project a room. Seven short steps, and the doors open."));
         if (S.art === "missing") sec.appendChild(el("p", "note", noArt()));
         const nm = el("input"); nm.id = "setupName"; nm.value = A.name; nm.maxLength = 40; nm.placeholder = "KittyChat Café";
         nm.addEventListener("input", () => { A.name = nm.value; });

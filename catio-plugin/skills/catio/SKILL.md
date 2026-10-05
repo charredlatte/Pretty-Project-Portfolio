@@ -57,6 +57,12 @@ What they need, from `catio/art/CREDITS.md`:
 Most have a free tier. Without the ToffeeCraft pack in particular there are no cats, which is most
 of the point; without Sprout Lands the menus still work, on plain colour.
 
+**Say plainly where it stands today:** the house and the cats are built from all ten zips at once, in the order
+below; with one missing, `build-art.py` stops. `plants.zip` (the terrace's plants) reached Charlotte with no artist
+or licence, so there is no public copy of it yet, and until there is, nobody else can run the full build. What
+anyone can build is the interface alone, from the Sprout Lands UI zip (and Game UI Pastel's after it): the café
+then works on plain panels, with no house or cats drawn. `CatMegaFree.zip` is the ToffeeCraft row above.
+
 ## Setting one up
 
 Work through these with the person. Stop and ask whenever a step needs something only they have.
@@ -153,6 +159,12 @@ capabilities: { mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_s
   "set_session_title", "archive_session", "unarchive_session", "interrupt_session"] }] },
   db: {}, assets: {}, sample: {} }
 ```
+
+Publish the art with it, or the page goes up alone and draws no house: the Artifact tool sends only the HTML
+unless every file the page uses is listed in `files`. List `art/furniture.png` and every file under
+`art/licensed/` that step 2 wrote (the `.png` files beside it, everything in `ui/`, `sprout.ttf` included, and
+everything in `pastel/`), each at its own path, and `art/skin.json` with its files if they drew pieces of their own.
+**It worked when** their café's link draws the house; if its sign says the cat art isn't here, a file was left out.
 
 The `mcp` grant is what lets the page read and manage their sessions as them, and only ever on their
 click (`list_repos` is what the wizard's GitHub step asks for their repositories); `db` is where rooms, renames, adopted chats and the queen's notes are kept; `assets` holds files

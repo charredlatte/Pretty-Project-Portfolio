@@ -254,6 +254,21 @@ class Hostile(unittest.TestCase):
         self.assertFalse(lock.exists(), "the lock is let go")
 
 
+class Bundle(unittest.TestCase):
+    def test_the_server_starts_from_the_localhost_bundle(self):
+        # The first user test (5 October): bundle.py shipped catio_mcp.py without design_tokens.py, which it imports,
+        # so the documented command died on its first line.
+        repo = SERVER.parent.parent.parent
+        done = subprocess.run([sys.executable, str(repo / "catio" / "tools" / "bundle.py")], capture_output=True, text=True, timeout=120)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        server = repo / "catio" / "dist" / "catio-local" / "harness" / "mcp" / "catio_mcp.py"
+        ping = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "ping"}) + "\n"
+        run = subprocess.run([sys.executable, str(server)], input=ping, capture_output=True, text=True, timeout=30,
+                             env=dict(os.environ, CATIO_HOME=tempfile.mkdtemp()))
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertEqual(json.loads(run.stdout.splitlines()[0])["id"], 1, run.stdout)
+
+
 class Serve(unittest.TestCase):
     def test_serves_the_folder_and_the_api(self):
         home, folder = tempfile.mkdtemp(), tempfile.mkdtemp()
