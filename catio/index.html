@@ -77,7 +77,7 @@
   --art-map-panel: url(art/licensed/pastel/panel.png); --art-map-panel-dark: url(art/licensed/pastel/panel-dark.png);
   --art-map-button: url(art/licensed/pastel/button.png); --art-map-button-hover: url(art/licensed/pastel/button-hover.png);
   --art-map-button-down: url(art/licensed/pastel/button-down.png); --art-map-frame: url(art/licensed/pastel/frame.png);
-  --art-map-icons: url(art/licensed/pastel/icons.png);
+  --art-map-icons: url(art/licensed/pastel/icons.png); --art-map-fold: none;   /* drawn in code until she draws it */
   --art-meadow: url(art/licensed/meadow.png); --art-house: url(art/licensed/house.png);
   --art-house-upper: url(art/licensed/house-upper.png); --art-decor: url(art/licensed/decor.png);   /* drawn as <img>, from srcOf() */
   --art-furniture: url(art/licensed/furniture.png); --art-furniture-cabin: url(art/furniture.png);   /* drawn by drawFurniture() */
@@ -2244,9 +2244,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const off = (c) => { const p = WHERE.get(c.id); return !!S.cam && (!p || p.x < x || p.x > x + w || p.y < y || p.y > y + h); };   // not drawn yet: not in view
     const away = S.mapOpen ? [] : needOn(other(S.floor)).concat(needOn(S.floor).filter(off));
     const said = (S.mapOpen ? "Minimise the map" : "Open the map") + (away.length ? ", " + away.length + " out of view need you" : "");
-    const was = b.querySelector(".badge"), fail = away.some((c) => c.mood === "cry");
-    if (b.getAttribute("aria-label") === said && !!was === !!away.length && (!was || was.classList.contains("fail") === fail)) return;   // a camera move, nothing new
-    if (was) was.remove();
+    const sig = said + (away.some((c) => c.mood === "cry") ? " fail" : "");
+    if (b.dataset.sig === sig) return;   // a camera move, nothing new
+    b.dataset.sig = sig;
+    const was = b.querySelector(".badge"); if (was) was.remove();
     if (away.length) b.appendChild(pip(away));
     b.setAttribute("aria-label", said);
   }
@@ -2259,11 +2260,6 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     f.title = (open ? "Minimise" : "Open") + " the map (M)";
     if (!open && $("controls").contains(document.activeElement)) f.focus({ preventScroll: true });   // the button she was on is hidden now
     drawMap();
-    if (open && MENU.kind) {   // the panel grew: the open menu finds its place clear of it again, keeping the item she was on
-      const items = () => [...$("menu").querySelectorAll("button, a, input, select")], at = items().indexOf(document.activeElement);
-      MENU.at = null; showMenu(MENU.kind, MENU.key);
-      if (at >= 0 && items()[at]) items()[at].focus({ preventScroll: true });
-    }
   }
   // put a point of the grounds (native px) in the middle of the screen
   function centerOn(wx, wy, animate) {
@@ -2406,7 +2402,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     for (const b of document.querySelectorAll("#hits .lit, #cats .lit")) b.classList.remove("lit");
     if (kind === "room") { const h = anchorOf("room", key); if (h) h.classList.add("lit"); }
     else if (kind !== "house") { const h = anchorOf(kind, key); if (h) h.classList.add("lit"); }   // the cat whose menu this is keeps its outline
-    // place it beside what it belongs to, inside the stage
+    placeMenu(kind, key, node, same);
+  }
+  // place it beside what it belongs to, inside the stage
+  function placeMenu(kind, key, node, same) {
+    const menu = $("menu");
     const a = (node || anchorOf(kind, key) || $("stage")).getBoundingClientRect();
     const st = $("stage").getBoundingClientRect();
     const W = st.width, H = st.height, mw = menu.offsetWidth, mh = menu.offsetHeight, g = 12;
@@ -5313,6 +5313,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   for (const b of document.querySelectorAll("#controls .fl")) b.addEventListener("click", () => setFloor(b.dataset.floor));
   $("houseBtn").addEventListener("click", (e) => { e.stopPropagation(); hideTip(); toggleMenu("house", "house", $("houseBtn")); });
   $("mapFold").addEventListener("click", () => setMapOpen(!S.mapOpen, true));
+  // The panel changes size (opened, minimised, a pip on its button): a menu it now covers moves clear of it, just
+  // placed again, not redrawn, so the item she is on keeps the keyboard. A menu it doesn't cover stays put.
+  new ResizeObserver(() => {
+    const m = $("menu").getBoundingClientRect(), p = $("controls").getBoundingClientRect(), g = 12;
+    if (MENU.kind && !$("menu").hidden && m.left < p.right + g && m.right > p.left - g && m.top < p.bottom + g && m.bottom > p.top - g) placeMenu(MENU.kind, MENU.key, null, false);
+  }).observe($("controls"));
   // the minimap: a click glides there, a drag pans live (holding the view where you grabbed it), a
   // double-click looks in, the wheel zooms about that spot
   const mm = $("minimap");
