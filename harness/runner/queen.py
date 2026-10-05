@@ -16,6 +16,7 @@ Environment:
 
 README.md says how to set it up. Standard library only; Python 3.9 or later.
 """
+import http.client
 import json
 import os
 import queue
@@ -98,8 +99,13 @@ class Runner:
                 time.sleep(pause)
                 pause = min(pause * 2, 60)
                 continue
-            except (OSError, ValueError) as e:
+            except (OSError, ValueError, http.client.HTTPException) as e:   # a reply cut off half way is one of these too
                 log("no gateway:", e)
+                time.sleep(pause)
+                pause = min(pause * 2, 60)
+                continue
+            if not isinstance(got, dict):
+                log("the gateway answered with something that isn't an object:", str(got)[:80])
                 time.sleep(pause)
                 pause = min(pause * 2, 60)
                 continue

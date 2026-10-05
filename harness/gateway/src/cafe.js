@@ -6,6 +6,7 @@
 import PAGE from "../../../catio/index.html";
 import RUNTIME from "../cafe/runtime.js";
 import { clientIp, esc, formOf, page } from "./signin.js";
+import { plain } from "./plain.js";
 import { randomToken, sha256 } from "./secret.js";
 import { bootProblem, hasAccount, registry } from "./registry.js";
 import { FIRST_HOUSE, fileKeys } from "./houses.js";
@@ -23,7 +24,7 @@ const refuse = (status, code, error) => json({ code, error }, status);
 /** A path segment, decoded; null when it isn't valid. */
 const tryDecode = (s) => { try { return decodeURIComponent(s); } catch { return null; } };
 /** The request's JSON object, or {} when it isn't one. */
-const bodyOf = async (request) => { const b = await request.json().catch(() => null); return b && typeof b === "object" && !Array.isArray(b) ? b : {}; };
+const bodyOf = async (request) => { const b = await request.json().catch(() => null); return b && typeof b === "object" && !Array.isArray(b) ? plain(b) : {}; };
 
 function cookieOf(request) {
 	for (const part of (request.headers.get("Cookie") || "").split(";")) {

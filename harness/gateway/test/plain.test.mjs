@@ -20,7 +20,15 @@ test("what is nested deeper than anyone sends becomes null instead of overflowin
 	let at = plain(deep), depth = 0;
 	while (Array.isArray(at)) { at = at[0]; depth++; }
 	assert.equal(at, null);
-	assert.ok(depth <= 26);
+	assert.ok(depth <= 102);
+});
+
+test("real documents, a few levels deep, come through whole", () => {
+	let doc = "leaf";
+	for (let i = 0; i < 40; i++) doc = { level: doc };
+	let at = plain(doc);
+	for (let i = 0; i < 40; i++) at = at.level;
+	assert.equal(at, "leaf");
 });
 
 test("a string, a number and undefined pass straight through", () => {

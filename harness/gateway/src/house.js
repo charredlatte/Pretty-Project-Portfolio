@@ -421,6 +421,8 @@ export class House extends DurableObject {
 	/** The runner has been given every note up to `at`: they are handed over for good. */
 	ackQueen(at) {
 		const a = this.agent(QUEEN);
+		const newest = this.sql.exec("SELECT MAX(at) AS at FROM notes WHERE cat = ? AND author = ?", QUEEN, OWNER).one().at || 0;
+		at = Math.min(at, newest);   // she can't have been given a note that doesn't exist yet, whatever the runner says
 		if (!a || at <= (a.handedNotes || 0)) return;
 		a.handedNotes = at;
 		a.seenNotes = Math.max(a.seenNotes || 0, at);

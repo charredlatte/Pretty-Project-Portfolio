@@ -258,6 +258,19 @@ describe("a normal gateway under hostile input", () => {
 		assert.deepEqual(next.notes.map((n) => n.text), ["and then another"], "an acknowledged note is not offered again");
 	});
 
+	test("an acknowledgement of a note that doesn't exist yet doesn't swallow the notes that follow", async () => {
+		await wait();   // hands over whatever an earlier test left unacknowledged
+		const ask = (body, signal) => fetch(g.base + "/api/runner/wait", { method: "POST", headers: asQueen, body: JSON.stringify(body), signal }).then((r) => r.json());
+		const early = new AbortController();
+		const held = ask({ ack: Date.now() + 3600 * 1000 }, early.signal).catch(() => null);
+		await new Promise((r) => setTimeout(r, 500));
+		early.abort();
+		await held;
+		await api("/api/tools/comment", { method: "POST", body: JSON.stringify({ cat: "queen", text: "after the runaway ack" }) });
+		assert.deepEqual((await ask({ ack: 0 })).notes.map((n) => n.text), ["after the runaway ack"]);
+		await ask({ ack: Date.now() }).catch(() => null);
+	});
+
 	test("a runner that sends no acknowledgement is still handed each note once", async () => {
 		const ask = () => fetch(g.base + "/api/runner/wait", { method: "POST", headers: asQueen }).then((r) => r.json());
 		await wait();   // hands over whatever an earlier test left unacknowledged
@@ -284,6 +297,14 @@ describe("a normal gateway under hostile input", () => {
 			["manage", { cat: hostile, action: "archive" }], ["decide", { state: hostile, questions: { a: { type: "noul" } } }]]) {
 			const r = await rpcRaw(g.base, TOKEN, { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } });
 			assert.ok(r.status < 500, `${name} → ${r.status}`);
+		}
+		for (const body of [{ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: hostile } }, { jsonrpc: "2.0", id: hostile, method: hostile }, [{ jsonrpc: "2.0", id: 2, method: hostile }]]) {
+			const r = await rpcRaw(g.base, TOKEN, body);
+			assert.ok(r.status < 500, `${JSON.stringify(body)} → ${r.status}`);
+		}
+		for (const [path, method, body] of [["/api/keys", "POST", { name: hostile, role: hostile }], ["/api/users", "POST", { id: hostile, password: hostile }], ["/api/users/nobody-here", "PUT", { password: hostile }]]) {
+			const r = await api(path, { method, body: JSON.stringify(body) });
+			assert.ok(r.status < 500, `${method} ${path} → ${r.status}`);
 		}
 		const owner = await api("/api/tools/quiz", { method: "POST", body: JSON.stringify({ title: "t", questions: [{ q: hostile, options: [hostile] }] }) });
 		assert.ok(owner.status < 500, "quiz → " + owner.status);
