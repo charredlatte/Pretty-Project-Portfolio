@@ -108,9 +108,10 @@ const TOOLS = {
 		return { catio: RULES.catio, rules: RULES.rules.filter((r) => r.on !== false) };
 	},
 
-	report_status(h, args) {
+	report_status(h, args, who) {
 		need(args, "agent");
 		const id = String(args.agent).slice(0, 200);
+		if (id === QUEEN && who !== QUEEN) throw new Refusal("that cat is the queen's: only her runner reports as her");
 		const a = h.agent(id) || { id, since: Date.now() };
 		for (const k of FIELDS) if (args[k] != null) a[k] = String(args[k]).slice(0, 500);
 		if (args.mood != null) {
@@ -138,9 +139,11 @@ const TOOLS = {
 	// requests and files in once each. Handing over keeps its own place (handedNotes), apart from what an answer
 	// counts as read (seenNotes), so a note she sends while the session is answering still gets handed in.
 	// A cat is handed what the owner and the queen say; the queen herself only what the owner says.
-	inbox(h, args) {
+	inbox(h, args, who) {
 		need(args, "agent");
 		const id = String(args.agent);
+		// her inbox is the owner's words to her: an agent reading it with mark would hand them over to nobody
+		if (id === QUEEN && who === "agent") throw new Refusal("the queen's inbox is her runner's");
 		const a = h.agent(id);
 		const mark = args.mark === true && !!a;
 		const files = h.sql.exec("SELECT id, name, type, size, note, at FROM files WHERE cat = ? AND status = 'waiting'" +
@@ -284,6 +287,7 @@ const TOOLS = {
 		const row = h.sql.exec("SELECT data FROM docs WHERE path = ?", path).toArray()[0];
 		if (!row) throw new Refusal("no such quiz");
 		const z = JSON.parse(row.data);
+		if (!Array.isArray(z.questions)) throw new Refusal("no such quiz");
 		if (z.status === "done") throw new Refusal("that homework is handed in already");
 		const given = Array.isArray(args.answers) ? args.answers.map((a) => String(a == null ? "" : a).trim().slice(0, QUIZ.answer)) : [];
 		if (given.length !== z.questions.length || given.some((a) => !a)) throw new Refusal("answers is one answer per question, in order");

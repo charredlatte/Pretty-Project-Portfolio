@@ -87,6 +87,12 @@ export class Registry extends DurableObject {
 		const want = queen && queen.length >= MIN_SECRET ? await sha256(queen) : null;
 		if (have && have.hash === want) return;
 		if (have) this.sql.exec("DELETE FROM keys WHERE user = ? AND name = ?", first.id, QUEEN_KEY);
+		// one secret can't be both an agent's key and the queen's: the same hash would be both, and the agents' key
+		// would speak as her. The existing key stays; the queen goes without until she has a secret of her own.
+		if (want && this.sql.exec("SELECT 1 FROM keys WHERE hash = ?", want).toArray().length) {
+			console.warn("CATIO_QUEEN is the same secret as another key: it is ignored. Give the queen a key of her own.");
+			return;
+		}
 		if (want) this.addKey(first.id, want, QUEEN_KEY, "queen");
 	}
 
@@ -167,7 +173,7 @@ export class Registry extends DurableObject {
 			this.sql.exec("INSERT INTO keys (hash, user, name, created, role) VALUES (?, ?, ?, ?, ?)", hash, user, keyName(name), Date.now(), role);
 			return true;
 		} catch (e) {
-			if (/keys\.user, keys\.name/.test(String(e && e.message))) return false;
+			if (/keys\.user, keys\.name|keys\.hash/.test(String(e && e.message))) return false;
 			throw e;
 		}
 	}
@@ -200,6 +206,10 @@ export class Registry extends DurableObject {
 	login(hash, user, until) {
 		this.sql.exec("DELETE FROM logins WHERE until <= ?", Date.now());
 		this.sql.exec("INSERT INTO logins (hash, user, until) VALUES (?, ?, ?)", hash, user, until);
+	}
+
+	logout(hash) {
+		this.sql.exec("DELETE FROM logins WHERE hash = ?", hash);
 	}
 
 	userOfLogin(hash) {

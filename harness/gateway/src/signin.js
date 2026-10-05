@@ -103,7 +103,8 @@ ${bootProblem() ? `<p class="bad">${esc(bootProblem())}</p>` : ""}`, 503);
 		}
 		if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "GET, POST" } });
 
-		const form = await request.formData();
+		const form = await request.formData().catch(() => null);
+		if (!form) return startAgain("That wasn't the sign-in form.");
 		const handle = String(form.get("handle") || "");
 		const shown = { client: String(form.get("client") || "Claude"), host: String(form.get("host") || "claude.ai") };
 		if (form.get("decision") !== "allow") {
