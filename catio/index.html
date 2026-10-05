@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>KittyChat Café</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -4291,7 +4292,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
 
   /* ---------- the brain: dropping files, and where they go ---------- */
   const isText = (f) => /^text\/|json|xml|csv|markdown|javascript|yaml|x-sh/.test(f.type) || /\.(md|txt|csv|json|ya?ml|html?|js|ts|py|sh|log|ics|vcf|eml)$/i.test(f.name);
-  const words = (t) => new Set(lower(t).normalize("NFD").replace(/[̀-ͯ]/g, "").split(/[^a-z0-9]+/).filter((w) => w.length > 3));
+  const words = (t) => new Set(lower(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/[^a-z0-9]+/).filter((w) => w.length > 3));
   const size = (n) => n < 1024 ? n + " B" : n < 1048576 ? Math.round(n / 1024) + " KB" : (n / 1048576).toFixed(1) + " MB";
   function sortable(scope) {
     const all = allCats().cats;
