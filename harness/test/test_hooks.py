@@ -543,11 +543,73 @@ class RightSized(unittest.TestCase):
             code, _, nudge = self.spawn({"prompt": prompt, "model": "opus"}, tmp=tmp)
             self.assertEqual((code, nudge), (0, ""), prompt)
 
-    def test_a_spawn_that_names_no_tier_is_told_what_it_will_inherit(self):
-        code, _, nudge = self.spawn({"prompt": "find every caller of route()", "subagent_type": "general-purpose"})
-        self.assertEqual(code, 0)
-        self.assertIn("names no model", nudge)
-        self.assertIn("haiku", nudge)
+    # Her word, 5 October: "Make sure this never happens again. Always run the delegation before assigning anything
+    # to anyone" (a workflow's agents had all inherited the session's Opus). Nothing is assigned without a tier.
+    def test_a_spawn_that_names_no_tier_is_refused_until_it_is_delegated(self):
+        code, err, _ = self.spawn({"prompt": "find every caller of route()", "subagent_type": "general-purpose"})
+        self.assertEqual(code, 2)
+        self.assertIn("delegate first", err)
+        self.assertIn("names no model", err)
+        self.assertIn("haiku", err)
+        self.assertEqual(self.spawn({"prompt": "find every caller of route()", "subagent_type": "general-purpose",
+                                     "model": "haiku"}, tmp=tempfile.mkdtemp())[0], 0)
+
+    def test_a_workflow_names_a_model_on_every_agent_call(self):
+        unnamed = "const a = await agent(`walk ${x}`, { label: 'w', phase: 'Walk' })\nlog('agent() is fine in a string')\n" \
+                  "const b = await agent('check', { model: 'sonnet' })\n// agent(in a comment)\nawait agent('z')\n"
+        code, err, _ = self.spawn({"script": unnamed}, tool="Workflow")
+        self.assertEqual(code, 2)
+        self.assertIn("lines 1, 5", err)
+        named = "await agent(`walk ${x}`, { model: 'sonnet', label: 'w' })\nawait agent('z', { model })\n"
+        self.assertEqual(self.spawn({"script": named}, tool="Workflow", tmp=tempfile.mkdtemp())[0], 0)
+        # a script on disk is read too
+        tmp = tempfile.mkdtemp()
+        Path(tmp, "wf.js").write_text(unnamed)
+        self.assertEqual(self.spawn({"scriptPath": "wf.js"}, tool="Workflow", tmp=tmp)[0], 2)
+
+    def test_a_new_session_names_its_model(self):
+        tool = "mcp__claude-code-remote__create_session"
+        code, err, _ = self.spawn({"prompt": "tidy the README"}, tool=tool)
+        self.assertEqual(code, 2)
+        self.assertIn("this new session names no model", err)
+        self.assertEqual(self.spawn({"prompt": "tidy the README", "model": "claude-sonnet-5-5"}, tool=tool,
+                                    tmp=tempfile.mkdtemp())[0], 0)
+
+    def test_held_work_that_names_no_tier_is_told_to_stay_strong(self):
+        tmp = tempfile.mkdtemp()
+        self.word(tmp, {"hold": ["harness/"]})
+        code, err, _ = self.spawn({"prompt": "add a line to harness/rules.json"}, tmp=tmp)
+        self.assertEqual(code, 2)
+        self.assertIn("stays on a strong tier", err)
+
+    def test_only_claude_code_remote_s_new_session_is_a_new_cat(self):
+        for tool in ("mcp__tmux__create_session", "mcp__jupyter__create_session"):
+            self.assertEqual(self.spawn({"session_name": "build"}, tool=tool, tmp=tempfile.mkdtemp())[0], 0, tool)
+
+    def test_an_agent_is_found_by_its_own_name_wherever_claude_code_keeps_it(self):
+        tmp = tempfile.mkdtemp()
+        Path(tmp, ".claude", "agents").mkdir(parents=True)
+        Path(tmp, ".claude", "agents", "my-reviewer.md").write_text("---\nname: reviewer\nmodel: sonnet\n---\nReview.\n")
+        self.assertEqual(self.spawn({"prompt": "review", "subagent_type": "reviewer"}, tmp=tmp)[0], 0)
+        home = tempfile.mkdtemp()
+        Path(home, ".claude", "agents").mkdir(parents=True)
+        Path(home, ".claude", "agents", "x.md").write_text("---\nname: mine\nmodel: haiku\n---\n")
+        sys.path.insert(0, str(HOOKS))
+        import right_sized
+        from unittest import mock
+        with mock.patch.object(right_sized.Path, "home", return_value=Path(home)):   # HOME on POSIX, USERPROFILE on Windows
+            self.assertEqual(right_sized.pinned("mine", tempfile.mkdtemp()), "haiku")
+
+    def test_a_repo_ladder_is_read_whatever_its_case_and_a_missing_tier_says_so(self):
+        tmp = tempfile.mkdtemp()
+        self.word(tmp, {"tiers": {"ladder": ["Haiku", "Sonnet"]}})
+        self.assertEqual(self.spawn({"prompt": "list docs", "model": "haiku"}, tmp=tmp)[0], 0)
+        code, err, _ = self.spawn({"prompt": "design the plan", "model": "opus"}, tmp=tmp)
+        self.assertEqual(code, 2)
+        self.assertIn("isn't one of the tiers here", err)
+
+    def test_a_fork_is_the_parent_and_needs_no_tier(self):
+        self.assertEqual(self.spawn({"prompt": "carry on with the plan", "subagent_type": "fork"})[0], 0)
 
     def test_an_agent_pinned_to_a_tier_is_already_right_sized(self):
         for agent in ("scout", "tester"):
@@ -555,11 +617,70 @@ class RightSized(unittest.TestCase):
                                         tmp=tempfile.mkdtemp())
             self.assertEqual((code, nudge), (0, ""), agent)
 
-    def test_a_small_session_is_not_nagged_and_a_repo_can_switch_it_off(self):
-        self.assertEqual(self.spawn({"prompt": "find route()"}, model="claude-haiku-4-5")[2], "")
+    def test_a_small_session_delegates_too_and_a_repo_can_switch_it_off(self):
+        # "Always": a Haiku session's unnamed spawn would inherit Haiku, whatever the work needs
+        self.assertEqual(self.spawn({"prompt": "find route()"}, model="claude-haiku-4-5")[0], 2)
         tmp = tempfile.mkdtemp()
         self.word(tmp, {"right_sized": False, "tiers": {"errand": "haiku"}})
         self.assertEqual(self.spawn({"prompt": "add bananas to my shopping list", "model": "opus"}, tmp=tmp)[0], 0)
+
+
+class WorkflowReader(unittest.TestCase):
+    """How right_sized reads a Workflow script: every agent() names a tier on the call, whatever the script's text
+    looks like around it (the review of 5 October found each of these)."""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, str(HOOKS))
+        import right_sized
+        cls.r = right_sized
+        cls.ladder = ["haiku", "sonnet", "opus", "fable"]
+
+    def lines(self, src, cwd=None):
+        return self.r.unnamed_agents(src, cwd or tempfile.mkdtemp(), self.ladder)
+
+    def test_regex_literals_are_not_strings_comments_or_templates(self):
+        self.assertEqual(self.lines("await agent(text.replace(/\\)/g, ''), { model: 'haiku' })"), [])
+        self.assertEqual(self.lines("const re = /`/\nconst p = `then call agent(foo) here`\n"), [])
+        self.assertEqual(self.lines("const q = s.replace(/'/g, ''); await agent('a', {label:'x'})"), [1])
+        self.assertEqual(self.lines("const g = /[/*]/\nawait agent('a')\nawait agent('b')\n// */"), [2, 3])
+        self.assertEqual(self.lines("s.replace(/https?:\\/\\//, ''); await agent(u)"), [1])
+        self.assertEqual(self.lines("const tick = /`/g\nawait agent('a')\nconst t = `b`"), [2])
+        self.assertEqual(self.lines("const half = total / 2; await agent('a', { model: 'sonnet' }) / 1"), [])
+
+    def test_an_agent_inside_a_template_is_read(self):
+        self.assertEqual(self.lines("const r = `Summary: ${await agent('summarise the diff')}`"), [1])
+        self.assertEqual(self.lines("const r = `S: ${await agent('x', { model: 'haiku' })}`"), [])
+
+    def test_only_this_call_s_own_model_counts_and_it_must_be_a_tier(self):
+        self.assertEqual(self.lines("await agent(await agent('x', {model: 'haiku'}), {label: 'outer'})"), [1])
+        for src in ("await agent(prompt, { label: model })", "await agent(pick(model), { label: 'x' })",
+                    "await agent('a', { model: undefined })", "await agent('a', { model: '' })",
+                    "await agent('a', { model: 'inherit' })", "await agent('x', {label: cfg.model})"):
+            self.assertEqual(self.lines(src), [1], src)
+        for src in ("await agent('a', { model: w.model })", "await agent('a', { model })",
+                    "await agent('a', { label: 'x', model: 'claude-sonnet-5-5' })"):
+            self.assertEqual(self.lines(src), [], src)
+
+    def test_an_agent_handed_on_uncalled_is_refused(self):
+        for src in ("await Promise.all(items.map(agent))", "const run = agent\nawait run('a')"):
+            self.assertTrue(self.lines(src), src)
+        self.assertEqual(self.lines("await agent?.('a', {label:'x'})"), [1])
+        self.assertEqual(self.lines("const o = { agent: 1 }; await agent('a', { model: 'haiku' })"), [])
+
+    def test_a_pinned_agent_type_names_its_tier(self):
+        self.assertEqual(self.lines("await agent('find callers', {agentType: 'scout'})"), [])
+        self.assertEqual(self.lines("await agent('find callers', {agentType: 'kittychat-house-rules:tester'})"), [])
+        self.assertEqual(self.lines("await agent('find callers', {agentType: 'general-purpose'})"), [1])
+
+    def test_a_child_workflow_is_read_too(self):
+        tmp = tempfile.mkdtemp()
+        Path(tmp, ".claude", "workflows").mkdir(parents=True)
+        Path(tmp, ".claude", "workflows", "sweep.js").write_text("await agent('a')\n")
+        Path(tmp, "named.js").write_text("await agent('a', { model: 'haiku' })\n")
+        self.assertEqual(self.lines("log('x')\nawait workflow('sweep')", tmp), [2])
+        self.assertEqual(self.lines("await workflow({scriptPath: 'named.js'})", tmp), [])
+        self.assertEqual(self.lines("await workflow('a-built-in')", tmp), [])   # can't be read: nothing to check
 
 
 class GraphDoc(unittest.TestCase):

@@ -215,6 +215,35 @@ class Hostile(unittest.TestCase):
             t.join()
         self.assertEqual(len(json.loads(Path(self.home, "state.json").read_text())["agents"]), 120)
 
+    def test_windows_busy_lock_and_state_are_waited_for_not_lost(self):
+        # Windows says PermissionError, not FileExistsError, when the lock just let go is still "delete pending", and
+        # refuses os.replace while anything has state.json open: either lost one agent in four servers' 120 (CI, 5 Oct).
+        sys.path.insert(0, str(SERVER.parent))
+        import catio_mcp
+        from unittest import mock
+        real_open, real_replace = os.open, os.replace
+        busy = {"open": 2, "replace": 2}
+
+        def flaky_open(path, *a, **k):
+            if str(path).endswith("state.lock") and busy["open"]:
+                busy["open"] -= 1
+                raise PermissionError(13, "delete pending")
+            return real_open(path, *a, **k)
+
+        def flaky_replace(src, dst):
+            if busy["replace"]:
+                busy["replace"] -= 1
+                raise PermissionError(13, "in use")
+            return real_replace(src, dst)
+
+        with mock.patch.object(catio_mcp, "HOME", Path(self.home)), mock.patch.object(catio_mcp.os, "open", flaky_open), \
+                mock.patch.object(catio_mcp.os, "replace", flaky_replace):
+            with catio_mcp.LOCK:
+                catio_mcp.store({"agents": {"a": {"id": "a"}}, "files": [], "notes": []})
+        self.assertEqual(busy, {"open": 0, "replace": 0})
+        self.assertIn("a", json.loads(Path(self.home, "state.json").read_text())["agents"])
+        self.assertFalse(Path(self.home, "state.lock").exists(), "the lock is let go")
+
     def test_a_lock_left_by_a_crash_is_taken_over(self):
         lock = Path(self.home, "state.lock")
         lock.touch()

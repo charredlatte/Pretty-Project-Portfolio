@@ -1,9 +1,16 @@
 # Delegating the easy work to smaller models
 
+**Status (5 October 2026, evening): delegate first.** Her word: "Make sure this never happens again. Always run the
+delegation before assigning anything to anyone." A workflow had sent 58 agents out on the session's Opus, because
+`right_sized` read only `Task` and `Agent` and only spoke about an unnamed spawn. It now refuses every assignment that
+names no model: a spawn, each `agent()` call in a `Workflow` script, and `create_session`. The block says how to choose
+(the table below, or the decider's `preset: easy`). A workflow's `agent()` defaults to the session's model, exactly as
+Explore does (step 0 below), so naming the model on each call is the only way to choose it.
+
 **Status (5 October 2026): phase A is built, and so is the rule that puts a ceiling on a spawn**
 (`right_sized` in `rules.json`, `harness/hooks/right_sized.py`, the `tiers` block: a sub agent spawn names its tier,
 an errand has a ceiling, and Charlotte's word for a repo, in its `.claude/catio-rules.json`, turns the harness's
-reading into a refusal. `harness/README.md`, "Spend what the task is worth"). That is phase C's first step arriving
+reading into a refusal. `harness/README.md`, "Delegate first: spend what the task is worth"). That is phase C's first step arriving
 before B: it needs no job queue, only the spawn the session was going to make anyway.
 
 **Status (3 October 2026, evening): phase A is built** (`harness/agents/scout.md` and `tester.md`, the soft rule
@@ -162,10 +169,11 @@ With B in place, delegation needs no asking. Small steps, each a few hours.
 0. **A ceiling on a spawn, and her word as the memory.** Built, 5 October, before B, since it rides the spawn a
    session was already making. The `right_sized` rule, `hooks/right_sized.py` and `rules.json`'s `tiers`. What it
    adds over the `delegate` nudge: `delegate` suggests a smaller cat for two named jobs (a whole-repo search, a test
-   run); this reads the tier of *every* spawn, says what an unnamed one will inherit, and enforces an errand's
-   ceiling where she has set one. What it does not do: pick a model with a decider. The rubric is run by `decide`
-   (phase D), which needs a server; the hook stays offline and fails open, so a reading never blocks and only her
-   own word does.
+   run); this reads the tier of *every* assignment, refuses one that names none (since 5 October, her "always run
+   the delegation"), and enforces an errand's ceiling where she has set one. What it does not do: pick the model
+   itself. The session picks, by the table above or the decider's `preset: easy` (phase D, which needs a server);
+   the hook stays offline, so it checks that a tier was named, and a reading of a task's size still never blocks:
+   only her own word for a repo's ceiling does.
 
 1. **Routines on a small model.** `routines/<id>.model`, a select in her Routines card (Fable off the list), and
    `--model` in the runner's turn. Most routines are easy by nature (a morning report, a test run): the cheapest
