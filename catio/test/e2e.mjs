@@ -2923,6 +2923,29 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     await page.click("#lookMode-light"); await settle(page);
     await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
   });
+  await check("the shared Figma file comes out the same in The look and in skin.py as in the gateway and catio_mcp.py", async () => {
+    // harness/test/fixtures: the one file all four read, and what each must find in it
+    const FIX = join(here, "..", "..", "harness", "test", "fixtures");
+    const want = JSON.parse(readFileSync(join(FIX, "tokens-figma.expected.json"), "utf8")), sorted = (o) => JSON.stringify(Object.fromEntries(Object.entries(o).sort()));
+    const kept = await page.evaluate(() => { const t = window.__catio.store["skin/theme"]; delete window.__catio.store["skin/theme"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; return t; });
+    await page.waitForTimeout(500);
+    try {
+      await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+      await page.locator("#tokensFile").setInputFiles(join(FIX, "tokens-figma.json"));
+      await page.waitForFunction(() => /tokens-figma/.test(document.getElementById("toast").textContent));
+      const said = await toast(page), t = await page.evaluate(() => window.__catio.store["skin/theme"].tokens);
+      expect(sorted(t) === sorted(want.found), JSON.stringify(t));
+      expect(new RegExp(Object.keys(want.found).length + " tokens from tokens-figma\\.json.*" + want.foreign + " not the café's.*" + want.refused + " the café's with a value it can't take").test(said), said);
+      const { execFileSync } = await import("node:child_process");
+      const py = JSON.parse(execFileSync("python3", ["-c", "import json, sys; sys.path.insert(0, sys.argv[1]); import skin; f, n, r = skin.from_dtcg(json.load(open(sys.argv[2])), skin.token_names()); print(json.dumps([f, n, r]))",
+        join(here, "..", "tools"), join(FIX, "tokens-figma.json")], { encoding: "utf8" }));
+      expect(sorted(py[0]) === sorted(want.found) && py[1] === want.foreign && py[2] === want.refused, JSON.stringify(py));
+    } finally {
+      await page.evaluate(() => { const d = document.getElementById("artDlg"); if (d && d.open) d.close(); });
+      await page.evaluate((t) => { if (t) window.__catio.put("skin/theme", t); else window.__catio.drop("skin/theme"); }, kept);
+      await page.waitForTimeout(500);
+    }
+  });
   await check("Import tokens… takes the café's own group over a namesake, and refuses a see-through colour or a size out of range rather than call it foreign", async () => {
     const kept = await page.evaluate(() => { const t = window.__catio.store["skin/theme"]; delete window.__catio.store["skin/theme"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; return t; });
     await page.waitForTimeout(500);

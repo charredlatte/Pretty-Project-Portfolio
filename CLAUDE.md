@@ -272,7 +272,8 @@ Format 2025.10). Figma keeps a variable's value per **mode** and moves a whole p
   one written by hand. A token is matched by its own name (`ink`, `go`, `px-size`…, or Figma's `Ink`, `Px size`) whatever group it sits in, an
   alias (`"{primitives.navy}"`) is followed, a colour may be the object or a hex string, and what isn't the café's is
   counted and left out. A name found twice takes the one in the café's own group (`colours.grass` over
-  `primitives.grass`); a see-through colour or a size out of its range is refused and counted apart. `skin.py` does the same for `*.tokens.json` dropped in `art/skin/` ("dark" in the name: the
+  `primitives.grass`); a see-through colour or a size out of its range is refused and counted apart. The harness's
+  `tokens` and `set_tokens` tools do both without her (below, "The gateway"). `skin.py` does the same for `*.tokens.json` dropped in `art/skin/` ("dark" in the name: the
   dark mode).
 
 Not taken from Figma, on purpose: a primitives layer under the semantic tokens (Figma's skill keeps one collection
@@ -483,6 +484,11 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
 - **Only Claude's connectors may register** (redirects to `claude.ai` or `claude.com`).
 - **Keep its tools in step with `catio_mcp.py`**: same names, arguments and results, so the page and agents
   use either.
+- **Her look as a design tokens file** (`tokens`, `set_tokens`, `src/tokens.js`; `harness/README.md`, "The café's
+  look as a design tokens file"): The look's Export and Import tokens as tools, for a session with the Figma
+  connector. Only she and the queen write it. The token table is read from the page the gateway bundles, never
+  copied; `harness/test/fixtures/tokens-figma.json` holds the page, `skin.py`, the gateway and `catio_mcp.py` to one
+  answer.
 - **The decider** (`src/decide.js`, the tool `decide`): a typed decision from a System One model, a state and named
   questions (`noul` yes/no, `choice`, `score`) answered with probabilities, no prose. Workers AI through the Worker's
   `AI` binding, Clef (`@cf/cloudflare/clef-flash`, free plan) by default or `DECIDE_MODEL` (`typesafe/jev` is Jev

@@ -534,6 +534,44 @@ describe("the queen", () => {
 		assert.deepEqual((await tool(her, "quizzes", { done: true })).quizzes.filter((z) => z.kind !== "unblock" && z.kind), []);
 	});
 
+	test("brings a design tokens file into her look and gives it back, for a session with the Figma connector", async () => {
+		const FIX = join(HERE, "../test/fixtures/");
+		const figma = JSON.parse(readFileSync(FIX + "tokens-figma.json", "utf8")), want = JSON.parse(readFileSync(FIX + "tokens-figma.expected.json", "utf8"));
+		const sorted = (o) => Object.fromEntries(Object.entries(o).sort());
+		const page = readFileSync(join(HERE, "../../catio/index.html"), "utf8");
+		const count = (page.slice(page.indexOf("const TOKENS = {"), page.indexOf("};", page.indexOf("const TOKENS = {"))).match(/"--[\w-]+": \[/g) || []).length;
+		const hexOf = (f, g, n) => f[g][n].$value.hex;
+		// anyone in the house may read it: every token of The look, in its groups, at the café's own values
+		const first = await tool(TOKEN, "tokens");
+		assert.equal(first.mode, "light");
+		assert.equal(Object.values(first.file).filter((g) => g && typeof g === "object").reduce((n, g) => n + Object.keys(g).filter((k) => !k.startsWith("$")).length, 0), count);
+		const ink = (/--ink:\s*(#[0-9A-Fa-f]{6})/.exec(page) || [])[1];
+		assert.equal(hexOf(first.file, "colours", "ink"), ink.toLowerCase());
+		// only she and the queen change her look: a leaked agents' key can't restyle the café
+		assert.match((await tool(TOKEN, "set_tokens", { file: figma })).refused, /only the owner or the queen/);
+		// her Figma file: what the page, skin.py and catio_mcp.py find in it, and kept as The look keeps it
+		const r = await tool(her, "set_tokens", { file: figma });
+		assert.deepEqual([r.mode, r.tokens, r.foreign, r.refused], ["light", Object.keys(want.found).length, want.foreign, want.refused]);
+		const theme = (await (await api("/api/db")).json()).docs["skin/theme"];
+		assert.deepEqual(sorted(theme.tokens), sorted(want.found));
+		assert.equal(hexOf((await tool(TOKEN, "tokens")).file, "colours", "ink"), "#1d3557");
+		// the queen sets the night: dark says only what differs, and light stays
+		assert.equal((await tool(QUEEN, "set_tokens", { mode: "dark", file: JSON.stringify({ colours: { ink: { $value: "#eeeeee" } } }) })).changed, 1);
+		assert.equal((await tool(QUEEN, "set_tokens", { mode: "dark", file: { colours: { grass: { $value: "#5A8F29" } } } })).changed, 0);   // as in light: not kept
+		assert.deepEqual((await (await api("/api/db")).json()).docs["skin/theme"].dark, { "--ink": "#eeeeee" });
+		assert.equal(hexOf((await tool(TOKEN, "tokens", { mode: "dark" })).file, "colours", "ink"), "#eeeeee");
+		assert.equal(hexOf((await tool(TOKEN, "tokens", { mode: "dark" })).file, "colours", "grass"), "#5a8f29");
+		// replace: the file is the whole of light
+		await tool(her, "set_tokens", { replace: true, file: { colours: { grass: { $value: "#5A8F29" } } } });
+		assert.deepEqual((await (await api("/api/db")).json()).docs["skin/theme"].tokens, { "--grass": "#5A8F29" });
+		assert.match((await tool(her, "set_tokens", { file: { brand: { red: { $value: "#ff0000" } } } })).refused, /none of the café's tokens \(1 of its own\)/);
+		assert.match((await tool(her, "set_tokens", { mode: "dusk", file: figma })).refused, /mode is light or dark/);
+		// back as it was: nothing of hers left in either mode, no theme kept
+		await tool(her, "set_tokens", { replace: true, file: { colours: { ink: { $value: ink } } } });
+		await tool(her, "set_tokens", { mode: "dark", replace: true, file: { colours: { ink: { $value: ink } } } });
+		assert.equal((await (await api("/api/db")).json()).docs["skin/theme"], undefined);
+	});
+
 	test("runs a routine once when it comes due", async () => {
 		const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Paris", hourCycle: "h23", hour: "numeric", minute: "numeric" })
 			.formatToParts(new Date()).map((p) => [p.type, p.value]));
@@ -588,7 +626,7 @@ describe("the gateway", () => {
 		assert.equal(init.result.serverInfo.name, "catio");
 		const { result } = await rpc(TOKEN, "tools/list", {});
 		assert.deepEqual(result.tools.map((t) => t.name),
-			["house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "decide", "answer"]);
+			["house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "decide", "tokens", "set_tokens", "answer"]);
 		const rules = await tool(TOKEN, "house_rules");
 		assert.ok(rules.rules.some((r) => r.id === "ship"));
 		assert.equal((await tool(TOKEN, "nope")).rpcError.code, -32602);
