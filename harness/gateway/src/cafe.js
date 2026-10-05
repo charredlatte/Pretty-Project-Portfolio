@@ -5,7 +5,7 @@
 // is shared, uploaded once with an admin's key. An open café keeps a WebSocket to its house and hears every change.
 import PAGE from "../../../catio/index.html";
 import RUNTIME from "../cafe/runtime.js";
-import { esc, page } from "./signin.js";
+import { clientIp, esc, page } from "./signin.js";
 import { randomToken, sha256 } from "./secret.js";
 import { bootProblem, hasAccount, registry } from "./registry.js";
 import { FIRST_HOUSE, fileKeys } from "./houses.js";
@@ -72,8 +72,9 @@ const NO_ACCOUNT = () => { const why = bootProblem(); return "The gateway has no
 async function login(request, env) {
 	if (!(await hasAccount(env))) return signInPage(NO_ACCOUNT(), 503);
 	const reg = await registry(env);
-	const form = await request.formData();
-	const user = await reg.checkPassword(String(form.get("user") || ""), String(form.get("password") || ""));
+	const form = await request.formData().catch(() => null);
+	if (!form) return signInPage("That wasn't the sign-in form.", 400);
+	const user = await reg.checkPassword(String(form.get("user") || ""), String(form.get("password") || ""), clientIp(request));
 	if (user && user.locked) return signInPage("Too many wrong passwords. Try again in a quarter of an hour.", 429);
 	if (!user) return signInPage("That handle and password aren't right.", 401);
 	const token = randomToken();
@@ -139,6 +140,12 @@ export async function cafe(request, env) {
 
 	if (path === "/runtime.js") return new Response(RUNTIME, { headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store" } });
 	if (path === "/login" && method === "POST") return login(request, env);
+	// sign out: this browser's cookie stops working now, not in a month
+	if (path === "/logout" && method === "POST") {
+		const token = cookieOf(request);
+		if (token) await (await registry(env)).logout(await sha256(token));
+		return new Response(null, { status: 303, headers: { Location: "/", "Set-Cookie": `${COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0` } });
+	}
 
 	const cafePaths = path === "/" || path === "/ws" || path.startsWith("/api/") || path.startsWith("/art/") || path.startsWith("/files/");
 	if (!cafePaths) return null;

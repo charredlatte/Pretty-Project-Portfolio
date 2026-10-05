@@ -17,6 +17,9 @@ export function fromClaude(uri) {
 	}
 }
 
+/** The address Cloudflare saw the request come from: the one thing a stranger can't choose. */
+export const clientIp = (request) => request.headers.get("CF-Connecting-IP") || "";
+
 export const esc = (v) => String(v).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 const HEADERS = {
@@ -103,7 +106,8 @@ ${bootProblem() ? `<p class="bad">${esc(bootProblem())}</p>` : ""}`, 503);
 		}
 		if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "GET, POST" } });
 
-		const form = await request.formData();
+		const form = await request.formData().catch(() => null);
+		if (!form) return startAgain("That wasn't the sign-in form.");
 		const handle = String(form.get("handle") || "");
 		const shown = { client: String(form.get("client") || "Claude"), host: String(form.get("host") || "claude.ai") };
 		if (form.get("decision") !== "allow") {
@@ -112,7 +116,7 @@ ${bootProblem() ? `<p class="bad">${esc(bootProblem())}</p>` : ""}`, 503);
 		}
 		const password = String(form.get("password") || "");
 		if (!password) return consent(shown, handle, "Type your password first.", 400);
-		const user = await (await registry(env)).checkPassword(String(form.get("user") || ""), password);
+		const user = await (await registry(env)).checkPassword(String(form.get("user") || ""), password, clientIp(request));
 		if (user && user.locked) return consent(shown, handle, "Too many wrong passwords. Try again in a quarter of an hour.", 429);
 		if (!user) return consent(shown, handle, "That handle and password aren't right.", 401);
 

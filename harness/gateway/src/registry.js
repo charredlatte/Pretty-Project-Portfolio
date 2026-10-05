@@ -8,7 +8,12 @@ import { DurableObject } from "cloudflare:workers";
 import { FIRST_HOUSE } from "./houses.js";
 import { MIN_SECRET, hashPassword, randomToken, sameHash, sha256 } from "./secret.js";
 
-const LOCK_AFTER = 5;   // wrong passwords before a user's sign-in waits
+// Wrong passwords inside LOCK_FOR make a sign-in wait. The wait is for the address that guessed, so a stranger who knows
+// a handle can't lock its owner out: LOCK_AFTER from one address at one handle, LOCK_IP from one address at any
+// handles, and, from anywhere at all, LOCK_USER at one handle.
+const LOCK_AFTER = 5;
+const LOCK_IP = 20;
+const LOCK_USER = 100;
 const LOCK_FOR = 15 * 60 * 1000;
 const HANDLE = /^[a-z0-9][a-z0-9-]{1,30}$/;
 const ROLES = ["agent", "queen"];
@@ -52,6 +57,8 @@ export class Registry extends DurableObject {
 			"CREATE TABLE IF NOT EXISTS logins (hash TEXT PRIMARY KEY, user TEXT NOT NULL, until INTEGER NOT NULL)",
 			"CREATE TABLE IF NOT EXISTS wrong (user TEXT NOT NULL, at INTEGER NOT NULL)",
 		]) this.sql.exec(q);
+		// where a wrong password came from, on registries made before sign-ins were counted by address
+		if (!this.sql.exec("PRAGMA table_info(wrong)").toArray().some((c) => c.name === "ip")) this.sql.exec("ALTER TABLE wrong ADD COLUMN ip TEXT NOT NULL DEFAULT ''");
 		// a key's role, on registries made before the queen had one
 		if (!this.sql.exec("PRAGMA table_info(keys)").toArray().some((c) => c.name === "role")) this.sql.exec("ALTER TABLE keys ADD COLUMN role TEXT NOT NULL DEFAULT 'agent'");
 		this.turns = new Map();   // a handle's password tries, in turn
@@ -87,6 +94,12 @@ export class Registry extends DurableObject {
 		const want = queen && queen.length >= MIN_SECRET ? await sha256(queen) : null;
 		if (have && have.hash === want) return;
 		if (have) this.sql.exec("DELETE FROM keys WHERE user = ? AND name = ?", first.id, QUEEN_KEY);
+		// one secret can't be both an agent's key and the queen's: the same hash would be both, and the agents' key
+		// would speak as her. The existing key stays; the queen goes without until she has a secret of her own.
+		if (want && this.sql.exec("SELECT 1 FROM keys WHERE hash = ?", want).toArray().length) {
+			console.warn("CATIO_QUEEN is the same secret as another key: it is ignored. Give the queen a key of her own.");
+			return;
+		}
 		if (want) this.addKey(first.id, want, QUEEN_KEY, "queen");
 	}
 
@@ -131,34 +144,38 @@ export class Registry extends DurableObject {
 	}
 
 	/**
-	 * The user, when the handle and password match; `{locked: true}` while that user's sign-in waits; else null.
+	 * The user, when the handle and password match; `{locked: true}` while that address's sign-in waits; else null.
 	 * One handle's tries run one after another (the hash yields, so without this a burst of guesses would all
 	 * pass the lock): five wrong at once lock like five in a row, and right ones in flight together don't.
 	 */
-	checkPassword(id, password) {
+	checkPassword(id, password, ip = "") {
 		id = String(id || "").trim().toLowerCase();
 		if (!HANDLE.test(id)) return null;   // can't be anyone's: no hash, no lock row
-		const turn = (this.turns.get(id) || Promise.resolve()).then(() => this.tryPassword(id, password));
-		this.turns.set(id, turn.catch(() => {}));
+		const turn = (this.turns.get(id) || Promise.resolve()).then(() => this.tryPassword(id, password, ip));
+		const tail = turn.catch(() => {});
+		this.turns.set(id, tail);
+		tail.then(() => { if (this.turns.get(id) === tail) this.turns.delete(id); });
 		return turn;
 	}
 
-	async tryPassword(id, password) {
-		if (this.locked(id)) return { locked: true };
+	async tryPassword(id, password, ip) {
+		if (this.locked(id, ip)) return { locked: true };
 		const row = this.sql.exec("SELECT hash, salt FROM users WHERE id = ?", id).toArray()[0];
 		// hashed either way, so an unknown handle takes as long as a wrong password
 		const hash = await hashPassword(String(password || ""), row ? row.salt : "no-such-user");
 		if (!row || !sameHash(hash, row.hash)) {
 			this.sql.exec("DELETE FROM wrong WHERE at <= ?", Date.now() - LOCK_FOR);
-			this.sql.exec("INSERT INTO wrong (user, at) VALUES (?, ?)", id, Date.now());
+			this.sql.exec("INSERT INTO wrong (user, ip, at) VALUES (?, ?, ?)", id, ip, Date.now());
 			return null;
 		}
 		this.sql.exec("DELETE FROM wrong WHERE user = ?", id);
 		return this.user(id);
 	}
 
-	locked(id) {
-		return this.sql.exec("SELECT COUNT(*) AS n FROM wrong WHERE user = ? AND at > ?", id, Date.now() - LOCK_FOR).one().n >= LOCK_AFTER;
+	locked(id, ip) {
+		const since = Date.now() - LOCK_FOR;
+		const wrong = (where, ...args) => this.sql.exec(`SELECT COUNT(*) AS n FROM wrong WHERE at > ? AND ${where}`, since, ...args).one().n;
+		return wrong("user = ? AND ip = ?", id, ip) >= LOCK_AFTER || wrong("ip = ?", ip) >= LOCK_IP || wrong("user = ?", id) >= LOCK_USER;
 	}
 
 	/** True when the key is kept; false when the user already has one by that name. Anything else is thrown. */
@@ -167,7 +184,7 @@ export class Registry extends DurableObject {
 			this.sql.exec("INSERT INTO keys (hash, user, name, created, role) VALUES (?, ?, ?, ?, ?)", hash, user, keyName(name), Date.now(), role);
 			return true;
 		} catch (e) {
-			if (/keys\.user, keys\.name/.test(String(e && e.message))) return false;
+			if (/keys\.user, keys\.name|keys\.hash/.test(String(e && e.message))) return false;
 			throw e;
 		}
 	}
@@ -200,6 +217,10 @@ export class Registry extends DurableObject {
 	login(hash, user, until) {
 		this.sql.exec("DELETE FROM logins WHERE until <= ?", Date.now());
 		this.sql.exec("INSERT INTO logins (hash, user, until) VALUES (?, ?, ?)", hash, user, until);
+	}
+
+	logout(hash) {
+		this.sql.exec("DELETE FROM logins WHERE hash = ?", hash);
 	}
 
 	userOfLogin(hash) {
