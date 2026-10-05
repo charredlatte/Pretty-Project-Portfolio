@@ -42,7 +42,11 @@ export async function hasAccount(env) {
 }
 
 /** Why there is no account yet, for the sign-in pages: what the bootstrap found wrong with the secrets. */
-export const bootProblem = () => problem || `Add CATIO_PASSWORD, ${MIN_SECRET} characters or more, in Cloudflare (${WHERE}): it becomes the first account's password.`;
+export const bootProblem = () => {
+	if (problem) return problem;
+	// Distinguish between not set and too short for clearer setup guidance
+	return `CATIO_PASSWORD isn't set for this Worker in Cloudflare (${WHERE}), or it's under ${MIN_SECRET} characters. Set a secret of ${MIN_SECRET} characters or more: it becomes the first account's password.`;
+};
 
 /**
  * The setup's warning lights, for the pages shown while there is no account: what this Worker sees of each secret,
