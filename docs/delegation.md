@@ -1,5 +1,12 @@
 # Delegating the easy work to smaller models
 
+**Status (5 October 2026, evening): delegate first.** Her word: "Make sure this never happens again. Always run the
+delegation before assigning anything to anyone." A workflow had sent 58 agents out on the session's Opus, because
+`right_sized` read only `Task` and `Agent` and only spoke about an unnamed spawn. It now refuses every assignment that
+names no model: a spawn, each `agent()` call in a `Workflow` script, and `create_session`. The block says how to choose
+(the table below, or the decider's `preset: easy`). A workflow's `agent()` defaults to the session's model, exactly as
+Explore does (step 0 below), so naming the model on each call is the only way to choose it.
+
 **Status (5 October 2026): phase A is built, and so is the rule that puts a ceiling on a spawn**
 (`right_sized` in `rules.json`, `harness/hooks/right_sized.py`, the `tiers` block: a sub agent spawn names its tier,
 an errand has a ceiling, and Charlotte's word for a repo, in its `.claude/catio-rules.json`, turns the harness's

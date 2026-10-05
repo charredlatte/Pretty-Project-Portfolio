@@ -543,11 +543,47 @@ class RightSized(unittest.TestCase):
             code, _, nudge = self.spawn({"prompt": prompt, "model": "opus"}, tmp=tmp)
             self.assertEqual((code, nudge), (0, ""), prompt)
 
-    def test_a_spawn_that_names_no_tier_is_told_what_it_will_inherit(self):
-        code, _, nudge = self.spawn({"prompt": "find every caller of route()", "subagent_type": "general-purpose"})
-        self.assertEqual(code, 0)
-        self.assertIn("names no model", nudge)
-        self.assertIn("haiku", nudge)
+    # Her word, 5 October: "Make sure this never happens again. Always run the delegation before assigning anything
+    # to anyone" (a workflow's agents had all inherited the session's Opus). Nothing is assigned without a tier.
+    def test_a_spawn_that_names_no_tier_is_refused_until_it_is_delegated(self):
+        code, err, _ = self.spawn({"prompt": "find every caller of route()", "subagent_type": "general-purpose"})
+        self.assertEqual(code, 2)
+        self.assertIn("delegate first", err)
+        self.assertIn("names no model", err)
+        self.assertIn("haiku", err)
+        self.assertEqual(self.spawn({"prompt": "find every caller of route()", "subagent_type": "general-purpose",
+                                     "model": "haiku"}, tmp=tempfile.mkdtemp())[0], 0)
+
+    def test_a_workflow_names_a_model_on_every_agent_call(self):
+        unnamed = "const a = await agent(`walk ${x}`, { label: 'w', phase: 'Walk' })\nlog('agent() is fine in a string')\n" \
+                  "const b = await agent('check', { model: 'sonnet' })\n// agent(in a comment)\nawait agent('z')\n"
+        code, err, _ = self.spawn({"script": unnamed}, tool="Workflow")
+        self.assertEqual(code, 2)
+        self.assertIn("lines 1, 5", err)
+        named = "await agent(`walk ${x}`, { model: 'sonnet', label: 'w' })\nawait agent('z', { model })\n"
+        self.assertEqual(self.spawn({"script": named}, tool="Workflow", tmp=tempfile.mkdtemp())[0], 0)
+        # a script on disk is read too
+        tmp = tempfile.mkdtemp()
+        Path(tmp, "wf.js").write_text(unnamed)
+        self.assertEqual(self.spawn({"scriptPath": "wf.js"}, tool="Workflow", tmp=tmp)[0], 2)
+
+    def test_a_new_session_names_its_model(self):
+        tool = "mcp__claude-code-remote__create_session"
+        code, err, _ = self.spawn({"prompt": "tidy the README"}, tool=tool)
+        self.assertEqual(code, 2)
+        self.assertIn("this new session names no model", err)
+        self.assertEqual(self.spawn({"prompt": "tidy the README", "model": "claude-sonnet-5-5"}, tool=tool,
+                                    tmp=tempfile.mkdtemp())[0], 0)
+
+    def test_held_work_that_names_no_tier_is_told_to_stay_strong(self):
+        tmp = tempfile.mkdtemp()
+        self.word(tmp, {"hold": ["harness/"]})
+        code, err, _ = self.spawn({"prompt": "add a line to harness/rules.json"}, tmp=tmp)
+        self.assertEqual(code, 2)
+        self.assertIn("stays on a strong tier", err)
+
+    def test_a_fork_is_the_parent_and_needs_no_tier(self):
+        self.assertEqual(self.spawn({"prompt": "carry on with the plan", "subagent_type": "fork"})[0], 0)
 
     def test_an_agent_pinned_to_a_tier_is_already_right_sized(self):
         for agent in ("scout", "tester"):
@@ -555,8 +591,9 @@ class RightSized(unittest.TestCase):
                                         tmp=tempfile.mkdtemp())
             self.assertEqual((code, nudge), (0, ""), agent)
 
-    def test_a_small_session_is_not_nagged_and_a_repo_can_switch_it_off(self):
-        self.assertEqual(self.spawn({"prompt": "find route()"}, model="claude-haiku-4-5")[2], "")
+    def test_a_small_session_delegates_too_and_a_repo_can_switch_it_off(self):
+        # "Always": a Haiku session's unnamed spawn would inherit Haiku, whatever the work needs
+        self.assertEqual(self.spawn({"prompt": "find route()"}, model="claude-haiku-4-5")[0], 2)
         tmp = tempfile.mkdtemp()
         self.word(tmp, {"right_sized": False, "tiers": {"errand": "haiku"}})
         self.assertEqual(self.spawn({"prompt": "add bananas to my shopping list", "model": "opus"}, tmp=tmp)[0], 0)
