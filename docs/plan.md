@@ -330,7 +330,7 @@ decisions quiz page is retired). The small facts (who made `plants.zip`) stay he
 15. **`plants.zip`'s source.** It reached her with no artist or licence; until it is credited, or its four plants
     are drawn from another pack, nobody else can run the full art build.
 16. **His audit fixes** (#115 describes them): his fork's PR 5 and the Antigravity bridge under it, brought here like
-    item 12 and merged with `main` once #114 is in, with the same fix for sign-up and invites. It touches `harness/`:
+    item 12 and merged with `main`, with the same fix for sign-up and invites. It touches `harness/`:
     hers to merge.
 
 ## Publishing
