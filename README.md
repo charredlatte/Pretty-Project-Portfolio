@@ -126,14 +126,15 @@ screenshots' worth of detail, are in [`harness/gateway/README.md`](harness/gatew
 1. On Cloudflare, Workers & Pages → Create → Import a repository → your fork of this repository. Name the Worker
    `catio-gateway`, set the root directory to `harness/gateway`, the branch to `main`, and deploy. Its address
    looks like `https://catio-gateway.<your name>.workers.dev`.
-2. On the Worker, Settings → Variables and Secrets, add three **secrets** and deploy again: `CATIO_TOKEN` (a long
-   random string: the key your cats check in with), `CATIO_PASSWORD` (your own sign-in, 16 characters or more) and
-   `CATIO_QUEEN` (another long random string: the driver's key). Keep all three in your password manager and
-   nowhere else.
-3. Your handle. The first account is named by a Worker **variable** (Settings → Variables and Secrets, type Text)
-   called `CATIO_HANDLE`: set it to the name you want to sign in with (2 to 31 lower-case letters, digits or
-   dashes) before the first sign-in, or the account is called `charlotte`. Deploy once more.
-4. On claude.ai, Customize → Connectors → Add → Custom → Web. Name it `CATIO`, URL `<the address>/mcp`, sign in
+2. On the Worker, Settings → Variables and Secrets, add your handle and three **secrets** in one go, then deploy
+   again. The handle is a plain variable (type Text) called `CATIO_HANDLE`: the name you will sign in with, 2 to
+   31 lower-case letters, digits or dashes. The secrets are `CATIO_TOKEN` (a long random string: the key your cats
+   check in with), `CATIO_PASSWORD` (your own sign-in, 16 characters or more) and `CATIO_QUEEN` (another long
+   random string: the driver's key). Keep the three secrets in your password manager and nowhere else. **Add the
+   handle with the password, not after:** the very first request that reaches the Worker with `CATIO_PASSWORD`
+   set makes the first account, even just opening its address in a browser, and names it `CATIO_HANDLE` or, if
+   that isn't there yet, `charlotte`, for good.
+3. On claude.ai, Customize → Connectors → Add → Custom → Web. Name it `CATIO`, URL `<the address>/mcp`, sign in
    with your handle and `CATIO_PASSWORD` (five wrong tries lock the handle for a quarter of an hour), then open
    the connector and set its tools to **Always allow**.
 
