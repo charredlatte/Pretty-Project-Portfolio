@@ -23,7 +23,7 @@ from pathlib import Path
 
 import right_sized
 import ship_gate
-from common import block, enforced, git, hook_input, merges, ran, rules
+from common import answered, block, enforced, git, hook_input, merges, ran, rules
 
 BROWSER_TOOL = re.compile(r"^mcp__.*(playwright|browser|chrome|puppeteer|computer)", re.I)
 BROWSER_CMD = r"playwright|chromium|google-chrome|headless|puppeteer|selenium|webdriver|catio/test/run\.sh"
@@ -125,21 +125,9 @@ READ_ONLY = {"scout", "tester"}
 
 
 def agent_models(data):
-    """The models a sub agent has answered with, from its own transcript; empty when it can't be read."""
-    found = set()
-    try:
-        with open(os.path.expanduser(data.get("agent_transcript_path") or ""), encoding="utf-8") as f:
-            for line in f:
-                if '"model"' in line:
-                    try:
-                        e = json.loads(line)
-                    except ValueError:
-                        continue
-                    if e.get("type") == "assistant":
-                        found.add((e.get("message") or {}).get("model"))
-    except OSError:
-        pass
-    return found - {None, "<synthetic>"}
+    """The models a sub agent has answered with, from its own transcript; empty when it can't be read. Its own
+    side counts here: that is the whole file."""
+    return set(answered(data, ("agent_transcript_path",), sidechain=True))
 
 
 def small_writer(data, path, cwd):

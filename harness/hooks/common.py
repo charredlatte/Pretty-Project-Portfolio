@@ -27,10 +27,12 @@ def local(cwd=None):
         return {}
 
 
-def once(session, kind, prefix="delegate", peek=False):
-    """True the first time this session is told something of this kind, so a nudge never nags. With peek, only
-    ask - the cheap check a hook makes before doing any work it would throw away."""
-    name = "catio-{}-{}-{}".format(prefix, re.sub(r"\W", "", str(session or "none")), kind)
+def once(session, kind, prefix, where=None, peek=False):
+    """True the first time this session is told something of this kind, here, so a nudge never nags. A cloud
+    session works in several repos at once, so where (the repo) is part of it. With peek, only ask - the cheap
+    check a hook makes before doing any work it would throw away."""
+    tag = re.sub(r"\W", "", str(session or "none")) + re.sub(r"\W", "", str(where or ""))[-24:]
+    name = "catio-{}-{}-{}".format(prefix, tag, kind)
     mark = Path(tempfile.gettempdir()) / name
     if mark.exists():
         return False
@@ -146,11 +148,20 @@ def skills_used(data):
     return {name for name, _ in skill_calls(data)}
 
 
+def answered(data, keys=("transcript_path", "agent_transcript_path"), sidechain=False):
+    """Every model that answered, in the order it answered, from these transcripts. One reader, so the one
+    question that matters - does a sub agent's own side of the conversation count - is answered in one place.
+    It counts when you are reading a sub agent's own transcript, and not when you are reading a session's."""
+    look = {k: data.get(k) for k in keys}
+    return [m for m in ((e.get("message") or {}).get("model") for e in entries(look, '"model"')
+                        if e.get("type") == "assistant" and (sidechain or not e.get("isSidechain")))
+            if m and m != "<synthetic>"]
+
+
 def models(data):
     """Every model that has answered in this session, read from its transcript(s). A subagent's own side of the
     conversation (a sidechain) doesn't count: it searched or read for the session, it didn't do the work."""
-    return {(e.get("message") or {}).get("model") for e in entries(data, '"model"')
-            if e.get("type") == "assistant" and not e.get("isSidechain")} - {None, "<synthetic>"}
+    return set(answered(data))
 
 
 def ran(data, skill):

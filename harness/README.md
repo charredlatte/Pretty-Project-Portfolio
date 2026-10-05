@@ -59,9 +59,14 @@ work a Haiku would have done. `rules.json`'s `tiers` block holds the ladder:
 With that set, a spawn that would run above `sonnet` is refused. The hook resolves the tier the way Claude Code
 does — `CLAUDE_CODE_SUBAGENT_MODEL_FORCE`, then the call's `model`, then the agent file's, then
 `CLAUDE_CODE_SUBAGENT_MODEL`, then the model the session is on — so leaving `model` off the call does not slip past
-it, and a session switched down with `/model` is read at the model it is on now. That path reads no prompts at all:
-it compares two facts, which is the only ground firm enough to refuse on. If it cannot work the cap out — a ceiling
-that is not a tier, a ladder that is not a list, a transcript it cannot read — it says so rather than going quiet.
+it, and a session switched down with `/model` is read at the model it is on now. Inside a sub agent the cap holds
+too, read from that sub agent's own transcript. That path reads no prompts at all: it compares two facts, which is
+the only ground firm enough to refuse on.
+
+A cap that cannot be worked out is never waved through. If the tier itself cannot be read, the spawn is refused and
+asked to name one, which always works. If her settings cannot be acted on — a ceiling that is not a tier, a ladder
+that is not a list, `tiers` written as a string, a misspelt key, a `ceiling` outside the block — the rule says her
+cap is doing nothing rather than going quiet about it.
 
 **Otherwise it only speaks.** A spawn that names no tier anywhere gets one line a session saying which model it is
 about to inherit and asking for the tier on the call. That is where the quiet spending is: Claude Code's own
