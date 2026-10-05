@@ -194,6 +194,10 @@ export async function cafe(request, env) {
 		return refuse(404, "not_found", "The runner waits and says; nothing else is here.");
 	}
 
+	// invites: an admin makes a one-time link at /invite, and whoever has it makes an account with it (below)
+	if (path === "/invite") return makeInvite(request, env);
+	if (path.startsWith("/invite/")) return claimInvite(request, env, path.slice("/invite/".length));
+
 	if (path === "/runtime.js") return new Response(RUNTIME, { headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store" } });
 	if (path === "/login" && method === "POST") return login(request, env);
 	if (path === "/signup" && method === "GET") return signUpPage(url.searchParams.get("invite") || "");
@@ -224,6 +228,8 @@ export async function cafe(request, env) {
 		return houseOf(env, user).fetch(request);
 	}
 	if (path.startsWith("/art/") && method === "GET") {
+		// the packs' licences are personal: their art is the admin's alone, and another café draws plain panels
+		if (path.startsWith("/art/licensed/") && !user.admin) return new Response("Not found\n", { status: 404 });
 		// the packs' licences are personal: their art is hers, never her guests'
 		if (path.startsWith("/art/licensed/") && user.house !== FIRST_HOUSE) return new Response("Not found\n", { status: 404 });
 		const { value, metadata } = await env.FILES.getWithMetadata("art:" + path.slice(1), "arrayBuffer");
@@ -322,6 +328,78 @@ export async function cafe(request, env) {
 		return json(r.ok);
 	}
 	return refuse(404, "not_found", "Not here.");
+}
+
+// An invite link: made by an admin signed in to their café, used once within a week. Whoever has it, or their AI,
+// reads what to do at the link and posts a handle and a password to it: an account with its own house, and its first
+// agents' key, shown once. The link is the only thing to send; the admin never sees the password or the key.
+async function makeInvite(request, env) {
+	const user = await signedIn(request, env);
+	if (!user) return signInPage("Sign in, then open /invite again.", 401);
+	if (!user.admin) return page("Invites", "<h1>Invites</h1><p>Only an admin makes invites.</p>", 403);
+	if (request.method !== "POST") return page("Invite someone", `<h1>Invite someone</h1>
+<p>A link that makes one account, with its own house, and gives its first key. It works once, for a week.</p>
+<form method="post" action="/invite"><div class="row"><button class="go">Make an invite link</button></div></form>`);
+	if (request.headers.get("Origin") !== new URL(request.url).origin) return refuse(403, "forbidden", "Only the café makes invites.");
+	const { token, until } = await (await registry(env)).mintInvite(user.id);
+	const link = new URL("/invite/" + token, request.url).href;
+	return page("Invite someone", `<h1>Your invite link</h1>
+<p>Send it to the one person it is for. Whoever opens it first can make an account, so not in a public place.</p>
+<label for="link">The link</label>
+<input id="link" value="${esc(link)}" readonly>
+<p class="soft">It works once, until ${esc(new Date(until).toUTCString())}. Opened by them or their AI, it says what to do.</p>`);
+}
+
+const TEXT_HEADERS = { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "X-Robots-Tag": "noindex" };
+
+async function claimInvite(request, env, token) {
+	if (!/^[0-9a-f]{64}$/.test(token)) return new Response("Not found\n", { status: 404 });
+	const reg = await registry(env), origin = new URL(request.url).origin;
+	if (request.method === "POST") {
+		const { handle, password, name } = await bodyOf(request);
+		const r = await reg.claimInvite(token, handle, password, name);
+		if (r.gone) return refuse(410, "gone", r.error);
+		if (r.error) return refuse(400, "bad_request", r.error);
+		return json({ handle: r.id, key: r.key, url: origin, mcp: origin + "/mcp",
+			next: "Keep the key secret: it is shown once. Set CATIO_URL and CATIO_TOKEN, and add the MCP server, as the invite says." }, 201);
+	}
+	if (request.method !== "GET") return refuse(405, "method_not_allowed", "GET reads the invite; POST uses it.");
+	const row = await reg.invite(await sha256(token));
+	if (!row) return new Response("This KittyChat Café invite is used or out of date. Ask whoever sent it for a new one.\n", { status: 410, headers: TEXT_HEADERS });
+	const link = origin + "/invite/" + token;
+	return new Response(`# An invite to the KittyChat Café
+
+${row.by} invites you to the KittyChat Café: a café where every AI session is a cat, at ${origin}.
+This link makes one account, with its own house, and mints its first key. It works once, until
+${new Date(row.until).toUTCString()}. Your cats and your café are your own: ${row.by} doesn't see them.
+
+## For an AI reading this on someone's behalf
+
+1. Ask the person for a handle (2 to 31 lower-case letters, digits or dashes) and a password of 16 characters or
+   more, which they keep in their password manager: it signs them in to their café at ${origin}. Don't choose the
+   password for them, and don't write it anywhere else.
+2. Use the invite, once:
+
+   curl -sS -X POST ${link} \\
+     -H 'Content-Type: application/json' \\
+     -d '{"handle": "<handle>", "password": "<password>", "name": "first"}'
+
+   The answer is JSON: {"handle", "key", "url", "mcp"}. The key is shown this once, and is never kept in clear:
+   treat it as a password. A 400 says what to fix (a handle taken, a password too short) and the link still works;
+   a 410 means it is used or out of date.
+3. Put the key where their agents run, never in a repository or a chat:
+   - Claude Code, as an MCP server:
+     claude mcp add --transport http catio ${origin}/mcp --header "Authorization: Bearer <key>"
+   - Any other MCP client: ${origin}/mcp, with the header Authorization: Bearer <key>.
+   - Claude Code's hooks read CATIO_URL=${origin} and CATIO_TOKEN=<key> from the environment
+     (~/.claude/settings.json under "env", or a cloud environment's variables, with ${new URL(origin).host} allowed
+     under its network access).
+4. Through the MCP server, an agent calls house_rules, then report_status when it starts, needs them or finishes,
+   and checks inbox. Each one shows as a cat in their café.
+
+More keys (one per computer or environment) are minted from their café once signed in: POST /api/keys {"name"}.
+In claude.ai, the café is also a custom connector: ${origin}/mcp, signed in with the handle and password.
+`, { headers: TEXT_HEADERS });
 }
 
 /** What an agents' key may do here, or null when the path isn't one of these. `by` is the key's user. */

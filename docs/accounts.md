@@ -74,6 +74,9 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
   (`PUT /api/users/<id>`: browsers out, OAuth grants revoked, keys killed, the lock cleared). Never by a key: a
   key is in every session's environment, and a leaked one must not be able to become anyone's owner. A
   signed-in café mints, lists and drops keys (`/api/keys`, names unique per user). The handle `house` is kept.
+  Self sign-up, and a button for keys in the page, are phase 2. Built of phase 2 on 5 October: the invite link
+  (`/invite`, one use, a week, `gateway/README.md` *Accounts*), so someone's AI can make their account and key
+  without the admin choosing their password; no `INVITE_CODE` secret, no form.
   Self sign-up is built (below); a button for keys in the page is still phase 2.
 - One handle's password tries run in turn, so five guesses in parallel lock like five in a row, and right
   sign-ins in flight together lock nobody. Known limit: all of them run in the one registry object; against a
