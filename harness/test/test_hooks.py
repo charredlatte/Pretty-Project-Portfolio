@@ -478,6 +478,90 @@ class GraphFirst(unittest.TestCase):
             self.assertEqual(self.nudge(tempfile.mkdtemp(), tool, args, model, agent), "", (tool, args, model, agent))
 
 
+class RightSized(unittest.TestCase):
+    """Spend what the task is worth: a spawn names its tier, and an errand has a ceiling."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+
+    def spawn(self, args, model="claude-opus-5-5", tmp=None, tool="Agent"):
+        """A sub agent spawn, as Claude Code asks the gate about it. Returns (exit code, stderr, nudge)."""
+        tmp = tmp or self.tmp
+        t = Path(tmp, "t.jsonl")
+        t.write_text(json.dumps({"type": "assistant", "message": {"model": model, "content": []}}) + "\n")
+        r = run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": tool, "tool_input": args, "cwd": tmp,
+                             "session_id": "s-" + Path(tmp).name,   # one session per repo folder, so "once" means once
+                             "transcript_path": str(t)}, cwd=tmp)
+        nudge = ""
+        if r.stdout.strip():
+            nudge = json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
+        return r.returncode, r.stderr, nudge
+
+    def word(self, tmp, tiers):
+        Path(tmp, ".claude").mkdir(exist_ok=True)
+        Path(tmp, ".claude", "catio-rules.json").write_text(json.dumps(tiers))
+
+    def test_an_errand_on_opus_is_spoken_about_once(self):
+        code, _, nudge = self.spawn({"prompt": "add bananas to my shopping list", "model": "opus"})
+        self.assertEqual(code, 0)                      # a reading only suggests
+        self.assertIn("Sonnet", nudge)
+        self.assertIn("errand", nudge)
+        # and only once a session, so it never nags
+        self.assertEqual(self.spawn({"prompt": "add apples to the shopping list", "model": "opus"})[2], "")
+
+    def test_her_word_for_a_repo_refuses_it(self):
+        self.word(self.tmp, {"tiers": {"errand": "haiku"}})
+        code, err, _ = self.spawn({"prompt": "add bananas to my shopping list", "model": "sonnet"})
+        self.assertEqual(code, 2)
+        self.assertIn("haiku", err)
+        self.assertEqual(self.spawn({"prompt": "add bananas to my shopping list", "model": "haiku"})[0], 0)
+
+    def test_the_tool_is_gated_under_either_name(self):
+        for tool in ("Agent", "Task"):
+            self.word(self.tmp, {"tiers": {"errand": "haiku"}})
+            self.assertEqual(self.spawn({"prompt": "list the files in docs", "model": "opus"}, tool=tool,
+                                        tmp=tempfile.mkdtemp())[0], 0, tool)   # no word in a fresh repo: a reading
+        tmp = tempfile.mkdtemp()
+        self.word(tmp, {"tiers": {"errand": "haiku"}})
+        for tool in ("Agent", "Task"):
+            self.assertEqual(self.spawn({"prompt": "add bananas to the shopping list", "model": "opus"},
+                                        tool=tool, tmp=tmp)[0], 2, tool)
+
+    def test_real_work_is_left_alone(self):
+        for prompt in ("refactor the camera so the minimap and the stage share one transform",
+                       "review this diff for correctness bugs",
+                       "investigate why the gateway drops reports and propose a fix"):
+            self.word(self.tmp, {"tiers": {"errand": "haiku"}})
+            code, _, nudge = self.spawn({"prompt": prompt, "model": "opus"}, tmp=tempfile.mkdtemp())
+            self.assertEqual((code, nudge), (0, ""), prompt)
+
+    def test_nothing_held_private_or_browser_is_sent_down(self):
+        tmp = tempfile.mkdtemp()
+        self.word(tmp, {"tiers": {"errand": "haiku"}, "hold": ["harness/"]})
+        for prompt in ("add a line to harness/rules.json", "add the solicitor's letter to the legal folder",
+                       "check the shopping list in the browser"):
+            code, _, nudge = self.spawn({"prompt": prompt, "model": "opus"}, tmp=tmp)
+            self.assertEqual((code, nudge), (0, ""), prompt)
+
+    def test_a_spawn_that_names_no_tier_is_told_what_it_will_inherit(self):
+        code, _, nudge = self.spawn({"prompt": "find every caller of route()", "subagent_type": "general-purpose"})
+        self.assertEqual(code, 0)
+        self.assertIn("names no model", nudge)
+        self.assertIn("haiku", nudge)
+
+    def test_an_agent_pinned_to_a_tier_is_already_right_sized(self):
+        for agent in ("scout", "tester"):
+            code, _, nudge = self.spawn({"prompt": "find every caller of route()", "subagent_type": agent},
+                                        tmp=tempfile.mkdtemp())
+            self.assertEqual((code, nudge), (0, ""), agent)
+
+    def test_a_small_session_is_not_nagged_and_a_repo_can_switch_it_off(self):
+        self.assertEqual(self.spawn({"prompt": "find route()"}, model="claude-haiku-4-5")[2], "")
+        tmp = tempfile.mkdtemp()
+        self.word(tmp, {"right_sized": False, "tiers": {"errand": "haiku"}})
+        self.assertEqual(self.spawn({"prompt": "add bananas to my shopping list", "model": "opus"}, tmp=tmp)[0], 0)
+
+
 class GraphDoc(unittest.TestCase):
     def test_digests_a_graph_for_the_catio(self):
         out = Path(tempfile.mkdtemp(), "graphify-out"); out.mkdir()
