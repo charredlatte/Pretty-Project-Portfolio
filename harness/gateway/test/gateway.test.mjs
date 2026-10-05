@@ -368,48 +368,6 @@ describe("accounts", () => {
 		assert.equal((await login("tester", TESTER_NOW)).status, 303);
 	});
 
-	test("lets an admin invite someone with a one-time link their AI can use for an account and its key", async () => {
-		const make = (cookie, origin = base) => fetch(base + "/invite", { method: "POST", headers: { Cookie: cookie, Origin: origin }, redirect: "manual" });
-		assert.equal((await fetch(base + "/invite")).status, 401, "signed out: the sign-in");
-		const { cookie: tester } = await login("tester", TESTER_NOW);   // the reset above signed their browsers out
-		assert.equal((await make(tester)).status, 403, "tester is no admin");
-		assert.equal((await make(herCookie, "https://elsewhere.example")).status, 403, "only from the café's own address");
-		assert.match(await (await fetch(base + "/invite", { headers: { Cookie: herCookie } })).text(), /Make an invite link/);
-		const made = await make(herCookie);
-		assert.equal(made.status, 200);
-		const link = /value="([^"]+)"/.exec(await made.text())[1];
-		assert.ok(link.startsWith(base + "/invite/"), link);
-
-		const read = await fetch(link);
-		assert.equal(read.status, 200);
-		assert.match(read.headers.get("content-type"), /^text\/plain/);
-		const how = await read.text();
-		assert.ok(how.includes("charlotte invites you") && how.includes(link) && how.includes(base + "/mcp"), how);
-		assert.equal((await fetch(base + "/invite/" + "0".repeat(64))).status, 410, "a made-up invite is no invite");
-		assert.equal((await fetch(base + "/invite/nope")).status, 404);
-
-		const use = (body) => fetch(link, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-		const PARTNER = "partner-password-" + randomBytes(6).toString("hex");
-		assert.equal((await use({ handle: "tester", password: PARTNER })).status, 400, "a taken handle leaves the invite as it was");
-		assert.equal((await use({ handle: "partner", password: "short" })).status, 400);
-		const [one, two] = await Promise.all([use({ handle: "partner", password: PARTNER }), use({ handle: "partner-two", password: PARTNER })]);
-		assert.deepEqual([one.status, two.status].sort(), [201, 410], "used once, even twice at once");
-		const won = one.status === 201 ? one : two;
-		const { handle, key: theirKey, url, mcp } = await won.json();
-		assert.deepEqual([url, mcp], [base, base + "/mcp"]);
-		assert.match(theirKey, /^[0-9a-f]{64}$/);
-		assert.equal((await fetch(link)).status, 410, "and then it is gone");
-		assert.equal((await use({ handle: "third", password: PARTNER })).status, 410);
-
-		// their key reports into their own house, and their café has no pack art
-		assert.equal((await tool(theirKey, "report_status", { agent: "partner-cat", mood: "busy" })).ok, true);
-		assert.deepEqual((await tool(theirKey, "list_agents")).agents.map((a) => a.id), ["partner-cat"]);
-		assert.ok(!(await tool(TOKEN, "list_agents")).agents.some((a) => a.id === "partner-cat"));
-		const { cookie: partner } = await login(handle, PARTNER);
-		assert.ok(partner);
-		assert.equal((await as(partner, "/art/licensed/pochi.png")).status, 404, "the packs' licences are personal");
-		assert.equal((await as(herCookie, "/art/licensed/pochi.png")).status, 200);
-		assert.equal((await make(partner)).status, 403, "an invited account is no admin");
 	test("lets an admin invite someone, who makes their own account with it, once", async () => {
 		const SIGNUP = "guest-password-" + randomBytes(6).toString("hex");
 		const invite = (cookie, what = "make", headers = {}) => fetch(base + "/invite", { method: "POST", headers: { Cookie: cookie, ...headers }, body: new URLSearchParams({ do: what }), redirect: "manual" });
@@ -450,6 +408,33 @@ describe("accounts", () => {
 		const spare = await codeOf(await invite(herCookie));
 		assert.match(await (await invite(herCookie, "drop")).text(), /1 invite taken back/);
 		assert.equal((await signUp({ invite: spare, user: "late", password: SIGNUP })).status, 400);
+	});
+
+	test("lets someone's AI use the invite for them, and gives it the account's first key, once", async () => {
+		const PARTNER = "partner-password-" + randomBytes(6).toString("hex");
+		const made = await fetch(base + "/invite", { method: "POST", headers: { Cookie: herCookie }, body: new URLSearchParams({ do: "make" }) });
+		const code = /\/signup\?invite=([0-9a-f]{64})"/.exec(await made.text())[1];
+		const page = await (await fetch(base + "/signup?invite=" + code)).text();
+		assert.ok(page.includes("as their AI?") && page.includes(`"invite": "${code}"`) && page.includes(base + "/mcp"), "the link says what an AI does");
+		assert.ok(!(await (await fetch(base + "/signup")).text()).includes("as their AI?"), "not without an invite");
+
+		const use = (body, headers = {}) => fetch(base + "/signup", { method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body) });
+		const short = await use({ invite: code, handle: "partner", password: "short" });
+		assert.equal(short.status, 400);
+		assert.equal((await short.json()).code, "bad_request", "an AI gets JSON back");
+		assert.equal((await use({ invite: code, handle: "partner", password: PARTNER }, { Origin: "https://elsewhere.example" })).status, 403, "never from another site");
+		const r = await use({ invite: code, handle: "Partner", password: PARTNER });
+		assert.equal(r.status, 201, "a refused try left the invite as it was");
+		const { handle, key: theirKey, mcp } = await r.json();
+		assert.deepEqual([handle, mcp], ["partner", base + "/mcp"]);
+		assert.match(theirKey, /^[0-9a-f]{64}$/);
+		assert.equal((await use({ invite: code, handle: "partner-two", password: PARTNER })).status, 400, "an invite works once");
+
+		// the key reports into their own house, and the password signs them in to their café
+		assert.equal((await tool(theirKey, "report_status", { agent: "partner-cat", mood: "busy" })).ok, true);
+		assert.deepEqual((await tool(theirKey, "list_agents")).agents.map((a) => a.id), ["partner-cat"]);
+		assert.ok(!(await tool(TOKEN, "list_agents")).agents.some((a) => a.id === "partner-cat"));
+		assert.equal((await login("partner", PARTNER)).status, 303);
 	});
 });
 
