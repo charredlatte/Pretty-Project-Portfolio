@@ -17,6 +17,24 @@ export function fromClaude(uri) {
 	}
 }
 
+const MAX_FORM = 16 * 1024;   // a sign-in form is a few hundred bytes
+
+/** The sign-in form, or null when it isn't one or is bigger than anyone types. Read in pieces and kept only up to the
+ * cap, so a body of any size (with or without a Content-Length) is never held whole, and is still read to its end:
+ * answering before the upload is done makes the connection fail instead of ending in this refusal. */
+export async function formOf(request) {
+	const chunks = [];
+	let size = 0;
+	if (request.body) {
+		for await (const chunk of request.body) {
+			size += chunk.byteLength;
+			if (size <= MAX_FORM) chunks.push(chunk);
+		}
+	}
+	if (size > MAX_FORM) return null;
+	return new Response(new Blob(chunks), { headers: { "Content-Type": request.headers.get("Content-Type") || "" } }).formData().catch(() => null);
+}
+
 /** The address Cloudflare saw the request come from: the one thing a stranger can't choose. */
 export const clientIp = (request) => request.headers.get("CF-Connecting-IP") || "";
 
@@ -106,7 +124,7 @@ ${bootProblem() ? `<p class="bad">${esc(bootProblem())}</p>` : ""}`, 503);
 		}
 		if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "GET, POST" } });
 
-		const form = await request.formData().catch(() => null);
+		const form = await formOf(request);
 		if (!form) return startAgain("That wasn't the sign-in form.");
 		const handle = String(form.get("handle") || "");
 		const shown = { client: String(form.get("client") || "Claude"), host: String(form.get("host") || "claude.ai") };

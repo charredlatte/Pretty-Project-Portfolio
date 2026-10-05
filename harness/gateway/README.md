@@ -134,7 +134,8 @@ café instead, `POST /api/keys {"name": "pc", "role": "queen"}` (shown once; no 
 queen runner acts in that account's house:
 
 - `POST /api/runner/wait` is held up to 25 seconds and comes back with what Charlotte said to her (the cat
-  `queen`'s notes, each handed out once), a routine come due, a stop, and her character (`queens/house`: name,
+  `queen`'s notes, offered until the runner's next wait acknowledges them with `{ack: <the newest note's at>}`; a
+  runner that sends no `ack` is handed each note once), a routine come due, a stop, and her character (`queens/house`: name,
   manner, greeting).
 - `POST /api/runner/say` `{turn, text, done, routine, steps}` streams her answer: every open café gets a `queen` push
   as she speaks, and `done` stores it as her note (author `queen`, with the routine that asked it). The runner says

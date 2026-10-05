@@ -84,14 +84,14 @@ class Runner:
 
     # ---- waiting on the gateway, on a thread of its own, so a Stop reaches the turn in progress ----
     def watch(self):
-        pause = 5
+        pause, acked = 5, 0   # acked: the newest note she has been given; the gateway offers a note again until the next wait says so
         while True:
             try:
-                got = self.gw.post("/api/runner/wait", {}, WAIT_TIMEOUT)
+                got = self.gw.post("/api/runner/wait", {"ack": acked}, WAIT_TIMEOUT)
                 pause = 5
             except urllib.error.HTTPError as e:
                 detail = e.read().decode(errors="replace")[:200]
-                if e.code in (401, 503):
+                if e.code == 401:
                     log("the gateway refused the queen's key:", detail)
                     os._exit(2)
                 log("the gateway answered", e.code, detail)
@@ -109,6 +109,7 @@ class Runner:
                 self.interrupt()
             for note in got.get("notes") or []:
                 self.jobs.put(("note", note))
+                acked = max(acked, note.get("at") or 0)
             if got.get("routine"):
                 self.jobs.put(("routine", got["routine"]))
 

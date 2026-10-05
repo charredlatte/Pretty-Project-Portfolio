@@ -40,7 +40,7 @@ KINDS = {"string": str, "boolean": bool, "integer": int, "number": (int, float),
 class StateLock:
     """One writer at a time to state.json, across threads and across processes (the stdio servers, --serve). The lock is
     the exclusive creation of state.lock; one a crash left behind is taken over after STALE seconds."""
-    STALE, WAIT = 30, 10
+    STALE, WAIT = 10, 15   # a waiter outlasts STALE, so it always gets to take over a lock a crash left behind
 
     def __enter__(self):
         HOME.mkdir(parents=True, exist_ok=True)

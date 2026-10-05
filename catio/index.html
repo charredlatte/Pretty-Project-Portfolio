@@ -5397,7 +5397,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     else if (local) {
       S.live = { state: "local", message: "Running on this computer." }; pick(); render();
       // served by harness/mcp/catio_mcp.py --serve: the other agents come through /api
-      fetch("api/list_agents", { cache: "no-store" }).then((r) => r.ok ? r.json() : null).then((j) => { if (j && Array.isArray(j.agents)) { S.host = "api"; refreshAgents(); setInterval(refreshAgents, 60000); } }).catch(() => {});
+      fetch("api/list_agents", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}", cache: "no-store" }).then((r) => r.ok ? r.json() : null).then((j) => { if (j && Array.isArray(j.agents)) { S.host = "api"; refreshAgents(); setInterval(refreshAgents, 60000); } }).catch(() => {});
     }
     else { S.live = { state: "error", message: "Live sessions can't load in this view. Open the page in claude.ai to see them." }; pick(); render(); }
   });

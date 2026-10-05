@@ -5,7 +5,7 @@
 // is shared, uploaded once with an admin's key. An open café keeps a WebSocket to its house and hears every change.
 import PAGE from "../../../catio/index.html";
 import RUNTIME from "../cafe/runtime.js";
-import { clientIp, esc, page } from "./signin.js";
+import { clientIp, esc, formOf, page } from "./signin.js";
 import { randomToken, sha256 } from "./secret.js";
 import { bootProblem, hasAccount, registry } from "./registry.js";
 import { FIRST_HOUSE, fileKeys } from "./houses.js";
@@ -72,7 +72,7 @@ const NO_ACCOUNT = () => { const why = bootProblem(); return "The gateway has no
 async function login(request, env) {
 	if (!(await hasAccount(env))) return signInPage(NO_ACCOUNT(), 503);
 	const reg = await registry(env);
-	const form = await request.formData().catch(() => null);
+	const form = await formOf(request);
 	if (!form) return signInPage("That wasn't the sign-in form.", 400);
 	const user = await reg.checkPassword(String(form.get("user") || ""), String(form.get("password") || ""), clientIp(request));
 	if (user && user.locked) return signInPage("Too many wrong passwords. Try again in a quarter of an hour.", 429);
@@ -127,7 +127,10 @@ export async function cafe(request, env) {
 		const by = await agentKey(request, env);
 		if (!by || by.role !== "queen") return refuse(401, "unauthorized", "The queen's key is needed: the CATIO_QUEEN secret in Cloudflare, or a key minted for her in the café.");
 		const house = houseOf(env, by);
-		if (path === "/api/runner/wait") return json(await house.waitForQueen());
+		if (path === "/api/runner/wait") {
+			const { ack } = await bodyOf(request);
+			return json(await house.waitForQueen(typeof ack === "number" ? ack : undefined));
+		}
 		if (path === "/api/runner/say") {
 			const text = await request.text();
 			if (text.length > MAX_SAY) return refuse(413, "too_big", "A turn is 64 KB at most.");

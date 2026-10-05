@@ -19,11 +19,17 @@ const freePort = () => new Promise((done) => {
 	const s = createServer().listen(0, "127.0.0.1", () => { const { port } = s.address(); s.close(() => done(port)); });
 });
 
-// a stand-in decider that answers with NO answers at all
+// a stand-in decider that answers with no answers at all, or with `answers: null` when asked about "null-answers"
 let decider, deciderPort;
 const startDecider = () => new Promise((done) => {
-	decider = createHttpServer((req, res) => { req.resume(); req.on("end", () => { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify({ model: "x", answers: {} })); }); })
-		.listen(0, "127.0.0.1", () => done(decider.address().port));
+	decider = createHttpServer((req, res) => {
+		let data = "";
+		req.on("data", (d) => { data += d; });
+		req.on("end", () => {
+			res.setHeader("Content-Type", "application/json");
+			res.end(JSON.stringify({ model: "x", answers: JSON.parse(data || "{}").state === "null-answers" ? null : {} }));
+		});
+	}).listen(0, "127.0.0.1", () => done(decider.address().port));
 });
 
 const boots = [];
@@ -235,6 +241,74 @@ describe("a normal gateway under hostile input", () => {
 			assert.ok(r.status >= 400 && r.status < 500, uri + " registered: " + r.status);
 		}
 	});
+	test("a note to the queen survives a runner whose wait was dropped", async () => {
+		const note = (text) => api("/api/tools/comment", { method: "POST", body: JSON.stringify({ cat: "queen", text }) });
+		const ask = (body, signal) => fetch(g.base + "/api/runner/wait", { method: "POST", headers: asQueen, body: JSON.stringify(body), signal }).then((r) => r.json());
+		const dropped = new AbortController();
+		const gone = ask({ ack: 0 }, dropped.signal).catch(() => null);
+		await new Promise((r) => setTimeout(r, 500));
+		dropped.abort();
+		await gone;
+		await note("sent while the runner was away");
+		const again = await ask({ ack: 0 });
+		assert.deepEqual(again.notes.map((n) => n.text), ["sent while the runner was away"], "the dead wait must not have taken it");
+		assert.deepEqual((await ask({ ack: 0 })).notes.map((n) => n.text), ["sent while the runner was away"], "offered until it is acknowledged");
+		await note("and then another");
+		const next = await ask({ ack: again.notes[0].at });
+		assert.deepEqual(next.notes.map((n) => n.text), ["and then another"], "an acknowledged note is not offered again");
+	});
+
+	test("a runner that sends no acknowledgement is still handed each note once", async () => {
+		const ask = () => fetch(g.base + "/api/runner/wait", { method: "POST", headers: asQueen }).then((r) => r.json());
+		await wait();   // hands over whatever an earlier test left unacknowledged
+		await api("/api/tools/comment", { method: "POST", body: JSON.stringify({ cat: "queen", text: "once" }) });
+		assert.deepEqual((await ask()).notes.map((n) => n.text), ["once"]);
+		await api("/api/tools/comment", { method: "POST", body: JSON.stringify({ cat: "queen", text: "twice" }) });
+		assert.deepEqual((await ask()).notes.map((n) => n.text), ["twice"]);
+	});
+
+	test("a sign-in body of any size is refused before it reaches the registry", async () => {
+		const form = { "Content-Type": "application/x-www-form-urlencoded" };
+		for (const path of ["/login", "/authorize"]) {
+			for (const size of [20 * 1024, 34 * 1024 * 1024]) {
+				const r = await fetch(g.base + path, { method: "POST", headers: form, body: "user=charlotte&password=" + "a".repeat(size) });
+				assert.equal(r.status, 400, `${path} with ${size} bytes`);
+			}
+		}
+		assert.equal((await login(g.base, "charlotte", PASSWORD)).status, 303, "a normal sign-in still works");
+	});
+
+	test("a value with a toString of its own is ignored, never a 500", async () => {
+		const hostile = { toString: 1, valueOf: 2 };
+		for (const [name, args] of [["comments", { cat: hostile }], ["report_status", { agent: hostile }], ["comment", { cat: "x", text: hostile }], ["inbox", { agent: hostile }],
+			["manage", { cat: hostile, action: "archive" }], ["decide", { state: hostile, questions: { a: { type: "noul" } } }]]) {
+			const r = await rpcRaw(g.base, TOKEN, { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } });
+			assert.ok(r.status < 500, `${name} → ${r.status}`);
+		}
+		const owner = await api("/api/tools/quiz", { method: "POST", body: JSON.stringify({ title: "t", questions: [{ q: hostile, options: [hostile] }] }) });
+		assert.ok(owner.status < 500, "quiz → " + owner.status);
+		const say = await fetch(g.base + "/api/runner/say", { method: "POST", headers: asQueen, body: JSON.stringify({ text: hostile, turn: hostile, done: true }) });
+		assert.ok(say.status < 500, "say → " + say.status);
+		assert.equal((await api("/api/db/routines/hostile", { method: "PUT", body: JSON.stringify({ data: { name: hostile, prompt: hostile, time: "00:00", tz: "UTC", on: true } }) })).status, 200);
+		assert.ok(Array.isArray((await wait()).notes), "the runner's wait still answers");
+	});
+
+	test("a decider that answers `answers: null` is a refusal, not a 500", async () => {
+		const r = await api("/api/tools/decide", { method: "POST", body: JSON.stringify({ state: "null-answers", questions: { a: { type: "noul" } }, kind: "sort", old: "a" }) });
+		assert.equal(r.status, 400, await r.text());
+	});
+
+	test("a routine whose turn is still streaming keeps its lease", async () => {
+		await api("/api/db/routines/long", { method: "PUT", body: JSON.stringify({ data: { name: "Long", time: "00:00", tz: "UTC", on: true, prompt: "Take your time" } }) });
+		assert.equal((await wait()).routine.id, "long");
+		await patch("routines/long", { handed: Date.now() - 11 * 60 * 1000 });
+		const says = (done) => fetch(g.base + "/api/runner/say", { method: "POST", headers: asQueen, body: JSON.stringify({ turn: "t9", text: "still going", done, routine: { id: "long", name: "Long" } }) });
+		await says(false);
+		assert.ok(Date.now() - (await docs())["routines/long"].handed < 60 * 1000, "a streamed word renews the lease");
+		assert.equal((await wait()).routine, null, "so it isn't handed out again while the turn runs");
+		await says(true);
+	});
+
 	const from = (ip, user, password) => fetch(g.base + "/login", { method: "POST", headers: { "CF-Connecting-IP": ip }, body: new URLSearchParams({ user, password }), redirect: "manual" });
 
 	test("a stranger guessing at the owner's handle is locked out, not the owner", async () => {

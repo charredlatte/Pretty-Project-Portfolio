@@ -73,8 +73,9 @@ on Charlotte's PC. The Worker is her face, her ears and her memory; the runner i
 2. **The runner is waiting.** `queen.py` sits in `POST /api/runner/wait` with the queen's key (`CATIO_QUEEN`, a
    registry key with the role `queen`). The house holds that request up to 25 s (`HOLD`): a Cloudflare Worker
    keeps a request open while the client is connected, so the runner needs no address of its own and no open port
-   on her PC. The wait comes back the moment there is something to do: `{notes, routine, stop, character}`, each
-   note and routine handed out once (`inbox` with `mark: true` on the cat `queen`), her character (`queens/house`:
+   on her PC. The wait comes back the moment there is something to do: `{notes, routine, stop, character}`, a
+   routine handed out once, a note until the runner's next wait acknowledges it (`ack`, so one lost with a dropped
+   connection is offered again), her character (`queens/house`:
    name, manner, greeting) with it, so a change in her card applies on the next turn. Empty, it comes back after
    25 s and the runner waits again. The wait runs on a thread of its own, so a Stop reaches a turn in progress.
 3. **One turn per thing.** For each note or due routine the runner runs one Claude Code turn: `claude -p --resume
