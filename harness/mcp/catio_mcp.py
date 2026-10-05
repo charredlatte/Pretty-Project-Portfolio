@@ -42,7 +42,9 @@ KINDS = {"string": str, "boolean": bool, "integer": int, "number": (int, float),
 
 class StateLock:
     """One writer at a time to state.json, across threads and across processes (the stdio servers, --serve). The lock is
-    the exclusive creation of state.lock; one a crash left behind is taken over after STALE seconds."""
+    the exclusive creation of state.lock; one a crash left behind is taken over after STALE seconds. On Windows a lock
+    just let go can be "delete pending" while another process still looks at it, and creating it then is a
+    PermissionError rather than FileExistsError: it is busy all the same, so it is waited for, not given up on."""
     STALE, WAIT = 30, 10
 
     def __enter__(self):
@@ -52,13 +54,15 @@ class StateLock:
             try:
                 os.close(os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
                 return self
-            except FileExistsError:
+            except (FileExistsError, PermissionError):
                 pass
             try:
                 if time.time() - path.stat().st_mtime > self.STALE:
                     path.unlink()
             except FileNotFoundError:
                 continue
+            except PermissionError:
+                pass   # Windows: being let go or looked at right now
             if time.monotonic() > deadline:
                 raise OSError("state.json is busy: another Catio process holds it")
             time.sleep(0.01)
@@ -95,7 +99,13 @@ def store(s):
     HOME.mkdir(parents=True, exist_ok=True)
     tmp = HOME / ("state.%d.tmp" % os.getpid())
     tmp.write_text(json.dumps(s, indent=1, ensure_ascii=False), encoding="utf-8")
-    os.replace(tmp, HOME / "state.json")
+    for wait in (0.01, 0.05, 0.1, 0.25, 0.5, 1, 0):   # Windows refuses a replace while anything has the file open
+        try:
+            return os.replace(tmp, HOME / "state.json")
+        except PermissionError:
+            if not wait:
+                raise
+            time.sleep(wait)
 
 
 def now():
