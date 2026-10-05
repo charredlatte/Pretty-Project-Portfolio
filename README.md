@@ -128,8 +128,9 @@ screenshots' worth of detail, are in [`harness/gateway/README.md`](harness/gatew
    `catio-gateway`, set the root directory to `harness/gateway`, the branch to `main`, and deploy. Its address
    looks like `https://catio-gateway.<your name>.workers.dev`.
 2. On the Worker, Settings → Variables and Secrets, add your handle and three **secrets** in one go, then deploy
-   again. The handle is a plain variable (type Text) called `CATIO_HANDLE`: the name you will sign in with, 2 to
-   31 lower-case letters, digits or dashes. The secrets are `CATIO_TOKEN` (a long random string: the key your cats
+   again. The handle is `CATIO_HANDLE`, the name you will sign in with, 2 to 31 lower-case letters, digits or
+   dashes; add it as a **Secret** too, not a Text variable, because each deploy from GitHub wipes the Text ones
+   and keeps the secrets. The secrets are `CATIO_TOKEN` (a long random string: the key your cats
    check in with), `CATIO_PASSWORD` (your own sign-in, 16 characters or more) and `CATIO_QUEEN` (another long
    random string: the driver's key). Keep the three secrets in your password manager, and give them out only as the steps below say: the cats' key
    to your sessions (step 5), the driver's key to your own computer (step 6), the password to nobody. **Add the
