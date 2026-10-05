@@ -74,9 +74,6 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
   (`PUT /api/users/<id>`: browsers out, OAuth grants revoked, keys killed, the lock cleared). Never by a key: a
   key is in every session's environment, and a leaked one must not be able to become anyone's owner. A
   signed-in café mints, lists and drops keys (`/api/keys`, names unique per user). The handle `house` is kept.
-  Self sign-up, and a button for keys in the page, are phase 2. Built of phase 2 on 5 October: the invite link
-  (`/invite`, one use, a week, `gateway/README.md` *Accounts*), so someone's AI can make their account and key
-  without the admin choosing their password; no `INVITE_CODE` secret, no form.
   Self sign-up is built (below); a button for keys in the page is still phase 2.
 - One handle's password tries run in turn, so five guesses in parallel lock like five in a row, and right
   sign-ins in flight together lock nobody. Known limit: all of them run in the one registry object; against a
@@ -115,6 +112,9 @@ Her ask: "My account is admin. Create self-registration."
   house named after the handle) and signs that browser in. `Registry.signUp` spends the invite before the password is
   hashed, so two sign-ups with one code at once let one in, and gives it back when the account can't be made.
 - Both forms are refused from another site's Origin; the café's cookie is `SameSite=Strict` besides.
+- For an AI setting it up for someone (her ask: "a link I can share with my partner so that his AI can mint his own
+  key"): `/signup` with an invite says what to do, and `POST /signup` as JSON `{invite, handle, password, name}` makes
+  the account the same way and answers with its first agents' key, once, instead of signing a browser in.
 - No open sign-up: every account is a house on her Worker. The licensed art is now served to the first house alone,
   since the packs' licences are personal and an invite puts the café in a stranger's hands.
 - Tested in `harness/gateway/test/gateway.test.mjs` ("lets an admin invite someone, who makes their own account

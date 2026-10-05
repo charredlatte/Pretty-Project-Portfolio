@@ -14,7 +14,6 @@ const LOCK_FOR = 15 * 60 * 1000;
 const HANDLE = /^[a-z0-9][a-z0-9-]{1,30}$/;
 const ROLES = ["agent", "queen"];
 const keyName = (name) => String(name || "key").slice(0, 60);
-const INVITE_FOR = 7 * 24 * 3600 * 1000;   // an invite link works for a week, once
 const QUEEN_KEY = "queen";   // the name of the queen's key seeded from the CATIO_QUEEN secret
 const INVITE_FOR = 7 * 24 * 3600 * 1000;   // an unused invite lapses after a week
 
@@ -217,37 +216,6 @@ export class Registry extends DurableObject {
 		const key = randomToken();
 		if (!this.addKey(user, await sha256(key), name, role)) return { error: "You already have a key by that name: drop it first." };
 		return { key, name: keyName(name), role };
-	}
-
-	/** A one-time invite to make an account, from an admin: the token, returned once and kept only as its hash. */
-	async mintInvite(by) {
-		const token = randomToken(), until = Date.now() + INVITE_FOR;
-		this.sql.exec("INSERT INTO invites (hash, by, until) VALUES (?, ?, ?)", await sha256(token), by, until);
-		return { token, until };
-	}
-
-	/** The invite's row while it can still be used, else null. */
-	invite(hash) {
-		this.sql.exec("DELETE FROM invites WHERE until <= ?", Date.now());
-		return this.sql.exec("SELECT hash, by, until FROM invites WHERE hash = ?", hash).toArray()[0] || null;
-	}
-
-	/**
-	 * Uses an invite: a new account with its own house and its first agents' key, `{id, house, key}`, or `{error}`
-	 * (`gone` when the invite is used or out of date). The invite is taken before the password's hash yields, so
-	 * two claims at once can't both use it, and it is put back if the account can't be made.
-	 */
-	async claimInvite(token, id, password, name) {
-		const row = this.invite(await sha256(String(token || "")));
-		if (!row) return { error: "This invite is used or out of date: ask for a new one.", gone: true };
-		this.sql.exec("DELETE FROM invites WHERE hash = ?", row.hash);
-		const made = await this.createUser(id, password);
-		if (made.error) {
-			this.sql.exec("INSERT OR IGNORE INTO invites (hash, by, until) VALUES (?, ?, ?)", row.hash, row.by, row.until);
-			return made;
-		}
-		const { key } = await this.mintKey(made.user.id, name || "first");
-		return { id: made.user.id, house: made.user.house, key };
 	}
 
 	keys(user) {
