@@ -641,6 +641,39 @@ class RightSized(unittest.TestCase):
         self.word(tmp, {"right_sized": False, "tiers": {"errand": "haiku"}})
         self.assertEqual(self.spawn({"prompt": "add bananas to my shopping list", "model": "opus"}, tmp=tmp)[0], 0)
 
+    def test_a_gate_that_cannot_run_refuses_rather_than_waving_the_call_through(self):
+        """The gates are the safety net. One that cannot read the house rules must not open all of them."""
+        plugin = Path(tempfile.mkdtemp())
+        shutil.copytree(HOOKS, plugin / "hooks")
+        (plugin / "rules.json").write_text("{ this is not json")
+        tmp = tempfile.mkdtemp()
+        r = subprocess.run([sys.executable, str(plugin / "hooks" / "gates.py")],
+                           input=json.dumps({"hook_event_name": "PreToolUse", "tool_name": "Edit",
+                                             "tool_input": {"file_path": str(Path(tmp, "a.py"))}, "cwd": tmp}),
+                           capture_output=True, text=True, cwd=tmp)
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        self.assertIn("couldn't be read", r.stderr)
+
+    def test_one_repos_message_does_not_silence_another(self):
+        """A cloud session works in several repos at once, so the mark is per repo, not per session."""
+        a, b = tempfile.mkdtemp(), tempfile.mkdtemp()
+        for tmp in (a, b):
+            t = Path(tmp, "t.jsonl")
+            t.write_text(json.dumps({"type": "assistant", "message": {"model": "claude-opus-5-5", "content": []}}) + "\n")
+            r = run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": "Agent", "cwd": tmp,
+                                 "tool_input": {"prompt": "add bananas to my shopping list", "model": "opus"},
+                                 "session_id": "one-session", "transcript_path": str(t)}, cwd=tmp)
+            self.assertTrue(r.stdout.strip(), "nothing said in %s" % tmp)
+
+    def test_a_tiers_block_she_got_wrong_never_stops_the_gate(self):
+        """One typo in her settings must not switch every refusal off for that repo."""
+        for tiers in ("sonnet", {"ladder": 5}, {"errand": False}):
+            tmp = tempfile.mkdtemp()
+            Path(tmp, ".claude").mkdir()
+            Path(tmp, ".claude", "catio-rules.json").write_text(json.dumps({"tiers": tiers}))
+            r = run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": "Agent", "cwd": tmp,
+                                 "tool_input": {"prompt": "x"}}, cwd=tmp)
+            self.assertEqual(r.returncode, 2, (tiers, r.stdout, r.stderr))   # still refuses an unnamed spawn
 
 class WorkflowReader(unittest.TestCase):
     """How right_sized reads a Workflow script: every agent() names a tier on the call, whatever the script's text

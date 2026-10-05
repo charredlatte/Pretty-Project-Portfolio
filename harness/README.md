@@ -62,50 +62,35 @@ Then a ceiling on errands, which `rules.json`'s `tiers` block holds:
 ```json
 "tiers": {
   "ladder": ["haiku", "sonnet", "opus", "fable"],
-  "worth_a_word": ["opus", "fable"]
   "errand": "sonnet"
 }
 ```
 
 `ladder` is the rungs, cheapest first, matched the way the merging rule matches `strong`: any part of a model id.
-`worth_a_word` is the tiers whose unnamed spawns earn a line. (The `opus_default` rule has a `costly` list of
+`errand` is the ceiling for a task the harness reads as an errand. (The `opus_default` rule has a `costly` list of
 its own, which is a different thing: the models that burn her allowance fastest.)
-`errand` is the ceiling for a task the harness reads as an errand.
 
-**Her cap is the only thing that refuses.** A repo's `.claude/catio-rules.json` carries it:
+**A repo's own ceiling refuses.** `.claude/catio-rules.json` carries it, and it is her decision rather than the
+harness's reading:
 
 ```json
-{ "merge": true, "hold": ["harness/"], "tiers": { "ceiling": "sonnet" } }
+{ "merge": true, "hold": ["harness/"], "tiers": { "errand": "haiku" } }
 ```
 
-With that set, every spawn in that repo names a model at or below `sonnet`, and one that names none is refused as
-well — an unnamed spawn runs on whatever the session is on, which is the spending the cap exists to stop. The
-refusal names the tiers that would do.
-
-**It judges the model on the call, and nothing else.** Claude Code resolves an unnamed spawn's model from
-`CLAUDE_CODE_SUBAGENT_MODEL_FORCE`, the call, the agent's own file, `CLAUDE_CODE_SUBAGENT_MODEL` and then the
-session. An earlier version of this hook reimplemented that chain and was wrong in both directions: it waved spawns
-past her cap when it guessed low, and refused Haiku-pinned helpers when it guessed high. Naming the model is the one
-thing a session can always do, and it is what every refusal here asks for.
-
-**Where she has capped nothing**, a spawn that names no model gets one line a session, in a session on one of the
-`worth_a_word` tiers, saying which model it is about to inherit. That is where the quiet spending is: Claude Code's own `Explore` and `general-purpose` agents run on the
-session's model by default.
-
-**What it does not do is guess whether a task is easy.** Reading a prompt's words is unreliable in both directions —
-"add a null check to `walk()` and run the tests" is short and starts with *add* — so the house asks something better:
-the `decide` tool's `easy` preset, the six-question rubric in `docs/delegation.md`, answered by a decision model in
-milliseconds. The queen asks it; a hook on the tool-call path stays offline and deals only in what it can check.
+Above the house's ceiling the harness says so once a session and lets the spawn go; above hers it refuses it, and
+her word wins over the harness's reading in both directions. When she overrules a refusal, the rule asks the session
+to write her choice into that file, so the next session in that repo starts from her decision instead of asking
+again.
 
 That is what makes the rule semi-automatic: the harness tells her what a spawn costs, she answers with a cap, and her
 file is the memory. It sits in the repo, in git, next to the repo's other decisions, so every session that opens
 there starts from what she last said rather than asking again, and the line asks the session to write her answer
 there when she gives one. `{"right_sized": false}` switches the rule off for a repo.
 
-If her settings cannot be acted on — a ceiling that is not a tier, `tiers` written as a string, a `ceiling` outside
-the block — the rule says her cap is doing nothing rather than going quiet about it, and a key it does not know (a
-comment of her own) is simply not one of its settings. If the check itself cannot run, it says that too, and steps
-aside so the audit, preflight, attribution and shipping gates still run.
+A setting the rule cannot act on — an `errand` that is not a tier, `tiers` written as a string — currently switches
+the ceiling off in silence rather than saying so, and a malformed block makes `check()` raise, which `gates.py`
+catches so the audit, preflight, attribution and shipping gates still run. Saying so instead is worth doing: the
+earlier version of this rule did, and its checks were lost in the merge of 5 October (`docs/delegation.md`).
 
 The review and the merge are untouched, so the merging rule's promise — a strong model did the work, and a small
 model's pull request is always hers to merge — still holds. Neither does the rule switch the session's own model:

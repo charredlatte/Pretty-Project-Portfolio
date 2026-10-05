@@ -23,7 +23,7 @@ import re
 import tempfile
 from pathlib import Path
 
-from common import ROOT, enforced, local, rules
+from common import ROOT, enforced, local, rules, said, say
 
 SPAWN = ("Task", "Agent")   # the sub agent tool: Agent in this build, Task in older ones
 WORKFLOW = "Workflow"       # a script of agent() calls, each its own sub agent
@@ -50,8 +50,14 @@ FRONT_MODEL = re.compile(r"^model:\s*([^\s#]+)\s*$", re.M)
 def tiers(cwd):
     """The ladder and the errand ceiling here: the house's, with the repo's own word laid over it."""
     house = dict(rules().get("tiers") or {})
-    house.update({k: v for k, v in (local(cwd).get("tiers") or {}).items() if k in ("errand", "ladder")})
-    house["ladder"] = [str(t).lower() for t in house.get("ladder") or []]
+    mine = local(cwd).get("tiers")   # hers, whatever shape she wrote it in: a bad one must not stop the gate
+    if isinstance(mine, dict):
+        ok = {k: v for k, v in mine.items() if k in ("errand", "ladder")}
+        if not isinstance(ok.get("ladder"), list):
+            ok.pop("ladder", None)   # a ladder of hers the rule can't read leaves the house's standing
+        house.update(ok)
+    ladder = house.get("ladder")
+    house["ladder"] = [str(t).lower() for t in ladder] if isinstance(ladder, list) else []
     return house
 
 
@@ -131,15 +137,12 @@ def errand(prompt):
     return bool(text) and len(text) <= 240 and not WORK.search(text) and bool(CHORE.search(text))
 
 
-def once(session, kind):
-    """True the first time this session is told something of this kind."""
-    mark = Path(tempfile.gettempdir()) / "catio-tier-{}-{}".format(re.sub(r"\W", "", str(session or "")), kind)
-    if mark.exists():
+def once(session, kind, cwd=None):
+    """True the first time this session is told something of this kind, here. common.said/say keep the mark:
+    in a folder of this user's own, and keyed per repo, since a cloud session works in several at once."""
+    if said(session, kind, "tier", cwd):
         return False
-    try:
-        mark.touch()
-    except OSError:
-        pass
+    say(session, kind, "tier", cwd)
     return True
 
 
@@ -417,7 +420,7 @@ def check(data, tool, args, cwd):
                 "errand at %s, and this reads as one. Spawn it on %s or below. If it is really not an errand, say "
                 "so to her and she will raise the ceiling in .claude/catio-rules.json."
                 % (ceiling, ceiling)), None
-    if once(data.get("session_id"), "errand"):
+    if once(data.get("session_id"), "errand", cwd):
         return None, ("House rule (KittyChat), spend what the task is worth: this reads as an errand (spelled out, "
                       "checkable, small) and it is spawned on %s. %s or below does it. Carry on if it is more than "
                       "it looks; if she tells you the ceiling for this repo, write it into .claude/catio-rules.json "
