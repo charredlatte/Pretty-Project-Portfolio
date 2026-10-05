@@ -12,7 +12,9 @@
 	// The OAuth library's grants and tokens (hashed), and the café's art and brain files. No ids: a deploy creates them.
 	"kv_namespaces": [{ "binding": "OAUTH_KV" }, { "binding": "FILES" }],
 	// Workers AI, for the decide tool (src/decide.js): Clef, Cloudflare's System One model, inside the free plan's neurons.
-	// Variables (Settings > Variables and Secrets, type Text) change where decisions are answered, none required:
+	// Three settings change where decisions are answered, none required. Add each as a Secret (Settings > Variables and
+	// Secrets), never as a Text variable: this file declares no vars and no keep_vars, so the deploy Workers Builds runs on
+	// every merge drops Text variables set in the dashboard and keeps secrets. The code reads env.<name> either way.
 	//   DECIDE_MODEL  another Workers AI model id, e.g. typesafe/jev (paid from AI Gateway credits) or @cf/cloudflare/clef
 	//   DECIDE_URL    a System One server instead of Workers AI, e.g. a laya-serve she exposes; DECIDE_KEY its bearer key
 	"ai": { "binding": "AI" },
