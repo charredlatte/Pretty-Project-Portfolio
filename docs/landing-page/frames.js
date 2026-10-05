@@ -63,7 +63,7 @@ function title(name, width = 1440, height = 900) {
   const t = col(8); t.appendChild(text("BRIOCHE", 13, BOLD, PAPER)); t.appendChild(text("Oh! A visitor. Pull up a log, the fire's warm.▌", 16, REG, PAPER, 620)); inner.appendChild(t); d.appendChild(inner);
   const foot = row(0); foot.appendChild(text("▼", 12, BOLD, PAPER)); d.appendChild(foot);
   put(f, d, 340, 700);
-  put(f, note("Typewriter at 40 characters a second with a quiet tick (if sound is on). A press while it types shows the whole line; the next press turns the page. ▼ bobs 2 pixels at 2 Hz. Four pages: Brioche, Pepper, Brioche, Pepper; the last asks where to go and becomes the menu.", 420), 1110, 700); }
+  put(f, note("Typewriter, one character every 30 ms (33 a second) with a quiet tick (if sound is on). A press while it types shows the whole line; the next press turns the page. ▼ bobs 2 pixels at 2 Hz for five seconds. Four pages: Brioche, Pepper, Brioche, Pepper; the last asks where to go and becomes the menu.", 420), 1110, 700); }
 
 // 3. The main menu, in the same box.
 { const { f } = title("3 Main menu");
@@ -121,7 +121,7 @@ function title(name, width = 1440, height = 900) {
   put(f, text("Menu items and file slots", 18, BOLD), 80, 260);
   const m = row(40); for (const [l, s] of [["  NEW CAFÉ", "idle"], ["▶ NEW CAFÉ", "hover or focus: pointer, white text"], ["▶ NEW CAFÉ", "confirm: bleep, wipe, jump"]]) { const c = col(8); c.appendChild(text(l, 14, BOLD)); c.appendChild(text(s, 11, REG, GREY, 180)); m.appendChild(c); } put(f, m, 80, 300);
   put(f, text("Dialogue", 18, BOLD), 80, 420);
-  const d = row(40); for (const [l, s] of [["Text▌", "typing, 40 cps, cursor blinks"], ["▼", "page done: bobs 2 px at 2 Hz"], ["(menu)", "last page: the menu replaces ▼"]]) { const c = col(8); c.appendChild(text(l, 14, BOLD)); c.appendChild(text(s, 11, REG, GREY, 180)); d.appendChild(c); } put(f, d, 80, 460);
+  const d = row(40); for (const [l, s] of [["Text▌", "typing, one character every 30 ms, cursor blinks"], ["▼", "page done: bobs 2 px at 2 Hz, a 44 px target"], ["(menu)", "last page: the menu replaces ▼"]]) { const c = col(8); c.appendChild(text(l, 14, BOLD)); c.appendChild(text(s, 11, REG, GREY, 180)); d.appendChild(c); } put(f, d, 80, 460);
   put(f, text("Corner", 18, BOLD), 80, 580);
   const k = row(20); for (const [l, s] of [["SOUND OFF", "default: no sound"], ["SOUND ON", "pressed look; bleeps on move, confirm, back, type"], ["STILL", "stops the scene; remembered; pressed under reduced motion"], ["SKIP", "straight to the menu"]]) { const c = col(8); c.appendChild(button(l, l === "SOUND ON")); c.appendChild(text(s, 11, REG, GREY, 160)); k.appendChild(c); } put(f, k, 80, 620);
   put(f, text("Pointer", 18, BOLD), 80, 740); put(f, text("A cat paw (16 × 16, our own), tip at the top left, on anything clickable. The arrow elsewhere.", 12, REG, GREY, 600), 80, 780);

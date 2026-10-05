@@ -29,9 +29,13 @@ names the game the convention comes from, so a change can be judged against the 
   repository's own. The fonts are SIL OFL, which allows a website to embed and redistribute them with their licence
   file (it is in `landing/fonts/`).
 - **Honest about where it stands** (the onboarding's rule of 3 October): running your own café is open today; the
-  hosted café is early access and says "not open yet"; nothing says "sign in". Prices stay in brackets (`[monthly]`,
-  `[setup-plus]`) until she picks them; the two mailto links and the two support links carry `[email]`, `[handle]`
-  and `[campaign]` until the addresses exist.
+  hosted café is early access and says "not open yet"; "set up for you" is by arrangement, and its lifetime access
+  is to the hosted café "when it opens"; nothing says "sign in". Prices stay in brackets (`[monthly]`,
+  `[setup-plus]`) until she picks them, with a line under the slots saying so. The four buttons whose addresses
+  don't exist yet (JOIN THE LIST, WRITE TO CHARLOTTE, BUY ME A COFFEE, BACK THE APP) are drawn disabled with
+  "address coming", "page coming" or "campaign coming" under them, and go nowhere; their links carry `[email]`,
+  `[handle]` and `[campaign]` for the day they do. The five legal pages don't exist either: the footer shows their
+  names without links and says they are still to be written. The FAQ says the privacy policy "will say".
 - **Plain words.** Cats, rooms, the front desk, the queen; never MCP, API, gateway, hook or LLM in a sentence that
   explains (the onboarding's rule).
 - **Nothing credits Claude** as the page's author (CLAUDE.md, "Shipping"). The product copy names Claude because the
@@ -76,17 +80,21 @@ scrolled at any time (PRESS START gates nothing: a visitor who scrolls past the 
 | SOUND OFF / ON | top right | small outlined button | – | toggles, remembered in the browser | gold ring | confirm | – | ☐ |
 | STILL | top right | small outlined button | – | stops the scene (fire, smoke, stars, cats, glow) and starts it again; remembered; starts pressed under reduced motion | gold ring | confirm | the café's Still cats switch; WCAG 2.2.2 (anything moving past 5 s can be stopped) | ☐ |
 | SKIP | top right | small outlined button | – | straight to the menu | gold ring | – | every intro since the 90s | ☐ |
-| ▼ (next) | dialogue, bottom right | bobbing triangle | – | turns the page; a press while it types shows the whole line | gold ring | confirm | Zelda / Pokémon | ☐ |
+| ▼ (next) | dialogue, bottom right | bobbing triangle in a 44 × 44 target | – | turns the page; a press while it types shows the whole line; takes focus when the box opens | gold ring | confirm | Zelda / Pokémon; WCAG 2.5.8 for the size | ☐ |
 | Menu item | the box | cream text | pointer ▶, white text | bleep, wipe to black, jump to the section | same as hover | move / confirm | Stardew, Zelda's hand cursor | ☐ |
 | Button (`.btn`) | files, support | cream face, ink outline, 4 px shadow | white face, ▶ shows | drops 4 px, shadow gone | gold ring | move / confirm | 16-bit menus | ☐ |
 | Primary button | FILE 1 | the café's green face | lighter green | same | same | same | – | ☐ |
+| Placeholder button | FILES 2 and 3, support | faded, "address coming" under it | no change | goes nowhere, the back bleep | gold ring | back | – | ☐ |
 | File slot | files | night panel | pointer ▶ at its left | its button | its button's ring | – | Zelda file select | ☐ |
 | FAQ question | ask the queen | cream text, a rule under it | pointer ▶ | opens the answer under it | gold ring | move / confirm | menu grammar | ☐ |
 | Legal links | footer | cream | underline | – | gold ring | – | – | ☐ |
 | Pointer | anything clickable | a 16 × 16 cat paw (ours), tip top left | – | – | – | – | Zelda's hand, OoT's | ☐ |
 
-Keyboard: Tab reaches everything in order; Enter or Space starts and turns the pages (also Z and X, the emulator
-habit); ↑ ↓ move the menu pointer and wrap; Enter confirms; the first link, hidden until focused, skips the title. ☐
+Keyboard: Tab reaches everything in order (the corner buttons first, then PRESS START); Enter or Space starts and
+turns the pages (also Z and X, the emulator habit), but only while the title is on screen and no link, button or
+question has the key; ↑ ↓ move the menu pointer and wrap; Enter confirms; the first link, hidden until focused,
+skips the title. The corner buttons are 16 px after the accessibility review (7-px capitals were the least readable
+thing on the page); question 4 below asks whether she wants them back at 8. ☐
 
 ## 4. Every motion
 
@@ -102,7 +110,7 @@ web page. Timings are in `index.html` beside the thing they time.
 | Smoke | a particle every 380 ms; rises 26–40 px over 3–5 s, sine wobble, 3 opacity steps, 1 px wide then 2 | none | – | ☐ |
 | Stars | each of 47 stars flips dim / bright on its own 0.4–3.5 s clock; a shooting star every 25–50 s, 450 ms | still | – | ☐ |
 | Tent glow | 3 opacity levels, one step every 800 ms | the middle level | – | ☐ |
-| Cats | breathe (a pixel taller) every 1.2 s; blink 180 ms every 2.5–7 s; an ear flicks 260 ms; the tail 420 ms; the second cat out of step | still | Stardew's idle animals | ☐ |
+| Cats | each on its own clocks: breathe (a pixel taller) every 1.2 s; blink 180 ms every 2.5–7 s; an ear flicks 260 ms; the tail 420 ms | still | Stardew's idle animals | ☐ |
 | Dialogue box | grows open in 3 steps over 200 ms | simply there | Ocarina's box grows over 8 frames; Stardew's over ~200 ms with "breathin" | ☐ |
 | Typewriter | one character every 30 ms (Stardew's exact delay), a blinking block cursor; a press completes the line | the whole line at once | Stardew; Ocarina types one a frame at 20 fps | ☐ |
 | ▼ | bobs 2 px at 2 Hz in 2 steps, for five seconds, then rests | still | Pokémon Red toggles its ▼ at the box's bottom-right tile; Stardew's continue icon bounces | ☐ |
@@ -149,14 +157,19 @@ Every line the page says, for her to keep or strike:
 - Logo and tagline: **KittyChat Café** · *All your Claude chats, in one cozy café.* ☐
 - The two cats: **Brioche** (orange) and **Pepper** (grey). Not the packs' names. ☐
 - Page 1, Brioche: "Oh! A visitor. Pull up a log, the fire's warm." ☐
-- Page 2, Pepper: "Every chat you have with Claude is a cat in our café. Busy cats work. Sleeping cats are done." ☐
-- Page 3, Brioche: "A cat that needs you meows. Point at it and it tells you what it wants. No terminal, ever." ☐
+- Page 2, Pepper: "Every coding session you have with Claude is a cat in our café, and any chat you adopt. Busy cats
+  work. Sleeping cats are done." (claude.ai chats are adopted by hand: the README says so, and so does she.) ☐
+- Page 3, Brioche: "A cat that needs you meows. Point at it and it tells you what it wants. No terminal needed."
+  ("ever" would have been false: the self-host door and the queen's runner both want one.) ☐
 - Page 4, Pepper: "Where would you like to go?" ☐
 - Menu: NEW CAFÉ · run your own, free / JOIN THE CAFÉ · early access / HOW IT WORKS / SUPPORT THE WORK ☐
-- How it works: the three cards' titles and lines, and "Your private chats stay in your own account. The café shows
-  them; it never reads your code." ☐
-- The files: the three slots' names, prices and lines; the buttons START A NEW CAFÉ, JOIN THE LIST, WRITE TO CHARLOTTE;
-  "Prices HT, TVA non applicable, art. 293 B du CGI" on the paid one ☐
+- How it works: the three cards' titles and lines, and "Your private chats stay in your own account. The café never
+  opens your repositories: it keeps your chats' titles and states, what you drop on a cat, and the project map your
+  own session draws." (not "never reads your code": the `graphs` collection holds a map of each repository) ☐
+- The files: the three slots' names, prices and lines (FILE 1 says the clone comes with no cat art, FILE 3 leads with
+  the afternoon and ends with lifetime access "when it opens"); the buttons START A NEW CAFÉ, JOIN THE LIST, WRITE TO
+  CHARLOTTE; "Prices HT · TVA non applicable, art. 293 B du CGI. The brackets are prices still to be chosen." under
+  all three ☐
 - Ask the queen: the five questions and answers ☐
 - Support: the note in her voice, "Charlotte, who runs the café.", BUY ME A COFFEE, BACK THE APP ☐
 - Footer: the five legal links; "KittyChat Café · Charlotte Badot, EI. The fire, the cats, the tent and the night were
@@ -167,11 +180,14 @@ below.)
 
 ## 8. Accessibility
 
-The scene is `aria-hidden` and described in one hidden sentence. Every control is a real button or link. The dialogue
-is a live region, so a screen reader hears each page. Focus rings are a gold pixel outline on a dark ring. The body
-text is 17 px and up; the pixel faces are never used below 16 px except the two corner buttons at 8 px ☐ (a
-question below). Contrast: cream and gold on the night panel pass 4.5:1; ink on tan passes. `prefers-reduced-motion`
-stops everything (section 4) and prints each page whole. The canvas stops when hidden.
+The scene is `aria-hidden` and described in one hidden sentence. Every control is a real button or link. Each page of
+the dialogue is announced once, whole, from a hidden live region (the typed text is hidden from readers, or they would
+hear every letter); the heading is the name alone, the tagline a paragraph; the hearts are images with a label; the
+French lines are marked `lang="fr"`. Focus rings are a gold pixel outline on a dark ring; focus lands on ▼ when the
+box opens. The body text is 17 px and up; the pixel faces are never used below 16 px. Contrast: cream and gold on the
+night panel 13.7:1 and 12:1; ink on tan 7.3:1; the dim grey on the night 6.6:1. `prefers-reduced-motion` stops
+everything (section 4) and prints each page whole; STILL does the same on demand. The canvas stops when the tab is
+hidden or the title is scrolled away. Without JavaScript the loading frame never shows and the page is simply the page.
 
 ## 9. Decided against
 
@@ -191,7 +207,7 @@ stops everything (section 4) and prints each page whole. The canvas stops when h
 2. Sound off by default: agreed? (On by default is one line.) ☐
 3. The hosted café as "JOIN THE LIST" to a mailto, until the shop exists: agreed, or point it at the shop's early
    access product now? ☐
-4. The corner buttons at 8 px: keep them tiny like a game's HUD, or 16 px for readability? ☐
+4. The corner buttons are 16 px now; the first draft had them at 8 px, tiny like a game's HUD. Keep 16? ☐
 5. English only, or an FR / EN switch? The shop's home is English with a French legal footer. ☐
 6. "Planned for December 2027" on the page: say the date, or "planned" alone? ☐
 7. The third slot says "WRITE TO CHARLOTTE": her first name on the page, or "the café"? ☐
@@ -302,5 +318,9 @@ The six notes, with every source, are in `docs/landing-page/research/` (`stardew
 - Look: `python3 landing/tools/scene.py --preview` and open `landing/art/preview.png`; open `landing/index.html` at 1440
   and at 390 wide, with and without reduced motion. The screenshots of this draft were taken with Playwright at both
   sizes, in both motion settings, with no console error.
-- No pack art: `grep -rn "licensed" landing/` finds nothing.
+- No pack art: `grep -rn "art/licensed\|catio/art" landing/` finds nothing (the OFL files do say "licensed").
+- The review's cases, with Playwright: Enter on a FAQ question opens it while the dialogue is open; focus lands on ▼
+  after PRESS START; the live region gets each line once; the menu items take an arrow the moment they land; a
+  disabled placeholder button keeps the page; the loading frame leaves even with one picture missing; STILL stops
+  and starts the scene in both motion settings.
 - The fonts' coverage: each has lowercase and é è ê à ç ù (checked with fontTools).

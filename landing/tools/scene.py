@@ -359,9 +359,11 @@ def cat(L: Layer, x: int, y: int, k: dict, frame: int, mirror_tail: bool = False
 
 
 def cats(frame: int) -> Layer:
+    """Both cats at the same frame: the page draws each cat from its own frame of the sheet (split at x 36 of the
+    cell), on its own clocks, so they never blink together."""
     L = Layer()
     cat(L, 166, 190, CAT_A, frame)
-    cat(L, 194, 190, CAT_B, (frame + 2) % 5 if frame else 0)              # the second cat is out of step
+    cat(L, 194, 190, CAT_B, frame)
     return L
 
 
