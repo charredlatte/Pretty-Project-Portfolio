@@ -12,6 +12,8 @@ holds up a turn.
 As a command, for the catio skill:
     report.py say "text"        answer Charlotte on this session's cat
     report.py pick <file id>    save a file she dropped on the cat, and print where it went
+    report.py audit "summary"   file the opening audit in this repository's filing cabinet
+    report.py map [file]        file the project map graph_doc.py wrote (default graphify-out/catio-graph.json)
 """
 import base64
 import json
@@ -166,6 +168,22 @@ def command(argv):
         path = folder / (re.sub(r"[^A-Za-z0-9._-]+", "_", Path(got["name"]).name).strip(".") or "file")
         path.write_bytes(base64.b64decode(got["base64"]))
         print(path)
+    elif argv[0] in ("audit", "map") and (len(argv) > 1 or argv[0] == "map"):
+        repo = facts({}).get("repo")
+        if not repo:
+            sys.exit("This checkout has no GitHub remote to file it under.")
+        if argv[0] == "audit":
+            args = {"kind": "audit", "repo": repo, "summary": " ".join(argv[1:]), "by": agent}
+        else:
+            src = Path(argv[1] if len(argv) > 1 else "graphify-out/catio-graph.json")
+            try:
+                args = {"kind": "map", "repo": repo, "map": json.loads(src.read_text(encoding="utf-8")), "by": agent}
+            except (OSError, ValueError):
+                sys.exit(f"No project map at {src}: run graph_doc.py first.")
+        saved, = call(("save_report", args), timeout=30)
+        if not saved:
+            sys.exit("The gateway didn't take it (too long, or not reachable). Try again.")
+        print("Filed as " + saved["id"] + ".")
     else:
         sys.exit(__doc__)
 

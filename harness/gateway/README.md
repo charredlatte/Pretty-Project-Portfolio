@@ -160,7 +160,8 @@ does nothing; a call that fails or takes over two seconds is dropped. Its cat's 
 
 What she sends reaches a session when its turn ends: the Stop hook hands in her notes, a pause or wrap-up, and
 files, once each, and the session carries on with them (the `catio` skill). It answers with
-`report.py say "…"` and fetches files with `report.py pick <id>`. An idle session can't be woken from outside
+`report.py say "…"` and fetches files with `report.py pick <id>`, and files its opening audit and its project map
+in the repository's filing cabinet with `report.py audit "…"` and `report.py map` (the tool `save_report`). An idle session can't be woken from outside
 claude.ai, so a message to one waits for its next turn.
 
 ## Other agents

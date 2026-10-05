@@ -26,6 +26,10 @@ const KEEP_DECISIONS = 500;    // the observe log: the latest decisions, beside 
 const QUIZ = { questions: 5, options: 12, text: 300, title: 120, answer: 1000, note: 4000 };
 // What a quiz is for: unblocking a cat (her homework), sorting a litter box note, or a decision waiting on her
 const QUIZ_KINDS = ["unblock", "litterbox", "decision"];
+// What a session files for its repository's filing cabinet (save_report): its audit and its project map
+const REPORT = { summary: 4000, map: 256 * 1024 };
+// a repository's slug, as graph_doc.py makes it: the name after the owner, lowercase, a-z 0-9 _ and -
+const slugOf = (repo) => String(repo).split("/").pop().toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "none";
 
 // Homework, as the queen sets it: a title and 1 to 5 questions, each with concrete options or a written answer
 function quizOf(args) {
@@ -275,6 +279,30 @@ const TOOLS = {
 			h.dropDoc("quizzes/" + id); gone++;
 		}
 		return { forgotten: gone };
+	},
+
+	// A session's opening audit or project map, for its repository's filing cabinet. Anyone in the house may file one:
+	// it is shown, never acted on, and each repository keeps only the newest of each.
+	save_report(h, args, who) {
+		need(args, "kind", "repo");
+		const repo = String(args.repo).slice(0, 200), by = String(args.by || who).slice(0, 200);
+		if (args.kind === "audit") {
+			const summary = String(args.summary || "").trim();
+			if (!summary) throw new Refusal("an audit needs its summary");
+			if (summary.length > REPORT.summary) throw new Refusal("an audit's summary is " + REPORT.summary + " characters at most");
+			const id = "audits/" + slugOf(repo);
+			h.putDoc(id, { repo, at: Date.now(), by, summary });
+			return { id };
+		}
+		if (args.kind === "map") {
+			const map = args.map;
+			if (!map || typeof map !== "object" || Array.isArray(map)) throw new Refusal("map is the document graph_doc.py writes");
+			if (JSON.stringify(map).length > REPORT.map) throw new Refusal("a project map is 256 KB at most");
+			const id = "graphs/" + slugOf(repo);
+			h.putDoc(id, { ...map, repo: map.repo || repo, at: map.at || Date.now(), by: map.by || by });
+			return { id };
+		}
+		throw new Refusal("kind is audit or map");
 	},
 
 	answer(h, args, who) {

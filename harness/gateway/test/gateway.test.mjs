@@ -193,6 +193,21 @@ describe("the café", () => {
 		assert.deepEqual((await (await api("/api/db")).json()).docs, docs);
 	});
 
+	test("files a session's audit and project map where her café's filing cabinet reads them", async () => {
+		const repo = "charredlatte/Pretty-Project-Portfolio", map = { title: "Pretty-Project-Portfolio", counts: { nodes: 3 }, hubs: [] };
+		assert.deepEqual(await tool(TOKEN, "save_report", { kind: "audit", repo, summary: "delete: dead code", by: "session_01Audit" }), { id: "audits/pretty-project-portfolio" });
+		assert.deepEqual(await tool(TOKEN, "save_report", { kind: "map", repo, map, by: "session_01Audit" }), { id: "graphs/pretty-project-portfolio" });
+		const { docs } = await (await api("/api/db")).json();
+		const audit = docs["audits/pretty-project-portfolio"], graph = docs["graphs/pretty-project-portfolio"];
+		assert.deepEqual([audit.repo, audit.by, audit.summary, typeof audit.at], [repo, "session_01Audit", "delete: dead code", "number"]);
+		assert.deepEqual({ ...graph, at: 0 }, { ...map, repo, by: "session_01Audit", at: 0 });
+		assert.match((await tool(TOKEN, "save_report", { kind: "audit", repo })).refused, /needs its summary/);
+		assert.match((await tool(TOKEN, "save_report", { kind: "audit", repo, summary: "a".repeat(4001) })).refused, /4000 characters/);
+		assert.match((await tool(TOKEN, "save_report", { kind: "map", repo, map: [] })).refused, /graph_doc/);
+		assert.match((await tool(TOKEN, "save_report", { kind: "notes", repo })).refused, /audit or map/);
+		for (const p of ["audits/pretty-project-portfolio", "graphs/pretty-project-portfolio"]) await api("/api/db/" + p, { method: "DELETE" });
+	});
+
 	test("keeps the page's documents, and tells an open café at once", async () => {
 		const heard = [];
 		const ws = new WebSocket(base.replace("http", "ws") + "/ws", { headers: { Cookie: cookie, Origin: base } });
@@ -588,7 +603,7 @@ describe("the gateway", () => {
 		assert.equal(init.result.serverInfo.name, "catio");
 		const { result } = await rpc(TOKEN, "tools/list", {});
 		assert.deepEqual(result.tools.map((t) => t.name),
-			["house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "decide", "answer"]);
+			["house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "decide", "save_report", "answer"]);
 		const rules = await tool(TOKEN, "house_rules");
 		assert.ok(rules.rules.some((r) => r.id === "ship"));
 		assert.equal((await tool(TOKEN, "nope")).rpcError.code, -32602);

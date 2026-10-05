@@ -316,6 +316,38 @@ def forget(args):
     return {"forgotten": before - len(s["quizzes"])}
 
 
+def _slug(repo):
+    """A repository's slug, as graph_doc.py makes it."""
+    return re.sub(r"[^a-z0-9_-]+", "-", str(repo).split("/")[-1].lower()).strip("-")[:80] or "none"
+
+
+def save_report(args):
+    """A session's opening audit or project map, for its repository's filing cabinet: kept in state.json's docs."""
+    need(args, "kind", "repo")
+    repo, by = str(args["repo"])[:200], str(args.get("by") or "agent")[:200]
+    if args["kind"] == "audit":
+        summary = str(args.get("summary") or "").strip()
+        if not summary:
+            raise ValueError("an audit needs its summary")
+        if len(summary) > 4000:
+            raise ValueError("an audit's summary is 4000 characters at most")
+        doc_id, doc = "audits/" + _slug(repo), {"repo": repo, "at": now(), "by": by, "summary": summary}
+    elif args["kind"] == "map":
+        m = args.get("map")
+        if not isinstance(m, dict):
+            raise ValueError("map is the document graph_doc.py writes")
+        if len(json.dumps(m)) > 256 * 1024:
+            raise ValueError("a project map is 256 KB at most")
+        doc_id, doc = "graphs/" + _slug(repo), dict(m, repo=m.get("repo") or repo, at=m.get("at") or now(), by=m.get("by") or by)
+    else:
+        raise ValueError("kind is audit or map")
+    with LOCK:
+        s = load()
+        s.setdefault("docs", {})[doc_id] = doc
+        store(s)
+    return {"id": doc_id}
+
+
 def answer(args):
     """Charlotte hands homework in: her answers go to the cat, as her words, and to the queen."""
     need(args, "quiz")
@@ -489,6 +521,11 @@ TOOLS = {
              ["title", "questions"]),
     "quizzes": (quizzes, "The homework set for the owner: the open quizzes, oldest first (done: true lists the handed-in ones too; kind lists one kind).",
                 {"done": {"type": "boolean"}, "kind": KIND}, []),
+    "save_report": (save_report, "File what a session found for its repository's filing cabinet in the café: kind audit (its opening audit, "
+                    "summary: the top findings, one line each) or map (its graphify project map, map: the document graph_doc.py writes). "
+                    "Kept as audits/<repo> or graphs/<repo>, one per repository, the newest replacing the last.",
+                    {"kind": {"type": "string", "enum": ["audit", "map"]}, "repo": dict(S, description="owner/repo"), "summary": S,
+                     "map": {"type": "object"}, "by": dict(S, description="Your session or agent id")}, ["kind", "repo"]),
     "forget": (forget, "Clear homework from the house (the queen or the owner): the cards already filed, or litter box notes and decisions no longer waiting, by id. An open unblock quiz stays.", {"quizzes": {"type": "array", "items": S}}, ["quizzes"]),
     "decide": (decide, "A typed decision from a System One model (laya-serve on this computer, or Jev): a state and named questions of type noul "
                "(yes/no: a probability), choice (criteria: {option: meaning}; the option, a probability each and a confidence) or score "

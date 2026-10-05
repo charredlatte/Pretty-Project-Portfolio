@@ -126,6 +126,11 @@ CLAUDE.md says to follow them by hand. A new session gets them.
 
 ## How the Catio talks to a session
 
+**The café is the gateway's** since 5 October 2026 (the claude.ai artifact is retired: `docs/artifact.md`). There,
+what she sends a session waits in the gateway until the session's turn ends, when its Stop hook hands it in, and the
+session answers with `report.py say` ([The gateway](#the-gateway-live-cats-without-asking-claudeai)). What follows
+is how the retired artifact did it, kept because the page still can.
+
 The page calls Claude Code Remote as Charlotte. Everything she sends a session from it (a file dropped on
 its cat, a message, a pause or wrap-up request) is saved in the Catio's database first (`brain/`,
 `notes/`, `sessions/<id>.request`), then tried with `send_message`. claude.ai refuses that call to pages
@@ -230,7 +235,8 @@ instead of grepping. The skill installs the `graphify` command (PyPI `graphifyy`
 
 The Catio shows each map. The `catio` skill's `graph_doc.py` digests `graphify-out/` into a
 `graphs/<repo>` document (counts, the most connected ideas laid out as a map, neighbourhoods, hubs,
-surprising links, suggested questions), and the page draws it in that project's filing cabinet. A
+surprising links, suggested questions), `report.py map` files it in the café through the gateway's `save_report`,
+and the page draws it in that project's filing cabinet. The opening audit goes the same way, `report.py audit`. A
 suggested question is a button: it asks one of the project's cats, which answers from the graph on the cat.
 
 Other agents install the same skill for themselves on her computer, one line each:

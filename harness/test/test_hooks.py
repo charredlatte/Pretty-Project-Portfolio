@@ -504,8 +504,9 @@ class SessionStart(unittest.TestCase):
     def test_prints_the_rules(self):
         r = run("session_start.py", {"hook_event_name": "SessionStart", "source": "startup", "cwd": tempfile.mkdtemp()})
         self.assertEqual(r.returncode, 0)
-        for words in ("KittyChat house rules", "browser-agent-preflight", "ponytail-audit", "[Catio]", "claude.ai/artifact/"):
+        for words in ("KittyChat house rules", "browser-agent-preflight", "ponytail-audit", "[Catio]", "on her gateway"):
             self.assertIn(words, r.stdout)
+        self.assertNotIn("claude.ai/artifact/", r.stdout)   # retired on 5 October: the café is the gateway's
 
     def test_says_when_a_repo_merges(self):
         tmp = Path(tempfile.mkdtemp(), "cafe")

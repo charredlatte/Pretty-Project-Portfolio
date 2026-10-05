@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """SessionStart: tell the session it lives in Charlotte's KittyChat harness, and what the house rules are."""
+import os
 from pathlib import Path
 
 from common import enforced, hook_input, local, merges, repos, rules
@@ -12,7 +13,8 @@ def main():
     lines = [
         "# KittyChat house rules",
         "",
-        "This session is a cat in Charlotte's Catio, her harness: " + r["catio"],
+        "This session is a cat in Charlotte's Catio, her harness: " + r["catio"] + "." + ("" if os.environ.get("CATIO_URL") and os.environ.get("CATIO_TOKEN")
+            else " This environment isn't connected to it (no CATIO_URL and CATIO_TOKEN), so nothing you report reaches her café."),
         "She can drop files on your cat, write to you and manage you from there. Those messages arrive as turns",
         "that start with [Catio]; use the `catio` skill to handle them.",
         "",

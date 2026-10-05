@@ -65,6 +65,13 @@ export const TOOLS = [
 			floor: { type: "number", description: "For the log: the confidence under which you would not act on the answer (it then neither agrees nor disagrees with old)" },
 			ref: said("For the log: what was decided about (the page's brain id), to check the decision against what happened") },
 		["state"]),
+	tool("save_report",
+		"File what a session found for its repository's filing cabinet in the café: kind audit (its opening audit, summary: the " +
+		"top findings, one line each) or map (its graphify project map, map: the document graph_doc.py writes). Kept as " +
+		"audits/<repo> or graphs/<repo>, one per repository, the newest replacing the last.",
+		{ kind: { type: "string", enum: ["audit", "map"] }, repo: said("owner/repo"), summary: S, map: { type: "object" },
+			by: said("Your session or agent id") },
+		["kind", "repo"]),
 	tool("answer", "Hand homework in (the owner only): one answer per question, in order. An unblock quiz's answers reach the cat, as the owner's words, and the queen; a litterbox or decision card's are only kept, for filing.",
 		{ quiz: S, answers: { type: "array", items: S } }, ["quiz", "answers"]),
 ];

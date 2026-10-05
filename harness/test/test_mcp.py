@@ -45,7 +45,7 @@ class Stdio(unittest.TestCase):
         self.assertEqual(init["result"]["serverInfo"]["name"], "catio")
         self.rpc("notifications/initialized", notify=True)
         names = {t["name"] for t in self.rpc("tools/list")["result"]["tools"]}
-        self.assertEqual(names, {"house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "answer", "decide"})
+        self.assertEqual(names, {"house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "answer", "decide", "save_report"})
         self.assertIn("preflight", [r["id"] for r in self.tool("house_rules")["rules"]])
 
         # an agent joins, with a wake command that records what it was woken with
@@ -137,6 +137,16 @@ class Stdio(unittest.TestCase):
         self.assertEqual([n["author"] for n in self.tool("comments", cat="codex-shop")["notes"]], ["owner"])
         self.tool("comment", cat="codex-shop", text="Still me.", author="charlotte")
         self.assertEqual([n["author"] for n in self.tool("comments", cat="codex-shop")["notes"]], ["owner", "owner"])
+
+    def test_files_an_audit_and_a_map_as_the_gateway_does(self):
+        repo = "charredlatte/Pretty-Project-Portfolio"
+        self.assertEqual(self.tool("save_report", kind="audit", repo=repo, summary="delete: dead code", by="s1"), {"id": "audits/pretty-project-portfolio"})
+        self.assertEqual(self.tool("save_report", kind="map", repo=repo, map={"title": "x"}, by="s1"), {"id": "graphs/pretty-project-portfolio"})
+        docs = json.loads(Path(self.home, "state.json").read_text())["docs"]
+        self.assertEqual(docs["audits/pretty-project-portfolio"]["summary"], "delete: dead code")
+        self.assertEqual((docs["graphs/pretty-project-portfolio"]["title"], docs["graphs/pretty-project-portfolio"]["repo"]), ("x", repo))
+        r = self.rpc("tools/call", {"name": "save_report", "arguments": {"kind": "audit", "repo": repo}})["result"]
+        self.assertTrue(r.get("isError")); self.assertIn("needs its summary", r["content"][0]["text"])
 
     def test_decide_refuses_without_a_decider(self):
         r = self.rpc("tools/call", {"name": "decide", "arguments": {"state": "run the tests", "preset": "easy"}})["result"]

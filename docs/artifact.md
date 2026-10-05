@@ -5,14 +5,12 @@ retired it: "I honestly don't care about the artifact. It doesn't function the w
 don't use it." The café she uses is the gateway's (CLAUDE.md, "Where the café lives"). The artifact's copy of the page
 stopped at the 4 October version, and its database is apart from the gateway's.
 
-Nothing here is current work. **Don't republish it, and don't offer to**, unless she asks. It is kept for two things
-until the gateway can do them:
+Nothing here is current work. **Don't republish it, and don't offer to**, unless she asks. It is kept for one
+thing the gateway can't do yet:
 
 - **The licensed art, in a cloud session.** `art/licensed/` is gitignored, and the artifact's published files are the
   one copy a session can read back (`Artifact` read with `path: "art/licensed/<file>"`; the files are listed under
   "Republishing" below). The gateway serves the same art at `/art/*`, but only to her, signed in.
-- **What the house rules save.** Until the harness reports to the gateway instead, the `catio` skill writes a session's
-  audit, project map and replies into the artifact's database with `ArtifactData`, where she doesn't look.
 
 The page keeps its claude.ai paths (claude.ai's own `window.claude`, Claude Code Remote through the `mcp` capability, the
 saved copy of `list_sessions`). The gateway's `cafe/runtime.js` stands in for the same `window.claude`, and the test

@@ -1,6 +1,6 @@
 {
   "_comment": "The KittyChat house rules. Hooks read the enforced ones from here; the Catio page shows all of them, and its switches turn the soft ones on and off. A repo can switch an enforced rule off for itself in .claude/catio-rules.json, e.g. {\"opening_audit\": false}.",
-  "catio": "https://claude.ai/artifact/KHiWnmr2e3iYHGXiUX8yDe",
+  "catio": "the KittyChat Café on her gateway (CATIO_URL in a session's environment; the claude.ai artifact is retired)",
   "rules": [
     {
       "id": "preflight",
@@ -69,7 +69,7 @@
     {
       "id": "reply_on_the_cat",
       "title": "Answer on the cat",
-      "text": "Reply to a Catio message by adding a notes document for your cat (author \"session\"), so the answer shows in the cat's conversation on the page. Mark delivered files as picked up.",
+      "text": "Reply to a Catio message on your cat, so the answer shows in its conversation in her café: report.py say, as the message itself says (or the gateway's comment tool, author \"session\").",
       "enforced": false,
       "on": true
     },

@@ -38,7 +38,7 @@ class Gateway(BaseHTTPRequestHandler):
             name, args = msg["params"]["name"], msg["params"]["arguments"]
             s.calls.append((name, args))
             out = {"report_status": {"ok": True, "waiting": EMPTY}, "comment": {"id": "n1", "woke": False},
-                   "inbox": s.box, "pick_up": s.file}[name]
+                   "inbox": s.box, "pick_up": s.file, "save_report": {"id": "graphs/some-repo"}}[name]
             replies.append({"jsonrpc": "2.0", "id": msg["id"], "result": {"content": [{"type": "text", "text": json.dumps(out)}],
                                                                            "structuredContent": out}})
         data = json.dumps(replies if isinstance(body, list) else replies[0]).encode()
@@ -163,6 +163,24 @@ class Report(unittest.TestCase):
         self.assertEqual(path, Path(self.tmp, "catio", "evil_name.md"))
         self.assertEqual(path.read_bytes(), b"# hi\n")
         self.assertEqual(self.srv.calls, [("pick_up", {"id": "f1", "agent": "session_01Abc"})])
+
+    def test_audit_and_map_file_under_this_repository(self):
+        r = subprocess.run([sys.executable, str(REPORT), "audit", "delete:", "dead code."], capture_output=True, text=True, env=self.env(), cwd=self.repo)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        Path(self.repo, "graphify-out").mkdir()
+        Path(self.repo, "graphify-out", "catio-graph.json").write_text(json.dumps({"title": "Some-Repo", "hubs": []}))
+        r = subprocess.run([sys.executable, str(REPORT), "map"], capture_output=True, text=True, env=self.env(), cwd=self.repo)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("graphs/some-repo", r.stdout)
+        self.assertEqual(self.srv.calls, [
+            ("save_report", {"kind": "audit", "repo": "charredlatte/Some-Repo", "summary": "delete: dead code.", "by": "session_01Abc"}),
+            ("save_report", {"kind": "map", "repo": "charredlatte/Some-Repo", "map": {"title": "Some-Repo", "hubs": []}, "by": "session_01Abc"})])
+
+    def test_map_says_where_it_looked(self):
+        r = subprocess.run([sys.executable, str(REPORT), "map", "nowhere.json"], capture_output=True, text=True, env=self.env(), cwd=self.repo)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("No project map at nowhere.json", r.stderr)
+        self.assertEqual(self.srv.calls, [])
 
     def test_commands_say_why_without_the_gateway(self):
         r = subprocess.run([sys.executable, str(REPORT), "say", "hi"], capture_output=True, text=True, env=self.env(CATIO_TOKEN=None))

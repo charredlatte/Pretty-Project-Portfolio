@@ -12,7 +12,8 @@ is on `main`. There is nothing to publish, and a page change is done when it is 
 
 **The claude.ai artifact is retired** (`docs/artifact.md`, which also lists what the gateway café can't do yet): never
 republish it, or offer to, unless she asks. It still holds the one copy of the licensed art a cloud session can read
-back (below), and, until the harness reports audits and project maps to the gateway, what the house rules save.
+back (below). Sessions file their audit and project map in the gateway café (`report.py audit` and `map`, the `catio`
+skill), never in the artifact's database.
 
 `art/licensed/` is not in git (licences below). In a fresh session, get it back one of two ways:
 
@@ -437,7 +438,9 @@ database, its files and the gateway's tools (the last bullet); the parts below t
   claude.ai session (`fromGateway()`: the ids match after their prefix, `cse_…` there, `session_…` in the list),
   wearing the gateway's mood when it is newer; what she writes or drops on it goes through the gateway, not the
   outbox, and its replies there show in its conversation. Breeds: the model, in the cat's card.
-- `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet.
+- `audits/<repo slug>` `{repo, at, by, summary}` and `graphs/<repo slug>` show in the filing cabinet. Sessions file
+  them through the gateway's `save_report` (`report.py audit` and `map`), the one tool that writes the café's
+  documents for an agent: each repository keeps only the newest of each, and the café shows them, never acts on them.
 
 ### The gateway
 
@@ -452,7 +455,8 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
   queen's is a registry key with the role `queen`, kept in step with the secret at every start.
 - **Only she speaks as herself, and only her runner as the queen.** OAuth (her password, through the `Catio`
   connector in claude.ai) may write as `owner`, drop files and manage; the queen's key writes as `queen`,
-  tells cats and manages them for her; the agents' key may do neither. Keep it that way: it is what stops a
+  tells cats and manages them for her; the agents' key may do neither (it may file a repository's audit and map,
+  `save_report`, which the café only shows). Keep it that way: it is what stops a
   leaked key from putting instructions in her mouth, or in her assistant's, which the cats act on.
 - **The queen's routes:** `POST /api/runner/wait` (held up to 25 s: her notes, a routine due, a stop, her
   character) and `POST /api/runner/say` (a turn as it streams; `done` stores her note), the queen's key only.
