@@ -25,7 +25,7 @@ from pathlib import Path
 from common import ROOT, enforced, entries, local, once, rules
 
 SPAWN = ("Task", "Agent")   # the sub agent tool: Agent in this build, Task in older ones
-FRONT_MODEL = re.compile(r"^model:\s*([^\s#]+)\s*$", re.M)
+FRONT_MODEL = re.compile(r"^model:[ \t]*([^\s#]+)[ \t]*(?:#.*)?$", re.M)
 
 
 def tier_of(model, ladder):
@@ -47,6 +47,8 @@ def unusable(t):
     """Why this tiers block can't be acted on, or None. A rule that can't read its settings says so."""
     if not isinstance(t.get("ladder"), list) or not all(isinstance(x, str) and x for x in t["ladder"]):
         return "its ladder is not a list of tiers"
+    if not isinstance(t.get("costly", []), list) or not all(isinstance(x, str) for x in t.get("costly", [])):
+        return "its costly is not a list of tiers"
     ceiling = t.get("ceiling")
     if ceiling is None:
         return None
@@ -58,10 +60,12 @@ def unusable(t):
 
 
 def on_now(data, ladder):
-    """The tier the session is on now: the last model that answered, not the dearest it ever used, because a
-    session switched down with /model hands its sub agents the model it is on."""
+    """The tier whatever is spawning is on now: the last model that answered, not the dearest it ever used,
+    because a session switched down with /model hands its sub agents the model it is on. Inside a sub agent only
+    its own transcript counts, since that is the model its own spawns would inherit."""
+    look = {"agent_transcript_path": data.get("agent_transcript_path")} if data.get("agent_type") else data
     last = None
-    for e in entries(data, '"model"'):
+    for e in entries(look, '"model"'):
         if e.get("type") == "assistant" and not e.get("isSidechain"):
             rung = tier_of((e.get("message") or {}).get("model"), ladder)
             if rung:
@@ -71,41 +75,47 @@ def on_now(data, ladder):
 
 def pinned(agent_type, cwd):
     """(the model this agent's definition pins, was there a definition at all). The first file that exists wins,
-    shadowing the ones below it, whether or not it names a model - which is how Claude Code resolves it."""
+    shadowing the ones below it, whether or not it names a model - which is how Claude Code resolves it. Only a
+    real frontmatter block is read: a `model:` line in the prose below it is not a pin."""
     name = str(agent_type or "").split(":")[-1].strip()
     if not name or not re.fullmatch(r"[\w.-]+", name):
         return None, False
     for folder in (Path(cwd or ".") / ".claude" / "agents", Path.home() / ".claude" / "agents", ROOT / "agents"):
         try:
-            head = (folder / (name + ".md")).read_text(encoding="utf-8")[:2000]
+            text = (folder / (name + ".md")).read_text(encoding="utf-8")
         except OSError:
             continue
-        found = FRONT_MODEL.search(head.split("---")[1] if head.startswith("---") and "---" in head[3:] else head)
+        if not text.startswith("---") or "\n---" not in text[3:]:
+            return None, True            # a file with no readable header pins nothing; its prose is not a pin
+        found = FRONT_MODEL.search(text[3:text.index("\n---", 3)])
         return (found.group(1) if found else None), True
     return None, False
 
 
 def will_run_on(data, args, cwd, ladder):
-    """(tier, where it came from): the tier this spawn really runs on, in Claude Code's own resolution order."""
+    """(tier, where it came from): the tier this spawn really runs on, in Claude Code's own resolution order.
+    A name the ladder doesn't know - "inherit", the value that means the conversation's own model - is not an
+    answer, so the walk carries on rather than giving up and letting the spawn through."""
     forced = tier_of(os.environ.get("CLAUDE_CODE_SUBAGENT_MODEL_FORCE"), ladder)
     if forced:
         return forced, "the forced environment default"
-    if args.get("model"):
-        return tier_of(args["model"], ladder), "the call"
-    model, has_file = pinned(args.get("subagent_type"), cwd)
-    if has_file and model:
-        return tier_of(model, ladder), "its agent file"
-    if not has_file:
-        env = tier_of(os.environ.get("CLAUDE_CODE_SUBAGENT_MODEL"), ladder)
-        if env:
-            return env, "the environment default"
+    named = tier_of(args.get("model"), ladder)
+    if named:
+        return named, "the call"
+    model, _ = pinned(args.get("subagent_type"), cwd)
+    rung = tier_of(model, ladder)
+    if rung:
+        return rung, "its agent file"
+    env = tier_of(os.environ.get("CLAUDE_CODE_SUBAGENT_MODEL"), ladder)
+    if env:
+        return env, "the environment default"
     return on_now(data, ladder), "the session"
 
 
 def check(data, tool, args, cwd):
     """(refusal, nudge): what to refuse this spawn with, and what to say about it. Either may be None."""
-    if tool not in SPAWN or data.get("agent_type") or not enforced("right_sized", cwd):
-        return None, None   # a sub agent's own spawn reads its parent's transcript, so leave it be
+    if tool not in SPAWN or not enforced("right_sized", cwd):
+        return None, None
     t = tiers(cwd)
     wrong = unusable(t)
     if wrong:
@@ -119,6 +129,8 @@ def check(data, tool, args, cwd):
 
     ladder = t["ladder"]
     cap = tier_of(t.get("ceiling"), ladder)
+    if not cap and not once(data.get("session_id"), "inherit", "tier", peek=True):
+        return None, None   # nothing to enforce and the one line already said: don't read the transcript again
     spawn, source = will_run_on(data, args, cwd, ladder)
 
     if cap:

@@ -39,7 +39,7 @@ def once(session, kind, prefix="delegate", peek=False):
     try:
         mark.touch()
     except OSError:
-        return False   # can't remember it was said, so say nothing rather than say it every time
+        pass           # can't remember it was said; say it anyway rather than lose it
     return True
 
 
