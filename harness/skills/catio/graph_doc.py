@@ -114,6 +114,9 @@ def build(out, by=""):
 
 
 def main(argv):
+    # The doc keeps its non-ASCII (ensure_ascii=False), and graph reports carry arrows, so stdout
+    # must not fall back to the console's codepage: cp1252 cannot encode them and the run dies.
+    sys.stdout.reconfigure(encoding="utf-8")
     by = argv[argv.index("--by") + 1] if "--by" in argv else ""
     rest = [a for i, a in enumerate(argv) if a != "--by" and (i == 0 or argv[i - 1] != "--by")]
     out = Path(rest[0] if rest else "graphify-out")

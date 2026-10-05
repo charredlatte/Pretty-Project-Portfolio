@@ -98,6 +98,11 @@ class Queen(unittest.TestCase):
         fake.parent.mkdir()
         fake.write_text(FAKE_CLAUDE.replace("#!/usr/bin/env python3", "#!" + sys.executable, 1), encoding="utf-8")
         fake.chmod(0o755)
+        if os.name == "nt":
+            # Windows has no shebang and ignores chmod, and shutil.which only matches names in
+            # PATHEXT, so the extensionless stub above is invisible to the runner: it would find a
+            # real claude on the PATH instead and the test would measure that.
+            (fake.parent / "claude.cmd").write_text(f'@"{sys.executable}" "{fake}" %*\n', encoding="utf-8")
         self.log = self.tmp / "claude.log"
         self.proc = None
 
@@ -191,6 +196,8 @@ class Queen(unittest.TestCase):
         self.assertNotIn("steps", says[-1], "a finished turn has no steps to show")
         self.assertEqual(says[-1]["text"], "Good morrow, my lady. Two cats need thee.")
 
+    @unittest.skipIf(os.name == "nt", "Ctrl+Break can't be sent from this test, as the module docstring says; "
+                                      "queen.py does send it on Windows (runner/queen.py, stop)")
     def test_a_stop_ends_the_turn_in_progress_and_keeps_what_she_said(self):
         self.srv.jobs.put({"notes": [{"id": "n1", "cat": "queen", "author": "owner", "text": "Tell me slowly.", "at": 1}]})
         self.start()
