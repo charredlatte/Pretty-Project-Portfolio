@@ -30,7 +30,7 @@ agent becomes a cat in the café like any other session.
          "command": "python",
          "args": ["C:\\Users\\<you>\\path\\to\\Pretty-Project-Portfolio\\harness\\mcp\\catio_bridge.py"],
          "env": {
-           "CATIO_URL": "https://dog-den.<your subdomain>.workers.dev",
+           "CATIO_URL": "https://<your Worker>.<your subdomain>.workers.dev",
            "CATIO_TOKEN": "<the key from step 1>"
          }
        }

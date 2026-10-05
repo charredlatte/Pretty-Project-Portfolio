@@ -254,7 +254,20 @@ straight away. For example, `["codex", "exec", "resume", "{session}", "{message}
 `["gemini", "-p", "{message}"]`. The placeholders are whole arguments and no shell is involved. Otherwise
 it finds them in its `inbox`.
 
-Add it to each client as a stdio server (use the path to your copy of this repo):
+**Which server, for which café.** `catio_mcp.py` keeps its cats on the computer it runs on: right for the localhost
+café and the Claude desktop app, but a café on a gateway never sees them (the first player's Antigravity, 5 October).
+With a gateway, an agent reports to the gateway instead, with one of your agents' keys (`gateway/README.md`, "A key"):
+
+- a client that takes an address and a header, such as Gemini CLI (`"httpUrl"` and `"headers"` in
+  `~/.gemini/settings.json`) or Claude Code (`claude mcp add --transport http catio <gateway>/mcp --header
+  "Authorization: Bearer <key>"`), goes straight to `<gateway>/mcp`;
+- a client that only starts local programs, such as Antigravity, runs `mcp/catio_bridge.py` with `CATIO_URL` and
+  `CATIO_TOKEN` in its environment: it passes every message on to the gateway (standard library only). The steps and
+  the agent's rules are in [`antigravity/README.md`](antigravity/README.md).
+
+On Windows, write `python` where these say `python3`.
+
+With no gateway, add `catio_mcp.py` to each client as a stdio server (use the path to your copy of this repo):
 
 - **Codex** (`~/.codex/config.toml`):
   ```toml
