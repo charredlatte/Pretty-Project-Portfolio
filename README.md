@@ -65,6 +65,8 @@ to click or type and how you know it worked. The parts after the windshield are 
 have a café that shows your sessions; add the desk, the seatbelts and the driver when you want live cats, house rules
 and Ninine.
 
+The current cafe framework uses Claude Code to run the queen; other models (Grokbot, Codex, etc.) will be made available very soon. 
+
 **Before you start, you need:**
 
 - a **Claude** account on a plan that includes Claude Code (Pro or Max), signed in at claude.ai;
