@@ -1,25 +1,5 @@
 """The right_sized rule: a sub agent costs what its model costs, so a spawn says which tier it needs.
 
-The hook enforces one thing, on the one fact it can actually see: the model the call names.
-
-- **Her cap refuses.** Where Charlotte has capped a repo's sub agents (`tiers.ceiling` in its
-  `.claude/catio-rules.json`), every spawn there names its model on the call, at or below her cap. A spawn
-  that names none is refused too, because an unnamed one runs on whatever the session is on - which is how an
-  errand ends up costing Opus, and is the whole reason for the cap.
-- **A costly inheritance speaks.** With no cap, a spawn that names no model gets one line a session saying
-  which model it is about to inherit.
-
-What the hook deliberately does not do is work out the tier an unnamed spawn would resolve to. Claude Code
-resolves that from two environment variables, the agent's own file and the session's model, and guessing at
-another program's internals from a hook is wrong in both directions: it waves spawns past her cap when it
-guesses low and refuses cheap ones when it guesses high. Naming the model is the thing the session can always
-do, and it is what every refusal here asks for.
-
-Whether a *task* is easy enough for a small model is not decided here either. That is the `decide` tool's
-`easy` preset, the six-question rubric of docs/delegation.md, answered by a decision model in milliseconds.
-
-Nothing here switches the session's own model: the tier is chosen for the work being spawned, because
-switching the conversation mid-way throws its prompt cache away and costs more than the routing saves.
 Delegate first (Charlotte, 5 October: "Always run the delegation before assigning anything to anyone"). Nothing is
 assigned without its tier chosen for the work: an Agent spawn, every agent() call in a Workflow script, and a new
 session (create_session) each name a model, or the harness refuses them and says how to choose. A fork is the one
@@ -38,12 +18,11 @@ own model mid-way throws its prompt cache away and costs more than the routing s
 
 Nothing under a held path, nothing private and nothing needing a browser is ever sent down a tier.
 """
-import difflib
+import os
+import re
+import tempfile
+from pathlib import Path
 
-from common import answered, enforced, local, said, say, rules
-
-SPAWN = ("Task", "Agent")   # the sub agent tool: Agent in this build, Task in older ones
-KEYS = ("ceiling", "ladder", "worth_a_word")
 from common import ROOT, enforced, local, rules
 
 SPAWN = ("Task", "Agent")   # the sub agent tool: Agent in this build, Task in older ones
@@ -84,7 +63,6 @@ def hers(cwd):
 def tier_of(model, ladder):
     """The rung a model id sits on, or None: any part of the id matches, as the merging rule matches strong."""
     m = str(model or "").lower()
-    return next((t for t in ladder if str(t).lower() in m), None)
     return next((t for t in ladder if t in m), None)
 
 
@@ -130,61 +108,39 @@ def pinned(agent_type, cwd):
     return None
 
 
-def tiers(cwd):
-    """The ladder and the ceiling here: the house's, with the repo's own word laid over it."""
-    out = dict(rules().get("tiers") or {})
-    mine = local(cwd).get("tiers")
-    if isinstance(mine, dict):
-        out.update({k: v for k, v in mine.items() if k in KEYS})
-    return out
+def held(cwd):
+    """The paths whose change always waits for her: the merging rule's, plus this repo's own."""
+    return list(rules().get("merging", {}).get("hold") or []) + list(local(cwd).get("hold") or [])
 
 
-def house_ok(t):
-    """The house's own ladder, which the rule can do nothing without."""
-    return isinstance(t.get("ladder"), list) and bool(t["ladder"]) \
-        and all(isinstance(x, str) and x for x in t["ladder"])
-
-
-def misread(cwd, t):
-    """Why what Charlotte wrote here can't be acted on, or None. A rule that can't read her settings says so
-    rather than going quiet; a key it doesn't know (a comment of hers, say) is simply not one of its settings."""
-    raw = local(cwd)
-    near_block = [k for k in raw if k != "tiers" and difflib.get_close_matches(str(k), ("tiers",), 1, 0.85)]
-    if near_block and "tiers" not in raw:
-        return "its %s is not one of my settings (did she mean tiers?)" % ", ".join(sorted(map(str, near_block)))
-    mine = raw.get("tiers")
-    if "tiers" not in raw and "ceiling" not in raw:
-        return None                      # she has said nothing here, so there is nothing of hers to report
-    if not isinstance(mine, dict) and "tiers" in raw:
-        return "its tiers is not an object"
-    if not house_ok(t):
-        return ("its ladder is not a list of tiers" if isinstance(mine, dict) and "ladder" in mine
-                else "the house's own ladder is not a list of tiers")
-    if "ceiling" in raw and "ceiling" not in (mine or {}):
-        return "its ceiling sits outside the tiers block"
-    if isinstance(mine, dict) and "ceiling" not in mine:
-        near = [k for k in mine if k not in KEYS and difflib.get_close_matches(str(k), KEYS, 1, 0.8)]
-        if near:
-            return "its %s is not one of my settings (did she mean %s?)" % (
-                ", ".join(sorted(map(str, near))), difflib.get_close_matches(str(near[0]), KEYS, 1, 0.8)[0])
-        if not set(mine) & set(KEYS):
-            return "nothing in its tiers block is one of my settings"
-    if isinstance(mine, dict) and "ceiling" in mine:
-        ceiling = mine["ceiling"]
-        if not isinstance(ceiling, str) or not ceiling.strip():
-            return "its ceiling is not the name of a tier"
-        if not tier_of(ceiling, t.get("ladder") or []):
-            return "its ceiling %r is not one of %s" % (ceiling, ", ".join(map(str, t.get("ladder") or [])))
+def never_down(prompt, cwd):
+    """Why this work must keep whatever model it was given, or None."""
+    for path in held(cwd):
+        if path.strip("/") and re.search(r"(^|[\s\"'`(/])" + re.escape(path.strip("/")) + r"[/\s\"'`)]", prompt):
+            return "it names %s, whose changes always wait for her" % path
+    if PRIVATE.search(prompt):
+        return "it reads as one of her private matters"
+    if BROWSER.search(prompt):
+        return "it needs a browser, which the preflight rule governs"
     return None
 
 
-def on_now(data, ladder):
-    """The tier the session is on now: the last model that answered. Only the line about what an unnamed spawn
-    inherits needs this, never a refusal."""
-    inside = bool(data.get("agent_type"))
-    found = answered(data, ("agent_transcript_path",) if inside else ("transcript_path",), sidechain=inside)
-    rungs = [t for t in (tier_of(m, ladder) for m in found) if t]
-    return rungs[-1] if rungs else None
+def errand(prompt):
+    """Does this read as an errand: short, an everyday verb, and nothing asking for judgement?"""
+    text = prompt.strip()
+    return bool(text) and len(text) <= 240 and not WORK.search(text) and bool(CHORE.search(text))
+
+
+def once(session, kind):
+    """True the first time this session is told something of this kind."""
+    mark = Path(tempfile.gettempdir()) / "catio-tier-{}-{}".format(re.sub(r"\W", "", str(session or "")), kind)
+    if mark.exists():
+        return False
+    try:
+        mark.touch()
+    except OSError:
+        pass
+    return True
 
 
 def delegate_first(what, ladder, why=None):
@@ -423,14 +379,6 @@ def check(data, tool, args, cwd):
     workflow, session = tool == WORKFLOW, bool(NEW_SESSION.search(tool))
     if not (tool in SPAWN or workflow or session) or not enforced("right_sized", cwd):
         return None, None
-    sid, t = data.get("session_id"), tiers(cwd)
-    wrong = misread(cwd, t) or (None if house_ok(t) else "the house's own ladder is not a list of tiers")
-    if wrong:
-        if not said(sid, "badcap", "tier", cwd):
-            say(sid, "badcap", "tier", cwd)
-            return None, ("House rule (KittyChat), spend what the task is worth: this repo caps its sub agents, but "
-                          "%s, so the cap is doing nothing. Tell Charlotte, and spawn at the tier the work needs "
-                          "meanwhile." % wrong)
     t = tiers(cwd)
     ladder = list(t.get("ladder") or [])
     ceiling = tier_of(t.get("errand"), ladder)
@@ -452,9 +400,6 @@ def check(data, tool, args, cwd):
     if str(args.get("subagent_type") or "") == "fork":
         return None, None   # a fork is the parent by design: its model can't be chosen
 
-    ladder = t["ladder"]
-    cap = tier_of(t.get("ceiling"), ladder)
-    named = args.get("model")
     prompt = " ".join(str(args.get(k) or "") for k in ("prompt", "description"))
     keep = never_down(prompt, cwd)
     spawn = tier_of(args.get("model"), ladder) or tier_of(pinned(args.get("subagent_type"), cwd), ladder)
@@ -465,32 +410,17 @@ def check(data, tool, args, cwd):
     if keep or not ceiling:
         return None, None
 
-    if cap:
-        at_most = "model %s or below (%s)" % (cap, ", ".join(ladder[:ladder.index(cap) + 1]))
-        if not named:
-            return ("House rule (KittyChat), spend what the task is worth: Charlotte capped this repo's sub agents "
-                    "at %s, and this spawn names no model, so it would run on whatever this session is on. Name it "
-                    "on the call: %s." % (cap, at_most)), None
-        rung = tier_of(named, ladder)
-        if not rung:
-            return ("House rule (KittyChat), spend what the task is worth: Charlotte capped this repo's sub agents "
-                    "at %s, and %r is not one of %s, so what it would cost can't be told from here. Name one: %s."
-                    % (cap, str(named), ", ".join(ladder), at_most)), None
-        if ladder.index(rung) > ladder.index(cap):
-            return ("House rule (KittyChat), spend what the task is worth: Charlotte capped this repo's sub agents "
-                    "at %s, and this one names %s. Spawn it with %s. If this really needs more, say so to her and "
-                    "she will raise the cap in .claude/catio-rules.json." % (cap, rung, at_most)), None
+    if not errand(prompt) or ladder.index(spawn) <= ladder.index(ceiling):
         return None, None
-
-    if not tier_of(named, ladder) and not said(sid, "inherit", "tier", cwd):
-        spawn = on_now(data, ladder)
-        say(sid, "inherit", "tier", cwd)   # the transcript has been read: don't read it again for this repo
-        worth = [str(c).lower() for c in (t.get("worth_a_word") or [])]
-        if spawn and spawn.lower() in worth:
-            return None, ("House rule (KittyChat), spend what the task is worth: this spawn names no model, so it "
-                          "runs on %s, the model this session is on, and makes its own requests there. Name the tier "
-                          "it needs on the call: %s, cheapest first. The scout and the tester are Haiku already. "
-                          "When she says what this repo's sub agents should cost, write it into "
-                          ".claude/catio-rules.json as {\"tiers\": {\"ceiling\": \"<tier>\"}} so the next session "
-                          "starts from her decision." % (spawn, ", ".join(ladder)))
+    if hers(cwd):
+        return ("House rule (KittyChat), spend what the task is worth: Charlotte set this repo's ceiling for an "
+                "errand at %s, and this reads as one. Spawn it on %s or below. If it is really not an errand, say "
+                "so to her and she will raise the ceiling in .claude/catio-rules.json."
+                % (ceiling, ceiling)), None
+    if once(data.get("session_id"), "errand"):
+        return None, ("House rule (KittyChat), spend what the task is worth: this reads as an errand (spelled out, "
+                      "checkable, small) and it is spawned on %s. %s or below does it. Carry on if it is more than "
+                      "it looks; if she tells you the ceiling for this repo, write it into .claude/catio-rules.json "
+                      "as {\"tiers\": {\"errand\": \"<tier>\"}} so the next session starts from her decision."
+                      % (spawn, ceiling.capitalize()))
     return None, None
