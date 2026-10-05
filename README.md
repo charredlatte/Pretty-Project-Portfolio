@@ -115,7 +115,8 @@ static server on your own computer ([On your own computer](#on-your-own-computer
 
 **What is still Charlotte's.** The page and the harness were built for one café first, and a few of her values
 are written into them: her café's link, her GitHub name, her install lines. [`docs/self-hosting.md`](docs/self-hosting.md)
-lists each one and what to set it to in your fork. Do that before step 5, because the house rules read them.
+lists each one and what to set it to in your fork. Change them **before you publish** in this step, because the
+page carries them, and the house rules of step 5 read them.
 
 ### Step 4: the dashboard. The front desk on Cloudflare
 
@@ -130,7 +131,8 @@ screenshots' worth of detail, are in [`harness/gateway/README.md`](harness/gatew
    again. The handle is a plain variable (type Text) called `CATIO_HANDLE`: the name you will sign in with, 2 to
    31 lower-case letters, digits or dashes. The secrets are `CATIO_TOKEN` (a long random string: the key your cats
    check in with), `CATIO_PASSWORD` (your own sign-in, 16 characters or more) and `CATIO_QUEEN` (another long
-   random string: the driver's key). Keep the three secrets in your password manager and nowhere else. **Add the
+   random string: the driver's key). Keep the three secrets in your password manager, and give them out only as the steps below say: the cats' key
+   to your sessions (step 5), the driver's key to your own computer (step 6), the password to nobody. **Add the
    handle with the password, not after:** the very first request that reaches the Worker with `CATIO_PASSWORD`
    set makes the first account, even just opening its address in a browser, and names it `CATIO_HANDLE` or, if
    that isn't there yet, `charlotte`, for good.
