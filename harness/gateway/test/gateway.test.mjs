@@ -611,6 +611,18 @@ describe("the queen", () => {
 		assert.deepEqual((await tool(her, "quizzes", { done: true })).quizzes.filter((z) => z.kind !== "unblock" && z.kind), []);
 	});
 
+	test("counts her homework in the runner's wait, so her runner can say it on Charlotte's own desktop", async () => {
+		// a word to her brings the wait back at once, instead of its full 25 seconds
+		const now = async () => { await tool(her, "comment", { cat: "queen", text: "." }); return (await wait()).homework; };
+		const before = await now();
+		assert.equal(typeof before, "object", "the counts come with every wait, however few");
+		await tool(her, "quiz", { kind: "litterbox", ref: "where-does-this-go", title: "Where does this go?", note: "One note to sort",
+			questions: [{ q: "Which project?", options: ["kittychat", "Settled: drop it"] }] });
+		const after = await now();
+		assert.equal(after.litterbox || 0, (before.litterbox || 0) + 1, "one more note to sort");
+		assert.ok(Object.values(after).every((n) => Number.isInteger(n) && n > 0), "counts by kind, and nothing else");
+	});
+
 	test("brings a design tokens file into her look and gives it back, for a session with the Figma connector", async () => {
 		const FIX = join(HERE, "../test/fixtures/");
 		const figma = JSON.parse(readFileSync(FIX + "tokens-figma.json", "utf8")), want = JSON.parse(readFileSync(FIX + "tokens-figma.expected.json", "utf8"));

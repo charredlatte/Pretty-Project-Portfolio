@@ -28,10 +28,11 @@ Publish `catio/index.html` with:
 `art/licensed/` is not in git (licences below). In a fresh session, get it back one of two ways:
 
 1. `Artifact` read with `path: "art/licensed/<file>"` on the published URL, for each file; or
-2. get the ten zips from her Drive folder "KittyChat Cafe Assets" (or ask her for them) and run
-   `python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip "Top down garden castle.zip" "Wood Garden Asset Pack.zip" "Pixel Art Top Down - Basic v1.2.3.zip" "Sprout Lands - UI Pack - Basic pack.zip" plants.zip "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip" Game_UI_Pack_Pastel.zip`
-   (needs `pip install pillow fonttools`; the order matters, not the names). Given only the Sprout Lands zip, it rebuilds just the
-   interface.
+2. get the ten zips from her Drive folder "KittyChat Cafe Assets" (or ask her for them), put them in one
+   folder and run `python3 catio/tools/build-art.py <that folder>` (needs `pip install pillow fonttools`).
+   Neither their names nor their order matters: each zip is recognised by a file only that pack has
+   (`SIGNATURE` in `build-art.py`), and it prints what it took for what before it draws anything — read
+   those lines once. Given only the Sprout Lands zip, it rebuilds just the interface.
 
 ## Licences: what may be committed
 
@@ -477,7 +478,11 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
   tells cats and manages them for her; the agents' key may do neither. Keep it that way: it is what stops a
   leaked key from putting instructions in her mouth, or in her assistant's, which the cats act on.
 - **The queen's routes:** `POST /api/runner/wait` (held up to 25 s: her notes, a routine due, a stop, her
-  character) and `POST /api/runner/say` (a turn as it streams; `done` stores her note), the queen's key only.
+  character, and `homework`, the open quizzes counted by kind) and `POST /api/runner/say` (a turn as it streams;
+  `done` stores her note), the queen's key only. When a kind of homework grows, the runner says the lot on
+  Charlotte's own desktop with whatever the computer has (`notify-send`, `osascript`, a PowerShell balloon;
+  `CATIO_NOTIFY` replaces it, empty turns it off): the quest log stays in the café, this only says it has
+  something new. The words are the runner's own, built from counts, never a document's text.
   Routines are `routines/<id>` documents; the House's alarm wakes a waiting runner when one comes due, and a
   missed one runs once when the runner is back, and one her runner never finished goes out once more after ten minutes. `list_agents` gives each cat its `said`; `inbox` hands a cat
   what Charlotte and the queen say (`[Catio] The queen says: …` in the hook).
