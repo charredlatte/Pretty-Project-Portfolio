@@ -3,20 +3,20 @@
   "name": "Catio",
   "blurb": "This page and the portfolio",
   "repos": [
-   "Pretty-Project-Portfolio"
+   "omni pipeline"
   ],
   "catchAll": false
  },
  "kitchen": {
   "name": "Kitchen",
-  "blurb": "Weekly meals and the Méré basket",
+  "blurb": "Weekly meals and the M\u00c3\u00a9r\u00c3\u00a9 basket",
   "repos": [
    "Intermarche-grocery-shopping-app"
   ],
   "catchAll": false
  },
  "dining": {
-  "name": "Café",
+  "name": "Caf\u00c3\u00a9",
   "blurb": "Business plans, round the table",
   "repos": [],
   "catchAll": false
@@ -59,14 +59,16 @@
   "name": "Entrance hall",
   "blurb": "Snail mail, by the front door",
   "repos": [
-   "Snail-Mail-Trail"
+   "this chat"
   ],
   "catchAll": false
  },
  "brain": {
   "name": "Library",
   "blurb": "The brain: drop files here and they find their cat",
-  "repos": [],
+  "repos": [
+   "BSj membership"
+  ],
   "catchAll": false
  }
 }
