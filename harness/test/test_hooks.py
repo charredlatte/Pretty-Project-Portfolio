@@ -596,12 +596,9 @@ class RightSized(unittest.TestCase):
         Path(home, ".claude", "agents", "x.md").write_text("---\nname: mine\nmodel: haiku\n---\n")
         sys.path.insert(0, str(HOOKS))
         import right_sized
-        old = os.environ.get("HOME")
-        os.environ["HOME"] = home
-        try:
+        from unittest import mock
+        with mock.patch.object(right_sized.Path, "home", return_value=Path(home)):   # HOME on POSIX, USERPROFILE on Windows
             self.assertEqual(right_sized.pinned("mine", tempfile.mkdtemp()), "haiku")
-        finally:
-            os.environ["HOME"] = old
 
     def test_a_repo_ladder_is_read_whatever_its_case_and_a_missing_tier_says_so(self):
         tmp = tempfile.mkdtemp()
