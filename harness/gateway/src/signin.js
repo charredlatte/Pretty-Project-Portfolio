@@ -2,7 +2,7 @@
 // password, and Claude gets a token to read and manage their cats as them. Nobody but Claude's connectors may
 // ask: anywhere else, a token would leave with someone else.
 import { AuthorizationError, CimdFetchError } from "@cloudflare/workers-oauth-provider";
-import { bootProblem, hasAccount, propsOf, registry } from "./registry.js";
+import { bootProblem, hasAccount, propsOf, registry, setupLights } from "./registry.js";
 
 const CLAUDE = ["claude.ai", "claude.com"];
 
@@ -56,6 +56,14 @@ button { flex: 1; padding: 10px 14px; font: inherit; font-weight: 600; border-ra
   background: transparent; color: inherit; cursor: pointer; }
 a { color: var(--go); }
 button.go { background: var(--go); border-color: var(--go); color: var(--go-ink); }
+.lights { list-style: none; padding: 0; margin: 0 0 12px; }
+.lights li { margin: 0 0 8px; padding-left: 1.6em; text-indent: -1.6em; }
+.lights li::before { display: inline-block; width: 1.6em; text-indent: 0; font-weight: 700; }
+.lights .ok::before { content: "\\2713"; }
+.lights .bad { color: var(--bad); }
+.lights .bad::before { content: "\\2717"; }
+.lights .off { color: var(--soft); }
+.lights .off::before { content: "\\25CB"; }
 </style>
 </head>
 <body><main>${body}</main></body>
@@ -87,12 +95,22 @@ const startAgain = (why) => page("Start again", `<h1>Start again</h1><p>${esc(wh
 const notClaude = () => page("Not this one", `<h1>Only Claude can sign in here</h1>
 <p>The Catio's gateway lets in Claude's connectors and nothing else.</p>`, 403);
 
+/**
+ * The page's part while there is no account: the setup's warning lights, a line each (a tick, a cross or a circle,
+ * so it never rests on colour alone), and what happens once they are all right.
+ */
+export const noAccount = (env, request) => { const lights = setupLights(env); return `<ul class="lights">${lights.map((l) =>
+	`<li class="${l.state}">${esc(l.name + " " + l.says)}</li>`).join("")}</ul>
+${lights.some((l) => l.state === "bad") ? "" : `<p class="bad">${esc(bootProblem())}</p>`}
+<p class="soft">This is what the Worker at ${esc(new URL(request.url).host)} sees. Save and deploy each change; once
+every cross is gone, reload this page and your account is made.</p>`; };
+
 export async function authorize(request, env) {
 	const oauth = env.OAUTH_PROVIDER;
 	try {
 		if (!(await hasAccount(env))) {
 			return page("No account yet", `<h1>The gateway has no account yet</h1>
-<p class="bad">${esc(bootProblem())}</p><p>Then connect again.</p>`, 503);
+${noAccount(env, request)}<p>Then connect again.</p>`, 503);
 		}
 		if (request.method === "GET") {
 			const ask = await oauth.parseAuthRequest(request);

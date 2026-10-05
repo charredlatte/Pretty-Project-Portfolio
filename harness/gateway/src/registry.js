@@ -19,7 +19,7 @@ const INVITE_FOR = 7 * 24 * 3600 * 1000;   // an unused invite lapses after a we
 
 /** The registry, with the first account made from the secrets while it is empty (tried until it has one). */
 let booted = false, problem = "";
-const WHERE = "Workers & Pages, catio-gateway, Settings, Variables and Secrets";
+const WHERE = "Workers & Pages, this Worker, Settings, Variables and Secrets";
 export async function registry(env) {
 	const r = env.REGISTRY.get(env.REGISTRY.idFromName("registry"));
 	if (!booted) {
@@ -38,6 +38,32 @@ export async function hasAccount(env) {
 
 /** Why there is no account yet, for the sign-in pages: what the bootstrap found wrong with the secrets. */
 export const bootProblem = () => problem || `Add CATIO_PASSWORD, ${MIN_SECRET} characters or more, in Cloudflare (${WHERE}): it becomes the first account's password.`;
+
+/**
+ * The setup's warning lights, for the pages shown while there is no account: what this Worker sees of each secret,
+ * never its value, and what to do. `[{name, state: "ok" | "bad" | "off", says}]`; "off" is optional and not set.
+ * Safe to show: with no account, there is nothing behind the sign-in yet, and the first account is made the moment
+ * every light is right.
+ */
+export function setupLights(env) {
+	const pw = env.CATIO_PASSWORD, token = env.CATIO_TOKEN, queen = env.CATIO_QUEEN;
+	const handle = String(env.CATIO_HANDLE || "charlotte").trim().toLowerCase();
+	const long = `is under ${MIN_SECRET} characters`;
+	return [
+		!pw ? { name: "CATIO_PASSWORD", state: "bad", says: `isn't set for this Worker: add it in Cloudflare (${WHERE}) as type Secret, ${MIN_SECRET} characters or more. A variable under Builds, or of type Text, doesn't reach the Worker.` }
+			: String(pw).length < MIN_SECRET ? { name: "CATIO_PASSWORD", state: "bad", says: `${long}: set a longer one.` }
+			: { name: "CATIO_PASSWORD", state: "ok", says: "is set: it will be your password." },
+		!HANDLE.test(handle) ? { name: "CATIO_HANDLE", state: "bad", says: "isn't a handle: 2 to 31 lower-case letters, digits or dashes, with no spaces, dots or underscores." }
+			: env.CATIO_HANDLE ? { name: "CATIO_HANDLE", state: "ok", says: `is set: your handle will be ${handle}.` }
+			: { name: "CATIO_HANDLE", state: "ok", says: `isn't set, so your handle will be ${handle}. Add it now for another: it can't change afterwards.` },
+		!token ? { name: "CATIO_TOKEN", state: "off", says: "isn't set, which is fine: it is the key your cats check in with, and you can make keys in the café later." }
+			: token.length < MIN_SECRET ? { name: "CATIO_TOKEN", state: "bad", says: `${long}: make it longer, or delete it.` }
+			: { name: "CATIO_TOKEN", state: "ok", says: "is set." },
+		!queen ? { name: "CATIO_QUEEN", state: "off", says: "isn't set, which is fine: it is the queen's runner's key, for later." }
+			: queen.length < MIN_SECRET ? { name: "CATIO_QUEEN", state: "bad", says: `${long}, so it would be ignored: make it longer.` }
+			: { name: "CATIO_QUEEN", state: "ok", says: "is set." },
+	];
+}
 
 /** What a token says about its holder: their user, their house, whether they are its owner (not a key), and a key's role. */
 export const propsOf = (user, owner) => ({ user: user.id, house: user.house, owner, admin: user.admin, ...(user.role ? { role: user.role } : {}) });

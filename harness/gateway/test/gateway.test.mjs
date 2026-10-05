@@ -57,7 +57,7 @@ function startDecider() {
 }
 
 // wrangler dev on a fresh state; again on the same state, at the end, as a deploy would start a new isolate
-async function start({ password = PASSWORD, dir = state } = {}) {
+async function start({ password = PASSWORD, dir = state, vars = [] } = {}) {
 	const [port, inspector] = [await freePort(), await freePort()];
 	base = `http://127.0.0.1:${port}`;
 	log = "";
@@ -66,7 +66,7 @@ async function start({ password = PASSWORD, dir = state } = {}) {
 	wrangler = spawn(process.execPath, [join(HERE, "node_modules/wrangler/bin/wrangler.js"), "dev", "--config", CONFIG, "--ip", "127.0.0.1",
 		"--port", String(port), "--inspector-port", String(inspector), "--persist-to", dir,
 		"--var", "CATIO_TOKEN:" + TOKEN, ...(password ? ["--var", "CATIO_PASSWORD:" + password] : []), "--var", "CATIO_QUEEN:" + QUEEN,
-		"--var", "DECIDE_URL:http://127.0.0.1:" + deciderPort + "/", "--var", "DECIDE_KEY:k1"], {
+		"--var", "DECIDE_URL:http://127.0.0.1:" + deciderPort + "/", "--var", "DECIDE_KEY:k1", ...vars.flatMap((v) => ["--var", v])], {
 		cwd: HERE, env: { ...process.env, WRANGLER_SEND_METRICS: "false", NO_COLOR: "1" }, stdio: ["ignore", "pipe", "pipe"],
 		detached: true,   // its own process group, so workerd goes with it
 	});
@@ -1007,6 +1007,30 @@ describe("no account yet", () => {
 				const text = await page.text();
 				assert.match(text, says);
 				assert.doesNotMatch(text, not);
+			} finally {
+				rmSync(dir, { recursive: true, force: true });
+			}
+		}
+	});
+
+	// The first outside run (docs/plan.md, "The first player"): his page said "no account yet" and he couldn't tell
+	// which secret was wrong. The page now lights each one the Worker sees, never its value, and says the handle.
+	test("lights each secret the Worker sees, and says what the handle will be", async () => {
+		for (const [vars, says] of [[[], [/CATIO_PASSWORD isn(?:'|&#39;)t set for this Worker/, /CATIO_HANDLE isn(?:'|&#39;)t set, so your handle will be charlotte/,
+			/CATIO_TOKEN is set\./, /CATIO_QUEEN is set\./, /This is what the Worker at 127\.0\.0\.1:\d+ sees/]],
+		[["CATIO_HANDLE:Dog_Den"], [/CATIO_HANDLE isn(?:'|&#39;)t a handle/]]]) {
+			stop();
+			await new Promise((r) => setTimeout(r, 500));
+			const dir = mkdtempSync(join(tmpdir(), "catio-gateway-empty-"));
+			try {
+				await start({ password: "", dir, vars });
+				for (const path of ["/", "/signup"]) {
+					const page = await fetch(base + path, path === "/signup" ? { method: "POST", headers: { Origin: base }, body: new URLSearchParams({ invite: "x" }) } : {});
+					assert.equal(page.status, 503, path);
+					const text = await page.text();
+					for (const re of says) assert.match(text, re, path);
+					assert.doesNotMatch(text, /her-password-|agent-key-|queen-key-/, "a light never shows a secret's value");
+				}
 			} finally {
 				rmSync(dir, { recursive: true, force: true });
 			}
