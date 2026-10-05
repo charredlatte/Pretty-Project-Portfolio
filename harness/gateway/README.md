@@ -45,8 +45,12 @@ it is the admin, which uploads the café's art, creates the other accounts and i
      password manager and nowhere else.
    - `CATIO_QUEEN`: the queen's runner's own key (below), 32 random characters or more; also on the PC that runs
      her.
+   - `CATIO_HANDLE`, on a gateway that isn't hers: the handle you sign in with. Unset, the first account is
+     `charlotte`, whatever your own name is.
 
-   Never paste any of them into a chat.
+   Never paste any of them into a chat. `CATIO_PASSWORD` and `CATIO_HANDLE` make the first account once, on the first
+   request after the deploy: changing either afterwards changes nothing, so sign in with the ones it was made from. A
+   Worker under a new name (`name` in `wrangler.jsonc`) starts with no accounts.
 3. **Claude's environments.** In a cloud session, open the environment menu in the session's title bar → Edit. In
    each environment her sessions use:
    - add two environment variables, `CATIO_URL` = the address above and `CATIO_TOKEN` = the agents' key;
