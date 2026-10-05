@@ -40,7 +40,9 @@ prompt has been answered.
 2. **Notes and files** go in as `additionalContext`, in the same `handed_in()` words the Stop hook uses, so only her
    and the queen's words are ever instructions, as now. The docs allow up to 10,000 characters.
 3. **Pause** is a refusal: the hook exits 2 with "[Catio] Request: pause: stop at the next safe point". That is the
-   way `gates.py` already stops a tool, rather than the unverified `continue: false`.
+   way `gates.py` already stops a tool, rather than the unverified `continue: false`. An exit 2 shows only stderr, so
+   any notes and files handed in by the same `inbox` call go into that stderr message too: one call marks them all
+   handed, and nothing else would deliver them.
 4. **UserPromptSubmit** becomes synchronous and hands in the inbox before the turn, not after it. This replaces the
    asynchronous `report_status` entry rather than standing beside it: `report.py` can't tell two entries apart. A
    stale pause or wrap-up found there is said as stale, not obeyed blind.
