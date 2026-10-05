@@ -332,6 +332,11 @@ decisions quiz page is retired). The small facts (who made `plants.zip`) stay he
 16. **His audit fixes** (#115 describes them): his fork's PR 5 and the Antigravity bridge under it, brought here like
     item 12 and merged with `main`, with the same fix for sign-up and invites. It touches `harness/`:
     hers to merge.
+17. **In flight on 5 October, late** (her tokens were running out, so each lands as soon as it passes): #112's
+    improvements ported onto delegate-first (what #114's description lists: no guessing a task's ease from its words,
+    a typo in a repo's cap reported, the gates failing closed, one transcript reader), and a Keys item in the House
+    menu of a café on its own address (step 13 above). If a session ended before they reached a pull request, start
+    them again from those two descriptions.
 
 ## Publishing
 
