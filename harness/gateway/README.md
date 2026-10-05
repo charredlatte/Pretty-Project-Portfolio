@@ -95,13 +95,15 @@ variables and the plugin, it is in `list_agents`.
   Never with a key: a key sits in every session's environment, and what a key can do, a leaked key can do. A
   handle is 2 to 31 lower-case letters, digits or dashes. The account gets a house named after it, and signs in
   to the café and the connector with that handle and password. An invite (above) lets them choose both themselves.
-- **A key:** from a signed-in café, `POST /api/keys` with `{"name": "laptop"}` (the page sends `X-Catio: 1`;
-  until it has a button, the browser's console does: `fetch("/api/keys", {method: "POST", headers: {"X-Catio": "1",
-  "Content-Type": "application/json"}, body: JSON.stringify({name: "laptop"})}).then(r => r.json()).then(console.log)`).
-  The key is in the answer once, and the registry keeps only its hash. It goes in `CATIO_TOKEN` wherever that
-  user's sessions and agents run. Names are unique per user. `GET /api/keys` lists them by name,
-  `DELETE /api/keys/<name>` kills one: a leaked key is dropped that way, the `bootstrap` key included, and it
-  stays dropped.
+- **A key:** in a signed-in café, **Keys** in the House menu (the brand, top left): name it after where it goes
+  (`laptop`, `antigravity`) and press Make a key. The card shows the key once, beside the two settings a session
+  needs, `CATIO_URL` (this café's address) and `CATIO_TOKEN` (the key), each with Copy; closing the card takes it off
+  the page, and the registry keeps only its hash. Names are unique per user. The same card lists the keys by name, and
+  Delete (it asks first) kills one: a leaked key is dropped that way, the `bootstrap` key included, and it stays
+  dropped. Underneath it is `POST /api/keys` with `{"name": "laptop"}`, `GET /api/keys` and `DELETE /api/keys/<name>`,
+  with `X-Catio: 1`. A café from before the card has no Keys: there the browser's console does it, `fetch("/api/keys",
+  {method: "POST", headers: {"X-Catio": "1", "Content-Type": "application/json"}, body: JSON.stringify({name:
+  "laptop"})}).then(r => r.json()).then(console.log)`.
 - **A forgotten or leaked password:** an admin, signed in to the café, resets it with `PUT /api/users/<handle>`
   and `{"password": "…"}` (the same `fetch` shape), which signs that user's browsers out, takes back every
   connector they let in (their OAuth grants), kills every key they minted, and lets a locked-out user back in.

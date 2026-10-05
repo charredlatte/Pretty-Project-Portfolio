@@ -113,7 +113,7 @@ session:</p>
 <p class="soft">It also brings this café's house rules to every repository you work in: an audit at the start of each
 session, no pushes to the default branch, no Claude credit lines in public repositories.</p>
 <form method="get" action="/"><div class="row"><button class="go">Open my café</button></div></form>
-<p class="soft">Lost the key? Make another from your café, and delete the old one (the gateway's README, "A key").</p>`, 200, headers);
+<p class="soft">Lost the key? Make another under Keys in your café's House menu (the brand, top left), and delete the old one there.</p>`, 200, headers);
 
 // The same invite, for an AI setting the café up for someone: the account and its first agents' key, as JSON
 const forAnAI = (invite, origin) => `<h2>Setting this up for someone, as their AI?</h2>

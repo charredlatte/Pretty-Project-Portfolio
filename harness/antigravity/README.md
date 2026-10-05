@@ -11,14 +11,14 @@ agent becomes a cat in the café like any other session.
 
 ## Once
 
-1. **Make an agents' key.** The café has no button for it yet. Signed in to the café in your browser, open the
-   developer console on the café's page (F12, then Console; if Chrome refuses to paste, type `allow pasting` first)
-   and run:
+1. **Make an agents' key.** In your café, open the House menu (the brand, top left), then **Keys**: name it
+   `antigravity` and press **Make a key**. It is shown once, beside the café's address: save both in your password
+   manager (the gateway keeps only the key's hash). To retire it later, delete it there.
+   A café from before Keys has no such item: there, signed in, open the browser's console on the café's page (F12,
+   then Console; if Chrome refuses to paste, type `allow pasting` first) and run:
    ```js
    fetch("/api/keys", { method: "POST", headers: { "X-Catio": "1", "Content-Type": "application/json" }, body: JSON.stringify({ name: "antigravity" }) }).then((r) => r.json()).then((j) => console.log(j.key || j))
    ```
-   It prints the key once; the gateway keeps only its hash. Save it in your password manager.
-   To retire it later: `fetch("/api/keys/antigravity", { method: "DELETE", headers: { "X-Catio": "1" } })`.
 2. **Have the bridge on that computer.** `git pull` in the checkout Antigravity uses, so that
    `harness/mcp/catio_bridge.py` is there. Python 3.9 or later; nothing to install.
 3. **Point Antigravity at it.** In Antigravity's MCP settings, open the raw config (`mcp_config.json`) and replace

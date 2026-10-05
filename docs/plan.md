@@ -231,7 +231,7 @@ and #102, and in his fork (ohwellwhy10-jpg/Pretty-Project-Portfolio, `main` and 
 | 10 | Hardened the gateway on his fork (his fork's pull request #1) | His Sync fork would conflict in three files with the day's fixes | His two commits brought here, merged with `main`, so the sync is clean |
 | 11 | Signed in to his own gateway at last (18:42), then asked his Gemini to connect | The repositories step can't work on a café's own address, and the café's automatic check-ins exist only as a Claude Code plugin | #113: no Connect GitHub button there; Gemini joins through the café's MCP address and reports when asked (#100) |
 | 12 | Connected his "Gemini": Antigravity, Google's agent editor, which only starts MCP servers as local programs | Our answer was Gemini CLI's address-and-key settings, which Antigravity can't take, and the harness README's local server (`catio_mcp.py`) keeps its cats on the computer it runs on, where his gateway never sees them | He wrote `catio_bridge.py` (his fork's PR 4), a local program that passes everything on to the gateway; brought here, and the harness README now says which server goes with which café |
-| 13 | Made an agents' key for it | No button: he pasted a `fetch` into the browser's console | Open: a Keys item in the House menu of a café on its own address |
+| 13 | Made an agents' key for it | No button: he pasted a `fetch` into the browser's console | Keys in the House menu of a café on its own address (`openKeys()`): a key made from a name, shown once beside `CATIO_URL` and `CATIO_TOKEN` with Copy, and deleted after it asks; the console line is only for a café from before it |
 | 14 | Audited the gateway and the MCP server again, fixed what he found (his fork's PR 5) and wrote it up (#115) | His docs-only pull request went red, through nothing he changed: `main` was broken (#114) | #114 restores `main`; his PR 5 and PR 4 brought here, with the same 500 found in sign-up and invites, which his fork doesn't have |
 
 **What the decider guessed** (5 October, `decide` with kind `ux-test-1` in the house's log; Clef answered, as Jev had no
@@ -335,8 +335,7 @@ decisions quiz page is retired). The small facts (who made `plants.zip`) stay he
 17. **In flight on 5 October, late** (her tokens were running out, so each lands as soon as it passes): #112's
     improvements ported onto delegate-first (what #114's description lists: no guessing a task's ease from its words,
     a typo in a repo's cap reported, the gates failing closed, one transcript reader), and a Keys item in the House
-    menu of a café on its own address (step 13 above). If a session ended before they reached a pull request, start
-    them again from those two descriptions.
+    menu of a café on its own address (step 13 above). Both are pushed; the port's review was still to come.
 
 ## Publishing
 

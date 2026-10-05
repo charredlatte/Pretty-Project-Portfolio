@@ -119,7 +119,10 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
 - **Controls**: two things sit on screen, and nothing else should:
   - the brand (`#houseBtn`, top left: ToffeeCraft's cat-face bubble, the name and a badge when cats need
     her), which is the House button: its menu holds what belongs to the whole house (whether the cats are
-    live, the brain, house rules, Project maps, Edit rooms, the attic, Check now and sound). **Project maps**
+    live, the brain, house rules, Project maps, Edit rooms, the attic, Check now and sound; and, on the café's own
+    address alone, **Keys**, `openKeys()`: the account's keys by name, each with a Delete that asks first, and Make a key,
+    which shows the new key once beside `CATIO_URL` and `CATIO_TOKEN` and drops it from the page when the card closes;
+    never log it or write it anywhere, the database and `localStorage` included). **Project maps**
     (`openMaps()`, her ask of 3 October: "a customizable dashboard built on Graphify", the graphify of her house
     rules) shows every `graphs/<repo>` map as a card, pinned first, then in her order, then the newest; she pins,
     moves, widens and hides each, and `dashboard/maps` keeps it;
