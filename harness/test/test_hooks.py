@@ -17,10 +17,14 @@ HOOKS = Path(__file__).resolve().parent.parent / "hooks"
 ENV_KEYS = ("CLAUDE_CODE_REMOTE", "CLAUDE_CODE_SUBAGENT_MODEL", "CLAUDE_CODE_SUBAGENT_MODEL_FORCE")
 
 
+# a home of its own, so a user-level ~/.claude/agents on this machine can't decide a test
+HOME = tempfile.mkdtemp()
+
+
 def run(script, data, cwd=None, cloud=False, env=None):
-    # a home of its own, so a user-level ~/.claude/agents on this machine can't decide a test
-    env = dict({k: v for k, v in os.environ.items() if k not in ENV_KEYS},
-               HOME=tempfile.mkdtemp(), **(env or {}))
+    out = dict({k: v for k, v in os.environ.items() if k not in ENV_KEYS}, HOME=HOME)
+    out.update(env or {})
+    env = out
     if cloud:
         env["CLAUDE_CODE_REMOTE"] = "true"
     return subprocess.run([sys.executable, str(HOOKS / script)], input=json.dumps(data), capture_output=True, text=True,
@@ -485,7 +489,7 @@ class GraphFirst(unittest.TestCase):
 
 
 class RightSized(unittest.TestCase):
-    """Spend what the task is worth: her cap on a repo's sub agents refuses, on facts; the rest only speaks."""
+    """Spend what the task is worth: in a capped repo a spawn names its model, at or below her cap."""
 
     def repo(self, **catio):
         """A fresh repo folder, with her .claude/catio-rules.json when she has said anything about it."""
@@ -495,13 +499,13 @@ class RightSized(unittest.TestCase):
             Path(tmp, ".claude", "catio-rules.json").write_text(json.dumps(catio))
         return tmp
 
-    def spawn(self, tmp, args, model="claude-opus-5-5", tool="Agent", env=None, agent=None):
+    def spawn(self, tmp, args, model="claude-opus-5-5", tool="Agent", env=None, agent=None, sid=None):
         """A sub agent spawn, as Claude Code asks the gate about it: (exit code, stderr, the line it says)."""
         t = Path(tmp, "t.jsonl")
         t.write_text("".join(json.dumps({"type": "assistant", "message": {"model": m, "content": []}}) + "\n"
                              for m in ([model] if isinstance(model, str) else model)))
         data = {"hook_event_name": "PreToolUse", "tool_name": tool, "tool_input": args, "cwd": tmp,
-                "session_id": "s-" + Path(tmp).name, "transcript_path": str(t)}
+                "session_id": sid or ("s-" + Path(tmp).name), "transcript_path": str(t)}
         if agent:
             data["agent_type"] = agent
         r = run("gates.py", data, cwd=tmp, env=env)
@@ -510,16 +514,24 @@ class RightSized(unittest.TestCase):
 
     BANANAS = "add bananas to my shopping list"
 
-    def test_her_cap_refuses_whether_or_not_the_call_names_a_model(self):
+    def test_under_her_cap_a_spawn_names_its_model(self):
+        """The one fact the hook can see is the model on the call, so that is what her cap is kept on."""
         tmp = self.repo(tiers={"ceiling": "sonnet"})
-        for args in ({"prompt": self.BANANAS, "model": "opus"},
-                     {"prompt": self.BANANAS},                              # unnamed: it inherits Opus
-                     {"prompt": self.BANANAS, "subagent_type": "general-purpose"}):
-            code, err, _ = self.spawn(tmp, args)
-            self.assertEqual(code, 2, args)
-            self.assertIn("sonnet", err)
-        for model in ("sonnet", "haiku"):
+        code, err, _ = self.spawn(tmp, {"prompt": self.BANANAS})
+        self.assertEqual(code, 2)
+        self.assertIn("names no model", err)
+        self.assertIn("sonnet", err)
+        for model in ("sonnet", "haiku", "claude-haiku-4-5-20251001"):
             self.assertEqual(self.spawn(tmp, {"prompt": self.BANANAS, "model": model})[0], 0, model)
+        for model in ("opus", "fable", "claude-opus-5-5"):
+            self.assertEqual(self.spawn(tmp, {"prompt": self.BANANAS, "model": model})[0], 2, model)
+
+    def test_a_model_her_ladder_does_not_know_is_refused_with_the_list(self):
+        tmp = self.repo(tiers={"ceiling": "sonnet"})
+        for model in ("inherit", "default", "gpt-4"):
+            code, err, _ = self.spawn(tmp, {"prompt": "x", "model": model})
+            self.assertEqual(code, 2, model)
+            self.assertIn("haiku, sonnet", err)
 
     def test_her_cap_is_about_cost_so_no_word_in_the_prompt_escapes_it(self):
         """Her cap compares two facts. A prompt that happens to say login, bank or harness is still a spawn."""
@@ -528,128 +540,56 @@ class RightSized(unittest.TestCase):
                        "take a screenshot of the page", "add the solicitor's letter"):
             self.assertEqual(self.spawn(tmp, {"prompt": prompt, "model": "opus"})[0], 2, prompt)
 
-    def test_the_tier_is_resolved_the_way_claude_code_resolves_it(self):
+    def test_her_cap_holds_whoever_is_spawning_and_whatever_the_environment_says(self):
+        """One level down, and with the environment's defaults set: the call still names the model."""
         tmp = self.repo(tiers={"ceiling": "haiku"})
-        # the environment's default decides when the call and the agent file do not
-        self.assertEqual(self.spawn(tmp, {"prompt": "x"}, env={"CLAUDE_CODE_SUBAGENT_MODEL": "haiku"})[0], 0)
-        self.assertEqual(self.spawn(tmp, {"prompt": "x"}, env={"CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"})[0], 2)
-        # the forced default beats even a model named on the call
-        self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "haiku"},
-                                    env={"CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "opus"})[0], 2)
-        # an agent file that pins a tier decides over the environment and the session
-        self.assertEqual(self.spawn(tmp, {"prompt": "x", "subagent_type": "scout"},
-                                    env={"CLAUDE_CODE_SUBAGENT_MODEL": "opus"})[0], 0)
+        self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "opus"}, agent="scout")[0], 2)
+        self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "haiku"}, agent="scout")[0], 0)
+        for env in ({"CLAUDE_CODE_SUBAGENT_MODEL": "haiku"}, {"CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "haiku"}):
+            self.assertEqual(self.spawn(tmp, {"prompt": "x"}, env=env)[0], 2, env)   # still unnamed on the call
+            self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "haiku"}, env=env)[0], 0, env)
 
-    def test_a_model_the_ladder_does_not_know_is_not_an_answer(self):
-        """model: inherit means the conversation's own model, so the walk carries on instead of giving up."""
-        tmp = self.repo(tiers={"ceiling": "sonnet"})
-        for model in ("inherit", "default", "sonnet[1m]"):
-            code, _, _ = self.spawn(tmp, {"prompt": self.BANANAS, "model": model})
-            self.assertEqual(code, 2 if model != "sonnet[1m]" else 0, model)
-
-    def test_an_agent_file_with_no_model_still_falls_to_the_environment(self):
+    def test_an_agent_pinned_cheap_is_named_cheap_on_the_call(self):
+        """The rule does not parse agent files: naming the tier is what it asks for, and it always works."""
         tmp = self.repo(tiers={"ceiling": "haiku"})
-        Path(tmp, ".claude", "agents").mkdir(parents=True)
-        Path(tmp, ".claude", "agents", "mine.md").write_text("---\nname: mine\ntools: Read\n---\nbody\n")
-        self.assertEqual(self.spawn(tmp, {"prompt": "x", "subagent_type": "mine"},
-                                    env={"CLAUDE_CODE_SUBAGENT_MODEL": "haiku"})[0], 0)
-
-    def test_a_pin_with_a_trailing_comment_is_still_a_pin(self):
-        tmp = self.repo(tiers={"ceiling": "haiku"})
-        Path(tmp, ".claude", "agents").mkdir(parents=True)
-        Path(tmp, ".claude", "agents", "cheap.md").write_text("---\nname: cheap\nmodel: haiku  # cheap\n---\nbody\n")
-        self.assertEqual(self.spawn(tmp, {"prompt": "x", "subagent_type": "cheap"})[0], 0)
-        # and a model: line in the prose is not a pin
-        Path(tmp, ".claude", "agents", "prose.md").write_text("---\nname: prose\n---\nuse model: haiku here\n")
-        self.assertEqual(self.spawn(tmp, {"prompt": "x", "subagent_type": "prose"})[0], 2)
-
-    def test_an_agent_file_without_a_model_shadows_the_one_below_it(self):
-        """Claude Code uses the first definition it finds, so a repo's own scout.md hides the plugin's Haiku one."""
-        tmp = self.repo(tiers={"ceiling": "haiku"})
-        Path(tmp, ".claude", "agents").mkdir(parents=True)
-        Path(tmp, ".claude", "agents", "scout.md").write_text("---\nname: scout\ntools: Read\n---\nmine\n")
-        self.assertEqual(self.spawn(tmp, {"prompt": "x", "subagent_type": "scout"})[0], 2)   # inherits Opus
-
-    def test_a_session_switched_down_hands_its_spawns_the_model_it_is_on(self):
-        tmp = self.repo(tiers={"ceiling": "haiku"})
-        self.assertEqual(self.spawn(tmp, {"prompt": "x"}, model=["claude-opus-5", "claude-haiku-4-5"])[0], 0)
-        self.assertEqual(self.spawn(tmp, {"prompt": "x"}, model=["claude-haiku-4-5", "claude-opus-5"])[0], 2)
+        self.assertEqual(self.spawn(tmp, {"prompt": "x", "subagent_type": "scout"})[0], 2)
+        self.assertEqual(self.spawn(tmp, {"prompt": "x", "subagent_type": "scout", "model": "haiku"})[0], 0)
 
     def test_a_cap_it_cannot_act_on_says_so_instead_of_going_quiet(self):
-        """Including the shapes a hand-written file comes in: a typo, the wrong type, the key outside the block."""
+        """The shapes a hand-written file comes in: the wrong type, a typo, the key outside the block."""
         for catio in ({"tiers": {"ceiling": "gpt-4"}}, {"tiers": {"ceiling": False}},
-                      {"tiers": {"ceiling": "haiku", "ladder": 5}}, {"tiers": {"ceiling": "haiku", "costly": "opus"}},
-                      {"tiers": "sonnet"}, {"tiers": {"ceilling": "haiku"}}, {"ceiling": "haiku"}):
+                      {"tiers": "sonnet"}, {"ceiling": "haiku"}):
             tmp = self.repo(**catio)
             code, _, said = self.spawn(tmp, {"prompt": self.BANANAS, "model": "opus"})
             self.assertEqual(code, 0, catio)
             self.assertIn("doing nothing", said, catio)
 
-    def test_a_cap_with_no_facts_to_compare_refuses_rather_than_waving_it_through(self):
-        """Her cap is a promise. A tier it cannot read is not a reason to let the spawn past it, every time."""
-        tmp = self.repo(tiers={"ceiling": "sonnet"})
-        t = Path(tmp, "t.jsonl"); t.write_text("")          # a transcript that says nothing
-        for _ in range(2):                                  # and it does not lapse after the first one
-            r = run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": "Agent", "cwd": tmp,
-                                 "tool_input": {"prompt": self.BANANAS}, "session_id": "s-" + Path(tmp).name,
-                                 "transcript_path": str(t)}, cwd=tmp)
-            self.assertEqual(r.returncode, 2)
-            self.assertIn("Name it on the call", r.stderr)
-        # naming one is the way through
-        self.assertEqual(self.spawn(tmp, {"prompt": self.BANANAS, "model": "haiku"}, model=[])[0], 0)
-
-    def test_a_spawn_that_names_no_tier_is_told_what_it_will_inherit(self):
-        tmp = self.repo()
-        code, _, said = self.spawn(tmp, {"prompt": "find every caller of route()"})
-        self.assertEqual(code, 0)
-        self.assertIn("names no tier", said)
-        self.assertIn("haiku", said)
-        self.assertEqual(self.spawn(tmp, {"prompt": "x"})[2], "")       # one session, so it is said once
-        self.assertEqual(self.spawn(self.repo(), {"prompt": "x"}, model="claude-haiku-4-5")[2], "")
-        for agent in ("scout", "tester"):
-            self.assertEqual(self.spawn(self.repo(), {"prompt": "x", "subagent_type": agent})[2], "", agent)
-        self.assertEqual(self.spawn(self.repo(), {"prompt": "x", "model": "opus"})[2], "")     # it named one
-
-    def test_a_cap_at_the_top_of_the_ladder_still_leaves_the_line(self):
-        """"No limit" is a natural thing to write, and it must not switch the spoken half off as well."""
-        tmp = self.repo(tiers={"ceiling": "fable"})
-        code, _, said = self.spawn(tmp, {"prompt": "x"})
-        self.assertEqual(code, 0)
-        self.assertIn("names no tier", said)
-
-    def test_a_forced_default_above_her_cap_says_what_would_actually_help(self):
-        tmp = self.repo(tiers={"ceiling": "haiku"})
-        code, err, _ = self.spawn(tmp, {"prompt": "x", "model": "haiku"},
-                                  env={"CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "opus"})
-        self.assertEqual(code, 2)
-        self.assertIn("CLAUDE_CODE_SUBAGENT_MODEL_FORCE", err)   # naming a model on the call cannot help here
-
-    def test_a_namespaced_agent_is_the_plugins_own(self):
-        tmp = self.repo(tiers={"ceiling": "haiku"})
-        Path(tmp, ".claude", "agents").mkdir(parents=True)
-        Path(tmp, ".claude", "agents", "scout.md").write_text("---\nname: scout\ntools: Read\n---\nmine\n")
-        self.assertEqual(self.spawn(tmp, {"prompt": "x", "subagent_type": "scout"})[0], 2)          # the repo's
-        self.assertEqual(self.spawn(tmp, {"prompt": "x", "subagent_type": "kittychat-house-rules:scout"})[0], 0)
+    def test_a_key_the_rule_does_not_know_is_not_an_error(self):
+        """Her own documented block carries a _comment, so an unknown key must not switch the cap off."""
+        tmp = self.repo(tiers={"_comment": "small cats only", "ceiling": "haiku"})
+        self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "opus"})[0], 2)
+        self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "haiku"})[0], 0)
 
     def test_a_ladder_written_with_capitals_still_matches(self):
         tmp = self.repo(tiers={"ceiling": "Haiku", "ladder": ["Haiku", "Sonnet", "Opus"]})
         self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "opus"})[0], 2)
         self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "haiku"})[0], 0)
 
-    def test_her_cap_holds_one_level_down_too(self):
-        """A sub agent's own spawn is a sub agent in this repo, judged on the model that sub agent is on."""
-        tmp = self.repo(tiers={"ceiling": "haiku"})
-        self.assertEqual(self.spawn(tmp, {"prompt": self.BANANAS, "model": "opus"}, agent="scout")[0], 2)
-        # and it is read from its own transcript, not its parent's: a Haiku scout spawning names Haiku
-        t = Path(tmp, "agent.jsonl")
-        t.write_text(json.dumps({"type": "assistant", "isSidechain": True,
-                                 "message": {"model": "claude-haiku-4-5", "content": []}}) + "\n")
-        r = run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": "Agent", "cwd": tmp,
-                             "tool_input": {"prompt": self.BANANAS}, "agent_type": "scout",
-                             "session_id": "s-" + Path(tmp).name + "-sub",
-                             "transcript_path": str(Path(tmp, "t.jsonl")),
-                             "agent_transcript_path": str(t)}, cwd=tmp)
-        self.assertEqual(r.returncode, 0, r.stderr)
+    def test_with_no_cap_an_unnamed_spawn_is_told_what_it_will_inherit(self):
+        tmp = self.repo()
+        code, _, said = self.spawn(tmp, {"prompt": "find every caller of route()"})
+        self.assertEqual(code, 0)
+        self.assertIn("names no model", said)
+        self.assertIn("haiku", said)
+        self.assertEqual(self.spawn(tmp, {"prompt": "x"})[2], "")                       # one session, said once
+        self.assertEqual(self.spawn(self.repo(), {"prompt": "x"}, model="claude-haiku-4-5")[2], "")
+        self.assertEqual(self.spawn(self.repo(), {"prompt": "x", "model": "opus"})[2], "")   # it named one
+
+    def test_the_line_follows_the_session_down_and_a_capital_ladder(self):
+        self.assertEqual(self.spawn(self.repo(), {"prompt": "x"},
+                                    model=["claude-opus-5", "claude-haiku-4-5"])[2], "")   # switched down: cheap now
+        tmp = self.repo(tiers={"ladder": ["Haiku", "Sonnet", "Opus"], "costly": ["Opus"]})
+        self.assertIn("names no model", self.spawn(tmp, {"prompt": "x"})[2])
 
     def test_the_tool_is_gated_under_either_name_and_a_repo_can_switch_it_off(self):
         tmp = self.repo(tiers={"ceiling": "haiku"})
@@ -658,16 +598,22 @@ class RightSized(unittest.TestCase):
         off = self.repo(right_sized=False, tiers={"ceiling": "haiku"})
         self.assertEqual(self.spawn(off, {"prompt": self.BANANAS, "model": "opus"})[0], 0)
 
-    def test_a_tier_it_cannot_work_out_never_stops_the_gates_below_it(self):
-        tmp = self.repo(tiers={"ladder": 5})               # a block of hers the rule cannot act on
+    def test_a_tier_check_that_cannot_run_speaks_and_never_stops_the_gates_below_it(self):
+        tmp = self.repo(tiers={"ceiling": "haiku", "ladder": 5})   # a ladder the rule cannot use
         code, _, said = self.spawn(tmp, {"prompt": self.BANANAS, "model": "opus"})
         self.assertEqual(code, 0)
         self.assertIn("doing nothing", said)
         r = run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": "Edit",
                              "tool_input": {"file_path": str(Path(tmp, "a.py"))},
                              "transcript_path": transcript(tmp), "cwd": tmp}, cwd=tmp)
-        self.assertEqual(r.returncode, 2)                  # the opening audit still speaks
+        self.assertEqual(r.returncode, 2)                          # the opening audit still speaks
         self.assertIn("ponytail-audit", r.stderr)
+
+    def test_one_repos_message_does_not_silence_another(self):
+        """A cloud session works in several repos at once, so the marker is per repo, not per session."""
+        a, b = self.repo(), self.repo()
+        self.assertIn("names no model", self.spawn(a, {"prompt": "x"}, sid="one")[2])
+        self.assertIn("names no model", self.spawn(b, {"prompt": "x"}, sid="one")[2])
 
 
 class GraphDoc(unittest.TestCase):

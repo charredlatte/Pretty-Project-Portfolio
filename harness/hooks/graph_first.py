@@ -12,7 +12,6 @@ import re
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 
 from common import enforced, hook_input, models, once, rules
 
@@ -63,7 +62,8 @@ def delegate(data):
     strong = rules()["merging"]["strong"]
     if not any(s in m for m in models(data) for s in strong):
         return ""
-    return SAY[kind] if once(data.get("session_id"), kind, "delegate", data.get("cwd")) else ""
+    once(data.get("session_id"), kind, "delegate", data.get("cwd"))   # remember it was said
+    return SAY[kind]
 
 
 def main():

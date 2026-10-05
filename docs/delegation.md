@@ -1,13 +1,18 @@
 # Delegating the easy work to smaller models
 
 **Status (5 October 2026): phase A is built, and so is the cap on a spawn**
-(`right_sized` in `rules.json`, `harness/hooks/right_sized.py`, the `tiers` block: the hook works out the tier a
-spawn would really run on and refuses anything above the cap Charlotte set for that repo in its
-`.claude/catio-rules.json`, and otherwise says once what a spawn is about to inherit. `harness/README.md`, "Spend
-what the task is worth"). That is phase C's first step arriving before B: it needs no job queue, only the spawn the
-session was going to make anyway. It deliberately does **not** judge whether a task is easy - that is the `decide`
-rubric below. A first pass that guessed it from the prompt's words was taken out in review for misreading in both
-directions ("add a null check to walk() and run the tests" is short and starts with *add*).
+(`right_sized` in `rules.json`, `harness/hooks/right_sized.py`, the `tiers` block: where Charlotte has capped a
+repo's sub agents in its `.claude/catio-rules.json`, every spawn there names a model at or below her cap, and one
+that names none is refused too; where she has capped nothing, a spawn that names no model is told once what it is
+about to inherit. `harness/README.md`, "Spend what the task is worth"). That is phase C's first step arriving before
+B: it needs no job queue, only the spawn the session was going to make anyway.
+
+Two things it deliberately does **not** do, both taken out in review after being built and found wrong in both
+directions. It does not judge whether a task is easy from the prompt's words - that is the `decide` rubric below.
+And it does not work out what an unnamed spawn would resolve to: Claude Code decides that from `_FORCE`, the call,
+the agent's file, `CLAUDE_CODE_SUBAGENT_MODEL` and the session, and a hook reimplementing that chain waved spawns
+past the cap when it guessed low and refused Haiku-pinned helpers when it guessed high. It judges the model on the
+call, which is the one fact it can see and the thing a session can always provide.
 
 **Status (3 October 2026, evening): phase A is built** (`harness/agents/scout.md` and `tester.md`, the soft rule
 `delegate`, its nudge in `graph_first.py`, the edit gate in `gates.py`), waiting for her merge with the rest of `harness/`.
@@ -165,10 +170,8 @@ With B in place, delegation needs no asking. Small steps, each a few hours.
 0. **A cap on a spawn, and her word as the memory.** Built, 5 October, before B, since it rides the spawn a
    session was already making. The `right_sized` rule, `hooks/right_sized.py` and `rules.json`'s `tiers`. What it
    adds over the `delegate` nudge: `delegate` suggests a smaller cat for two named jobs (a whole-repo search, a test
-   run); this reads the tier of *every* spawn, says what an unnamed one will inherit, and enforces her cap where she
-   has set one. What it does not do: judge a task. The rubric is `decide`'s (phase D), which needs a server; the
-   hook stays offline and compares facts only, so the one thing that refuses is her own cap, and a repo with no cap
-   is only ever spoken to.
+   run); this reads every spawn, says what an unnamed one will inherit, and keeps her cap where she has set one.
+   What it does not do: judge a task, or resolve a model it cannot see. Both were tried and removed in review (above).
 
 1. **Routines on a small model.** `routines/<id>.model`, a select in her Routines card (Fable off the list), and
    `--model` in the runner's turn. Most routines are easy by nature (a morning report, a test run): the cheapest

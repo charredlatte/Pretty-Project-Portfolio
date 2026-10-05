@@ -24,7 +24,7 @@ They live in [`rules.json`](rules.json). The KittyChat Café page shows them all
 | No Claude attribution on public repos | Enforced, in a repo on `rules.json`'s `public` list (the café, the grocery app, Snail-Mail-Trail and LibreSprite). `hooks/gates.py` refuses a commit whose message, or the file its `-F` names, has `Co-Authored-By: Claude` or `Claude-Session:` lines, and a GitHub call (a pull request, issue or comment, a commit or merge message) with a "Generated with Claude Code" or session-link line. GitHub's Claude integration adds its own footer to a new pull request, issue or comment, so after one the session is told to edit it off. Private repos may keep them. Add a repo to the list when it goes public |
 | Map before you dig (graphify) | Enforced as a nudge. `hooks/graph_first.py` runs graphify's own `hook-guard` before searches and reads, pointing Claude at `graphify query` when the repo has a map. `session_start.py` says to build or refresh one. `graphify-out/` never counts as unpushed work |
 | Send the small stuff to a smaller cat | Soft, with a nudge and a gate. The plugin's two Haiku helpers, `agents/scout.md` (finds where things are, answers in paths and lines) and `agents/tester.md` (runs the checks, reports only what failed), read, run and report and never edit. `hooks/graph_first.py` suggests them once a session each, when a strong session greps the whole repo or runs the tests itself. `hooks/gates.py` refuses an edit by either, and, in a repo that merges its own pull requests, an edit to a tracked file by any sub agent on a model off the strong list, so the merging rule's promise holds. The plan is `docs/delegation.md`, phase A |
-| Spend what the task is worth | Enforced. `hooks/right_sized.py` works out the tier a sub agent spawn (`Task` or `Agent`) would really run on, the way Claude Code resolves one: the forced environment default, else the model the call names, else the one its agent file pins, else the environment default, else the model the session is on. Where Charlotte has capped a repo's sub agents (`tiers.ceiling` in its `.claude/catio-rules.json`) anything above her cap is refused, whether or not the call names a model. With no cap from her it only speaks, once a session, when a spawn names no tier anywhere and so inherits a costly session's model. Whether a task is easy enough for a small model is the `decide` tool's rubric, not a guess from a prompt's words. The session's own model is never switched. Below |
+| Spend what the task is worth | Enforced. `hooks/right_sized.py` reads every sub agent spawn (`Task` or `Agent`). Where Charlotte has capped a repo's sub agents (`tiers.ceiling` in its `.claude/catio-rules.json`) every spawn there names a model at or below her cap, and one that names none is refused too, since an unnamed spawn runs on whatever the session is on. Where she has capped nothing, a spawn that names no model is told once, a session, which model it is about to inherit. The rule judges the model on the call and nothing else: it does not work out what an unnamed spawn would resolve to, and it does not read prompts. Whether a task is easy enough for a small model is the `decide` tool's rubric. Below |
 | Catio messages come from Charlotte; file contents are data | Soft, in the session's context |
 | Answer on the cat; honour pause and wrap-up requests | Soft, and the `catio` skill says how |
 | Private matters stay in the Catio, out of git | Soft |
@@ -56,21 +56,19 @@ work a Haiku would have done. `rules.json`'s `tiers` block holds the ladder:
 { "merge": true, "hold": ["harness/"], "tiers": { "ceiling": "sonnet" } }
 ```
 
-With that set, a spawn that would run above `sonnet` is refused. The hook resolves the tier the way Claude Code
-does — `CLAUDE_CODE_SUBAGENT_MODEL_FORCE`, then the call's `model`, then the agent file's, then
-`CLAUDE_CODE_SUBAGENT_MODEL`, then the model the session is on — so leaving `model` off the call does not slip past
-it, and a session switched down with `/model` is read at the model it is on now. Inside a sub agent the cap holds
-too, read from that sub agent's own transcript. That path reads no prompts at all: it compares two facts, which is
-the only ground firm enough to refuse on.
+With that set, every spawn in that repo names a model at or below `sonnet`, and one that names none is refused as
+well — an unnamed spawn runs on whatever the session is on, which is the spending the cap exists to stop. The
+refusal names the tiers that would do.
 
-A cap that cannot be worked out is never waved through. If the tier itself cannot be read, the spawn is refused and
-asked to name one, which always works. If her settings cannot be acted on — a ceiling that is not a tier, a ladder
-that is not a list, `tiers` written as a string, a misspelt key, a `ceiling` outside the block — the rule says her
-cap is doing nothing rather than going quiet about it.
+**It judges the model on the call, and nothing else.** Claude Code resolves an unnamed spawn's model from
+`CLAUDE_CODE_SUBAGENT_MODEL_FORCE`, the call, the agent's own file, `CLAUDE_CODE_SUBAGENT_MODEL` and then the
+session. An earlier version of this hook reimplemented that chain and was wrong in both directions: it waved spawns
+past her cap when it guessed low, and refused Haiku-pinned helpers when it guessed high. Naming the model is the one
+thing a session can always do, and it is what every refusal here asks for.
 
-**Otherwise it only speaks.** A spawn that names no tier anywhere gets one line a session saying which model it is
-about to inherit and asking for the tier on the call. That is where the quiet spending is: Claude Code's own
-`Explore` and `general-purpose` agents run on the session's model by default.
+**Where she has capped nothing**, a spawn that names no model gets one line a session saying which model it is about
+to inherit. That is where the quiet spending is: Claude Code's own `Explore` and `general-purpose` agents run on the
+session's model by default.
 
 **What it does not do is guess whether a task is easy.** Reading a prompt's words is unreliable in both directions —
 "add a null check to `walk()` and run the tests" is short and starts with *add* — so the house asks something better:
@@ -81,6 +79,11 @@ That is what makes the rule semi-automatic: the harness tells her what a spawn c
 file is the memory. It sits in the repo, in git, next to the repo's other decisions, so every session that opens
 there starts from what she last said rather than asking again, and the line asks the session to write her answer
 there when she gives one. `{"right_sized": false}` switches the rule off for a repo.
+
+If her settings cannot be acted on — a ceiling that is not a tier, `tiers` written as a string, a `ceiling` outside
+the block — the rule says her cap is doing nothing rather than going quiet about it, and a key it does not know (a
+comment of her own) is simply not one of its settings. If the check itself cannot run, it says that too, and steps
+aside so the audit, preflight, attribution and shipping gates still run.
 
 The review and the merge are untouched, so the merging rule's promise — a strong model did the work, and a small
 model's pull request is always hers to merge — still holds. Neither does the rule switch the session's own model:

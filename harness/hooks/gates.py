@@ -159,10 +159,10 @@ def main():
 
     try:
         refusal, nudge = right_sized.check(data, tool, args, cwd)
-    except SystemExit:
-        raise
-    except Exception:   # a tier is worth less than the gates below it: say nothing and let them run
-        refusal = nudge = None
+    except Exception as e:   # the gates below matter more, so this one speaks and steps aside rather than crashing
+        refusal, nudge = None, ("House rule (KittyChat), spend what the task is worth: the tier check couldn't run "
+                                "(%s: %s), so a cap on this repo's sub agents is not being kept. Tell Charlotte."
+                                % (type(e).__name__, e))
     if refusal:
         block(refusal)
     if nudge:

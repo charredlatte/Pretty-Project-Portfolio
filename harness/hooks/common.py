@@ -1,4 +1,5 @@
 """Shared bits for the KittyChat house-rule hooks: the rules, the hook input, git, and the transcript."""
+import hashlib
 import json
 import os
 import re
@@ -31,7 +32,7 @@ def once(session, kind, prefix, where=None, peek=False):
     """True the first time this session is told something of this kind, here, so a nudge never nags. A cloud
     session works in several repos at once, so where (the repo) is part of it. With peek, only ask - the cheap
     check a hook makes before doing any work it would throw away."""
-    tag = re.sub(r"\W", "", str(session or "none")) + re.sub(r"\W", "", str(where or ""))[-24:]
+    tag = hashlib.sha1(("%s\0%s" % (session or "", where or "")).encode()).hexdigest()[:16]
     name = "catio-{}-{}-{}".format(prefix, tag, kind)
     mark = Path(tempfile.gettempdir()) / name
     if mark.exists():
@@ -105,9 +106,9 @@ def hook_input():
         return {}
 
 
-def entries(data, *needles):
-    """The entries of this session's transcript(s) whose line holds one of `needles` (a cheap filter before parsing)."""
-    for key in ("transcript_path", "agent_transcript_path"):
+def entries(data, *needles, keys=("transcript_path", "agent_transcript_path")):
+    """The entries of these transcript(s) whose line holds one of `needles` (a cheap filter before parsing)."""
+    for key in keys:
         path = data.get(key)
         if not path:
             continue
@@ -152,8 +153,7 @@ def answered(data, keys=("transcript_path", "agent_transcript_path"), sidechain=
     """Every model that answered, in the order it answered, from these transcripts. One reader, so the one
     question that matters - does a sub agent's own side of the conversation count - is answered in one place.
     It counts when you are reading a sub agent's own transcript, and not when you are reading a session's."""
-    look = {k: data.get(k) for k in keys}
-    return [m for m in ((e.get("message") or {}).get("model") for e in entries(look, '"model"')
+    return [m for m in ((e.get("message") or {}).get("model") for e in entries(data, '"model"', keys=keys)
                         if e.get("type") == "assistant" and (sidechain or not e.get("isSidechain")))
             if m and m != "<synthetic>"]
 
