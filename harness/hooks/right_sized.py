@@ -79,7 +79,7 @@ def front(path):
     """An agent definition's frontmatter, as text (empty when it has none or can't be read)."""
     try:
         head = path.read_text(encoding="utf-8")[:2000]
-    except OSError:
+    except (OSError, ValueError):   # unreadable, or not UTF-8: a crash here would let every spawn through
         return ""
     return head.split("---")[1] if head.startswith("---") and "---" in head[3:] else ""
 
@@ -98,12 +98,13 @@ def pinned(agent_type, cwd):
             candidates += sorted(folder.glob("*.md"))
         for path in candidates:
             head = front(path)
+            if not head:
+                continue   # no such file, or no frontmatter: not a definition
             named = re.search(r"^name:\s*['\"]?([\w.:-]+)", head, re.M)
             if path.stem != name and not (named and named.group(1).split(":")[-1] == name):
                 continue
-            found = FRONT_MODEL.search(head)
-            if found:
-                return found.group(1).strip("'\"")
+            found = FRONT_MODEL.search(head)   # the first definition by that name is the one Claude Code runs
+            return found.group(1).strip("'\"") if found else None
     return None
 
 
@@ -153,6 +154,12 @@ def delegate_first(what, ladder, why=None):
             "call: %s." % (what, keep, ", ".join(ladder)))
 
 
+def off_ladder(what, model, ladder):
+    """The refusal for an assignment that names a model this repo's ladder doesn't have."""
+    return ("House rule (KittyChat), delegate first: %s names %s, which isn't one of the tiers here (%s). Name one of "
+            "them." % (what, model, ", ".join(ladder)))
+
+
 def mask(src):
     """The script with what isn't code blanked (newlines kept): string and regex literals, comments, and a template
     literal's text, though not the code in its ${...}. Only code is read for agent() calls and their options."""
@@ -167,10 +174,15 @@ def mask(src):
         k = i - 1
         while k >= 0 and out[k] in " \t\r\n":
             k -= 1
+        if k > 0 and out[k] in "+-" and out[k - 1] == out[k]:
+            return False   # after a postfix ++ or --, a / divides
         if k < 0 or out[k] in REGEX_AFTER:
             return True
         word = re.search(r"[\w$]+$", "".join(out[max(0, k - 12):k + 1]))
-        return bool(word) and word.group(0) in REGEX_WORDS
+        if not word or word.group(0) not in REGEX_WORDS:
+            return False
+        start = k + 1 - len(word.group(0))
+        return not (start > 0 and out[start - 1] == ".")   # obj.in / 2 divides; return /x/ is a regex
 
     def regex_end(i):
         j, cls = i + 1, False
@@ -257,14 +269,19 @@ def close(code, i):
 def option(code, src, key):
     """The raw value text of `key` in an options object passed straight to this call (not a nested one), or None.
     Shorthand ({ model }) gives the key itself."""
-    for m in re.finditer(r"(?<![\w$.])%s(?![\w$])" % key, code):
+    for m in re.finditer(r"""(?<![\w$.])(['"]?)%s\1(?![\w$])""" % key, src):
+        quote = m.group(1)
+        if quote and not (code[m.start()] == quote and code[m.end() - 1] == quote and not code[m.start() + 1:m.end() - 1].strip()):
+            continue   # a quoted key must be a whole string of its own
+        if not quote and code[m.start():m.end()] != key:
+            continue   # an unquoted one must be code, not text in a string or comment
         before = code[:m.start()]
         parens = before.count("(") - before.count(")") + before.count("[") - before.count("]")
         braces = before.count("{") - before.count("}")
         if parens or braces != 1 or before.rstrip()[-1:] not in ("{", ","):
             continue   # not a key of an options object given to this call itself
         rest = code[m.end():].lstrip()
-        if rest[:1] in (",", "}"):
+        if rest[:1] in (",", "}") and not quote:
             return key
         if rest[:1] == ":":
             at = m.end() + (len(code[m.end():]) - len(rest)) + 1
@@ -273,12 +290,37 @@ def option(code, src, key):
 
 
 def tier_named(value, ladder):
-    """Does an option's raw value name a tier? A literal must be on the ladder; an expression is the author's choice,
-    made on the call, except the ways of saying nothing (undefined, null, empty)."""
-    lit = re.match(r"""(['"`])(.*?)\1""", value or "", re.S)
-    if lit:
+    """Does an option's raw value name a tier? A literal (the whole value, with no ${} in it) must be on the ladder; an
+    expression is the author's choice, made on the call, except the ways of saying nothing (undefined, null, void)."""
+    v = (value or "").strip()
+    lit = re.match(r"""(['"`])(.*?)\1""", v, re.S)
+    if lit and not (lit.group(1) == "`" and "${" in lit.group(2)) and v[lit.end():].lstrip()[:1] in ("", ",", "}"):
         return bool(tier_of(lit.group(2), ladder))
-    return bool(value) and not re.match(r"(undefined|null|void\b)", value)
+    return bool(v) and not re.match(r"(undefined|null)(?![\w$])|void\b", v)
+
+
+def handed_on(code, start, end):
+    """Is this mention of agent (not a call) the real one handed on, rather than a name of the script's own?"""
+    before, after = code[:start], code[end:]
+    if re.match(r"\s*:(?!:)", after) or re.search(r"(function|const|let|var|typeof)\s+$", before):
+        return False   # an object key, a declaration, or typeof
+    if re.match(r"\s*\??\.(?!\s*(call|apply|bind)\b)", after):
+        return False   # a property read (agent.summary): the real agent spawns nothing that way
+    if re.match(r"\s*(=>|of\b|in\b)", after) or re.search(r"(const|let|var)\s*[{\[][^;=]*$", before):
+        return False   # an arrow's parameter, a for-of variable, or destructuring
+    if re.search(r"[(,]\s*$", before):   # in a list: a parameter if the list is a function's
+        depth, j = 0, end
+        while j < len(code):
+            if code[j] in "([{":
+                depth += 1
+            elif code[j] in ")]}":
+                if not depth:
+                    break
+                depth -= 1
+            j += 1
+        if code[j:j + 1] == ")" and re.match(r"\s*(=>|\{)", code[j + 1:]):
+            return False
+    return True
 
 
 def unnamed_agents(src, cwd=None, ladder=(), depth=0):
@@ -289,6 +331,8 @@ def unnamed_agents(src, cwd=None, ladder=(), depth=0):
     for m in CALL.finditer(code):
         calls.add(m.start())
         end = close(code, m.end() - 1)
+        if re.search(r"function\s*$", code[:m.start()]) or re.match(r"\s*\{", code[end + 1:]):
+            continue   # its own definition: function agent(...) or a method agent() { ... }
         args_code, args_src = code[m.end():end], src[m.end():end]
         model = option(args_code, args_src, "model")
         kind = option(args_code, args_src, "agentType")
@@ -297,15 +341,18 @@ def unnamed_agents(src, cwd=None, ladder=(), depth=0):
             continue
         lines.append(line(m.start()))
     for m in NAME.finditer(code):
-        if m.start() in calls or re.match(r"\s*:", code[m.end():]) or re.search(r"(function|const|let|var)\s+$", code[:m.start()]):
-            continue   # a call (above), an object key, or its own definition
+        if m.start() in calls or not handed_on(code, m.start(), m.end()):
+            continue
         lines.append(line(m.start()))   # handed on uncalled (items.map(agent), const run = agent): no tier to read
     if depth == 0:
         for m in NESTED.finditer(code):
             arg = src[m.end():close(code, m.end() - 1)].strip()
-            child = script_of({"name": arg.strip("'\"`")} if re.fullmatch(r"""(['"`])[\w.-]+\1""", arg) else
-                              {"scriptPath": re.search(r"""scriptPath\s*:\s*(['"`])(.+?)\1""", arg).group(2)}
-                              if re.search(r"""scriptPath\s*:\s*(['"`])(.+?)\1""", arg) else {}, cwd)
+            first = re.match(r"""(['"`])([\w.-]+)\1\s*(,|$)""", arg)        # workflow('name', args?)
+            path = re.search(r"""scriptPath\s*:\s*(['"`])(.+?)\1""", arg)   # workflow({scriptPath}, args?)
+            named = re.search(r"""\bname\s*:\s*(['"`])([\w.-]+)\1""", arg)  # workflow({name}, args?)
+            ref = {"name": first.group(2)} if first else {"scriptPath": path.group(2)} if path else \
+                {"name": named.group(2)} if named else {}
+            child = script_of(ref, cwd) if ref else ""
             if child and unnamed_agents(child, cwd, ladder, depth + 1):
                 lines.append(line(m.start()))   # a child workflow with an unnamed agent() of its own
     return sorted(set(lines))
@@ -322,7 +369,7 @@ def script_of(args, cwd):
     for path in paths:
         try:
             return path.read_text(encoding="utf-8")
-        except OSError:
+        except (OSError, ValueError):
             continue
     return ""   # a built-in workflow, or one this hook can't read: nothing to check
 
@@ -345,6 +392,8 @@ def check(data, tool, args, cwd):
                                   ", ".join(map(str, lines))), ladder), None
         return None, None
     if session:
+        if args.get("model") and not tier_of(args.get("model"), ladder):
+            return off_ladder("this new session", args.get("model"), ladder), None
         if not tier_of(args.get("model"), ladder):
             return delegate_first("this new session", ladder, never_down(str(args.get("prompt") or ""), cwd)), None
         return None, None
@@ -355,8 +404,7 @@ def check(data, tool, args, cwd):
     keep = never_down(prompt, cwd)
     spawn = tier_of(args.get("model"), ladder) or tier_of(pinned(args.get("subagent_type"), cwd), ladder)
     if spawn is None and args.get("model"):
-        return ("House rule (KittyChat), delegate first: this spawn names %s, which isn't one of the tiers here (%s). "
-                "Name one of them." % (args.get("model"), ", ".join(ladder))), None
+        return off_ladder("this spawn", args.get("model"), ladder), None
     if spawn is None:   # nothing names a tier: it would inherit the session's model, whatever the work
         return delegate_first("this spawn", ladder, keep), None
     if keep or not ceiling:

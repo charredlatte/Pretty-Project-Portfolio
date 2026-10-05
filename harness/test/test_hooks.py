@@ -608,6 +608,11 @@ class RightSized(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("isn't one of the tiers here", err)
 
+    def test_a_new_session_off_the_ladder_is_told_so(self):
+        code, err, _ = self.spawn({"prompt": "x", "model": "default"}, tool="mcp__claude-code-remote__create_session")
+        self.assertEqual(code, 2)
+        self.assertIn("isn't one of the tiers here", err)
+
     def test_a_fork_is_the_parent_and_needs_no_tier(self):
         self.assertEqual(self.spawn({"prompt": "carry on with the plan", "subagent_type": "fork"})[0], 0)
 
@@ -672,6 +677,64 @@ class WorkflowReader(unittest.TestCase):
         self.assertEqual(self.lines("await agent('find callers', {agentType: 'scout'})"), [])
         self.assertEqual(self.lines("await agent('find callers', {agentType: 'kittychat-house-rules:tester'})"), [])
         self.assertEqual(self.lines("await agent('find callers', {agentType: 'general-purpose'})"), [1])
+
+    # Round 2 of the review, 5 October
+    def test_a_child_workflow_with_args_is_read(self):
+        tmp = tempfile.mkdtemp()
+        Path(tmp, ".claude", "workflows").mkdir(parents=True)
+        Path(tmp, ".claude", "workflows", "sweep.js").write_text("await agent('a')\n")
+        for src in ("await workflow('sweep', {x: 1})", "await workflow('sweep',args)", "await workflow({name: 'sweep'}, {x: 1})"):
+            self.assertEqual(self.lines(src, tmp), [1], src)
+
+    def test_an_expression_that_builds_a_model_is_the_author_s_choice(self):
+        for src in ("await agent('x', {model: `claude-${tier}`})", "await agent('x', {model: 'claude-' + tier})",
+                    "await agent('x', {model: nullableTier})", "await agent('x', {model: undefinedOr(t, 'haiku')})"):
+            self.assertEqual(self.lines(src), [], src)
+        for src in ("await agent('x', {model: ''})", "await agent('x', {model: `inherit`})", "await agent('x', {model: null})",
+                    "await agent('x', {model: void 0})"):
+            self.assertEqual(self.lines(src), [1], src)
+
+    def test_quoted_keys_are_keys(self):
+        for src in ("await agent('x', {'model': 'haiku'})", 'await agent("x", {"model": "haiku"})',
+                    "await agent('x', {'agentType': 'scout'})"):
+            self.assertEqual(self.lines(src), [], src)
+        self.assertEqual(self.lines("await agent('model', {label: 'model'})"), [1])
+
+    def test_a_name_of_the_script_s_own_called_agent_is_not_the_real_one(self):
+        named = ", {model:'haiku'})"
+        for src in ("if (typeof agent !== 'function') throw 1\nawait agent('a'" + named,
+                    "for (const agent of reviewers) log(agent.name)\nawait agent('a'" + named,
+                    "async function run(agent) { return 1 }\nawait agent('a'" + named,
+                    "const f = (agent, x) => x\nawait agent('a'" + named,
+                    "const { agent } = ctx\nawait agent('a'" + named,
+                    "const rs = xs.map(agent => agent.summary)\nawait agent('a'" + named,
+                    "const o = { agent() { return 1 } }\nawait agent('a'" + named):
+            self.assertEqual(self.lines(src), [], src)
+        self.assertTrue(self.lines("await Promise.all(xs.map(agent))"))
+        self.assertTrue(self.lines("const go = agent.bind(null)"))
+
+    def test_division_after_a_postfix_or_a_property_is_division(self):
+        self.assertEqual(self.lines("const h = i++ / 2; await agent('x')"), [1])
+        self.assertEqual(self.lines("const r = obj.in / 2; const s = 'x'; await agent('x')"), [1])
+        self.assertEqual(self.lines("const ok = /agent('x')/.test(s)"), [])
+
+    def test_a_file_that_isn_t_utf8_never_crashes_the_gate(self):
+        tmp = tempfile.mkdtemp()
+        Path(tmp, ".claude", "agents").mkdir(parents=True)
+        Path(tmp, ".claude", "agents", "old.md").write_bytes(b"---\nname: caf\xe9\nmodel: haiku\n---\n")
+        Path(tmp, "wf.js").write_bytes(b"await agent('\xe9')\n")
+        self.assertIsNone(self.r.pinned("old", tmp))
+        self.assertEqual(self.r.script_of({"scriptPath": "wf.js"}, tmp), "")
+
+    def test_the_first_definition_by_a_name_decides(self):
+        tmp, home = tempfile.mkdtemp(), tempfile.mkdtemp()
+        Path(tmp, ".claude", "agents").mkdir(parents=True)
+        Path(tmp, ".claude", "agents", "reviewer.md").write_text("---\nname: reviewer\n---\nReview.\n")
+        Path(home, ".claude", "agents").mkdir(parents=True)
+        Path(home, ".claude", "agents", "reviewer.md").write_text("---\nname: reviewer\nmodel: haiku\n---\n")
+        from unittest import mock
+        with mock.patch.object(self.r.Path, "home", return_value=Path(home)):
+            self.assertIsNone(self.r.pinned("reviewer", tmp))   # the project's, which inherits, is the one that runs
 
     def test_a_child_workflow_is_read_too(self):
         tmp = tempfile.mkdtemp()
