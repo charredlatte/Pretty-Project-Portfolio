@@ -1657,7 +1657,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     return b;
   }
 
-  let VIEW = { cats: [], placed: [], piles: {}, queens: {}, attic: 0 };
+  let VIEW = { cats: [], piles: {}, queens: {}, attic: 0 };
 
   // The furniture: each piece a cell of its atlas, drawn at 2x. Rugs lie under everything, wall pieces on
   // the back wall, and the rest share the cats' z-space by their bottom edge, so a cat is in front of a
@@ -1756,7 +1756,6 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
 
     // cats in the scene
     const layer = $("cats"); layer.replaceChildren();
-    VIEW.placed = [];
     VIEW.piles = {};
     VIEW.queens = {};
     // the waiting line: every cat waiting on her (mood "needs") lines up at the hall's front door, beside the queen,
@@ -1827,7 +1826,6 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     draggable(b, c);
     layer.appendChild(b);   // before it walks: a walk stops when its cat has left the page
     if (legs) walk(b, spot, legs.from, legs.legs).then((ok) => { if (ok) dress(b, c, c.mood, spot, room); });
-    VIEW.placed.push({ cat: c, x: spot[0] * 2, feet: spot[1] * 2, room });
     return b;
   }
   // The line's places: from beside the queen's seat along the front of the hall, past the front door, then a second row
@@ -1891,7 +1889,6 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     b.addEventListener("dblclick", (e) => { e.stopPropagation(); hideMenu(); openPile(pile, room); });
     hoverable(b, "pile", room);
     layer.appendChild(b);
-    if (MOODS[top.mood].needs) VIEW.placed.push({ cat: top, x: spot[0] * 2, feet: spot[1] * 2, room });
   }
 
   function catClicked(c) { hideMenu(); openCat(c.id); }
@@ -2241,7 +2238,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // needs you and isn't in view: off screen on this floor, or anywhere on the other (the floor tabs are hidden).
   function foldPip() {
     const b = $("mapFold"), [x, y, w, h] = S.cam ? viewBox() : [];
-    const off = (c) => { const p = WHERE.get(c.id); return !!S.cam && (!p || p.x < x || p.x > x + w || p.y < y || p.y > y + h); };   // not drawn yet: not in view
+    const off = (c) => { const p = WHERE.get(c.id); return !!S.cam && !!p && (p.x < x || p.x > x + w || p.y < y || p.y > y + h); };   // not placed yet: not counted, so the pip never says more than is true
     const away = S.mapOpen ? [] : needOn(other(S.floor)).concat(needOn(S.floor).filter(off));
     const said = (S.mapOpen ? "Minimise the map" : "Open the map") + (away.length ? ", " + away.length + " out of view need you" : "");
     const sig = said + (away.some((c) => c.mood === "cry") ? " fail" : "");
@@ -4700,6 +4697,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       pic.appendChild(sp); return pic;
     }
     if (k === "owner") { pic.appendChild(ownerSVG(ownerOf())); return pic; }
+    if (k === "map-fold" && !e) {   // the two drawn in code, as the fold shows them, until hers
+      for (const g of $("mapFold").querySelectorAll("svg")) { const c = g.cloneNode(true); c.style.cssText = "display: inline-block; width: " + (g.classList.contains("unfold") ? 20 : 16) + "px; height: 16px; margin: 0 3px; fill: currentColor;"; pic.appendChild(c); }
+      return pic;
+    }
     const src = e ? e.url : a.file;
     if (src) { const i = el("img"); i.src = src; i.alt = ""; pic.appendChild(i); }
     return pic;
@@ -5313,12 +5314,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   for (const b of document.querySelectorAll("#controls .fl")) b.addEventListener("click", () => setFloor(b.dataset.floor));
   $("houseBtn").addEventListener("click", (e) => { e.stopPropagation(); hideTip(); toggleMenu("house", "house", $("houseBtn")); });
   $("mapFold").addEventListener("click", () => setMapOpen(!S.mapOpen, true));
-  // The panel changes size (opened, minimised, a pip on its button): a menu it now covers moves clear of it, just
-  // placed again, not redrawn, so the item she is on keeps the keyboard. A menu it doesn't cover stays put.
-  new ResizeObserver(() => {
-    const m = $("menu").getBoundingClientRect(), p = $("controls").getBoundingClientRect(), g = 12;
-    if (MENU.kind && !$("menu").hidden && m.left < p.right + g && m.right > p.left - g && m.top < p.bottom + g && m.bottom > p.top - g) placeMenu(MENU.kind, MENU.key, null, false);
-  }).observe($("controls"));
+  // The panel changes size (opened, minimised, a pip on its button): the open menu keeps its place unless the panel
+  // now covers it, then dodges it; placed again, not redrawn, so the item she is on keeps the keyboard.
+  new ResizeObserver(() => { if (MENU.kind && !$("menu").hidden) placeMenu(MENU.kind, MENU.key, null, true); }).observe($("controls"));
   // the minimap: a click glides there, a drag pans live (holding the view where you grabbed it), a
   // double-click looks in, the wheel zooms about that spot
   const mm = $("minimap");

@@ -2973,6 +2973,20 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     await page.waitForTimeout(600);
     expect((await rootVar("--u")) === "2px" && (await rootVar("--px-size")) === "18px" && (await rootVar("--body-size")) === "0.9rem", [await rootVar("--u"), await rootVar("--px-size")].join(" | "));
   });
+  await check("her own fold (map-fold) takes the drawn one's place, a cell for each state, and The look shows the drawn one till then", async () => {
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    expect(await page.locator("#artDlg li[data-slot='map-fold'] .pic svg").count() === 2, "no drawn fold in The look");
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+    await page.evaluate(() => window.__catio.put("skin/map-fold", { src: "art/licensed/ui/stars.png", at: 1 }));   // 20 x 8, the slot's shape
+    await page.waitForTimeout(600);
+    expect(await page.locator("#mapFold .glyph").isVisible() && !(await page.locator("#mapFold svg.tuck").isVisible()), "hers isn't shown");
+    const cell = () => page.locator("#mapFold .glyph").evaluate((g) => getComputedStyle(g).backgroundPosition);
+    const one = await cell(); await page.click("#mapFold"); const two = await cell(); await page.click("#mapFold");
+    expect(one !== two, "the same cell open and minimised: " + one);
+    await page.evaluate(() => { delete window.__catio.store["skin/map-fold"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(500);
+    expect(!(await page.locator("#mapFold .glyph").isVisible()), "hers stayed after it went");
+  });
   await check("a button's lit piece of another size than the button is refused, with why", async () => {
     await page.evaluate(() => window.__catio.put("skin/button-hover", { src: "art/licensed/ui/bubble.png", at: 1 }));
     await page.waitForTimeout(600);
