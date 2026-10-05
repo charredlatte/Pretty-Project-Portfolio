@@ -17,8 +17,8 @@ They live in [`rules.json`](rules.json). The KittyChat Café page shows them all
 
 | Rule | How it's kept |
 |---|---|
-| Preflight before any browser | Enforced. `hooks/gates.py` refuses browser tools (Playwright, Chrome, computer use) and shell commands that drive a browser until the `browser-agent-preflight` skill has run in the session |
-| Open with a read-only audit | Enforced. `hooks/gates.py` refuses edits, commits, pushes and scripts run with `--write` or `--commit` (such as `litterbox/sort.py --write`) inside the repo until the `ponytail-audit` skill has run. The summary is saved to the Catio (`audits/<repo>`) and shown in the project's filing cabinet |
+| Preflight before any browser | Enforced. `hooks/gates.py` refuses browser tools (Playwright, Chrome, computer use) and shell commands that drive a browser until the `browser-agent-preflight` skill has run in the session. The plugin doesn't ship that skill: install it, or switch the rule off (below) |
+| Open with a read-only audit | Enforced. `hooks/gates.py` refuses edits, commits, pushes and scripts run with `--write` or `--commit` (such as `litterbox/sort.py --write`) inside the repo until the `ponytail-audit` skill has run. The summary is saved to the Catio (`audits/<repo>`) and shown in the project's filing cabinet. The plugin doesn't ship that skill either: without it, every edit is refused, so install it or switch the rule off (below) |
 | Semi-automatic shipping | Enforced. `hooks/ship_gate.py` refuses a push to the default branch (by git or the GitHub tools), a force-push, and deleting a branch that isn't merged. `hooks/ship_check.py` holds the end of a turn once when a feature branch has work that isn't pushed, and asks Claude to commit, push and open a PR if the work is done and checked, or to say why not. In a cloud session it checks every repo checked out beside this one too, since the container goes with them. `litterbox/sort.py --write` follows the rule itself: it commits and pushes the notes it files |
 | Semi-automatic merging | Enforced. In a repo that opts in (`{"merge": true}`), `hooks/ship_gate.py` lets a merge through only when a strong model did the work, the audits and a review of the last commit ran, and nothing is a guess. Guesswork is held for her, with a note in the litter box. Below |
 | No Claude attribution on public repos | Enforced, in a repo on `rules.json`'s `public` list (the café, the grocery app, Snail-Mail-Trail and LibreSprite). `hooks/gates.py` refuses a commit whose message, or the file its `-F` names, has `Co-Authored-By: Claude` or `Claude-Session:` lines, and a GitHub call (a pull request, issue or comment, a commit or merge message) with a "Generated with Claude Code" or session-link line. GitHub's Claude integration adds its own footer to a new pull request, issue or comment, so after one the session is told to edit it off. Private repos may keep them. Add a repo to the list when it goes public |
@@ -34,7 +34,8 @@ They live in [`rules.json`](rules.json). The KittyChat Café page shows them all
 | Their issue is theirs to close: never close an issue or pull request someone else opened until they say it is fixed | Soft |
 
 Soft rules can be switched off from the page. Enforced ones are switched in `rules.json` for every repo,
-or for one repo in its own `.claude/catio-rules.json`, e.g. `{"opening_audit": false}`. A repo can also
+or for one repo in its own `.claude/catio-rules.json`, e.g. `{"opening_audit": false}` (or `"preflight"`, for a
+repo where `ponytail-audit` or `browser-agent-preflight` isn't installed). A repo can also
 list extra browser commands, one pattern per line, in `.claude/browser-commands`.
 
 ### Delegate first: spend what the task is worth
@@ -176,6 +177,10 @@ montfortoise-shopify, LibreSprite-on-iPad, tiktok-saves, Snail-Mail-Trail and he
 The `permissions` lines are what make shipping semi-automatic: commits, pushes and PRs no longer stop to
 ask. Leave them out to keep being asked. To try the plugin from a checkout of this repo before it is on
 the default branch, use `{ "source": "directory", "path": "." }` as the marketplace source instead.
+
+Every hook runs `python3`, except on Windows, where the python.org installer gives `py` and `python` but no
+`python3`: there `hooks.json` runs `py` when it is there, else `python` (hooks run in Git Bash; Windows sets `OS` to
+`Windows_NT`, and Git Bash inherits it).
 
 `mcp__github__merge_pull_request` is deliberately not on that list. The merge gate is a hook, so it only runs
 where the plugin is installed. Where it isn't, the permission prompt is the only check left on a merge.

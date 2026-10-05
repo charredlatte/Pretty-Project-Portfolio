@@ -149,6 +149,11 @@ def small_writer(data, path, cwd):
             "requests: the merging rule promises a strong model did the work. Make the change in the session.")
 
 
+# the two skills the rules call aren't in this plugin: say what to do when the session hasn't got one
+MISSING = (" This plugin doesn't ship the {0} skill: if it isn't installed, say so, and ask whether to install it or "
+           "switch the rule off for this repo with {{\"{1}\": false}} in .claude/catio-rules.json (not yours to decide).")
+
+
 def main():
     data = hook_input()
     tool = data.get("tool_name", "")
@@ -173,7 +178,7 @@ def main():
         if BROWSER_TOOL.search(tool) or (command and browser_patterns(cwd).search(command)):
             if not ran(data, "browser-agent-preflight"):
                 block("House rule (KittyChat): run the browser-agent-preflight skill before using a browser. "
-                      "Invoke it with the Skill tool, then try again.")
+                      "Invoke it with the Skill tool, then try again." + MISSING.format("browser-agent-preflight", "preflight"))
 
     if enforced("opening_audit", cwd):
         path = str(args.get("file_path") or args.get("notebook_path") or "")
@@ -181,7 +186,8 @@ def main():
         writes = bool(command) and WRITE_CMD.search(command) and not only_scratch(command, cwd)
         if (edits or writes) and not ran(data, "ponytail-audit"):
             block("House rule (KittyChat): open the session with a read-only pass first. Run the ponytail-audit skill "
-                  "on this repo (it changes nothing), save its summary to the Catio as audits/<repo>, then carry on.")
+                  "on this repo (it changes nothing), save its summary to the Catio as audits/<repo>, then carry on."
+                  + MISSING.format("ponytail-audit", "opening_audit"))
 
     if tool in EDIT_TOOLS:
         why = small_writer(data, str(args.get("file_path") or args.get("notebook_path") or ""), cwd)

@@ -12,6 +12,7 @@ import unittest
 from pathlib import Path
 
 HOOKS = Path(__file__).resolve().parent.parent / "hooks"
+BASH = shutil.which("bash") or "bash"   # hook commands run in bash (Git Bash on Windows)
 
 
 # what the hooks read from the environment, cleared for every run
@@ -907,6 +908,21 @@ class SessionStart(unittest.TestCase):
         r = run("session_start.py", {"source": "resume", "cwd": tempfile.mkdtemp()})
         self.assertNotIn("Start now with the read-only pass", r.stdout)
 
+    def test_a_guest_session_is_told_its_own_cafe(self):
+        def start(url):
+            env = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_CODE_REMOTE", "CATIO_URL")}
+            if url:
+                env["CATIO_URL"] = url
+            return subprocess.run([sys.executable, str(HOOKS / "session_start.py")], capture_output=True, text=True,
+                                  input=json.dumps({"source": "startup", "model": "claude-fable-5-1",
+                                                    "cwd": tempfile.mkdtemp()}), env=env).stdout
+        guest = start("https://catio-gateway.someone.workers.dev")
+        self.assertIn("KittyChat Café of the person you are working for, at https://catio-gateway.someone.workers.dev", guest)
+        for words in ("Charlotte's Catio", "Charlotte's allowance"):
+            self.assertNotIn(words, guest)
+        self.assertIn("Charlotte's Catio, her harness: https://claude.ai/artifact/", start(None))
+        self.assertIn('{"opening_audit": false} in .claude/catio-rules.json', guest)
+
 
 class Plugin(unittest.TestCase):
     def test_manifests_parse_and_point_at_real_files(self):
@@ -923,6 +939,32 @@ class Plugin(unittest.TestCase):
         self.assertTrue((root / "skills" / "catio" / "SKILL.md").read_text().startswith("---\nname: catio\n"))
         self.assertTrue((root / "skills" / "graphify" / "SKILL.md").read_text().startswith("---\nname: graphify\n"))
         self.assertTrue((root / "skills" / "graphify" / "LICENSE").exists())
+
+    def test_every_hook_uses_one_launcher_that_finds_python_on_windows(self):
+        hooks = json.loads((HOOKS / "hooks.json").read_text())["hooks"]
+        launchers = {h["command"].split(' "${CLAUDE_PLUGIN_ROOT}/hooks/')[0]
+                     for groups in hooks.values() for g in groups for h in g["hooks"]}
+        self.assertEqual(len(launchers), 1, launchers)
+        launcher = launchers.pop()
+        empty = tempfile.mkdtemp()   # a PATH with no py on it
+        for os_name, path, want in (("", os.environ["PATH"], "python3"), ("Windows_NT", empty, "python")):
+            env = dict(os.environ, OS=os_name, PATH=path)
+            r = subprocess.run([BASH, "-c", "echo " + launcher], capture_output=True, text=True, env=env)
+            self.assertEqual(r.stdout.strip(), want, os_name)
+        if os.name == "nt":   # a stand-in py needs a POSIX file mode
+            return
+        Path(empty, "py").write_text("#!/bin/sh\n")
+        Path(empty, "py").chmod(0o755)
+        r = subprocess.run([BASH, "-c", "echo " + launcher], capture_output=True, text=True,
+                           env=dict(os.environ, OS="Windows_NT", PATH=empty + os.pathsep + os.environ["PATH"]))
+        self.assertEqual(r.stdout.strip(), "py")
+
+    def test_the_gates_say_what_to_do_without_the_skills(self):
+        tmp = tempfile.mkdtemp()
+        r = run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": "Write", "tool_input":
+                             {"file_path": str(Path(tmp, "x.txt"))}, "transcript_path": transcript(tmp), "cwd": tmp})
+        self.assertEqual(r.returncode, 2)
+        self.assertIn('{"opening_audit": false} in .claude/catio-rules.json', r.stderr)
 
 
 if __name__ == "__main__":
