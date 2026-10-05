@@ -76,7 +76,9 @@ The current cafe framework uses Claude Code to run the queen; other models (Grok
 - for the front desk, a free **Cloudflare** account (cloudflare.com);
 - the **cat art**: the packs are not in this repository and cannot be (their licences forbid sharing). Most have a
   free tier; the list is in [`catio/art/CREDITS.md`](catio/art/CREDITS.md). Without them the café draws no house
-  and no cats and says so on its sign. Buy or download them first, so step 3 has something to show.
+  and no cats and says so on its sign. Today the house and the cats need all ten packs at once, and one of them,
+  `plants.zip`, has no public source yet, so a full build is Charlotte's alone for now. The interface alone builds
+  from the Sprout Lands UI pack, and the café works without the rest, on plain panels.
 
 ### Step 1: the engine. Claude Code, on your computer
 
@@ -108,7 +110,8 @@ claude --plugin-dir catio-plugin
 
 Then say: *set up my café*. The skill walks you through your rooms, your repositories and publishing the page as
 your own private claude.ai artifact, and tells you where to put the art packs' zips
-(`python3 catio/tools/build-art.py <your zips>` draws the house and the cats from them). The page does the same on
+(`python3 catio/tools/build-art.py <the folder you put them in>` draws the house and the cats from them,
+naming each zip by what is inside it). The page does the same on
 its own: a café with no rooms yet opens a seven-step wizard. **It worked when** you open your café's link and your
 sessions are cats in rooms. If the sign under the brand says *"The cat art isn't here"*, step back to the art.
 

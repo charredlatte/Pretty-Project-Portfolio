@@ -60,7 +60,8 @@ def main():
         if (ROOT / "data" / name).exists():
             shutil.copy(ROOT / "data" / name, OUT / "data" / name)
     (OUT / "harness" / "mcp").mkdir(parents=True)
-    shutil.copy(HARNESS / "mcp" / "catio_mcp.py", OUT / "harness" / "mcp" / "catio_mcp.py")
+    for name in ("catio_mcp.py", "design_tokens.py"):   # the server imports design_tokens from beside itself
+        shutil.copy(HARNESS / "mcp" / name, OUT / "harness" / "mcp" / name)
     shutil.copy(HARNESS / "rules.json", OUT / "harness" / "rules.json")  # where catio_mcp.py looks for it
     (OUT / "HOW-TO-RUN.txt").write_text(HOWTO, encoding="utf-8")
     zpath = DIST / "catio-local.zip"

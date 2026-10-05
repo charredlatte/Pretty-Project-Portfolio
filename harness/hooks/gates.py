@@ -11,7 +11,8 @@ ship, merge     pushes, branch deletions and merges, in ship_gate.py.
 small_writers   the plugin's scout and tester never edit; in a repo that merges its own pull requests, no sub agent
                 on a model off the strong list edits a tracked file (the merging rule's promise: a strong model did
                 the work).
-right_sized     a sub agent spawn says which tier it needs; an errand above this repo's ceiling is refused when
+right_sized     delegate first: an Agent spawn, every agent() in a Workflow script and a new session
+                (create_session) name a tier, or are refused; an errand above this repo's ceiling is refused when
                 Charlotte set that ceiling herself, and only spoken about when the harness read it that way
                 (right_sized.py).
 """
