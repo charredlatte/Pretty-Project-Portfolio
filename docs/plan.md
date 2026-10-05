@@ -320,13 +320,13 @@ decisions quiz page is retired). The small facts (who made `plants.zip`) stay he
     "bring his work here"), so his Sync fork has no conflict once it merges: the sign-in lock counted by address, the
     queen's key refused when it is the agents' key too, `/logout`, and an adversarial test suite. It touches `harness/`:
     hers to merge.
+13. **Jev for the decider**: `typesafe/jev` answers only with AI Gateway credits ("Insufficient AI Gateway credits",
+    5 October). Until they are topped up, Clef answers, free.
 14. **A guest's café draws no art.** The packs' licences are personal, so only her own café is given them, and an
     invited player's café is plain panels with no house or cats. Hers to decide: her own drawings as the guests' art
     (`docs/drawing-plan.md`), or a plain café on purpose and said so on the invite.
 15. **`plants.zip`'s source.** It reached her with no artist or licence; until it is credited, or its four plants
     are drawn from another pack, nobody else can run the full art build.
-13. **Jev for the decider**: `typesafe/jev` answers only with AI Gateway credits ("Insufficient AI Gateway credits",
-    5 October). Until they are topped up, Clef answers, free.
 
 ## Publishing
 
