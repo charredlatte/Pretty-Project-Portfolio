@@ -98,9 +98,18 @@ for them), then use the invite once:</p>
   -d '{"invite": "${esc(invite)}", "handle": "&lt;handle&gt;", "password": "&lt;password&gt;"}'</pre>
 <p class="soft">The answer is <code>{"handle", "key", "mcp"}</code>: their first agents' key, shown once. Keep it out of
 repositories and chats. Claude Code: <code>claude mcp add --transport http catio ${esc(origin)}/mcp --header
-"Authorization: Bearer &lt;key&gt;"</code>; any other MCP client takes <code>${esc(origin)}/mcp</code> with that header;
-Claude Code's hooks read <code>CATIO_URL=${esc(origin)}</code> and <code>CATIO_TOKEN=&lt;key&gt;</code>. An agent then
-calls <code>house_rules</code>, <code>report_status</code> and <code>inbox</code>, and is a cat in their café.</p>`;
+"Authorization: Bearer &lt;key&gt;"</code>; any other MCP client takes <code>${esc(origin)}/mcp</code> with that header.
+An agent then calls <code>house_rules</code>, <code>report_status</code> and <code>inbox</code>, and is a cat in their
+café: their own, at ${esc(origin)}, not the admin's.</p>
+<p class="soft">For every Claude Code session to report by itself, the <code>kittychat-house-rules</code> plugin's hook
+does it, reading <code>CATIO_URL=${esc(origin)}</code> and <code>CATIO_TOKEN=&lt;key&gt;</code> (in
+<code>~/.claude/settings.json</code> under <code>"env"</code>, or a cloud environment's variables, with
+<code>${esc(new URL(origin).host)}</code> allowed under its network access). Without the plugin the two variables do
+nothing. Install it (in a cloud environment, in its setup script; a session started before then won't have it):</p>
+<pre style="white-space: pre-wrap; word-break: break-all">claude plugin marketplace add https://github.com/charredlatte/Pretty-Project-Portfolio.git
+claude plugin install kittychat-house-rules@kittychat --scope user</pre>
+<p class="soft">The plugin also brings this café's house rules to every repo they work in: an audit at the start of each
+session, no pushes to the default branch, no Claude credit lines in public repos. Tell them before installing it.</p>`;
 
 // a form posted from the café's own address: the cookie is SameSite=Strict, and the Origin, when sent, must be ours
 const sameOrigin = (request) => { const o = request.headers.get("Origin"); return !o || o === new URL(request.url).origin; };
