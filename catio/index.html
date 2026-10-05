@@ -77,7 +77,7 @@
   --art-map-panel: url(art/licensed/pastel/panel.png); --art-map-panel-dark: url(art/licensed/pastel/panel-dark.png);
   --art-map-button: url(art/licensed/pastel/button.png); --art-map-button-hover: url(art/licensed/pastel/button-hover.png);
   --art-map-button-down: url(art/licensed/pastel/button-down.png); --art-map-frame: url(art/licensed/pastel/frame.png);
-  --art-map-icons: url(art/licensed/pastel/icons.png);
+  --art-map-icons: url(art/licensed/pastel/icons.png); --art-map-fold: none;   /* drawn in code until she draws it */
   --art-meadow: url(art/licensed/meadow.png); --art-house: url(art/licensed/house.png);
   --art-house-upper: url(art/licensed/house-upper.png); --art-decor: url(art/licensed/decor.png);   /* drawn as <img>, from srcOf() */
   --art-furniture: url(art/licensed/furniture.png); --art-furniture-cabin: url(art/furniture.png);   /* drawn by drawFurniture() */
@@ -252,6 +252,10 @@ a { color: var(--ink); }
 .pbtn.fold svg { width: 16px; height: 16px; } .pbtn.fold .unfold { width: 20px; }
 .mappanel.folded .fold .tuck, .mappanel:not(.folded) .fold .unfold { display: none; }
 .mappanel.folded .pbtn.fold { width: auto; min-width: 40px; padding: 0 9px; }
+/* hers, once she draws the slot: its two cells in place of the drawn ones */
+.pbtn.fold .glyph { display: none; width: 20px; height: 16px; flex: none; image-rendering: pixelated; background: var(--art-map-fold) 0 0 / 40px 16px no-repeat; }
+.mappanel.folded .fold .glyph { background-position: -20px 0; }
+:root.her-fold .pbtn.fold svg { display: none; } :root.her-fold .pbtn.fold .glyph { display: block; }
 .mm-room { position: absolute; background: var(--map-btn); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mm-edge) 45%, transparent); pointer-events: none; }
 .mm-room.faint { background: color-mix(in srgb, var(--map-btn) 35%, transparent); box-shadow: none; }
 .mm-room.landing { background: var(--map-btn-lit); }
@@ -267,7 +271,8 @@ a { color: var(--ink); }
   .mappanel { top: auto; bottom: calc(var(--panel-b) * var(--u) + 8px + env(safe-area-inset-bottom, 0px)); }
   .pbtn { height: 44px; } .pbtn.sq { width: 44px; }
   .mappanel .mp-row { order: 1; }          /* the buttons at the foot, under her thumb, the fold in the corner */
-  .pbtn.fold .tuck { transform: scaleY(-1); }
+  .pbtn.fold .tuck, .mappanel:not(.folded) .fold .glyph { transform: scaleY(-1); }
+  .mappanel.folded .pbtn.fold { min-width: 44px; }
   .credits { display: none; }
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mappanel { border-image-source: var(--art-map-panel-dark); border-image-slice: var(--mpanel-dark-s); background-color: var(--map-face-dark); } }
@@ -779,7 +784,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       <button class="pbtn sq" id="zoomOut" type="button" aria-label="Zoom out" title="Zoom out (−)"><span class="ico" style="--i: 1" aria-hidden="true"></span></button>
       <button class="pbtn sq" id="zoomIn" type="button" aria-label="Zoom in" title="Zoom in (+)"><span class="ico" style="--i: 0" aria-hidden="true"></span></button>
       <button class="pbtn sq" id="zoomAll" type="button" aria-label="Whole house" title="Whole house (0)"><svg viewBox="0 0 9 8" aria-hidden="true"><path d="M4 0h1v1h1v1h1v1h1v1H7v4H5V5H4v3H2V4H1V3h1V2h1V1h1z"/></svg></button>
-      <button class="pbtn sq fold" id="mapFold" type="button" aria-controls="minimap floors zoomIn zoomOut zoomAll" aria-expanded="true" aria-label="Minimise the map" title="Minimise the map (M)"><svg class="tuck" viewBox="0 0 8 8" aria-hidden="true"><path d="M3 0h5v1H3zM6 1h2v1H6zM5 2h3v1H5zM4 3h2v1H4zM7 3h1v2H7zM3 4h2v1H3zM2 5h2v1H2zM1 6h2v1H1zM0 7h2v1H0z"/></svg><svg class="unfold" viewBox="0 0 10 8" aria-hidden="true"><path d="M3 0h4v1H3zM0 1h4v1H0zM6 1h4v1H6zM0 1h1v7H0zM9 1h1v7H9zM3 0h1v7H3zM6 0h1v7H6zM3 6h4v1H3zM0 7h4v1H0zM6 7h4v1H6z"/></svg></button>
+      <button class="pbtn sq fold" id="mapFold" type="button" aria-controls="minimap floors zoomIn zoomOut zoomAll" aria-expanded="true" aria-label="Minimise the map" title="Minimise the map (M)"><svg class="tuck" viewBox="0 0 8 8" aria-hidden="true"><path d="M3 0h5v1H3zM6 1h2v1H6zM5 2h3v1H5zM4 3h2v1H4zM7 3h1v2H7zM3 4h2v1H3zM2 5h2v1H2zM1 6h2v1H1zM0 7h2v1H0z"/></svg><svg class="unfold" viewBox="0 0 10 8" aria-hidden="true"><path d="M3 0h4v1H3zM0 1h4v1H0zM6 1h4v1H6zM0 1h1v7H0zM9 1h1v7H9zM3 0h1v7H3zM6 0h1v7H6zM3 6h4v1H3zM0 7h4v1H0zM6 7h4v1H6z"/></svg><span class="glyph" aria-hidden="true"></span></button>
     </div>
     <div class="minimap" id="minimap" aria-hidden="true"><div id="mmRooms"></div><div class="mm-view" id="mmView"></div></div>
     <div class="floors" id="floors" role="radiogroup" aria-label="Floor">
@@ -1003,7 +1008,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "map-button-hover": { group: "Map panel", kind: "slice", fam: "mbtn", name: "Map button, lit", file: LIC + "pastel/button-hover.png", size: [270, 81], what: "Its border is the map button's." },
     "map-button-down": { group: "Map panel", kind: "slice", fam: "mbtn", name: "Map button, pressed", file: LIC + "pastel/button-down.png", size: [270, 81], what: "And the floor on screen. Its border is the map button's." },
     "map-frame":     { group: "Map panel", kind: "slice", fam: "mframe", name: "View frame", file: LIC + "pastel/frame.png", size: [300, 150], slice: [28, 28, 28, 28], scale: 6 / 28, what: "The camera's view on the minimap: a border, empty in the middle." },
-    "map-icons":     { group: "Map panel", kind: "sheet", smooth: true, name: "Map icons", file: LIC + "pastel/icons.png", size: [180, 36], what: "Five cells: plus, minus, up, down, the whole house." },
+    "map-icons":     { group: "Map panel", kind: "sheet", smooth: true, name: "Map icons", file: LIC + "pastel/icons.png", size: [180, 36], what: "Five cells: plus and minus, for the zoom; the other three aren't drawn now." },
+    "map-fold":      { group: "Map panel", kind: "sheet", name: "The fold", file: null, size: [20, 8], what: "Two cells of pixel art: minimise the map (an arrow into the top right corner, turned to point down on a phone), then open it again (a folded map). Until there is one, they are drawn in code." },
   };
   // The rest of the design system: every colour, font size and scale the CSS uses is a token in :root, and these are
   // they, for The look. A skin sets any of them ("tokens" in art/skin.json, or skin/theme), checked first: a colour is
@@ -1310,6 +1316,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const HOUSE = (k) => ART[k].kind === "cat" || ART[k].measured;   // what the house, its furniture and its cats are drawn from
     const houseWas = SKIN.houseSig, houseSig = JSON.stringify(Object.entries(live).filter(([k]) => HOUSE(k)).map(([k, e]) => [k, e.url, e.frames, e.secs, e.anchor]));
     SKIN.live = live; SKIN.problems = problems; SKIN.tokens = tokens; SKIN.standIn = standIn;
+    document.documentElement.classList.toggle("her-fold", !!live["map-fold"]);   // her fold, in place of the one drawn in code
     SKIN.lookSig = artSig + JSON.stringify(tokens);   // what restyle() draws from
     const artWas = SKIN.artSig; SKIN.artSig = artSig;
     const using = new Set(Object.values(cands).flat().map((e) => e.src));
@@ -2233,14 +2240,16 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // Minimised, the fold button is all that's left of the panel, so it carries a pip for every cat that
   // needs you and isn't in view: off screen on this floor, or anywhere on the other (the floor tabs are hidden).
   function foldPip() {
-    const b = $("mapFold"), old = b.querySelector(".badge"); if (old) old.remove();
-    let away = [];
-    if (!S.mapOpen && S.cam) {
-      const [x, y, w, h] = viewBox();
-      away = VIEW.placed.filter((p) => MOODS[p.cat.mood].needs && levelOf(p.room) === S.floor && (p.x / 2 < x || p.x / 2 > x + w || p.feet / 2 < y || p.feet / 2 > y + h)).map((p) => p.cat).concat(needOn(other(S.floor)));
-    }
+    const b = $("mapFold"), [x, y, w, h] = S.cam ? viewBox() : [];
+    const off = (c) => { const p = WHERE.get(c.id); return !!S.cam && (!p || p.x < x || p.x > x + w || p.y < y || p.y > y + h); };   // not drawn yet: not in view
+    const away = S.mapOpen ? [] : needOn(other(S.floor)).concat(needOn(S.floor).filter(off));
+    const said = (S.mapOpen ? "Minimise the map" : "Open the map") + (away.length ? ", " + away.length + " out of view need you" : "");
+    const sig = said + (away.some((c) => c.mood === "cry") ? " fail" : "");
+    if (b.dataset.sig === sig) return;   // a camera move, nothing new
+    b.dataset.sig = sig;
+    const was = b.querySelector(".badge"); if (was) was.remove();
     if (away.length) b.appendChild(pip(away));
-    b.setAttribute("aria-label", (S.mapOpen ? "Minimise the map" : "Open the map") + (away.length ? ", " + away.length + " out of view need you" : ""));
+    b.setAttribute("aria-label", said);
   }
   function setMapOpen(open, remember) {
     S.mapOpen = open;
@@ -2249,6 +2258,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const f = $("mapFold");
     f.setAttribute("aria-expanded", String(open));
     f.title = (open ? "Minimise" : "Open") + " the map (M)";
+    if (!open && $("controls").contains(document.activeElement)) f.focus({ preventScroll: true });   // the button she was on is hidden now
     drawMap();
   }
   // put a point of the grounds (native px) in the middle of the screen
@@ -2392,7 +2402,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     for (const b of document.querySelectorAll("#hits .lit, #cats .lit")) b.classList.remove("lit");
     if (kind === "room") { const h = anchorOf("room", key); if (h) h.classList.add("lit"); }
     else if (kind !== "house") { const h = anchorOf(kind, key); if (h) h.classList.add("lit"); }   // the cat whose menu this is keeps its outline
-    // place it beside what it belongs to, inside the stage
+    placeMenu(kind, key, node, same);
+  }
+  // place it beside what it belongs to, inside the stage
+  function placeMenu(kind, key, node, same) {
+    const menu = $("menu");
     const a = (node || anchorOf(kind, key) || $("stage")).getBoundingClientRect();
     const st = $("stage").getBoundingClientRect();
     const W = st.width, H = st.height, mw = menu.offsetWidth, mh = menu.offsetHeight, g = 12;
@@ -2415,13 +2429,16 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     }
     left = Math.max(g, Math.min(Math.max(g, W - mw - g), left));
     top = Math.max(g, Math.min(Math.max(g, H - mh - g), top));
-    // never under the map panel: to its left, below it or above it, whichever moves it least (minimised, the
-    // panel is one button, and sliding a menu a whole menu-width left to dodge it lands it on its own room)
+    // never under the map panel: to its left, below it or above it, whichever moves it least without covering what it
+    // belongs to (minimised, the panel is one button, and sliding a menu a whole menu-width left to dodge it landed it
+    // on its own room)
     const p = $("controls").getBoundingClientRect(), P = [p.left - st.left - g, p.top - st.top - g, p.right - st.left + g, p.bottom - st.top + g];
     const under = (l, t) => l < P[2] && l + mw > P[0] && t < P[3] && t + mh > P[1];
     if (under(left, top)) {
       const fits = ([l, t]) => l >= g && t >= g && t + mh <= H - g, far = ([l, t]) => Math.hypot(l - left, t - top);
-      const best = [[P[0] - mw, top], [left, P[3]], [left, P[1] - mh]].filter(fits).sort((a, b) => far(a) - far(b))[0];
+      const onIt = ([l, t]) => l < ax + aw && l + mw > ax && t < ay + ah && t + mh > ay;
+      const ok = [[P[0] - mw, top], [left, P[3]], [left, P[1] - mh]].filter(fits), clear = ok.filter((c) => !onIt(c));
+      const best = (clear.length ? clear : ok).sort((a, b) => far(a) - far(b))[0];
       if (best) [left, top] = best;
     }
     MENU.at = [left, top];
@@ -5296,6 +5313,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   for (const b of document.querySelectorAll("#controls .fl")) b.addEventListener("click", () => setFloor(b.dataset.floor));
   $("houseBtn").addEventListener("click", (e) => { e.stopPropagation(); hideTip(); toggleMenu("house", "house", $("houseBtn")); });
   $("mapFold").addEventListener("click", () => setMapOpen(!S.mapOpen, true));
+  // The panel changes size (opened, minimised, a pip on its button): a menu it now covers moves clear of it, just
+  // placed again, not redrawn, so the item she is on keeps the keyboard. A menu it doesn't cover stays put.
+  new ResizeObserver(() => {
+    const m = $("menu").getBoundingClientRect(), p = $("controls").getBoundingClientRect(), g = 12;
+    if (MENU.kind && !$("menu").hidden && m.left < p.right + g && m.right > p.left - g && m.top < p.bottom + g && m.bottom > p.top - g) placeMenu(MENU.kind, MENU.key, null, false);
+  }).observe($("controls"));
   // the minimap: a click glides there, a drag pans live (holding the view where you grabbed it), a
   // double-click looks in, the wheel zooms about that spot
   const mm = $("minimap");
