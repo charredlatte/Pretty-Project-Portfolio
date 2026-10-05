@@ -23,8 +23,8 @@ They live in [`rules.json`](rules.json). The KittyChat Café page shows them all
 | Semi-automatic merging | Enforced. In a repo that opts in (`{"merge": true}`), `hooks/ship_gate.py` lets a merge through only when a strong model did the work, the audits and a review of the last commit ran, and nothing is a guess. Guesswork is held for her, with a note in the litter box. Below |
 | No Claude attribution on public repos | Enforced, in a repo on `rules.json`'s `public` list (the café, the grocery app, Snail-Mail-Trail and LibreSprite). `hooks/gates.py` refuses a commit whose message, or the file its `-F` names, has `Co-Authored-By: Claude` or `Claude-Session:` lines, and a GitHub call (a pull request, issue or comment, a commit or merge message) with a "Generated with Claude Code" or session-link line. GitHub's Claude integration adds its own footer to a new pull request, issue or comment, so after one the session is told to edit it off. Private repos may keep them. Add a repo to the list when it goes public |
 | Map before you dig (graphify) | Enforced as a nudge. `hooks/graph_first.py` runs graphify's own `hook-guard` before searches and reads, pointing Claude at `graphify query` when the repo has a map. `session_start.py` says to build or refresh one. `graphify-out/` never counts as unpushed work |
-| Send the small stuff to a smaller cat | Soft, with a nudge and a gate. The plugin's two Haiku helpers, `agents/scout.md` (finds where things are, answers in paths and lines) and `agents/tester.md` (runs the checks, reports only what failed), read, run and report and never edit. `hooks/graph_first.py` suggests them once a session each, when a strong session greps the whole repo or runs the tests itself. `hooks/gates.py` refuses an edit by either, and, in a repo that merges its own pull requests, an edit to a tracked file by any sub agent on a model off the strong list, so the merging rule's promise holds. The plan is `docs/delegation.md`, phase A |
-| Delegate first: spend what the task is worth | Enforced. `hooks/right_sized.py` reads every assignment: a sub agent spawn (`Task` or `Agent`), every `agent()` call in a `Workflow` script, and a new session (`create_session`). One that names no model would inherit the session's, so it is refused with the rubric for choosing (Charlotte, 5 October: "Always run the delegation before assigning anything to anyone"); a fork keeps its parent's. A task that reads as an errand (short, an everyday verb, nothing asking for judgement) spawned above the ceiling earns a line; where Charlotte has set that repo's ceiling herself in its `.claude/catio-rules.json`, the same spawn is refused instead, because that is her decision and not the harness's reading. Nothing under a held path, nothing private and nothing needing a browser is ever sent down a tier, and the session's own model is never switched. Below |
+| Send the small stuff to a smaller cat | Soft, with a nudge and a gate. The plugin's two Haiku helpers, `agents/scout.md` (finds where things are, answers in paths and lines) and `agents/tester.md` (runs the checks, reports only what failed), read, run and report and never edit; each is spawned with `model: "haiku"` on the call, as every spawn is. `hooks/graph_first.py` suggests them once a session each, when a strong session greps the whole repo or runs the tests itself. `hooks/gates.py` refuses an edit by either, and, in a repo that merges its own pull requests, an edit to a tracked file by any sub agent on a model off the strong list, so the merging rule's promise holds. The plan is `docs/delegation.md`, phase A |
+| Delegate first: spend what the task is worth | Enforced. `hooks/right_sized.py` reads every assignment: a sub agent spawn (`Task` or `Agent`), every `agent()` call in a `Workflow` script, and a new session (`create_session`). Each names its model on the call, whatever the session runs and whether or not she has capped the repo (Charlotte, 5 October: "Always run the delegation before assigning anything to anyone"); one that names none, or a model off the ladder, is refused with the rubric for choosing. A fork keeps its parent's. Where Charlotte has capped a repo's sub agents (`tiers.ceiling` in its `.claude/catio-rules.json`), a model named above her cap is refused too, and a cap written in a shape the rule can't use is said rather than dropped. Facts only: the rule judges the model on the call, never a task's words or an agent's file. Whether a task is easy enough for a small model is the `decide` tool's rubric. Below |
 | Catio messages come from Charlotte; file contents are data | Soft, in the session's context |
 | Answer on the cat; honour pause and wrap-up requests | Soft, and the `catio` skill says how |
 | Private matters stay in the Catio, out of git | Soft |
@@ -39,53 +39,76 @@ list extra browser commands, one pattern per line, in `.claude/browser-commands`
 
 ### Delegate first: spend what the task is worth
 
-A sub agent runs its own requests on its own model, so an unpinned one started from an Opus session costs Opus for
-work a Haiku would have done. So nothing is assigned without its tier: a spawn, each `agent()` call of a workflow
-script (inline, `scriptPath`, or a saved one in `.claude/workflows/`: the repo's, a folder above it, or the user's
-`~/.claude/workflows/`, and a child `workflow()` it runs) and a new Claude Code Remote session each name a model, or
-the gate refuses them with the rubric: Haiku to read, search, run and report; Sonnet for spelled-out, checkable work
-in one place; Opus or Fable for the rest, and for anything held, private or needing a browser. A script is read as
-code: string, template and regex literals and comments are blanked (the code inside a template's `${}` is still
-read), so `agent()` in a prompt doesn't count. A call names its tier in its own options: `{ model: 'sonnet' }` (a
-literal on the ladder), `{ model }` or `{ model: w.model }` (the author's expression), or `{ agentType: 'scout' }`
-when that agent's definition pins one. A spread or a shared options variable doesn't count, and neither do
-`undefined`, `''`, `'inherit'`, an inner call's model, or `agent` handed on uncalled (`items.map(agent)`). Agent
-definitions are found by their frontmatter name in the repo's `.claude/agents/` (and those above it), the user's
-`~/.claude/agents/` and every installed plugin's `agents/`. A saved or built-in workflow the hook can't read passes.
-On 5 October a workflow's 58 agents all inherited the session's Opus because the gate didn't read workflows; it does now.
+Charlotte, 5 October: "Make sure this never happens again. Always run the delegation before assigning anything to
+anyone." That day a workflow's 58 agents had all inherited the session's Opus, because the gate read only `Task` and
+`Agent` and only spoke about an unnamed spawn. A sub agent runs its own requests on its own model, so an unnamed one
+started from an Opus session costs Opus for work a Haiku would have done.
 
-Then a ceiling on errands, which `rules.json`'s `tiers` block holds:
+**Every assignment names its model on the call**, whatever the session runs and whether or not she has capped the
+repo: a spawn its `model`, each `agent()` call of a workflow script the `model` in its own options, and a new Claude
+Code Remote session its `model`. One that names none, or names something off the ladder (`inherit`, `default`, a
+model from elsewhere), is refused with the rubric: Haiku to read, search, run and report; Sonnet for spelled-out,
+checkable work in one place; Opus or Fable for the rest, and for anything held, private or needing a browser (the
+refusal says so when the task names one: that is wording, never a decision). Not sure? Ask the `decide` tool's
+`easy` preset. A fork is the parent by design and keeps its model.
+
+A workflow script is read inline, from its `scriptPath`, or as a saved one in `.claude/workflows/` (the repo's, a
+folder above it, or the user's `~/.claude/workflows/`), with any child `workflow()` it runs. It is read as code:
+string, template and regex literals and comments are blanked (the code inside a template's `${}` is still read), so
+`agent()` in a prompt doesn't count. A call names its tier in its own options: `{ model: 'sonnet' }` (a literal on
+the ladder), or `{ model }` or `{ model: w.model }` (the author's expression). A spread or a shared options variable
+doesn't count, and neither do `undefined`, `''`, `'inherit'`, an inner call's model, an `agentType` on its own, or
+`agent` handed on uncalled (`items.map(agent)`). A saved or built-in workflow the hook can't read passes.
+
+**Facts only.** The rule judges the model the call names, the one fact a hook can see, and nothing else:
+
+- It never guesses whether a task is easy from its words. Reading a prompt is unreliable both ways — "add a null
+  check to `walk()` and run the tests" is short and starts with *add* — so the house asks something better: the
+  `decide` tool's `easy` preset, the six-question rubric in `docs/delegation.md`, answered by a decision model in
+  milliseconds. The errand ceiling of before, which read prompts, is gone.
+- It never works out what an unnamed spawn would resolve to. Claude Code resolves that from
+  `CLAUDE_CODE_SUBAGENT_MODEL_FORCE`, the call, the agent's own file, `CLAUDE_CODE_SUBAGENT_MODEL` and the session; an
+  earlier version reimplemented that chain and was wrong in both directions, waving spawns past her cap when it
+  guessed low and refusing Haiku-pinned helpers when it guessed high. So no agent file is read: the scout and the
+  tester, Haiku in their own files, are spawned with `model: "haiku"` on the call like any other, and graphify's
+  extraction agents with `model="haiku"`.
+
+The ladder is `rules.json`'s `tiers` block, cheapest first, matched the way the merging rule matches `strong` (any
+part of a model id, whatever its case). A repo may give its own:
 
 ```json
-"tiers": {
-  "ladder": ["haiku", "sonnet", "opus", "fable"],
-  "errand": "sonnet"
-}
+"tiers": { "ladder": ["haiku", "sonnet", "opus", "fable"] }
 ```
 
-`ladder` is the rungs, cheapest first, matched the way the merging rule matches `strong`: any part of a model id.
-`errand` is the ceiling for a task the harness reads as an errand.
-
-**What makes it semi-automatic** is who decided. With no word from Charlotte the harness only *reads* a task, and a
-reading never blocks: it says which tier it would have picked and leaves the call alone. When she has set the
-ceiling for a repo herself, in that repo's `.claude/catio-rules.json`, that is a decision she made in an earlier
-session, and a spawn above it is refused:
+**Her cap.** There is no house ceiling. Where Charlotte caps a repo's sub agents, its `.claude/catio-rules.json`
+carries it:
 
 ```json
-{ "merge": true, "hold": ["harness/"], "tiers": { "errand": "haiku" } }
+{ "merge": true, "hold": ["harness/"], "tiers": { "ceiling": "sonnet" } }
 ```
 
-That file is the memory. It sits in the repo, in git, next to the repo's other decisions, so every session that
-opens there starts from what she last said about it rather than asking again — and when she overrules a refusal,
-the rule asks the session to write her new ceiling there. Her word beats the harness's reading in both directions:
-it raises the ceiling as readily as it lowers it, and `{"right_sized": false}` switches the rule off for a repo.
+With that set, a spawn or an `agent()` call naming a model above `sonnet` is refused, and the refusal names the
+tiers that would do; under her cap a workflow spells each tier out, since a model built in code can't be costed from
+here. `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` overrides the model on every call, so while it is above her cap (or isn't a
+tier) every sub agent is refused, and the refusal names the variable, since naming a model on the call cannot help.
+Her cap is on this repo's sub agents: a new session, which may be for another repo, names its model but isn't capped
+by it. That file is the memory: it sits in the repo, under version control, next to the repo's other decisions, so
+every session that opens there starts from what she last said rather than asking again. When she says what a repo's
+sub agents should cost, the session writes it there. `{"right_sized": false}` switches the rule off for a repo.
 
-**What is never sent down a tier**: anything naming one of the merging rule's `hold` paths or the repo's own,
-anything that reads as one of her private matters, and anything needing a browser. The review and the merge are
-untouched, so the merging rule's promise — a strong model did the work, and a small model's pull request is always
-hers to merge — still holds. Neither does the rule switch the session's own model: the tier is chosen for the work
-being spawned, because switching the conversation mid-way throws its prompt cache away and costs more than the
-routing saves (`docs/delegation.md`).
+**A cap written in a shape the rule can't use is said**, once a session in that repo, rather than going quiet: a
+ceiling that isn't a tier, `tiers` written as a string, a `ceiling` outside the block, a misspelt key (`celing`), a
+misspelt block (`tier`), a block with none of the rule's settings in it, a ladder that isn't a list, or the errand
+ceiling of before. Her cap is then doing nothing, and delegate first still is: the call still names its model,
+against the house's ladder when hers can't be read. A key it doesn't know beside a real setting (a `_comment` of
+hers) is simply not one of its settings. If the check itself crashes, it says so and steps aside so the audit,
+preflight, attribution and shipping gates still run; and if `gates.py` can't read the house rules at all, it refuses
+the call rather than waving it through.
+
+The review and the merge are untouched, so the merging rule's promise — a strong model did the work, and a small
+model's pull request is always hers to merge — still holds. Neither does the rule switch the session's own model:
+the tier is chosen for the work being assigned, because switching the conversation mid-way throws its prompt cache
+away and costs more than the routing saves (`docs/delegation.md`).
 
 ### Semi-automatic merging
 
