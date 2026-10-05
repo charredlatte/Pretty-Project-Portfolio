@@ -2,7 +2,7 @@
 	// The Catio's gateway: the always-on hub every agent reports to. Workers Builds deploys it from this
 	// folder on every push to main (README.md says how to connect it once).
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "catio-gateway",
+	"name": "dog-den",
 	"main": "src/index.js",
 	"compatibility_date": "2026-09-15",
 	// A house a user: their cats, notes, files and the café's documents, each a SQLite-backed Durable Object; and
