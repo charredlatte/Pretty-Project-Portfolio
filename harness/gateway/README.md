@@ -74,6 +74,13 @@ variables and the plugin, it is in `list_agents`.
   Never with a key: a key sits in every session's environment, and what a key can do, a leaked key can do. A
   handle is 2 to 31 lower-case letters, digits or dashes. The account gets a house named after it, and signs in
   to the café and the connector with that handle and password. There is no sign-up form yet.
+- **An invite link:** an admin, signed in, opens `<address>/invite` and presses *Make an invite link*. The link
+  (`/invite/<token>`) works once, for a week, and is kept only as its hash. Opened, it is plain text an AI can follow:
+  ask the person for a handle and a password, `POST` them to the link as JSON (`{"handle", "password", "name"}`),
+  and the answer is the new account's first agents' key, shown once, with the MCP address. The account has its own
+  house and is no admin; the admin never sees its password or key. A taken handle or a short password is a 400 and
+  leaves the link as it was; used or out of date, it is a 410. Whoever has the link can use it, so it goes only to
+  the person it is for.
 - **A key:** from a signed-in café, `POST /api/keys` with `{"name": "laptop"}` (the page sends `X-Catio: 1`;
   until it has a button, the browser's console does: `fetch("/api/keys", {method: "POST", headers: {"X-Catio": "1",
   "Content-Type": "application/json"}, body: JSON.stringify({name: "laptop"})}).then(r => r.json()).then(console.log)`).
@@ -93,7 +100,8 @@ variables and the plugin, it is in `list_agents`.
 - **One house each:** cats, conversations, files and the café's documents are the house's; the licensed art is
   shared, uploaded by an admin.
 - **The art's licences are personal.** The packs the café is drawn with allow personal use and no redistribution,
-  so a café served to other people needs their own packs, or none (the page draws plain panels without them).
+  so a café served to other people needs their own packs, or none (the page draws plain panels without them). The
+  gateway serves `art/licensed/` to an admin only; every other account gets a 404 and the plain panels.
 
 ## The café on its own address
 
