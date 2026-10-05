@@ -2,7 +2,6 @@
 // password, and Claude gets a token to read and manage their cats as them. Nobody but Claude's connectors may
 // ask: anywhere else, a token would leave with someone else.
 import { AuthorizationError, CimdFetchError } from "@cloudflare/workers-oauth-provider";
-import { MIN_SECRET } from "./secret.js";
 import { bootProblem, hasAccount, propsOf, registry } from "./registry.js";
 
 const CLAUDE = ["claude.ai", "claude.com"];
@@ -93,9 +92,7 @@ export async function authorize(request, env) {
 	try {
 		if (!(await hasAccount(env))) {
 			return page("No account yet", `<h1>The gateway has no account yet</h1>
-<p>Add a secret named <strong>CATIO_PASSWORD</strong>, ${MIN_SECRET} characters or more, in Cloudflare: Workers &amp; Pages, then
-catio-gateway, Settings, Variables and Secrets. It becomes the first account's password. Then connect again.</p>
-${bootProblem() ? `<p class="bad">${esc(bootProblem())}</p>` : ""}`, 503);
+<p class="bad">${esc(bootProblem())}</p><p>Then connect again.</p>`, 503);
 		}
 		if (request.method === "GET") {
 			const ask = await oauth.parseAuthRequest(request);

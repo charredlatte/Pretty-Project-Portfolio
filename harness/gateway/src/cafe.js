@@ -165,7 +165,7 @@ async function signUpForAnAI(request, env) {
 	return json({ handle: made.user.id, key, mcp: origin + "/mcp" }, 201);
 }
 
-const NO_ACCOUNT = () => { const why = bootProblem(); return "The gateway has no account yet: add CATIO_PASSWORD in Cloudflare, and it becomes the first one." + (why ? " " + why : ""); };
+const NO_ACCOUNT = () => "The gateway has no account yet. " + bootProblem();
 
 async function login(request, env) {
 	if (!(await hasAccount(env))) return signInPage(NO_ACCOUNT(), 503);
