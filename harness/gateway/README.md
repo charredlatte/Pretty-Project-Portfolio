@@ -62,7 +62,7 @@ it is the admin, which uploads the café's art, creates the other accounts and i
 5. Tell Claude it's done. The page is then republished to read the `Catio` connector (docs/plan.md, phase 5).
 
 To check: the address alone asks for her handle and password (the café's sign-in), so it says the Worker is up. Both sign-ins
-say when `CATIO_PASSWORD` is missing. The key is right when an agent's call to `/mcp`
+say whether `CATIO_PASSWORD` isn't set for the Worker or is under 16 characters. The key is right when an agent's call to `/mcp`
 gets an answer instead of a 401 `invalid_token`. Once a session has started in an environment with the two
 variables and the plugin, it is in `list_agents`.
 

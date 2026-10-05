@@ -57,15 +57,15 @@ function startDecider() {
 }
 
 // wrangler dev on a fresh state; again on the same state, at the end, as a deploy would start a new isolate
-async function start() {
+async function start({ password = PASSWORD, dir = state } = {}) {
 	const [port, inspector] = [await freePort(), await freePort()];
 	base = `http://127.0.0.1:${port}`;
 	log = "";
 	// the real config without its AI binding (remote, needs a Cloudflare sign-in): decisions go to the stand-in instead
 	writeFileSync(CONFIG, readFileSync(join(HERE, "wrangler.jsonc"), "utf8").replace(/^\s*"ai":.*\n/m, ""));
 	wrangler = spawn(process.execPath, [join(HERE, "node_modules/wrangler/bin/wrangler.js"), "dev", "--config", CONFIG, "--ip", "127.0.0.1",
-		"--port", String(port), "--inspector-port", String(inspector), "--persist-to", state,
-		"--var", "CATIO_TOKEN:" + TOKEN, "--var", "CATIO_PASSWORD:" + PASSWORD, "--var", "CATIO_QUEEN:" + QUEEN,
+		"--port", String(port), "--inspector-port", String(inspector), "--persist-to", dir,
+		"--var", "CATIO_TOKEN:" + TOKEN, ...(password ? ["--var", "CATIO_PASSWORD:" + password] : []), "--var", "CATIO_QUEEN:" + QUEEN,
 		"--var", "DECIDE_URL:http://127.0.0.1:" + deciderPort + "/", "--var", "DECIDE_KEY:k1"], {
 		cwd: HERE, env: { ...process.env, WRANGLER_SEND_METRICS: "false", NO_COLOR: "1" }, stdio: ["ignore", "pipe", "pipe"],
 		detached: true,   // its own process group, so workerd goes with it
@@ -990,5 +990,26 @@ print(n)`, ...dbs], { encoding: "utf8" }).trim();
 		assert.equal((await fetch(base + "/api/runner/say", { method: "POST", headers: { Authorization: "Bearer " + QUEEN, "Content-Type": "application/json" }, body: JSON.stringify({ turn: "t9", text: "", done: true }) })).status, 200);
 		const asHer = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "charlotte", password: PASSWORD }), redirect: "manual" });
 		assert.equal(asHer.status, 429, "the lock from the gateway suite is in the registry, not in the isolate");
+	});
+});
+
+// A fresh gateway with no account says which of the two is wrong with CATIO_PASSWORD: missing, or too short.
+describe("no account yet", () => {
+	test("says whether CATIO_PASSWORD is missing or too short", async () => {
+		for (const [password, says, not] of [["", /CATIO_PASSWORD isn(?:'|&#39;)t set for this Worker/, /under 16/], ["too-short", /CATIO_PASSWORD is under 16 characters/, /t set for this Worker/]]) {
+			stop();
+			await new Promise((r) => setTimeout(r, 500));
+			const dir = mkdtempSync(join(tmpdir(), "catio-gateway-empty-"));
+			try {
+				await start({ password, dir });
+				const page = await fetch(base + "/");
+				assert.equal(page.status, 503);
+				const text = await page.text();
+				assert.match(text, says);
+				assert.doesNotMatch(text, not);
+			} finally {
+				rmSync(dir, { recursive: true, force: true });
+			}
+		}
 	});
 });

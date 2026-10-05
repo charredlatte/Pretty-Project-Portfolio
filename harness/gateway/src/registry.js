@@ -19,6 +19,7 @@ const INVITE_FOR = 7 * 24 * 3600 * 1000;   // an unused invite lapses after a we
 
 /** The registry, with the first account made from the secrets while it is empty (tried until it has one). */
 let booted = false, problem = "";
+const WHERE = "Workers & Pages, catio-gateway, Settings, Variables and Secrets";
 export async function registry(env) {
 	const r = env.REGISTRY.get(env.REGISTRY.idFromName("registry"));
 	if (!booted) {
@@ -36,7 +37,7 @@ export async function hasAccount(env) {
 }
 
 /** Why there is no account yet, for the sign-in pages: what the bootstrap found wrong with the secrets. */
-export const bootProblem = () => problem;
+export const bootProblem = () => problem || `Add CATIO_PASSWORD, ${MIN_SECRET} characters or more, in Cloudflare (${WHERE}): it becomes the first account's password.`;
 
 /** What a token says about its holder: their user, their house, whether they are its owner (not a key), and a key's role. */
 export const propsOf = (user, owner) => ({ user: user.id, house: user.house, owner, admin: user.admin, ...(user.role ? { role: user.role } : {}) });
@@ -73,10 +74,12 @@ export class Registry extends DurableObject {
 	 */
 	async bootstrap(password, token, handle, queen) {
 		if (!this.empty()) { await this.seedQueen(queen); return { ok: true }; }
+		if (!password) return { error: `CATIO_PASSWORD isn't set for this Worker: add it in Cloudflare (${WHERE}), ${MIN_SECRET} characters or more. A variable under Workers Builds doesn't reach the Worker.` };
+		if (String(password).length < MIN_SECRET) return { error: `CATIO_PASSWORD is under ${MIN_SECRET} characters: set a longer one in Cloudflare (${WHERE}).` };
 		if (token && token.length < MIN_SECRET) return { error: `CATIO_TOKEN is shorter than ${MIN_SECRET} characters: fix it, or remove it and mint a key from the café.` };
 		const id = String(handle || "charlotte").toLowerCase();
-		const made = await this.createUser(id, password || "", { house: FIRST_HOUSE, admin: true });
-		if (made.error) return this.empty() ? { error: "CATIO_PASSWORD or CATIO_HANDLE: " + made.error } : { ok: true };   // two firsts at once: one made it
+		const made = await this.createUser(id, password, { house: FIRST_HOUSE, admin: true });
+		if (made.error) return this.empty() ? { error: "CATIO_HANDLE: " + made.error } : { ok: true };   // two firsts at once: one made it
 		if (token) this.addKey(id, await sha256(token), "bootstrap");
 		await this.seedQueen(queen);
 		return { ok: true };
