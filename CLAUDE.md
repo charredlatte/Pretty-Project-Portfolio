@@ -27,7 +27,8 @@ Publish `catio/index.html` with:
 
 `art/licensed/` is not in git (licences below). In a fresh session, get it back one of two ways:
 
-1. `Artifact` read with `path: "art/licensed/<file>"` on the published URL, for each file; or
+1. `Artifact` read on the published URL with `paths`: all 38 licensed files in one call, `out_dir: "catio"`
+   (`action: "list"`, `scope: "files"` lists them). `path` fetches a single file. Or
 2. get the ten zips from her Drive folder "KittyChat Cafe Assets" (or ask her for them), put them in one
    folder and run `python3 catio/tools/build-art.py <that folder>` (needs `pip install pillow fonttools`).
    Neither their names nor their order matters: each zip is recognised by a file only that pack has
@@ -600,10 +601,12 @@ proves the page does what she asked. In this order:
    asked for? Back to 1.
 3. **Run the test unchanged:** `sh catio/test/run.sh` (about two minutes). Every failure should be something
    she asked to change. One she didn't is a regression: fix the page, not the test.
-   **The suite needs `art/licensed/`.** It is gitignored, so a fresh clone or cloud session hasn't got it,
-   and without it the page correctly draws its no-art warning on the status sign: the check that wants no
-   warning sign then fails, and that is the missing art, not the page. `run.sh` says so when it starts.
-   Get the art back the two ways under "Republishing" before trusting a red run.
+   **The suite needs `art/licensed/`, and a run without it is not a verdict.** It is gitignored, so a fresh
+   clone or cloud session hasn't got it, and every check that hands the page a file from there fails: the
+   whole of The look's section, and the gateway sign. On 5 October 2026 that was **29 failures of 339
+   checks, and all 339 passed once the art was back**. So a red run without the art says nothing about the
+   page, and reading those 29 as breakage costs an hour. Get the art back first -- route 1 under
+   "Republishing" is one `Artifact` read -- then run. `run.sh` says the same when it starts.
 4. **Rewrite only those checks, from her words:** what must be true now, not which class names went away
    (`#cats .cat > :not(.spr)`, not a list of deleted classes). Then the whole suite: all checks must pass.
 

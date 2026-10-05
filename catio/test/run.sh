@@ -6,14 +6,19 @@
 set -e
 T=$(cd "$(dirname "$0")" && pwd)
 P=$(dirname "$T")
-# The suite assumes this checkout has the licensed art. Without it the page quite correctly shows its
-# no-art warning on the status sign, and the check that wants a clear sign cannot pass. Say so, so it
-# doesn't read as a regression: art/licensed/ is gitignored, so a fresh clone never has it. CLAUDE.md,
-# "Republishing", has the two ways back (read it from the published artifact, or rebuild from her zips).
+# The suite assumes this checkout has the licensed art. Without it every check that hands the page a file
+# from art/licensed/ fails -- the whole of The look's section, and the gateway sign -- so the run says
+# nothing about the page. Say so loudly: art/licensed/ is gitignored, so a fresh clone and every cloud
+# session start without it, and reading those failures as breakage costs an hour. CLAUDE.md,
+# "Republishing", has the two ways back (one Artifact read from the published page, or her zips).
 if [ ! -d "$P/art/licensed" ]; then
-  echo "note: $P/art/licensed/ is missing, so the page draws its no-art warning."
-  echo "      Expect 1 failure, the one that wants no warning sign. It is the missing art, not the page."
-  echo "      CLAUDE.md, \"Republishing\", says how to get the art back."
+  echo "note: $P/art/licensed/ is missing, so this run is NOT a verdict."
+  echo "      Every check that hands the page a file from art/licensed/ fails without it: the whole of"
+  echo "      The look's section, and the gateway sign. Measured on 5 October 2026: 29 failures; with the"
+  echo "      art in place, all 339 checks pass. Don't read those 29 as the page being broken."
+  echo "      Get it back first, one call of a few seconds: CLAUDE.md, \"Republishing\", route 1 reads all"
+  echo "      38 files from the published artifact in a single Artifact read with \"paths\"."
+  echo "      After that, a failure is real."
   echo
 fi
 {
