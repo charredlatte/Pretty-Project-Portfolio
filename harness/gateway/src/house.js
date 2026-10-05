@@ -15,6 +15,7 @@ const ACTIONS = ["rename", "move", "archive", "unarchive", "pause", "resume", "w
 const QUEEN = "queen";          // the queen's cat: her conversation with Charlotte, and her runner's presence
 const HOLD = 25 * 1000;         // how long the runner's wait is held before it comes back empty
 const AWAY = 90 * 1000;         // a runner silent this long is back when it next waits: the cafés are told
+const LEASE = 10 * 60 * 1000;   // a routine handed to a runner that never finishes it is handed out once more after this
 const DAY = 24 * 3600 * 1000;
 const DEFAULT_TZ = "Europe/Paris";
 const OWNER = "owner";          // the house's owner on the wire; "charlotte" was the name before accounts
@@ -419,6 +420,7 @@ export class House extends DurableObject {
 			return o;
 		}) : undefined;
 		const changed = this.presence(done ? "done" : "busy");
+		if (done && routine) this.finishRoutine(routine.id);
 		let id = null;
 		if (done && text.trim()) {
 			id = newId();
@@ -464,7 +466,9 @@ export class House extends DurableObject {
 
 	// Routines are documents, routines/<id> {name, time: "HH:MM", days: [0-6], tz, prompt, on, last}, written by
 	// the page. One is due when its latest firing is newer than the last it was handed out at: a missed one runs
-	// once when the runner is back, never twice. The alarm wakes a waiting runner at the next firing.
+	// once when the runner is back, never twice. The alarm wakes a waiting runner at the next firing. A firing is
+	// finished when the runner's answer to it is done (finished); one handed out and never finished, because the
+	// runner died, goes out once more after LEASE (retried).
 	routines() {
 		return this.sql.exec("SELECT path, data FROM docs WHERE path LIKE 'routines/%'").toArray().map((r) => [r.path.slice("routines/".length), JSON.parse(r.data)]);
 	}
@@ -473,12 +477,19 @@ export class House extends DurableObject {
 		for (const [id, r] of this.routines()) {
 			if (!r.on) continue;
 			const at = lastFire(r, now);
-			if (at && at > (Number(r.last) || 0)) {
-				this.putDoc("routines/" + id, { last: at }, true);
-				return { id, name: String(r.name || id).slice(0, 100), prompt: String(r.prompt || "").slice(0, 4000), at };
-			}
+			if (!at) continue;
+			const last = Number(r.last) || 0, handed = Number(r.handed) || 0;
+			const lost = at === last && handed > 0 && now - handed > LEASE && !(Number(r.finished) >= at) && !r.retried;
+			if (at <= last && !lost) continue;
+			this.putDoc("routines/" + id, { last: at, handed: now, retried: at === last }, true);
+			return { id, name: String(r.name || id).slice(0, 100), prompt: String(r.prompt || "").slice(0, 4000), at };
 		}
 		return null;
+	}
+
+	finishRoutine(id) {
+		const r = this.getDoc("routines/" + id);
+		if (r && r.last) this.putDoc("routines/" + id, { finished: r.last }, true);
 	}
 
 	armAlarm() {

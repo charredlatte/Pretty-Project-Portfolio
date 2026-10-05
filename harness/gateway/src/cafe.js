@@ -5,7 +5,7 @@
 // is shared, uploaded once with an admin's key. An open café keeps a WebSocket to its house and hears every change.
 import PAGE from "../../../catio/index.html";
 import RUNTIME from "../cafe/runtime.js";
-import { esc, page } from "./signin.js";
+import { clientIp, esc, page } from "./signin.js";
 import { randomToken, sha256 } from "./secret.js";
 import { bootProblem, hasAccount, registry } from "./registry.js";
 import { FIRST_HOUSE, fileKeys } from "./houses.js";
@@ -74,7 +74,7 @@ async function login(request, env) {
 	const reg = await registry(env);
 	const form = await request.formData().catch(() => null);
 	if (!form) return signInPage("That wasn't the sign-in form.", 400);
-	const user = await reg.checkPassword(String(form.get("user") || ""), String(form.get("password") || ""));
+	const user = await reg.checkPassword(String(form.get("user") || ""), String(form.get("password") || ""), clientIp(request));
 	if (user && user.locked) return signInPage("Too many wrong passwords. Try again in a quarter of an hour.", 429);
 	if (!user) return signInPage("That handle and password aren't right.", 401);
 	const token = randomToken();

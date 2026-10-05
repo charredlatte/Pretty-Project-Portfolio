@@ -1,8 +1,7 @@
-// Adversarial checks for the gateway, run on their own (not part of `npm test`, whose glob is *.test.mjs):
+// The gateway under hostile input: malformed requests, keys used outside their role, secrets that clash, sign-in
+// guessing, and a runner that dies mid-routine. Each test boots its own `wrangler dev` on a fresh state.
 //
-//     node --test test/adversarial.mjs
-//
-// Each test asserts what SHOULD happen. A failure is a bug found.
+//     npm test        (from harness/gateway, after npm install)
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -63,6 +62,14 @@ describe("a normal gateway under hostile input", () => {
 	const TOKEN = rand("agent-key-"), QUEEN = rand("queen-key-"), PASSWORD = rand("her-password-");
 	let g, cookie;
 	const api = (path, init = {}) => fetch(g.base + path, { ...init, headers: { Cookie: cookie, "X-Catio": "1", ...(init.headers || {}) } });
+	const asQueen = { Authorization: "Bearer " + QUEEN };
+	// the runner's wait, with a note for her first so it comes back at once instead of being held
+	const wait = async () => {
+		await api("/api/tools/comment", { method: "POST", body: JSON.stringify({ cat: "queen", text: "hello" }) });
+		return (await fetch(g.base + "/api/runner/wait", { method: "POST", headers: asQueen })).json();
+	};
+	const docs = async () => (await (await api("/api/db")).json()).docs;
+	const patch = (path, data) => api("/api/db/" + path, { method: "PATCH", body: JSON.stringify({ data }) });
 	before(async () => {
 		g = await boot({ CATIO_TOKEN: TOKEN, CATIO_PASSWORD: PASSWORD, CATIO_QUEEN: QUEEN });
 		cookie = (await login(g.base, "charlotte", PASSWORD)).headers.get("set-cookie").split(";")[0];
@@ -157,9 +164,43 @@ describe("a normal gateway under hostile input", () => {
 		const put = (p, data) => api("/api/db/" + p, { method: "PUT", body: JSON.stringify({ data }) });
 		for (const data of [{ time: 5, days: "mon", tz: {}, on: true }, { time: "25:99", on: true }, { time: "09:00", days: [null, "x", 99], tz: "Not/AZone", on: true }, { time: "09:00", days: [1.5], on: true }]) {
 			assert.equal((await put("routines/r1", data)).status, 200);
-			const w = await fetch(g.base + "/api/runner/wait", { method: "POST", headers: { Authorization: "Bearer " + QUEEN } });
-			assert.ok(w.status < 500, JSON.stringify(data) + " → " + w.status);
+			const heard = await wait();
+			assert.ok(Array.isArray(heard.notes), JSON.stringify(data) + " → " + JSON.stringify(heard));
 		}
+	});
+
+	test("a routine handed out stays handed out once its turn is finished", async () => {
+		await api("/api/db/routines/daily", { method: "PUT", body: JSON.stringify({ data: { name: "Daily", time: "00:00", tz: "UTC", on: true, prompt: "Tidy up" } }) });
+		assert.equal((await wait()).routine.id, "daily");
+		const handed = (await docs())["routines/daily"];
+		assert.ok(handed.last && handed.handed && !handed.finished);
+		assert.equal((await wait()).routine, null, "never twice for one firing");
+		const says = (body) => fetch(g.base + "/api/runner/say", { method: "POST", headers: asQueen, body: JSON.stringify(body) });
+		await says({ turn: "t1", text: "half way", done: false, routine: { id: "daily", name: "Daily" } });
+		assert.equal((await docs())["routines/daily"].finished, undefined, "a turn still going isn't finished");
+		await says({ turn: "t1", text: "Tidied.", done: true, routine: { id: "daily", name: "Daily" } });
+		assert.equal((await docs())["routines/daily"].finished, handed.last);
+		await patch("routines/daily", { handed: Date.now() - 11 * 60 * 1000 });
+		assert.equal((await wait()).routine, null, "a finished firing is not handed out again, however old");
+	});
+
+	test("a routine whose runner died is handed out once more, and only once", async () => {
+		await api("/api/db/routines/lost", { method: "PUT", body: JSON.stringify({ data: { name: "Lost", time: "00:00", tz: "UTC", on: true, prompt: "Go" } }) });
+		assert.equal((await wait()).routine.id, "lost");
+		const expire = () => patch("routines/lost", { handed: Date.now() - 11 * 60 * 1000 });
+		assert.equal((await wait()).routine, null, "not before its lease is up");
+		await expire();
+		const again = await wait();
+		assert.equal(again.routine.id, "lost");
+		assert.equal((await docs())["routines/lost"].retried, true);
+		await expire();
+		assert.equal((await wait()).routine, null, "a second loss is left for the next firing");
+	});
+
+	test("a routine that was handed out before leases existed isn't run again", async () => {
+		const today = new Date(), midnight = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+		await api("/api/db/routines/old", { method: "PUT", body: JSON.stringify({ data: { name: "Old", time: "00:00", tz: "UTC", on: true, prompt: "Go", last: midnight } }) });
+		assert.equal((await wait()).routine, null);
 	});
 
 	test("answer on a doc that isn't a quiz is a refusal", async () => {
@@ -194,10 +235,20 @@ describe("a normal gateway under hostile input", () => {
 			assert.ok(r.status >= 400 && r.status < 500, uri + " registered: " + r.status);
 		}
 	});
-	test("five wrong passwords from a stranger don't lock the real owner out", { todo: "design call: the lock is per handle, so a stranger can lock the owner out" }, async () => {
-		for (let i = 0; i < 6; i++) await login(g.base, "charlotte", "wrong-wrong-wrong-" + i);
-		const r = await login(g.base, "charlotte", PASSWORD);
-		assert.equal(r.status, 303, "the owner is locked out for 15 minutes by anyone who knows the handle: " + r.status);
+	const from = (ip, user, password) => fetch(g.base + "/login", { method: "POST", headers: { "CF-Connecting-IP": ip }, body: new URLSearchParams({ user, password }), redirect: "manual" });
+
+	test("a stranger guessing at the owner's handle is locked out, not the owner", async () => {
+		for (let i = 0; i < 5; i++) assert.equal((await from("198.51.100.7", "charlotte", "wrong-wrong-wrong-" + i)).status, 401);
+		assert.equal((await from("198.51.100.7", "charlotte", "wrong-wrong-wrong-5")).status, 429, "the stranger waits");
+		assert.equal((await from("198.51.100.7", "charlotte", PASSWORD)).status, 429, "even with a lucky guess");
+		assert.equal((await from("203.0.113.9", "charlotte", PASSWORD)).status, 303, "the owner, from her own address, walks in");
+	});
+
+	test("one address trying many handles is stopped, whichever handles", async () => {
+		for (let i = 0; i < 20; i++) assert.equal((await from("198.51.100.8", "nobody-" + i, "wrong-wrong-wrong-0")).status, 401);
+		assert.equal((await from("198.51.100.8", "nobody-20", "wrong-wrong-wrong-0")).status, 429);
+		assert.equal((await from("198.51.100.8", "charlotte", PASSWORD)).status, 429);
+		assert.equal((await from("203.0.113.9", "charlotte", PASSWORD)).status, 303, "everyone else is unaffected");
 	});
 });
 

@@ -86,10 +86,13 @@ variables and the plugin, it is in `list_agents`.
   connector they let in (their OAuth grants), kills every key they minted, and lets a locked-out user back in.
   Whoever had the old password is out everywhere; the user mints new keys. The handle `house` is kept: it names
   the first house.
-- **Guessing:** five wrong passwords lock that handle for a quarter of an hour, at once or in a row; an
-  impossible handle costs no hash. Known limit: every password check runs in the one registry object, so a
-  flood of guesses at made-up handles slows every sign-in and key lookup behind it. A rate-limiting rule on
-  `/login` and `/authorize` in Cloudflare (Security → WAF, one rule on the free plan) is the gateway's to add.
+- **Guessing:** wrong passwords make a sign-in wait for a quarter of an hour, counted by the address they came from
+  (`CF-Connecting-IP`): five at one handle, or twenty at any handles, lock that address out, so a stranger who knows
+  a handle can't lock its owner out. A hundred at one handle from anywhere lock everyone, the backstop against a
+  spread-out guesser. An impossible handle costs no hash. Known limit: every password check runs in the one
+  registry object, so a flood of guesses from many addresses slows every sign-in and key lookup behind it. A
+  rate-limiting rule on `/login` and `/authorize` in Cloudflare (Security → WAF, one rule on the free plan) is the
+  gateway's to add.
 - **One house each:** cats, conversations, files and the café's documents are the house's; the licensed art is
   shared, uploaded by an admin.
 - **The art's licences are personal.** The packs the café is drawn with allow personal use and no redistribution,
@@ -101,9 +104,9 @@ The gateway's own address is the KittyChat Café, the way OpenClaw's gateway ser
 in claude.ai (`catio/index.html`), behind her password, with `cafe/runtime.js` standing in for what claude.ai gives a
 page (`src/cafe.js` serves both).
 
-- **Sign-in:** handle and password, with the same lock as the connector's (five wrong in a quarter of an hour). A
+- **Sign-in:** handle and password, with the same lock as the connector's (above). A
   browser stays signed in for a month (`__Host-catio`, `HttpOnly`, `SameSite=Strict`; only its hash is kept, in
-  the registry).
+  the registry), or until `POST /logout` ends it.
 - **Her data:** the café's documents (rooms, renames, adopted chats, looks, queens, the brain, notes) live in the
   house (`docs`), and every change reaches an open café over a WebSocket at once. Her browser writes them only with
   the `X-Catio` header and from the café's own address.
@@ -147,7 +150,9 @@ queen runner acts in that account's house:
   through its hook) and tells the queen.
 - **Routines** are `routines/<id>` documents written by the café (`name`, `time`, `days`, `tz`, `prompt`, `on`,
   `last`). One is due when its latest firing is newer than `last`; the House's alarm wakes a waiting runner on
-  time, and a missed one runs once when the runner is back.
+  time, and a missed one runs once when the runner is back. The gateway keeps `handed` (when it went out), and
+  `finished` once the runner's answer to it is done; a firing handed out and never finished goes out once more
+  after ten minutes (`retried`).
 - `list_agents` gives every cat its `said`, the last thing its session or agent said: the café shows a cat
   carrying it to the queen, and her card lists it.
 
@@ -186,7 +191,7 @@ or finish, and check `inbox` between tasks.
 - **`inbox` takes `mark`**, which returns only what hasn't been handed over yet and counts it as handed over.
   The server on her computer takes it too.
 - **Sign-in.** Only Claude's connectors can register: a redirect to anywhere but `claude.ai` or `claude.com` is
-  refused. Five wrong passwords lock that user's sign-in for a quarter of an hour. Passwords are kept as PBKDF2
+  refused. Wrong passwords lock the guessing address out for a quarter of an hour (see Guessing). Passwords are kept as PBKDF2
   hashes (100,000 rounds, Workers' cap, computed in the registry object where the CPU budget allows it), keys and
   cookies as SHA-256 hashes, OAuth tokens as hashes too (`@cloudflare/workers-oauth-provider`), and a grant lives
   as long as claude.ai keeps refreshing it.
