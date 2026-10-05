@@ -410,6 +410,13 @@ describe("accounts", () => {
 		assert.equal((await signUp({ invite: spare, user: "late", password: SIGNUP })).status, 400);
 	});
 
+	test("lets a browser post the sign-in, invite and sign-up forms with the café's own Origin", async () => {
+		// under no-referrer, Chrome posts a form with "Origin: null", and /invite and /signup refuse it (5 October:
+		// "Make invites from this page" on her own click); same-origin sends the café's address and nothing elsewhere
+		for (const path of ["/", "/invite", "/signup"]) assert.equal((await fetch(base + path)).headers.get("referrer-policy"), "same-origin", path);
+		assert.equal((await fetch(base + "/invite", { method: "POST", headers: { Cookie: herCookie, Origin: base }, body: new URLSearchParams({ do: "make" }) })).status, 200);
+	});
+
 	test("lets someone's AI use the invite for them, and gives it the account's first key, once", async () => {
 		const PARTNER = "partner-password-" + randomBytes(6).toString("hex");
 		const made = await fetch(base + "/invite", { method: "POST", headers: { Cookie: herCookie }, body: new URLSearchParams({ do: "make" }) });
