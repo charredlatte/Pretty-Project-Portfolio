@@ -1,8 +1,8 @@
 # The gateway café without the artifact: the plan
 
 Drafted 5 October 2026, from Charlotte's ask: "Start drafting a plan to fill these gaps", the five things the gateway
-café still can't do that the claude.ai artifact could (`docs/artifact.md`, "What claude.ai did that the gateway café
-doesn't"). A draft for her to judge: nothing here is built yet.
+café still can't do that the claude.ai artifact could. They are listed in `docs/artifact.md`, "What claude.ai did that
+the gateway café doesn't", on the branch `ccr-e99fe86c-e36i4h`, not yet merged. A draft for her to judge: nothing here is built yet.
 
 ## The one constraint behind four of the five
 
@@ -158,7 +158,8 @@ page's refusal list doesn't know `gateway_only` and it throws.
 ## What only she can decide
 
 - **Mid-turn steering.** Whether her notes, and the queen's, may land in a working session mid-turn, not only between turns. Also the polling pace: 45 s is proposed.
-- **Who may start a session.** Only her from the café, or the queen too. If the queen, which models: CLAUDE.md's delegation plan keeps her to Haiku and Sonnet.
+- **Who may start a session.** Only her from the café, or the queen too. If the queen, which models. In `docs/delegation.md` a Sonnet or Haiku cat's pull request is held for her, so a cat
+the queen starts on those models would always wait for her.
 - **Routines.** Whether a Routine may run again: for new sessions, and for refreshing the session list, at a cost to her weekly limit.
 - **The decider.** When to switch it from observe to on, and at what floor.
 - **Renaming.** Whether renaming a cat in the gateway café should retitle the session, at the cost of a sentence in its conversation, or a held `retitle` request of its own.
