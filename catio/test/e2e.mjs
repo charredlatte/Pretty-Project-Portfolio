@@ -1662,11 +1662,29 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(await page.locator("#mmRooms .mm-room.landing:not(.faint)").count() === 1, "no landing");
   });
   await page.click("#floor-ground");
+  const whole = await rect("#controls");
   await page.click("#mapFold");
   await check("the fold button folds the map away and says so", async () => {
     expect(!(await page.locator("#minimap").isVisible()), "still showing");
     expect((await page.locator("#mapFold").getAttribute("aria-expanded")) === "false", "aria-expanded");
   });
+  // her ask, 5 October: "allow the mini-map to be minimizable": the whole panel, not just the plan
+  await check("minimised, the panel is its one button, in the corner it was in", async () => {
+    for (const id of ["zoomIn", "zoomOut", "zoomAll", "floor-ground", "floor-upper"])
+      expect(!(await page.locator("#" + id).isVisible()), id + " still shows");
+    const p = await rect("#controls");
+    expect(p.w < 90 && p.h < 70, "more than one button: " + JSON.stringify(p));
+    expect(Math.abs(p.x + p.w - (whole.x + whole.w)) < 1 && Math.abs(p.y - whole.y) < 1, "it moved: " + JSON.stringify([whole, p]));
+  });
+  await page.locator("#stage").click({ position: { x: 60, y: 800 } });
+  await page.keyboard.press("PageUp");
+  await settle(page);
+  await check("minimised, its button carries the pip the hidden floor tab would have", async () => {
+    expect(await page.locator("#mapFold .pip").count() === 1, "no pip");
+    expect(/need you/.test(await page.locator("#mapFold").getAttribute("aria-label")), "its name doesn't say so");
+  });
+  await page.keyboard.press("PageDown");
+  await settle(page);
   await page.reload(); await page.waitForTimeout(600);
   await check("folded stays folded after a reload", async () => expect(!(await page.locator("#minimap").isVisible()), "open again"));
   await page.locator("#stage").click({ position: { x: 60, y: 800 } });
@@ -1689,6 +1707,13 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     const r = await page.locator("#controls").boundingBox();
     expect(r.y + r.height > 780, "not at the bottom: " + JSON.stringify(r));
   });
+  await page.locator("#mapFold").tap();
+  await check("on a phone, opened, the fold stays in the bottom right corner, under her thumb", async () => {
+    expect(await page.locator("#minimap").isVisible(), "the tap didn't open it");
+    const f = await page.locator("#mapFold").boundingBox(), r = await page.locator("#controls").boundingBox();
+    expect(r.x + r.width - (f.x + f.width) < 20 && r.y + r.height - (f.y + f.height) < 20, "the fold isn't in the corner: " + JSON.stringify([f, r]));
+  });
+  await page.locator("#mapFold").tap();
   await cat.tap();
   await settle(page);
   await check("on a phone, tapping a cat opens its menu instead of the full card", async () => {

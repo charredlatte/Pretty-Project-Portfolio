@@ -124,10 +124,14 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
     moves, widens and hides each, and `dashboard/maps` keeps it;
   - the map panel (`#controls`, top right; bottom right on a phone), in Game UI Pastel, drawn smooth:
     zoom out, zoom in, whole house and the fold (`#mapFold`, or M, remembered in `localStorage` as
-    `catio.minimap`, folded at first on a phone); the minimap (`#minimap`: the floor's rooms as a plan
+    `catio.minimap`, folded at first on a phone). Folding minimises the whole panel, not just the plan (her ask, 5
+    October: "allow the mini-map to be minimizable"): the fold button alone stays, in the panel's corner, drawn as a
+    folded map, with a pip for every cat that needs her out of view (off screen, or on the other floor); open, it is
+    an arrow into that corner, never an up or down arrow beside the floor tabs. On a phone the buttons sit at the
+    panel's foot, so the fold keeps the bottom right corner. Then the minimap (`#minimap`: the floor's rooms as a plan
     over `MM.box`, the manor and catio, the other floor faint, a pip where a cat needs her, the camera's
     view framed; click goes there, drag pans, double-click looks in, the wheel zooms); and the floor
-    tabs, with a pip when the other floor needs her. Menus open clear of it (`showMenu`). The plan for
+    tabs, with a pip when the other floor needs her. Menus open clear of it (`showMenu`), by whichever of left, below or above moves them least. The plan for
     the rest (the Sims-style camera and Build) is `docs/camera-and-minimap.md`.
 - **The status sign** under the brand shows only when something is wrong. When Claude's saved copy fills
   in for a blocked live read, it is one line ("Saved copy · 17:02") and the why shows on hover or focus.

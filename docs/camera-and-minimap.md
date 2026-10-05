@@ -47,7 +47,7 @@ When this plan is done, there are three things on screen and nothing else:
    └───────────────────────────────┘
    ```
 
-   Folded, only the header row stays. The fold button then carries the badge (the mood face and a count) when
+   Folded, only the fold button stays (5 October: the whole panel minimises, see "Iterations"). The fold button then carries the badge (the mood face and a count) when
    a cat that needs Charlotte is off screen or on the other floor.
 3. **The mode switch**, bottom left: `Live` / `Build`. It only appears in iteration 3 (below), when build mode
    exists. The credits move back to the bottom right, which the old corner cluster frees up. They stay hidden
@@ -224,7 +224,7 @@ labels keep the pixel font, which is lettering, not a panel.
 | Zoom in and zoom out | Square buttons, Amber, in Normal, Hovered and Clicked, with the `Plus` and `Minus` icons |
 | Whole house | The same button, with the page's own small house glyph (the pack has no house icon) |
 | Floor tabs | Rectangle buttons, Amber, with Clicked for the floor you're on, labelled "Ground" and "Upstairs" in the pixel font. The pink `Arrow_Down` / `Arrow_Up` pip shows when a cat on that floor needs Charlotte |
-| Fold and unfold | A small circle button with `Arrow_Up` or `Arrow_Down` |
+| Fold and unfold | The square button, with the page's own pixel glyphs: an arrow into the panel's corner while it is open, a folded map once it is minimised. `Arrow_Up` / `Arrow_Down` read as the floors beside the floor tabs, so they went on 5 October |
 | House | A Rectangle button, Amber, labelled "House". It opens the House menu, which is still Sprout Lands |
 | The `?` key list | The `Question` icon on a circle button |
 | Live / Build switch | A Rectangle button as the track and the round slider knob (Light) sliding across it. The knob goes to the left for Live and to the right for Build |
@@ -304,6 +304,20 @@ above:
   - the footer credits SC_siosio;
   - the whole house's actions (the brain, house rules, Edit rooms, sound, the attic) are still reachable
     from House in the panel.
+
+**1b. Minimising the panel**: 5 October, her ask: "allow the mini-map to be minimizable". The fold used to hide
+only the plan, leaving the zoom row and the floor tabs up (on a phone, two rows of buttons over a small screen),
+and its up and down arrows sat beside "Ground" and "Upstairs", where they read as the floors. Now:
+- folding minimises the whole panel to the fold button, in the corner the panel is anchored to, so it doesn't
+  move; wheel, pinch, the keys, the stair and Page Up / Page Down still do what the hidden buttons did;
+- minimised, the button carries one pip for every cat that needs her out of view: off screen on this floor, or
+  anywhere on the other one, which the hidden floor tab would have shown;
+- its glyphs are the page's own pixel drawings, like the whole house's: an arrow into the corner (flipped to the
+  bottom right on a phone) and a folded map;
+- on a phone the zoom row sits at the panel's foot, under her thumb, and the fold stays in the bottom right corner.
+- *Checks:* minimised, the zoom and floor buttons are hidden and the panel is one button in the same corner; going
+  upstairs while minimised puts the hidden ground floor's pip on the button and says so in its name; on a phone,
+  opened, the fold is in the bottom right corner.
 
 **2. The camera**
 - Add WASD with acceleration, zoom steps with settling, the flick glide, `F`, `Home`, and the shortcuts
