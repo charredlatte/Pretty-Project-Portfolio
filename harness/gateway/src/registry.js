@@ -1,6 +1,7 @@
 // The registry: who has an account on this gateway, one SQLite-backed Durable Object for all of them. A user has
 // a handle, a password (kept as its PBKDF2 hash), a house (the House object their cats live in) and, for the first
-// of them, the admin's rights: uploading the café's art and creating accounts. Agents' keys and the café's cookies
+// of them, the admin's rights: uploading the café's art, creating accounts and inviting people to sign up (an invite
+// is single-use and kept only as its hash, like a key). Agents' keys and the café's cookies
 // are kept only as hashes, each pointing at its user. A key has a role: "agent" (sessions and other agents) or
 // "queen" (the user's queen runner, harness/runner, the only key that speaks as the queen). Nothing in here is a
 // cat: those are in the houses.
@@ -15,6 +16,7 @@ const ROLES = ["agent", "queen"];
 const keyName = (name) => String(name || "key").slice(0, 60);
 const INVITE_FOR = 7 * 24 * 3600 * 1000;   // an invite link works for a week, once
 const QUEEN_KEY = "queen";   // the name of the queen's key seeded from the CATIO_QUEEN secret
+const INVITE_FOR = 7 * 24 * 3600 * 1000;   // an unused invite lapses after a week
 
 /** The registry, with the first account made from the secrets while it is empty (tried until it has one). */
 let booted = false, problem = "";
@@ -125,6 +127,39 @@ export class Registry extends DurableObject {
 		this.sql.exec("DELETE FROM keys WHERE user = ?", id);     // every key is dead: mint new ones
 		this.sql.exec("DELETE FROM wrong WHERE user = ?", id);    // and a locked-out user is let back in
 		return { ok: true, id, house: user.house };
+	}
+
+	/** An invite to sign up, from an admin: `{code, until}`, the code returned once and kept only as its hash. */
+	async invite(by) {
+		if (!this.user(by)?.admin) return { error: "Only an admin invites." };
+		const code = randomToken(), until = Date.now() + INVITE_FOR;
+		this.sql.exec("INSERT INTO invites (hash, by, until) VALUES (?, ?, ?)", await sha256(code), by, until);
+		return { code, until };
+	}
+
+	/** How many invites are out and unused, and the admin's way to take them all back. */
+	openInvites() {
+		return this.sql.exec("SELECT COUNT(*) AS n FROM invites WHERE until > ?", Date.now()).one().n;
+	}
+
+	dropInvites() {
+		return this.sql.exec("DELETE FROM invites").rowsWritten;
+	}
+
+	/**
+	 * A new account, made by the person invited: `{user}` or `{error}`. Never an admin. The invite is spent before the
+	 * password is hashed (the hash yields, and two sign-ups with one code must not both get in), and given back if the
+	 * account can't be made, so a taken handle or a short password costs the invite nothing.
+	 */
+	async signUp(code, id, password) {
+		const hash = await sha256(String(code || "").trim());
+		this.sql.exec("DELETE FROM invites WHERE until <= ?", Date.now());
+		const invite = this.sql.exec("SELECT by, until FROM invites WHERE hash = ?", hash).toArray()[0];
+		if (!invite) return { error: "That invite isn't right, or it has been used or has lapsed." };
+		this.sql.exec("DELETE FROM invites WHERE hash = ?", hash);
+		const made = await this.createUser(id, password);
+		if (made.error) this.sql.exec("INSERT INTO invites (hash, by, until) VALUES (?, ?, ?)", hash, invite.by, invite.until);
+		return made;
 	}
 
 	user(id) {

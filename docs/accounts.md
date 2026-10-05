@@ -45,7 +45,8 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
    from today's secrets, with `house: "house"`, so her data stays where it is. Then `CATIO_PASSWORD` and
    `CATIO_TOKEN` are retired. Tests in `harness/gateway/test/gateway.test.mjs`: two users, two houses, a key
    that only reaches its own house. `report.py` is unchanged: `CATIO_TOKEN` becomes the account's own key.
-2. **Sign-up and keys.** A sign-up form on the sign-in page, invite-only at first (an `INVITE_CODE` secret);
+2. **Sign-up and keys.** A sign-up form on the sign-in page, invite-only at first (built 5 October: invites an
+   admin makes at `/invite`, single-use, a week each, rather than an `INVITE_CODE` secret; see "As built: sign-up");
    a `/keys` page after sign-in to mint an agent key, shown once. The onboarding's "How it works" step links
    there (`docs/onboarding/`).
 3. **Later: a hosted page per account.** The Worker serves `catio/index.html` and the `/api/*` the page
@@ -76,6 +77,7 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
   Self sign-up, and a button for keys in the page, are phase 2. Built of phase 2 on 5 October: the invite link
   (`/invite`, one use, a week, `gateway/README.md` *Accounts*), so someone's AI can make their account and key
   without the admin choosing their password; no `INVITE_CODE` secret, no form.
+  Self sign-up is built (below); a button for keys in the page is still phase 2.
 - One handle's password tries run in turn, so five guesses in parallel lock like five in a row, and right
   sign-ins in flight together lock nobody. Known limit: all of them run in the one registry object; against a
   flood of made-up handles, a Cloudflare rate-limiting rule on `/login` and `/authorize` is the gateway's to add.
@@ -100,3 +102,21 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
 - KV limits: https://developers.cloudflare.com/kv/platform/limits/
 - Web Crypto on Workers: https://developers.cloudflare.com/workers/runtime-apis/web-crypto/
 - The PBKDF2 cap of 100,000 rounds: https://community.cloudflare.com/t/configure-pbkdf2-iteration-cap/848334
+
+## As built: sign-up (5 October)
+
+Her ask: "My account is admin. Create self-registration."
+
+- An admin signed in to the café opens `/invite` (a server page of its own, so the café's page needs no button and no
+  republish) and makes an invite: a 64-hex code, shown once as a link `/signup?invite=<code>`, kept only as its hash
+  in the registry's `invites` table with who made it and when it lapses (a week). The same page counts the invites
+  still out and takes them all back.
+- `/signup` takes the invite, a handle, a password and the password again, makes the account (never an admin, a
+  house named after the handle) and signs that browser in. `Registry.signUp` spends the invite before the password is
+  hashed, so two sign-ups with one code at once let one in, and gives it back when the account can't be made.
+- Both forms are refused from another site's Origin; the café's cookie is `SameSite=Strict` besides.
+- No open sign-up: every account is a house on her Worker. The licensed art is now served to the first house alone,
+  since the packs' licences are personal and an invite puts the café in a stranger's hands.
+- Tested in `harness/gateway/test/gateway.test.mjs` ("lets an admin invite someone, who makes their own account
+  with it, once").
+

@@ -53,6 +53,7 @@ input { width: 100%; padding: 10px 12px; font: inherit; color: inherit; backgrou
 .row { display: flex; gap: 10px; margin-top: 18px; }
 button { flex: 1; padding: 10px 14px; font: inherit; font-weight: 600; border-radius: 8px; border: 1px solid var(--line);
   background: transparent; color: inherit; cursor: pointer; }
+a { color: var(--go); }
 button.go { background: var(--go); border-color: var(--go); color: var(--go-ink); }
 </style>
 </head>
