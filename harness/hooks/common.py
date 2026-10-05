@@ -1,69 +1,25 @@
 """Shared bits for the KittyChat house-rule hooks: the rules, the hook input, git, and the transcript."""
-import hashlib
 import json
 import os
 import re
 import subprocess
 import sys
-import tempfile
 from datetime import datetime
-from functools import lru_cache
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
-@lru_cache(maxsize=None)
-def _rules_text():
-    return (ROOT / "rules.json").read_text(encoding="utf-8")
-
-
 def rules():
-    """The house rules. The file is read once a process; every caller gets its own copy to build on."""
-    return json.loads(_rules_text())
-
-
-@lru_cache(maxsize=None)
-def _local_text(cwd):
-    try:
-        return (Path(cwd or os.getcwd()) / ".claude" / "catio-rules.json").read_text(encoding="utf-8")
-    except OSError:
-        return "{}"
+    return json.loads((ROOT / "rules.json").read_text(encoding="utf-8"))
 
 
 def local(cwd=None):
     """The repo's own switches, .claude/catio-rules.json, or {}."""
     try:
-        found = json.loads(_local_text(cwd))
-    except ValueError:
+        return json.loads((Path(cwd or os.getcwd()) / ".claude" / "catio-rules.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
         return {}
-    return found if isinstance(found, dict) else {}
-
-
-def _mark(session, kind, prefix, where):
-    """Where the fact that something was said is remembered: a folder of this user's own, not a guessable name
-    in the shared temp directory, which anything on the machine could plant or point elsewhere."""
-    folder = Path(os.environ.get("XDG_CACHE_HOME") or (Path.home() / ".cache")) / "catio"
-    try:
-        folder.mkdir(parents=True, exist_ok=True)
-        folder.chmod(0o700)
-    except OSError:
-        folder = Path(tempfile.gettempdir())
-    tag = hashlib.sha1(("%s\0%s" % (session or "", where or "")).encode()).hexdigest()[:16]
-    return folder / "said-{}-{}-{}".format(prefix, tag, kind)
-
-
-def said(session, kind, prefix, where=None):
-    """Has this session already been told something of this kind, here? The cheap question, no side effect."""
-    return _mark(session, kind, prefix, where).exists()
-
-
-def say(session, kind, prefix, where=None):
-    """Remember that it has been told, so it is said once. Call it when the thing is actually being said."""
-    try:
-        _mark(session, kind, prefix, where).touch()
-    except OSError:
-        pass           # can't remember it was said; say it anyway rather than lose it
 
 
 def enforced(rule_id, cwd=None):
@@ -126,9 +82,9 @@ def hook_input():
         return {}
 
 
-def entries(data, *needles, keys=("transcript_path", "agent_transcript_path")):
-    """The entries of these transcript(s) whose line holds one of `needles` (a cheap filter before parsing)."""
-    for key in keys:
+def entries(data, *needles):
+    """The entries of this session's transcript(s) whose line holds one of `needles` (a cheap filter before parsing)."""
+    for key in ("transcript_path", "agent_transcript_path"):
         path = data.get(key)
         if not path:
             continue
@@ -169,19 +125,11 @@ def skills_used(data):
     return {name for name, _ in skill_calls(data)}
 
 
-def answered(data, keys=("transcript_path", "agent_transcript_path"), sidechain=False):
-    """Every model that answered, in the order it answered, from these transcripts. One reader, so the one
-    question that matters - does a sub agent's own side of the conversation count - is answered in one place.
-    It counts when you are reading a sub agent's own transcript, and not when you are reading a session's."""
-    return [m for m in ((e.get("message") or {}).get("model") for e in entries(data, '"model"', keys=keys)
-                        if e.get("type") == "assistant" and (sidechain or not e.get("isSidechain")))
-            if m and m != "<synthetic>"]
-
-
 def models(data):
     """Every model that has answered in this session, read from its transcript(s). A subagent's own side of the
     conversation (a sidechain) doesn't count: it searched or read for the session, it didn't do the work."""
-    return set(answered(data))
+    return {(e.get("message") or {}).get("model") for e in entries(data, '"model"')
+            if e.get("type") == "assistant" and not e.get("isSidechain")} - {None, "<synthetic>"}
 
 
 def ran(data, skill):

@@ -24,7 +24,7 @@ from pathlib import Path
 
 import right_sized
 import ship_gate
-from common import answered, block, enforced, git, hook_input, merges, ran, rules
+from common import block, enforced, git, hook_input, merges, ran, rules
 
 BROWSER_TOOL = re.compile(r"^mcp__.*(playwright|browser|chrome|puppeteer|computer)", re.I)
 BROWSER_CMD = r"playwright|chromium|google-chrome|headless|puppeteer|selenium|webdriver|catio/test/run\.sh"
@@ -126,9 +126,21 @@ READ_ONLY = {"scout", "tester"}
 
 
 def agent_models(data):
-    """The models a sub agent has answered with, from its own transcript; empty when it can't be read. Its own
-    side counts here: that is the whole file."""
-    return set(answered(data, ("agent_transcript_path",), sidechain=True))
+    """The models a sub agent has answered with, from its own transcript; empty when it can't be read."""
+    found = set()
+    try:
+        with open(os.path.expanduser(data.get("agent_transcript_path") or ""), encoding="utf-8") as f:
+            for line in f:
+                if '"model"' in line:
+                    try:
+                        e = json.loads(line)
+                    except ValueError:
+                        continue
+                    if e.get("type") == "assistant":
+                        found.add((e.get("message") or {}).get("model"))
+    except OSError:
+        pass
+    return found - {None, "<synthetic>"}
 
 
 def small_writer(data, path, cwd):
@@ -163,12 +175,7 @@ def main():
     if data.get("hook_event_name") == "PostToolUse":
         return after(tool, args, cwd)
 
-    try:
-        refusal, nudge = right_sized.check(data, tool, args, cwd)
-    except Exception as e:   # the gates below matter more, so this one speaks and steps aside rather than crashing
-        refusal, nudge = None, ("House rule (KittyChat), spend what the task is worth: the tier check couldn't run "
-                                "(%s: %s), so a cap on this repo's sub agents is not being kept. Tell Charlotte."
-                                % (type(e).__name__, e))
+    refusal, nudge = right_sized.check(data, tool, args, cwd)
     if refusal:
         block(refusal)
     if nudge:
@@ -214,10 +221,4 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except SystemExit:
-        raise
-    except Exception as e:   # the gates are the safety net, so one that cannot run refuses rather than waving on
-        block("House rule (KittyChat): the house rules couldn't be read, so none of the gates can be kept "
-              "(%s: %s). Tell Charlotte; don't work round it." % (type(e).__name__, e))
+    main()
