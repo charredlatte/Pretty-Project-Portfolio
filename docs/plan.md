@@ -228,6 +228,7 @@ and #102, and in his fork (ohwellwhy10-jpg/Pretty-Project-Portfolio, `main` and 
 | 7 | Opened his gateway: "The gateway has no account yet", from the first load, though the secrets "exist" | The worst of it: the reason was a second sentence on the same red line, under a sign-in form that could never work, so he kept retrying `charlotte` and asked whether to reset everything | #103 (the handle, once only), then #104: until there is an account the page shows one warning light per secret as this Worker sees it, the handle it will have, and no form |
 | 8 | Sent his Dog Den changes here, titled "Maybe will fix Log-in?" | A pull request that would have renamed her gateway on merge; closed | `CONTRIBUTING.md`: your café stays on your fork |
 | 9 | Reported with a screenshot alone | Text we couldn't read or search, and no way to tell his fork was a day behind | The issue form, "Something isn't working": which café, the words as text, the fork's last sync |
+| 10 | Hardened the gateway on his fork (his fork's pull request #1) | His Sync fork would conflict in three files with the day's fixes | His two commits brought here, merged with `main`, so the sync is clean |
 
 **What the decider guessed** (5 October, `decide` with kind `ux-test-1` in the house's log; Clef answered, as Jev had no
 AI Gateway credits). Asked about the run above, it put the lights page far ahead as the fix that would have let him
@@ -304,10 +305,10 @@ decisions quiz page is retired). The small facts (who made `plants.zip`) stay he
 
    This session's git access can't delete them.
 11. **The first player's fixes** (PR #104, above): merge it, then the friend syncs his fork to get the warning lights.
-12. **His hardening pass.** His fork's `main` has a pull request of its own (ohwellwhy10-jpg/Pretty-Project-Portfolio#1):
-    the sign-in lock counted by address, so a stranger who knows a handle can't lock its owner out; the queen's key
-    refused when it is the agents' key too; `/logout`; an adversarial test suite. Whether to invite it here is hers:
-    it touches `harness/`.
+12. **His hardening pass**: brought here with his commits as they are, and merged with `main` (her call, 5 October:
+    "bring his work here"), so his Sync fork has no conflict once it merges: the sign-in lock counted by address, the
+    queen's key refused when it is the agents' key too, `/logout`, and an adversarial test suite. It touches `harness/`:
+    hers to merge.
 13. **Jev for the decider**: `typesafe/jev` answers only with AI Gateway credits ("Insufficient AI Gateway credits",
     5 October). Until they are topped up, Clef answers, free.
 
