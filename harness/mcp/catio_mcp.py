@@ -322,7 +322,8 @@ def _slug(repo):
 
 
 def save_report(args):
-    """A session's opening audit or project map, for its repository's filing cabinet: kept in state.json's docs."""
+    """A session's opening audit or project map, for its repository's filing cabinet: kept in state.json's docs, as the
+    gateway keeps it (the localhost café keeps its own documents in the browser and doesn't show these yet)."""
     need(args, "kind", "repo")
     repo, by = str(args["repo"])[:200], str(args.get("by") or "agent")[:200]
     if args["kind"] == "audit":
@@ -336,9 +337,10 @@ def save_report(args):
         m = args.get("map")
         if not isinstance(m, dict):
             raise ValueError("map is the document graph_doc.py writes")
-        if len(json.dumps(m)) > 256 * 1024:
+        if len(json.dumps(m, ensure_ascii=False)) > 256 * 1024:   # counted as the gateway counts it
             raise ValueError("a project map is 256 KB at most")
-        doc_id, doc = "graphs/" + _slug(repo), dict(m, repo=m.get("repo") or repo, at=m.get("at") or now(), by=m.get("by") or by)
+        qs = [re.sub(r"[\x00-\x1f\x7f-\x9f\u2028\u2029]+", " ", q).strip()[:200] for q in m.get("questions") or [] if isinstance(q, str)]
+        doc_id, doc = "graphs/" + _slug(repo), dict(m, questions=[q for q in qs if q][:5], repo=repo, at=now(), by=by)
     else:
         raise ValueError("kind is audit or map")
     with LOCK:

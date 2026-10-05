@@ -27,7 +27,7 @@ const QUIZ = { questions: 5, options: 12, text: 300, title: 120, answer: 1000, n
 // What a quiz is for: unblocking a cat (her homework), sorting a litter box note, or a decision waiting on her
 const QUIZ_KINDS = ["unblock", "litterbox", "decision"];
 // What a session files for its repository's filing cabinet (save_report): its audit and its project map
-const REPORT = { summary: 4000, map: 256 * 1024 };
+const REPORT = { summary: 4000, map: 256 * 1024, questions: 5, question: 200 };
 // a repository's slug, as graph_doc.py makes it: the name after the owner, lowercase, a-z 0-9 _ and -
 const slugOf = (repo) => String(repo).split("/").pop().toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "none";
 
@@ -298,8 +298,12 @@ const TOOLS = {
 			const map = args.map;
 			if (!map || typeof map !== "object" || Array.isArray(map)) throw new Refusal("map is the document graph_doc.py writes");
 			if (JSON.stringify(map).length > REPORT.map) throw new Refusal("a project map is 256 KB at most");
+			// Its questions become buttons that ask a cat in her words, so one filed with an agent's key is held to what
+			// graph_doc.py makes: a few, each one short line she reads whole before she clicks it.
+			const questions = (Array.isArray(map.questions) ? map.questions : []).filter((q) => typeof q === "string")
+				.map((q) => q.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, " ").trim().slice(0, REPORT.question)).filter(Boolean).slice(0, REPORT.questions);
 			const id = "graphs/" + slugOf(repo);
-			h.putDoc(id, { ...map, repo: map.repo || repo, at: map.at || Date.now(), by: map.by || by });
+			h.putDoc(id, { ...map, questions, repo, by, at: Date.now() });   // filed under the repo it names, by who filed it
 			return { id };
 		}
 		throw new Refusal("kind is audit or map");

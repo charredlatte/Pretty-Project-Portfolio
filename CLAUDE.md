@@ -440,7 +440,8 @@ database, its files and the gateway's tools (the last bullet); the parts below t
   outbox, and its replies there show in its conversation. Breeds: the model, in the cat's card.
 - `audits/<repo slug>` `{repo, at, by, summary}` and `graphs/<repo slug>` show in the filing cabinet. Sessions file
   them through the gateway's `save_report` (`report.py audit` and `map`), the one tool that writes the café's
-  documents for an agent: each repository keeps only the newest of each, and the café shows them, never acts on them.
+  documents for an agent: each repository keeps only the newest of each, and the café shows them, never acts on them. A map's questions become buttons that ask a cat
+  in her words, so the gateway keeps five at most, each one line of 200 characters she reads whole before she clicks.
 
 ### The gateway
 
