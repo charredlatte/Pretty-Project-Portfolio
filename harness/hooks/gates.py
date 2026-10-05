@@ -11,6 +11,9 @@ ship, merge     pushes, branch deletions and merges, in ship_gate.py.
 small_writers   the plugin's scout and tester never edit; in a repo that merges its own pull requests, no sub agent
                 on a model off the strong list edits a tracked file (the merging rule's promise: a strong model did
                 the work).
+right_sized     a sub agent spawn says which tier it needs; an errand above this repo's ceiling is refused when
+                Charlotte set that ceiling herself, and only spoken about when the harness read it that way
+                (right_sized.py).
 """
 import json
 import os
@@ -18,6 +21,7 @@ import re
 import subprocess
 from pathlib import Path
 
+import right_sized
 import ship_gate
 from common import block, enforced, git, hook_input, merges, ran, rules
 
@@ -164,6 +168,12 @@ def main():
     command = str(args.get("command", "")) if tool == "Bash" else ""
     if data.get("hook_event_name") == "PostToolUse":
         return after(tool, args, cwd)
+
+    refusal, nudge = right_sized.check(data, tool, args, cwd)
+    if refusal:
+        block(refusal)
+    if nudge:
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": nudge}}))
 
     if enforced("preflight", cwd):
         if BROWSER_TOOL.search(tool) or (command and browser_patterns(cwd).search(command)):
