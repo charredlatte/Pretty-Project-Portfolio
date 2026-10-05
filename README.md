@@ -72,7 +72,7 @@ The current cafe framework uses Claude Code to run the queen; other models (Grok
 - a **Claude** account on a plan that includes Claude Code (Pro or Max), signed in at claude.ai;
 - a **GitHub** account, with your projects in repositories (the café files each project by its repository);
 - a computer with **Python 3** (python.org, or the Microsoft Store on Windows) and **Node.js** (nodejs.org), for
-  the plugin and the driver;
+  the plugin and the driver. On Windows, type `python` wherever this README says `python3`;
 - for the front desk, a free **Cloudflare** account (cloudflare.com);
 - the **cat art**: the packs are not in this repository and cannot be (their licences forbid sharing). Most have a
   free tier; the list is in [`catio/art/CREDITS.md`](catio/art/CREDITS.md). Without them the café draws no house
