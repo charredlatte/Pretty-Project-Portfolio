@@ -23,7 +23,9 @@ const HEADERS = {
 	"Content-Type": "text/html; charset=utf-8",
 	"Cache-Control": "no-store",
 	"X-Frame-Options": "DENY",
-	"Referrer-Policy": "no-referrer",
+	// same-origin, not no-referrer: under no-referrer a browser posts these forms with "Origin: null", and the
+	// sign-up and invite forms, which check the Origin is the gateway's, refuse their own page. Nothing goes elsewhere.
+	"Referrer-Policy": "same-origin",
 	// the form posts here, and the right password sends the browser on to Claude
 	"Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https://claude.ai https://claude.com; frame-ancestors 'none'; base-uri 'none'",
 };
