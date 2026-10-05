@@ -120,6 +120,11 @@ are written into them: her café's link, her GitHub name, her install lines. [`d
 lists each one and what to set it to in your fork. Change them **before you publish** in this step, because the
 page carries them, and the house rules of step 5 read them.
 
+**Make it yours without touching the code.** Your café's name is the wizard's first step; rooms are *Edit rooms*;
+colours, fonts and art are *The look*, or your own drawings beside the page in `catio/art/skin/`. All three are in
+the House menu. Keep that on your fork: [`CONTRIBUTING.md`](CONTRIBUTING.md) says what stays there and what comes back
+here. Press **Sync fork** on GitHub now and then, and always before reporting a problem: fixes land here first.
+
 ### Step 4: the dashboard. The front desk on Cloudflare
 
 The gateway is a small program that runs on Cloudflare's free plan and never sleeps. Every cat checks in at it, so
@@ -128,8 +133,10 @@ screenshots' worth of detail, are in [`harness/gateway/README.md`](harness/gatew
 
 1. On Cloudflare, Workers & Pages → Create → Import a repository → your fork of this repository. Name the Worker
    `catio-gateway`, set the root directory to `harness/gateway`, the branch to `main`, and deploy. Its address
-   looks like `https://catio-gateway.<your name>.workers.dev`.
-2. On the Worker, Settings → Variables and Secrets, add your handle and three **secrets** in one go, then deploy
+   looks like `https://catio-gateway.<your name>.workers.dev`. Another name works too, if `name` in
+   `harness/gateway/wrangler.jsonc` on your fork says the same: Workers Builds refuses a build when the two differ.
+2. On the Worker, Settings → Variables and Secrets (not Settings → Build, whose variables never reach the running
+   Worker), add your handle and three **secrets** in one go, then deploy
    again. The handle is `CATIO_HANDLE`, the name you will sign in with, 2 to 31 lower-case letters, digits or
    dashes; add it as a **Secret** too, not a Text variable, because each deploy from GitHub wipes the Text ones
    and keeps the secrets. The secrets are `CATIO_TOKEN` (a long random string: the key your cats
@@ -144,7 +151,8 @@ screenshots' worth of detail, are in [`harness/gateway/README.md`](harness/gatew
    the connector and set its tools to **Always allow**.
 
 **It worked when** opening the Worker's address in a browser asks for your handle and password, and the café's House
-menu says the cats are live.
+menu says the cats are live. If it shows warning lights instead, the account isn't made yet: each light says which
+secret this Worker can't see, or what's wrong with it. Fix the crosses and reload.
 
 ### Step 5: the seatbelts and brakes. The house rules, in every session
 
