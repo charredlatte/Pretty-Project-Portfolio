@@ -49,8 +49,9 @@ it is the admin, which uploads the café's art, creates the other accounts and i
      `charlotte`, whatever your own name is.
 
    Never paste any of them into a chat. `CATIO_PASSWORD` and `CATIO_HANDLE` make the first account once, on the first
-   request after the deploy: changing either afterwards changes nothing, so sign in with the ones it was made from. A
-   Worker under a new name (`name` in `wrangler.jsonc`) starts with no accounts.
+   request after the deploy: changing either afterwards changes nothing, so sign in with the ones it was made from. To
+   start again with no accounts, import the repository again as a new Worker and set `name` in `wrangler.jsonc` to
+   that Worker's name: Workers Builds refuses a build when the two differ.
 3. **Claude's environments.** In a cloud session, open the environment menu in the session's title bar → Edit. In
    each environment her sessions use:
    - add two environment variables, `CATIO_URL` = the address above and `CATIO_TOKEN` = the agents' key;
@@ -65,8 +66,10 @@ it is the admin, which uploads the café's art, creates the other accounts and i
    doesn't have, and the reason the page's live read is refused today.
 5. Tell Claude it's done. The page is then republished to read the `Catio` connector (docs/plan.md, phase 5).
 
-To check: the address alone asks for her handle and password (the café's sign-in), so it says the Worker is up. Both sign-ins
-say whether `CATIO_PASSWORD` isn't set for the Worker or is under 16 characters. The key is right when an agent's call to `/mcp`
+To check: the address alone asks for her handle and password (the café's sign-in), so it says the Worker is up. Until
+there is an account, both sign-ins show the setup's warning lights instead of a form: each of the four secrets as this
+Worker sees it (set, missing, too short, not a handle; never its value), the handle the account will have, and what to
+fix. The key is right when an agent's call to `/mcp`
 gets an answer instead of a 401 `invalid_token`. Once a session has started in an environment with the two
 variables and the plugin, it is in `list_agents`.
 

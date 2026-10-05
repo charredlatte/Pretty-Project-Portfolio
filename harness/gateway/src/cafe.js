@@ -6,7 +6,7 @@
 // admin invites make their own account at /signup. An open café keeps a WebSocket to its house and hears every change.
 import PAGE from "../../../catio/index.html";
 import RUNTIME from "../cafe/runtime.js";
-import { esc, page } from "./signin.js";
+import { esc, noAccount, page } from "./signin.js";
 import { MIN_SECRET, randomToken, sha256 } from "./secret.js";
 import { bootProblem, hasAccount, registry } from "./registry.js";
 import { FIRST_HOUSE, fileKeys } from "./houses.js";
@@ -55,10 +55,10 @@ async function agentKey(request, env) {
 }
 const MAX_SAY = 64 * 1024;   // a turn of the queen's, streamed
 
-function signInPage(problem = "", status = 200) {
+function signInPage(problem = "", status = 200, lights = "") {
 	return page("The KittyChat Café", `<h1>The KittyChat Café</h1>
 <p>Your cats, on your own address.</p>
-${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}
+${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}${lights || `
 <form method="post" action="/login">
 <label for="user">Your handle</label>
 <input id="user" name="user" autocomplete="username" autocapitalize="none" required autofocus>
@@ -66,13 +66,13 @@ ${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}
 <input id="password" name="password" type="password" autocomplete="current-password" required>
 <div class="row"><button class="go">Come in</button></div>
 </form>
-<p class="soft">Invited? <a href="/signup">Make your account</a>.</p>`, status);
+<p class="soft">Invited? <a href="/signup">Make your account</a>.</p>`}`, status);
 }
 
-function signUpPage(invite = "", user = "", problem = "", status = 200, origin = "") {
+function signUpPage(invite = "", user = "", problem = "", status = 200, origin = "", lights = "") {
 	return page("Join the KittyChat Café", `<h1>Join the KittyChat Café</h1>
 <p>A café of your own, for your own cats. You need an invite from its admin.</p>
-${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}
+${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}${lights || `
 <form method="post" action="/signup">
 <label for="invite">Your invite</label>
 <input id="invite" name="invite" value="${esc(invite)}" autocomplete="off" autocapitalize="none" spellcheck="false" required${invite ? "" : " autofocus"}>
@@ -87,7 +87,7 @@ ${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}
 <div class="row"><button class="go">Make my café</button></div>
 </form>
 <p class="soft">Have an account? <a href="/">Sign in</a>.</p>
-${invite && origin ? forAnAI(invite, origin) : ""}`, status);
+${invite && origin ? forAnAI(invite, origin) : ""}`}`, status);
 }
 
 // The same invite, for an AI setting the café up for someone: the account and its first agents' key, as JSON
@@ -140,7 +140,7 @@ const signedInAs = async (reg, user) => {
 
 async function signUp(request, env) {
 	if (/^application\/json\b/.test(request.headers.get("Content-Type") || "")) return signUpForAnAI(request, env);
-	if (!(await hasAccount(env))) return signUpPage("", "", NO_ACCOUNT(), 503);
+	if (!(await hasAccount(env))) return signUpPage("", "", NOT_YET, 503, "", noAccount(env, request));
 	if (!sameOrigin(request)) return signUpPage("", "", "Sign up from this page.", 403);
 	const form = await request.formData();
 	const invite = String(form.get("invite") || "").trim(), user = String(form.get("user") || "").trim();
@@ -166,9 +166,10 @@ async function signUpForAnAI(request, env) {
 }
 
 const NO_ACCOUNT = () => "The gateway has no account yet. " + bootProblem();
+const NOT_YET = "The gateway has no account yet. Its warning lights:";
 
 async function login(request, env) {
-	if (!(await hasAccount(env))) return signInPage(NO_ACCOUNT(), 503);
+	if (!(await hasAccount(env))) return signInPage(NOT_YET, 503, noAccount(env, request));
 	const reg = await registry(env);
 	const form = await request.formData();
 	const user = await reg.checkPassword(String(form.get("user") || ""), String(form.get("password") || ""));
@@ -238,7 +239,7 @@ export async function cafe(request, env) {
 	const cafePaths = path === "/" || path === "/invite" || path === "/ws" || path.startsWith("/api/") || path.startsWith("/art/") || path.startsWith("/files/");
 	if (!cafePaths) return null;
 	const user = await signedIn(request, env);
-	if (!user && (path === "/" || path === "/invite")) return (await hasAccount(env)) ? signInPage() : signInPage(NO_ACCOUNT(), 503);
+	if (!user && (path === "/" || path === "/invite")) return (await hasAccount(env)) ? signInPage() : signInPage(NOT_YET, 503, noAccount(env, request));
 	if (!user) return refuse(401, "signed_out", "Sign in to the café first.");
 
 	if (path === "/") return new Response(CAFE, { headers: PAGE_HEADERS });
