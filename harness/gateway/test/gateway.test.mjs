@@ -424,6 +424,7 @@ describe("accounts", () => {
 		const page = await (await fetch(base + "/signup?invite=" + code)).text();
 		assert.ok(page.includes("as their AI?") && page.includes(`"invite": "${code}"`) && page.includes(base + "/mcp"), "the link says what an AI does");
 		assert.ok(!(await (await fetch(base + "/signup")).text()).includes("as their AI?"), "not without an invite");
+		assert.ok(page.includes("kittychat-house-rules@kittychat") && page.includes("Without the plugin the two variables do"), "the two variables need the plugin's hook");
 
 		const use = (body, headers = {}) => fetch(base + "/signup", { method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body) });
 		const short = await use({ invite: code, handle: "partner", password: "short" });
