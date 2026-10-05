@@ -1,5 +1,18 @@
 # Delegating the easy work to smaller models
 
+**Status (5 October 2026): phase A is built, and so is the cap on a spawn**
+(`right_sized` in `rules.json`, `harness/hooks/right_sized.py`, the `tiers` block: where Charlotte has capped a
+repo's sub agents in its `.claude/catio-rules.json`, every spawn there names a model at or below her cap, and one
+that names none is refused too; where she has capped nothing, a spawn that names no model is told once what it is
+about to inherit. `harness/README.md`, "Spend what the task is worth"). That is phase C's first step arriving before
+B: it needs no job queue, only the spawn the session was going to make anyway.
+
+Two things it deliberately does **not** do, both taken out in review after being built and found wrong in both
+directions. It does not judge whether a task is easy from the prompt's words - that is the `decide` rubric below.
+And it does not work out what an unnamed spawn would resolve to: Claude Code decides that from `_FORCE`, the call,
+the agent's file, `CLAUDE_CODE_SUBAGENT_MODEL` and the session, and a hook reimplementing that chain waved spawns
+past the cap when it guessed low and refused Haiku-pinned helpers when it guessed high. It judges the model on the
+call, which is the one fact it can see and the thing a session can always provide.
 **Status (5 October 2026, evening): delegate first.** Her word: "Make sure this never happens again. Always run the
 delegation before assigning anything to anyone." A workflow had sent 58 agents out on the session's Opus, because
 `right_sized` read only `Task` and `Agent` and only spoke about an unnamed spawn. It now refuses every assignment that
@@ -166,9 +179,11 @@ reports, and its line lands in the queen's thread; `harness/test/test_queen.py` 
 
 With B in place, delegation needs no asking. Small steps, each a few hours.
 
-0. **A ceiling on a spawn, and her word as the memory.** Built, 5 October, before B, since it rides the spawn a
+0. **A cap on a spawn, and her word as the memory.** Built, 5 October, before B, since it rides the spawn a
    session was already making. The `right_sized` rule, `hooks/right_sized.py` and `rules.json`'s `tiers`. What it
    adds over the `delegate` nudge: `delegate` suggests a smaller cat for two named jobs (a whole-repo search, a test
+   run); this reads every spawn, says what an unnamed one will inherit, and keeps her cap where she has set one.
+   What it does not do: judge a task, or resolve a model it cannot see. Both were tried and removed in review (above).
    run); this reads the tier of *every* assignment, refuses one that names none (since 5 October, her "always run
    the delegation"), and enforces an errand's ceiling where she has set one. What it does not do: pick the model
    itself. The session picks, by the table above or the decider's `preset: easy` (phase D, which needs a server);

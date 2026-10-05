@@ -12,10 +12,8 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
-from pathlib import Path
 
-from common import enforced, hook_input, models, rules
+from common import enforced, hook_input, models, said, say, rules
 
 TESTS = re.compile(r"(\bnpm (run )?test\b|\bpytest\b|\bunittest\b|node --test|\brun\.sh\b|\bcargo test\b|\bgo test\b|\bvitest\b|\bjest\b)")
 SAY = {
@@ -59,16 +57,12 @@ def delegate(data):
         kind = "test"
     else:
         return ""
-    mark = Path(tempfile.gettempdir()) / "catio-delegate-{}-{}".format(re.sub(r"\W", "", str(data.get("session_id", ""))), kind)
-    if mark.exists():
-        return ""
+    if said(data.get("session_id"), kind, "delegate", data.get("cwd")):
+        return ""            # said already: ask the cheap question before reading the transcript
     strong = rules()["merging"]["strong"]
     if not any(s in m for m in models(data) for s in strong):
         return ""
-    try:
-        mark.touch()
-    except OSError:
-        pass
+    say(data.get("session_id"), kind, "delegate", data.get("cwd"))
     return SAY[kind]
 
 
