@@ -413,7 +413,18 @@ export class House extends DurableObject {
 			});
 			out = this.queenReady() || { notes: [], routine: null, stop: false };
 		}
-		return { ...out, character: this.character() };
+		return { ...out, character: this.character(), homework: this.homeworkByKind() };
+	}
+
+	/** The homework waiting on Charlotte, counted by kind. Her runner says it on her own desktop when it grows:
+	 *  the café shows her quest log when it is open, and the runner is the part of it that is always running. */
+	homeworkByKind() {
+		const by = {};
+		for (const z of TOOLS.quizzes(this, {}).quizzes) {
+			const kind = z.kind || "unblock";
+			by[kind] = (by[kind] || 0) + 1;
+		}
+		return by;
 	}
 
 	queenReady() {

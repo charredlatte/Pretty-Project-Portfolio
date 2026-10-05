@@ -378,6 +378,12 @@ writes contain the licensed art, so `catio-app/.look/` is gitignored with the bu
 - **The net layer**: `net_curl.cpp` for a desktop, then a body per phone. It is to be tested against a
   stand-in gateway, the way `harness/test/test_queen.py` tests the queen's runner -- never against hers.
 - **Walking** (`way_to`, `Walks`), **the fonts** (`Pixel`, `Body`, with SDL_ttf), **the voice**.
+- **The look.** The app knows nothing of the skin: no tokens, no slots, nothing that edits her colours. If it
+  ever grows them, the gap to know about is that SDL3 gives file, save and folder dialogs but **no colour
+  picker**, and a colour token needs one. On a desktop that is one call to tinyfiledialogs'
+  `tinyfd_colorChooser` (zlib, single file -- `catio-app/third_party/README.md` says why the rest of that
+  library stays out); on a phone there is no native picker to call, so it would be drawn from the pack's own
+  pieces like everything else. Until then, her colours are set in the page and the app only reads them.
 - **`android/` and `ios/` have never been configured.** No Android SDK or NDK was in reach and no Mac
   at all. The versions in them are now SDL's real current releases; the gradle lines, plist keys and
   `.aar` filenames are still read from the documentation, not tried.

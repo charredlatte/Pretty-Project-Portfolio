@@ -73,19 +73,16 @@ root is the operating brief — read it before changing the page itself.
 
 ### 2. Their art
 
-They put their own zips wherever they like and name them on the command line, in this order (the
-names don't matter, the order does):
+They put their own zips wherever they like, under whatever names, and point the script at the folder.
+Neither the names nor the order matters: each zip is recognised by a file only that pack has.
 
 ```bash
 pip install pillow fonttools
-python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip "Top down garden castle.zip" \
-    "Wood Garden Asset Pack.zip" "Pixel Art Top Down - Basic v1.2.3.zip" \
-    "Sprout Lands - UI Pack - Basic pack.zip" plants.zip \
-    "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip" Game_UI_Pack_Pastel.zip
+python3 catio/tools/build-art.py ~/Downloads/KittyChat-Cafe-Assets   # or the zips, in any order
 ```
 
-Given only the Sprout Lands UI zip (and, optionally, Game UI Pastel's after it), it builds just the
-interface.
+It prints which zip it took for which pack before it draws anything. Given only the Sprout Lands UI zip
+(with or without Game UI Pastel's), it builds just the interface.
 
 That writes `catio/art/licensed/`, which stays gitignored. Never commit what it produces, and never
 put it in anything you share — that is the whole reason it is separate.

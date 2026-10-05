@@ -108,7 +108,8 @@ claude --plugin-dir catio-plugin
 
 Then say: *set up my café*. The skill walks you through your rooms, your repositories and publishing the page as
 your own private claude.ai artifact, and tells you where to put the art packs' zips
-(`python3 catio/tools/build-art.py <your zips>` draws the house and the cats from them). The page does the same on
+(`python3 catio/tools/build-art.py <the folder you put them in>` draws the house and the cats from them,
+naming each zip by what is inside it). The page does the same on
 its own: a café with no rooms yet opens a seven-step wizard. **It worked when** you open your café's link and your
 sessions are cats in rooms. If the sign under the brand says *"The cat art isn't here"*, step back to the art.
 
