@@ -24,6 +24,7 @@ What each file here is for. The README says what the café is; `CLAUDE.md` says 
 | [`drawing-plan.md`](drawing-plan.md) | Every asset to draw, at what size, so the café can ship its own art instead of the packs |
 | [`mobile-app.md`](mobile-app.md) | The café as a native C++ app for a phone: the case for it and the design |
 | [`live-sessions.md`](live-sessions.md) | The live read of the sessions, every way claude.ai can refuse it, and the saved copy the café falls back on |
+| [`gateway-parity.md`](gateway-parity.md) | The plan to give the gateway café what only the claude.ai artifact could do: new sessions, retitles, mid-turn messages, every session, the file guess |
 
 ## The record
 
