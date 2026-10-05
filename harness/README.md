@@ -43,12 +43,13 @@ work a Haiku would have done. `rules.json`'s `tiers` block holds the ladder:
 ```json
 "tiers": {
   "ladder": ["haiku", "sonnet", "opus", "fable"],
-  "costly": ["opus", "fable"]
+  "worth_a_word": ["opus", "fable"]
 }
 ```
 
 `ladder` is the rungs, cheapest first, matched the way the merging rule matches `strong`: any part of a model id.
-`costly` is the tiers whose spawns are worth a word when they name none.
+`worth_a_word` is the tiers whose unnamed spawns earn a line. (The `opus_default` rule has a `costly` list of
+its own, which is a different thing: the models that burn her allowance fastest.)
 
 **Her cap is the only thing that refuses.** A repo's `.claude/catio-rules.json` carries it:
 
@@ -66,8 +67,8 @@ session. An earlier version of this hook reimplemented that chain and was wrong 
 past her cap when it guessed low, and refused Haiku-pinned helpers when it guessed high. Naming the model is the one
 thing a session can always do, and it is what every refusal here asks for.
 
-**Where she has capped nothing**, a spawn that names no model gets one line a session saying which model it is about
-to inherit. That is where the quiet spending is: Claude Code's own `Explore` and `general-purpose` agents run on the
+**Where she has capped nothing**, a spawn that names no model gets one line a session, in a session on one of the
+`worth_a_word` tiers, saying which model it is about to inherit. That is where the quiet spending is: Claude Code's own `Explore` and `general-purpose` agents run on the
 session's model by default.
 
 **What it does not do is guess whether a task is easy.** Reading a prompt's words is unreliable in both directions —

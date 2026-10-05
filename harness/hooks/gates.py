@@ -207,4 +207,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception as e:   # the gates are the safety net, so one that cannot run refuses rather than waving on
+        block("House rule (KittyChat): the house rules couldn't be read, so none of the gates can be kept "
+              "(%s: %s). Tell Charlotte; don't work round it." % (type(e).__name__, e))

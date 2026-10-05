@@ -21,10 +21,12 @@ Whether a *task* is easy enough for a small model is not decided here either. Th
 Nothing here switches the session's own model: the tier is chosen for the work being spawned, because
 switching the conversation mid-way throws its prompt cache away and costs more than the routing saves.
 """
-from common import answered, enforced, local, once, rules
+import difflib
+
+from common import answered, enforced, local, said, say, rules
 
 SPAWN = ("Task", "Agent")   # the sub agent tool: Agent in this build, Task in older ones
-KEYS = ("ceiling", "ladder", "costly")
+KEYS = ("ceiling", "ladder", "worth_a_word")
 
 
 def tier_of(model, ladder):
@@ -44,21 +46,34 @@ def tiers(cwd):
 
 def house_ok(t):
     """The house's own ladder, which the rule can do nothing without."""
-    return isinstance(t.get("ladder"), list) and all(isinstance(x, str) and x for x in t["ladder"])
+    return isinstance(t.get("ladder"), list) and bool(t["ladder"]) \
+        and all(isinstance(x, str) and x for x in t["ladder"])
 
 
 def misread(cwd, t):
     """Why what Charlotte wrote here can't be acted on, or None. A rule that can't read her settings says so
     rather than going quiet; a key it doesn't know (a comment of hers, say) is simply not one of its settings."""
     raw = local(cwd)
+    near_block = [k for k in raw if k != "tiers" and difflib.get_close_matches(str(k), ("tiers",), 1, 0.85)]
+    if near_block and "tiers" not in raw:
+        return "its %s is not one of my settings (did she mean tiers?)" % ", ".join(sorted(map(str, near_block)))
     mine = raw.get("tiers")
-    if "tiers" in raw and not isinstance(mine, dict):
+    if "tiers" not in raw and "ceiling" not in raw:
+        return None                      # she has said nothing here, so there is nothing of hers to report
+    if not isinstance(mine, dict) and "tiers" in raw:
         return "its tiers is not an object"
     if not house_ok(t):
         return ("its ladder is not a list of tiers" if isinstance(mine, dict) and "ladder" in mine
                 else "the house's own ladder is not a list of tiers")
     if "ceiling" in raw and "ceiling" not in (mine or {}):
         return "its ceiling sits outside the tiers block"
+    if isinstance(mine, dict) and "ceiling" not in mine:
+        near = [k for k in mine if k not in KEYS and difflib.get_close_matches(str(k), KEYS, 1, 0.8)]
+        if near:
+            return "its %s is not one of my settings (did she mean %s?)" % (
+                ", ".join(sorted(map(str, near))), difflib.get_close_matches(str(near[0]), KEYS, 1, 0.8)[0])
+        if not set(mine) & set(KEYS):
+            return "nothing in its tiers block is one of my settings"
     if isinstance(mine, dict) and "ceiling" in mine:
         ceiling = mine["ceiling"]
         if not isinstance(ceiling, str) or not ceiling.strip():
@@ -71,7 +86,9 @@ def misread(cwd, t):
 def on_now(data, ladder):
     """The tier the session is on now: the last model that answered. Only the line about what an unnamed spawn
     inherits needs this, never a refusal."""
-    rungs = [t for t in (tier_of(m, ladder) for m in answered(data, ("transcript_path",))) if t]
+    inside = bool(data.get("agent_type"))
+    found = answered(data, ("agent_transcript_path",) if inside else ("transcript_path",), sidechain=inside)
+    rungs = [t for t in (tier_of(m, ladder) for m in found) if t]
     return rungs[-1] if rungs else None
 
 
@@ -80,11 +97,10 @@ def check(data, tool, args, cwd):
     if tool not in SPAWN or not enforced("right_sized", cwd):
         return None, None
     sid, t = data.get("session_id"), tiers(cwd)
-    wrong = misread(cwd, t)
+    wrong = misread(cwd, t) or (None if house_ok(t) else "the house's own ladder is not a list of tiers")
     if wrong:
-        if not {"tiers", "ceiling"} & set(local(cwd)):
-            return None, None   # she has said nothing here, so there is nothing of hers to lose
-        if once(sid, "badcap", "tier", cwd):
+        if not said(sid, "badcap", "tier", cwd):
+            say(sid, "badcap", "tier", cwd)
             return None, ("House rule (KittyChat), spend what the task is worth: this repo caps its sub agents, but "
                           "%s, so the cap is doing nothing. Tell Charlotte, and spawn at the tier the work needs "
                           "meanwhile." % wrong)
@@ -111,10 +127,11 @@ def check(data, tool, args, cwd):
                     "she will raise the cap in .claude/catio-rules.json." % (cap, rung, at_most)), None
         return None, None
 
-    if not named and once(sid, "inherit", "tier", cwd, peek=True):
+    if not tier_of(named, ladder) and not said(sid, "inherit", "tier", cwd):
         spawn = on_now(data, ladder)
-        costly = [str(c).lower() for c in (t.get("costly") or [])]
-        if spawn and spawn.lower() in costly and once(sid, "inherit", "tier", cwd):
+        say(sid, "inherit", "tier", cwd)   # the transcript has been read: don't read it again for this repo
+        worth = [str(c).lower() for c in (t.get("worth_a_word") or [])]
+        if spawn and spawn.lower() in worth:
             return None, ("House rule (KittyChat), spend what the task is worth: this spawn names no model, so it "
                           "runs on %s, the model this session is on, and makes its own requests there. Name the tier "
                           "it needs on the call: %s, cheapest first. The scout and the tester are Haiku already. "

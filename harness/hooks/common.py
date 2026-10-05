@@ -14,36 +14,56 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 @lru_cache(maxsize=None)
+def _rules_text():
+    return (ROOT / "rules.json").read_text(encoding="utf-8")
+
+
 def rules():
-    """The house rules. Cached: a hook is one short-lived process, and several gates read them."""
-    return json.loads((ROOT / "rules.json").read_text(encoding="utf-8"))
+    """The house rules. The file is read once a process; every caller gets its own copy to build on."""
+    return json.loads(_rules_text())
 
 
 @lru_cache(maxsize=None)
+def _local_text(cwd):
+    try:
+        return (Path(cwd or os.getcwd()) / ".claude" / "catio-rules.json").read_text(encoding="utf-8")
+    except OSError:
+        return "{}"
+
+
 def local(cwd=None):
     """The repo's own switches, .claude/catio-rules.json, or {}."""
     try:
-        return json.loads((Path(cwd or os.getcwd()) / ".claude" / "catio-rules.json").read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        found = json.loads(_local_text(cwd))
+    except ValueError:
         return {}
+    return found if isinstance(found, dict) else {}
 
 
-def once(session, kind, prefix, where=None, peek=False):
-    """True the first time this session is told something of this kind, here, so a nudge never nags. A cloud
-    session works in several repos at once, so where (the repo) is part of it. With peek, only ask - the cheap
-    check a hook makes before doing any work it would throw away."""
-    tag = hashlib.sha1(("%s\0%s" % (session or "", where or "")).encode()).hexdigest()[:16]
-    name = "catio-{}-{}-{}".format(prefix, tag, kind)
-    mark = Path(tempfile.gettempdir()) / name
-    if mark.exists():
-        return False
-    if peek:
-        return True
+def _mark(session, kind, prefix, where):
+    """Where the fact that something was said is remembered: a folder of this user's own, not a guessable name
+    in the shared temp directory, which anything on the machine could plant or point elsewhere."""
+    folder = Path(os.environ.get("XDG_CACHE_HOME") or (Path.home() / ".cache")) / "catio"
     try:
-        mark.touch()
+        folder.mkdir(parents=True, exist_ok=True)
+        folder.chmod(0o700)
+    except OSError:
+        folder = Path(tempfile.gettempdir())
+    tag = hashlib.sha1(("%s\0%s" % (session or "", where or "")).encode()).hexdigest()[:16]
+    return folder / "said-{}-{}-{}".format(prefix, tag, kind)
+
+
+def said(session, kind, prefix, where=None):
+    """Has this session already been told something of this kind, here? The cheap question, no side effect."""
+    return _mark(session, kind, prefix, where).exists()
+
+
+def say(session, kind, prefix, where=None):
+    """Remember that it has been told, so it is said once. Call it when the thing is actually being said."""
+    try:
+        _mark(session, kind, prefix, where).touch()
     except OSError:
         pass           # can't remember it was said; say it anyway rather than lose it
-    return True
 
 
 def enforced(rule_id, cwd=None):
