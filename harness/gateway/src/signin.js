@@ -3,6 +3,7 @@
 // ask: anywhere else, a token would leave with someone else.
 import { AuthorizationError, CimdFetchError } from "@cloudflare/workers-oauth-provider";
 import { bootProblem, hasAccount, propsOf, registry, setupLights } from "./registry.js";
+import { formOf } from "./plain.js";
 
 const CLAUDE = ["claude.ai", "claude.com"];
 
@@ -124,7 +125,7 @@ ${noAccount(env, request)}<p>Then connect again.</p>`, 503);
 		}
 		if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "GET, POST" } });
 
-		const form = await request.formData().catch(() => null);
+		const form = await formOf(request);
 		if (!form) return startAgain("That wasn't the sign-in form.");
 		const handle = String(form.get("handle") || "");
 		const shown = { client: String(form.get("client") || "Claude"), host: String(form.get("host") || "claude.ai") };

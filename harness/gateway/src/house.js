@@ -398,22 +398,43 @@ export class House extends DurableObject {
 	// ---- the queen: her runner waits here for what to do, and streams what she says back ----
 
 	/** Held until Charlotte writes to the queen, a routine comes due or her turn is to stop, or HOLD passes:
-	 * {notes, routine, stop, character}. Each note and routine is handed out once. */
-	async waitForQueen() {
+	 * {notes, routine, stop, character}.
+	 *
+	 * A wait may carry `ack`: the time of the newest note the runner has taken in and finished with. Everything up
+	 * to it is handed over for good, and anything after it is offered again on the next wait, so a connection that
+	 * drops mid-wait, or a runner that dies mid-turn, doesn't lose what she said. A runner that sends no `ack` is
+	 * handed each note once, as before (the audit of 5 October 2026). */
+	async waitForQueen(opts = {}) {
+		const asked = Number(opts && opts.ack);
+		const ack = Number.isFinite(asked) && asked > 0 ? asked : null;
+		// a runner says it acknowledges on every wait, so its first one (nothing acknowledged yet) marks nothing either
+		const acks = (opts && opts.acks === true) || !!ack;
 		const a = this.agent(QUEEN);
 		const back = !a || Date.now() - (a.updated || 0) > AWAY;
 		if (this.presence(a && a.mood === "busy" ? "busy" : "done") || back) this.tell({ type: "agents" });   // she is back: the cafés show her
+		if (ack) this.confirmQueen(ack);
 		this.armAlarm();
-		let out = this.queenReady();
+		let out = this.queenReady(acks);
 		if (!out) {
 			await new Promise((resolve) => {
 				const done = () => { this.waiters = this.waiters.filter((w) => w !== done); resolve(); };
 				this.waiters.push(done);
 				setTimeout(done, HOLD);
 			});
-			out = this.queenReady() || { notes: [], routine: null, stop: false };
+			out = this.queenReady(acks) || { notes: [], routine: null, stop: false };
 		}
 		return { ...out, character: this.character(), homework: this.homeworkByKind() };
+	}
+
+	/** The runner has her words: every note up to `at` is handed over and read, and none of them is offered again. */
+	confirmQueen(at) {
+		const a = this.agent(QUEEN);
+		if (!a) return;
+		const was = a.handedNotes || 0;
+		if (at <= was) return;
+		a.handedNotes = at;
+		a.seenNotes = Math.max(a.seenNotes || 0, at);
+		this.save(a);
 	}
 
 	/** The homework waiting on Charlotte, counted by kind. Her runner says it on her own desktop when it grows:
@@ -427,12 +448,13 @@ export class House extends DurableObject {
 		return by;
 	}
 
-	queenReady() {
+	queenReady(acks = false) {
 		if (this.flagged("queenStop")) {
 			this.flag("queenStop", null);
 			return { notes: [], routine: null, stop: true };
 		}
-		const { notes } = TOOLS.inbox(this, { agent: QUEEN, mark: true });
+		// a runner that acknowledges its notes is offered them until it does; one that doesn't is handed each once
+		const { notes } = TOOLS.inbox(this, { agent: QUEEN, mark: !acks });
 		const routine = this.dueRoutine();
 		return notes.length || routine ? { notes, routine, stop: false } : null;
 	}
@@ -452,6 +474,7 @@ export class House extends DurableObject {
 		}) : undefined;
 		const changed = this.presence(done ? "done" : "busy");
 		if (done && routine) this.finishRoutine(routine.id);
+		else if (routine) this.renewRoutine(routine.id);   // a turn still running keeps its routine: not lost, not handed out twice
 		let id = null;
 		if (done && text.trim()) {
 			id = newId();
@@ -516,6 +539,15 @@ export class House extends DurableObject {
 			return { id, name: String(r.name || id).slice(0, 100), prompt: String(r.prompt || "").slice(0, 4000), at };
 		}
 		return null;
+	}
+
+	/** A routine whose turn is still streaming: its lease starts again, so a turn longer than LEASE isn't taken for
+	 *  a runner that died and handed out a second time. Written only once the lease is half gone, so a turn that
+	 *  says a word every 0.4 s doesn't write a document each time. */
+	renewRoutine(id) {
+		const r = this.getDoc("routines/" + id);
+		const handed = r && Number(r.handed);
+		if (handed && Date.now() - handed > LEASE / 2) this.putDoc("routines/" + id, { handed: Date.now() }, true);
 	}
 
 	finishRoutine(id) {

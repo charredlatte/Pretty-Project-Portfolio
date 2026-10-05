@@ -479,7 +479,10 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
   leaked key from putting instructions in her mouth, or in her assistant's, which the cats act on.
 - **The queen's routes:** `POST /api/runner/wait` (held up to 25 s: her notes, a routine due, a stop, her
   character, and `homework`, the open quizzes counted by kind) and `POST /api/runner/say` (a turn as it streams;
-  `done` stores her note), the queen's key only. When a kind of homework grows, the runner says the lot on
+  `done` stores her note), the queen's key only. A wait carries `{acks: true, ack}`, the newest note whose turn is
+  finished, and a note is offered until that reaches the gateway, so a dropped connection or a runner that dies
+  mid-turn means she hears a thing twice rather than losing it (a runner that sends no `ack` is handed each note
+  once, as before). Only a refused key stops the runner; a 503 or a reply cut off half way is waited out. When a kind of homework grows, the runner says the lot on
   Charlotte's own desktop with whatever the computer has (`notify-send`, `osascript`, a PowerShell balloon;
   `CATIO_NOTIFY` replaces it, empty turns it off): the quest log stays in the café, this only says it has
   something new. The words are the runner's own, built from counts, never a document's text.

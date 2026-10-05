@@ -45,7 +45,7 @@ class StateLock:
     the exclusive creation of state.lock; one a crash left behind is taken over after STALE seconds. On Windows a lock
     just let go can be "delete pending" while another process still looks at it, and creating it then is a
     PermissionError rather than FileExistsError: it is busy all the same, so it is waited for, not given up on."""
-    STALE, WAIT = 30, 10
+    STALE, WAIT = 30, 40   # WAIT is past STALE, so a lock a crash left behind is taken over, never given up on
 
     def __enter__(self):
         HOME.mkdir(parents=True, exist_ok=True)
@@ -58,11 +58,15 @@ class StateLock:
                 pass
             try:
                 if time.time() - path.stat().st_mtime > self.STALE:
-                    path.unlink()
+                    # taken over by renaming it aside, which only one waiter can win: the loser finds it gone. An
+                    # unlink here let every waiter on one stale lock through at the same instant.
+                    mine = path.with_name("state.lock.stale.%d" % os.getpid())
+                    os.rename(path, mine)
+                    os.unlink(mine)
             except FileNotFoundError:
-                continue
-            except PermissionError:
-                pass   # Windows: being let go or looked at right now
+                continue   # gone: the holder let it go, or another waiter won the takeover
+            except OSError:
+                pass       # Windows: being let go or looked at right now
             if time.monotonic() > deadline:
                 raise OSError("state.json is busy: another Catio process holds it")
             time.sleep(0.01)
