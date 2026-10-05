@@ -2486,6 +2486,20 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
   await check("a café with rooms never sees the wizard", async () => expect(await page.locator("#setupDlg[open]").count() === 0, "wizard open"));
   await ctx.close();
 }
+// The first user test (5 October): with no licensed art, which is every invited guest and every fresh clone, the
+// Welcome step threw "NOART is not defined" and the wizard never opened.
+{
+  const { page, ctx, errors } = await open("?mode=empty", { base: NOART });
+  await check("with no licensed art the wizard still opens on Welcome, saying once that the art isn't here", async () => {
+    await wizard(page);
+    expect(await page.locator("#setupDlg[open]").count() === 1, "wizard not open");
+    const words = await page.locator("#setupDlg").innerText();
+    expect(words.split("The cat art isn't here").length === 2, "the art note, not once: " + words);
+    expect(words.split("All your Claude chats").length === 2, "the welcome, not once: " + words);
+    expect(!errors.some((e) => /NOART|ReferenceError/.test(e)), errors.join(" | "));
+  });
+  await ctx.close();
+}
 {
   const { page, ctx, errors } = await open("?mode=empty");
   const nextStep = async () => { await page.click("#setupDlg button[type=submit]"); await settle(page); };
