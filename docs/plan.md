@@ -11,8 +11,8 @@ for, in `docs/requests.md`; the audit behind phase 0, in `docs/audit-2026-10-01.
 
 Updated 4 October 2026.
 
-- **Live:** the café's artifact (`kittychat-cafe` in `artifacts.json`), republished on her say-so, so it can trail `main` until the next
-  publish.
+- **Live:** the café on the gateway's address, which serves `main` (deployed on every merge). The claude.ai artifact
+  (`kittychat-cafe` in `artifacts.json`) is retired since 5 October and stays at its 4 October copy (`docs/artifact.md`).
 - **`main`** has, beyond phase 0's honest café:
   - the house rules, on in all seven repos, with no Claude attribution on her public repos, and semi-automatic
     merging where a repo opts in;

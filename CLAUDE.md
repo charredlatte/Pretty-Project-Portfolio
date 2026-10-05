@@ -2,32 +2,22 @@
 
 `README.md` says what the page is. This file is how to work on it.
 
-## Republishing
+## Where the café lives
 
-The page is **one** private artifact. Its URL is the `kittychat-cafe` entry in `artifacts.json`. Always republish to that
-URL (`Artifact` publish with `url`, after reading it back), never a new one: the database with
-her rooms, renames and adopted chats belongs to that artifact.
+**The café is the gateway's** (her call, 5 October 2026: "I honestly don't care about the artifact. It doesn't function
+the way I want the gateway to work, so I don't use it"). She uses it at the gateway's own address, behind her sign-in:
+the same `catio/index.html`, with `harness/gateway/cafe/runtime.js` as its `window.claude` ("The gateway", below). A
+change to the page reaches her by a merge to `main`: Workers Builds deploys the gateway, which serves the page as it
+is on `main`. There is nothing to publish, and a page change is done when it is merged.
 
-Publish `catio/index.html` with:
-
-- `files`: every file the page references: `art/furniture.png`, `art/licensed/*.png` (`house.png`,
-  `house-upper.png`, `decor.png`, `furniture.png`, `meadow.png`, `mochi-idle.png`, `mochi-box.png`,
-  `pochi.png`) and the interface
-  in `art/licensed/ui/` (`panel`, `button`, `button-hover`, `button-down`, `button-green`,
-  `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `corners`,
-  `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point`, `pointer`, `logo`, `pastel` `.png`,
-  and `sprout.ttf`), and the map panel in `art/licensed/pastel/` (`panel`, `panel-dark`, `frame`, `button`,
-  `button-hover`, `button-down`, `icons` `.png`); and, once she has pieces of her own in `art/skin/`,
-  `art/skin.json` and each file it lists (below, "Plug-and-play design");
-- `capabilities`: omit it on a republish to keep what's stored. Pass it, as the whole set in "The stored capabilities"
-  below, to add a tool on purpose or when that section says a tool joined since the last publish (the first republish
-  after PR #31 must, to add `list_repos`: until it has, the wizard's GitHub step says the page isn't allowed to ask).
-
-`catio/data/` is **not** published: it is for the localhost copy (below).
+**The claude.ai artifact is retired** (`docs/artifact.md`, which also lists what the gateway café can't do yet): never
+republish it, or offer to, unless she asks. It still holds the one copy of the licensed art a cloud session can read
+back (below), and, until the harness reports audits and project maps to the gateway, what the house rules save.
 
 `art/licensed/` is not in git (licences below). In a fresh session, get it back one of two ways:
 
-1. `Artifact` read with `path: "art/licensed/<file>"` on the published URL, for each file; or
+1. `Artifact` read with `path: "art/licensed/<file>"` on the retired artifact (`kittychat-cafe` in `artifacts.json`),
+   for each file (`docs/artifact.md` lists them); or
 2. get the ten zips from her Drive folder "KittyChat Cafe Assets" (or ask her for them) and run
    `python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip "Top down garden castle.zip" "Wood Garden Asset Pack.zip" "Pixel Art Top Down - Basic v1.2.3.zip" "Sprout Lands - UI Pack - Basic pack.zip" plants.zip "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip" Game_UI_Pack_Pastel.zip`
    (needs `pip install pillow fonttools`; the order matters, not the names). Given only the Sprout Lands zip, it rebuilds just the
@@ -57,8 +47,8 @@ Publish `catio/index.html` with:
   smooth pieces (`art/licensed/pastel/`). The full zip is 12.5 MB, over the Drive connector's 10 MB limit:
   `Game_UI_Pack_Pastel_icons.zip` in the Drive folder (3.3 MB: the licence, the readme and `PNG/Filled/Icons`)
   is enough for the icons, but the map panel's pieces need the full zip's panels and buttons, so ask her to
-  attach it in the chat. A republish needs neither: read `art/licensed/ui/pastel.png` and
-  `art/licensed/pastel/*` back from the artifact. Never commit.
+  attach it in the chat. A session that only needs the art needs neither: read `art/licensed/ui/pastel.png` and
+  `art/licensed/pastel/*` back from the retired artifact. Never commit.
 
 `catio/art/CREDITS.md` says which pack drew what. The footer credits them all. Keep it.
 
@@ -265,8 +255,8 @@ Format 2025.10). Figma keeps a variable's value per **mode** and moves a whole p
   mode is), never inline styles, so dark mode still wins in the dark.
 - **Export tokens** writes the mode The look's switch is on as `kittychat-<mode>.tokens.json` (`toDTCG()`): a group per section of
   The look (`colours`, `type`, `map-colours`), `$type` on the group, each colour as `{colorSpace: "srgb", components,
-  hex}`, each size as `{value, unit}`, The look's words as `$description`. Through the `downloads` capability when
-  the artifact has it, else the browser's own download. Figma imports dimensions in px only, so `body-size` (rem)
+  hex}`, each size as `{value, unit}`, The look's words as `$description`. Through the browser's own download (in claude.ai,
+  the `downloads` capability). Figma imports dimensions in px only, so `body-size` (rem)
   doesn't reach it.
 - **Import tokens…** (`fromDTCG()`) reads any such file into the mode The look's switch is on: Figma's export, another café's, or
   one written by hand. A token is matched by its own name (`ink`, `go`, `px-size`…, or Figma's `Ink`, `Px size`) whatever group it sits in, an
@@ -298,7 +288,9 @@ piece that doesn't fit isn't used, and The look says why.
 
 ## Data
 
-The artifact database, written by the page and seeded with `ArtifactData`:
+The café's database: the gateway's (`docs` in her house, read whole at `GET /api/db`, pushed live over `/ws`), written
+by the page signed in as her. Only the café's own page writes it; agents reach it through the gateway's tools. The
+retired artifact's database has the same shape; `cafe/move-in.py` imports it into a house that has no documents yet.
 
 | Collection | Document | Holds |
 |---|---|---|
@@ -313,7 +305,7 @@ The artifact database, written by the page and seeded with `ArtifactData`:
 | `queens` | `house` | the queen of the house: `name`, `coat`, `manner` (how she speaks; the runner reads it each turn), `greeting`, `voice: {on, name, rate, pitch, lang}`, `readAt` (when Charlotte last opened her card: older handoffs are read), `notes[]` of `{text, pinned, at}`. A pinned note is one she says out loud. Older `queens/<room>` documents are hers until her first save |
 | `routines` | generated id | one of her routines: `name`, `time` ("HH:MM"), `days` (0–6, Sunday 0), `tz`, `prompt`, `on`, `last` (when the gateway last handed it to her runner). Only the gateway's copy runs: the runner reads the House, not the artifact |
 | `layouts` | the room key | *(planned: Build mode, `docs/camera-and-minimap.md`)* the room's furniture, and `cabinet: {look, x, y}`: the piece its filing cabinet looks like (her choice per room) and where it stands. The cabinet never leaves its room and keeps its Files and review spot whatever it looks like. No document: `MANOR.layout` and the default look |
-| `snapshot` | `sessions` | `{at, savedBy, sessions[]}`: Claude's saved copy of `list_sessions`, shown when the live read is blocked. Written only by Claude, with `ArtifactData` |
+| `snapshot` | `sessions` | `{at, savedBy, sessions[]}`: Claude's saved copy of `list_sessions`, shown when the live read is blocked. claude.ai only (retired), and the localhost copy (`data/sessions.json`) |
 
 Room **geometry** (where each room is on the art and where its cats sit) is code, in `GEOM` in
 the page, because it is tied to the picture. Room **names and which projects live where** are
@@ -393,7 +385,7 @@ that inflates "3 need you" makes the sign a liar.
   and deletes them.
 
 Adopted chats can hold anything she types, including legal matters. They live only in the
-artifact database, never in this repo. The adopt form says so. The same goes for what a queen
+café's database (the gateway's), never in this repo. The adopt form says so. The same goes for what a queen
 keeps: her card carries the same warning.
 
 ## Shipping
@@ -418,7 +410,9 @@ plugin (hooks: preflight before any browser, a read-only ponytail audit to open 
 ship unpushed work, the gate on pushes and merges; the `catio` skill) and `harness/mcp/catio_mcp.py`, the Catio MCP server other
 agents join through. The rules are `harness/rules.json`; Claude seeds them into the `rules` collection.
 
-The page now **writes** through Claude Code Remote, always on an explicit action:
+The page **writes** only on an explicit action of hers. In the café she uses, the gateway's, that is the café's
+database, its files and the gateway's tools (the last bullet); the parts below that go through Claude Code Remote
+(posting into a session, managing it, New cat) worked only in the retired claude.ai artifact (`docs/artifact.md`):
 
 - **The brain**: files dropped on a cat, a room or the house go to `assets.upload` and a `brain/<id>`
   document (`name, type, size, asset, url, cat, kind, project, room, how, reason, note, status`
@@ -444,21 +438,6 @@ The page now **writes** through Claude Code Remote, always on an explicit action
   wearing the gateway's mood when it is newer; what she writes or drops on it goes through the gateway, not the
   outbox, and its replies there show in its conversation. Breeds: the model, in the cat's card.
 - `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet.
-
-The stored capabilities (the full set, to pass whole if a tool is ever added):
-`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","list_repos","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "CATIO", tools: ["list_agents","comment","comments","drop_file","manage","decide","quizzes","answer"] }] }, db: {}, assets: {}, sample: {}, downloads: true }`
-
-`downloads` joined it on 4 October (The look's Export tokens): until a republish passes the whole set, Export falls
-back to the browser's own download, which claude.ai's frame may not allow.
-
-`decide` joined the set on 3 October (the decider, below): the first republish after it must pass the whole set, or in claude.ai the
-page cannot ask the decider and the brain simply keeps sorting the old way. `quizzes` and `answer` joined it the same evening (her
-quest log): until a republish passes the whole set, the claude.ai café shows no homework; the café on the gateway's address does.
-
-`host:catio` (the same five tools) can only be declared from the Claude desktop app, so it isn't in the stored
-set. `delete_trigger` stays only to clean up the Routines older versions bound. Posting into a session through a bound Routine doesn't reach the session
-(it starts a new one): see `docs/audit-2026-10-01.md` and phase 0 of `docs/plan.md` before touching
-`postToSession()`. What's next, renovation mode included, is `docs/plan.md`.
 
 ### The gateway
 
@@ -502,40 +481,13 @@ It is set up (2 October 2026): her connector is named `CATIO` in claude.ai, and 
 `docs/plan.md`). Setting up another is the five steps in `harness/gateway/README.md`.
 
 **The café on its own address** (her choice, 2 October: "the catio as a UI for all of my Claude sessions", in
-OpenClaw's shape). The gateway's address serves the same `catio/index.html` behind her password, with
-`harness/gateway/cafe/runtime.js` as its `window.claude` (`catioGateway: true`, so the page's `VIA_GATEWAY` mode is
-honest about what only claude.ai can do). Its data lives in the gateway (`docs` in the house), apart from the
-artifact's: the two copies don't share changes. Its art is uploaded with `cafe/move-in.py` and served only to her,
-signed in: never commit it, never serve it without the sign-in. A change to the page reaches both: the artifact by a
-publish, the gateway by a merge. Check gateway mode with `?via=gateway` in the stub.
-
-## Live sessions
-
-The page calls `list_sessions` (limit 50) through the `mcp` capability as the viewer. Its write
-tools are the harness's, above, and only ever run on her click or drop. Don't add `mine: true`: a page has no calling session, and that flag can
-error without one. Every connector error code has its own message in `problem()`.
-
-claude.ai can refuse the page's read (`approval_required`: the tool asks before every call,
-which a page can't do; `blocked_by_policy`). Claude Code Remote is a built-in connector: it is
-**not** in her Customize → Connectors list, so there is no `list_sessions` switch for her to set
-(checked against her settings, September 2026). Don't send her looking for one. The page shows
-`snapshot/sessions`. To refresh it, call `list_sessions` (limit 50) from a session, save the
-result, run
-`python3 catio/tools/save-sessions.py <result>.json`, and write `catio/data/sessions.json`'s
-object to `snapshot/sessions` with `ArtifactData` (`set`, pinned with `if_version`). The script
-keeps only what the page reads, and accepts the result as the tool returns it
-(wrapped in `ccr`).
-
-`python3 catio/tools/digest.py [cats/*.json sessions/*.json]` compiles that copy, adopted chats exported from `cats` and her moves from `sessions`,
-into `catio/data/digest.md` and `digest.json`: per project, what needs her, what to review, and what to tidy
-(stale asks, empty reviews, untitled sessions, reruns, duplicates, misfiled repos). Both are gitignored: never
-commit them.
-
-A Routine, "Refresh the catio", did this every two hours from 07:59 to 19:59 Paris time until she paused it
-on 30 September 2026; it is still off, so the copy is refreshed by hand when she asks. Turning it back on is her
-call. It fires into the Claude Code session it was created from, not a fresh one: a fresh routine session has
-neither `list_sessions` nor `ArtifactData`, so it can't refresh anything (tried September 2026). What each
-refusal means and the whole fallback: `docs/live-sessions.md`.
+OpenClaw's shape; the only café since 5 October). The gateway's address serves `catio/index.html` behind her
+password, with `harness/gateway/cafe/runtime.js` as its `window.claude` (`catioGateway: true`, so the page's
+`VIA_GATEWAY` mode is honest about what only claude.ai could do). Its data lives in the gateway (`docs` in the house);
+it is apart from the retired artifact's (`cafe/move-in.py` imports that once, into an empty house). Its art is
+uploaded with the same script and served only to her, signed in: never commit it, never serve it without the sign-in.
+A change to the page reaches her by a merge. Check gateway mode with `?via=gateway` in the stub, and give a change she
+will use there a check in gateway mode too.
 
 ## Running on localhost
 
@@ -550,7 +502,7 @@ With no `window.claude` the page uses `localRuntime()`: a database in `localStor
 `snapshot/sessions` from `data/sessions.json` on every load. There is no mcp there, so the cats
 are the saved copy.
 
-- `catio/data/rooms.json` mirrors the artifact's `rooms`; keep it in step when rooms change.
+- `catio/data/rooms.json` is the localhost copy's rooms (the café's own are in the gateway); keep it in step when rooms change.
 - `catio/data/sessions.json` and `catio/dist/` are gitignored. Her session titles and the
   licensed art are in them: **never commit either**.
 
@@ -592,7 +544,7 @@ proves the page does what she asked. In this order:
    **The suite needs `art/licensed/`.** It is gitignored, so a fresh clone or cloud session hasn't got it,
    and without it the page correctly draws its no-art warning on the status sign: the check that wants no
    warning sign then fails, and that is the missing art, not the page. `run.sh` says so when it starts.
-   Get the art back the two ways under "Republishing" before trusting a red run.
+   Get the art back the two ways under "Where the café lives" before trusting a red run.
 4. **Rewrite only those checks, from her words:** what must be true now, not which class names went away
    (`#cats .cat > :not(.spr)`, not a list of deleted classes). Then the whole suite: all checks must pass.
 
@@ -614,6 +566,5 @@ served on port 8791 with its own `data/`. All checks must pass.
 
 Its example data is invented. Never paste her real session list into the stub or the page.
 
-After publishing, read back every art file you changed (`Artifact` read with `path`) and look at it: a
-republish keeps the old copy of any file it wasn't given. Then check the real database with `ArtifactData`:
-list `rooms`, and create, update and delete one probe document in `cats` the way the page does.
+After the merge the gateway serves the change: there is nothing to publish or read back. Her café's data lives
+in the gateway; never write a probe document into it.

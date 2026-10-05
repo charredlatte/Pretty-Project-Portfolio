@@ -66,8 +66,11 @@ git clone https://github.com/charredlatte/Pretty-Project-Portfolio
 claude --plugin-dir Pretty-Project-Portfolio/catio-plugin
 ```
 
-The skill walks you through your rooms, your sessions, publishing the page as your own private claude.ai artifact,
-and a folder that runs on your own computer. The page does the same on its own: a café with no rooms yet opens a
+The café lives on your own gateway, a free Cloudflare Worker that serves the page behind your password and that
+every session reports to: [`harness/gateway/README.md`](harness/gateway/README.md) sets it up in five steps. The skill
+walks you through your rooms and your sessions, and can also publish the page as a private claude.ai artifact or as a
+folder that runs on your own computer, to look around with nothing to deploy. Charlotte's own café is the gateway's:
+she retired her artifact ([`docs/artifact.md`](docs/artifact.md) says what it could do that the gateway can't yet). The page does the same on its own: a café with no rooms yet opens a
 seven-step wizard (name it, open the rooms you need, file your repositories, see your sessions, the litter box, how
 it works), and "Set up again…" in the House menu replays it.
 
@@ -279,7 +282,8 @@ icons from SC_siosio's Game UI Pack (Pastel Edition), pixelated to match.
 | [Little Dreamyland](https://starmixu.itch.io/little-dreamyland-asset-pack) | Starmixu & Utaskuas | No: the licence forbids redistribution, even modified |
 | plants.zip | (no licence came with it) | No: treated as licensed |
 
-The uncommitted art (`catio/art/licensed/`) ships only inside the private artifact. See
+The uncommitted art (`catio/art/licensed/`) is served only behind the gateway's sign-in (and inside the retired
+private artifact). See
 [`catio/art/CREDITS.md`](catio/art/CREDITS.md).
 
 ## Files
@@ -298,10 +302,10 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
 - `catio/art/`: the committed art. `licensed/` is rebuilt, not committed.
 - `catio/test/`: the end-to-end test (`sh catio/test/run.sh`), and screenshots to look at
   (`sh catio/test/run.sh look kitchen study`, into `catio/test/.look/`).
-- `CLAUDE.md`: how to change and republish the page.
+- `CLAUDE.md`: how to change the page and ship it (a merge: the gateway serves `main`).
 - `catio/tools/digest.py`: compiles the saved sessions and adopted chats into a per-project digest of
   what needs you (`catio/data/digest.md`, never committed).
-- `artifacts.json`: the published pages' URLs: the café, and two retired quiz pages.
+- `artifacts.json`: the retired claude.ai pages' URLs: the café's first home, and two quiz pages.
 - `harness/`: the KittyChat harness, the `kittychat-house-rules` plugin (hooks, the `catio` skill,
   graphify), on in all of Charlotte's repos, and the Catio MCP server for other agents. See [its README](harness/README.md).
 - `catio-plugin/`: the plugin that sets up your own café; `.claude-plugin/marketplace.json` lists it and the

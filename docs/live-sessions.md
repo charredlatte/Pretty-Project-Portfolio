@@ -1,5 +1,8 @@
 # Live sessions and the saved copy
 
+**Retired with the claude.ai artifact on 5 October 2026** (`docs/artifact.md`). In the café she uses, the gateway's,
+the cats are the sessions that report to the gateway (`list_agents`); nothing below runs there.
+
 How the café knows which Claude Code sessions exist, what it does when claude.ai won't let it ask, and how the
 copy it falls back on is kept. Checked against `catio/index.html`, the artifact's database and her Routines on
 4 October 2026.
