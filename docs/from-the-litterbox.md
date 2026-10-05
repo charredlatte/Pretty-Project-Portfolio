@@ -94,6 +94,30 @@ from. Edit them freely: the sorter only adds, and never files a note that is alr
   cover a note written as `owner`; one real line to the queen from the café would show it end to end. In her
   homework. *— litterbox/2026-10-03-owner-on-the-wire-loose-ends.md*
 
+### 4 October 2026: the queen's card, held for her
+
+- **PR #64 is ready and held for her, not merged.** "Make this window useable" — her card's words were a
+  column a third of the card wide with a sideways scrollbar under them. The width fix merged as #62; #64 is
+  the height, which #62 got wrong, plus the faults the fix itself introduced before it settled. It is green
+  (catio 265, harness 63, gateway 33) and the card is measured at eleven window sizes from 1440x900 to
+  320x480, with homework and with Settings open. It is held because the change needed **seven review rounds**,
+  and three of those rounds found faults that a green suite had not: Send on screen but painted over and
+  unclickable; her homework clamped to nothing with an open quiz behind it; a 330 KB generated page committed
+  by accident. The checks that should have caught them were themselves passing on live bugs — one measured
+  from the stage's border box while it clips at the content box, two read constants from the stylesheet. All
+  are fixed and each is now verified to fail on the fault it names, but a change with that history is worth
+  her eyes rather than a self-merge. https://github.com/charredlatte/Pretty-Project-Portfolio/pull/64 *— litterbox/2026-10-04-queen-card-held-for-her.md*
+
+- **The café still shows the old card until the page is republished.** Both #62 and #64 only change the
+  repository: the artifact at `artifacts.json`'s `kittychat-cafe` keeps the page it was last published with.
+  A session with the licensed art (read it back from the artifact, per CLAUDE.md "Republishing") needs to
+  publish `catio/index.html` to that URL for any of this to reach her. *— litterbox/2026-10-04-queen-card-held-for-her.md*
+
+### Held for review: charredlatte/Pretty-Project-Portfolio#72
+
+- [ ] [charredlatte/Pretty-Project-Portfolio#72](https://github.com/charredlatte/Pretty-Project-Portfolio/pull/72) is held for your review before it merges: guesses: none. Left for later and not in this change: run.sh doesn't notice a taken port, and the test list doesn't include the catio-app header build.
+  Merge it on GitHub if it's right, or say what to change. *— litterbox/held-pretty-project-portfolio-72.md, 2026-10-04*
+
 ## Ideas not built
 
 ### What's missing: art and sound for the Catio
@@ -451,6 +475,19 @@ These aren't art to get, but they're open questions on what you already have: *�
 - **GitHub won't change the base of a stacked pull request** ("Cannot change the base branch because the pull
   request is part of a stack") once the one under it has closed. Open a new pull request from the same branch:
   that is how #42 became #50. *— litterbox/2026-10-03-owner-on-the-wire-loose-ends.md*
+
+### 4 October 2026: the queen's card, held for her
+
+- **The e2e suite had not parsed since the quest-log merge.** The merge that brought in #58 dropped the two
+  lines closing the scene's test block, so `catio/test/run.sh` died with `SyntaxError: Unexpected end of
+  input` before a single check ran. Both branches fixed it independently within the hour. Worth knowing that
+  a merge can silently take a suite to zero: nothing reported a failure, because nothing ran. *— litterbox/2026-10-04-queen-card-held-for-her.md*
+
+- **`max-height: <percentage>` resolves to `none` against an indefinite height.** Two separate bugs in the
+  queen's card came from this: `.homework { max-height: 46% }` in a grid row sized `auto` (so homework took
+  the whole talk and the conversation had no height at all), and `.owner svg { max-height: 100% }` on an
+  auto-height grid item (so the owner was never capped and her head was clipped). `fit-content()` on the
+  track is what actually caps a grid row. *— litterbox/2026-10-04-queen-card-held-for-her.md*
 
 ## Findings
 
