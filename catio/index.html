@@ -2241,8 +2241,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // needs you and isn't in view: off screen on this floor, or anywhere on the other (the floor tabs are hidden).
   function foldPip() {
     const b = $("mapFold"), [x, y, w, h] = S.cam ? viewBox() : [];
-    const off = (c) => { const p = WHERE.get(c.id); return !!S.cam && !!p && (p.x < x || p.x > x + w || p.y < y || p.y > y + h); };
-    const away = S.mapOpen ? [] : VIEW.cats.filter((c) => MOODS[c.mood].needs && (levelOf(whereIs(c)) !== S.floor || off(c)));
+    const off = (c) => { const p = WHERE.get(c.id); return !!S.cam && (!p || p.x < x || p.x > x + w || p.y < y || p.y > y + h); };   // not drawn yet: not in view
+    const away = S.mapOpen ? [] : needOn(other(S.floor)).concat(needOn(S.floor).filter(off));
     const said = (S.mapOpen ? "Minimise the map" : "Open the map") + (away.length ? ", " + away.length + " out of view need you" : "");
     const was = b.querySelector(".badge"), fail = away.some((c) => c.mood === "cry");
     if (b.getAttribute("aria-label") === said && !!was === !!away.length && (!was || was.classList.contains("fail") === fail)) return;   // a camera move, nothing new
@@ -2259,7 +2259,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     f.title = (open ? "Minimise" : "Open") + " the map (M)";
     if (!open && $("controls").contains(document.activeElement)) f.focus({ preventScroll: true });   // the button she was on is hidden now
     drawMap();
-    if (open && MENU.kind) showMenu(MENU.kind, MENU.key, MENU.kind === "house" ? $("houseBtn") : anchorOf(MENU.kind, MENU.key) || undefined);   // the panel grew: clear of it again
+    if (open && MENU.kind) {   // the panel grew: the open menu finds its place clear of it again, keeping the item she was on
+      const items = () => [...$("menu").querySelectorAll("button, a, input, select")], at = items().indexOf(document.activeElement);
+      MENU.at = null; showMenu(MENU.kind, MENU.key);
+      if (at >= 0 && items()[at]) items()[at].focus({ preventScroll: true });
+    }
   }
   // put a point of the grounds (native px) in the middle of the screen
   function centerOn(wx, wy, animate) {
@@ -2425,13 +2429,16 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     }
     left = Math.max(g, Math.min(Math.max(g, W - mw - g), left));
     top = Math.max(g, Math.min(Math.max(g, H - mh - g), top));
-    // never under the map panel: to its left, below it or above it, whichever moves it least (minimised, the
-    // panel is one button, and sliding a menu a whole menu-width left to dodge it lands it on its own room)
+    // never under the map panel: to its left, below it or above it, whichever moves it least without covering what it
+    // belongs to (minimised, the panel is one button, and sliding a menu a whole menu-width left to dodge it landed it
+    // on its own room)
     const p = $("controls").getBoundingClientRect(), P = [p.left - st.left - g, p.top - st.top - g, p.right - st.left + g, p.bottom - st.top + g];
     const under = (l, t) => l < P[2] && l + mw > P[0] && t < P[3] && t + mh > P[1];
     if (under(left, top)) {
       const fits = ([l, t]) => l >= g && t >= g && t + mh <= H - g, far = ([l, t]) => Math.hypot(l - left, t - top);
-      const best = [[P[0] - mw, top], [left, P[3]], [left, P[1] - mh]].filter(fits).sort((a, b) => far(a) - far(b))[0];
+      const onIt = ([l, t]) => l < ax + aw && l + mw > ax && t < ay + ah && t + mh > ay;
+      const ok = [[P[0] - mw, top], [left, P[3]], [left, P[1] - mh]].filter(fits), clear = ok.filter((c) => !onIt(c));
+      const best = (clear.length ? clear : ok).sort((a, b) => far(a) - far(b))[0];
       if (best) [left, top] = best;
     }
     MENU.at = [left, top];

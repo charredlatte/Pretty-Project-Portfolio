@@ -1681,6 +1681,8 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await settle(page);
   await check("minimised, its button carries the pip the hidden floor tab would have", async () => {
     expect(await page.locator("#mapFold .pip").count() === 1, "no pip");
+    const n = (await page.locator("#mapFold .pip").innerText()).trim(), ground = (await page.locator("#floor-ground .pip").innerText()).trim();
+    expect(n === ground, "it counts " + n + ", the hidden ground floor tab " + ground);
     expect(/need you/.test(await page.locator("#mapFold").getAttribute("aria-label")), "its name doesn't say so");
   });
   await page.keyboard.press("PageDown");
@@ -1700,6 +1702,19 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(!(await page.locator("#minimap").isVisible()), "still open");
     expect((await page.evaluate(() => document.activeElement && document.activeElement.id)) === "mapFold", "focus fell off");
   });
+  await page.locator("#room-living").focus();
+  await page.keyboard.press("Enter");
+  await settle(page);
+  const onItem = () => page.evaluate(() => { const a = document.activeElement; return !!a && document.getElementById("menu").contains(a) ? a.textContent : null; });
+  const item = await onItem();
+  await page.keyboard.press("m");
+  await settle(page);
+  await check("opening the panel from inside a menu keeps the keyboard on the same item", async () => {
+    expect(item !== null, "Enter didn't step into the menu");
+    expect((await onItem()) === item, "focus fell off: " + item);
+  });
+  await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
+  await page.click("#mapFold");
   await page.reload(); await page.waitForTimeout(600);
   await check("folded stays folded after a reload", async () => expect(!(await page.locator("#minimap").isVisible()), "open again"));
   await page.locator("#stage").click({ position: { x: 60, y: 800 } });
