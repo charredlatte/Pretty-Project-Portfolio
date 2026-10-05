@@ -10,16 +10,23 @@
 // is one place to read to know everything this app can change.
 //
 // Implemented in src/app.cpp: the window, the loop, the camera (drag, wheel, pinch, keys), the hover
-// line, the menus, the map panel and the Cat card. Until the network code lands, the house is read
-// from a folder (--data, the test's invented cats by default) and the status sign says so.
+// line, the menus, the map panel and the Cat card; and, given a gateway, signing in, the first read,
+// fetching the art the cache lacks, reading again every 30 seconds, and the writes (Open this room).
+// Given a folder instead (--data; the test's invented cats by default), it draws that, and writes nothing.
 //
-//   catio_app [--data <dir>] [--art <dir>] [--manor <file>] [--assets <dir>]
+//   catio_app [--gateway <origin> | --gateway ask | --data <dir>] [--home <dir>] [--art <dir>]
+//             [--manor <file>] [--assets <dir>]
 //             [--shot <out.png> [--size WxH] [--css N] [--touch] [--still] [--do "<steps>"]]
+//
+// --home is where it keeps her cookie, its prefs and the art's cache (the platform's private app folder
+// by default); --art reads the art from another folder instead, such as the page's catio/.
 //
 // --shot draws frames into a plain surface with no window and no GPU, and saves the last one: the
 // app's own "look first". --do plays steps before it, one frame after each, `;` between them, in CSS
 // pixels: move X Y, click X Y, down X Y, up X Y, drag X1 Y1 X2 Y2, wheel X Y DY, key NAME (escape,
-// pageup, pagedown, plus, minus, 0, m, left, right, up, down, shift+left...), wait SECONDS.
+// pageup, pagedown, plus, minus, 0, m, left, right, up, down, shift+left, tab, enter, backspace...),
+// type TEXT, wait SECONDS. After each step it waits for the network to answer, so a shot is the same
+// every time.
 
 #ifndef CATIO_APP_H
 #define CATIO_APP_H
@@ -37,10 +44,9 @@ namespace catio {
 
 enum class Phase {
     SignIn,     ///< her handle and password; drawn in the bundled font, since no pack art exists yet
-    FirstRead,  ///< GET /api/db and list_agents, together
-    Art,        ///< fetching what the cache lacks: "Fetching the café's art… (n of m)"
+    FirstRead,  ///< GET /api/db, list_agents and quizzes, together; the art is fetched after, as it is missing
     Running,
-    Setup       ///< a café with no rooms at all: the wizard, before the house
+    Setup       ///< a café with no rooms at all: the wizard is still to come, so the sign says to set it up in a browser
 };
 
 class App {
@@ -63,8 +69,6 @@ private:
     void refresh(bool now);
     /// THE ONLY PLACE A WRITE HAPPENS.
     void act(ui::Action what, std::string_view arg);
-
-    Phase phase_ = Phase::Running;
 
     struct Impl;
     Impl* impl_;

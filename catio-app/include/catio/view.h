@@ -83,6 +83,7 @@ struct Scene {
     std::optional<Spot> queen;              ///< her seat in the entrance hall; never in `cats`
     std::vector<const Cat*> attic;          ///< napping out of sight, counted nowhere
     std::map<std::string, int> needing;     ///< per room, for the minimap's pips
+    std::vector<std::string> closed;        ///< this floor's closed rooms: dimmed, with no sign
 };
 
 /// One frame's placement: stations, the free floor for wanderers, the piles, and the queue at the door.
@@ -102,6 +103,7 @@ struct Blit {
     int coat = 0;                     ///< a cat's tint; 0 is the untinted cream
     bool fill = false;                ///< no sheet: fill `dst` with `colour` (the upper floor's dim)
     draw::Colour colour;
+    std::string room;                 ///< a closed room's dim: which room, so a lit one can be lightened
 };
 
 /// The world size in world pixels: the art doubled, 1920 x 1152.
@@ -113,8 +115,9 @@ Blit blit_of(const Spot& s, double now);
 /// Everything to draw for one floor, in the page's order: the meadow, the plates, every piece of
 /// furniture and every cat, sorted into the page's single z-order -- rugs at 900, wall pieces at 950,
 /// floor pieces and cats at 1000 + 2 x their bottom edge (a cat wins a tie; a "top" piece sits one
-/// above its counter), the upper floor lifted by 4000 over a dimmed ground floor. Pure: it draws
-/// nothing, so the order is testable without a window. `now` picks each sprite's frame.
+/// above its counter), the upper floor lifted by 4000 over a dimmed ground floor. A closed room is
+/// dimmed too, under its furniture as the page's room button is: --shade at 30%, at z 0 (3950 upstairs).
+/// Pure: it draws nothing, so the order is testable without a window. `now` picks each sprite's frame.
 std::vector<Blit> world(const Scene& s, manor::Level floor, double now);
 
 /// What a press can land on. House is the brand, whose menu is the whole house's.

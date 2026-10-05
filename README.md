@@ -428,7 +428,8 @@ The uncommitted art (`catio/art/licensed/`) ships only inside the private artifa
   [`docs/README.md`](docs/README.md).
 - `catio-app/`: the café as a native C++ app for a phone, in progress. It draws the manor -- matching
   the page's own render pixel for pixel -- with the page's interface over it (the brand, the hover line,
-  the menus, the map panel, the Cat card), but no network yet, and it has not run on a phone. It ships with no pack art: the app fetches that from the gateway,
+  the menus, the map panel, the Cat card), and on a desk it signs in to your gateway and reads your café;
+  it has not run on a phone. It ships with no pack art: the app fetches that from the gateway,
   behind your sign-in, on first run, because the packs may not be redistributed. The design and where it stands are in
   [`docs/mobile-app.md`](docs/mobile-app.md).
 

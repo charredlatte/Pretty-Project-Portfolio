@@ -165,6 +165,8 @@ manor::Box padded(std::string_view room) {
 
 Scene build(const House& h, manor::Level floor) {
     Scene s;
+    for (const auto& g : manor::geom())
+        if (g.level == floor && !h.open(g.key)) s.closed.push_back(g.key);
     const auto line = h.queue();
     std::set<std::string> queued;
     for (const Cat* c : line) queued.insert(c->id);
@@ -266,6 +268,19 @@ std::vector<Blit> world(const Scene& s, manor::Level floor, double now) {
         b.src = draw::Rect{0, 0, float(w.w), float(w.h)};
         b.dst = all;
         b.z = -50;
+        out.push_back(b);
+    }
+    // a closed room: .roomhit[data-closed], --shade at 30%, over the floor and under the furniture (the room's
+    // button is z auto downstairs and ZUP - 50 up)
+    for (const auto& k : s.closed) {
+        const manor::Geom* g = manor::of(k);
+        if (!g) continue;
+        Blit b;
+        b.fill = true;
+        b.room = k;
+        b.colour = draw::Colour{0x12, 0x24, 0x14, 77};
+        b.dst = draw::Rect{float(g->box.x * 2), float(g->box.y * 2), float(g->box.w * 2), float(g->box.h * 2)};
+        b.z = g->level == manor::Level::Upper ? kZup - 50 : 0;
         out.push_back(b);
     }
 

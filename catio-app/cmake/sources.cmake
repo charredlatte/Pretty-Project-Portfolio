@@ -17,10 +17,15 @@ set(CATIO_APP_SOURCES
     src/main.cpp
 )
 
+# The gateway, one body per platform -- the header names no curl type precisely so this choice is possible.
+# A desktop's is libcurl:
+set(CATIO_NET_DESKTOP_SOURCES
+    src/net_curl.cpp
+)
+
 # Still to come:
 #
-#   one net body per platform -- the header names no curl type precisely so this choice is possible:
-#     src/net_curl.cpp     desktop
+#   the phones' net bodies:
 #     src/net_android.cpp  HttpsURLConnection over JNI (no system libcurl on the NDK)
 #     src/net_apple.cpp    NSURLSession (no system libcurl on iOS)
 #   the queen's voice, behind -DCATIO_TTS=ON (include/catio/voice.h says why it is not in v1):

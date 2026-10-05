@@ -13,7 +13,8 @@
 #       and built from source (about a minute). Add -DCATIO_HEADLESS=ON where there is no windowing
 #       system at all (CI, a cloud session): catio_app then only draws frames to PNGs (--shot).
 #
-# The network layer is still to come (cmake/sources.cmake lists it). This builds what exists.
+# On a desk the network is libcurl's, found installed (libcurl4-openssl-dev on Debian and Ubuntu); the
+# phones' own bodies are still to come (cmake/sources.cmake lists them).
 
 cmake_minimum_required(VERSION 3.24)
 project(catio_app LANGUAGES C CXX)
@@ -101,6 +102,7 @@ endif()
 if(NOT TARGET nlohmann_json::nlohmann_json)
   find_package(nlohmann_json CONFIG REQUIRED)
 endif()
+find_package(CURL REQUIRED)   # a desk's: the phones' net bodies use the platform's own HTTPS
 
 # ---- the core ------------------------------------------------------------------------------------
 include(cmake/sources.cmake)   # CATIO_CORE_SOURCES, shared with ios/
@@ -114,9 +116,12 @@ target_compile_definitions(catio_core PUBLIC
 
 # catio_app: the window, the loop and the interface. With no windowing system it draws frames to PNGs:
 #   catio_app --shot out.png [--size 1280x800] [--css 1] [--do "<steps>"]
+add_library(catio_net STATIC ${CATIO_NET_DESKTOP_SOURCES})
+target_link_libraries(catio_net PUBLIC catio_headers PRIVATE CURL::libcurl nlohmann_json::nlohmann_json)
+
 add_executable(catio_app ${CATIO_APP_SOURCES})
 target_include_directories(catio_app PRIVATE src)
-target_link_libraries(catio_app PRIVATE catio_core)
+target_link_libraries(catio_app PRIVATE catio_core catio_net)
 
 # catio_look: render a floor to a PNG, with no window and no GPU. What CLAUDE.md's "look first" is for:
 #   catio_look <catio dir> <manor.json> <fixtures dir> <out.png> [ground|upper|<room>]
@@ -131,3 +136,13 @@ target_include_directories(catio_tests PRIVATE src)
 target_link_libraries(catio_tests PRIVATE catio_core)
 add_test(NAME catio_tests
          COMMAND catio_tests "${CMAKE_CURRENT_SOURCE_DIR}/generated/manor.json" "${CMAKE_CURRENT_SOURCE_DIR}/test/fixtures")
+
+# catio_net_check: every route of net.h against a gateway, for test/test_net.py, which runs a stand-in on the
+# loopback and checks both sides: what the app sent, and what it made of the answers. Never her gateway.
+add_executable(catio_net_check test/net_check.cpp)
+target_link_libraries(catio_net_check PRIVATE catio_net nlohmann_json::nlohmann_json)
+find_package(Python3 COMPONENTS Interpreter)
+if(Python3_FOUND)
+  add_test(NAME catio_net
+           COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/test/test_net.py" "${CMAKE_CURRENT_BINARY_DIR}")
+endif()

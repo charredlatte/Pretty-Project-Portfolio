@@ -12,11 +12,16 @@
 
 #include "catio/app.h"
 
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <ctime>
 #include <fstream>
+#include <map>
 #include <optional>
+#include <set>
+#include <thread>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -54,7 +59,7 @@ std::int64_t wall_ms() {
 
 // One thing that happened, from the window or from a --do step: the same path for both.
 struct In {
-    enum Kind { Move, Down, Up, Wheel, Key, Pinch, Resize, Quit } kind = Move;
+    enum Kind { Move, Down, Up, Wheel, Key, Text, Pinch, Resize, Quit } kind = Move;
     float x = 0, y = 0, dy = 0, scale = 1;
     bool touch = false, shift = false;
     std::string key;
@@ -63,11 +68,36 @@ struct In {
 
 constexpr manor::Dir kArrows[] = {manor::Dir::Left, manor::Dir::Right, manor::Dir::Up, manor::Dir::Down};
 
+// HH:MM, as the page's clock() puts it
+std::string clock_of(std::int64_t ms) {
+    const std::time_t t = std::time_t(ms / 1000);
+    std::tm tm{};
+    localtime_r(&t, &tm);
+    char buf[8];
+    std::strftime(buf, sizeof buf, "%H:%M", &tm);
+    return buf;
+}
+
+// One UTF-8 character off the end of what she has typed.
+void pop_char(std::string& s) {
+    while (!s.empty() && (static_cast<unsigned char>(s.back()) & 0xC0) == 0x80) s.pop_back();
+    if (!s.empty()) s.pop_back();
+}
+
+// What each ticket was for.
+enum class Ask { Login, Docs, Agents, Quizzes, Art, Write };
+struct Asked {
+    Ask what = Ask::Docs;
+    art::Id art = art::Id::Count;
+    std::string label;
+};
+
 }  // namespace
 
 struct App::Impl {
     // what it was started with
-    std::filesystem::path data, art_dir, manor_json, assets, shot, prefs;
+    std::filesystem::path data, home, art_dir, manor_json, assets, shot, prefs;
+    std::string origin;            // her gateway; empty, a folder of documents
     int shot_w = 1280, shot_h = 800, shot_css = 1;
     bool shot_touch = false;
     std::string steps;
@@ -93,6 +123,19 @@ struct App::Impl {
     bool still = false, coarse = false, quit = false;
     std::string live = "On this computer", status;
 
+    // the gateway
+    std::unique_ptr<net::Net> net;
+    std::map<std::uint32_t, Asked> asked;
+    Phase phase = Phase::Running;
+    ui::SignIn form;
+    double last_read = -1e9;       // when the 30-second clock last struck
+    int reads_out = 0;             // documents, cats and homework still on their way
+    bool read_once = false;
+    std::string net_trouble, art_trouble, said;
+    double said_until = 0;
+    std::int64_t live_at = 0;
+    std::set<art::Id> fetching;
+
     // the pointer
     std::optional<draw::Pt> pointer;   // where it last really moved
     bool pressed = false, on_ui = false, dragging = false, on_map = false;
@@ -115,7 +158,7 @@ struct App::Impl {
         f.clock_ms = wall_ms();
         f.coarse = coarse;
         f.still = still;
-        f.live = live;
+        f.live = !origin.empty() ? (live_at && net_trouble.empty() ? "Live through your gateway \u00b7 " + clock_of(live_at) : "Not live") : live;
         f.status = status;
         return f;
     }
@@ -133,13 +176,128 @@ struct App::Impl {
 
     void say_status() {
         std::vector<std::string> wrong;
-        if (art && art->have() < art->total())
-            wrong.push_back("The café's art isn't all here (" + std::to_string(art->have()) + " of " + std::to_string(art->total()) +
-                            "): the app fetches it from your gateway once its network code is in.");
-        if (data == std::filesystem::path(CATIO_SOURCE_DIR) / "test" / "fixtures")
-            wrong.push_back("Example cats, not yours: the app reads your café once its network code is in.");
+        if (now < said_until && !said.empty()) wrong.push_back(said);
+        if (!net_trouble.empty()) wrong.push_back(net_trouble);
+        if (phase == Phase::FirstRead) wrong.push_back("Waking the cats\u2026");
+        if (phase == Phase::Setup) wrong.push_back("This caf\u00e9 has no rooms yet: set it up in a browser for now, at your gateway's address.");
+        if (!art_trouble.empty()) wrong.push_back(art_trouble);
+        else if (art && art->have() < art->total())
+            wrong.push_back(!fetching.empty()
+                ? "Fetching the caf\u00e9's art\u2026 (" + std::to_string(art->have()) + " of " + std::to_string(art->total()) + ")"
+                : "The caf\u00e9's art isn't all here (" + std::to_string(art->have()) + " of " + std::to_string(art->total()) + "): it comes from your gateway once you sign in.");
+        if (origin.empty() && data == std::filesystem::path(CATIO_SOURCE_DIR) / "test" / "fixtures")
+            wrong.push_back("Example cats, not yours: give the app your gateway (--gateway) to see your caf\u00e9.");
         status.clear();
         for (const auto& w : wrong) status += (status.empty() ? "" : " ") + w;
+    }
+
+    // ---- the gateway ----
+
+    void ask(Ask what, net::Job job, art::Id id = art::Id::Count, std::string label = {}) {
+        asked[net->send(std::move(job))] = Asked{what, id, std::move(label)};
+        if (what == Ask::Docs || what == Ask::Agents || what == Ask::Quizzes) ++reads_out;
+    }
+    // the documents, the cats and the homework, together, as the page reads them
+    void read_all() {
+        if (!net || reads_out) return;
+        last_read = now;
+        ask(Ask::Docs, [](net::Gateway& g) { return g.docs(); });
+        ask(Ask::Agents, [](net::Gateway& g) { return g.tool("list_agents", "{}"); });
+        ask(Ask::Quizzes, [](net::Gateway& g) { return g.tool("quizzes", "{}"); });
+    }
+    // what the cache lacks, the house and the meadow first
+    void fetch_art() {
+        if (!net || !art) return;
+        for (const art::File* file : art->missing()) {
+            if (fetching.count(file->id)) continue;
+            fetching.insert(file->id);
+            const std::string path(file->path);
+            ask(Ask::Art, [path](net::Gateway& g) { return g.art(path); }, file->id, path);
+        }
+    }
+    void sign_in() {
+        if (form.busy || form.user.empty() || form.password.empty()) return;
+        if (form.ask_origin) {
+            std::string o = form.origin;
+            while (!o.empty() && (o.back() == '/' || o.back() == ' ')) o.pop_back();
+            if (o.rfind("https://", 0) != 0) { form.problem = "Your gateway's address starts with https://."; return; }
+            if (o != origin || !net) origin = o, net = std::make_unique<net::Net>(origin, home / "cookie");
+        }
+        form.busy = true;
+        form.problem.clear();
+        const std::string user = form.user, password = form.password;
+        ask(Ask::Login, [user, password](net::Gateway& g) { return g.login(user, password); });
+    }
+    void signed_out(std::string why) {
+        phase = Phase::SignIn;
+        form.busy = false;
+        form.password.clear();
+        form.field = form.ask_origin && form.origin.empty() ? 0 : form.user.empty() ? 1 : 2;
+        form.problem = std::move(why);
+        ui.close_menu();
+        ui.close_card();
+        ui.online(false);
+        reads_out = 0;
+        asked.clear();   // what comes back for them now has nowhere to go
+    }
+    void heard(const Asked& a, net::Reply& r) {
+        if (net::signed_out(r) && a.what != Ask::Login) { signed_out("Signed out: sign in again."); return; }
+        if (r.err.code == "unreachable") {
+            net_trouble = "Can't reach your gateway (" + r.err.message + "). Trying again in half a minute.";
+            if (a.what == Ask::Login) form.busy = false, form.problem = "Can't reach " + origin + ": " + r.err.message;
+            if (a.what == Ask::Art) fetching.erase(a.art);
+            if (a.what == Ask::Docs || a.what == Ask::Agents || a.what == Ask::Quizzes) --reads_out;
+            return;
+        }
+        switch (a.what) {
+            case Ask::Login:
+                form.busy = false;
+                if (!r.ok()) {   // as the gateway's page comes back: the handle kept, the password to type again
+                    form.problem = r.err.message;
+                    form.password.clear();
+                    form.field = 2;
+                    return;
+                }
+                form.password.clear();
+                form.problem.clear();
+                phase = Phase::FirstRead;
+                save_prefs();   // the address that worked
+                read_all();
+                return;
+            case Ask::Docs:
+            case Ask::Agents:
+            case Ask::Quizzes:
+                --reads_out;
+                if (!r.ok()) { net_trouble = "Your gateway didn't answer (" + r.err.code + "): " + r.err.message; return; }
+                net_trouble.clear();
+                if (a.what == Ask::Docs) house.docs(r.body);
+                else if (a.what == Ask::Agents) house.agents(r.body), live_at = wall_ms();
+                else house.quizzes(r.body);
+                if (!reads_out && phase == Phase::FirstRead) {
+                    phase = house.never_set_up() ? Phase::Setup : Phase::Running;
+                    read_once = true;
+                    ui.online(true);
+                    fetch_art();
+                }
+                return;
+            case Ask::Art:
+                fetching.erase(a.art);
+                if (!r.ok()) {
+                    // the packs' licences are personal: a guest's café is drawn plainly, and says why
+                    art_trouble = r.err.code == "not_found"
+                        ? "Your gateway has no art for this caf\u00e9 (" + a.label + "): the packs' art is its first owner's alone."
+                        : "The caf\u00e9's art couldn't all come (" + r.err.code + "). Check now tries again.";
+                    return;
+                }
+                if (!art->store(a.art, r.body)) { art_trouble = "A piece of the art came back broken (" + std::string(art->trouble()) + ")."; return; }
+                if (a.art == art::Id::SproutFont) ui.fonts(assets, *art, stage.css);
+                return;
+            case Ask::Write:
+                if (!r.ok()) { said = "Your gateway didn't take it (" + r.err.code + "): " + r.err.message, said_until = now + 6; return; }
+                if (!a.label.empty()) said = a.label, said_until = now + 4;
+                last_read = -1e9;   // see the change at once
+                return;
+        }
     }
 
     // ---- prefs: the map folded or open, still cats ----
@@ -150,11 +308,13 @@ struct App::Impl {
             const auto j = nlohmann::json::parse(slurp(prefs));
             if (j.contains("minimap")) ui.set_map_open(j["minimap"] == "open");
             still = j.value("still", false);
+            if (form.ask_origin && j.contains("gateway") && j["gateway"].is_string()) form.origin = j["gateway"].get<std::string>();
         } catch (...) {}
     }
     void save_prefs() {
         if (prefs.empty() || !shot.empty()) return;
         nlohmann::json j{{"minimap", ui.map_open() ? "open" : "folded"}, {"still", still}};
+        if (form.ask_origin && !origin.empty()) j["gateway"] = origin;
         std::ofstream(prefs) << j.dump();
     }
 
@@ -201,6 +361,13 @@ struct App::Impl {
     }
 
     void draw() {
+        say_status();
+        if (phase == Phase::SignIn) {
+            SDL_SetRenderTarget(r, nullptr);
+            draw::Ctx c{&canvas, art.get(), u_ui(), stage.css};
+            ui.draw_sign_in(c, frame(), form);
+            return;
+        }
         scene = view::build(house, cam.floor);
         const double t = still ? 0 : now;
         auto blits = view::world(scene, cam.floor, t);
@@ -223,7 +390,15 @@ struct App::Impl {
         SDL_SetRenderDrawColor(r, 0x8F, 0xBF, 0x4F, 255);
         SDL_RenderClear(r);
         for (const auto& b : blits) {
-            if (b.fill) { draw::fill(wc, b.dst, b.colour); continue; }
+            if (b.fill) {
+                // a closed room under the pointer, or with its menu open, is lightened to 18%
+                const bool lit = !b.room.empty() && ((ui.tipped().what == Thing::Room && ui.tipped().key == b.room) ||
+                                                     (ui.menu_kind() == Thing::Room && ui.menu_key() == b.room));
+                draw::Colour col = b.colour;
+                if (lit) col.a = 46;
+                draw::fill(wc, b.dst, col);
+                continue;
+            }
             if (outlined && b.z == outlined->z && b.sheet == outlined->sheet && b.dst.x == outlined->dst.x && b.dst.y == outlined->dst.y)
                 for (auto [dx, dy] : {std::pair{2.f, 0.f}, {-2.f, 0.f}, {0.f, 2.f}, {0.f, -2.f}})
                     draw::cell(wc, b.sheet, b.src, draw::Rect{b.dst.x + dx, b.dst.y + dy, b.dst.w, b.dst.h}, draw::kOutline);
@@ -251,7 +426,7 @@ struct App::Impl {
             const manor::Geom* g = manor::of(key);
             if (!g || g->level != cam.floor || key == cam.focus) return;
             const draw::Rect box{g->box.x * float(cam.u) + cam.tx, g->box.y * float(cam.u) + cam.ty, g->box.w * float(cam.u), g->box.h * float(cam.u)};
-            draw::fill(c, box, {0xFF, 0xFA, 0xE1, 31});
+            if (house.open(key)) draw::fill(c, box, {0xFF, 0xFA, 0xE1, 31});   // a closed room keeps its shade, lightened
             const float U = float(u_ui());
             draw::nine(c, art::Id::UiCorners, {}, {8, 8, 9, 9}, {8 * U, 8 * U, 9 * U, 9 * U}, box, false);
         };
@@ -299,10 +474,14 @@ bool App::start(int argc, char** argv) {
     const std::filesystem::path src = CATIO_SOURCE_DIR;
     const char* base_c = SDL_GetBasePath();
     const std::filesystem::path base = base_c ? base_c : "";
+    std::string gateway;
+    bool gateway_given = false;
     for (int i = 1; i < argc; ++i) {
         const std::string a = argv[i];
         auto next = [&]() -> std::string { return i + 1 < argc ? argv[++i] : ""; };
         if (a == "--data") I.data = next();
+        else if (a == "--gateway") gateway = next(), gateway_given = true;
+        else if (a == "--home") I.home = next();
         else if (a == "--art") I.art_dir = next();
         else if (a == "--manor") I.manor_json = next();
         else if (a == "--assets") I.assets = next();
@@ -316,19 +495,33 @@ bool App::start(int argc, char** argv) {
     }
     if (I.manor_json.empty()) I.manor_json = first_of({base / "manor.json", src / "generated" / "manor.json"});
     if (I.assets.empty()) I.assets = first_of({base / "assets", src / "assets"});
-    if (I.data.empty()) I.data = src / "test" / "fixtures";
+#ifdef CATIO_GATEWAY_ORIGIN
+    if (!gateway_given && I.data.empty()) gateway = CATIO_GATEWAY_ORIGIN, gateway_given = true;   // her build
+#endif
     if (!manor::load(I.manor_json)) { std::fprintf(stderr, "catio_app: no floor plan at %s\n", I.manor_json.string().c_str()); return false; }
-    if (!I.read_house()) return false;
 
-    // the art's cache: the app's own private folder, or the one she names
-    if (I.art_dir.empty()) {
+    // where her cookie, the prefs and the art's cache live: the app's own private folder, or the one she names
+    if (I.home.empty()) {
         char* pref = SDL_GetPrefPath("KittyChat", "Cafe");
-        if (pref) {
-            I.art_dir = std::filesystem::path(pref) / "cache";
-            if (I.shot.empty()) I.prefs = std::filesystem::path(pref) / "prefs.json";
-            SDL_free(pref);
-        }
+        if (pref) I.home = pref, SDL_free(pref);
     }
+    if (I.art_dir.empty() && !I.home.empty()) I.art_dir = I.home / "cache";
+    if (I.shot.empty() && !I.home.empty()) I.prefs = I.home / "prefs.json";
+
+    if (gateway_given) {
+        // the gateway: signed in already, or the sign-in screen first
+        I.form.ask_origin = gateway.empty() || gateway == "ask";
+        I.load_prefs();
+        I.origin = I.form.ask_origin ? I.form.origin : gateway;
+        if (!I.origin.empty()) I.net = std::make_unique<net::Net>(I.origin, I.home / "cookie");
+        I.phase = I.net && I.net->has_cookie() ? Phase::FirstRead : Phase::SignIn;
+        I.form.field = I.form.ask_origin && I.origin.empty() ? 0 : 1;
+    } else {
+        if (I.data.empty()) I.data = src / "test" / "fixtures";
+        if (!I.read_house()) return false;
+        I.load_prefs();
+    }
+
     I.art = std::make_unique<art::Art>(I.art_dir);
     I.art->scan();
 
@@ -346,7 +539,6 @@ bool App::start(int argc, char** argv) {
         I.r = I.window ? SDL_CreateRenderer(I.window, nullptr) : nullptr;
         if (!I.r) { std::fprintf(stderr, "catio_app: no window: %s\n", SDL_GetError()); return false; }
         SDL_SetRenderVSync(I.r, 1);
-        I.load_prefs();
     }
     I.canvas.r = I.r;
     I.world = SDL_CreateTexture(I.r, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, 1920, 1152);
@@ -376,8 +568,9 @@ bool App::start(int argc, char** argv) {
     const std::string urgent = I.stage.narrow() ? I.urgent_room() : "";
     if (!urgent.empty()) I.go(urgent);
     else I.go("");
-    I.say_status();
     I.start = clock_s();
+    if (I.phase == Phase::FirstRead) I.read_all();
+    I.say_status();
     return true;
 }
 
@@ -413,17 +606,56 @@ void App::act(ui::Action what, std::string_view arg_v) {
             if (I.window) SDL_OpenURL(arg.c_str());
             else std::printf("open %s\n", arg.c_str());
             break;
-        case Action::CheckNow: refresh(true); break;
-        default: break;   // the rest arrive with their cards, and the writes with the network code
+        case Action::CheckNow:
+            I.art_trouble.clear();
+            refresh(true);
+            break;
+        case Action::Field: I.form.field = std::atoi(arg.c_str()); break;
+        case Action::ComeIn: I.sign_in(); break;
+        // the writes: each one on her press, through her gateway
+        case Action::OpenRoom: {
+            if (!I.net) break;
+            const std::string doc = "rooms/" + arg;
+            I.ask(Ask::Write, [doc](net::Gateway& g) { return g.patch(doc, R"({"closed":false})"); }, art::Id::Count,
+                  I.house.room(arg).name + " is open.");
+            break;
+        }
+        default: break;   // the rest arrive with their cards
     }
 }
 
 void App::refresh(bool now) {
-    (void)now;
-    impl_->read_house();   // the folder again; the gateway's list_agents, once the network code is in
+    Impl& I = *impl_;
+    if (!I.net) {   // a folder of documents: read it again when asked
+        if (now) I.read_house();
+        return;
+    }
+    if (I.phase == Phase::SignIn) return;
+    if (now || I.now - I.last_read >= 30) {
+        I.read_all();
+        if (I.read_once && I.fetching.empty() && I.art_trouble.empty()) I.fetch_art();
+    }
 }
 
-void App::pump_net() {}
+void App::pump_net() {
+    Impl& I = *impl_;
+    if (!I.net) return;
+    const Phase was = I.phase;
+    std::uint32_t t = 0;
+    net::Reply r;
+    while (I.net && I.net->take(&t, &r)) {
+        auto it = I.asked.find(t);
+        if (it == I.asked.end()) continue;   // asked before she was signed out: nowhere to go now
+        const Asked a = it->second;
+        I.asked.erase(it);
+        I.heard(a, r);
+    }
+    // the house has arrived: on a phone, open on the room that needs her most
+    if (was == Phase::FirstRead && I.phase == Phase::Running && I.stage.narrow()) {
+        const std::string urgent = I.urgent_room();
+        if (!urgent.empty()) I.go(urgent);
+    }
+}
 
 void App::events() {
     Impl& I = *impl_;
@@ -441,6 +673,7 @@ void App::events() {
             case SDL_EVENT_MOUSE_BUTTON_DOWN: in.kind = In::Down, in.x = e.button.x, in.y = e.button.y, in.touch = e.button.which == SDL_TOUCH_MOUSEID; break;
             case SDL_EVENT_MOUSE_BUTTON_UP: in.kind = In::Up, in.x = e.button.x, in.y = e.button.y, in.touch = e.button.which == SDL_TOUCH_MOUSEID; break;
             case SDL_EVENT_MOUSE_WHEEL: in.kind = In::Wheel, in.x = e.wheel.mouse_x, in.y = e.wheel.mouse_y, in.dy = e.wheel.y; break;
+            case SDL_EVENT_TEXT_INPUT: in.kind = In::Text, in.key = e.text.text ? e.text.text : ""; break;
             case SDL_EVENT_PINCH_UPDATE: in.kind = In::Pinch, in.scale = e.pinch.scale, in.touch = true; break;
             case SDL_EVENT_KEY_DOWN: {
                 in.kind = In::Key;
@@ -457,6 +690,9 @@ void App::events() {
                     case SDLK_RIGHT: in.key = "right"; break;
                     case SDLK_UP: in.key = "up"; break;
                     case SDLK_DOWN: in.key = "down"; break;
+                    case SDLK_TAB: in.key = "tab"; break;
+                    case SDLK_RETURN: case SDLK_KP_ENTER: in.key = "enter"; break;
+                    case SDLK_BACKSPACE: in.key = "backspace"; break;
                     default: continue;
                 }
                 break;
@@ -480,6 +716,31 @@ void App::events() {
 // The page's pointer and keys, for the window and for a shot's steps alike.
 void App::Impl::handle(App& app, const In& in) {
     const ui::Frame f = frame();
+    if (phase == Phase::SignIn) {   // a form: its fields, Tab between them, Enter to come in
+        std::string* field = form.field == 0 ? &form.origin : form.field == 1 ? &form.user : &form.password;
+        switch (in.kind) {
+            case In::Move: ui.hover(f, in.x, in.y); cursor(!ui.under(f, in.x, in.y).empty()); return;
+            case In::Up: {
+                ui::Action a;
+                std::string arg;
+                if (ui.press(f, in.x, in.y, &a, &arg) && a != Action::None) app.act(a, arg);
+                return;
+            }
+            case In::Text:
+                if (!form.busy && field->size() + in.key.size() <= 1024) *field += in.key;
+                return;
+            case In::Key:
+                if (form.busy) return;
+                if (in.key == "enter") sign_in();
+                else if (in.key == "backspace") pop_char(*field);
+                else if (in.key == "tab") {
+                    const int first = form.ask_origin ? 0 : 1;
+                    form.field = in.shift ? (form.field <= first ? 2 : form.field - 1) : (form.field >= 2 ? first : form.field + 1);
+                }
+                return;
+            default: return;
+        }
+    }
     switch (in.kind) {
         case In::Move: {
             coarse = in.touch;
@@ -627,8 +888,17 @@ void App::Impl::handle(App& app, const In& in) {
 int App::run() {
     Impl& I = *impl_;
     if (!I.shot.empty()) {
-        // the steps, a frame after each, then the frame she looks at
+        // the steps, a frame after each, then the frame she looks at; the network answered before each frame
+        auto drain = [&] {
+            for (int i = 0; i < 3000; ++i) {
+                pump_net();
+                if (!I.net || I.net->outstanding() == 0) break;
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            }
+            pump_net();
+        };
         I.now = 0;
+        drain();
         I.draw();
         std::stringstream steps(I.steps);
         std::string step;
@@ -669,10 +939,32 @@ int App::run() {
                 in.key = name;
                 I.handle(*this, in);
             } else if (verb == "wait") { double s = 0; w >> s; I.now += s; }
+            else if (verb == "choose") {   // press the item that says this, wherever placeMenu put it
+                std::string label;
+                std::getline(w, label);
+                if (!label.empty() && label.front() == ' ') label.erase(0, 1);
+                const auto at = I.ui.find(label);
+                if (!at) { std::fprintf(stderr, "catio_app: nothing says \"%s\"\n", label.c_str()); return 2; }
+                In m = in;
+                m.kind = In::Move, m.x = at->x, m.y = at->y;
+                if (!I.shot_touch) I.handle(*this, m), I.draw();
+                In d = m; d.kind = In::Down; I.handle(*this, d);
+                In u = m; u.kind = In::Up; I.handle(*this, u);
+            }
+            else if (verb == "type") {
+                std::string text;
+                std::getline(w, text);
+                if (!text.empty() && text.front() == ' ') text.erase(0, 1);
+                in.kind = In::Text, in.key = text;
+                I.handle(*this, in);
+            }
             else { std::fprintf(stderr, "catio_app: what step is %s?\n", verb.c_str()); return 2; }
             I.now += 0.05;
+            refresh(false);
+            drain();
             I.draw();
         }
+        drain();
         I.draw();
         SDL_RenderPresent(I.r);
         if (!SDL_SavePNG(I.surface, I.shot.string().c_str())) { std::fprintf(stderr, "catio_app: %s\n", SDL_GetError()); return 1; }
@@ -680,9 +972,13 @@ int App::run() {
         return 0;
     }
     while (!I.quit) {
+        // the sign-in form takes typing; the house does not
+        if (I.phase == Phase::SignIn && !SDL_TextInputActive(I.window)) SDL_StartTextInput(I.window);
+        else if (I.phase != Phase::SignIn && SDL_TextInputActive(I.window)) SDL_StopTextInput(I.window);
         events();
         pump_net();
         I.now = clock_s() - I.start;
+        refresh(false);
         I.draw();
         SDL_RenderPresent(I.r);
     }

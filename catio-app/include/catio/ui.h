@@ -43,6 +43,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -66,6 +67,8 @@ enum class Action {
     // opening
     OpenHouse, OpenCat, OpenQueen, OpenPile, OpenCabinet, OpenBrain, OpenRules, OpenMaps, OpenLook,
     OpenEditRooms, OpenSetup, OpenHomework, OpenLink, Adopt, BringDown, CheckNow, CloseCard, Manage,
+    // signing in: a field chosen, and Come in
+    Field, ComeIn,
     // doing: each one is a write, on her press and never otherwise
     Say, HandIn, AddFiles, Rename, Move, OpenRoom, CloseRoom, SetMood, Pause, Resume, WrapUp, StopQueen,
     KeepNote, PinNote, FetchArtAgain, SignOut
@@ -150,6 +153,16 @@ struct Frame {
     std::string status;         ///< the sign under the brand: empty unless something is wrong
 };
 
+/// The sign-in screen's state. Its fields are the gateway's own sign-in form (harness/gateway/src/cafe.js):
+/// her handle and her Catio password; and her gateway's address, when the build was not given one.
+struct SignIn {
+    std::string origin, user, password;
+    bool ask_origin = false;
+    int field = 1;            ///< the one being typed in: 0 the address, 1 the handle, 2 the password
+    std::string problem;      ///< the gateway's own words when it said no, shown in red
+    bool busy = false;        ///< asked, and waiting for the answer
+};
+
 // ---- the content: no font, no renderer -----------------------------------------------------------
 
 /// "1 upset, 2 meowing, 1 to review, 3 at work, 1 asleep", or "no cats".
@@ -205,6 +218,9 @@ public:
 
     /// Is the point over the interface rather than the house?
     bool over(const Frame& f, float x, float y) const;
+    /// The middle of the button or item that says `label`, as last drawn: what a shot's `choose` step
+    /// presses, so a test names what she would read rather than guessing where placeMenu put it.
+    std::optional<draw::Pt> find(std::string_view label) const;
     /// What is under the point, by the name it was drawn with ("brand", "map:mm", "menu:item:3:0"...).
     std::string_view under(const Frame& f, float x, float y) const;
     /// The pointer moved: light the button, the item or the room on the minimap under it.
@@ -220,6 +236,11 @@ public:
     bool escape();
 
     void draw(const draw::Ctx& c, const Frame& f);
+    /// The sign-in screen, which comes before any art: the gateway's own sign-in page, in the committed
+    /// font. Its fields and button answer press() as Field ("0", "1", "2") and ComeIn.
+    void draw_sign_in(const draw::Ctx& c, const Frame& f, const SignIn& s);
+    /// Signed in to a gateway: its writes are possible. With a folder of documents they are not.
+    void online(bool on);
 
     /// Why an action is not here. This app is always in the page's gateway mode (VIA_GATEWAY): no list
     /// of her claude.ai sessions, no posting into one that does not report to the gateway, no starting

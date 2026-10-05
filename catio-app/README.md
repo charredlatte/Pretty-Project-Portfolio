@@ -1,9 +1,10 @@
 # The KittyChat Café as a native app
 
 The café as a C++ app for a phone. **It is a draft**: the core is built -- the floor plan, the house, the
-art, drawing and the view -- and so are the window loop and the interface: the brand, the hover line, the
-menus, the map panel and the Cat card, drawn from the packs as the page draws them. The network is still to
-come, so it reads the house from a folder. Nothing here has run on a phone.
+art, drawing and the view -- and so are the window loop and the interface (the brand, the hover line, the
+menus, the map panel and the Cat card, drawn from the packs as the page draws them) and, on a desk, the
+network: it signs in to her gateway, reads her café, fetches the art its cache lacks, and makes its first
+write. Nothing here has run on a phone.
 
 The case for it, the whole design, and exactly where it stands are in
 **[`docs/mobile-app.md`](../docs/mobile-app.md)**. This file is how to poke at it.
@@ -17,22 +18,26 @@ self-contained C++20 -- possible because no public header names an SDL, curl or 
 cmake -S catio-app -B build && cmake --build build
 ```
 
-The app for real fetches SDL3, SDL3_ttf and nlohmann/json and builds them from source (about a minute).
+The app for real fetches SDL3, SDL3_ttf and nlohmann/json and builds them from source (about a minute),
+and needs libcurl installed (`libcurl4-openssl-dev` on Debian and Ubuntu).
 `CATIO_HEADLESS` builds SDL with no windowing system -- the software renderer only -- which is what a
 cloud session or CI wants; `catio_app` then only draws to PNGs:
 
 ```sh
 cmake -S catio-app -B catio-app/build -DCATIO_HEADERS_ONLY=OFF -DCATIO_HEADLESS=ON
 cmake --build catio-app/build
-ctest --test-dir catio-app/build        # catio_tests: the plan, the house, the view and the interface
+ctest --test-dir catio-app/build        # catio_tests, and catio_net: the network against a stand-in gateway
 ```
 
 ## Run it, or look at it
 
-On a desk with a windowing system, leave out `CATIO_HEADLESS` and run the window:
+On a desk with a windowing system, leave out `CATIO_HEADLESS` and run the window, on her gateway (it asks
+her to sign in, keeps the cookie in the app's own private folder, and fetches the art) or on a folder of
+documents (the test's invented cats by default, with the art read from the page's folder):
 
 ```sh
-catio-app/build/catio_app --art catio        # the page's folder, for its art/
+catio-app/build/catio_app --gateway https://catio-gateway.<her subdomain>.workers.dev
+catio-app/build/catio_app --art catio
 ```
 
 Anywhere, `--shot` draws a frame to a PNG with no window and no GPU, after playing `--do`'s steps (CSS
@@ -69,8 +74,9 @@ the page and the app cannot hold different plans. Never hand-copy those numbers 
 CMakeLists.txt        the header check by default; catio_app, catio_look and catio_tests with -DCATIO_HEADERS_ONLY=OFF
 cmake/sources.cmake   the core's and the app's sources, and what is still to come
 include/catio/        the nine headers; each says what of it is implemented
-src/                  the core, the interface (ui.cpp, text.cpp), the loop (app.cpp, main.cpp), catio_look
-test/                 catio_tests, and invented fixtures
+src/                  the core, the interface (ui.cpp, text.cpp), the loop (app.cpp, main.cpp), the network
+                      (net_curl.cpp), catio_look
+test/                 catio_tests; test_net.py and its driver, against a stand-in gateway; invented fixtures
 generated/manor.json  the floor plan, written by catio/tools/furniture.py
 assets/               the one font the app ships: Nunito, OFL
 third_party/          why nothing is vendored

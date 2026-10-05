@@ -415,21 +415,47 @@ catio-app/build/catio_app --art catio --shot catio-app/.look/desk.png --size 128
 catio-app/build/catio_app --art catio --shot catio-app/.look/phone.png --size 390x844 --touch
 ```
 
-Until the network code is in, the house is read from a folder (`--data`; the test's invented cats by
-default), and the status sign says these are example cats, not hers.
+Given a folder instead of a gateway (`--data`; the test's invented cats by default), it draws that and
+writes nothing, and the status sign says these are example cats, not hers.
+
+### Built: the network, for a desk
+
+Asked for the same day ("and then the network code"). The app speaks to her gateway exactly as the café
+page on the gateway's own address does (`harness/gateway/src/cafe.js`, read again on 5 October, after the
+accounts arrived), as its owner, with her password and the cookie -- there is no other way in for a native
+client.
+
+| | |
+|---|---|
+| `src/net_curl.cpp` | `net.h` over libcurl: `/login`'s form, the `__Host-catio` cookie kept by hand in a file only its owner can read, `/api/db` and its writes (`X-Catio: 1`, no Origin, each path segment encoded, the data sent as `{"data": …}`), the tools, the brain's files, `/art/*`; every refusal as the gateway's own `{code, error}`, and `/login`'s as the words on the page it would have shown. One worker thread, so no frame waits |
+| `src/app.cpp` | the sign-in screen (the gateway's own sign-in page, ported: it comes before any art, so it is drawn in the committed Nunito); the first read -- documents, `list_agents` and `quizzes` together, as the page reads them; then every piece of art the cache lacks, the house and the meadow first, each drawn as it lands; a read every 30 seconds and at once after a write; signed out (a cookie run out or revoked) back to the sign-in, the cookie deleted |
+| the first write | **Open this room**, a closed room's PATCH `rooms/<k>` `{closed: false}`, on her press, through `act()` |
+| `test/test_net.py` | a stand-in gateway on the loopback that answers as `cafe.js` does and records what it was sent; 12 tests check both sides, the last of them the app itself: it signs in by typing, reads, fetches every file once, keeps them, and on its next start goes straight in and opens the closed ensuite. `ctest` runs it. It never touches her gateway, and the only password in it is invented |
+
+What looking showed: the sign-in screen is the gateway's page, and a refusal shows in its own red words
+("That handle and password aren't right."), the password field emptied as the page does. Served by the
+stand-in, the app fetched the whole café's art over the network and drew it with no sign at all. A closed
+room is now dimmed under its furniture as the page's is, lighter while lit.
+
+```sh
+catio-app/build/catio_app --gateway https://catio-gateway.<her subdomain>.workers.dev
+catio-app/build/catio_app --gateway ask          # the sign-in screen asks for the address, and remembers it
+python3 catio-app/test/test_net.py catio-app/build
+```
 
 ### Not built yet
 
-- **The net layer**: `net_curl.cpp` for a desktop, then a body per phone. It is to be tested against a
-  stand-in gateway, the way `harness/test/test_queen.py` tests the queen's runner -- never against hers.
-  With it come the sign-in screen, fetching the art, and the writes the menus already draw: Open this room,
-  a chat's mood, renaming and moving a cat.
+- **The phones' net bodies**: `net_android.cpp` (HttpsURLConnection over JNI) and `net_apple.cpp`
+  (NSURLSession). Neither platform has a system libcurl.
+- **The other writes the menus draw**: a chat's mood, renaming and moving a cat, Talk; and the WebSocket
+  (`/ws` checks the Origin, so a native client polls every 30 seconds instead).
 - **The other cards**, the queen's first; **walking** (`way_to`, `Walks`); the keyboard's focus ring (Tab);
   the meow; **the voice**.
 - **The window itself has never been opened**: there is no display in the cloud session. The window's
-  code -- the cursor, the events, pinch -- is compiled here with everything else but has never run; every
-  pixel above went through the same drawing code in the software renderer. The first desk build with a
-  windowing system (`-DCATIO_HEADLESS=OFF`, the default) is its first run.
+  code -- the cursor, the events, typing, pinch -- is compiled here with everything else but has never run;
+  every pixel above went through the same drawing code in the software renderer. The first desk build with
+  a windowing system (`-DCATIO_HEADLESS=OFF`, the default) is its first run. **Nor has it met her real
+  gateway**: only the stand-in, by design.
 - **`android/` and `ios/` have never been configured.** No Android SDK or NDK was in reach and no Mac
   at all. The versions in them are now SDL's real current releases; the gradle lines, plist keys and
   `.aar` filenames are still read from the documentation, not tried.

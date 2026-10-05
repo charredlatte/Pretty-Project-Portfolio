@@ -9,7 +9,8 @@
 // test can drive the layer above from a recorded reply, and so the implementation can be libcurl on a
 // desktop and the platform's own HTTP on a phone (see docs/mobile-app.md, "HTTPS on a phone").
 //
-// DRAFT: declarations only. Nothing here is implemented yet.
+// Implemented for a desktop in src/net_curl.cpp, over libcurl, and tested against a stand-in gateway
+// (test/test_net.py), never hers. The phones' bodies -- net_android.cpp, net_apple.cpp -- are still to come.
 
 #ifndef CATIO_NET_H
 #define CATIO_NET_H
@@ -46,7 +47,10 @@ bool signed_out(const Reply&);
 class Gateway {
 public:
     /// `origin` is "https://catio-gateway.<her subdomain>.workers.dev". The cookie jar holds
-    /// __Host-catio (Secure, HttpOnly, SameSite=Strict, 30 days) and is the app's whole credential.
+    /// __Host-catio (Secure, HttpOnly, SameSite=Strict, 30 days) and is the app's whole credential: a
+    /// file of its own, readable by its owner alone, holding the cookie's value and nothing else. It is
+    /// kept by hand rather than by libcurl's cookie engine, which (rightly) refuses a __Host- cookie
+    /// over plain HTTP -- and the stand-in gateway the tests run is plain HTTP on the loopback.
     Gateway(std::string origin, std::filesystem::path cookie_jar);
     ~Gateway();
 
@@ -54,7 +58,8 @@ public:
     /// 429 locked out (five wrong tries in fifteen minutes), 503 no account yet.
     Reply login(std::string_view user, std::string_view password);
     bool signed_in() const;
-    /// Forget the cookie. The file is deleted, not merely emptied.
+    /// Forget the cookie. The file is deleted, not merely emptied. A reply of 401 signed_out does this
+    /// too: the cookie has run out, and keeping it would only be refused again.
     void sign_out();
 
     /// GET /api/db → {"docs": {"<collection>/<id>": {…}}}.
@@ -64,14 +69,16 @@ public:
     /// tool("list_agents"); notes and dropped files likewise, through "comments" and "inbox".
     Reply docs();
 
-    /// PUT / PATCH / DELETE /api/db/<collection>/<id>, body {"data": {…}}, at most 1 MB.
-    /// `doc` is "<collection>/<id>" — an even number of segments, or the gateway refuses it.
+    /// PUT / PATCH / DELETE /api/db/<collection>/<id>, at most 1 MB. `json` is the document's data, an
+    /// object; it is sent as the gateway wants it, {"data": json}. PATCH merges it into the document,
+    /// and answers not_found when there is none. `doc` is "<collection>/<id>" — an even number of
+    /// segments, or the gateway refuses it — and each segment is encoded on its own.
     Reply put(std::string_view doc, std::string_view json);
     Reply patch(std::string_view doc, std::string_view json);
     Reply erase(std::string_view doc);
 
-    /// POST /api/tools/<name> with the arguments object, run as `owner`. All fourteen tools are here,
-    /// a superset of /mcp. `inbox` with mark:true is destructive — pass it only when really delivering.
+    /// POST /api/tools/<name> with the arguments object, run as `owner`: every tool the gateway has, a
+    /// superset of /mcp. `inbox` with mark:true is destructive — pass it only when really delivering.
     Reply tool(std::string_view name, std::string_view json);
 
     /// POST /api/files, raw body, X-Name URI-encoded → {id, url, sizeBytes, contentType}. 20 MB cap.
@@ -103,6 +110,8 @@ public:
     bool take(std::uint32_t* ticket, Reply* out);
     /// How many jobs are still out — the app shows a quiet spinner above zero.
     int outstanding() const;
+    /// Whether the jar holds a cookie, read at start: the app opens on the sign-in screen without one.
+    bool has_cookie() const;
 
 private:
     struct Impl;

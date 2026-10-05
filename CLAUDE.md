@@ -563,14 +563,19 @@ are the saved copy.
 ## The app draft
 
 `catio-app/` is the café as a native C++ app for a phone (`docs/mobile-app.md`, which says exactly where it
-stands). Its core is built -- the plan, the house, the art, drawing and the view -- and so are the window loop
-and the interface (the brand, the hover line, the menus, the map panel, the Cat card); the network is not, so it
-reads the house from a folder. Nothing has run on a phone, the window has never been opened (no display in the
-cloud), and `android/` and `ios/` have never been configured.
+stands). Its core is built -- the plan, the house, the art, drawing and the view -- and so are the window loop,
+the interface (the brand, the hover line, the menus, the map panel, the Cat card) and, on a desk, the network
+(sign-in, the first read, the art fetched as missing, a 30-second refresh, Open this room). Nothing has run on a
+phone, the window has never been opened (no display in the cloud), it has only ever met a stand-in gateway, and
+`android/` and `ios/` have never been configured.
 
 - **Build:** the default, `cmake -S catio-app -B build && cmake --build build`, is the header check and needs
-  nothing installed. `-DCATIO_HEADERS_ONLY=OFF -DCATIO_HEADLESS=ON` fetches SDL3, SDL3_ttf and nlohmann/json, builds
-  `catio_app`, `catio_look` and `catio_tests` (`ctest`). No SDL_image: SDL 3.4's core loads PNG.
+  nothing installed. `-DCATIO_HEADERS_ONLY=OFF -DCATIO_HEADLESS=ON` fetches SDL3, SDL3_ttf and nlohmann/json, needs
+  libcurl installed, builds `catio_app`, `catio_look` and the tests (`ctest`: `catio_tests`, and `catio_net`, which
+  is `test/test_net.py`). No SDL_image: SDL 3.4's core loads PNG.
+- **The network is tested against a stand-in, never her gateway.** `test/test_net.py` runs one on the loopback
+  that answers as `harness/gateway/src/cafe.js` does; keep it in step when the gateway's routes change, as
+  `catio_mcp.py` is kept in step with the gateway's tools. No real password, cookie or key in it, ever.
 - **Look first, here too.** `catio_app --art catio --shot out.png --size 390x844 --touch --do "click 200 300"`
   draws the whole screen after playing clicks, keys and drags, with no window; `catio_look` draws a floor or a
   room alone. Open each and hold it against the page's own at the same size. Their frames contain the licensed

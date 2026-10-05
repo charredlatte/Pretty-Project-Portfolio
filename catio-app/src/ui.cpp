@@ -460,6 +460,7 @@ struct Region {
     Action a = Action::None;
     std::string arg;
     bool enabled = true;
+    std::string label;   // the words on it, for a shot's `choose`
 };
 
 // The map panel's boxes this frame, in device pixels.
@@ -490,6 +491,8 @@ struct State {
     Card card = Card::None;
     std::string card_key;
     bool manage = false;
+
+    bool online = false;   // signed in to a gateway: the writes are possible
 
     // the map panel
     bool map_open = true;
@@ -600,8 +603,14 @@ bool Ui::escape() {
     return false;
 }
 
+void Ui::online(bool on) { impl_->online = on; }
+
 bool Ui::can(Action a) const {
     switch (a) {
+        case Action::OpenRoom:   // the writes go through her gateway, or nowhere
+            return impl_->online;
+        case Action::Field: case Action::ComeIn:
+            return true;
         case Action::None: case Action::LookIn: case Action::WholeHouse: case Action::ZoomIn: case Action::ZoomOut:
         case Action::ToFloor: case Action::FoldMap: case Action::MapAt: case Action::StillCats: case Action::AddACat:
         case Action::Back: case Action::OpenHouse: case Action::OpenCat: case Action::OpenLink: case Action::CheckNow:
@@ -612,7 +621,11 @@ bool Ui::can(Action a) const {
     }
 }
 
-std::string_view Ui::cannot(Action a) const { return can(a) ? std::string_view{} : kNotYet; }
+std::string_view Ui::cannot(Action a) const {
+    if (can(a)) return {};
+    if (a == Action::OpenRoom) return "Only through your gateway: this caf\u00e9 is a folder of documents.";
+    return kNotYet;
+}
 std::string_view Ui::credits() const { return kCredits; }
 
 // ---- painting --------------------------------------------------------------------------------------
@@ -630,8 +643,8 @@ struct Painter {
 
     Painter(const draw::Ctx& ctx, State& impl, const Frame& fr) : c(ctx), I(impl), f(fr), k(float(ctx.css)), U(float(ctx.u)) {}
 
-    void region(Rect r, std::string id, Action a = Action::None, std::string arg = {}, bool enabled = true) {
-        if (paint) I.regions.push_back({r, std::move(id), a, std::move(arg), enabled});
+    void region(Rect r, std::string id, Action a = Action::None, std::string arg = {}, bool enabled = true, std::string label = {}) {
+        if (paint) I.regions.push_back({r, std::move(id), a, std::move(arg), enabled, std::move(label)});
     }
     bool lit(const std::string& id) const { return I.hot == id; }
     bool held(const std::string& id) const { return I.held == id && I.hot == id; }
@@ -719,7 +732,7 @@ struct Painter {
     float btn_w(std::string_view label) { return px_w(label) + 4 * U + 8 * U; }
     float btn_h() { return 22 * k + 10 * U; }
     void btn(Rect r, std::string_view label, const std::string& id, Action a, std::string arg, bool green = false) {
-        region(r, id, a, arg);
+        region(r, id, a, arg, true, std::string(label));
         const bool down = held(id);
         const Rect at = down ? Rect{r.x, r.y + 2 * U, r.w, r.h} : r;
         fill(Rect{at.x + 4 * U, at.y + 4 * U, at.w - 8 * U, at.h - 10 * U}, down ? kPressed : green ? kGo : kCream);
@@ -1143,7 +1156,7 @@ float menu_pass(Painter& P, const Menu& m, float x0, float y0, float w) {
                     const float h = std::max((P.f.coarse ? 44.f : 28.f) * k, 26 * k);
                     const Rect r{lx, y, lw, h};
                     const bool enabled = it.enabled;
-                    P.region(r, id, it.action, it.arg, enabled);
+                    P.region(r, id, it.action, it.arg, enabled, it.label);
                     const bool hot = P.lit(id) && enabled;
                     if (hot) P.fill(r, kMiLit);
                     const Colour ink = enabled ? kInk : with(kInk, 115);
@@ -1181,6 +1194,12 @@ bool Ui::over(const Frame& f, float x, float y) const {
     for (const Rect r : {panel(f), I.brand, I.status, I.menu_box})
         if (r.w > 0 && inside(r, x, y)) return true;
     return false;
+}
+
+std::optional<draw::Pt> Ui::find(std::string_view label) const {
+    for (auto it = impl_->regions.rbegin(); it != impl_->regions.rend(); ++it)
+        if (it->label == label) return draw::Pt{it->r.x + it->r.w / 2, it->r.y + it->r.h / 2};
+    return std::nullopt;
 }
 
 std::string_view Ui::under(const Frame&, float x, float y) const {
@@ -1417,6 +1436,73 @@ void draw_cat_card(Painter& P, const Frame& f, const Cat& c) {
 }
 
 }  // namespace
+
+// ---- the sign-in screen: harness/gateway/src/signin.js's page, ported ----------------------------
+
+void Ui::draw_sign_in(const draw::Ctx& c, const Frame& f, const SignIn& form) {
+    Impl& I = *impl_;
+    I.regions.clear();
+    I.menu_box = I.card_box = I.brand = I.status = {};
+    Painter P(c, I, f);
+    const float k = P.k;
+    // :root { --bg: #f6efe2; --card: #fffaf0; --ink: #3b2f25; --soft: #75665a; --line: #e2d5bf; --go: #a85a34; --bad: #a33a2a }
+    constexpr Colour bg{0xF6, 0xEF, 0xE2}, card{0xFF, 0xFA, 0xF0}, ink{0x3B, 0x2F, 0x25}, soft{0x75, 0x66, 0x5A}, line{0xE2, 0xD5, 0xBF},
+        go{0xA8, 0x5A, 0x34}, go_ink{0xFF, 0xFF, 0xFF}, bad{0xA3, 0x3A, 0x2A};
+    P.fill(Rect{0, 0, float(f.stage.w), float(f.stage.h)}, bg);
+    const draw::Body& h1 = P.body(700, 20.8f);
+    const draw::Body& body = P.body(500, 16);
+    const draw::Body& bold = P.body(700, 16);
+    const float W = std::min(420 * k, f.stage.w - 32 * k), inner = W - 48 * k;
+
+    // main { max-width: 420px; padding: 24px; border-radius: 14px } -- measured first, then centred
+    auto layout = [&](float x, float y0) {
+        float y = y0;
+        P.text(h1, "The KittyChat Caf\u00e9", x, y, 20.8f * 1.3f, ink);
+        y += 20.8f * 1.3f * k + 12 * k;
+        for (const auto& l : body.wrap("Your cats, on your own address.", inner)) P.text(body, l, x, y, 24, ink), y += 24 * k;
+        y += 12 * k;
+        if (!form.problem.empty()) {
+            for (const auto& l : bold.wrap(form.problem, inner)) P.text(bold, l, x, y, 24, bad), y += 24 * k;
+            y += 12 * k;
+        }
+        auto field = [&](int i, std::string_view label, const std::string& value, bool secret) {
+            y += 16 * k - 12 * k;
+            P.text(bold, label, x, y, 24, ink);
+            y += 24 * k + 6 * k;
+            const Rect r{x, y, inner, 24 * k + 20 * k + 2 * k};
+            P.region(r, "signin:field:" + std::to_string(i), Action::Field, std::to_string(i));
+            P.round(r, 8 * k, form.field == i ? ink : line);
+            P.round(Rect{r.x + k, r.y + k, r.w - 2 * k, r.h - 2 * k}, 7 * k, bg);
+            std::string shown;
+            if (secret) for (size_t n = 0, cp = 0; n < value.size(); ++n) { if ((static_cast<unsigned char>(value[n]) & 0xC0) != 0x80) shown += "\u2022", ++cp; }
+            else shown = value;
+            const std::string fits = body.cut(shown, r.w - 24 * k - 2 * k);
+            P.text(body, fits, r.x + 13 * k, r.y + 11 * k, 24, ink);
+            if (form.field == i && !form.busy) P.fill(Rect{r.x + 13 * k + body.measure(fits).x + k, r.y + 13 * k, std::max(1.f, k), 20 * k}, ink);
+            y += r.h;
+        };
+        if (form.ask_origin) field(0, "Your gateway's address", form.origin, false);
+        field(1, "Your handle", form.user, false);
+        field(2, "Your Catio password", form.password, true);
+        y += 18 * k;
+        const std::string label = form.busy ? "Coming in\u2026" : "Come in";
+        const Rect b{x, y, inner, 24 * k + 20 * k + 2 * k};
+        P.region(b, "signin:go", Action::ComeIn, "", !form.busy, "Come in");
+        P.round(b, 8 * k, go);
+        P.text(bold, label, b.x + (b.w - bold.measure(label).x) / 2, b.y + 11 * k, 24, go_ink);
+        y += b.h + 12 * k;
+        for (const auto& l : P.body(500, 14.4f).wrap("Invited? Make your account at your gateway's address, in a browser.", inner))
+            P.text(P.body(500, 14.4f), l, x, y, 14.4f * 1.5f, soft), y += 14.4f * 1.5f * k;
+        return y - y0;
+    };
+    P.paint = false;
+    const float h = layout(0, 0) + 48 * k;
+    P.paint = true;
+    const Rect box{std::round((f.stage.w - W) / 2), std::round(std::max(16 * k, (f.stage.h - h) / 2)), W, h};
+    P.round(box, 14 * k, line);
+    P.round(Rect{box.x + k, box.y + k, box.w - 2 * k, box.h - 2 * k}, 13 * k, card);
+    layout(box.x + 24 * k, box.y + 24 * k);
+}
 
 void Ui::draw(const draw::Ctx& c, const Frame& f) {
     Impl& I = *impl_;
