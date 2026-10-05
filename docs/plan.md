@@ -150,7 +150,7 @@ merge to `main`.
    - deploy the Worker from this repo;
    - its secrets (`harness/gateway/README.md`);
    - `CATIO_URL` and `CATIO_TOKEN` in each Claude environment, with the Worker allowed in the network policy;
-   - the `Catio` connector in claude.ai, its tools set to Always allow.
+   - the `CATIO` connector in claude.ai, its tools set to Always allow.
 2. **The page reads the gateway. Done (2 October):**
    - it declares her `CATIO` connector (`list_agents`, `comment`, `comments`, `manage`, `drop_file`): a page may
      name any of her claude.ai connectors by its display name. Without it, `host:catio`, as before;
@@ -165,7 +165,7 @@ merge to `main`.
      delegating to them: `docs/delegation.md`;
    - a Telegram channel;
    - agent cats through `host:catio` (only the Claude desktop app can declare it). Agents that report to the
-     gateway show up anywhere, through the `Catio` connector;
+     gateway show up anywhere, through the `CATIO` connector;
    - ~~`catio-plugin/` listed in the marketplace beside `kittychat-house-rules`~~: done
      (`.claude-plugin/marketplace.json`).
    - accounts, one café per person: the recommendation is `docs/accounts.md`.
