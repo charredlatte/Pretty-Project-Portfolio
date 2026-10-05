@@ -13,6 +13,8 @@ Environment:
     CATIO_QUEEN      the queen's own key (the CATIO_QUEEN secret on the Worker), never the agents' key
     CATIO_QUEEN_DIR  where she keeps her state and works from (default ~/.catio/queen)
     CATIO_CLAUDE     the claude command, when it isn't on the PATH as "claude"
+    CATIO_NOTIFY     a program to say homework on her desktop instead of the platform's own; it is called
+                     with the text as its one argument. Set it empty for no notifications at all.
 
 README.md says how to set it up. Standard library only; Python 3.9 or later.
 """
@@ -37,10 +39,64 @@ GRACE = 10                        # seconds a stopped turn gets to end on its ow
 MAX_TURNS = "30"
 WINDOWS = os.name == "nt"
 SORRY = "Forgive me, my lady: my turn ended before I could answer."
+TITLE = "KittyChat Cafe"           # a notification's title, and never anything from the café: see notify()
+# Her quest log, in words, by the kind the gateway counts: one, then more than one. A kind that isn't here is
+# not said at all -- give it its words, rather than letting a document's own text reach a notification.
+HOMEWORK = {"unblock": ("quiz to hand in", "quizzes to hand in"),
+            "litterbox": ("note to sort", "notes to sort"),
+            "decision": ("decision", "decisions")}
+WIN_TOAST = ("Add-Type -AssemblyName System.Windows.Forms,System.Drawing; "
+             "$n = New-Object System.Windows.Forms.NotifyIcon; "
+             "$n.Icon = [System.Drawing.SystemIcons]::Information; $n.Visible = $true; "
+             "$n.ShowBalloonTip(10000, '%s', '%s', 'Info'); Start-Sleep 11; $n.Dispose()")
 
 
 def log(*words):
     print(time.strftime("%H:%M:%S"), *words, flush=True)
+
+
+def notify(body):
+    """Say something on Charlotte's own desktop with whatever the platform already has: notify-send, osascript, or
+    PowerShell's balloon. Nothing is installed for this and nothing has to be -- a desktop with none of them
+    simply gets no notification, and CATIO_NOTIFY="" turns them off.
+
+    The words are always this file's own, built from counts. macOS and Windows take them inside a quoted string,
+    so café data -- a cat's name, a note's text, a kind nobody gave words to -- must never reach here, and the
+    quotes that would end that string are dropped on the way in besides."""
+    body = "".join(c for c in body if c not in "\\\"'")
+    own = os.environ.get("CATIO_NOTIFY")
+    if own is not None:
+        argv = [own, body] if own.strip() else None
+    elif sys.platform == "darwin":
+        argv = ["osascript", "-e", 'display notification "%s" with title "%s"' % (body, TITLE)]
+    elif WINDOWS:
+        argv = ["powershell", "-NoProfile", "-Command", WIN_TOAST % (TITLE, body)]
+    else:
+        argv = ["notify-send", TITLE, body]
+    if not argv:
+        return
+    try:
+        said = subprocess.Popen(argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError as e:
+        log("no desktop notification here:", e)
+        return
+    threading.Thread(target=said.wait, daemon=True).start()   # reaped, so months of these leave nothing behind
+
+
+def counted(kind, n):
+    one, many = HOMEWORK[kind]
+    return "%d %s" % (n, one if n == 1 else many)
+
+
+def step(block):
+    """A tool she reached for, as the café's loading strip names it: the tool without its server's prefix, and the
+    cat and action it was about, when it has them."""
+    args = block.get("input") or {}
+    out = {"tool": str(block.get("name") or "").split("__")[-1][:60]}
+    for k in ("cat", "action"):
+        if isinstance(args.get(k), str):
+            out[k] = args[k][:60]
+    return out
 
 
 class Gateway:
@@ -69,7 +125,8 @@ class Runner:
             self.state = {}
 
     def remember(self):
-        self.state_file.write_text(json.dumps(self.state), encoding="utf-8")
+        with self.lock:   # the waiting thread writes her homework, the main one her session
+            self.state_file.write_text(json.dumps(dict(self.state)), encoding="utf-8")
 
     # ---- waiting on the gateway, on a thread of its own, so a Stop reaches the turn in progress ----
     def watch(self):
@@ -94,12 +151,29 @@ class Runner:
                 continue
             if isinstance(got.get("character"), dict):
                 self.character = got["character"]
+            if isinstance(got.get("homework"), dict):
+                self.homework(got["homework"])
             if got.get("stop"):
                 self.interrupt()
             for note in got.get("notes") or []:
                 self.jobs.put(("note", note))
             if got.get("routine"):
                 self.jobs.put(("routine", got["routine"]))
+
+    def homework(self, counts):
+        """What waits on Charlotte, as the gateway counts it by kind. When a kind grows, say the whole of it on her
+        desktop: her quest log is in the café, and the runner is the part of the café always running. The first
+        count after a start is only remembered, so coming back doesn't announce cards she has already seen."""
+        now = {k: v for k, v in counts.items() if k in HOMEWORK and isinstance(v, int) and v > 0}
+        was = self.state.get("homework")
+        if now != was:
+            self.state["homework"] = now
+            self.remember()
+        if was is None or not any(v > (was.get(k) or 0) for k, v in now.items()):
+            return
+        said = ", ".join(counted(k, now[k]) for k in HOMEWORK if k in now)
+        log("homework:", said)
+        notify(said + " waiting in the cafe")
 
     def interrupt(self):
         """End the turn in progress: Ctrl+Break on Windows (the child has its own process group), SIGINT elsewhere."""
@@ -171,10 +245,12 @@ class Runner:
             args += ["--resume", self.state["session"]]
         return args
 
-    def say(self, turn, text, done, routine):
+    def say(self, turn, text, done, routine, steps=None):
         body = {"turn": turn, "text": text[-8000:], "done": done}
         if routine:
             body["routine"] = routine
+        if steps is not None:   # what she is doing, for the café's loading strip: the last few tools she reached for
+            body["steps"] = steps[-12:]
         try:
             self.gw.post("/api/runner/say", body, 20)
         except (OSError, ValueError) as e:
@@ -201,7 +277,7 @@ class Runner:
             child.stdin.close()
         except OSError:
             pass
-        text, final, session, failed, last_sent = "", None, None, None, 0.0
+        text, final, session, failed, last_sent, steps, awake = "", None, None, None, 0.0, [], False
         for line in child.stdout:
             try:
                 ev = json.loads(line)
@@ -210,6 +286,9 @@ class Runner:
             kind = ev.get("type")
             if kind == "system" and ev.get("session_id"):
                 session = ev["session_id"]
+                if not awake:   # she is up: the café shows her thinking before her first word
+                    awake = True
+                    self.say(turn_id, "", False, routine, steps)
             elif kind == "stream_event":
                 e = ev.get("event") or {}
                 if e.get("type") == "message_start":
@@ -217,13 +296,18 @@ class Runner:
                 elif e.get("type") == "content_block_delta" and (e.get("delta") or {}).get("type") == "text_delta":
                     text += e["delta"].get("text") or ""
                     if time.time() - last_sent >= SAY_EVERY:
-                        self.say(turn_id, text, False, routine)
+                        self.say(turn_id, text, False, routine, steps)
                         last_sent = time.time()
             elif kind == "assistant":   # a whole message at a time, when there are no partial ones
-                parts = [b.get("text") or "" for b in ((ev.get("message") or {}).get("content") or []) if b.get("type") == "text"]
+                blocks = (ev.get("message") or {}).get("content") or []
+                parts = [b.get("text") or "" for b in blocks if b.get("type") == "text"]
+                tools = [step(b) for b in blocks if b.get("type") == "tool_use"]
+                steps += tools
                 if parts and not text:
                     text = "".join(parts)
-                    self.say(turn_id, text, False, routine)
+                    self.say(turn_id, text, False, routine, steps)
+                elif tools:   # each tool she reaches for is told at once, not on the text's beat
+                    self.say(turn_id, text, False, routine, steps)
             elif kind == "result":
                 session = ev.get("session_id") or session
                 if isinstance(ev.get("result"), str):

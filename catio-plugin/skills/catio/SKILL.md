@@ -1,27 +1,38 @@
 ---
 name: catio
-description: Set up or refresh someone's own Catio — a page where every Claude Code session is a cat living in a room of a two-floor pixel-art manor, with a queen in each room who keeps what matters in it. Use this whenever someone wants to see their Claude Code sessions as something other than a list: a dashboard of what's running, what's blocked and what's waiting on them; a "catio", cat café, cat house or session zoo; or when they ask to install, set up, rebuild, refresh or republish the Catio, add a room, or point a room at one of their repositories.
+description: Set up or refresh someone's own Catio — a page where every Claude Code session is a cat living in a room of a two-floor pixel-art manor, with a queen who keeps what matters and is the one you talk to. Use this whenever someone wants to see their Claude Code sessions as something other than a list: a dashboard of what's running, what's blocked and what's waiting on them; a "catio", cat café, cat house or session zoo; or when they ask to install, set up, rebuild, refresh or republish the Catio, add a room, or point a room at one of their repositories.
 ---
 
 # The Catio
 
 One page where every Claude Code session is a cat. It plays while it works, sleeps when it's done,
-and meows with a speech bubble when it's waiting on its human. Each room of the manor is a kind of
+and meows when it's waiting on its human: point at it and it says what it needs. Each room of the manor is a kind of
 work, and a session's git repository decides which room its cat lives in.
 
-Every room also has a **queen**: a cat who is not a session, never leaves, and keeps the things
-that matter about that room. You give her something to hold, and she hands it back — in her menu,
-or said out loud in her room until you take it off her.
+The house also has one **queen**: a cat who is not a session and never leaves. Her seat is the entrance hall's,
+or, while that room is closed, wherever new cats come in.
+She keeps what matters and is the one you talk to. You give her something to hold, and she hands it back — in
+her menu, or said out loud until you take it off her. Talking with her and her routines need her brain running on
+the person's own computer (`harness/runner/`) and a gateway, which this skill does not set up: without them her
+card still holds what she keeps, and she shows as away.
 
 The page is one private artifact per person. Sessions come live from the Claude Code Remote
-connector; rooms, renames, adopted chats and what the queens keep live in the artifact's own
+connector; rooms, renames, adopted chats and what the queen keeps live in the artifact's own
 database, so they follow the person between phone and computer.
+
+## Speak plainly
+
+The person may never have heard of MCP, an API or an LLM. Do not use those words with them. Say it the café's
+way: each Claude chat or session is a cat, each project a room, a chat waiting on them is a cat that meows, and
+the assistant is the queen. The repository's README has the short version ("In plain words"); use it.
+Be straight about where it stands: running your own café works today; a hosted café with nothing to install is
+planned and not open yet.
 
 ## Say this first: the art is theirs to bring
 
-**The cats are not in the repository and cannot be, and nor is the interface.** Eight of the ten
-art packs the page is built from forbid redistributing their files (and a ninth came with no licence at
-all), so `catio/art/licensed/` is gitignored. A fresh clone draws only the Cosy Cabin furniture, its
+**The cats are not in the repository and cannot be, and nor is the interface.** Seven of the ten
+art packs the page is built from forbid redistributing their files, an eighth is drawn into the same pictures
+as theirs, and a ninth came with no licence at all, so `catio/art/licensed/` is gitignored. A fresh clone draws only the Cosy Cabin furniture, its
 menus on plain colour: no house and no cats.
 
 Tell the person this before anything else, because it decides whether the rest is worth their time.
@@ -46,35 +57,41 @@ What they need, from `catio/art/CREDITS.md`:
 Most have a free tier. Without the ToffeeCraft pack in particular there are no cats, which is most
 of the point; without Sprout Lands the menus still work, on plain colour.
 
+**Say plainly where it stands today:** the house and the cats are built from all ten zips at once, in the order
+below (in any order, or a folder of them); without `plants.zip` the full build stops. `plants.zip` (the terrace's plants) reached Charlotte with no artist
+or licence, so there is no public copy of it yet, and until there is, nobody else can run the full build. What
+anyone can build is the interface alone, from the Sprout Lands UI zip (and Game UI Pastel's after it): the café
+then works on plain panels, with no house or cats drawn. `CatMegaFree.zip` is the ToffeeCraft row above.
+
 ## Setting one up
 
 Work through these with the person. Stop and ask whenever a step needs something only they have.
 
 ### 1. Get the page
 
+They press **Fork** on <https://github.com/charredlatte/Pretty-Project-Portfolio> first: their fork is the copy
+they change, push to and, for the front desk, import into Cloudflare. Then:
+
 ```bash
-git clone https://github.com/charredlatte/Pretty-Project-Portfolio
+git clone https://github.com/<their GitHub name>/Pretty-Project-Portfolio
 cd Pretty-Project-Portfolio
 ```
 
-`catio/index.html` is the whole page: no build step, no dependencies. `catio/CLAUDE.md` at the repo
+`catio/index.html` is the whole page: no build step, no dependencies. `CLAUDE.md` at the repo
 root is the operating brief — read it before changing the page itself.
 
 ### 2. Their art
 
-They put their own zips wherever they like and name them on the command line, in this order (the
-names don't matter, the order does):
+They put their own zips wherever they like, under whatever names, and point the script at the folder.
+Neither the names nor the order matters: each zip is recognised by a file only that pack has.
 
 ```bash
 pip install pillow fonttools
-python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip "Top down garden castle.zip" \
-    "Wood Garden Asset Pack.zip" "Pixel Art Top Down - Basic v1.2.3.zip" \
-    "Sprout Lands - UI Pack - Basic pack.zip" plants.zip \
-    "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip" Game_UI_Pack_Pastel.zip
+python3 catio/tools/build-art.py ~/Downloads/KittyChat-Cafe-Assets   # or the zips, in any order
 ```
 
-Given only the Sprout Lands UI zip (and, optionally, Game UI Pastel's after it), it builds just the
-interface.
+It prints which zip it took for which pack before it draws anything. Given only the Sprout Lands UI zip
+(with or without Game UI Pastel's), it builds just the interface.
 
 That writes `catio/art/licensed/`, which stays gitignored. Never commit what it produces, and never
 put it in anything you share — that is the whole reason it is separate.
@@ -88,7 +105,7 @@ Ask the same things the page's own wizard asks, in this order, so the page skips
 2. **How many rooms, and their names.** The rooms open from the front of the house, public to private:
    `living` (the cat lounge), `dining` (the café), `kitchen`, `study` (the craft room), `sunroom` (the terrace),
    `garden` (the catio), `brain` (the library), `bedroom`, `bath` (the ensuite), `hall`. The first N are open and
-   the rest get `"closed": true`: a closed room is dimmed, has no queen and gets no cats, and opens later under
+   the rest get `"closed": true`: a closed room is dimmed and gets no cats, and opens later under
    Edit rooms. The first open room is where new cats come in (`"catchAll": true`).
 3. **Which room each repository goes in.** Call `list_repos` (Claude Code Remote) and ask, repository by
    repository; `repos` takes repository names or `owner/repo`. A repository filed in a closed room is never
@@ -123,20 +140,28 @@ page the same idea is the brain's tray: a file dropped on the house waits there 
 ### 4. Their sessions
 
 The page reads its cats live from Claude Code Remote. It also keeps a saved copy for when that read
-is blocked, and that copy is the only source when the page runs off a folder:
+is blocked, and that copy is the only source when the page runs off a folder. Do this now, and again whenever they
+ask to *save my sessions for the café* (the README tells them to say it):
 
 1. Call `list_sessions` (limit 50) and save the result to a file.
 2. `python3 catio/tools/save-sessions.py list_sessions.json` → `catio/data/sessions.json`.
+3. Once the page is published (step 5), write that file's object to `snapshot/sessions` in its database with
+   `ArtifactData` (`set`). claude.ai refuses the page's own read today, so this copy is where their cats come from.
+   Tell them it only changes when they ask a session to save it again.
 
 That output is gitignored, and it should stay that way: it carries their session titles.
 
 ### 5. Their page
 
 Publish `catio/index.html` as **their own** private artifact — never republish someone else's.
-The URL in this repo's `artifacts.json` is Charlotte's, and her rooms and her queens live in its
+The URL in this repo's `artifacts.json` is Charlotte's, and her rooms and her queen live in its
 database; publishing over it would take her page away from her. Their first publish creates a new
 artifact, and they record that URL in their own copy of `artifacts.json`, republishing to it
 afterwards with `url` so nothing they have done on the page is lost.
+
+`docs/self-hosting.md` lists Charlotte's values still written into the page and the harness. Change them on their
+fork; two of them (`CATIO_URL` in the page, `catio` in `harness/rules.json`) are this artifact's link, which only
+exists after the first publish, so set those then and republish to the same URL.
 
 On the first publish it needs these capabilities:
 
@@ -146,11 +171,21 @@ capabilities: { mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_s
   db: {}, assets: {}, sample: {} }
 ```
 
+Publish the art with it, or the page goes up alone and draws no house: the Artifact tool sends only the HTML
+unless every file the page uses is listed in `files`. List `art/furniture.png` and every file under
+`art/licensed/` that step 2 wrote (the `.png` files beside it, everything in `ui/`, `sprout.ttf` included, and
+everything in `pastel/`), each at its own path, and `art/skin.json` with its files if they drew pieces of their own.
+**It worked when** their café's link draws the house; if its sign says the cat art isn't here, a file was left out.
+
 The `mcp` grant is what lets the page read and manage their sessions as them, and only ever on their
-click (`list_repos` is what the wizard's GitHub step asks for their repositories); `db` is where rooms, renames, adopted chats and the queens' notes are kept; `assets` holds files
+click (`list_repos` is what the wizard's GitHub step asks for their repositories); `db` is where rooms, renames, adopted chats and the queen's notes are kept; `assets` holds files
 dropped on a cat; `sample` lets the page ask Claude which cat a file is for. On a republish, omit
 `capabilities` to keep what is stored: passing it replaces the whole set, so naming only some revokes
 the rest.
+
+Once their front desk is up (`harness/gateway/README.md`) and its connector is named `CATIO` in claude.ai,
+republish with the whole set in `CLAUDE.md` ("The stored capabilities"), the `CATIO` server included: until then the
+page can't reach the front desk. It worked when the House menu says *Gateway live* with a time.
 
 If the sign says claude.ai won't let the page read sessions live, there is nothing for them to
 switch: Claude Code Remote is built into claude.ai and has no entry in their Connectors list. The
@@ -174,11 +209,10 @@ adopted by hand from a room's menu: title, link, project, mood and a note. Whate
 is stored in the artifact database and visible to anyone the page is shared with, which the form
 says on its face. Keep anything sensitive in the chat itself and give the cat a bland name.
 
-## Queens, and what they're for
+## The queen, and what she's for
 
-Each room's queen holds what matters about that room — the thing you'd otherwise have to remember,
-or go and look up. A note she is *saying* shows as her line in the menus and a bubble in her room
-until it is taken back; the rest she just keeps.
+The house has one queen (her call, 2 October 2026: one main character you chat with, not a cat per room). She holds what you'd otherwise have to remember, or go and look up. A note she is
+*saying* becomes her line in her menu until it is taken back; the rest she just keeps.
 
 She is deliberately not a task: she never joins the count of cats needing you, because a sign that
 says "3 need you" has to mean three real pieces of work. If you change how she works, keep her out
@@ -196,9 +230,9 @@ of those counts.
   places the furniture and the cats' stations and writes the page's `MANOR` block, from which `GEOM`
   comes. Change them together, re-run `furniture.py`, and check that `furniture.check()` is empty — a cat
   standing in a bathtub is a geometry bug, not a styling one.
-- Each room holds back one seat for its queen (`GEOM[room].queen`). Giving a room another cat seat
-  means taking one out of `spots`, not inventing a coordinate, because the seats are positions on a
-  drawing that was checked against the art.
+- The queen sits on the entrance hall's held-back seat (`GEOM.hall.queen`), or on the front door room's when the
+  hall is closed (`queenRoom()`); each room keeps its own `queen` seat in the drawing. Giving a room another cat seat means taking one out of `spots`, not inventing a
+  coordinate, because the seats are positions on a drawing that was checked against the art.
 
 Read `CLAUDE.md` in the repository root before anything structural. It carries the decisions this
 page has already paid for.

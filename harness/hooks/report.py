@@ -17,6 +17,7 @@ import base64
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -27,6 +28,8 @@ from common import hook_input
 
 TIMEOUT = 2
 HERE = Path(__file__).resolve()
+# the launcher hooks.json uses: Windows has py or python (python.org gives no python3), elsewhere python3
+PY = ("py" if shutil.which("py") else "python") if os.name == "nt" else "python3"
 NEEDS = ("permission_prompt", "idle_prompt", "elicitation_dialog", "agent_needs_input")
 
 
@@ -98,7 +101,7 @@ def facts(data):
     return f
 
 
-SAYS = {"charlotte": "Charlotte says", "queen": "The queen says"}   # the queen of the house: her assistant (harness/runner)
+SAYS = {"owner": "Charlotte says", "queen": "The queen says"}   # the owner, and the queen of the house, her assistant (harness/runner)
 
 
 def handed_in(box):
@@ -110,11 +113,11 @@ def handed_in(box):
     for f in (box or {}).get("files") or []:
         note = f" Her note: {f['note']}" if f.get("note") else ""
         lines.append(f"[Catio] Delivery for you: {f['name']} ({f['type']}, {f['size']} bytes).{note} "
-                     f"Fetch it with: python3 \"{HERE}\" pick {f['id']}")
+                     f"Fetch it with: {PY} \"{HERE}\" pick {f['id']}")
     if not lines:
         return ""
     lines.append(f"(From the Catio's gateway. Handle it with the catio skill, and answer her on your cat: "
-                 f"python3 \"{HERE}\" say \"<your answer>\")")
+                 f"{PY} \"{HERE}\" say \"<your answer>\")")
     return "\n\n".join(lines)
 
 

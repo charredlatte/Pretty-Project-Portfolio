@@ -6,6 +6,19 @@
 set -e
 T=$(cd "$(dirname "$0")" && pwd)
 P=$(dirname "$T")
+# The suite assumes this checkout has the licensed art. Without it the page quite correctly shows its
+# no-art warning on the status sign, so the check that wants a clear sign cannot pass, and the checks of
+# The look and a skin can't either: they read the packs' files from art/licensed/ to stand in for her own
+# drawings. Say so, so it doesn't read as a regression: art/licensed/ is gitignored, so a fresh clone never
+# has it. CLAUDE.md, "Republishing", has the two ways back (read it from the published artifact, or rebuild
+# from her zips).
+if [ ! -d "$P/art/licensed" ]; then
+  echo "note: $P/art/licensed/ is missing, so the page draws its no-art warning."
+  echo "      Expect 29 failures (5 October): the one that wants no warning sign, and the"
+  echo "      checks of The look and a skin, which read the packs' files. It is the missing art, not the page."
+  echo "      CLAUDE.md, \"Republishing\", says how to get the art back."
+  echo
+fi
 {
   printf '<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">'
   printf '<base href="file://%s/"><style>body{margin:0}img{max-width:100%%}[hidden]{display:none!important}</style><script>' "$P"

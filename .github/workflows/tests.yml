@@ -1,0 +1,60 @@
+#  The harness suite, on both platforms.
+#
+#  Windows is not decoration here: every bug this workflow was added alongside was invisible on
+#  Linux and fatal on Windows, because the default text encoding there is cp1252 rather than UTF-8
+#  and shutil.which only matches names in PATHEXT. Dropping the windows-latest leg would let the
+#  same class back in.
+#
+#  The gateway suite (harness/gateway/test) runs wrangler dev locally, in workerd, with its remote AI
+#  binding left out, so it needs no Cloudflare token. It runs here because the gateway deploys on every
+#  merge to main: on 5 October a merge left it unable to build while this workflow, then Python only,
+#  stayed green.
+
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  harness:
+    name: harness (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Run the harness suite
+        run: python -m unittest discover harness/test -v
+
+  gateway:
+    name: gateway
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: harness/gateway/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install the gateway's dependencies
+        working-directory: harness/gateway
+        run: npm ci
+
+      - name: Run the gateway suite
+        working-directory: harness/gateway
+        run: npm test

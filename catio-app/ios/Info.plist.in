@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- DRAFT: never built. See docs/mobile-app.md. -->
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>                     <string>${MACOSX_BUNDLE_BUNDLE_NAME}</string>
+    <key>CFBundleDisplayName</key>              <string>KittyChat Cafe</string>
+    <key>CFBundleIdentifier</key>               <string>${MACOSX_BUNDLE_GUI_IDENTIFIER}</string>
+    <key>CFBundleExecutable</key>               <string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
+    <key>CFBundleShortVersionString</key>       <string>${MACOSX_BUNDLE_SHORT_VERSION_STRING}</string>
+    <key>CFBundleVersion</key>                  <string>${MACOSX_BUNDLE_BUNDLE_VERSION}</string>
+    <key>CFBundlePackageType</key>              <string>APPL</string>
+    <key>LSRequiresIPhoneOS</key>               <true/>
+
+    <!-- SDL3's iOS renderer is Metal. -->
+    <key>UIRequiredDeviceCapabilities</key>
+    <array><string>metal</string></array>
+
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+
+    <key>UIStatusBarHidden</key>                        <true/>
+    <key>UIViewControllerBasedStatusBarAppearance</key> <false/>
+
+    <!-- The app speaks HTTPS to her gateway and nothing else, so there is no transport-security
+         exception, and no exempt encryption to declare. -->
+    <key>ITSAppUsesNonExemptEncryption</key>    <false/>
+
+    <!-- NSPhotoLibraryUsageDescription arrives with "Add files", and not before: an app that asks for
+         a permission it is not yet using is an app that gets refused. -->
+</dict>
+</plist>

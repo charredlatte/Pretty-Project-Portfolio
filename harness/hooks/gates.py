@@ -8,14 +8,23 @@ no_attribution  no Co-Authored-By or Claude-Session lines in a commit (or its -F
                 no credit lines in what is posted to one through GitHub, and, after a post GitHub's integration
                 signs (PostToolUse), the session is told to edit the footer off.
 ship, merge     pushes, branch deletions and merges, in ship_gate.py.
+small_writers   the plugin's scout and tester never edit; in a repo that merges its own pull requests, no sub agent
+                on a model off the strong list edits a tracked file (the merging rule's promise: a strong model did
+                the work).
+right_sized     delegate first: an Agent spawn, every agent() in a Workflow script and a new session
+                (create_session) name a tier, or are refused; an errand above this repo's ceiling is refused when
+                Charlotte set that ceiling herself, and only spoken about when the harness read it that way
+                (right_sized.py).
 """
+import json
 import os
 import re
 import subprocess
 from pathlib import Path
 
+import right_sized
 import ship_gate
-from common import block, enforced, hook_input, ran, rules
+from common import block, enforced, git, hook_input, merges, ran, rules
 
 BROWSER_TOOL = re.compile(r"^mcp__.*(playwright|browser|chrome|puppeteer|computer)", re.I)
 BROWSER_CMD = r"playwright|chromium|google-chrome|headless|puppeteer|selenium|webdriver|catio/test/run\.sh"
@@ -113,6 +122,50 @@ def after(tool, args, cwd):
               "comes back, tell Charlotte.")
 
 
+READ_ONLY = {"scout", "tester"}
+
+
+def agent_models(data):
+    """The models a sub agent has answered with, from its own transcript; empty when it can't be read."""
+    found = set()
+    try:
+        with open(os.path.expanduser(data.get("agent_transcript_path") or ""), encoding="utf-8") as f:
+            for line in f:
+                if '"model"' in line:
+                    try:
+                        e = json.loads(line)
+                    except ValueError:
+                        continue
+                    if e.get("type") == "assistant":
+                        found.add((e.get("message") or {}).get("model"))
+    except OSError:
+        pass
+    return found - {None, "<synthetic>"}
+
+
+def small_writer(data, path, cwd):
+    """Why this sub agent may not edit this file, or None."""
+    name = str(data.get("agent_type") or "").split(":")[-1]
+    if not name:
+        return None
+    if name in READ_ONLY:
+        return f"the {name} only reads, runs and reports. Hand its findings back and make the change in the session."
+    used = agent_models(data)
+    strong = rules()["merging"]["strong"]
+    if not used or any(s in m for m in used for s in strong) or not merges(cwd):
+        return None
+    full = os.path.join(cwd, os.path.expanduser(path))
+    if git("ls-files", "--error-unmatch", full, cwd=os.path.dirname(full) or cwd) is None:
+        return None   # not tracked: scratch is free
+    return (f"a sub agent on {', '.join(sorted(used))} may not edit a tracked file in a repo that merges its own pull "
+            "requests: the merging rule promises a strong model did the work. Make the change in the session.")
+
+
+# the two skills the rules call aren't in this plugin: say what to do when the session hasn't got one
+MISSING = (" This plugin doesn't ship the {0} skill: if it isn't installed, say so, and ask whether to install it or "
+           "switch the rule off for this repo with {{\"{1}\": false}} in .claude/catio-rules.json (not yours to decide).")
+
+
 def main():
     data = hook_input()
     tool = data.get("tool_name", "")
@@ -122,11 +175,17 @@ def main():
     if data.get("hook_event_name") == "PostToolUse":
         return after(tool, args, cwd)
 
+    refusal, nudge = right_sized.check(data, tool, args, cwd)
+    if refusal:
+        block(refusal)
+    if nudge:
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": nudge}}))
+
     if enforced("preflight", cwd):
         if BROWSER_TOOL.search(tool) or (command and browser_patterns(cwd).search(command)):
             if not ran(data, "browser-agent-preflight"):
                 block("House rule (KittyChat): run the browser-agent-preflight skill before using a browser. "
-                      "Invoke it with the Skill tool, then try again.")
+                      "Invoke it with the Skill tool, then try again." + MISSING.format("browser-agent-preflight", "preflight"))
 
     if enforced("opening_audit", cwd):
         path = str(args.get("file_path") or args.get("notebook_path") or "")
@@ -134,7 +193,13 @@ def main():
         writes = bool(command) and WRITE_CMD.search(command) and not only_scratch(command, cwd)
         if (edits or writes) and not ran(data, "ponytail-audit"):
             block("House rule (KittyChat): open the session with a read-only pass first. Run the ponytail-audit skill "
-                  "on this repo (it changes nothing), save its summary to the Catio as audits/<repo>, then carry on.")
+                  "on this repo (it changes nothing), save its summary to the Catio as audits/<repo>, then carry on."
+                  + MISSING.format("ponytail-audit", "opening_audit"))
+
+    if tool in EDIT_TOOLS:
+        why = small_writer(data, str(args.get("file_path") or args.get("notebook_path") or ""), cwd)
+        if why:
+            block("House rule (KittyChat): " + why)
 
     if command and COMMIT.search(command) and ATTRIBUTION.search(message(command, cwd)) \
             and enforced("no_attribution", cwd) and public(command, cwd):

@@ -1,0 +1,13 @@
+{
+  "_comment": "Invented. What POST /api/tools/list_agents returns: the cats are not documents.",
+  "agents": [
+    {"id": "a1", "title": "Shop about page", "mood": "needs", "ask": "Approve the copy?", "repo": "charredlatte/Montfortoise-shop", "updated": 1791000100000, "via": "claude-code", "session": "cse_abc123"},
+    {"id": "a2", "title": "Menu fix", "mood": "busy", "repo": "charredlatte/Recipe-cards", "updated": 1791000200000},
+    {"id": "a3", "title": "Translate the site", "mood": "review", "room": "dining", "updated": 1791000300000},
+    {"id": "a4", "title": "Fix the build", "mood": "failed", "room": "kitchen", "updated": 1791000400000, "said": {"text": "It broke on the linker.", "at": 1791000600000}},
+    {"id": "a5", "title": "Write the FAQ", "mood": "done", "room": "brain", "updated": 1791000050000},
+    {"id": "a6", "title": "Tidy the ensuite", "mood": "busy", "room": "bath", "updated": 1791000060000},
+    {"id": "a7", "title": "An old one", "mood": "done", "archived": true, "updated": 1},
+    {"id": "queen", "title": "The queen", "mood": "busy", "via": "runner", "updated": 1}
+  ]
+}

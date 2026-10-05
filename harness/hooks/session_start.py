@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""SessionStart: tell the session it lives in Charlotte's KittyChat harness, and what the house rules are."""
+"""SessionStart: tell the session which KittyChat café it lives in, and what the house rules are."""
+import os
 from pathlib import Path
 
 from common import enforced, hook_input, local, merges, repos, rules
@@ -9,11 +10,19 @@ def main():
     data = hook_input()
     cwd = data.get("cwd")
     r = rules()
+    gateway = os.environ.get("CATIO_URL", "").strip()
+    if gateway:   # the café this session reports to, whoever's it is: the hook can't tell if it is Charlotte's
+        whose, they = "their", "They"
+        cafe = (f"This session is a cat in the KittyChat Café of the person you are working for, at {gateway}.\n"
+                f"(Charlotte made the café; her own is at {r['catio']}, which isn't theirs unless they are her.)")
+    else:
+        whose, they = "Charlotte's", "She"
+        cafe = "This session is a cat in Charlotte's Catio, her harness: " + r["catio"]
     lines = [
         "# KittyChat house rules",
         "",
-        "This session is a cat in Charlotte's Catio, her harness: " + r["catio"],
-        "She can drop files on your cat, write to you and manage you from there. Those messages arrive as turns",
+        cafe,
+        f"{they} can drop files on your cat, write to you and manage you from there. Those messages arrive as turns",
         "that start with [Catio]; use the `catio` skill to handle them.",
         "",
     ]
@@ -33,7 +42,14 @@ def main():
                                  (f"; changes to {held} always wait for her." if held else "."))
     if data.get("source", "startup") == "startup" and enforced("opening_audit", cwd):
         lines += ["", "Start now with the read-only pass: run the ponytail-audit skill on this repo before anything else,",
-                  "then run the `catio` skill's catch-up (files, notes and requests waiting for you)."]
+                  "then run the `catio` skill's catch-up (files, notes and requests waiting for you). This plugin doesn't ship",
+                  "ponytail-audit: if it isn't installed, say so, and ask whether to install it or switch the rule off for this",
+                  'repo with {"opening_audit": false} in .claude/catio-rules.json (not yours to decide).']
+    model = data.get("model") or ""
+    costly = next((x.get("costly", []) for x in r["rules"] if x["id"] == "opus_default"), [])
+    if enforced("opus_default", cwd) and any(c in model.lower() for c in costly):
+        lines += ["", f"This session is on {model}, which uses {whose} allowance several times faster than Opus. Unless "
+                  f"{they.lower()}", "asked for it by name, say so in one line in your first reply and suggest /model opus."]
     if enforced("graph_first", cwd):
         if (Path(cwd or ".") / "graphify-out" / "graph.json").exists():
             lines += ["", "This repo has a graphify map in graphify-out/. Run `graphify update .` to bring it up to date, then ask it",

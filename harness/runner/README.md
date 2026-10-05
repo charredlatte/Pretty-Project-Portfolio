@@ -58,6 +58,14 @@ On a Mac or Linux the same, with `export` in place of `setx` and `python3`.
   so far is kept.
 - Her character (`queens/house` in the café: name, manner, greeting) comes with every wait, so a change in
   her card applies on the next turn. `queen.md` is the part that doesn't change.
+- **Says her homework on Charlotte's desktop.** Every wait also carries the open quizzes counted by kind, and
+  when a kind grows the runner says the lot ("2 notes to sort, 1 decision waiting in the cafe") with whatever
+  the computer already has: `notify-send` on Linux, `osascript` on a Mac, a PowerShell balloon on Windows.
+  Nothing is installed for it, and a computer with none of them simply gets nothing. What is already waiting
+  when the runner starts is never announced -- only a card that lands while it runs -- and the words are always
+  the runner's own, built from counts, because a Mac and Windows take them inside a quoted string.
+  `CATIO_NOTIFY` is a program to call instead (the text is its one argument); `CATIO_NOTIFY=` (empty) turns
+  notifications off. Her quest log itself stays in the café: this only says that it has something new in it.
 
 Tests: `python3 -m unittest discover -s harness/test` (`test_queen.py` runs it against a stand-in gateway and a
 fake `claude`).

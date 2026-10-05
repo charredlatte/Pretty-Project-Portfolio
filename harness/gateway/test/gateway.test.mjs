@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer as createHttpServer } from "node:http";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -57,16 +57,16 @@ function startDecider() {
 }
 
 // wrangler dev on a fresh state; again on the same state, at the end, as a deploy would start a new isolate
-async function start() {
+async function start({ password = PASSWORD, dir = state, vars = [] } = {}) {
 	const [port, inspector] = [await freePort(), await freePort()];
 	base = `http://127.0.0.1:${port}`;
 	log = "";
 	// the real config without its AI binding (remote, needs a Cloudflare sign-in): decisions go to the stand-in instead
 	writeFileSync(CONFIG, readFileSync(join(HERE, "wrangler.jsonc"), "utf8").replace(/^\s*"ai":.*\n/m, ""));
 	wrangler = spawn(process.execPath, [join(HERE, "node_modules/wrangler/bin/wrangler.js"), "dev", "--config", CONFIG, "--ip", "127.0.0.1",
-		"--port", String(port), "--inspector-port", String(inspector), "--persist-to", state,
-		"--var", "CATIO_TOKEN:" + TOKEN, "--var", "CATIO_PASSWORD:" + PASSWORD, "--var", "CATIO_QUEEN:" + QUEEN,
-		"--var", "DECIDE_URL:http://127.0.0.1:" + deciderPort + "/", "--var", "DECIDE_KEY:k1"], {
+		"--port", String(port), "--inspector-port", String(inspector), "--persist-to", dir,
+		"--var", "CATIO_TOKEN:" + TOKEN, ...(password ? ["--var", "CATIO_PASSWORD:" + password] : []), "--var", "CATIO_QUEEN:" + QUEEN,
+		"--var", "DECIDE_URL:http://127.0.0.1:" + deciderPort + "/", "--var", "DECIDE_KEY:k1", ...vars.flatMap((v) => ["--var", v])], {
 		cwd: HERE, env: { ...process.env, WRANGLER_SEND_METRICS: "false", NO_COLOR: "1" }, stdio: ["ignore", "pipe", "pipe"],
 		detached: true,   // its own process group, so workerd goes with it
 	});
@@ -242,7 +242,7 @@ describe("the café", () => {
 	test("uses the gateway's tools as herself", async () => {
 		assert.equal((await api("/api/tools/comment", { method: "POST", body: JSON.stringify({ cat: "cafe-cat", text: "From the café" }) })).status, 200);
 		const { notes } = await (await api("/api/tools/comments", { method: "POST", body: JSON.stringify({ cat: "cafe-cat" }) })).json();
-		assert.deepEqual([notes.at(-1).author, notes.at(-1).text], ["charlotte", "From the café"]);
+		assert.deepEqual([notes.at(-1).author, notes.at(-1).text], ["owner", "From the café"]);
 		assert.equal((await api("/api/tools/no_such_tool", { method: "POST", body: "{}" })).status, 404);
 		assert.equal((await api("/api/tools/manage", { method: "POST", body: JSON.stringify({ cat: "nobody", action: "archive" }) })).status, 400);
 		assert.match(await (await fetch(base + "/runtime.js")).text(), /catioGateway: true/);
@@ -367,6 +367,94 @@ describe("accounts", () => {
 		assert.equal((await as(herCookie, "/api/users/tester", { method: "PUT", body: JSON.stringify({ password: TESTER_NOW }) })).status, 200);
 		assert.equal((await login("tester", TESTER_NOW)).status, 303);
 	});
+
+	test("lets an admin invite someone, who makes their own account with it, once", async () => {
+		const SIGNUP = "guest-password-" + randomBytes(6).toString("hex");
+		const invite = (cookie, what = "make", headers = {}) => fetch(base + "/invite", { method: "POST", headers: { Cookie: cookie, ...headers }, body: new URLSearchParams({ do: what }), redirect: "manual" });
+		const signUp = (fields) => fetch(base + "/signup", { method: "POST", body: new URLSearchParams({ again: fields.password, ...fields }), redirect: "manual" });
+		const codeOf = async (r) => /\/signup\?invite=([0-9a-f]{64})"/.exec(await r.text())?.[1];
+
+		assert.match(await (await fetch(base + "/")).text(), /href="\/signup"/, "the sign-in page points the invited to sign-up");
+		assert.match(await (await fetch(base + "/invite")).text(), /Your handle/, "signed out, the invite page asks who you are");
+		const { cookie: testerCookie } = await login("tester", TESTER_NOW);
+		assert.equal((await fetch(base + "/invite", { headers: { Cookie: testerCookie } })).status, 403, "only an admin invites");
+		assert.equal((await invite(testerCookie)).status, 403);
+		assert.equal((await invite(herCookie, "make", { Origin: "https://elsewhere.example" })).status, 403, "never from another site");
+		const made = await invite(herCookie);
+		assert.equal(made.status, 200);
+		const code = await codeOf(made);
+		assert.ok(code, "the invite is shown as a link");
+		assert.match(await (await fetch(base + "/invite", { headers: { Cookie: herCookie } })).text(), /1 invite is out/);
+		assert.match(await (await fetch(base + "/signup?invite=" + code)).text(), new RegExp(`value="${code}"`), "the link fills the invite in");
+
+		assert.equal((await signUp({ invite: "0".repeat(64), user: "guest", password: SIGNUP })).status, 400, "a made-up invite opens nothing");
+		assert.equal((await signUp({ invite: code, user: "guest", password: SIGNUP, again: SIGNUP + "x" })).status, 400, "the two passwords must match");
+		assert.equal((await signUp({ invite: code, user: "tester", password: SIGNUP })).status, 400, "a taken handle stays taken");
+		assert.equal((await signUp({ invite: code, user: "guest", password: "short" })).status, 400);
+		// a refused sign-up costs the invite nothing; two at once with one invite let one in
+		const both = await Promise.all(["guest", "guest-two"].map((user) => signUp({ invite: code, user, password: SIGNUP })));
+		// the first user test (5 October): a form sign-up now lands on "your café is ready", its first key shown once,
+		// instead of going straight into an empty café with no key and no word of the plugin
+		assert.deepEqual(both.map((r) => r.status).sort(), [200, 400], "an invite works once");
+		const inRes = both.find((r) => r.status === 200);
+		const guest = inRes === both[0] ? "guest" : "guest-two";
+		const guestCookie = inRes.headers.get("set-cookie").split(";")[0];
+		const ready = await inRes.text();
+		assert.match(ready, /Your café is ready/);
+		assert.match(ready, /kittychat-house-rules@kittychat/, "the plugin's install lines");
+		assert.ok(ready.includes("<code>" + base + "</code>"), "the café's own address");
+		const guestKey = /value="([0-9a-f]{64})" aria-label="Your key"/.exec(ready)?.[1];
+		assert.ok(guestKey, "the key, once");
+		await tool(guestKey, "report_status", { agent: "guest-cat", mood: "busy" });
+		assert.deepEqual((await tool(guestKey, "list_agents")).agents.map((a) => a.id), ["guest-cat"], "the key is theirs, in their café");
+		assert.ok(!(await tool(TOKEN, "list_agents")).agents.some((a) => a.id === "guest-cat"), "and not in hers");
+		assert.deepEqual((await (await as(guestCookie, "/api/db")).json()).docs, {}, "signed in to a café of their own");
+		assert.equal((await login(guest, SIGNUP)).status, 303);
+		assert.equal((await fetch(base + "/invite", { headers: { Cookie: guestCookie } })).status, 403, "a guest is no admin");
+		assert.equal((await as(guestCookie, "/api/users", { method: "POST", body: JSON.stringify({ id: "third", password: SIGNUP }) })).status, 403);
+		assert.equal((await as(guestCookie, "/art/licensed/pochi.png")).status, 404, "the packs' art is hers alone");
+		assert.equal((await as(herCookie, "/art/licensed/pochi.png")).status, 200);
+
+		// unused invites can be taken back
+		const spare = await codeOf(await invite(herCookie));
+		assert.match(await (await invite(herCookie, "drop")).text(), /1 invite taken back/);
+		assert.equal((await signUp({ invite: spare, user: "late", password: SIGNUP })).status, 400);
+	});
+
+	test("lets a browser post the sign-in, invite and sign-up forms with the café's own Origin", async () => {
+		// under no-referrer, Chrome posts a form with "Origin: null", and /invite and /signup refuse it (5 October:
+		// "Make invites from this page" on her own click); same-origin sends the café's address and nothing elsewhere
+		for (const path of ["/", "/invite", "/signup"]) assert.equal((await fetch(base + path)).headers.get("referrer-policy"), "same-origin", path);
+		assert.equal((await fetch(base + "/invite", { method: "POST", headers: { Cookie: herCookie, Origin: base }, body: new URLSearchParams({ do: "make" }) })).status, 200);
+	});
+
+	test("lets someone's AI use the invite for them, and gives it the account's first key, once", async () => {
+		const PARTNER = "partner-password-" + randomBytes(6).toString("hex");
+		const made = await fetch(base + "/invite", { method: "POST", headers: { Cookie: herCookie }, body: new URLSearchParams({ do: "make" }) });
+		const code = /\/signup\?invite=([0-9a-f]{64})"/.exec(await made.text())[1];
+		const page = await (await fetch(base + "/signup?invite=" + code)).text();
+		assert.ok(page.includes("as their AI?") && page.includes(`"invite": "${code}"`) && page.includes(base + "/mcp"), "the link says what an AI does");
+		assert.ok(!(await (await fetch(base + "/signup")).text()).includes("as their AI?"), "not without an invite");
+		assert.ok(page.includes("kittychat-house-rules@kittychat") && page.includes("Without the plugin the two variables do"), "the two variables need the plugin's hook");
+
+		const use = (body, headers = {}) => fetch(base + "/signup", { method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body) });
+		const short = await use({ invite: code, handle: "partner", password: "short" });
+		assert.equal(short.status, 400);
+		assert.equal((await short.json()).code, "bad_request", "an AI gets JSON back");
+		assert.equal((await use({ invite: code, handle: "partner", password: PARTNER }, { Origin: "https://elsewhere.example" })).status, 403, "never from another site");
+		const r = await use({ invite: code, handle: "Partner", password: PARTNER });
+		assert.equal(r.status, 201, "a refused try left the invite as it was");
+		const { handle, key: theirKey, mcp } = await r.json();
+		assert.deepEqual([handle, mcp], ["partner", base + "/mcp"]);
+		assert.match(theirKey, /^[0-9a-f]{64}$/);
+		assert.equal((await use({ invite: code, handle: "partner-two", password: PARTNER })).status, 400, "an invite works once");
+
+		// the key reports into their own house, and the password signs them in to their café
+		assert.equal((await tool(theirKey, "report_status", { agent: "partner-cat", mood: "busy" })).ok, true);
+		assert.deepEqual((await tool(theirKey, "list_agents")).agents.map((a) => a.id), ["partner-cat"]);
+		assert.ok(!(await tool(TOKEN, "list_agents")).agents.some((a) => a.id === "partner-cat"));
+		assert.equal((await login("partner", PARTNER)).status, 303);
+	});
 });
 
 // The queen of the house: Charlotte talks to her in the café; her runner (harness/runner) waits here with the
@@ -398,7 +486,7 @@ describe("the queen", () => {
 		assert.ok((await tool(her, "comment", { cat: "queen", text: "Who needs me today?" })).id);
 		const got = await waiting;
 		assert.ok(Date.now() - started < 5000, "the wait came back as she spoke, not at its timeout");
-		assert.deepEqual(got.notes.map((n) => [n.author, n.text]), [["charlotte", "Who needs me today?"]]);
+		assert.deepEqual(got.notes.map((n) => [n.author, n.text]), [["owner", "Who needs me today?"]]);
 		assert.deepEqual([got.stop, got.routine], [false, null]);
 		assert.deepEqual(got.character, { name: "Duchesse", manner: "Elizabethan English, warm.", greeting: "Good morrow, my lady." });
 		assert.equal((await queen()).via, "runner", "her runner is present");
@@ -423,10 +511,31 @@ describe("the queen", () => {
 		assert.deepEqual(heard.filter((m) => m.type === "queen").map((m) => [m.turn, m.text, m.done]),
 			[["t1", "Good morrow, my", false], ["t1", "Good morrow, my lady. Two cats need thee.", true]]);
 		assert.deepEqual((await tool(her, "comments", { cat: "queen" })).notes.map((n) => [n.author, n.text]),
-			[["charlotte", "Who needs me today?"], ["charlotte", "And the shop?"], ["queen", "Good morrow, my lady. Two cats need thee."]]);
+			[["owner", "Who needs me today?"], ["owner", "And the shop?"], ["queen", "Good morrow, my lady. Two cats need thee."]]);
 		assert.equal((await say({ turn: "t1", text: "", done: true })).status, 200, "an empty turn stores nothing");
 		assert.equal((await tool(her, "comments", { cat: "queen" })).notes.length, 3);
 		assert.equal((await runner("/api/runner/say", { text: "x".repeat(70000), done: true })).status, 413);
+	});
+
+	test("passes on what she is doing to an open café, trimmed, and keeps none of it", async () => {
+		const heard = [];
+		const ws = new WebSocket(base.replace("http", "ws") + "/ws", { headers: { Cookie: cookie, Origin: base } });
+		ws.onmessage = (e) => heard.push(JSON.parse(e.data));
+		await new Promise((ok, no) => { ws.onopen = ok; ws.onerror = no; });
+		const many = Array.from({ length: 20 }, (_, i) => ({ tool: "comments", cat: "cse_" + i, extra: "dropped" }));
+		assert.equal((await say({ turn: "t5", text: "", done: false, steps: [] })).status, 200);
+		assert.equal((await say({ turn: "t5", text: "", done: false, steps: [...many, null, { cat: "no tool" }, { tool: "x".repeat(99), action: 7 }] })).status, 200);
+		assert.equal((await say({ turn: "t5", text: "Done.", done: true, steps: many })).status, 200);
+		await sleep(300);
+		ws.close();
+		const q = heard.filter((m) => m.type === "queen");
+		assert.deepEqual(q[0].steps, [], "awake, nothing done yet");
+		assert.equal(q[1].steps.length, 10, "the last twelve, less the two that aren't steps");
+		assert.deepEqual(q[1].steps[0], { tool: "comments", cat: "cse_11" });
+		assert.deepEqual(q[1].steps.at(-1), { tool: "x".repeat(60) });
+		assert.equal(q[2].steps, undefined, "a finished turn has no steps");
+		const kept = (await tool(her, "comments", { cat: "queen" })).notes.at(-1);
+		assert.deepEqual([kept.text, kept.steps], ["Done.", undefined]);
 	});
 
 	test("stops the turn she is on when Charlotte says so", async () => {
@@ -442,9 +551,9 @@ describe("the queen", () => {
 		const env = { ...process.env, CATIO_URL: base, CATIO_TOKEN: TOKEN, CLAUDE_CODE_REMOTE_SESSION_ID: cat, NO_PROXY: "127.0.0.1", no_proxy: "127.0.0.1" };
 		const hook = (data) => execFileSync("python3", [REPORT], { input: JSON.stringify({ cwd: HERE, ...data }), env, encoding: "utf8" });
 		hook({ hook_event_name: "SessionStart", source: "startup" });
-		assert.equal((await tool(QUEEN, "comment", { cat, text: "x", author: "charlotte" })).refused, "only Charlotte writes as Charlotte");
+		assert.equal((await tool(QUEEN, "comment", { cat, text: "x", author: "owner" })).refused, "only the owner writes as the owner");
 		assert.equal((await tool(TOKEN, "comment", { cat, text: "x", author: "queen" })).refused, "only the queen's runner writes as the queen");
-		assert.equal((await tool(TOKEN, "manage", { cat, action: "wrap_up" })).refused, "only Charlotte manages a cat");
+		assert.equal((await tool(TOKEN, "manage", { cat, action: "wrap_up" })).refused, "only the owner manages a cat");
 		assert.ok((await tool(QUEEN, "comment", { cat, text: "Prithee, push thy work." })).id);
 		assert.equal((await tool(QUEEN, "manage", { cat, action: "wrap_up" })).ok, true);
 		// the session's hook hands the queen's words in as hers, and her request with them
@@ -462,7 +571,7 @@ describe("the queen", () => {
 
 	test("sets Charlotte homework whose answers unblock a cat", async () => {
 		const cat = "session_01Queen";
-		assert.match((await tool(TOKEN, "quiz", { for: cat, title: "x", questions: [{ q: "y" }] })).refused, /only the queen or Charlotte/);
+		assert.match((await tool(TOKEN, "quiz", { for: cat, title: "x", questions: [{ q: "y" }] })).refused, /only the queen or the owner/);
 		assert.match((await tool(QUEEN, "quiz", { title: "x", questions: [] })).refused, /questions is a list/);
 		const { id } = await tool(QUEEN, "quiz", { for: cat, title: "The menu fix", questions: [{ q: "Merge it?", options: ["Yes, merge it", "Not yet"] }, { q: "A word for the cat?", free: true }] });
 		assert.ok(id);
@@ -470,7 +579,7 @@ describe("the queen", () => {
 		assert.deepEqual(open.map((z) => [z.id, z.for, z.title, z.status, z.by, z.questions.length]), [[id, cat, "The menu fix", "set", "queen", 2]]);
 		assert.deepEqual(open[0].questions[0], { q: "Merge it?", options: ["Yes, merge it", "Not yet"], free: false });
 		assert.equal(open[0].questions[1].free, true);
-		assert.match((await tool(TOKEN, "answer", { quiz: id, answers: ["Yes, merge it", "Thanks"] })).refused, /only Charlotte/);
+		assert.match((await tool(TOKEN, "answer", { quiz: id, answers: ["Yes, merge it", "Thanks"] })).refused, /only the owner/);
 		assert.match((await tool(her, "answer", { quiz: id, answers: ["Yes, merge it"] })).refused, /one answer per question/);
 		const waiting = wait();   // her runner is waiting: handing in reaches the queen at once
 		await sleep(300);
@@ -478,11 +587,89 @@ describe("the queen", () => {
 		assert.deepEqual((await tool(her, "quizzes")).quizzes, []);
 		assert.equal((await tool(her, "quizzes", { done: true })).quizzes[0].answers[1], "Well done, thou good cat");
 		const box = await tool(TOKEN, "inbox", { agent: cat, mark: true });
-		assert.equal(box.notes.at(-1).author, "charlotte");
+		assert.equal(box.notes.at(-1).author, "owner");
 		assert.equal(box.notes.at(-1).text, "Homework handed in: The menu fix\n1. Merge it? \u2192 Yes, merge it\n2. A word for the cat? \u2192 Well done, thou good cat");
 		const got = await waiting;
 		assert.match(got.notes.at(-1).text, /^Homework handed in: The menu fix[\s\S]*\(for session_01Queen, told\)$/);
 		assert.match((await tool(her, "answer", { quiz: id, answers: ["a", "b"] })).refused, /already/);
+	});
+
+	test("deals litter box notes and decisions into the quest log, once each, and keeps her answers for filing", async () => {
+		const card = { kind: "litterbox", ref: "abc123def456", title: "loose-ends.md", note: "Rename her Mochi", from: "litterbox/loose-ends.md", hint: "pretty-project-portfolio",
+			questions: [{ q: "Which project is it for?", options: ["pretty-project-portfolio", "kittychat", "Settled: drop it"] }] };
+		assert.match((await tool(TOKEN, "quiz", card)).refused, /only the queen or the owner/);
+		assert.match((await tool(her, "quiz", { ...card, questions: [{ q: "Which?", free: true }] })).refused, /one question with 2 to 12 options/);   // a card the café couldn't answer
+		const open = await tool(QUEEN, "quiz", { for: "session_01Queen", title: "Still waiting", questions: [{ q: "Merge it?", options: ["Yes", "No"] }] });
+		const { id } = await tool(her, "quiz", card);
+		assert.equal(id, "litterbox-abc123def456");
+		const at = (await tool(her, "quizzes", { kind: "litterbox" })).quizzes[0].at;
+		await sleep(5);
+		assert.deepEqual(await tool(her, "quiz", { ...card, note: "Rename her Mochi, dealt again" }), { id });   // open: replaced, not doubled
+		assert.equal((await tool(her, "quizzes", { kind: "litterbox" })).quizzes[0].at, at, "a card dealt again moved in the deck");
+		assert.match((await tool(her, "quiz", { ...card, kind: "decisions" })).refused, /kind is unblock, litterbox or decision/);
+		await tool(her, "quiz", { kind: "decision", ref: "camera", title: "Which comes first?", hint: "The camera", questions: [{ q: "Which first?", options: ["The camera", "The gateway"] }] });
+		const lb = (await tool(her, "quizzes", { kind: "litterbox" })).quizzes;
+		assert.deepEqual(lb.map((z) => [z.id, z.kind, z.note, z.from, z.hint]), [[id, "litterbox", "Rename her Mochi, dealt again", "litterbox/loose-ends.md", "pretty-project-portfolio"]]);
+		assert.equal((await tool(her, "quizzes", { kind: "decision" })).quizzes[0].id, "decision-camera");
+		const before = (await tool(her, "comments", { cat: "queen" })).notes.length;
+		assert.deepEqual(await tool(her, "answer", { quiz: id, answers: ["kittychat"] }), { ok: true, told: false });
+		assert.equal((await tool(her, "comments", { cat: "queen" })).notes.length, before);   // a card isn't news for the queen
+		assert.deepEqual(await tool(her, "quiz", card), { id, done: true });   // dealt again after she answered: her answer stands
+		assert.deepEqual((await tool(her, "quizzes", { kind: "litterbox", done: true })).quizzes.map((z) => z.answers), [["kittychat"]]);
+		assert.match((await tool(TOKEN, "forget", { quizzes: [id] })).refused, /only the queen or the owner/);
+		assert.deepEqual(await tool(her, "forget", { quizzes: [id, "decision-camera", "nothing", open.id] }), { forgotten: 2 });
+		assert.ok((await tool(her, "quizzes")).quizzes.some((z) => z.id === open.id), "an open unblock quiz was forgotten");
+		assert.deepEqual((await tool(her, "quizzes", { done: true })).quizzes.filter((z) => z.kind !== "unblock" && z.kind), []);
+	});
+
+	test("counts her homework in the runner's wait, so her runner can say it on Charlotte's own desktop", async () => {
+		// a word to her brings the wait back at once, instead of its full 25 seconds
+		const now = async () => { await tool(her, "comment", { cat: "queen", text: "." }); return (await wait()).homework; };
+		const before = await now();
+		assert.equal(typeof before, "object", "the counts come with every wait, however few");
+		await tool(her, "quiz", { kind: "litterbox", ref: "where-does-this-go", title: "Where does this go?", note: "One note to sort",
+			questions: [{ q: "Which project?", options: ["kittychat", "Settled: drop it"] }] });
+		const after = await now();
+		assert.equal(after.litterbox || 0, (before.litterbox || 0) + 1, "one more note to sort");
+		assert.ok(Object.values(after).every((n) => Number.isInteger(n) && n > 0), "counts by kind, and nothing else");
+	});
+
+	test("brings a design tokens file into her look and gives it back, for a session with the Figma connector", async () => {
+		const FIX = join(HERE, "../test/fixtures/");
+		const figma = JSON.parse(readFileSync(FIX + "tokens-figma.json", "utf8")), want = JSON.parse(readFileSync(FIX + "tokens-figma.expected.json", "utf8"));
+		const sorted = (o) => Object.fromEntries(Object.entries(o).sort());
+		const page = readFileSync(join(HERE, "../../catio/index.html"), "utf8");
+		const count = (page.slice(page.indexOf("const TOKENS = {"), page.indexOf("};", page.indexOf("const TOKENS = {"))).match(/"--[\w-]+": \[/g) || []).length;
+		const hexOf = (f, g, n) => f[g][n].$value.hex;
+		// anyone in the house may read it: every token of The look, in its groups, at the café's own values
+		const first = await tool(TOKEN, "tokens");
+		assert.equal(first.mode, "light");
+		assert.equal(Object.values(first.file).filter((g) => g && typeof g === "object").reduce((n, g) => n + Object.keys(g).filter((k) => !k.startsWith("$")).length, 0), count);
+		const ink = (/--ink:\s*(#[0-9A-Fa-f]{6})/.exec(page) || [])[1];
+		assert.equal(hexOf(first.file, "colours", "ink"), ink.toLowerCase());
+		// only she and the queen change her look: a leaked agents' key can't restyle the café
+		assert.match((await tool(TOKEN, "set_tokens", { file: figma })).refused, /only the owner or the queen/);
+		// her Figma file: what the page, skin.py and catio_mcp.py find in it, and kept as The look keeps it
+		const r = await tool(her, "set_tokens", { file: figma });
+		assert.deepEqual([r.mode, r.tokens, r.foreign, r.refused], ["light", Object.keys(want.found).length, want.foreign, want.refused]);
+		const theme = (await (await api("/api/db")).json()).docs["skin/theme"];
+		assert.deepEqual(sorted(theme.tokens), sorted(want.found));
+		assert.equal(hexOf((await tool(TOKEN, "tokens")).file, "colours", "ink"), "#1d3557");
+		// the queen sets the night: dark says only what differs, and light stays
+		assert.equal((await tool(QUEEN, "set_tokens", { mode: "dark", file: JSON.stringify({ colours: { ink: { $value: "#eeeeee" } } }) })).changed, 1);
+		assert.equal((await tool(QUEEN, "set_tokens", { mode: "dark", file: { colours: { grass: { $value: "#5A8F29" } } } })).changed, 0);   // as in light: not kept
+		assert.deepEqual((await (await api("/api/db")).json()).docs["skin/theme"].dark, { "--ink": "#eeeeee" });
+		assert.equal(hexOf((await tool(TOKEN, "tokens", { mode: "dark" })).file, "colours", "ink"), "#eeeeee");
+		assert.equal(hexOf((await tool(TOKEN, "tokens", { mode: "dark" })).file, "colours", "grass"), "#5a8f29");
+		// replace: the file is the whole of light
+		await tool(her, "set_tokens", { replace: true, file: { colours: { grass: { $value: "#5A8F29" } } } });
+		assert.deepEqual((await (await api("/api/db")).json()).docs["skin/theme"].tokens, { "--grass": "#5A8F29" });
+		assert.match((await tool(her, "set_tokens", { file: { brand: { red: { $value: "#ff0000" } } } })).refused, /none of the café's tokens \(1 of its own\)/);
+		assert.match((await tool(her, "set_tokens", { mode: "dusk", file: figma })).refused, /mode is light or dark/);
+		// back as it was: nothing of hers left in either mode, no theme kept
+		await tool(her, "set_tokens", { replace: true, file: { colours: { ink: { $value: ink } } } });
+		await tool(her, "set_tokens", { mode: "dark", replace: true, file: { colours: { ink: { $value: ink } } } });
+		assert.equal((await (await api("/api/db")).json()).docs["skin/theme"], undefined);
 	});
 
 	test("runs a routine once when it comes due", async () => {
@@ -539,7 +726,7 @@ describe("the gateway", () => {
 		assert.equal(init.result.serverInfo.name, "catio");
 		const { result } = await rpc(TOKEN, "tools/list", {});
 		assert.deepEqual(result.tools.map((t) => t.name),
-			["house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "decide", "answer"]);
+			["house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "decide", "tokens", "set_tokens", "answer"]);
 		const rules = await tool(TOKEN, "house_rules");
 		assert.ok(rules.rules.some((r) => r.id === "ship"));
 		assert.equal((await tool(TOKEN, "nope")).rpcError.code, -32602);
@@ -642,9 +829,11 @@ describe("the gateway", () => {
 		assert.equal(me.wake, undefined);
 
 		// her notes: an agent can't speak as her, and the hook is handed each one once
-		assert.equal((await tool(TOKEN, "comment", { cat, text: "do it", author: "charlotte" })).refused, "only Charlotte writes as Charlotte");
+		assert.equal((await tool(TOKEN, "comment", { cat, text: "do it", author: "owner" })).refused, "only the owner writes as the owner");
+		assert.equal((await tool(TOKEN, "comment", { cat, text: "do it", author: "charlotte" })).refused, "only the owner writes as the owner", "the old name is the owner's too");
+		assert.equal((await tool(TOKEN, "comment", { cat, text: "do it", author: "boss" })).refused, "author is owner, agent, session or queen");
 		assert.ok((await tool(her, "comment", { cat, text: "First, the tests." })).id);
-		assert.ok((await tool(her, "comment", { cat, text: "Then push." })).id);
+		assert.ok((await tool(her, "comment", { cat, text: "Then push.", author: "charlotte" })).id, "an older page still writes as charlotte");
 		assert.equal((await tool(TOKEN, "inbox", { agent: cat })).notes.length, 2);
 		const handed = await tool(TOKEN, "inbox", { agent: cat, mark: true });
 		assert.deepEqual(handed.notes.map((n) => n.text), ["First, the tests.", "Then push."]);
@@ -654,8 +843,8 @@ describe("the gateway", () => {
 		// an answer
 		assert.ok((await tool(TOKEN, "comment", { cat, text: "Done.", author: "session" })).id);
 		const talk = (await tool(her, "comments", { cat })).notes;
-		assert.deepEqual(talk.map((n) => [n.author, n.text]), [["charlotte", "First, the tests."], ["charlotte", "Then push."],
-			["charlotte", "And thanks."], ["session", "Done."]]);
+		assert.deepEqual(talk.map((n) => [n.author, n.text]), [["owner", "First, the tests."], ["owner", "Then push."],
+			["owner", "And thanks."], ["session", "Done."]], "stored as owner, the old name included");
 		assert.deepEqual((await tool(her, "comments", { cat, limit: 1 })).notes.map((n) => n.text), ["Done."]);
 		// what she writes while the session is answering still gets handed in
 		assert.ok((await tool(her, "comment", { cat, text: "Wait, one more." })).id);
@@ -664,7 +853,7 @@ describe("the gateway", () => {
 		assert.equal((await tool(TOKEN, "inbox", { agent: cat })).notes.length, 0);
 
 		// requests: only she makes them, and each is handed over once
-		assert.equal((await tool(TOKEN, "manage", { cat, action: "wrap_up" })).refused, "only Charlotte manages a cat");
+		assert.equal((await tool(TOKEN, "manage", { cat, action: "wrap_up" })).refused, "only the owner manages a cat");
 		assert.equal((await tool(her, "manage", { cat: "nobody", action: "pause" })).refused, "no such agent");
 		assert.match((await tool(her, "manage", { cat, action: "dance" })).refused, /^action is/);
 		assert.equal((await tool(her, "manage", { cat, action: "wrap_up" })).ok, true);
@@ -678,7 +867,7 @@ describe("the gateway", () => {
 
 		// files: hers only, small ones only, handed over once, picked up whole
 		const bytes = randomBytes(3000).toString("base64");
-		assert.equal((await tool(TOKEN, "drop_file", { name: "a.bin", base64: bytes, for: cat })).refused, "only Charlotte drops files on a cat");
+		assert.equal((await tool(TOKEN, "drop_file", { name: "a.bin", base64: bytes, for: cat })).refused, "only the owner drops files on a cat");
 		assert.equal((await tool(her, "drop_file", { name: "a.bin", base64: "!!!!", for: cat })).refused, "base64 isn't valid");
 		const big = Buffer.alloc(1024 * 1024 + 1).toString("base64");
 		assert.match((await tool(her, "drop_file", { name: "big.bin", base64: big, for: cat })).refused, /1 MiB/);
@@ -724,14 +913,23 @@ describe("the gateway", () => {
 		assert.match((await tool(TOKEN, "decide", { state: "", preset: "easy" })).refused, /state is empty/);
 		assert.match((await tool(TOKEN, "decide", { state: "x", preset: "hard" })).refused, /preset is one of easy/);
 		assert.equal(asked.length, n);
+		// under the caller's floor the decider hasn't decided: it neither agrees nor disagrees, and ref names the file
+		await tool(TOKEN, "decide", { state: { file: "notes.md" }, kind: "sort", old: "shop", floor: 0.9, ref: "b-1",
+			questions: { cat: { type: "choice", criteria: { shop: "the shop", catio: "the café" } } } });
 		// the log: only the call with a kind, with old and whether the two agreed; the café's database shows it
 		const docs = (await (await fetch(base + "/api/db", { headers: { Cookie: herCookie } })).json()).docs;
 		const log = Object.entries(docs).filter(([p]) => p.startsWith("decisions/"));
-		assert.equal(log.length, 1);
+		assert.equal(log.length, 2);
+		log.sort((x, y) => x[1].at - y[1].at);
 		assert.equal(log[0][1].kind, "sort");
 		assert.equal(log[0][1].old, "catio");
 		assert.equal(log[0][1].agree, false);
+		assert.equal(log[0][1].sure, true);
 		assert.equal(log[0][1].answers.cat.choice, "shop");
+		assert.equal(log[1][1].verdict, "shop");
+		assert.equal(log[1][1].sure, false);
+		assert.equal(log[1][1].agree, null);
+		assert.equal(log[1][1].ref, "b-1");
 	});
 
 	test("takes a session's reports from its hook, and hands her messages in at its Stop", async () => {
@@ -758,7 +956,7 @@ describe("the gateway", () => {
 
 		execFileSync("python3", [REPORT, "say", "Added."], { env });
 		assert.deepEqual((await tool(her, "comments", { cat })).notes.map((n) => [n.author, n.text]),
-			[["charlotte", "Add a test for the hook."], ["session", "Added."]]);
+			[["owner", "Add a test for the hook."], ["session", "Added."]]);
 	});
 
 	test("waits after five wrong passwords, even for the right one", async () => {
@@ -787,12 +985,78 @@ describe("the bootstrap key", () => {
 		// itself, so it is still there.
 		stop();
 		await new Promise((r) => setTimeout(r, 500));
+		// a house from before the rename holds the owner's notes as "charlotte": put one back into the persisted
+		// SQLite (and forget that the house renamed), as a real house would have on the first deploy
+		const dbs = [];
+		const walk = (d) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (f.endsWith(".sqlite")) dbs.push(p); } };
+		walk(state);
+		const flipped = execFileSync("python3", ["-c", `
+import sqlite3, sys
+n = 0
+for p in sys.argv[1:]:
+    c = sqlite3.connect(p)
+    try:
+        if c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='notes'").fetchone():
+            n += c.execute("UPDATE notes SET author = 'charlotte' WHERE cat = 'session_01Test' AND author = 'owner'").rowcount
+            c.execute("DELETE FROM state WHERE key = 'notesOwner'")
+            c.commit()
+    finally:
+        c.close()
+print(n)`, ...dbs], { encoding: "utf8" }).trim();
+		assert.ok(+flipped >= 3, "old-name rows planted: " + flipped);
 		await start();
 		assert.equal((await fetch(base + "/")).status, 200);
 		assert.equal((await mcp()).status, 401);
 		assert.deepEqual(await names(), ["queen"]);
+		const talk = await (await api("/api/tools/comments", { method: "POST", body: JSON.stringify({ cat: "session_01Test" }) })).json();
+		assert.ok(talk.notes.length >= 3 && talk.notes.every((n) => n.author !== "charlotte"), "the house renamed its old notes on waking: " + JSON.stringify(talk.notes.map((n) => n.author)));
 		assert.equal((await fetch(base + "/api/runner/say", { method: "POST", headers: { Authorization: "Bearer " + QUEEN, "Content-Type": "application/json" }, body: JSON.stringify({ turn: "t9", text: "", done: true }) })).status, 200);
 		const asHer = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "charlotte", password: PASSWORD }), redirect: "manual" });
 		assert.equal(asHer.status, 429, "the lock from the gateway suite is in the registry, not in the isolate");
+	});
+});
+
+// A fresh gateway with no account says which of the two is wrong with CATIO_PASSWORD: missing, or too short.
+describe("no account yet", () => {
+	test("says whether CATIO_PASSWORD is missing or too short", async () => {
+		for (const [password, says, not] of [["", /CATIO_PASSWORD isn(?:'|&#39;)t set for this Worker/, /under 16/], ["too-short", /CATIO_PASSWORD is under 16 characters/, /t set for this Worker/]]) {
+			stop();
+			await new Promise((r) => setTimeout(r, 500));
+			const dir = mkdtempSync(join(tmpdir(), "catio-gateway-empty-"));
+			try {
+				await start({ password, dir });
+				const page = await fetch(base + "/");
+				assert.equal(page.status, 503);
+				const text = await page.text();
+				assert.match(text, says);
+				assert.doesNotMatch(text, not);
+			} finally {
+				rmSync(dir, { recursive: true, force: true });
+			}
+		}
+	});
+
+	// The first outside run (docs/plan.md, "The first player"): his page said "no account yet" and he couldn't tell
+	// which secret was wrong. The page now lights each one the Worker sees, never its value, and says the handle.
+	test("lights each secret the Worker sees, and says what the handle will be", async () => {
+		for (const [vars, says] of [[[], [/CATIO_PASSWORD isn(?:'|&#39;)t set for this Worker/, /CATIO_HANDLE isn(?:'|&#39;)t set, so your handle will be charlotte/,
+			/CATIO_TOKEN is set\./, /CATIO_QUEEN is set\./, /This is what the Worker at 127\.0\.0\.1:\d+ sees/]],
+		[["CATIO_HANDLE:Dog_Den"], [/CATIO_HANDLE isn(?:'|&#39;)t a handle/]]]) {
+			stop();
+			await new Promise((r) => setTimeout(r, 500));
+			const dir = mkdtempSync(join(tmpdir(), "catio-gateway-empty-"));
+			try {
+				await start({ password: "", dir, vars });
+				for (const path of ["/", "/signup"]) {
+					const page = await fetch(base + path, path === "/signup" ? { method: "POST", headers: { Origin: base }, body: new URLSearchParams({ invite: "x" }) } : {});
+					assert.equal(page.status, 503, path);
+					const text = await page.text();
+					for (const re of says) assert.match(text, re, path);
+					assert.doesNotMatch(text, /her-password-|agent-key-|queen-key-/, "a light never shows a secret's value");
+				}
+			} finally {
+				rmSync(dir, { recursive: true, force: true });
+			}
+		}
 	});
 });

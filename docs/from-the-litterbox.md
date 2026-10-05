@@ -49,6 +49,65 @@ from. Edit them freely: the sorter only adds, and never files a note that is alr
 - **"Which comes first" in `docs/plan.md`'s list is settled.** Issue #24 chose the page reading the gateway, and
   version 21 did it. By the plan's order, phase 2 (the camera) is next. *— litterbox/2026-10-02-issue-24-report.md*
 
+### 2 October 2026: the chat that set up the gateway, moved the café onto it and planned the queen
+
+- **A paid voice for the queen?** The free browser voice is what's built (Chrome or Edge's en-GB voices,
+  `speechSynthesis`). A paid one (ElevenLabs or OpenAI) would go through a gateway proxy keyed by a secret;
+  the page's `speak()` is one function so it can be a second branch. Her call, later. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **Where the runner lives after her PC,** with October 2026 prices (also in `docs/plan.md`, phase 6):
+  - Cloudflare Containers next to the gateway: $5/month for Workers Paid plus about 7¢ a working hour; sleeps
+    when idle, and its disk empties when it sleeps. Cloudflare's own Claude Code guide uses an API key, so
+    her plan's sign-in must be checked there first. Recommended.
+  - Hetzner CAX11: €5.99 + €0.50 a month, keeps its files, near her in France.
+  - Oracle Always Free ARM: free, 2 cores and 12 GB since June 2026; needs a card, and idle machines are
+    reclaimed.
+  - A Raspberry Pi: €80–100 once.
+
+  Claude Code needs 4 GB. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **Set the CATIO connector's tools to Always allow** (claude.ai → Customize → Connectors) if not done yet:
+  otherwise the artifact page's live read asks before every call, and the House menu says so. A session can't
+  check it. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **Three old messages in the gateway café still carry a "queued" label.** The seven outbox posts were
+  delivered from a session after the café's data was copied in, and the agents' key can't edit her data, on
+  purpose. Harmless. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+### 3 October 2026: owner on the wire, shipped, and what it left
+
+- **A second Worker, `pretty-project-portfolio`, serves `catio/` to anyone.** It appeared at 07:04 UTC and every
+  merge to `main` redeploys it, so Cloudflare's Workers Builds looks connected to this repo with no config of its
+  own (there is no wrangler file at the root). At its workers.dev address, with no sign-in, it serves the café page
+  (`main`'s `catio/index.html`), `art/furniture.png` and `data/rooms.json`. The licensed art, `data/sessions.json`
+  and the gateway's routes all answer 404, so everything it serves is already public in this repo, and the page
+  there runs on its localhost fallback with nothing in it. Delete it, keep it, or put it behind the sign-in: in her
+  homework. *— litterbox/2026-10-03-owner-on-the-wire-loose-ends.md*
+
+- **"Don't touch the artifact"** (her rule, 3 October: "I don't want you touching the artifact again. Run
+  everything through the cafe's deployed address and the repo"). ~~The artifact stays at version 32.~~: on 4 October she asked for republishes herself (version 33 added `quizzes` and `answer` to the stored capabilities, version 34 the decider-log fix), and later ones followed. Open: whether
+  CLAUDE.md records the rule (its Republishing section and post-publish checks still tell sessions to publish),
+  whether the catio skill, audits and project maps move off the artifact's database onto the gateway, and whether
+  the litter box quiz and decisions quiz count as artifacts too. In her homework. *— litterbox/2026-10-03-owner-on-the-wire-loose-ends.md*
+
+- **No line from her has reached the café on its own address since the rename deployed.** The gateway's tests
+  cover a note written as `owner`; one real line to the queen from the café would show it end to end. In her
+  homework. *— litterbox/2026-10-03-owner-on-the-wire-loose-ends.md*
+
+### 4 October 2026: the queen's card, held for her
+
+- ~~**PR #64 is ready and held for her, not merged.**~~: merged on 4 October ("Make this window useable": the queen's card's height). https://github.com/charredlatte/Pretty-Project-Portfolio/pull/64 *— litterbox/2026-10-04-queen-card-held-for-her.md*
+
+- ~~**The café still shows the old card until the page is republished.**~~: folded into the round of 5 October's note on the claude.ai café trailing `main`. Both #62 and #64 only change the
+  repository: the artifact at `artifacts.json`'s `kittychat-cafe` keeps the page it was last published with.
+  A session with the licensed art (read it back from the artifact, per CLAUDE.md "Republishing") needs to
+  publish `catio/index.html` to that URL for any of this to reach her. *— litterbox/2026-10-04-queen-card-held-for-her.md*
+
+### Held for review: charredlatte/Pretty-Project-Portfolio#72
+
+- [x] [charredlatte/Pretty-Project-Portfolio#72](https://github.com/charredlatte/Pretty-Project-Portfolio/pull/72) merged on 4 October; it was held for her review: guesses: none. Left for later and not in this change: run.sh doesn't notice a taken port, and the test list doesn't include the catio-app header build.
+  *— litterbox/held-pretty-project-portfolio-72.md, 2026-10-04*
+
 ## Ideas not built
 
 ### What's missing: art and sound for the Catio
@@ -264,6 +323,16 @@ These aren't art to get, but they're open questions on what you already have: *�
 
 - **Audits.** The page shows `audits/<repo>` in filing cabinets; nothing writes them until the plugin is on. *— litterbox/loose-ends.md*
 
+### 2 October 2026: the chat that set up the gateway, moved the café onto it and planned the queen
+
+- **Managed Agents sessions** started and chatted with entirely from the café: separate from her claude.ai
+  sessions and billed per use through an API key. Offered 2 October, not chosen. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **The file sorter and starting sessions from the café** (`harness/gateway/README.md`, "Not here (yet)");
+  the runner brings the second. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **Accounts** (`docs/accounts.md`): the queen's key is one more key for the Registry, with the role `queen`. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
 ## Facts learned
 
 ### Loose ends › Facts learned the hard way
@@ -330,6 +399,85 @@ These aren't art to get, but they're open questions on what you already have: *�
 - **The Catio's localhost copy goes in her Google Drive**, in My Drive › Claude › KittyChat Cafe (local copy),
   not on her USB stick: it was never on the stick. The Drive connector can't upload a zip that size, so Claude
   sends `catio-local.zip` in the chat and she saves it in that folder. *— litterbox/2026-10-02-catio-first-build.md*
+
+### 2 October 2026: the chat that set up the gateway, moved the café onto it and planned the queen
+
+- **Cloudflare's bot check (error 1010, `browser_signature_banned`) refuses Python's default User-Agent,** so
+  every script that calls the gateway names itself (`kittychat-report/1`, `kittychat-move-in/1`, the runner
+  `kittychat-queen/1`). The hook's reports were dropped silently until PR #26. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **Cloudflare's "Import a repository" fills the Worker's name with the repo's.** It must be `catio-gateway`,
+  to match `wrangler.jsonc`, or later deploys fail. A Worker under the wrong name is deleted and imported
+  again (renaming is risky: the Durable Object is tied to the name), and its leftover KV namespace deleted
+  too. Done 2 October. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **A Worker secret counts only as type Secret, under Production, and after Deploy** (saving a version isn't
+  live). A 401 `invalid_token` on `/mcp` means the Worker's `CATIO_TOKEN` differs from the environment's:
+  copy it with the password manager's copy button (selecting the text can pick up a space) and paste it
+  again. That was the cause on 2 October. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **The gateway's old home page said one fixed line whatever the state,** so it told her nothing (now it is
+  the café). Check a deploy from a session: the sign-in page's wording, `/mcp` with the key, `list_agents`.
+  Never by trying a password: a wrong one from a check counts toward the five-try lock (one was spent on
+  2 October). *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **Cloud sessions don't install the plugin from the repo's `.claude/settings.json`.** It goes in the
+  environment's setup script, with the full `https://…git` marketplace address (the short form hung).
+  Verified 2 October: the session restarted with the rules on, and the audit and browser-preflight gates held
+  until their skills ran. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **Claude Code Remote's `send_message` works from a session** where the page's call is refused: the seven
+  outbox posts of 30 September were delivered that way on 2 October (four messages, one archive, two already
+  done) and marked delivered. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **Secrets on her PC:** in PowerShell,
+  `$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); -join ($b | % { $_.ToString('x2') })`;
+  in a Codespace, `openssl rand -hex 32`. Chrome's password manager has an Add button at
+  `chrome://password-manager/passwords`; passwords.google.com doesn't. Both entries are filed under the
+  gateway's address. Her Codespace is "symmetrical space giggle"; VS Code's Chat panel sends what's typed to
+  an AI, so secrets go in the terminal. Her PC's VS Code opens in `G:\My Drive\Claude`. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **Claude Code headless, for the runner:**
+  `claude -p --resume <id> --output-format stream-json --verbose --include-partial-messages --append-system-prompt-file … --mcp-config '{"mcpServers":{"catio":{"type":"http","url":"…/mcp","headers":{"Authorization":"Bearer …"}}}}' --allowedTools mcp__catio --permission-prompts none --max-turns 30`.
+  `--bare` needs an API key, so it isn't used: she signs in with her plan. SIGINT ends a turn (on Windows,
+  `CTRL_BREAK_EVENT` to a child started with `CREATE_NEW_PROCESS_GROUP`). Cross-session messaging needs a
+  session connected to Remote Control to pass messages on: untested. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **A Worker holds a request as long as the client stays connected,** so the runner's 25-second long poll is
+  fine on the free plan; a Durable Object alarm wakes it for a routine on time. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **Voice in the browser:** `webkitSpeechRecognition` is Chrome and Edge only (voice to text);
+  `speechSynthesis` has en-GB voices on Windows (Microsoft Hazel, Susan). Both free; hidden where the browser
+  lacks them. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **The ship check reads the branch's upstream:** a feature branch tracking `main` reports every commit as
+  unpushed. `git branch --set-upstream-to=origin/<branch>` fixes it. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **Her choices of 2 October:** the café on its own address (over talking in the cats' cards, or Managed
+  Agents sessions billed per use through an API key); the runner on her PC for now; the free browser voice
+  now. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+### 3 October 2026: owner on the wire, shipped, and what it left
+
+- **The rename reached her real house.** After PR #50 deployed, every note in the queen's conversation reads
+  `owner` or `queen`, including ones written as `charlotte` two hours earlier: the House's one-time migration ran. *— litterbox/2026-10-03-owner-on-the-wire-loose-ends.md*
+
+- **GitHub won't change the base of a stacked pull request** ("Cannot change the base branch because the pull
+  request is part of a stack") once the one under it has closed. Open a new pull request from the same branch:
+  that is how #42 became #50. *— litterbox/2026-10-03-owner-on-the-wire-loose-ends.md*
+
+### 4 October 2026: the queen's card, held for her
+
+- **The e2e suite had not parsed since the quest-log merge.** The merge that brought in #58 dropped the two
+  lines closing the scene's test block, so `catio/test/run.sh` died with `SyntaxError: Unexpected end of
+  input` before a single check ran. Both branches fixed it independently within the hour. Worth knowing that
+  a merge can silently take a suite to zero: nothing reported a failure, because nothing ran. *— litterbox/2026-10-04-queen-card-held-for-her.md*
+
+- **`max-height: <percentage>` resolves to `none` against an indefinite height.** Two separate bugs in the
+  queen's card came from this: `.homework { max-height: 46% }` in a grid row sized `auto` (so homework took
+  the whole talk and the conversation had no height at all), and `.owner svg { max-height: 100% }` on an
+  auto-height grid item (so the owner was never capped and her head was clipped). `fit-content()` on the
+  track is what actually caps a grid row. *— litterbox/2026-10-04-queen-card-held-for-her.md*
 
 ## Findings
 
@@ -789,3 +937,41 @@ switch. Seven new e2e checks glide the mouse in small steps. Tested by moving th
     and `report.py` reports it. The setup script's plugin install is the first suspect. This is not confirmed.
   - The café shows them as finished cats.
   - Fix: `report.py` skips a run that never had a prompt, or the café hides `cli-` cats that never had one. *— litterbox/2026-10-02-issue-24-report.md*
+
+### 2 October 2026: the chat that set up the gateway, moved the café onto it and planned the queen
+
+- **The serving model fell back to Opus 5.5 for one turn** during stage 1 ("Try again"); the work was
+  re-checked and nothing was lost. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+- **The artifact's database and the gateway café's are two copies that don't share changes** (the "queued"
+  labels above are one consequence); `CLAUDE.md` says so. *— litterbox/2026-10-02-gateway-cafe-queen.md*
+
+### 3 October 2026: owner on the wire, shipped, and what it left
+
+- **The review of 3 October found six bugs in the café's gateway mode and the queen's key** (filed from
+  `2026-10-03-review.md`). Whether a cat fixes them now is in her homework. *— litterbox/2026-10-03-owner-on-the-wire-loose-ends.md*
+
+### Review of 3 October, outside PR #37
+
+- **In gateway mode the café can lose its reporting cats until reload.** `refreshAgents()` in `catio/index.html` keeps
+  the claude.ai fallback: any `list_agents` error other than `server_unavailable` or `rate_limited` flips `S.host` to
+  `host:catio`, `cafe/runtime.js` then throws `gateway_only`, which isn't in the reset list, so the gateway is never
+  retried. Skip the fallback when `VIA_GATEWAY`. *— litterbox/2026-10-03-review.md*
+
+- **The café's first sync is never retried.** In `harness/gateway/cafe/runtime.js`, if the first `GET /api/db` fails
+  with anything but a 401, `loaded` stays false, no snapshot fires and the WebSocket's first `onopen` skips `sync()`:
+  an empty café with no error until a reload. Retry the sync on `onopen`, or show the error. *— litterbox/2026-10-03-review.md*
+
+- **A document pushed during the café's first sync is lost until it changes again.** `sync()` in
+  `harness/gateway/cafe/runtime.js` replaces the whole store with the `GET /api/db` reply, so a `doc` push that lands
+  while the GET is in flight (on reconnect) is overwritten. Apply pushes received during the sync after it. *— litterbox/2026-10-03-review.md*
+
+- **The queen's seeded key dies on a password reset.** `setPassword` in `harness/gateway/src/registry.js` deletes the
+  `CATIO_QUEEN`-seeded key, and `seedQueen` reruns only at isolate boot, so after an admin reset the runner gets 401
+  until the Worker restarts. Reseed in `setPassword`, or on every `/api/runner/wait` 401. *— litterbox/2026-10-03-review.md*
+
+- **`seedQueen` ignores `addKey` returning false.** An ordinary agent key named "queen" makes the secret silently never
+  become a queen key. Fail loudly, or name the seeded key after the role. *— litterbox/2026-10-03-review.md*
+
+- **A handed note can be lost.** `queenReady` in `harness/gateway/src/house.js` marks Charlotte's notes handed before
+  the runner's response completes; a dropped response loses the message. Mark on the runner's ack. *— litterbox/2026-10-03-review.md*

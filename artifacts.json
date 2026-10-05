@@ -1,5 +1,5 @@
 {
-  "_comment": "The published pages. Republish each to its URL (Artifact publish with url), so what lives in its database carries over: the café's rooms, renames, looks and adopted chats; the litter box quiz's cards and her answers (litterbox/README.md); the decisions quiz's deck and her answers (the same page, its own database).",
+  "_comment": "The published pages. Republish the café to its URL (Artifact publish with url), so what lives in its database carries over: its rooms, renames, looks and adopted chats. Her two quiz pages, the litter box quiz and the decisions quiz, are retired now that the queen's quest log deals the cards; their URLs stay for the answers in their databases (litterbox/README.md).",
   "kittychat-cafe": "https://claude.ai/artifact/KHiWnmr2e3iYHGXiUX8yDe",
   "litter-box-quiz": "https://claude.ai/artifact/NtSRbA6EL9tCrNUgn5gtvg",
   "decisions-quiz": "https://claude.ai/artifact/KAgrKyvQJBxDQ3sETEikLU"

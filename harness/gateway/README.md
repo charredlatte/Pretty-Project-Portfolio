@@ -10,7 +10,7 @@ keeps its cats, their conversations and the files waiting for them in one SQLite
 
 ```
  Claude Code sessions ── report.py hook ──┐
- Codex, Gemini, Cursor… ── MCP + key ─────┼──►  catio-gateway (Cloudflare)  ◄── claude.ai: the "Catio" connector,
+ Codex, Gemini, Cursor… ── MCP + key ─────┼──►  catio-gateway (Cloudflare)  ◄── claude.ai: the "CATIO" connector,
  her PC's sessions ── report.py hook ─────┘      /mcp, /authorize, /token        which the page reads as her
 ```
 
@@ -20,15 +20,17 @@ their own cats and café. Two kinds of caller, told apart by how they sign in:
 - **A user, through claude.ai.** The gateway is a custom connector, signed in once with their handle and password
   (OAuth). They read every cat in their house, write as its owner, drop files and manage cats.
 - **Agents and the sessions' hooks.** They send one of the user's agents' keys as a bearer token. They report,
-  read and answer, but never as the owner: only the owner writes as `charlotte` (the owner's name on the wire),
+  read and answer, but never as the owner: only the owner writes as `owner` (`charlotte` is still taken as the
+  owner's old name, and stored as `owner`),
   drops files and manages. So a key that leaks out of a session can't put words in her mouth to another one.
 
 The first account is `charlotte`'s, made from the two secrets below the first time the gateway runs with accounts;
-it is the admin, which uploads the café's art and creates the other accounts.
+it is the admin, which uploads the café's art, creates the other accounts and invites people to sign up.
 
 ## Setting it up (once)
 
-1. **Cloudflare.** Workers & Pages → Create → Import a repository → `charredlatte/Pretty-Project-Portfolio`.
+1. **Cloudflare.** Workers & Pages → Create → Import a repository → `charredlatte/Pretty-Project-Portfolio`
+   (on a gateway that isn't hers, your fork of it).
    - Name it `catio-gateway`. Cloudflare fills in the repo's name, `pretty-project-portfolio`: replace it, because
      the Worker's name must match `wrangler.jsonc` or later deploys fail. A Worker made under the wrong name is
      simplest deleted (Settings → Danger zone) and imported again; delete its leftover KV namespace too.
@@ -44,8 +46,13 @@ it is the admin, which uploads the café's art and creates the other accounts.
      password manager and nowhere else.
    - `CATIO_QUEEN`: the queen's runner's own key (below), 32 random characters or more; also on the PC that runs
      her.
+   - `CATIO_HANDLE`, on a gateway that isn't hers: the handle you sign in with. Unset, the first account is
+     `charlotte`, whatever your own name is.
 
-   Never paste any of them into a chat.
+   Never paste any of them into a chat. `CATIO_PASSWORD` and `CATIO_HANDLE` make the first account once, on the first
+   request after the deploy: changing either afterwards changes nothing, so sign in with the ones it was made from. To
+   start again with no accounts, import the repository again as a new Worker and set `name` in `wrangler.jsonc` to
+   that Worker's name: Workers Builds refuses a build when the two differ.
 3. **Claude's environments.** In a cloud session, open the environment menu in the session's title bar → Edit. In
    each environment her sessions use:
    - add two environment variables, `CATIO_URL` = the address above and `CATIO_TOKEN` = the agents' key;
@@ -54,25 +61,40 @@ it is the admin, which uploads the café's art and creates the other accounts.
      reports is in it, and a cloud session doesn't install it by itself.
 
    On her PC, the same two variables go under `"env"` in `~/.claude/settings.json`, for local sessions.
-4. **claude.ai.** Customize → Connectors → Add → Custom → Web. Name it `Catio`, with the URL `<address>/mcp`. A
-   window opens on the gateway's sign-in page: type `CATIO_PASSWORD` and choose *Let it in*. Then open the
-   connector and set its tools to **Always allow**. That setting is the one Claude Code Remote, being built in,
-   doesn't have, and the reason the page's live read is refused today.
-5. Tell Claude it's done. The page is then republished to read the `Catio` connector (docs/plan.md, phase 5).
+4. **claude.ai.** Customize → Connectors → Add → Custom → Web. Name it `CATIO`, with the URL `<address>/mcp`: the
+   name matters, because the page looks for a connector called `CATIO` exactly. A window opens on the gateway's
+   sign-in page: type the handle (`CATIO_HANDLE`, or `charlotte` when it is unset) and `CATIO_PASSWORD`, and choose
+   *Let it in*. Then open the connector and set its tools to **Always allow**. That setting is the one Claude Code
+   Remote, being built in, doesn't have, and the reason the page's live read is refused today.
+5. Tell Claude it's done. The page is then republished to read the `CATIO` connector (docs/plan.md, phase 5).
 
-To check: the address alone asks for her handle and password (the café's sign-in), so it says the Worker is up. Both sign-ins
-say when `CATIO_PASSWORD` is missing. The key is right when an agent's call to `/mcp`
+To check: the address alone asks for her handle and password (the café's sign-in), so it says the Worker is up. Until
+there is an account, both sign-ins show the setup's warning lights instead of a form: each of the four secrets as this
+Worker sees it (set, missing, too short, not a handle; never its value), the handle the account will have, and what to
+fix. The key is right when an agent's call to `/mcp`
 gets an answer instead of a 401 `invalid_token`. Once a session has started in an environment with the two
 variables and the plugin, it is in `list_agents`.
 
 ## Accounts
 
+- **Sign-up, by invite:** an admin, signed in to the café, opens `/invite` on the gateway's address and presses
+  **Make an invite**. The link it shows (once: the registry keeps only its hash) goes to the person invited, who
+  opens it, picks a handle and a password at `/signup`, and is signed in to a café of their own: first a page that
+  shows their first agents' key once, the café's address for `CATIO_URL` and the plugin's two install lines, then
+  **Open my café**. An invite works
+  once and lapses after a week; **Take back unused invites** on the same page cancels the ones still out. A
+  signed-up account is never an admin. A refused sign-up (a taken handle, a short password, two passwords that
+  differ) doesn't spend the invite; two sign-ups with one invite at once let one in. There is no open sign-up:
+  everyone with an account gets a house on the gateway's Worker, which is hers to pay for. **The same link works for
+  their AI:** the sign-up page says what to do, and a `POST /signup` with JSON `{"invite", "handle", "password"}`
+  makes the account and answers `{"handle", "key", "mcp"}`, its first agents' key shown once, for the person's
+  sessions and agents (`CATIO_TOKEN`, or the MCP server's bearer).
 - **Another account:** an admin, signed in to the café, `POST /api/users` with `{"id": "<handle>", "password":
   "<16+ characters>"}`: from the browser's console, `fetch("/api/users", {method: "POST", headers: {"X-Catio": "1",
   "Content-Type": "application/json"}, body: JSON.stringify({id: "…", password: "…"})}).then(r => r.json()).then(console.log)`.
   Never with a key: a key sits in every session's environment, and what a key can do, a leaked key can do. A
   handle is 2 to 31 lower-case letters, digits or dashes. The account gets a house named after it, and signs in
-  to the café and the connector with that handle and password. There is no sign-up form yet.
+  to the café and the connector with that handle and password. An invite (above) lets them choose both themselves.
 - **A key:** from a signed-in café, `POST /api/keys` with `{"name": "laptop"}` (the page sends `X-Catio: 1`;
   until it has a button, the browser's console does: `fetch("/api/keys", {method: "POST", headers: {"X-Catio": "1",
   "Content-Type": "application/json"}, body: JSON.stringify({name: "laptop"})}).then(r => r.json()).then(console.log)`).
@@ -85,14 +107,17 @@ variables and the plugin, it is in `list_agents`.
   connector they let in (their OAuth grants), kills every key they minted, and lets a locked-out user back in.
   Whoever had the old password is out everywhere; the user mints new keys. The handle `house` is kept: it names
   the first house.
-- **Guessing:** five wrong passwords lock that handle for a quarter of an hour, at once or in a row; an
-  impossible handle costs no hash. Known limit: every password check runs in the one registry object, so a
-  flood of guesses at made-up handles slows every sign-in and key lookup behind it. A rate-limiting rule on
-  `/login` and `/authorize` in Cloudflare (Security → WAF, one rule on the free plan) is the gateway's to add.
-- **One house each:** cats, conversations, files and the café's documents are the house's; the licensed art is
-  shared, uploaded by an admin.
+- **Guessing:** wrong passwords make a sign-in wait for a quarter of an hour, counted by the address they came from
+  (`CF-Connecting-IP`): five at one handle, or twenty at any handles, lock that address out, so a stranger who knows
+  a handle can't lock its owner out. A hundred at one handle from anywhere lock everyone, the backstop against a
+  spread-out guesser. An impossible handle costs no hash. Known limit: every password check runs in the one
+  registry object, so a flood of guesses from many addresses slows every sign-in and key lookup behind it. A
+  rate-limiting rule on `/login` and `/authorize` in Cloudflare (Security → WAF, one rule on the free plan) is the
+  gateway's to add.
+- **One house each:** cats, conversations, files and the café's documents are the house's. The licensed art,
+  uploaded by an admin, is served to the first house alone (`/art/licensed/*` is a 404 to anyone else).
 - **The art's licences are personal.** The packs the café is drawn with allow personal use and no redistribution,
-  so a café served to other people needs their own packs, or none (the page draws plain panels without them).
+  so another account's café is drawn without them (the page draws plain panels), until it has art of its own.
 
 ## The café on its own address
 
@@ -100,9 +125,9 @@ The gateway's own address is the KittyChat Café, the way OpenClaw's gateway ser
 in claude.ai (`catio/index.html`), behind her password, with `cafe/runtime.js` standing in for what claude.ai gives a
 page (`src/cafe.js` serves both).
 
-- **Sign-in:** handle and password, with the same lock as the connector's (five wrong in a quarter of an hour). A
+- **Sign-in:** handle and password, with the same lock as the connector's (above). A
   browser stays signed in for a month (`__Host-catio`, `HttpOnly`, `SameSite=Strict`; only its hash is kept, in
-  the registry).
+  the registry), or until `POST /logout` ends it.
 - **Her data:** the café's documents (rooms, renames, adopted chats, looks, queens, the brain, notes) live in the
   house (`docs`), and every change reaches an open café over a WebSocket at once. Her browser writes them only with
   the `X-Catio` header and from the café's own address.
@@ -130,12 +155,15 @@ café instead, `POST /api/keys {"name": "pc", "role": "queen"}` (shown once; no 
 queen runner acts in that account's house:
 
 - `POST /api/runner/wait` is held up to 25 seconds and comes back with what Charlotte said to her (the cat
-  `queen`'s notes, each handed out once), a routine come due, a stop, and her character (`queens/house`: name,
-  manner, greeting).
-- `POST /api/runner/say` `{turn, text, done, routine}` streams her answer: every open café gets a `queen` push
-  as she speaks, and `done` stores it as her note (author `queen`, with the routine that asked it).
+  `queen`'s notes, each handed out once), a routine come due, a stop, her character (`queens/house`: name,
+  manner, greeting), and `homework`: the open quizzes counted by kind (`{litterbox: 2, decision: 1}`), which her
+  runner says on her own desktop when it grows.
+- `POST /api/runner/say` `{turn, text, done, routine, steps}` streams her answer: every open café gets a `queen` push
+  as she speaks, and `done` stores it as her note (author `queen`, with the routine that asked it). The runner says
+  once as soon as she is up (empty `text`), and again each time she reaches for a tool: `steps` is the last twelve
+  `{tool, cat, action}` this turn, which the café's loading strip names. They are passed on, never kept.
 - With her key on `/mcp`, the queen uses the same tools as everyone, as `queen`: she may `comment` as `queen`
-  (a cat's hook hands it in as `[Catio] The queen says: …`), `manage` and `drop_file`, never write as `charlotte`.
+  (a cat's hook hands it in as `[Catio] The queen says: …`), `manage` and `drop_file`, never write as `owner`.
   The agents' key may do none of it: the cats act on what she says.
 - `manage {cat: "queen", action: "pause"}` (Stop in the café) ends the turn she is on.
 - **Homework.** `quiz` (the queen, or Charlotte) sets Charlotte a quiz to unblock a cat: a title, `for` the cat, 1 to
@@ -144,7 +172,9 @@ queen runner acts in that account's house:
   through its hook) and tells the queen.
 - **Routines** are `routines/<id>` documents written by the café (`name`, `time`, `days`, `tz`, `prompt`, `on`,
   `last`). One is due when its latest firing is newer than `last`; the House's alarm wakes a waiting runner on
-  time, and a missed one runs once when the runner is back.
+  time, and a missed one runs once when the runner is back. The gateway keeps `handed` (when it went out), and
+  `finished` once the runner's answer to it is done; a firing handed out and never finished goes out once more
+  after ten minutes (`retried`).
 - `list_agents` gives every cat its `said`, the last thing its session or agent said: the café shows a cat
   carrying it to the queen, and her card lists it.
 
@@ -178,12 +208,12 @@ or finish, and check `inbox` between tasks.
 
 - **Wake commands.** It can't run commands, so a `wake` is ignored: an agent finds what's waiting in `inbox`.
 - **Files** are capped at 1 MiB. A free Worker gets 10 ms of CPU a request, so bigger files go through the brain.
-- **Who writes.** Only Charlotte writes as `charlotte`; she and the queen's runner (as `queen`) drop files and
+- **Who writes.** Only the owner writes as `owner`; the owner and the queen's runner (as `queen`) drop files and
   manage cats.
 - **`inbox` takes `mark`**, which returns only what hasn't been handed over yet and counts it as handed over.
   The server on her computer takes it too.
 - **Sign-in.** Only Claude's connectors can register: a redirect to anywhere but `claude.ai` or `claude.com` is
-  refused. Five wrong passwords lock that user's sign-in for a quarter of an hour. Passwords are kept as PBKDF2
+  refused. Wrong passwords lock the guessing address out for a quarter of an hour (see Guessing). Passwords are kept as PBKDF2
   hashes (100,000 rounds, Workers' cap, computed in the registry object where the CPU budget allows it), keys and
   cookies as SHA-256 hashes, OAuth tokens as hashes too (`@cloudflare/workers-oauth-provider`), and a grant lives
   as long as claude.ai keeps refreshing it.

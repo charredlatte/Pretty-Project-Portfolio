@@ -15,6 +15,7 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, red
 const names = process.argv.length > 2 ? process.argv.slice(2) : ["ground", "upper"];
 // "setup": the first run's wizard, which opens over a café with no rooms (the stub's ?mode=empty)
 const query = process.env.LOOK_QUERY || (names.includes("setup") ? "?mode=empty" : "");
+if (names.includes("queen-work")) await page.clock.install();   // so a long wait can be skipped to, not waited for
 await page.goto("file://" + join(here, ".page.html") + query);
 await page.waitForTimeout(800);
 const UPPER = new Set(["upper", "brain", "bath", "bedroom"]);
@@ -28,6 +29,107 @@ for (const name of names) {
     }
     await page.click("#setupDlg button[type=submit]");   // Open the doors: the names after it show the café it made
     await page.waitForTimeout(500);
+    continue;
+  }
+  // "queen": her card, the scene she talks in; "queen-settings": its Settings overlay, open at You
+  if (name === "queen" || name === "queen-settings") {
+    if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") await page.click("#floor-ground");
+    if (!(await page.locator("#queenDlg").evaluate((d) => d.open))) {
+      await page.keyboard.press("0");
+      await page.waitForTimeout(300);
+      await page.locator("#cats .cat.queen").dispatchEvent("dblclick");
+      await page.waitForTimeout(600);
+    }
+    if (name === "queen-settings") {
+      await page.click("#queenSettingsBtn");
+      await page.click("#queenYou summary");
+      await page.waitForTimeout(300);
+    }
+    await page.screenshot({ path: join(out, name + ".png") });
+    console.log(join(out, name + ".png"));
+    continue;
+  }
+  // "queen-work": her card while she works on an answer (her turn as it goes, 4 October): waking, at work,
+  // every step unfolded, answering, a long wait and stopping, one screenshot each
+  if (name === "queen-work") {
+    if (!(await page.locator("#queenDlg").evaluate((d) => d.open))) {
+      if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") await page.click("#floor-ground");
+      await page.keyboard.press("0");
+      await page.waitForTimeout(300);
+      await page.locator("#cats .cat.queen").dispatchEvent("dblclick");
+      await page.waitForTimeout(600);
+    }
+    const shot = async (n) => { await page.waitForTimeout(400); await page.locator("#queenDlg").screenshot({ path: join(out, n + ".png") }); console.log(join(out, n + ".png")); };
+    await page.fill("#queenSay", "What's left on the shop?");
+    await page.click("#queenSend");
+    await shot("queen-wake");
+    const cat = await page.evaluate(() => (window.__catio.gw.find((a) => a.id !== "queen") || {}).id);
+    const steps = [{ tool: "list_agents" }, { tool: "comments", cat }, { tool: "comment", cat }];
+    await page.evaluate((s) => window.__catio.queenSays("", false, "t1", s), steps);
+    await shot("queen-work");
+    await page.click("#queenWork summary");
+    await shot("queen-steps");
+    await page.click("#queenWork summary");
+    await page.evaluate((s) => window.__catio.queenSays("Two things, my lady: the French copy waits on thee, and ", false, "t1", s), steps);
+    await shot("queen-answer");
+    await page.evaluate((s) => window.__catio.queenSays("", false, "t2", s.slice(0, 1)), steps);
+    await page.clock.fastForward(70e3);   // over a minute: The Sims' loading tips
+    await shot("queen-long");
+    await page.click("#queenStop");
+    await shot("queen-stop");
+    await page.evaluate(() => window.__catio.queenSays("Stopped, my lady.", true, "t2"));
+    continue;
+  }
+  // "maps": the project maps dashboard, from the House menu, with two invented maps
+  if (name === "maps") {
+    await page.evaluate(() => {
+      const map = (k) => ({ n: [{ t: "Core", g: 0, d: 9, x: 150, y: 80 }, { t: "Edge " + k, g: 1, d: 4, x: 60, y: 40 }, { t: "Leaf", g: 2, d: 1, x: 250, y: 130 }, { t: "Hub", g: 0, d: 7, x: 200, y: 50 }], l: [0, 1, 0, 2, 0, 3, 3, 2] });
+      window.__catio.put("graphs/montfortoise-shopify", { repo: "example/montfortoise-shopify", at: Date.now() - 6e5, nodes: 120, edges: 210, communities: 6, gods: [{ label: "CartDrawer", degree: 14, file: "src/cart.js" }], groups: [{ name: "Checkout", size: 40 }, { name: "Theme", size: 30 }, { name: "Admin", size: 12 }], surprises: [{ a: "Shipping notes", rel: "references", b: "CartDrawer", how: "INFERRED", where: "docs/shipping.md → src/cart.js" }], questions: ["Why does CartDrawer connect Checkout to Theme?"], map: map("A") });
+      window.__catio.put("graphs/intermarche-grocery-shopping-app", { repo: "example/Intermarche-grocery-shopping-app", at: Date.now() - 36e5, nodes: 64, edges: 98, communities: 4, gods: [{ label: "Basket", degree: 11, file: "src/basket.js" }], groups: [{ name: "Basket", size: 20 }, { name: "Menus", size: 18 }, { name: "Drive", size: 9 }], surprises: [], questions: ["Where does the basket get its prices?"], map: map("B") });
+    });
+    await page.waitForTimeout(300);
+    await page.evaluate(() => { for (const d of document.querySelectorAll("dialog[open]")) d.close(); });   // a look before it may have left one open
+    await page.click("#houseBtn");
+    await page.locator("#menu .mi", { hasText: "Project maps" }).click();
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: join(out, "maps.png") });
+    console.log(join(out, "maps.png"));
+    await page.evaluate(() => document.getElementById("mapsDlg").close());   // the looks after it see the house, not the dialog
+    continue;
+  }
+  // "art": The look, from the House menu; "art-swap": the house drawn with other pieces in some slots (pieces of the
+  // packs themselves, so no new file is needed), then the card with them, and one that doesn't fit
+  if (name === "art" || name === "art-swap") {
+    await page.evaluate(() => { for (const d of document.querySelectorAll("dialog[open]")) d.close(); });
+    if (name === "art-swap") {
+      await page.evaluate(() => {
+        window.__catio.put("skin/panel", { src: "art/licensed/ui/button-green.png", slice: [4, 4, 6, 4], w: 26, h: 28, at: 1 });
+        window.__catio.put("skin/button", { src: "art/licensed/ui/button-pink.png", slice: [4, 4, 6, 4], w: 26, h: 28, at: 1 });
+        window.__catio.put("skin/cat-work", { src: "art/licensed/mochi-box.png", frames: 4, secs: 0.8, at: 1 });
+        window.__catio.put("skin/cat-walk-side", { src: "art/licensed/mochi-idle.png", frames: 10, secs: 1, at: 1 });
+        window.__catio.put("skin/house", { src: "art/licensed/meadow.png", at: 1 });
+        window.__catio.put("skin/theme", { tokens: { "--ink": "#1d3557", "--tan": "#a8dadc", "--cream": "#f1faee", "--grass": "#457b9d", "--map-btn": "#e9c46a" }, at: 1 });
+      });
+      await page.waitForTimeout(800);
+      await page.keyboard.press("0");
+      await page.waitForTimeout(600);
+      await page.click("#houseBtn");
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: join(out, "art-swap-house.png") });
+      console.log(join(out, "art-swap-house.png"));
+      await page.keyboard.press("Escape");
+    }
+    await page.click("#houseBtn");
+    await page.locator("#menu .mi", { hasText: "The look" }).click();
+    await page.waitForTimeout(500);
+    if (name === "art-swap") await page.evaluate(() => { for (const d of document.querySelectorAll("#artDlg details")) d.open = true; document.querySelector('#artDlg li[data-slot="house"]').scrollIntoView(); });
+    await page.screenshot({ path: join(out, name + ".png") });
+    console.log(join(out, name + ".png"));
+    await page.evaluate(() => document.getElementById("artDlg").close());
+    if (name === "art-swap") {   // the looks after it see the café as it is, not this skin
+      await page.evaluate(() => { for (const k of Object.keys(window.__catio.store)) if (k.startsWith("skin/")) window.__catio.drop(k); });
+      await page.waitForTimeout(800);
+    }
     continue;
   }
   const floor = UPPER.has(name) ? "upper" : "ground";

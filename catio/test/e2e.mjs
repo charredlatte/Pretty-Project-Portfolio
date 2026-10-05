@@ -38,6 +38,34 @@ const T = (page, f) => page.evaluate(f);
 const toast = async (page) => (await page.locator("#toast").textContent()) || "";
 const menuText = async (page) => (await page.locator("#menu").isVisible()) ? await page.locator("#menu").innerText() : "";
 const settle = (page) => page.waitForTimeout(150);
+// Resize and wait for the page to have taken the new size, rather than guessing how long the relayout takes:
+// setViewportSize resolves when the browser acknowledges it, which can be before the renderer has relaid out.
+async function resize(page, width, height) {
+  await page.setViewportSize({ width, height });
+  await page.evaluate(([w, h]) => new Promise((ok, no) => {
+    let last = "", same = 0;
+    // the deadline is its own timer: a page that stops being painted stops firing rAF, and a deadline checked
+    // only inside the rAF loop would never be reached, hanging the suite instead of failing it
+    const bust = setTimeout(() => no(new Error("the page never settled at " + w + "x" + h + ", last " + last)), 5000);
+    const open = () => [...document.querySelectorAll("dialog[open]")].map((d) => { const r = d.getBoundingClientRect(); return Math.round(r.width) + "x" + Math.round(r.height); }).join(",");
+    (function wait() {
+      const now = innerWidth + "x" + innerHeight + ":" + document.documentElement.clientWidth + ":" + open();
+      same = innerWidth === w && innerHeight === h && now === last ? same + 1 : 0;
+      last = now;
+      if (same >= 2) { clearTimeout(bust); return ok(); }
+      requestAnimationFrame(wait);
+    })();
+  }), [width, height]);
+}
+// Run a check that moves the viewport about, then put it back. A restore that fails must not replace the failure
+// it follows, and must not be swallowed when there was none: the checks after it would run at the wrong size.
+async function atSizes(page, body, to) {
+  const back = to || page.viewportSize();   // this context's own size, not a desktop guess
+  let failed = null;
+  try { await body(); } catch (e) { failed = e; }
+  try { await resize(page, back.width, back.height); } catch (e) { failed = failed || e; }
+  if (failed) throw failed;
+}
 // the manor's upstairs rooms; every other room is on the ground floor
 const UPPER = new Set(["brain", "bath", "bedroom"]);
 // go to the floor a room is on, with the floor switch, as a person would
@@ -263,6 +291,10 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(d && d.name === "Biscuit" && d.room === "study", JSON.stringify(d));
     expect(await page.locator('#cats .cat[aria-label^="Biscuit "]').count() === 1, "renamed cat missing");
   });
+  await check("renaming a session's cat renames the real session too", async () => {
+    const t = (await T(page, () => window.__catio.tools)).filter((x) => x[1] === "set_session_title" && x[2].session_id === "session_work1");
+    expect(t.length === 1 && t[0][2].title === "Biscuit", JSON.stringify(t));
+  });
 
   /* ---------- 4. zoom, filing cabinet and a project's look ---------- */
   await openRoom(page, "study");
@@ -294,6 +326,90 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     const t = await page.locator("#roomsDlg").innerText();
     expect(t.includes("Filing cabinet") && t.includes("montfortoise-shopify") && t.includes("Intermarche-grocery-shopping-app") && t.includes("claude/test"), t.slice(0, 300));
   });
+  // the project maps (her ask, 3 October: "a customizable dashboard built on Graphify", the graphify in her house rules)
+  await page.evaluate(() => { for (const d of document.querySelectorAll("dialog[open]")) d.close(); });
+  await closeMenu(page);
+  await settle(page);
+  await T(page, () => window.__catio.put("graphs/intermarche-grocery-shopping-app", { repo: "example/Intermarche-grocery-shopping-app", at: Date.now() - 36e5, nodes: 64, edges: 98, communities: 4,
+    gods: [{ label: "Basket", degree: 11, file: "src/basket.js" }], groups: [{ name: "Basket", size: 20 }], surprises: [], questions: ["Where does the basket get its prices?"],
+    map: { n: [{ t: "Basket", g: 0, d: 11, x: 150, y: 80 }, { t: "Menus", g: 1, d: 4, x: 60, y: 40 }], l: [0, 1] } }));
+  const maps = () => page.locator("#mapsDlg .mapcard").evaluateAll((cs) => cs.map((c) => c.dataset.map));
+  const mapTool = (id, label) => page.locator('#mapsDlg .mapcard[data-map="' + id + '"] button[aria-label^="' + label + ':"]');
+  const manageMaps = () => page.evaluate(() => { for (const d of document.querySelectorAll("#mapsDlg .manage-tools:not([open])")) d.querySelector("summary").click(); });   // Manage folds each card's tools
+  await page.click("#houseBtn");
+  await page.locator("#menu .mi", { hasText: "Project maps" }).click();   // its name carries the count: "Project maps, 2"
+  await settle(page);
+  await check("the House menu opens every project's map as a card, the newest map first", async () => {
+    expect(JSON.stringify(await maps()) === JSON.stringify(["montfortoise-shopify", "intermarche-grocery-shopping-app"]), JSON.stringify(await maps()));
+    expect(await page.locator('#mapsDlg .mapcard[data-map="montfortoise-shopify"] .gart svg rect').count() === 3, "the map isn't drawn");
+    expect((await page.locator("#mapsDlg").innerText()).includes("Where does the basket get its prices?"), "no questions");
+  });
+  await manageMaps();
+  await mapTool("intermarche-grocery-shopping-app", "Pin").click();
+  await settle(page);
+  await mapTool("montfortoise-shopify", "Wide").click();
+  await settle(page);
+  await check("pinning puts a map first and widening spreads it, and the café keeps both", async () => {
+    expect((await maps())[0] === "intermarche-grocery-shopping-app", JSON.stringify(await maps()));
+    const d = await T(page, () => window.__catio.store["dashboard/maps"]);
+    expect(d && d.pinned.includes("intermarche-grocery-shopping-app") && d.wide.includes("montfortoise-shopify"), JSON.stringify(d));
+    expect((await page.locator('#mapsDlg .mapcard[data-map="montfortoise-shopify"]').getAttribute("class")).includes("wide"), "not wide");
+  });
+  await check("a map moves within its group: an unpinned one can't be moved above a pinned one", async () => {
+    expect(await mapTool("montfortoise-shopify", "Earlier").isDisabled(), "Earlier would cross the pinned map");
+    expect(await mapTool("intermarche-grocery-shopping-app", "Later").isDisabled(), "Later would cross into the unpinned ones");
+  });
+  await mapTool("intermarche-grocery-shopping-app", "Unpin").click();
+  await settle(page);
+  await mapTool("intermarche-grocery-shopping-app", "Earlier").click();
+  await settle(page);
+  await check("moving a map earlier changes the order, and the order is kept", async () => {
+    expect((await maps())[0] === "intermarche-grocery-shopping-app", JSON.stringify(await maps()));
+    expect(JSON.stringify((await T(page, () => window.__catio.store["dashboard/maps"])).order) === JSON.stringify(["intermarche-grocery-shopping-app", "montfortoise-shopify"]), "order not kept");
+  });
+  await mapTool("montfortoise-shopify", "Hide").click();
+  await settle(page);
+  await check("hiding a map takes it off the page and keeps a way back", async () => {
+    expect(JSON.stringify(await maps()) === JSON.stringify(["intermarche-grocery-shopping-app"]), JSON.stringify(await maps()));
+    expect(await page.locator('#mapsHidden button:has-text("Show montfortoise-shopify")').count() === 1, "no way back");
+  });
+  await page.locator('#mapsHidden button:has-text("Show montfortoise-shopify")').click();
+  await settle(page);
+  await check("Show brings it back where it was", async () => expect(JSON.stringify(await maps()) === JSON.stringify(["intermarche-grocery-shopping-app", "montfortoise-shopify"]), JSON.stringify(await maps())));
+  // set elsewhere (another tab, her phone): the open page shows it, and the next change keeps it
+  await T(page, () => { const d = window.__catio.store["dashboard/maps"]; window.__catio.put("dashboard/maps", Object.assign({}, d, { pinned: ["montfortoise-shopify"] })); });
+  await page.waitForTimeout(300);
+  await check("a layout set on another device shows at once, and a change here keeps it", async () => {
+    expect((await maps())[0] === "montfortoise-shopify", "the other device's pin didn't show: " + JSON.stringify(await maps()));
+    await manageMaps();
+    await mapTool("intermarche-grocery-shopping-app", "Wide").click();
+    await settle(page);
+    const d = await T(page, () => window.__catio.store["dashboard/maps"]);
+    expect(d.pinned.includes("montfortoise-shopify") && d.wide.includes("intermarche-grocery-shopping-app"), JSON.stringify(d));
+  });
+  await T(page, () => window.__catio.put("graphs/tiktok-saves", { repo: "example/tiktok-saves", at: Date.now(), nodes: 9, edges: 8, communities: 2, gods: [], groups: [], surprises: [], questions: [],
+    map: { n: [{ t: "Saves", g: 0, d: 3, x: 150, y: 80 }], l: [] } }));
+  await T(page, () => window.__catio.put("graphs/half-saved", { repo: "example/half-saved", at: Date.now(), map: {} }));
+  await page.waitForTimeout(300);
+  await check("a map a session saves shows while the page is open; one with nothing to draw doesn't break it", async () => {
+    const m = await maps();
+    expect(m.includes("tiktok-saves") && !m.includes("half-saved"), JSON.stringify(m));
+    expect(await page.locator("#mapsDlg .mapcard").count() === 3, "the page lost its cards");
+  });
+  await T(page, () => { window.__catio.readOnly = true; });
+  await manageMaps();
+  await mapTool("tiktok-saves", "Pin").click();
+  await settle(page);
+  await check("a refused save changes nothing on the page", async () => {
+    expect(await page.locator('#mapsDlg .mapcard[data-map="tiktok-saves"] .star').count() === 0, "shown pinned though nothing was saved");
+    expect(!((await T(page, () => window.__catio.store["dashboard/maps"])).pinned || []).includes("tiktok-saves"), "saved anyway");
+  });
+  await T(page, () => { window.__catio.readOnly = false; });
+  await page.keyboard.press("Escape");
+  await settle(page);
+  await openRoom(page, "study");
+  await menuButton(page, "Files").click();
+  await settle(page);
   await page.selectOption("#coat-montfortoise-shopify", "5");
   await page.locator("#roomsDlg .proj", { hasText: "montfortoise-shopify" }).locator("button:has-text('Save look')").click();
   await settle(page);
@@ -415,7 +531,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await settle(page);
   await check("what you say goes to her through the gateway, as you", async () => {
     const c = await T(page, () => window.__catio.tools.filter((t) => t[1] === "comment").pop());
-    expect(c && c[0] === "CATIO" && c[2].cat === "queen" && c[2].text === "Who needs me today?" && c[2].author === "charlotte", JSON.stringify(c));
+    expect(c && c[0] === "CATIO" && c[2].cat === "queen" && c[2].text === "Who needs me today?" && c[2].author === "owner", JSON.stringify(c));
     expect((await page.locator("#queenThread li.me").innerText()).includes("Who needs me today?"), "not in her thread");
   });
   await T(page, () => { const a = window.__catio.gw.find((x) => x.id === "queen"); a.mood = "busy"; dispatchEvent(new Event("catio:agents")); window.__catio.queenSays("Good morrow, my lady. Two cats need thee: ", false, "t1"); });
@@ -441,6 +557,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(await page.locator("#queenThread li.greet").count() === 0, "the greeting stays once she has spoken");
   });
   await check("Speak is there: the browser can hear her", async () => expect(await page.locator("#queenSpeak").count() === 1, "no Speak button"));
+  await page.click("#queenSettingsBtn");   // her settings sit in an overlay over the scene (her ask, 3 October)
   await page.click("#queenVoice");
   await settle(page);
   await T(page, () => window.__catio.queenSays("Anon, my lady. All is well.", true, "t2"));
@@ -473,6 +590,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   // routines, for her runner to run
   await queen().dblclick();
   await settle(page);
+  await page.click("#queenSettingsBtn");
   await page.click("#queenRoutines summary");
   await page.fill("#routineName", "Morning round");
   await page.fill("#routineTime", "08:30");
@@ -521,6 +639,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   await queen().dblclick();
   await settle(page);
+  await page.click("#queenSettingsBtn");
   await page.click("#queenKeeps summary");
   await page.locator('#queenDlg button:has-text("Saying it")').click();
   await settle(page);
@@ -536,6 +655,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   await queen().dblclick();
   await settle(page);
+  await page.click("#queenSettingsBtn");
   await page.click("#queenKeeps summary");
   await page.locator('#queenDlg button:has-text("Forget")').first().click();
   await settle(page);
@@ -649,6 +769,370 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await check("no page errors while working the queen", async () => expect(errors.length === 0, errors.join("; ")));
   await ctx.close();
 }
+
+/* ---------- 5c. the line at the front door (her ask, 3 October) ---------- */
+// Her words: "every cat whose mood is 'needs' (waiting on her) should line up in front of the entrance-hall door,
+// beside the queen, in the order it started waiting, the longest wait first. When a cat is no longer waiting, it leaves
+// the line and goes back to its room."
+{
+  const { page, ctx, errors } = await open("?waiting=4", { reducedMotion: "no-preference" });
+  const line = () => page.evaluate(() => [...document.querySelectorAll("#cats .cat[data-line]")].sort((a, b) => a.dataset.line - b.dataset.line)
+    .map((b) => ({ label: b.getAttribute("aria-label"), x: b.getBoundingClientRect().x, room: b.dataset.room })));
+  await page.waitForTimeout(4500);   // the first seconds, cats are simply in their places
+  await check("every cat waiting on her lines up at the entrance-hall door, beside the queen, the longest wait first", async () => {
+    const l = await line();
+    const order = l.map((c) => c.label.split(": ").pop());
+    expect(JSON.stringify(order) === JSON.stringify(["Grocery list", "Snail mail labels", "Café pitch", "TikTok tags", "Shop about page"]), JSON.stringify(order));
+    expect(l.every((c) => c.room === "hall"), "not all in the hall");
+    expect(l.every((c, i) => !i || c.x > l[i - 1].x), "not a line: " + JSON.stringify(l.map((c) => c.x)));
+    const q = await page.locator("#cats .cat.queen").boundingBox();
+    expect(q.x < l[0].x && l[0].x - q.x < 120, "the first in line isn't beside the queen: " + q.x + " / " + l[0].x);
+    expect(await page.locator("#cats .cat:not(.queen):not([data-line]).m-meow").count() === 0, "a cat waiting on her is still in its room");
+  });
+  await T(page, () => window.__catio.setBucket("wait0", "WORKING", "RUNNING"));
+  await page.waitForTimeout(400);
+  await check("one that stops waiting leaves the line and walks back to its room", async () => {
+    const b = page.locator('#cats .cat[data-id="session_wait0"]');
+    expect((await b.getAttribute("data-room")) === "kitchen", "not on its way to the kitchen: " + await b.getAttribute("data-room"));
+    expect((await b.getAttribute("class")).includes("walking"), "it jumped");
+    expect(await b.getAttribute("data-line") === null, "still in the line");
+    const order = (await line()).map((c) => c.label.split(": ").pop());
+    expect(order[0] === "Snail mail labels", "the next one didn't move up: " + JSON.stringify(order));
+  });
+  await check("no page errors around the line", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+
+/* ---------- 5d. the queen's chat, as a scene (her ask, 3 October) ---------- */
+// Her words: "The queen sits on the right, talking, as an animated 2D character. The owner of the house sits on the left,
+// seen from behind, as a 2D character Charlotte can customise. The conversation shows as chat bubbles between them, and it
+// scrolls. All other settings move into an overlay. The existing menu still opens when she hovers over the queen."
+{
+  const { page, ctx, errors } = await open("?via=gateway");
+  const box = (sel) => page.locator(sel).boundingBox();
+  await page.locator("#cats .cat.queen").dblclick();
+  await settle(page);
+  await check("her card is a scene: you on the left, seen from behind, the queen on the right, and the talk between", async () => {
+    const you = await box("#queenOwnerFig"), her = await box("#queenFig"), talk = await box("#queenThread");
+    expect(you && her && talk, "a piece is missing");
+    expect(you.x + you.width <= talk.x + 2 && talk.x + talk.width <= her.x + 2, JSON.stringify({ you, talk, her }));
+    expect(await page.locator("#queenOwnerFig svg rect").count() > 20, "you aren't drawn");
+    expect(await page.locator("#queenFig .spr").count() === 1, "she isn't drawn");
+  });
+  await page.fill("#queenSay", "Who needs me today?");
+  await page.click("#queenSend");
+  await settle(page);
+  // Her ask, 4 October: a loading state like Claude's own ("Searching … 22s ›"), drawn from the games of the early
+  // 2000s she picked from the wireframes: Animal Crossing's pause while she wakes, The Sims' action queue while she
+  // works, every step when unfolded, and the RPG "more" arrow while she answers. Under the talk, on her side.
+  await check("the moment you send, she is thinking: her name on a tab, the dots and the seconds, under the talk", async () => {
+    const w = page.locator("#queenWork");
+    expect(await w.isVisible(), "no strip after Send");
+    const t = await w.innerText();
+    expect(/thinking/i.test(t) && /\d+s/.test(t), t);
+    expect((await page.locator("#queenWork .tab").innerText()).trim().length > 0, "no name on the tab");
+    expect(await page.locator("#queenLive").count() === 0, "an empty bubble before she has said a word");
+    expect(!(await page.locator("#queenFig").getAttribute("class")).includes("talking"), "talking before she has a word to say");
+    const strip = await w.boundingBox(), talk = await page.locator("#queenThread").boundingBox(), say = await page.locator("#queenSay").boundingBox();
+    expect(strip.y >= talk.y + talk.height - 2 && strip.y + strip.height <= say.y, "not under the talk: " + JSON.stringify({ strip, talk, say }));
+    expect(strip.x + strip.width > talk.x + talk.width * .6, "not on her side: " + JSON.stringify({ strip, talk }));
+  });
+  const other = await T(page, () => window.__catio.gw.find((a) => a.id !== "queen").id);
+  await T(page, (c) => window.__catio.queenSays("", false, "t9", [{ tool: "list_agents" }, { tool: "comments", cat: c }]), other);
+  await page.waitForTimeout(200);
+  await check("at work, each step she has done is a ticked tile and the one she is on is lit, in words", async () => {
+    expect(await page.locator("#queenWork .tile.done").count() === 2, "the steps done (Awake, the cats): " + await page.locator("#queenWork").innerHTML());
+    const now = await page.locator("#queenWork .tile.now").innerText();
+    expect(/reading .+'s notes/i.test(now) && !now.includes(other), now);
+    expect(/\d+s/.test(now), "no seconds: " + now);
+  });
+  await page.click("#queenWork summary");
+  await settle(page);
+  await check("unfolded, every step this turn, Awake first, each with its time", async () => {
+    const li = page.locator("#queenWork ol li");
+    expect(await li.count() === 3, await page.locator("#queenWork").innerText());
+    expect((await li.first().innerText()).includes("Awake"), await li.first().innerText());
+    expect(/looking in on the cats/i.test(await li.nth(1).innerText()), await li.nth(1).innerText());
+  });
+  await T(page, () => window.__catio.queenSays("Good morrow, my lady. Two cats need ", false, "t9"));
+  await page.waitForTimeout(200);
+  await check("once her words come, the lit tile says she is answering and her steps stay unfolded", async () => {
+    expect(/answering/i.test(await page.locator("#queenWork .tile.now").innerText()), await page.locator("#queenWork").innerText());
+    expect(await page.locator("#queenWork details").evaluate((d) => d.open), "the fold closed under her");
+    expect(await page.locator("#queenWork .tile.done").count() === 3, "a step was lost");
+  });
+  await check("while she speaks she is animated, talking", async () => {
+    expect((await page.locator("#queenFig").getAttribute("class")).includes("talking"), await page.locator("#queenFig").getAttribute("class"));
+    expect((await page.locator("#queenFig").getAttribute("data-mood")) === "meow", await page.locator("#queenFig").getAttribute("data-mood"));
+  });
+  await T(page, () => window.__catio.queenSays("Good morrow, my lady. Two cats need thee.", true, "t9"));
+  await page.waitForTimeout(300);
+  await check("what you say sits by you, what she says by her, as bubbles", async () => {
+    const html = await page.locator("#queenThread").innerHTML();
+    const n = (sel) => page.locator(sel).count();
+    expect(await n("#queenThread li.me") > 0 && await n("#queenThread li.them:not(.handoff)") > 0, "a bubble is missing: " + html.slice(0, 600));
+    const me = await page.locator("#queenThread li.me").last().boundingBox(), them = await page.locator("#queenThread li.them:not(.handoff)").last().boundingBox();
+    expect(me && them, "a bubble is missing");
+    expect(me.x < them.x && me.x + me.width < them.x + them.width, JSON.stringify({ me, them }));
+    expect(!(await page.locator("#queenFig").getAttribute("class")).includes("talking"), "still talking when done");
+    expect(!(await page.locator("#queenWork").isVisible()), "the strip outlived her answer");
+  });
+  await T(page, () => { for (let i = 0; i < 14; i++) window.__catio.queenSays("Line " + i + " of a long answer, my lady, for the scroll.", true, "t" + (20 + i)); });
+  await page.waitForTimeout(400);
+  await check("a long conversation scrolls inside the scene, the newest at the bottom", async () => {
+    const s = await page.locator("#queenThread").evaluate((u) => ({ h: u.scrollHeight, c: u.clientHeight, t: u.scrollTop }));
+    expect(s.h > s.c, "it doesn't overflow: " + JSON.stringify(s));
+    expect(s.t + s.c >= s.h - 4, "not at the newest: " + JSON.stringify(s));
+    const card = await box("#queenDlg");
+    expect(card.height <= 900, "the card grew instead of scrolling: " + card.height);
+  });
+  // "make this window useable" (3 October): her words were running off the side of a box a third of the card wide,
+  // with a sideways scrollbar under them, so a whole answer could not be read.
+  await T(page, () => window.__catio.queenSays("Pushed to https://github.com/charredlatte/Pretty-Project-Portfolio/compare/claude/a-branch-name-that-will-never-break-anywhere-at-all", true, "t40"));
+  await page.waitForTimeout(300);
+  await check("nothing she says runs off the side, and the talk gets most of the scene, at any width", async () => {
+    // every width down to the phone layout, not only this one: in between, the two of them used to leave the words
+    // a strip under half the scene
+    await atSizes(page, async () => {
+      for (const [w, least] of [[1440, .6], [900, .6], [811, .6], [700, .6], [600, .55], [561, .55]]) {
+        await resize(page, w, 900);
+        const s = await page.locator("#queenThread").evaluate((u) => ({ over: u.scrollWidth - u.clientWidth, w: u.clientWidth }));
+        expect(s.over <= 0, "at " + w + " her words scroll sideways: " + JSON.stringify(s));
+        const stage = await page.locator(".qstage").evaluate((e) => e.clientWidth);   // inside the frame: what there is to share
+        expect(s.w > stage * least, "at " + w + " the talk gets too little of the scene: " + s.w + " of " + stage);
+      }
+    });
+  });
+  // and at any height: the scene used to take a share of the window (62vh and the like), which fits one window and
+  // spills out of a short one, pushing Send off the bottom
+  await T(page, () => window.__catio.setQuiz({ for: "cse_blocked1", title: "Unblock Caramel", questions: [{ q: "Which project is this one for?", options: ["montfortoise-shopify", "Pretty-Project-Portfolio"] }] }));
+  await page.waitForTimeout(500);
+  await check("her card fits a short window too, with Send reachable and nothing of hers out of reach", async () => {
+    expect(await page.locator("#queenHomework .quiz").count() > 0, "no homework: the short windows below would miss the one case that breaks");
+    await atSizes(page, async () => {
+      for (const [w, h] of [[1440, 900], [900, 560], [900, 430], [844, 390], [811, 669], [700, 500], [390, 844], [390, 600], [390, 500], [390, 420]]) {
+        await resize(page, w, h);
+        const m = await page.evaluate(() => {
+          const dlg = document.getElementById("queenDlg"), st = document.querySelector(".qstage"), ul = document.getElementById("queenThread");
+          const send = document.getElementById("queenSend"), hw = document.getElementById("queenHomework");
+          const qc = document.querySelector(".qchar"), ow = document.querySelector(".owner");
+          dlg.scrollTop = dlg.scrollHeight;   // as she would, when the window is too short for the whole card
+          const r = send.getBoundingClientRect(), at = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+          // the scene clips at its content box, inside the frame, so that is what anything in it has to fit
+          const cs = getComputedStyle(st), sr = st.getBoundingClientRect();
+          const top = sr.top + parseFloat(cs.borderTopWidth), bottom = sr.bottom - parseFloat(cs.borderBottomWidth);
+          const out = (e) => { const b = e.getBoundingClientRect(); return Math.round(Math.max(top - b.top, b.bottom - bottom, 0)); };
+          // the two of them are tucked 2 px into the frame on purpose, to stand on it: their heads are the side that fails
+          const above = (e) => Math.round(Math.max(top - e.getBoundingClientRect().top, 0));
+          // neither of them may stand on the words: beside them on a wide card, under them on a phone, never over
+          const over = (e, f) => { const a = e.getBoundingClientRect(), b = f.getBoundingClientRect();
+            return Math.round(Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))); };
+          return { sendInView: r.top >= 0 && r.bottom <= innerHeight + 1, sendOnTop: !!at && (at === send || send.contains(at)),
+            ownerOut: above(ow), queenOut: above(qc), talkOut: out(ul), overTalk: Math.max(over(ow, ul), over(qc, ul)),
+            talk: ul.clientHeight, homework: hw.clientHeight };
+        });
+        const at = w + "x" + h + " ";
+        expect(m.sendInView, "at " + at + "Send can't be brought on screen, even with the card scrolled down");
+        expect(m.sendOnTop, "at " + at + "something is drawn over Send, so it can't be clicked");
+        // the scene clips what it cannot hold, and clipped is unreachable
+        expect(m.ownerOut <= 1, "at " + at + "the owner's head is " + m.ownerOut + " px above the frame, so it is cut off");
+        expect(m.queenOut <= 1, "at " + at + "the queen's head is " + m.queenOut + " px above the frame, so it is cut off");
+        expect(m.talkOut <= 1, "at " + at + "the talk is " + m.talkOut + " px outside the frame, with nowhere to scroll");
+        expect(m.overTalk === 0, "at " + at + "one of them stands over the words, by " + m.overTalk + " square px");
+        expect(m.talk >= 20, "at " + at + "the talk is " + m.talk + " px: the two of them squeezed it out");
+        expect(m.homework >= 20, "at " + at + "her homework is " + m.homework + " px: the talk's floor squeezed it out");
+        // where the window has the room, not squeezed out isn't enough: a whole bubble, and a question with its
+        // options, have to be readable without scrolling for the card to be worth opening. Below this the card is
+        // shorter than the two of them plus both of those, so each pane scrolls and the floors above are what hold.
+        if (h >= 600) {
+          expect(m.talk >= 46, "at " + at + "the talk is " + m.talk + " px, under one bubble");
+          expect(m.homework >= 92, "at " + at + "her homework is " + m.homework + " px, under a question and its options");
+        }
+      }
+    });
+  });
+  await check("every other setting is in an overlay, out of the scene until Settings", async () => {
+    for (const sel of ["#queenVoice", "#queenKeeps", "#queenCharacter", "#queenYou"]) expect(await page.locator(sel).isHidden(), sel + " shows in the scene");
+    await page.click("#queenSettingsBtn");
+    for (const sel of ["#queenVoice", "#queenKeeps", "#queenCharacter", "#queenYou", "#queenRoutines"]) expect(await page.locator(sel).isVisible(), sel + " not in Settings");
+    await page.click("#queenSettingsClose");
+    expect(await page.locator("#queenSettings").isHidden(), "Settings stayed open");
+    expect(await page.locator("#queenThread").isVisible(), "the scene didn't come back");
+  });
+  await page.click("#queenSettingsBtn");
+  await page.click("#queenYou summary");
+  await page.selectOption("#own-hair", "bun");
+  await page.selectOption("#own-top", "2");
+  await page.selectOption("#own-extra", "ears");
+  const before = await page.locator("#queenOwnerFig").innerHTML();
+  await page.click("#ownerSave");
+  await settle(page);
+  await check("you can dress yourself, and the café keeps it", async () => {
+    const o = (await T(page, () => window.__catio.store["house/main"]) || {}).owner;
+    expect(o && o.hair === "bun" && o.top === 2 && o.extra === "ears", JSON.stringify(o));
+    expect((await page.locator("#queenOwnerFig").innerHTML()) !== before, "the scene didn't change");
+  });
+  await page.keyboard.press("Escape");
+  await settle(page);
+  await page.mouse.move(8, 8);
+  await page.locator("#cats .cat.queen").hover();
+  await settle(page);
+  await check("on the map, hovering her still names her, and a click still opens her menu", async () => {
+    expect((await page.locator("#tip").innerText()).length > 0, "no hover line");
+    await page.locator("#cats .cat.queen").click();
+    await settle(page);
+    expect((await menuText(page)).includes("Talk to her"), await menuText(page));
+  });
+  await check("no page errors in her scene", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+// her turn as it goes, the rest of it (4 October): a long wait gets The Sims' loading tips, Stop turns the lit tile
+// pink until she has stopped, and with her runner away there is no strip at all, only a line saying why
+{
+  const { page, ctx, errors } = await open("?via=gateway");
+  await page.clock.install();
+  await page.locator("#cats .cat.queen").dblclick();
+  await settle(page);
+  await page.fill("#queenSay", "Sort the litter box for me.");
+  await page.click("#queenSend");
+  await T(page, () => window.__catio.queenSays("", false, "t1", [{ tool: "house_rules" }]));
+  await settle(page);
+  await check("a short wait has no tip", async () => expect(!(await page.locator("#queenWork .qtip").isVisible()), "a tip too soon"));
+  await page.clock.fastForward(60e3);
+  await check("a long wait gets a loading tip under the queue, and the seconds turn to minutes", async () => {
+    expect((await page.locator("#queenWork .qtip").innerText()).endsWith("\u2026"), await page.locator("#queenWork").innerText());
+    expect(/1:0\d/.test(await page.locator("#queenWork .tile.now").innerText()), await page.locator("#queenWork .tile.now").innerText());
+  });
+  await page.click("#queenStop");
+  await settle(page);
+  await check("Stop turns the step she is on to stopping, and stays pressed until she has", async () => {
+    expect(await page.locator("#queenWork .tile.now.stop").count() === 1, await page.locator("#queenWork").innerHTML());
+    expect(/stopping/i.test(await page.locator("#queenWork .tile.now").innerText()), await page.locator("#queenWork").innerText());
+    expect(await page.locator("#queenStop").isDisabled(), "Stop can be pressed twice");
+  });
+  await T(page, () => window.__catio.queenSays("Stopped there, my lady.", true, "t1"));
+  await settle(page);
+  await check("stopped, the strip is gone and Stop is free again", async () => {
+    expect(!(await page.locator("#queenWork").isVisible()), "the strip stayed");
+    expect(!(await page.locator("#queenStop").isDisabled()), "Stop stuck pressed");
+  });
+  await check("no page errors while she works", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+{
+  const { page, ctx, errors } = await open("?via=gateway&queen=away");
+  await page.locator("#cats .cat.queen").dblclick();
+  await settle(page);
+  await page.fill("#queenSay", "Are you there?");
+  await page.click("#queenSend");
+  await settle(page);
+  await check("with her runner away, your words wait with one line saying why, and nothing ticks", async () => {
+    expect(/asleep/i.test(await page.locator("#queenWork").innerText()), await page.locator("#queenWork").innerText());
+    expect(await page.locator("#queenWork .tile, #queenWork .qdots, #queenWork time").count() === 0, "a working strip for a queen who is asleep");
+    expect(!(await page.locator("#queenStop").isVisible()), "Stop with nothing to stop");
+  });
+  await check("no page errors with her away", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+// her quest log (3 October 2026: "where do I take the litter box quiz in the cafe UI?", then the queen's quest log, the
+// cards kept in her gateway): the queen keeps one list of everything waiting on her, quizzes that unblock a cat, litter
+// box notes to sort and decisions; the House menu and the litter box on the map open it, a card at a time, a tap answers
+{
+  const { page, ctx, errors } = await open("?via=gateway&mode=blocked");
+  await T(page, () => {
+    const T = window.__catio;
+    T.setQuiz({ kind: "litterbox", title: "Loose ends", note: "- **Rename the grey cat** in the craft room.", from: "litterbox/loose-ends.md", hint: "Pretty-Project-Portfolio", questions: [{ q: "Which project is it for?", options: ["Pretty-Project-Portfolio", "tiktok-saves", "Settled: drop it"] }] });
+    T.setQuiz({ kind: "litterbox", title: "Loose ends", note: "The shop's photos need a white background.", hint: "montfortoise-shopify", questions: [{ q: "Which project is it for?", options: ["montfortoise-shopify", "Pretty-Project-Portfolio", "Settled: drop it"] }] });
+    // the third option is as long as a repository name, with nothing to break at: it is what used to push her card off the side
+    T.setQuiz({ kind: "decision", title: "The roadmap", note: "Which comes first?", hint: "The camera", questions: [{ q: "Which first?", options: ["The camera", "Build mode", "Pretty-Project-Portfolio-with-a-name-that-will-never-break-anywhere"] }] });
+  });
+  await page.waitForTimeout(400);
+  await check("what a cat brought her comes before notes to sort in her line", async () => {
+    await page.mouse.move(8, 8);
+    await page.locator("#cats .cat.queen").hover();
+    await settle(page);
+    const t = await page.locator("#tip").innerText();
+    expect(t.includes("Holding 1 thing for you"), t);
+  });
+  await T(page, () => window.__catio.put("queens/house", { readAt: Date.now() + 864e5 }));   // the handoff read
+  await page.waitForTimeout(300);
+  await check("everything waiting on her is homework: the queen's line counts each kind", async () => {
+    await page.mouse.move(8, 8);
+    await page.locator("#cats .cat.queen").hover();
+    await settle(page);
+    const t = await page.locator("#tip").innerText();
+    expect(t.includes("Homework: 2 notes to sort, 1 decision"), t);
+  });
+  await openHouse(page);
+  await check("the House menu leads with Homework, saying how many wait", async () => {
+    const first = page.locator("#menu .list .mi").first();
+    expect((await first.innerText()).startsWith("Homework") && (await first.innerText()).includes("3 waiting"), await first.innerText());
+  });
+  await page.locator('#menu .mi:has-text("Homework")').click();
+  await settle(page);
+  await check("Homework opens her card on the cards, a deck at a time, the note's words with no markdown marks", async () => {
+    expect(await page.locator("#queenDlg").isVisible(), "her card didn't open");
+    expect(await page.locator('#queenHomework [data-deck="litterbox"]').count() === 1 && await page.locator('#queenHomework [data-deck="decision"]').count() === 1, "not one card per deck");
+    const t = await page.locator('#queenHomework [data-deck="litterbox"]').innerText();
+    expect(t.includes("1 of 2") && t.includes("Rename the grey cat") && !t.includes("**") && t.includes("The sifter guessed Pretty-Project-Portfolio"), t);
+    expect(await page.locator('#queenHomework [data-deck="litterbox"] strong:has-text("Rename the grey cat")').count() === 1, "the bold is lost");
+  });
+  // "make this window useable": homework used to take the whole talk, leaving the conversation under it no height
+  // at all, and an option as long as a repository name pushed the card off the side.
+  await check("homework leaves the talk room under it, and a long option wraps instead of running off the card", async () => {
+    const t = await page.locator("#queenHomework").innerText();
+    expect(t.includes("never-break-anywhere"), "the long option isn't drawn, so this proves nothing: " + t.slice(0, 200));
+    const o = await page.locator("#queenHomework").evaluate((u) => u.scrollWidth - u.clientWidth);
+    expect(o <= 0, "her homework scrolls sideways: " + o);
+    const h = await page.locator("#queenThread").evaluate((u) => u.clientHeight);
+    expect(h > 80, "her homework left the talk no height: " + h);
+  });
+  await page.locator('#queenHomework [data-deck="litterbox"] button:has-text("Skip")').click();
+  await settle(page);
+  await check("Skip puts the next note on top, without answering", async () => {
+    const t = await page.locator('#queenHomework [data-deck="litterbox"]').innerText();
+    expect(t.includes("2 of 2") && t.includes("white background"), t);
+    expect(!(await T(page, () => window.__catio.tools.some((x) => x[1] === "answer"))), "Skip answered");
+  });
+  await page.locator('#queenHomework [data-deck="litterbox"] button:has-text("montfortoise-shopify")').click();
+  await settle(page);
+  await check("a tap hands the card in, and the deck moves on to the one left", async () => {
+    const a = await T(page, () => window.__catio.tools.filter((x) => x[1] === "answer").pop());
+    expect(a && a[2].quiz === "z2" && JSON.stringify(a[2].answers) === JSON.stringify(["montfortoise-shopify"]), JSON.stringify(a));
+    const t = await page.locator('#queenHomework [data-deck="litterbox"]').innerText();
+    expect(t.includes("1 of 1") && t.includes("Rename the grey cat"), t);
+    expect(!t.includes("Skip"), "Skip with one card left");
+  });
+  await page.keyboard.press("Escape");
+  await settle(page);
+  await page.click("#floor-upper");
+  await page.keyboard.press("0");
+  await settle(page);
+  const litter = page.locator(".cabinet.litter");
+  await check("the litter box is on the map with no sign: hovering it says what waits", async () => {
+    expect(await litter.isVisible(), "no litter box upstairs");
+    expect((await litter.innerText()).trim() === "", "a sign on the litter box");
+    await page.mouse.move(8, 8);
+    await litter.hover();
+    await settle(page);
+    const t = await page.locator("#tip").innerText();
+    expect(t.includes("The litter box") && t.includes("1 note to sort"), t);
+  });
+  await litter.click();
+  await settle(page);
+  await check("clicking the litter box opens her card at the litter box", async () => {
+    expect(await page.locator("#queenDlg").isVisible(), "her card didn't open");
+    expect(await page.evaluate(() => !!document.activeElement.closest('[data-deck="litterbox"]')), "not at the litter box");
+  });
+  await page.locator('#queenHomework [data-deck="litterbox"] button:has-text("Settled: drop it")').click();
+  await settle(page);
+  await check("with the litter box empty its deck goes, and the decision stays", async () => {
+    expect(await page.locator('#queenHomework [data-deck="litterbox"]').count() === 0, "the litter box deck is still there");
+    expect(await page.locator('#queenHomework [data-deck="decision"]').count() === 1, "the decision went too");
+  });
+  await check("no page errors in her quest log", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
 // without her runner she is away; with the cats moving, a cat with news walks a copy of itself to her
 {
   const { page, ctx, errors } = await open("?via=gateway&mode=blocked&queen=away");
@@ -722,6 +1206,47 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(t.includes("review the French text"), "hover: " + t);
     expect((await page.locator("#houseBtn .badge .n").innerText()) === "1", "brand badge");
     expect(await page.locator("#houseBtn .badge.need .face-ico").count() === 1, "no meowing face");
+  });
+  // her ask, 4 October 2026: hovering the cats, the chats, the sessions "outlines the object boundaries of the 2D asset"
+  await check("the cat under the pointer is outlined around its own shape, not boxed, and only while it is pointed at", async () => {
+    const hot = () => page.evaluate(() => [...document.querySelectorAll("#cats .cat, #props .piece")].filter((e) => getComputedStyle(e).filter.includes("drop-shadow")).map((e) => e.getAttribute("aria-label") || e.dataset.piece));
+    const on = await hot();
+    expect(on.length === 1 && on[0].includes("Shop about page"), "outlined: " + JSON.stringify(on));
+    expect(await page.locator("#cats .cat.hot").evaluate((e) => getComputedStyle(e).borderImageSource === "none" && getComputedStyle(e).borderTopWidth === "0px"), "a box around the cat");
+    await page.mouse.move(8, 8);
+    await settle(page);
+    expect((await hot()).length === 0, "still outlined after the pointer left: " + JSON.stringify(await hot()));
+  });
+  await check("a filing cabinet under the pointer outlines the cabinet itself", async () => {
+    const cab = await page.locator('#hits .cabinet[data-room="kitchen"]').boundingBox();
+    await page.mouse.move(cab.x + cab.width / 2, cab.y + cab.height / 2, { steps: 3 });
+    await settle(page);
+    const on = await page.evaluate(() => [...document.querySelectorAll("#props .piece")].filter((e) => getComputedStyle(e).filter.includes("drop-shadow")).map((e) => e.dataset.room + "/" + e.dataset.piece));
+    expect(on.length === 1 && on[0] === "kitchen/filing_cabinet", "outlined: " + JSON.stringify(on));
+    await page.mouse.move(8, 8);
+    await settle(page);
+  });
+  await check("after a skin redraws the furniture, a filing cabinet under the pointer still outlines the cabinet", async () => {
+    await page.evaluate(() => { for (const p of document.querySelectorAll("#props .piece")) p.dataset.old = "1"; window.__catio.put("skin/cat-work", { src: "art/licensed/mochi-idle.png", at: 1 }); });   // a cat of hers: the house is drawn again
+    try {
+      await page.waitForFunction(() => document.querySelector("#props .piece") && !document.querySelector("#props .piece[data-old]"), null, { timeout: 5000 });
+      const cab = await page.locator('#hits .cabinet[data-room="kitchen"]').boundingBox();
+      await page.mouse.move(cab.x + cab.width / 2, cab.y + cab.height / 2, { steps: 3 });
+      await settle(page);
+      const on = await page.evaluate(() => [...document.querySelectorAll("#props .piece")].filter((e) => getComputedStyle(e).filter.includes("drop-shadow")).map((e) => e.dataset.room + "/" + e.dataset.piece));
+      expect(on.length === 1 && on[0] === "kitchen/filing_cabinet", "outlined: " + JSON.stringify(on));
+      // and with the pointer still on it, a redraw outlines the new piece
+      await page.evaluate(() => { for (const p of document.querySelectorAll("#props .piece")) p.dataset.old = "1"; window.__catio.drop("skin/cat-work"); });
+      await page.waitForFunction(() => document.querySelector("#props .piece") && !document.querySelector("#props .piece[data-old]"), null, { timeout: 5000 });
+      const still = await page.evaluate(() => [...document.querySelectorAll("#props .piece")].filter((e) => getComputedStyle(e).filter.includes("drop-shadow")).map((e) => e.dataset.room + "/" + e.dataset.piece));
+      expect(still.length === 1 && still[0] === "kitchen/filing_cabinet", "after the redraw, outlined: " + JSON.stringify(still));
+    } finally {
+      await page.mouse.move(8, 8); await settle(page);
+      if (await page.evaluate(() => !!window.__catio.store["skin/cat-work"])) {
+        await page.evaluate(() => { for (const p of document.querySelectorAll("#props .piece")) p.dataset.old = "1"; window.__catio.drop("skin/cat-work"); });
+        await page.waitForFunction(() => !document.querySelector("#props .piece[data-old]"), null, { timeout: 5000 });
+      }
+    }
   });
   await openRoom(page, "kitchen");
   await check("the room under the pointer, and the one its menu belongs to, light up with the white brackets", async () => {
@@ -842,8 +1367,10 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   // a chat upstairs that needs her, while she is downstairs
   await T(page, () => window.__catio.put("cats/up1", { title: "Lease renewal", room: "bedroom", mood: "needs", note: "Sign it", name: "Mimi", project: "Flat lease", createdAt: Date.now(), updatedAt: Date.now() }));
   await settle(page);
-  await check("a cat upstairs that needs you shows on the floor switch, and the tally counts it", async () => {
-    expect(await page.locator("#floor-upper .badge").count() === 1, "no badge on the switch");
+  // her words (3 October): every cat waiting on her lines up in front of the entrance-hall door, beside the queen
+  await check("a cat upstairs that waits on you comes down to the line at the front door, and the tally counts it", async () => {
+    expect((await page.locator('#cats .cat[aria-label^="Mimi "]').getAttribute("data-room")) === "hall", "not in the line");
+    expect(await page.locator("#floor-upper .badge").count() === 0, "the upper floor's switch sends her upstairs to nobody");
     expect((await page.locator("#tally").innerText()).includes("2 need you"), await page.locator("#tally").innerText());
   });
   await page.locator("#stairs").click();
@@ -853,7 +1380,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect((await page.locator("#floor-upper").getAttribute("aria-checked")) === "true", "switch");
     expect(await page.locator('.roomhit[data-room="bedroom"]').isVisible(), "bedroom not showing");
     expect(await page.locator('.roomhit[data-room="kitchen"]').isHidden(), "the kitchen still answers upstairs");
-    expect(await page.locator('#cats .cat[aria-label^="Mimi "]').isVisible(), "the cat upstairs isn't there");
+    expect(await page.locator('#cats .cat[aria-label^="Mimi "]').isHidden(), "the cat waiting on her is still upstairs");
     expect(await page.locator("#floor-ground .badge").count() === 1, "no badge on the ground floor's switch");
     expect((await page.locator("#say").textContent()).startsWith("Upstairs"), await page.locator("#say").textContent());
   });
@@ -989,10 +1516,10 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     page.locator('#walkers .walker[data-leaving="session_blocked1"]').waitFor({ state: "detached", timeout: 25000 }));
   await T(page, () => window.__catio.setBucket("blocked1", "BLOCKED", "IDLE", { status_category: "need_input", needs_action: "one more look" }));
   await settle(page);
-  await check("brought back, it comes down the stair and walks to its room, then meows", async () => {
+  await check("brought back waiting on her, it comes down the stair and walks to the line at the front door, then meows", async () => {
     expect((await cat("blocked1").getAttribute("class")).includes("walking"), "not walking back: " + await cat("blocked1").getAttribute("class"));
     await settled("blocked1", "m-meow");
-    expect(await cat("blocked1").getAttribute("data-room") === "study", "not in the craft room");
+    expect(await cat("blocked1").getAttribute("data-room") === "hall", "not in the line");
   });
   {
     const b = await catPoint(page, "Shop about page");
@@ -1004,9 +1531,9 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     await page.mouse.up();
     await page.waitForTimeout(250);
   }
-  await check("moved to the entrance hall, it walks there through the doorway", async () => {
-    expect(await cat("blocked1").getAttribute("data-room") === "hall", "not moved");
-    expect((await cat("blocked1").getAttribute("class")).includes("walking"), "it jumped");
+  await check("moved to the entrance hall while it waits, the move is kept and it stays in the line", async () => {
+    expect((await T(page, () => window.__catio.store["sessions/session_blocked1"])).room === "hall", "not moved");
+    expect(await cat("blocked1").getAttribute("data-room") === "hall", "left the line");
     await settled("blocked1", "m-meow");
   });
   await closeMenu(page);
@@ -1157,11 +1684,59 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(await page.locator("#mmRooms .mm-room.landing:not(.faint)").count() === 1, "no landing");
   });
   await page.click("#floor-ground");
+  const whole = await rect("#controls");
   await page.click("#mapFold");
   await check("the fold button folds the map away and says so", async () => {
     expect(!(await page.locator("#minimap").isVisible()), "still showing");
     expect((await page.locator("#mapFold").getAttribute("aria-expanded")) === "false", "aria-expanded");
   });
+  // her ask, 5 October: "allow the mini-map to be minimizable": the whole panel, not just the plan
+  await check("minimised, the panel is its one button, in the corner it was in", async () => {
+    for (const id of ["zoomIn", "zoomOut", "zoomAll", "floor-ground", "floor-upper"])
+      expect(!(await page.locator("#" + id).isVisible()), id + " still shows");
+    const p = await rect("#controls");
+    expect(p.w < 90 && p.h < 70, "more than one button: " + JSON.stringify(p));
+    expect(Math.abs(p.x + p.w - (whole.x + whole.w)) < 1 && Math.abs(p.y - whole.y) < 1, "it moved: " + JSON.stringify([whole, p]));
+  });
+  await page.locator("#stage").click({ position: { x: 60, y: 800 } });
+  await page.keyboard.press("PageUp");
+  await settle(page);
+  await check("minimised, its button carries the pip the hidden floor tab would have", async () => {
+    expect(await page.locator("#mapFold .pip").count() === 1, "no pip");
+    const n = (await page.locator("#mapFold .pip").innerText()).trim(), ground = (await page.locator("#floor-ground .pip").innerText()).trim();
+    expect(n === ground, "it counts " + n + ", the hidden ground floor tab " + ground);
+    expect(/need you/.test(await page.locator("#mapFold").getAttribute("aria-label")), "its name doesn't say so");
+  });
+  await page.keyboard.press("PageDown");
+  await settle(page);
+  await openRoom(page, "living");
+  await page.keyboard.press("m");
+  await settle(page);
+  await check("a menu open as the panel opens finds its place clear of it again", async () => {
+    expect(await page.locator("#minimap").isVisible(), "M didn't open it");
+    expect(await page.locator("#menu").isVisible(), "the menu closed");
+    expect(await clear(), "the menu is under the panel");
+  });
+  await closeMenu(page);
+  await page.focus("#zoomIn");
+  await page.keyboard.press("m");
+  await check("minimising from one of its buttons leaves the keyboard on the fold", async () => {
+    expect(!(await page.locator("#minimap").isVisible()), "still open");
+    expect((await page.evaluate(() => document.activeElement && document.activeElement.id)) === "mapFold", "focus fell off");
+  });
+  await page.locator("#room-living").focus();
+  await page.keyboard.press("Enter");
+  await settle(page);
+  const onItem = () => page.evaluate(() => { const a = document.activeElement; return !!a && document.getElementById("menu").contains(a) ? a.textContent : null; });
+  const item = await onItem();
+  await page.keyboard.press("m");
+  await settle(page);
+  await check("opening the panel from inside a menu keeps the keyboard on the same item", async () => {
+    expect(item !== null, "Enter didn't step into the menu");
+    expect((await onItem()) === item, "focus fell off: " + item);
+  });
+  await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
+  await page.click("#mapFold");
   await page.reload(); await page.waitForTimeout(600);
   await check("folded stays folded after a reload", async () => expect(!(await page.locator("#minimap").isVisible()), "open again"));
   await page.locator("#stage").click({ position: { x: 60, y: 800 } });
@@ -1184,6 +1759,13 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     const r = await page.locator("#controls").boundingBox();
     expect(r.y + r.height > 780, "not at the bottom: " + JSON.stringify(r));
   });
+  await page.locator("#mapFold").tap();
+  await check("on a phone, opened, the fold stays in the bottom right corner, under her thumb", async () => {
+    expect(await page.locator("#minimap").isVisible(), "the tap didn't open it");
+    const f = await page.locator("#mapFold").boundingBox(), r = await page.locator("#controls").boundingBox();
+    expect(r.x + r.width - (f.x + f.width) < 20 && r.y + r.height - (f.y + f.height) < 20, "the fold isn't in the corner: " + JSON.stringify([f, r]));
+  });
+  await page.locator("#mapFold").tap();
   await cat.tap();
   await settle(page);
   await check("on a phone, tapping a cat opens its menu instead of the full card", async () => {
@@ -1218,6 +1800,66 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(await page.locator("#rn-bath").isVisible(), "bath card");
     expect(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), "horizontal scroll");
   });
+  await ctx.close();
+}
+
+/* ---------- 7b. her card on a phone ("make this window useable", 3 October) ---------- */
+// Flanking her on a phone the two of them left the words a strip under 200 px wide, and nothing in the walk
+// opened her card at that size, so the rules that only apply there went unchecked.
+{
+  const { page, ctx, errors } = await open("?via=gateway&mode=blocked", { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  const fits = () => page.locator("#queenDlg").evaluate((d) => d.scrollHeight - d.clientHeight);
+  await page.locator("#cats .cat.queen").tap();   // the way she opens it on a phone: a tap names her and opens her menu
+  await settle(page);
+  await check("on a phone a tap on her opens her menu, and Talk to her opens her card", async () => {
+    expect(await page.locator("#menu").isVisible(), "no menu");
+    expect(await page.locator("#queenDlg[open]").count() === 0, "her card opened on the first tap");
+    await menuButton(page, "Talk to her").tap();
+    await settle(page);
+    expect(await page.locator("#queenDlg[open]").count() === 1, "Talk to her didn't open her card");
+  });
+  await check("on a phone her card fits the screen, the two of them at its foot and the words across the whole scene", async () => {
+    const over = await fits();
+    expect(over <= 1, "her card is taller than the screen by " + over);
+    expect(await page.locator("#queenSend").evaluate((s) => s.getBoundingClientRect().bottom <= innerHeight + 1), "Send is under the fold");
+    const you = await page.locator("#queenOwnerFig").boundingBox(), her = await page.locator("#queenFig").boundingBox(), talk = await page.locator("#queenThread").boundingBox();
+    expect(you && her && talk, "a piece is missing: " + JSON.stringify({ you, her, talk }));
+    expect(you.x + you.width <= her.x + 2, "they aren't side by side: " + JSON.stringify({ you, her }));
+    expect(talk.y + talk.height <= you.y + 2, "the words aren't above them: " + JSON.stringify({ talk, you }));
+    const stage = await page.locator(".qstage").evaluate((e) => e.clientWidth);
+    expect(talk.width > stage * .9, "the words don't cross the scene: " + Math.round(talk.width) + " of " + stage);
+    expect(await page.locator("#queenThread").evaluate((u) => u.scrollWidth - u.clientWidth) <= 0, "her words scroll sideways");
+  });
+  await T(page, () => window.__catio.setQuiz({ for: "cse_blocked1", title: "Unblock Caramel", questions: [
+    { q: "Which project is this one for?", options: ["montfortoise-shopify", "Pretty-Project-Portfolio"] },
+    { q: "Does the menu fix go in first?", options: ["Yes", "No", "Ask me again on Sunday"] },
+    { q: "Anything else I should know?" },
+  ] }));   // taller than a phone's scene, so the branch that scrolls is the one this check runs
+  await page.waitForTimeout(500);
+  // a quiz taller than a phone's scene has to scroll; what must hold is that the talk keeps a bubble's worth of
+  // room under it, and that what doesn't fit can be reached rather than being cut off
+  await check("on a phone her homework leaves the talk room under it, and what doesn't fit can be scrolled to", async () => {
+    expect(await page.locator("#queenHomework .quiz").count() > 0, "no homework drawn");
+    const h = await page.locator("#queenThread").evaluate((u) => u.clientHeight);
+    expect(h > 80, "her homework left the talk no height: " + h);
+    // scroll it, rather than trusting the stylesheet: what was below the fold has to come into view
+    const hw = await page.locator("#queenHomework").evaluate((e) => {
+      const over = e.scrollHeight - e.clientHeight;
+      if (over <= 0) return { over, reached: true, hand: true };
+      e.scrollTop = e.scrollHeight;
+      const box = e.getBoundingClientRect();
+      const hands = e.querySelectorAll(".hand");   // its own class: .actions also holds a deck's Skip
+      const hand = hands[hands.length - 1];   // the one at the bottom, where it has just been scrolled to
+      const hr = hand && hand.getBoundingClientRect();
+      return { over, reached: e.scrollTop > 0, hand: !!hr && hr.bottom <= box.bottom + 1 && hr.top >= box.top - 1 };
+    });
+    expect(hw.over > 0, "the quiz fits, so this proves nothing about what doesn't: " + JSON.stringify(hw));
+    expect(hw.reached, "her homework is cut off with no way to scroll to the rest: " + JSON.stringify(hw));
+    expect(hw.hand, "Hand it in can't be reached even scrolled to the bottom: " + JSON.stringify(hw));
+    const over = await fits();
+    expect(over <= 1, "her card grew past the screen with homework open, by " + over);
+  });
+  await check("no page errors in her card on a phone", async () => expect(errors.length === 0, errors.join("; ")));
   await ctx.close();
 }
 
@@ -1356,6 +1998,7 @@ async function dropFiles(page, sel, files) {
     expect(d[2].kind === "sort" && d[2].old === "session_blocked1", JSON.stringify(d[2]).slice(0, 200));
     const q = d[2].questions.cat;
     expect(q.type === "choice" && q.criteria.none && q.criteria.session_blocked1 && d[2].state.file.name === "untitled.txt", JSON.stringify(q).slice(0, 300));
+    expect(d[2].floor === 0.6 && typeof d[2].ref === "string" && d[2].ref, "the log can't tell how sure counts, or which file: " + JSON.stringify(d[2]).slice(0, 200));
   });
   // house/main.decide "on": the decider sorts first, when it is sure
   await T(page, () => { window.__catio.decideAnswer = { model: "stub", answers: { cat: { type: "choice", choice: "session_work1", confidence: 0.91, probabilities: { session_work1: 0.91 } } } }; window.__catio.put("house/main", { name: "KittyChat Café", decide: "on" }); });
@@ -1373,6 +2016,7 @@ async function dropFiles(page, sel, files) {
   });
   await page.click("#brainDlg button:has-text('Cancel')");
   await T(page, () => { window.__catio.put("house/main", { name: "KittyChat Café" }); window.__catio.decideAnswer.answers.cat = { type: "choice", choice: "none", confidence: 0.9, probabilities: { none: 0.9 } }; });
+  await page.waitForTimeout(100);   // back to observe before the next drop
 
   // the sorter can't tell either: it waits on the tray, and is filed from the brain
   await T(page, () => { window.__catio.sampleAnswer = { cat: null, reason: "no idea" }; });
@@ -1382,6 +2026,11 @@ async function dropFiles(page, sel, files) {
   await check("a file nobody claims waits on the brain's tray", async () => {
     const d = Object.entries(await T(page, () => window.__catio.store)).find(([p, v]) => p.startsWith("brain/") && v.name === "mystery.bin");
     expect(d && d[1].status === "unsorted" && d[1].cat === null, JSON.stringify(d));
+  });
+  await check("the decider's log says the sorter found nobody, and names the file as the brain keeps it", async () => {
+    const d = (await tools(page, "decide")).pop();
+    const kept = Object.keys(await T(page, () => window.__catio.store)).find((p) => p === "brain/" + d[2].ref);
+    expect(d[2].state.file.name === "mystery.bin" && d[2].old === "none" && kept, JSON.stringify({ old: d[2].old, ref: d[2].ref, kept }));
   });
   await openHouse(page);
   await menuButton(page, "The brain, 1 on the tray").click();
@@ -1415,13 +2064,21 @@ async function dropFiles(page, sel, files) {
     const q = (await outbox(page)).pop();
     expect(q.text === "[Catio] Charlotte says: Is the French text ready?" && q.kind === "message", JSON.stringify(q));
     const n = Object.entries(await T(page, () => window.__catio.store)).find(([p]) => p.startsWith("notes/"));
-    expect(n && n[1].author === "charlotte" && n[1].cat === "session_blocked1" && n[1].via === "queued", JSON.stringify(n));
+    expect(n && n[1].author === "owner" && n[1].cat === "session_blocked1" && n[1].via === "queued", JSON.stringify(n));
     expect((await page.locator("#thread").innerText()).includes("queued"), "the conversation doesn't say it's waiting");
   });
   await T(page, () => window.__catio.put("notes/r1", { cat: "session_blocked1", author: "session", text: "Yes: it's in the PR.", at: Date.now() }));
   await page.waitForTimeout(200);
   await check("the session's answer shows in the conversation", async () => {
     expect((await page.locator("#thread").innerText()).includes("Yes: it's in the PR."), await page.locator("#thread").innerText());
+  });
+  // a note of hers from before accounts, written as "charlotte": still hers
+  await T(page, () => window.__catio.put("notes/old1", { cat: "session_blocked1", author: "charlotte", text: "Old one, from before.", at: Date.now() - 1 }));
+  await page.waitForTimeout(200);
+  await check("a note written as charlotte before accounts still reads as hers", async () => {
+    const li = page.locator("#thread li.me", { hasText: "Old one, from before." });
+    expect(await li.count() === 1, await page.locator("#thread").innerText());
+    expect((await li.innerText()).startsWith("You"), await li.innerText());
   });
 
   // managing it
@@ -1436,8 +2093,8 @@ async function dropFiles(page, sel, files) {
   await page.click("#catDlg button:has-text('Save')");
   await page.waitForTimeout(200);
   await check("changing a session's title renames the real session", async () => {
-    const t = await tools(page, "set_session_title");
-    expect(t.length === 1 && t[0][2].session_id === "session_blocked1" && t[0][2].title === "Shop about page (FR)", JSON.stringify(t));
+    const t = (await tools(page, "set_session_title")).filter((x) => x[2].session_id === "session_blocked1");
+    expect(t.length === 1 && t[0][2].title === "Shop about page (FR)", JSON.stringify(t));
   });
   await openCat(page, "Week tab editing");
   await menuButton(page, "Talk").click();
@@ -1484,7 +2141,7 @@ async function dropFiles(page, sel, files) {
     expect((await T(page, () => window.__catio.store["sessions/session_blocked1"])).room === "dining", "not moved");
     expect(!(await page.locator("#catDlg").evaluate((d) => d.open)), "the drag opened the card");
     expect(await page.locator("#menu").isHidden(), "the drag opened a menu");
-    expect((await page.locator('#cats .cat[aria-label*="Shop about page"]').getAttribute("data-room")) === "dining", "still in the old room");
+    expect((await page.locator('#cats .cat[aria-label*="Shop about page"]').getAttribute("data-room")) === "hall", "a cat waiting on her left the line");
   });
 
   // agents: a message and a file go through the Catio server on her computer
@@ -1571,7 +2228,7 @@ async function dropFiles(page, sel, files) {
   await page.waitForTimeout(200);
   await check("writing to it goes through the gateway, not the outbox, and says when it arrives", async () => {
     const c = (await tools(page, "comment")).pop();
-    expect(c && c[0] === "CATIO" && c[2].cat === "cse_blocked1" && c[2].text === "Merci, I'll read it tonight" && c[2].author === "charlotte", JSON.stringify(c));
+    expect(c && c[0] === "CATIO" && c[2].cat === "cse_blocked1" && c[2].text === "Merci, I'll read it tonight" && c[2].author === "owner", JSON.stringify(c));
     expect(!(await outbox(page)).length, "it went to the outbox");
     expect((await toast(page)).includes("when its turn ends"), await toast(page));
     expect((await page.getAttribute("#sayTo", "placeholder")).includes("turn ends"), "the box promises it goes straight in");
@@ -1746,6 +2403,7 @@ if (LOCAL) {
   await toFloor(page, "ground");
   await page.locator("#cats .cat.queen").dblclick();
   await settle(page);
+  await page.click("#queenSettingsBtn");
   await page.click("#queenKeeps summary");
   await page.fill("#queenAdd", "Off a USB stick, she still remembers.");
   await page.locator('#queenDlg button:has-text("Give it to her")').click();
@@ -1762,6 +2420,33 @@ if (LOCAL) {
     await page.locator("#cats .cat.queen").hover();
     await settle(page);
     expect((await page.locator("#tip").innerText()).includes("Off a USB stick"), "she stopped saying it after the reload");
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
+// The walkthrough's localhost player: catio_mcp.py --serve answers its tools by POST only, so the page must ask it that
+// way; and with no front desk the queen can't wake, so she says so instead of "start her runner".
+if (LOCAL) {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+  const page = await ctx.newPage();
+  const errors = [], asked = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.route("**/api/list_agents", (r) => {
+    asked.push(r.request().method());
+    if (r.request().method() !== "POST") return r.fulfill({ status: 404, contentType: "application/json", body: '{"error": "the tools are POST only"}' });
+    return r.fulfill({ contentType: "application/json", body: JSON.stringify({ agents: [] }) });
+  });
+  await page.goto(LOCAL);
+  for (let i = 0; i < 100 && asked.length < 2; i++) await page.waitForTimeout(50);   // the probe, then refreshAgents: up to 5 s
+  await check("on localhost the page asks catio_mcp.py --serve for its agents by POST", async () =>
+    expect(asked.length >= 2 && asked.every((m) => m === "POST"), "asked by " + asked.join(", ")));
+  await toFloor(page, "ground");
+  await page.mouse.move(8, 8);
+  await page.locator("#cats .cat.queen").hover();
+  await settle(page);
+  await check("on localhost the queen's hover says she only wakes with a front desk, not to start a runner", async () => {
+    const t = await page.locator("#tip").innerText();
+    expect(t.includes("front desk") && !t.includes("runner"), t);
     expect(errors.length === 0, errors.join("; "));
   });
   await ctx.close();
@@ -1826,6 +2511,20 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
   const { page, ctx } = await open("");
   await page.waitForTimeout(1500);   // past the second the wizard gives the rooms
   await check("a café with rooms never sees the wizard", async () => expect(await page.locator("#setupDlg[open]").count() === 0, "wizard open"));
+  await ctx.close();
+}
+// The first user test (5 October): with no licensed art, which is every invited guest and every fresh clone, the
+// Welcome step threw "NOART is not defined" and the wizard never opened.
+{
+  const { page, ctx, errors } = await open("?mode=empty", { base: NOART });
+  await check("with no licensed art the wizard still opens on Welcome, saying once that the art isn't here", async () => {
+    await wizard(page);
+    expect(await page.locator("#setupDlg[open]").count() === 1, "wizard not open");
+    const words = await page.locator("#setupDlg").innerText();
+    expect(words.split("The cat art isn't here").length === 2, "the art note, not once: " + words);
+    expect(words.split("All your Claude chats").length === 2, "the welcome, not once: " + words);
+    expect(!errors.some((e) => /NOART|ReferenceError/.test(e)), errors.join(" | "));
+  });
   await ctx.close();
 }
 {
@@ -1901,6 +2600,9 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
   await check("How it works: the five lines and the two install lines", async () => {
     expect((await title()) === "How it works", await title());
     expect(await page.locator("#setupDlg ul.how li").count() === 5, "lines");
+    // the harness as a car (her ask, 4 October): Claude alone is a stripped car, the café the rest of it, the queen drives
+    expect((await page.locator("#setupDlg").innerText()).includes("stripped car"), "the stripped car");
+    expect(/^\S+ drives\.$/i.test(await page.locator("#setupDlg ul.how li b").first().innerText()), "the queen at the wheel");
     expect((await page.locator("#installLines").innerText()).includes("claude plugin install kittychat-house-rules@kittychat"), "install line");
     expect(await page.locator("#copyInstall").isVisible(), "copy");
   });
@@ -1909,6 +2611,7 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
     expect((await title()) === "Done", await title());
     const t = await page.locator("#setupDlg").innerText();
     for (const w of ["Mochi's Café", "3 rooms open", "2 repositories filed", "3 cats at the door", "OPEN THE DOORS"]) expect(t.toUpperCase().includes(w.toUpperCase()), w + " missing: " + t);
+    expect(t.includes("has the keys"), "the keys");
     expect((await T(page, () => window.__catio.writes.length)) === 0, "wrote before the doors opened");
   });
   await nextStep();
@@ -1941,7 +2644,10 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
     await page.keyboard.press("Escape"); await settle(page);
   });
   await check("a session whose repo a closed room lists, and a chat moved there, sit at the front door", async () => {
-    expect((await page.locator('#cats .cat[aria-label*="Shop about page"]').getAttribute("data-room")) === "living", "session not in the lounge");
+    await page.locator('#cats .cat[aria-label*="Shop about page"]').click();   // waiting on her, it is in the line; its room is the lounge
+    await settle(page);
+    expect(/lounge/i.test(await menuText(page)), "session not filed in the lounge: " + await menuText(page));
+    await closeMenu(page);
     expect((await page.locator('#cats .cat[aria-label^="Willow"]').getAttribute("data-room")) === "living", "chat not in the lounge");
   });
   await T(page, () => { window.__catio.put("sessions/session_work1", { room: "bath" }); });
@@ -1985,7 +2691,11 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
   await check("Open this room opens it: the house's one queen is still there and the listed repo's cat walks in", async () => {
     expect((await T(page, () => window.__catio.store["rooms/study"].closed)) === false, "still closed");
     expect(await page.locator("#cats .cat[data-queen]").count() === 1, "the queen of the house is missing");
-    expect((await page.locator('#cats .cat[aria-label*="Shop about page"]').getAttribute("data-room")) === "study", "cat not in the craft room");
+    await closeMenu(page);
+    await page.locator('#cats .cat[aria-label*="Shop about page"]').click();   // waiting on her, it is in the line; its room is the craft room again
+    await settle(page);
+    expect((await menuText(page)).includes("Craft room"), "cat not filed in the craft room: " + await menuText(page));
+    await closeMenu(page);
   });
   // Edit rooms: a switch per room; the front door can't be closed, it moves
   await page.click("#houseBtn");
@@ -2113,6 +2823,704 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
     const dlg2 = await page.locator("#setupDlg").boundingBox();
     expect(dlg2.x >= 0 && dlg2.x + dlg2.width <= 390, JSON.stringify(dlg2));
     expect(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), "horizontal scroll");
+  });
+  await ctx.close();
+}
+// The walkthrough's invitee, on the café's own address: no GitHub button that can only fail, the cats that checked in
+// counted, and How it works saying the plugin is how a cat checks in, where to type the lines and the two variables.
+{
+  const { page, ctx, errors } = await open("?via=gateway&mode=empty");
+  const nextStep = async () => { await page.click("#setupDlg button[type=submit]"); await settle(page); };
+  await wizard(page);
+  await nextStep(); await nextStep();
+  await check("on its own address the GitHub step offers no Connect GitHub, and says to file repositories under Edit rooms", async () => {
+    const t = await page.locator("#setupDlg").innerText();
+    expect(await page.locator("#ghConnect").count() === 0, "a Connect GitHub that can only fail");
+    expect(t.includes("Edit rooms") && !t.includes("Claude GitHub App"), t);
+  });
+  await nextStep();
+  await check("on its own address the Sessions step counts the cats that checked in", async () => {
+    const t = await page.locator("#setupDlg").innerText();
+    expect((await page.locator("#setupTitle").innerText()) === "Sessions", await page.locator("#setupTitle").innerText());
+    expect(t.includes("2 cats have checked in"), t);
+  });
+  await nextStep(); await nextStep();
+  await check("on its own address How it works says the plugin checks the cats in, where to type it, and CATIO_URL and CATIO_TOKEN", async () => {
+    const t = await page.locator("#setupDlg").innerText();
+    expect(t.includes("check-in") && t.includes("terminal") && t.includes("CATIO_URL") && t.includes("CATIO_TOKEN"), t);
+    expect((await page.locator("#cafeAddress").innerText()).startsWith("CATIO_URL="), "no address");
+  });
+  await check("no page errors through the wizard on its own address", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+{
+  const { page, ctx, errors } = await open("?mode=blocked");
+  const nextStep = async () => { await page.click("#setupDlg button[type=submit]"); await settle(page); };
+  await page.click("#houseBtn");
+  await menuButton(page, "Set up again…").click();
+  await wizard(page);
+  await nextStep(); await nextStep(); await nextStep();
+  await check("with the live read blocked, the Sessions step says to ask Claude for a saved copy, and shows the one there is", async () => {
+    const t = await page.locator("#setupDlg").innerText();
+    expect(t.includes("save a copy of your sessions") && t.includes("Claude's saved copy"), t);
+  });
+  await check("no page errors in the blocked wizard", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+
+// Her words (3 October 2026): "Allow all assets to be plug-n-plays". Every piece of art is a slot: the page names the
+// slot, never the file, so a piece of her own (or another pack's) drops in where the pack's was, with no code change,
+// from The look in the House menu or art/skin.json beside the page. These swaps use pieces of the packs themselves, so
+// no new file is needed: what matters is that the slot takes them, and that a piece that doesn't fit is refused.
+await check("no piece of art is named by its file outside the list of slots", async () => {
+  const src = readFileSync(join(here, "..", "index.html"), "utf8");
+  const css = src.slice(src.indexOf("<style>"), src.indexOf("</style>"));
+  const rootEnd = css.indexOf("color-scheme: light;");
+  const outside = (css.slice(0, css.indexOf(":root {")) + css.slice(rootEnd)).match(/url\(art\/[^)]*\)/g) || [];
+  expect(outside.length === 1 && outside[0].includes("sprout.ttf"), outside.join(" "));   // the @font-face, swapped by FontFace
+  const js = src.slice(src.indexOf("<script>"));
+  const named = (js.slice(0, js.indexOf("the art: every piece a slot")) + js.slice(js.indexOf("const SPR0"))).match(/["'(]art\/licensed\/[^"')]*/g) || [];
+  expect(!named.length, named.join(" "));
+});
+// Her words (4 October 2026): "Make sure the entire design system is plug-n-play". Not only the art: every colour,
+// font, type size and the art pixel is a token in :root, and a skin sets any of them the same two ways.
+await check("no colour or pixel-font size is written into a rule: each is a token", async () => {
+  const src = readFileSync(join(here, "..", "index.html"), "utf8");
+  const css = src.slice(src.indexOf("<style>"), src.indexOf("</style>"));
+  const rules = css.replace(/\/\*[\s\S]*?\*\//g, "").split("}").filter((r) => !/^\s*(@media[^{]*\{\s*)?:root\b/.test(r));   // :root rules define the tokens
+  const colours = rules.join("}").match(/#[0-9A-Fa-f]{3,8}\b|rgba?\(/g) || [];
+  expect(!colours.length, colours.join(" "));
+  const sizes = css.match(/\d+px\/\d+px var\(--pixel\)/g) || [];
+  expect(!sizes.length, sizes.join(" "));
+  const js = src.slice(src.indexOf("<script>"));
+  const owner = js.indexOf("const OWNER = {"), ownerEnd = js.indexOf("};", owner);
+  const hexes = (js.slice(0, owner) + js.slice(ownerEnd)).match(/["']#[0-9A-Fa-f]{3,8}["']/g) || [];   // her look's choices are data
+  expect(!hexes.length, hexes.join(" "));
+});
+await check("each slot's default in ART is the one the CSS draws with: its file, and a 9-slice's border", async () => {
+  const src = readFileSync(join(here, "..", "index.html"), "utf8");
+  const css = src.slice(src.indexOf(":root {"), src.indexOf("color-scheme: light;"));
+  const art = src.slice(src.indexOf("const ART = {"), src.indexOf("const SPR0"));
+  const wrong = [];
+  for (const line of art.split("\n")) {
+    const m = line.match(/^\s+"([\w-]+)":\s*\{.*kind: "(\w+)".*file: (?:LIC \+ )?"([^"]+)"/);
+    if (!m || m[2] === "font" || m[2] === "cat") continue;   // the font is @font-face's; a cat's sheet is its mood's rule
+    const file = line.includes("file: LIC + ") ? "art/licensed/" + m[3] : m[3];
+    if (!css.includes("--art-" + m[1] + ": url(" + file + ")")) wrong.push(m[1] + " is not " + file);
+    const sl = line.match(/slice: \[(\d+), (\d+), (\d+), (\d+)\]/), fam = line.match(/fam: "(\w+)"/);
+    if (sl && fam && !css.includes("--" + fam[1] + "-t: " + sl[1] + "; --" + fam[1] + "-r: " + sl[2] + "; --" + fam[1] + "-b: " + sl[3] + "; --" + fam[1] + "-l: " + sl[4] + ";")) wrong.push(m[1] + "'s border is not " + sl.slice(1).join(" "));
+  }
+  expect(!wrong.length, wrong.join("; "));
+});
+await check("tools/skin.py reads every slot, token and size range the page has", async () => {
+  const { mkdtempSync, mkdirSync, copyFileSync, writeFileSync } = await import("node:fs");
+  const { execFileSync } = await import("node:child_process");
+  const { tmpdir } = await import("node:os");
+  const dir = mkdtempSync(join(tmpdir(), "skin-")), c = join(dir, "catio");
+  mkdirSync(join(c, "tools"), { recursive: true }); mkdirSync(join(c, "art", "skin"), { recursive: true });
+  copyFileSync(join(here, "..", "index.html"), join(c, "index.html")); copyFileSync(join(here, "..", "tools", "skin.py"), join(c, "tools", "skin.py"));
+  writeFileSync(join(c, "art", "skin.json"), JSON.stringify({ tokens: { "--ink": "#123456", "--u-desk": "20px" } }));
+  const out = execFileSync("python3", [join(c, "tools", "skin.py")], { encoding: "utf8" });
+  const src = readFileSync(join(here, "..", "index.html"), "utf8");
+  const slots = (src.slice(src.indexOf("const ART = {"), src.indexOf("const SPR0")).match(/^\s+"[\w-]+":\s*\{/gm) || []).length;
+  expect(new RegExp("0 of " + slots + " slots").test(out) && /--u-desk = '20px' left out/.test(out), out);
+  expect(JSON.parse(readFileSync(join(c, "art", "skin.json"), "utf8")).tokens["--ink"] === "#123456", "token dropped");
+});
+// a blank picture of any size, for a slot that is weighed by its size
+const { deflateSync, crc32 } = await import("node:zlib");
+const png = (w, h) => {
+  const chunk = (t, d) => { const n = Buffer.alloc(4); n.writeUInt32BE(d.length); const c = Buffer.alloc(4); c.writeUInt32BE(crc32(Buffer.concat([Buffer.from(t), d])) >>> 0); return Buffer.concat([n, Buffer.from(t), d, c]); };
+  const ih = Buffer.alloc(13); ih.writeUInt32BE(w, 0); ih.writeUInt32BE(h, 4); ih[8] = 8; ih[9] = 6;
+  const raw = Buffer.alloc((w * 4 + 1) * h, 255); for (let y = 0; y < h; y++) raw[y * (w * 4 + 1)] = 0;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ih), chunk("IDAT", deflateSync(raw)), chunk("IEND", Buffer.alloc(0))]);
+};
+await check("art/skin.json beside the page: a slot written as its path alone is drawn", async () => {
+  // the page served over http (art/skin.json can't be fetched from file://), its skin.json naming the panel by path
+  const P = join(here, ".."), page0 = readFileSync(join(here, ".page.html"), "utf8").replace(/<base href="[^"]*">/, '<base href="http://catio.test/">');
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+  await ctx.route("http://catio.test/**", (r) => {
+    const path = decodeURIComponent(new URL(r.request().url()).pathname);
+    if (path === "/page.html") return r.fulfill({ contentType: "text/html", body: page0 });
+    if (path === "/art/skin.json") return r.fulfill({ contentType: "application/json", body: JSON.stringify({ panel: "art/licensed/ui/bubble.png" }) });
+    try { return r.fulfill({ body: readFileSync(join(P, path)) }); } catch (e) { return r.fulfill({ status: 404, body: "" }); }
+  });
+  const page = await ctx.newPage();
+  await page.goto("http://catio.test/page.html");
+  await page.waitForTimeout(1200);
+  const v = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--art-panel"));
+  await ctx.close();
+  expect(v.includes("ui/bubble.png"), v);
+});
+await check("tools/skin.py: a map piece is pixel art only drawn near the art pixel, and a member is weighed against her head", async () => {
+  const { mkdtempSync, mkdirSync, copyFileSync, writeFileSync } = await import("node:fs");
+  const { execFileSync } = await import("node:child_process");
+  const { tmpdir } = await import("node:os");
+  const dir = mkdtempSync(join(tmpdir(), "skin-")), c = join(dir, "catio");
+  for (const d of ["tools", "art/skin", "art/other"]) mkdirSync(join(c, d), { recursive: true });
+  copyFileSync(join(here, "..", "index.html"), join(c, "index.html")); copyFileSync(join(here, "..", "tools", "skin.py"), join(c, "tools", "skin.py"));
+  // the map button is shown 135 px wide: drawn 135 wide it is smooth at that size, drawn 68 wide it is pixel art
+  writeFileSync(join(c, "art/skin/map-button.png"), png(135, 40)); writeFileSync(join(c, "art/skin/map-panel.png"), png(68, 34));
+  // her button, pointed at by hand outside the folder, and her lit one in the folder, drawn its size
+  writeFileSync(join(c, "art/other/button.png"), png(52, 56)); writeFileSync(join(c, "art/skin/button-hover.png"), png(52, 56));
+  // and a panel of hers in the folder under another name, which skin.json points at by hand
+  writeFileSync(join(c, "art/skin/my-panel.png"), png(53, 61));
+  writeFileSync(join(c, "art", "skin.json"), JSON.stringify({ button: { file: "art/other/button.png", slice: [8, 8, 8, 8] }, panel: "art/skin/my-panel.png" }));
+  const out = execFileSync("python3", [join(c, "tools", "skin.py")], { encoding: "utf8" });
+  const j = JSON.parse(readFileSync(join(c, "art", "skin.json"), "utf8"));
+  expect(!j["map-button"].pixel && j["map-button"].scale === 1 && j["map-panel"].pixel === true && !j["map-panel"].scale, JSON.stringify([j["map-button"], j["map-panel"]]));
+  expect(j.button && j["button-hover"], out);
+  expect(j.panel && !/no slot is called my-panel/.test(out) && /my-panel\.png: panel/.test(out), out);
+});
+{
+  const { page, ctx, errors } = await open();
+  const rootVar = (n) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), n);
+  await check("tokens in the skin recolour and resize the whole café", async () => {
+    await page.evaluate(() => window.__catio.put("skin/theme", { tokens: { "--ink": "#1d3557", "--px-size": "16px", "--hue-1": "#123456" }, at: 1 }));
+    await page.waitForTimeout(600);
+    const b = await page.evaluate(() => { const c = getComputedStyle(document.getElementById("houseBtn")); return [c.color, c.fontSize]; });
+    expect(b[0] === "rgb(29, 53, 87)" && b[1] === "16px", b.join(" | "));
+    expect((await rootVar("--hue-1")) === "#123456", await rootVar("--hue-1"));
+  });
+  await check("a token that isn't a colour or a size is refused, and so is one that isn't a token", async () => {
+    await page.evaluate(() => window.__catio.put("skin/theme", { tokens: { "--ink": "red; background: url(x)", "--nope": "#000000", "--px-size": "huge" }, at: 2 }));
+    await page.waitForTimeout(600);
+    expect((await rootVar("--ink")) === "#3F2A20" && (await rootVar("--px-size")) === "18px" && !(await rootVar("--nope")), [await rootVar("--ink"), await rootVar("--px-size")].join(" | "));
+  });
+  await check("The look changes a colour, keeps it in skin/theme, and puts it back", async () => {
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const input = page.locator("#artDlg li[data-token='--go'] input");
+    await input.evaluate((i) => { i.value = "#ff8800"; i.dispatchEvent(new Event("input", { bubbles: true })); i.dispatchEvent(new Event("change", { bubbles: true })); });
+    await page.waitForTimeout(500);
+    expect(await page.evaluate(() => window.__catio.store["skin/theme"].tokens["--go"]) === "#ff8800", "not kept");
+    expect((await rootVar("--go")) === "#ff8800", await rootVar("--go"));
+    expect(/Yours/.test(await page.locator("#artDlg li[data-token='--go']").innerText()), "not marked");
+    await page.click("#artDlg li[data-token='--go'] button:has-text('Put back')");
+    await page.waitForTimeout(500);
+    expect((await rootVar("--go")) === "#C0D470" && !(await page.evaluate(() => "skin/theme" in window.__catio.store)), await rootVar("--go"));
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
+  // Her words (4 October 2026): "reevaluate plug-n-play capabilities of design systems like Figma". Figma keeps a
+  // variable's value per mode and swaps whole themes as design tokens files (the W3C format, 2025.10); so does the café.
+  await check("a dark value of a token shows only in the dark, and light keeps its own", async () => {
+    await page.evaluate(() => window.__catio.put("skin/theme", { tokens: { "--ink": "#111111" }, dark: { "--ink": "#eeeeee" }, at: 3 }));
+    await page.waitForTimeout(600);
+    const light = await rootVar("--ink");
+    await page.evaluate(() => { document.documentElement.dataset.theme = "dark"; });
+    const dark = await rootVar("--ink");
+    await page.evaluate(() => { delete document.documentElement.dataset.theme; });
+    expect(light === "#111111" && dark === "#eeeeee", light + " | " + dark);
+  });
+  await check("The look exports the café's tokens as a design tokens file Figma can import", async () => {
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#tokensExport")]);
+    expect(dl.suggestedFilename() === "kittychat-light.tokens.json", dl.suggestedFilename());
+    const j = JSON.parse(readFileSync(await dl.path(), "utf8"));
+    expect(j.colours.$type === "color" && j.colours.ink.$value.hex === "#111111" && j.colours.ink.$value.colorSpace === "srgb" && j.colours.ink.$value.components.length === 3, JSON.stringify(j.colours.ink));
+    expect(j.type.$type === "dimension" && j.type["px-size"].$value.value === 18 && j.type["px-size"].$value.unit === "px", JSON.stringify(j.type["px-size"]));
+    expect(j["map-colours"]["hue-1"].$value.hex === "#5e8f34" && Object.keys(j.colours).filter((k) => !k.startsWith("$")).length > 25, "map colours");
+  });
+  await check("Import tokens… reads a Figma file into the mode chosen, following its aliases, and leaves out what isn't the café's", async () => {
+    await page.click("#lookMode-dark"); await settle(page);
+    const figma = { primitives: { $type: "color", navy: { $value: { colorSpace: "srgb", components: [0.1137, 0.2078, 0.3412], hex: "#1d3557" } } },
+      colours: { $type: "color", go: { $value: "{primitives.navy}" }, brand: { $value: { colorSpace: "srgb", components: [1, 0, 0] } } } };
+    await page.locator("#tokensFile").setInputFiles({ name: "Dark.tokens.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(figma)) });
+    await page.waitForTimeout(600);
+    const d = await page.evaluate(() => window.__catio.store["skin/theme"]);
+    expect(d.dark["--go"] === "#1d3557" && d.dark["--ink"] === "#eeeeee" && d.tokens["--ink"] === "#111111" && !("--go" in d.tokens), JSON.stringify(d));
+    expect(/1 token from Dark\.tokens\.json in Dark; 2 not the café's/.test(await toast(page)), await toast(page));
+    expect((await page.locator("#artDlg li[data-token='--go'] input").inputValue()) === "#1d3557", "the picker shows the dark value");
+    await page.locator("#tokensFile").setInputFiles({ name: "notes.json", mimeType: "application/json", buffer: Buffer.from("{nope") });
+    await page.waitForTimeout(300);
+    expect(/isn't JSON/.test(await toast(page)), await toast(page));
+    await page.click("#lookMode-light"); await settle(page);
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
+  await check("the shared Figma file comes out the same in The look and in skin.py as in the gateway and catio_mcp.py", async () => {
+    // harness/test/fixtures: the one file all four read, and what each must find in it
+    const FIX = join(here, "..", "..", "harness", "test", "fixtures");
+    const want = JSON.parse(readFileSync(join(FIX, "tokens-figma.expected.json"), "utf8")), sorted = (o) => JSON.stringify(Object.fromEntries(Object.entries(o).sort()));
+    const kept = await page.evaluate(() => { const t = window.__catio.store["skin/theme"]; delete window.__catio.store["skin/theme"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; return t; });
+    await page.waitForTimeout(500);
+    try {
+      await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+      await page.locator("#tokensFile").setInputFiles(join(FIX, "tokens-figma.json"));
+      await page.waitForFunction(() => /tokens-figma/.test(document.getElementById("toast").textContent));
+      const said = await toast(page), t = await page.evaluate(() => window.__catio.store["skin/theme"].tokens);
+      expect(sorted(t) === sorted(want.found), JSON.stringify(t));
+      expect(new RegExp(Object.keys(want.found).length + " tokens from tokens-figma\\.json.*" + want.foreign + " not the café's.*" + want.refused + " the café's with a value it can't take").test(said), said);
+      const { execFileSync } = await import("node:child_process");
+      const py = JSON.parse(execFileSync("python3", ["-c", "import json, sys; sys.path.insert(0, sys.argv[1]); import skin; f, n, r = skin.from_dtcg(json.load(open(sys.argv[2])), skin.token_names()); print(json.dumps([f, n, r]))",
+        join(here, "..", "tools"), join(FIX, "tokens-figma.json")], { encoding: "utf8" }));
+      expect(sorted(py[0]) === sorted(want.found) && py[1] === want.foreign && py[2] === want.refused, JSON.stringify(py));
+    } finally {
+      await page.evaluate(() => { const d = document.getElementById("artDlg"); if (d && d.open) d.close(); });
+      await page.evaluate((t) => { if (t) window.__catio.put("skin/theme", t); else window.__catio.drop("skin/theme"); }, kept);
+      await page.waitForTimeout(500);
+    }
+  });
+  await check("Import tokens… takes the café's own group over a namesake, and refuses a see-through colour or a size out of range rather than call it foreign", async () => {
+    const kept = await page.evaluate(() => { const t = window.__catio.store["skin/theme"]; delete window.__catio.store["skin/theme"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; return t; });
+    await page.waitForTimeout(500);
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const file = { primitives: { grass: { $value: "#00ff00" } }, colours: { grass: { $value: "#112233" }, go: { $value: "#C0D47080" }, tan: { $value: { colorSpace: "srgb", components: [1, 0, 0], alpha: 0.5 } } },
+      type: { "px-size": { $value: { value: 17.5, unit: "px" } } } };
+    await page.locator("#tokensFile").setInputFiles({ name: "mixed.tokens.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });
+    await page.waitForTimeout(600);
+    const t = await page.evaluate(() => window.__catio.store["skin/theme"].tokens);
+    expect(t["--grass"] === "#112233" && !("--go" in t) && !("--tan" in t) && !("--px-size" in t), JSON.stringify(t));
+    expect(/1 token from mixed\.tokens\.json in Light/.test(await toast(page)) && /3 the café's with a value it can't take/.test(await toast(page)) && !/not the café's/.test(await toast(page)), await toast(page));
+    // a namesake refused elsewhere in the file isn't counted when the café's own group gave the token
+    await page.locator("#tokensFile").setInputFiles({ name: "twice.tokens.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ primitives: { ink: { $value: "#11223380" } }, colours: { ink: { $value: "#112233" } } })) });
+    await page.waitForFunction(() => /twice/.test(document.getElementById("toast").textContent));
+    const said = await toast(page);
+    expect(/1 token from twice/.test(said) && !/can't take/.test(said), said);
+    // a size typed back to the café's own is said to be the café's again, not hers
+    const f = page.locator("#artDlg li[data-token='--px-size'] input");
+    await page.locator("#artDlg details[data-group='Type'] > summary").click();
+    await f.fill("20px"); await f.dispatchEvent("change"); await settle(page);
+    await f.fill("18px"); await f.dispatchEvent("change"); await settle(page);
+    expect(/Pixel font size: the café's again/.test(await toast(page)) && !("--px-size" in (await page.evaluate(() => window.__catio.store["skin/theme"].tokens))), await toast(page));
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+    await page.evaluate((t) => window.__catio.put("skin/theme", t), kept);
+    await page.waitForTimeout(500);
+  });
+  await check("a border or a frame count the page can't take refuses her piece, rather than cutting it with the pack's", async () => {
+    await page.evaluate(() => window.__catio.put("skin/panel", { src: "art/licensed/ui/bubble.png", slice: [80, 80, 80, 80], at: 1 }));
+    await page.waitForTimeout(600);
+    expect(!(await rootVar("--art-panel")).includes("bubble.png"), await rootVar("--art-panel"));
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const row = await page.locator("#artDlg li[data-slot='panel']").textContent();
+    expect(/border isn't four whole numbers from 0 to 64/.test(row), row);
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+    await page.evaluate(() => { delete window.__catio.store["skin/panel"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(500);
+  });
+  await check("a size out of its range is refused, so no skin can bury the café under its borders", async () => {
+    await page.evaluate(() => window.__catio.put("skin/theme", { tokens: { "--u-desk": "20px", "--px-size": "0px", "--body-size": "0.9rem" }, at: 4 }));
+    await page.waitForTimeout(600);
+    expect((await rootVar("--u")) === "2px" && (await rootVar("--px-size")) === "18px" && (await rootVar("--body-size")) === "0.9rem", [await rootVar("--u"), await rootVar("--px-size")].join(" | "));
+  });
+  await check("a button's lit piece of another size than the button is refused, with why", async () => {
+    await page.evaluate(() => window.__catio.put("skin/button-hover", { src: "art/licensed/ui/bubble.png", at: 1 }));
+    await page.waitForTimeout(600);
+    expect((await rootVar("--art-button-hover")).includes("ui/button-hover.png"), await rootVar("--art-button-hover"));
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const row = await page.locator("#artDlg li[data-slot='button-hover']").textContent();
+    expect(/42 × 42/.test(row) && /26 × 28/.test(row) && /shares the button's border/.test(row), row);
+  });
+  await check("Put everything back clears what is kept, a refused piece and the tokens too", async () => {
+    // one the page can't read at all (an address it won't load) goes too, though it was never shown
+    await page.evaluate(() => window.__catio.put("skin/panel-x", { src: "https://example.com/x.png", asset: "a-gone", at: 1 }));
+    await page.waitForTimeout(500);
+    await page.click("#artResetAll");
+    await page.waitForTimeout(800);
+    const left = await page.evaluate(() => Object.keys(window.__catio.store).filter((p) => p.startsWith("skin/")));
+    expect(!left.length, left.join(" "));
+    expect(await page.evaluate(() => window.__catio.assetsDeleted.includes("a-gone")), "its file stayed in the store");
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
+  await check("a size she types that isn't kept leaves no preview behind", async () => {
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    await page.locator("#artDlg details[data-group='Type'] > summary").click();
+    const f = page.locator("#artDlg li[data-token='--px-size'] input");
+    await f.fill("12px"); await f.dispatchEvent("input");
+    expect((await rootVar("--px-size")) === "12px", "no preview");
+    await f.fill("12pxx"); await f.dispatchEvent("change"); await settle(page);
+    expect((await rootVar("--px-size")) === "18px" && /from 8 to 48px/.test(await toast(page)), await rootVar("--px-size"));
+    await page.click("#toast .btn"); await settle(page);   // the warning waits for her OK
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
+  await check("a colour she is choosing when the card is redrawn under her stays, and is kept when she leaves it", async () => {
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const sel = "#artDlg li[data-token='--tan'] input";
+    await page.evaluate((sel) => { const i = document.querySelector(sel); i.focus(); i.value = "#aabbcc"; i.dispatchEvent(new Event("input", { bubbles: true })); i.dataset.old = "1"; }, sel);
+    // a change from elsewhere (another device, Claude) redraws The look while she is in the picker
+    await page.evaluate(() => { window.__catio.put("skin/theme", { tokens: { "--ink": "#202020" }, at: 5 }); });
+    await page.waitForTimeout(600);
+    const now = await page.evaluate((sel) => { const i = document.querySelector(sel); return [!i.dataset.old, i.value, document.activeElement === i]; }, sel);
+    expect(now[0] && now[1] === "#aabbcc" && now[2], "after the redraw: " + now.join(" | "));
+    await page.evaluate(() => document.activeElement.blur()); await settle(page);
+    const kept = await page.evaluate(() => window.__catio.store["skin/theme"].tokens);
+    expect(String(kept["--tan"]).toLowerCase() === "#aabbcc" && kept["--ink"] === "#202020", JSON.stringify(kept));
+    await page.evaluate(() => { const st = window.__catio.store; delete st["skin/theme"]; window.__catio.put("skin/zy", {}); delete st["skin/zy"]; });
+    await page.waitForTimeout(500);
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
+  await check("a lit button drawn the size of her own button, given with it, is used", async () => {
+    await page.evaluate(() => {   // both in one snapshot, as a skin.json or a first load brings them
+      window.__catio.store["skin/button"] = { src: "art/licensed/ui/bubble.png", slice: [5, 5, 6, 5], at: 1 };
+      window.__catio.put("skin/button-hover", { src: "art/licensed/ui/bubble.png", at: 1 });
+    });
+    await page.waitForTimeout(700);
+    expect((await rootVar("--art-button-hover")).includes("ui/bubble.png") && (await rootVar("--btn-b")) === "6", await rootVar("--art-button-hover"));
+    // gone again, in one snapshot (the stub notifies on a write, so a stray document carries the news and goes too)
+    await page.evaluate(() => { const st = window.__catio.store; delete st["skin/button"]; delete st["skin/button-hover"]; window.__catio.put("skin/zz", {}); delete st["skin/zz"]; });
+    await page.waitForTimeout(500);
+  });
+  await check("her button, with the pack's bubble: a reply in a thread keeps the bubble's own border", async () => {
+    await page.evaluate(() => window.__catio.put("skin/button", { src: "art/licensed/ui/button.png", slice: [3, 4, 5, 4], at: 1 }));
+    await page.waitForTimeout(600);
+    const [iw, px, btn] = [await rootVar("--bubble-iw"), await rootVar("--bubble-px"), await rootVar("--btn-px")];
+    expect(iw === px && iw !== btn, [iw, px, btn].join(" | "));
+    // and standing in for the green and pink buttons, her frame keeps their colour inside it: go-ahead and letting go still read
+    const faces = await page.evaluate(() => ["green", "pink"].map((c) => { const b = document.createElement("button"); b.className = "btn " + c; document.body.appendChild(b); const cs = getComputedStyle(b); const r = [cs.borderImageSource, cs.borderImageSlice]; b.remove(); return r; }));
+    expect(faces.every(([src, slice]) => src.includes("ui/button.png") && !/fill/.test(slice)), JSON.stringify(faces));
+    const tag = await page.evaluate(() => { const r = document.createElement("div"); r.className = "rt"; r.setAttribute("aria-selected", "true"); const t = document.createElement("span"); t.className = "tag"; r.appendChild(t); document.body.appendChild(r);
+      const cs = getComputedStyle(t), go = getComputedStyle(document.documentElement).getPropertyValue("--go").trim(); const out = [cs.borderImageSlice, cs.backgroundColor, go]; r.remove(); return out; });
+    expect(!/fill/.test(tag[0]) && tag[1] === "rgb(" + [1, 3, 5].map((i) => parseInt(tag[2].slice(i, i + 2), 16)).join(", ") + ")", "the chosen room's tag: " + tag.join(" | "));
+    await page.evaluate(() => { const st = window.__catio.store; delete st["skin/button"]; window.__catio.put("skin/zz", {}); delete st["skin/zz"]; });
+    await page.waitForTimeout(500);
+  });
+  await check("faces of her own fill their cells: each mood face is shown whole, not cut a pixel in as the pack's are", async () => {
+    const box = () => page.evaluate(() => { const b = document.createElement("span"); b.className = "face-ico"; document.body.appendChild(b); const cs = getComputedStyle(b); const r = cs.backgroundSize + " " + cs.backgroundPosition; b.remove(); return r; });
+    expect((await box()) === "192px 32px -97px -1px", await box());
+    await page.evaluate(() => window.__catio.put("skin/faces", { src: "art/licensed/ui/faces.png", at: 1 }));
+    await page.waitForTimeout(600);
+    expect((await box()) === "180px 30px -90px 0px", await box());
+    await page.evaluate(() => { delete window.__catio.store["skin/faces"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(500);
+  });
+  await check("a family member carrying its head's border, however big, is used: its own border is never read", async () => {
+    await page.evaluate(() => window.__catio.put("skin/map-button-hover", { src: "art/licensed/pastel/button-down.png", slice: [40, 44, 48, 44], at: 1 }));
+    await page.waitForTimeout(600);
+    expect((await rootVar("--art-map-button-hover")).includes("pastel/button-down.png"), await rootVar("--art-map-button-hover"));
+    await page.evaluate(() => { delete window.__catio.store["skin/map-button-hover"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(500);
+  });
+  await check("a map piece called pixel art beside its family's smooth head is refused, with why", async () => {
+    await page.evaluate(() => window.__catio.put("skin/map-panel-dark", { src: "art/licensed/pastel/panel-dark.png", pixel: true, at: 1 }));
+    await page.waitForTimeout(600);
+    expect(!(await rootVar("--mpanel-render")).includes("pixelated"), await rootVar("--mpanel-render"));
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const row = await page.locator("#artDlg li[data-slot='map-panel-dark']").textContent();
+    expect(/shares the map panel's drawing, which is smooth/.test(row), row);
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+    await page.evaluate(() => { delete window.__catio.store["skin/map-panel-dark"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(500);
+  });
+  await check("the thickest frame a skin may give still leaves the house the middle of the screen, drawn the right way round", async () => {
+    const kept = await page.evaluate(() => window.__catio.store["skin/theme"]);
+    // on a phone, 390 px wide: a 64-pixel border at 4 px an art pixel would be 264 px a side
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => { window.__catio.store["skin/panel"] = { src: "art/licensed/house.png", slice: [64, 64, 64, 64], at: 1 }; window.__catio.put("skin/theme", { tokens: { "--u-phone": "4px" }, at: 10 }); });
+    await page.waitForTimeout(900);
+    await page.keyboard.press("0"); await page.waitForTimeout(400);
+    const c = await cam(page);
+    expect(c.s > 0.05, JSON.stringify(c));   // a scale at or under nothing draws the house mirrored, or not at all
+    await page.evaluate((t) => { const st = window.__catio.store; delete st["skin/panel"]; if (t) window.__catio.put("skin/theme", t); else window.__catio.drop("skin/theme"); }, kept);
+    await page.waitForTimeout(800);
+    await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(400);
+    await page.keyboard.press("0"); await page.waitForTimeout(300);
+  });
+  await check("the logo is drawn at the art pixel, so it grows and shrinks with her --u-desk", async () => {
+    const logo = () => page.evaluate(() => { const r = document.querySelector("#houseBtn .logo").getBoundingClientRect(); return r.width + "x" + r.height; });
+    expect((await logo()) === "42x36", await logo());
+    const kept = await page.evaluate(() => window.__catio.store["skin/theme"]);
+    await page.evaluate(() => window.__catio.put("skin/theme", { tokens: { "--u-desk": "3px" }, at: 9 }));
+    await page.waitForTimeout(600);
+    expect((await logo()) === "63x54", await logo());
+    await page.evaluate((t) => { if (t) window.__catio.put("skin/theme", t); else { delete window.__catio.store["skin/theme"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; } }, kept);
+    await page.waitForTimeout(600);
+  });
+  await check("her map button standing in for the pressed one lets the floor on screen keep its colour", async () => {
+    await page.evaluate(() => window.__catio.put("skin/map-button", { src: "art/licensed/pastel/button-hover.png", at: 1 }));
+    await page.waitForTimeout(600);
+    const tab = await page.evaluate(() => { const b = document.querySelector('.floors .pbtn[aria-checked="true"]'); const cs = getComputedStyle(b); return [cs.borderImageSource, cs.borderImageSlice]; });
+    expect(tab[0].includes("pastel/button-hover.png") && !/fill/.test(tab[1]), tab.join(" | "));
+    await page.evaluate(() => window.__catio.drop("skin/map-button"));
+    await page.waitForTimeout(500);
+  });
+  await check("a piece of hers the café can't read at all says so on its row, with Put back; colours it can't take go with Put everything back", async () => {
+    await page.evaluate(() => { window.__catio.put("skin/panel", { src: "https://example.com/panel.png", at: 1 }); window.__catio.put("skin/theme", { tokens: { "--ink": "red" }, at: 1 }); });
+    await page.waitForTimeout(600);
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    await page.locator("#artDlg details[data-group='Interface'] > summary").click();
+    const row = await page.locator("#artDlg li[data-slot='panel']").textContent();
+    expect(/isn't a file the café can read/.test(row) && /Put back/.test(row), row);
+    await page.click("#artResetAll"); await page.waitForTimeout(800);
+    const left = await page.evaluate(() => Object.keys(window.__catio.store).filter((p) => p.startsWith("skin/")));
+    expect(!left.length, left.join(" "));
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
+  await check("an address that climbs out of art/ in disguise is refused, and a cat whose frames aren't square is asked for them", async () => {
+    await page.evaluate(() => { window.__catio.put("skin/panel", { src: "art/%2e%2e/%2e%2e/files/x", at: 1 }); window.__catio.put("skin/cat-meow", { src: "art/licensed/ui/logo.png", at: 1 }); });
+    try {
+      await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+      // The look redraws as the skin lands: wait for both verdicts rather than for a guess at how long they take
+      await page.waitForFunction(() => ["panel", "cat-meow"].every((k) => /Yours isn't used/.test((document.querySelector("#artDlg li[data-slot='" + k + "']") || {}).textContent || "")), null, { timeout: 5000 });
+      // refused as an address, never even fetched: not "couldn't be read", which is what a fetched one that failed says
+      const panel = await page.locator("#artDlg li[data-slot='panel']").textContent();
+      expect(/isn't a file the café can read/.test(panel), panel);
+      const row = await page.locator("#artDlg li[data-slot='cat-meow']").textContent();
+      expect(/frames aren't square/.test(row), row);
+    } finally {
+      await page.evaluate(() => { const d = document.getElementById("artDlg"); if (d && d.open) d.close(); window.__catio.drop("skin/panel"); window.__catio.drop("skin/cat-meow"); });
+      await page.waitForTimeout(500);
+    }
+  });
+  await check("a project map's dots outside its eight neighbourhoods are the rest's grey", async () => {
+    await page.evaluate(() => window.__catio.put("graphs/grey-test", { repo: "example/grey-test", at: Date.now(), nodes: 3, edges: 1, communities: 1, gods: [], groups: [{ name: "One", size: 2 }], surprises: [], questions: [],
+      map: { n: [{ t: "A", g: 0, d: 3, x: 50, y: 50 }, { t: "B", g: -1, d: 2, x: 150, y: 80 }, { t: "C", g: 11, d: 1, x: 250, y: 120 }], l: [0, 1] } }));
+    await page.waitForTimeout(400);
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "Project maps" }).click(); await settle(page);
+    const fills = await page.evaluate(() => [...document.querySelectorAll("#mapsDlg svg rect[fill]")].map((r) => r.getAttribute("fill").toUpperCase()));
+    expect(fills.includes("#5E8F34") && fills.filter((f) => f === "#9A8878").length === 2 && !fills.includes("UNDEFINED"), fills.join(" "));
+    await page.evaluate(() => document.getElementById("mapsDlg").close()); await settle(page);
+  });
+  await check("a button of her own cut another way stands in for the lit, green and pink ones she hasn't drawn", async () => {
+    await page.evaluate(() => window.__catio.put("skin/button", { src: "art/licensed/ui/bubble.png", slice: [5, 5, 6, 5], at: 1 }));
+    await page.waitForTimeout(700);
+    expect((await rootVar("--art-button-pink")).includes("ui/bubble.png") && (await rootVar("--art-button-green")).includes("ui/bubble.png"), await rootVar("--art-button-pink"));
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    expect(/Your button stands in/.test(await page.locator("#artDlg li[data-slot='button-pink']").textContent()), "not said");
+    await page.locator("#artDlg details[data-group='Interface'] > summary").click();
+    await page.click("#artDlg li[data-slot='button'] button:has-text('Put back')"); await page.waitForTimeout(600);
+    expect((await rootVar("--art-button-pink")).includes("ui/button-pink.png"), await rootVar("--art-button-pink"));
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
+  await check("a café's own export, imported again, keeps only what differs", async () => {
+    await page.evaluate(() => window.__catio.put("skin/theme", { tokens: { "--ink": "#222222" }, dark: {}, at: 5 }));
+    await page.waitForTimeout(500);
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#tokensExport")]);
+    await page.click("#lookMode-dark"); await settle(page);
+    await page.locator("#tokensFile").setInputFiles(await dl.path());
+    await page.waitForTimeout(600);
+    const d = await page.evaluate(() => window.__catio.store["skin/theme"]);
+    expect(d && d.tokens["--ink"] === "#222222" && !Object.keys(d.dark || {}).length, JSON.stringify(d));
+    await page.click("#lookMode-light"); await settle(page);
+    if (await page.locator("#toast .btn").isVisible()) await page.click("#toast .btn");
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
+  await check("a border that is empty or leaves no middle is refused; a paw points where she says", async () => {
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    await page.locator("#artDlg details[data-group='Interface'] > summary").click();
+    await page.locator("#artFile-panel").setInputFiles({ name: "panel.png", mimeType: "image/png", buffer: readFileSync(join(here, "..", "art", "licensed", "ui", "bubble.png")) });
+    await page.waitForTimeout(400);
+    for (const bad of ["", "0", "30"]) {   // "4," reads as 4 all round, which is fine
+      await page.fill("#artBorder-panel", bad);
+      await page.click("#artDlg li[data-slot='panel'] .swap button[type=submit]"); await settle(page);
+      expect(/fit inside its 42 × 42/.test(await toast(page)) && !(await page.evaluate(() => "skin/panel" in window.__catio.store)), bad + ": " + await toast(page));
+      await page.click("#toast .btn");
+    }
+    await page.click("#artDlg li[data-slot='panel'] .swap button:has-text('Cancel')"); await settle(page);
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+    await page.evaluate(() => window.__catio.put("skin/cursor", { src: "art/licensed/ui/cursor-point.png", hot: [2, 2], at: 1 }));
+    await page.waitForTimeout(600);
+    expect((await rootVar("--cursor-hot")) === "2 2" && /cursor-point\.png.*2 2/.test(await page.evaluate(() => getComputedStyle(document.body).cursor)), await page.evaluate(() => getComputedStyle(document.body).cursor));
+    await page.evaluate(() => { delete window.__catio.store["skin/cursor"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(400);
+  });
+  await check("a map piece drawn near the art pixel starts as pixel art; drawn the size it is shown, smooth", async () => {
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    await page.locator("#artDlg details[data-group='Map panel'] > summary").click();
+    for (const [w, h, was] of [[135, 40, "smooth"], [68, 20, "pixel"]]) {
+      await page.locator("#artFile-map-button").setInputFiles({ name: "map-button.png", mimeType: "image/png", buffer: png(w, h) });
+      await page.waitForTimeout(400);
+      expect((await page.inputValue("#artPixel-map-button")) === was, w + ": " + await page.inputValue("#artPixel-map-button"));
+    }
+    await page.click("#artDlg li[data-slot='map-button'] .swap button:has-text('Cancel')"); await settle(page);
+    // a map button the size it is shown, called pixel art: its border would leave the 40 px button no middle
+    await page.locator("#artFile-map-button").setInputFiles({ name: "map-button.png", mimeType: "image/png", buffer: png(135, 40) });
+    await page.waitForTimeout(400);
+    await page.selectOption("#artPixel-map-button", "pixel");
+    await page.click("#artDlg li[data-slot='map-button'] .swap button[type=submit]"); await settle(page);
+    expect(/too much for the piece as it is shown/.test(await toast(page)) && !(await page.evaluate(() => "skin/map-button" in window.__catio.store)), await toast(page));
+    await page.click("#toast .btn");
+    await page.click("#artDlg li[data-slot='map-button'] .swap button:has-text('Cancel')"); await settle(page);
+    // a map panel drawn at the pack's own size, called pixel art, would show its 28-pixel border 56 px wide: refused
+    await page.locator("#artFile-map-panel").setInputFiles({ name: "map-panel.png", mimeType: "image/png", buffer: png(300, 150) });
+    await page.waitForTimeout(400);
+    await page.selectOption("#artPixel-map-panel", "pixel");
+    await page.click("#artDlg li[data-slot='map-panel'] .swap button[type=submit]"); await settle(page);
+    expect(/would show 56 px wide/.test(await toast(page)) && !(await page.evaluate(() => "skin/map-panel" in window.__catio.store)), await toast(page));
+    await page.click("#toast .btn");
+    await page.click("#artDlg li[data-slot='map-panel'] .swap button:has-text('Cancel')"); await settle(page);
+    // her armchair's colour, while she is still choosing it: her picture in The look follows, and goes back if she lets go
+    const me = () => page.evaluate(() => document.querySelector("#artDlg li[data-slot='owner'] > .pic").innerHTML);
+    const was = await me();
+    await page.evaluate(() => { const i = document.querySelector("#artDlg li[data-token='--owner-chair'] input"); i.focus(); i.value = "#00ff00"; i.dispatchEvent(new Event("input", { bubbles: true })); });
+    await page.waitForTimeout(150);
+    const now = await me();
+    await page.evaluate(() => document.querySelector("#artDlg li[data-token='--owner-chair'] input").blur());
+    await page.waitForTimeout(150);
+    expect(now !== was && (await me()) === was && !(await page.evaluate(() => "skin/theme" in window.__catio.store && window.__catio.store["skin/theme"].tokens["--owner-chair"])), "no preview of her armchair");
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
+  await check("two colours changed one after the other, quickly, are both kept; one set back to the café's isn't hers", async () => {
+    await page.evaluate(() => { delete window.__catio.store["skin/theme"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(400);
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    await page.evaluate(() => {
+      for (const [n, v] of [["--ink", "#101010"], ["--tan", "#202020"], ["--go", "#C0D470"]]) {   // the last is the café's own
+        const i = document.querySelector("#artDlg li[data-token='" + n + "'] input"); i.value = v; i.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+    await page.waitForTimeout(800);
+    const d = await page.evaluate(() => window.__catio.store["skin/theme"]);
+    expect(d && d.tokens["--ink"] === "#101010" && d.tokens["--tan"] === "#202020" && !("--go" in d.tokens), JSON.stringify(d));
+    if (await page.locator("#toast .btn").isVisible()) await page.click("#toast .btn");
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
+  await check("a thicker frame refits the whole house inside it", async () => {
+    await closeMenu(page); await page.keyboard.press("0"); await page.waitForTimeout(300);
+    const before = await page.evaluate(() => getComputedStyle(document.getElementById("world")).transform);
+    await page.evaluate(() => window.__catio.put("skin/theme", { tokens: { "--u-desk": "4px" }, at: 9 }));
+    await page.waitForTimeout(700);
+    const after = await page.evaluate(() => getComputedStyle(document.getElementById("world")).transform);
+    const trim = await page.evaluate(() => getComputedStyle(document.querySelector(".trim")).borderTopWidth);
+    expect(trim === "24px" && before !== after, trim + " | " + before + " → " + after);
+    await page.evaluate(() => { delete window.__catio.store["skin/theme"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(500);
+  });
+  await check("a font of hers for the text goes ahead of the café's", async () => {
+    await page.evaluate(() => window.__catio.put("skin/font-body", { src: "art/licensed/ui/sprout.ttf", at: 1 }));
+    await page.waitForTimeout(800);
+    expect((await rootVar("--body")).startsWith('"KittySkin-font-body", "Nunito"'), await rootVar("--body"));
+    // the round font is where the pixel font has no letter: hers there reaches every title and button
+    await page.evaluate(() => window.__catio.put("skin/font-display", { src: "art/licensed/ui/sprout.ttf", at: 1 }));
+    await page.waitForTimeout(800);
+    const fam = await page.evaluate(() => getComputedStyle(document.getElementById("houseBtn")).fontFamily);
+    expect(/^"?Sprout"?, "?KittySkin-font-display"?/.test(fam), fam);
+  });
+  await check("a picture of her that isn't the owner's shape is refused, and she is drawn as before", async () => {
+    await page.evaluate(() => window.__catio.put("skin/owner", { src: "art/licensed/ui/logo.png", at: 1 }));
+    await page.waitForTimeout(600);
+    await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    const row = await page.locator("#artDlg li[data-slot='owner']").textContent();
+    expect(/21 × 18/.test(row) && /30 × 40/.test(row) && (await page.locator("#artDlg li[data-slot='owner'] .pic svg").count()) === 1, row);
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+    expect(!errors.length, errors.join(" | "));
+  });
+  await ctx.close();
+}
+{
+  const { page, ctx, errors } = await open();
+  const rootVar = (n) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), n);
+  const openArt = async () => { await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page); };
+  await check("The look lists every slot, in groups, each with the size to draw it at", async () => {
+    await openArt();
+    const rows = await page.locator("#artDlg li[data-slot]").count();
+    const slots = await page.evaluate(() => [...document.querySelectorAll("#artDlg li[data-slot]")].map((l) => l.dataset.slot));
+    expect(rows >= 40 && new Set(slots).size === rows, rows + " rows");
+    for (const k of ["cat-meow", "cat-walk-side", "house", "decor", "furniture", "panel", "button", "faces", "font", "map-panel", "map-icons"]) expect(slots.includes(k), "no " + k);
+    const t = await page.locator("#artDlg").textContent();
+    expect(/Exactly 960 × 576/.test(t) && /border 4 4 6 4/.test(t) && /CATS/i.test(t) && /MAP PANEL/i.test(t), t.slice(0, 300));
+    expect(await page.locator("#artDlg li[data-slot='panel'] button", { hasText: "Replace" }).count() === 1, "no Replace");
+    await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
+  });
+  await check("a 9-slice in the skin draws every panel, with its own border", async () => {
+    await page.evaluate(() => window.__catio.put("skin/panel", { src: "art/licensed/ui/button-green.png", slice: [5, 4, 7, 4], at: 1 }));
+    await page.waitForTimeout(600);
+    expect((await rootVar("--art-panel")).includes("button-green.png"), await rootVar("--art-panel"));
+    expect((await rootVar("--panel-t")) === "5" && (await rootVar("--panel-b")) === "7", "border not set");
+    await page.click("#houseBtn"); await settle(page);
+    const m = await page.evaluate(() => { const c = getComputedStyle(document.getElementById("menu")); return [c.borderImageSource, c.borderImageSlice, c.borderTopWidth, c.borderBottomWidth]; });
+    expect(m[0].includes("button-green.png") && /^5 4 7( 4)? fill$/.test(m[1]) && m[2] === "10px" && m[3] === "14px", m.join(" | "));
+    await page.keyboard.press("Escape");
+  });
+  await check("a cat's sheet in the skin draws its mood, frames and feet from the sheet", async () => {
+    await page.evaluate(() => window.__catio.put("skin/cat-work", { src: "art/licensed/mochi-box.png", frames: 4, secs: 0.8, at: 1 }));
+    await page.waitForTimeout(600);
+    // reduced motion stills every sheet here, so its loop is read from the rule the skin wrote
+    const s = await page.evaluate(() => { const e = document.querySelector("#cats .spr.s-idle"); const c = e && getComputedStyle(e); return c && [c.backgroundImage, c.width, c.backgroundSize]; });
+    expect(s && s[0].includes("mochi-box.png") && s[1] === "32px" && s[2] === "128px 32px", JSON.stringify(s));
+    expect(/\.s-idle \{[^}]*animation: a-skin-idle 0\.8s steps\(4\) infinite/.test(await page.locator("#skinCss").textContent()), "no loop");
+  });
+  await check("a walk in the skin is every walking cat's, mirrored going left", async () => {
+    await page.evaluate(() => window.__catio.put("skin/cat-walk-side", { src: "art/licensed/mochi-idle.png", frames: 10, secs: 1, at: 1 }));
+    await page.waitForTimeout(600);
+    const css = await page.locator("#skinCss").textContent();
+    expect(/\.walker \.spr \{[^}]*mochi-idle\.png[^}]*a-skin-walk[^}]*scaleX\(-1\)/.test(css) && /\.walker\.flip \.spr \{ transform: none; \}/.test(css), css);
+  });
+  await check("a house of the wrong size is refused, with why, and the pack's house stays", async () => {
+    await page.evaluate(() => window.__catio.put("skin/house", { src: "art/licensed/meadow.png", at: 1 }));
+    await page.waitForTimeout(600);
+    expect((await page.locator("#world img[data-art='house']").getAttribute("src")).endsWith("art/licensed/house.png"), "house swapped");
+    await openArt();
+    const row = await page.locator("#artDlg li[data-slot='house']").innerText();
+    expect(/isn't used/i.test(row) && /112 × 32/.test(row) && /960 × 576/.test(row), row);
+    const panel = await page.locator("#artDlg li[data-slot='panel']").textContent();   // its group is folded
+    expect(/Yours/.test(panel) && /border 5 4 7 4/.test(panel), panel);
+  });
+  await check("Replace… checks her file against the slot before keeping it: a picture the wrong size can't be used", async () => {
+    await page.locator("#artFile-decor").setInputFiles({ name: "grounds.png", mimeType: "image/png", buffer: readFileSync(join(here, "..", "art", "licensed", "meadow.png")) });
+    await page.waitForTimeout(400);
+    const f = await page.locator("#artDlg li[data-slot='decor'] .swap").innerText();
+    expect(/112 × 32/.test(f) && /960 × 576/.test(f), f);
+    expect(!(await page.locator("#artDlg li[data-slot='decor'] .swap button[type=submit]").count()), "Use it offered");
+    await page.click("#artDlg li[data-slot='decor'] .swap button:has-text('Cancel')"); await settle(page);
+    expect(!(await page.locator("#artDlg li[data-slot='decor'] .swap").count()), "still open");
+  });
+  await check("Replace… asks a 9-slice drawn at another size for its border, keeps the file and writes its slot", async () => {
+    const before = await page.evaluate(() => window.__catio.uploads.length);
+    await page.locator("#artFile-field").setInputFiles({ name: "my-field.png", mimeType: "image/png", buffer: readFileSync(join(here, "..", "art", "licensed", "ui", "bubble.png")) });
+    await page.waitForTimeout(400);
+    expect((await page.locator("#artBorder-field").inputValue()) === "4 4 5 4", await page.locator("#artBorder-field").inputValue());
+    await page.fill("#artBorder-field", "5 5 6");
+    await page.click("#artDlg li[data-slot='field'] .swap button[type=submit]");
+    await page.waitForTimeout(500);
+    const d = await page.evaluate(() => window.__catio.store["skin/field"]);
+    expect(await page.evaluate(() => window.__catio.uploads.length) === before + 1, "not uploaded");
+    expect(d && /^\/_blob\//.test(d.src) && d.asset && JSON.stringify(d.slice) === "[5,5,6,5]" && d.w === 42 && d.h === 42 && d.name === "my-field.png", JSON.stringify(d));
+  });
+  await check("a font picked with no type of its own is kept as a font, its type read from the font itself", async () => {
+    await page.locator("#artFile-font-body").setInputFiles({ name: "MyFont.font", mimeType: "", buffer: readFileSync(join(here, "..", "art", "licensed", "ui", "sprout.ttf")) });
+    await page.waitForTimeout(600);
+    await page.click("#artDlg li[data-slot='font-body'] .swap button[type=submit]");
+    await page.waitForTimeout(600);
+    const up = await page.evaluate(() => window.__catio.uploads[window.__catio.uploads.length - 1]);
+    expect(up.name === "MyFont.font" && up.type === "font/ttf" && (await page.evaluate(() => !!window.__catio.store["skin/font-body"])), JSON.stringify(up));
+    await page.evaluate(() => { delete window.__catio.store["skin/font-body"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.waitForTimeout(500);
+  });
+  await check("a cat's sheet asks for its frames, and refuses a count that doesn't split it", async () => {
+    await page.locator("#artFile-cat-meow").setInputFiles({ name: "meow.png", mimeType: "image/png", buffer: readFileSync(join(here, "..", "art", "licensed", "mochi-idle.png")) });
+    await page.waitForTimeout(400);
+    expect((await page.locator("#artFrames-cat-meow").inputValue()) === "10", await page.locator("#artFrames-cat-meow").inputValue());
+    await page.fill("#artFrames-cat-meow", "7");
+    await page.click("#artDlg li[data-slot='cat-meow'] .swap button[type=submit]");
+    await settle(page);
+    expect(/split/.test(await toast(page)) && !(await page.evaluate(() => window.__catio.store["skin/cat-meow"])), await toast(page));
+    await page.fill("#artFrames-cat-meow", "10");
+    await page.click("#artDlg li[data-slot='cat-meow'] .swap button[type=submit]");
+    await page.waitForTimeout(500);
+    const d = await page.evaluate(() => window.__catio.store["skin/cat-meow"]);
+    expect(d && d.frames === 10 && d.secs === 0.5, JSON.stringify(d));
+  });
+  await check("a working cat of 4 frames, where the pack's has 10, is asked for its frames rather than refused", async () => {
+    await page.locator("#artFile-cat-work").setInputFiles({ name: "work.png", mimeType: "image/png", buffer: readFileSync(join(here, "..", "art", "licensed", "mochi-box.png")) });
+    await page.waitForTimeout(400);
+    expect((await page.locator("#artFrames-cat-work").inputValue()) === "4" && (await page.locator("#artDlg li[data-slot='cat-work'] .swap button[type=submit]").count()) === 1, await page.locator("#artDlg li[data-slot='cat-work'] .swap").innerText());
+    await page.click("#artDlg li[data-slot='cat-work'] .swap button:has-text('Cancel')"); await settle(page);
+  });
+  await check("Put back gives a slot the pack's piece again, and lets her file go", async () => {
+    await page.click("#artDlg li[data-slot='panel'] button:has-text('Put back')");
+    await page.waitForTimeout(600);
+    expect(!(await page.evaluate(() => "skin/panel" in window.__catio.store)), "doc kept");
+    expect((await rootVar("--art-panel")).includes("art/licensed/ui/panel.png") && (await rootVar("--panel-t")) === "6", await rootVar("--art-panel"));
+    const asset = await page.evaluate(() => window.__catio.store["skin/field"].asset);
+    await page.click("#artDlg li[data-slot='field'] button:has-text('Put back')");
+    await page.waitForTimeout(600);
+    expect(await page.evaluate((a) => window.__catio.assetsDeleted.includes(a), asset), "asset kept");
+  });
+  await check("Put every piece back clears the skin, and the cats are the pack's again", async () => {
+    await page.click("#artResetAll");
+    await page.waitForTimeout(700);
+    expect(!(await page.evaluate(() => Object.keys(window.__catio.store).some((p) => p.startsWith("skin/")))), "skin docs left");
+    const s = await page.evaluate(() => { const e = document.querySelector("#cats .spr.s-idle"); return e && getComputedStyle(e).backgroundImage; });
+    expect(s && s.includes("mochi-idle.png") && !(await page.locator("#skinCss").textContent()).includes("a-skin"), s);
+    expect(!errors.length, errors.join(" | "));
+  });
+  await ctx.close();
+}
+{
+  const { page, ctx } = await open("?mode=nodb");
+  await check("with no database, The look still says what each piece is, with nothing to change", async () => {
+    await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+    expect((await page.locator("#artDlg li[data-slot]").count()) >= 40, "no slots");
+    expect(!(await page.locator("#artDlg button:has-text('Replace')").count()), "Replace offered");
+    expect(await page.locator("#artDlg li[data-token] input").count() > 40 && !(await page.locator("#artDlg li[data-token] input:enabled").count()), "a token can be changed");
   });
   await ctx.close();
 }

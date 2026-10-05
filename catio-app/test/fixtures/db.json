@@ -1,0 +1,19 @@
+{
+  "_comment": "Invented, like catio/test's stub: never her real data. A café as GET /api/db returns it.",
+  "docs": {
+    "house/main": {"name": "The Test Café"},
+    "rooms/dining": {"name": "Café"},
+    "rooms/kitchen": {"name": "Kitchen"},
+    "rooms/living": {"name": "Cat lounge"},
+    "rooms/study": {"name": "Craft room", "repos": ["Montfortoise-shop"]},
+    "rooms/hall": {"name": "Entrance hall"},
+    "rooms/sunroom": {"name": "Terrace"},
+    "rooms/garden": {"name": "Catio"},
+    "rooms/brain": {"name": "Library"},
+    "rooms/bath": {"name": "Ensuite", "closed": true},
+    "rooms/bedroom": {"name": "Bedroom"},
+    "cats/café": {"title": "Bakery business plan", "mood": "needs", "note": "Which oven?", "updatedAt": 1791000000000},
+    "projects/recipe-cards": {"name": "Recipe cards", "coat": 1},
+    "queens/house": {"name": "Duchesse", "readAt": 1791000500000, "notes": [{"text": "Kept, not said", "at": 5}, {"text": "Said aloud", "pinned": true, "at": 1}]}
+  }
+}

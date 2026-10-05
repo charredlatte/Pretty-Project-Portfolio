@@ -4,6 +4,7 @@
 """
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -11,6 +12,7 @@ import unittest
 from pathlib import Path
 
 HOOKS = Path(__file__).resolve().parent.parent / "hooks"
+BASH = shutil.which("bash") or "bash"   # hook commands run in bash (Git Bash on Windows)
 
 
 def run(script, data, cwd=None, cloud=False):
@@ -134,6 +136,36 @@ class Gates(unittest.TestCase):
         self.assertEqual(after("mcp__github__issue_write", dict(cafe, method="update")).returncode, 0)
         self.assertEqual(after("mcp__github__update_pull_request", cafe).returncode, 0)
         self.assertEqual(after("mcp__github__create_pull_request", dict(cafe, repo="montfortoise-shopify")).returncode, 0)
+
+    def sub_agent_edit(self, agent, model, path, merges=True):
+        if merges:
+            Path(self.tmp, ".claude").mkdir(exist_ok=True)
+            Path(self.tmp, ".claude", "catio-rules.json").write_text(json.dumps({"merge": True}))
+        side = Path(self.tmp) / "agent.jsonl"
+        side.write_text(json.dumps({"type": "assistant", "isSidechain": True, "message": {"model": model, "content": []}}) + "\n")
+        return run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": "Edit", "tool_input": {"file_path": path},
+                                "transcript_path": transcript(self.tmp, ["anthropic-skills:ponytail-audit"]), "cwd": self.tmp,
+                                "agent_type": agent, "agent_transcript_path": str(side)})
+
+    def test_scout_and_tester_never_edit(self):
+        for agent in ("scout", "kittychat-house-rules:tester"):
+            r = self.sub_agent_edit(agent, "claude-haiku-4-5-20251001", self.tmp + "/scratch.md", merges=False)
+            self.assertEqual(r.returncode, 2, agent)
+            self.assertIn("only reads, runs and reports", r.stderr)
+
+    def test_a_small_sub_agent_leaves_tracked_files_alone_where_sessions_merge(self):
+        subprocess.run(["git", "init", "-q", self.tmp]); Path(self.tmp, "app.py").write_text("x = 1\n")
+        subprocess.run(["git", "-C", self.tmp, "add", "app.py"])
+        r = self.sub_agent_edit("general-purpose", "claude-haiku-4-5-20251001", self.tmp + "/app.py")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("claude-haiku-4-5-20251001 may not edit a tracked file", r.stderr)
+        for model, path in (("claude-opus-5-5", "/app.py"), ("claude-haiku-4-5-20251001", "/notes.txt")):
+            self.assertEqual(self.sub_agent_edit("general-purpose", model, self.tmp + path).returncode, 0, (model, path))
+
+    def test_a_small_sub_agent_may_edit_where_she_merges_by_hand(self):
+        subprocess.run(["git", "init", "-q", self.tmp]); Path(self.tmp, "app.py").write_text("x = 1\n")
+        subprocess.run(["git", "-C", self.tmp, "add", "app.py"])
+        self.assertEqual(self.sub_agent_edit("general-purpose", "claude-sonnet-5-5", self.tmp + "/app.py", merges=False).returncode, 0)
 
     def test_scratch_writes_are_free(self):
         repo = Path(self.tmp, "repo"); repo.mkdir()
@@ -422,6 +454,300 @@ class GraphFirst(unittest.TestCase):
         self.assertEqual((r.returncode, r.stdout), (0, ""))
 
 
+    def nudge(self, tmp, tool, args, model="claude-opus-5-5", agent=None):
+        t = Path(tmp, "t.jsonl")
+        t.write_text(json.dumps({"type": "assistant", "message": {"model": model, "content": []}}) + "\n")
+        data = {"hook_event_name": "PreToolUse", "tool_name": tool, "tool_input": args, "cwd": tmp,
+                "session_id": "s-" + Path(tmp).name, "transcript_path": str(t)}
+        if agent:
+            data["agent_type"] = agent
+        r = run("graph_first.py", data, cwd=tmp)
+        return json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"] if r.stdout.strip() else ""
+
+    def test_a_strong_session_is_pointed_at_the_scout_and_the_tester_once(self):
+        tmp = tempfile.mkdtemp()
+        self.assertIn("scout", self.nudge(tmp, "Grep", {"pattern": "route"}))
+        self.assertEqual(self.nudge(tmp, "Grep", {"pattern": "again"}), "")          # once a session
+        self.assertIn("tester", self.nudge(tmp, "Bash", {"command": "python3 -m unittest discover -s harness/test"}))
+        self.assertEqual(self.nudge(tmp, "Bash", {"command": "npm test"}), "")
+
+    def test_no_nudge_for_narrow_reads_small_models_or_sub_agents(self):
+        for tool, args, model, agent in (("Grep", {"pattern": "x", "path": "src/a.py"}, "claude-opus-5-5", None),
+                                         ("Read", {"file_path": "a.py"}, "claude-opus-5-5", None),
+                                         ("Bash", {"command": "git status"}, "claude-opus-5-5", None),
+                                         ("Grep", {"pattern": "x"}, "claude-sonnet-5-5", None),
+                                         ("Grep", {"pattern": "x"}, "claude-opus-5-5", "scout")):
+            self.assertEqual(self.nudge(tempfile.mkdtemp(), tool, args, model, agent), "", (tool, args, model, agent))
+
+
+class RightSized(unittest.TestCase):
+    """Spend what the task is worth: a spawn names its tier, and an errand has a ceiling."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+
+    def spawn(self, args, model="claude-opus-5-5", tmp=None, tool="Agent"):
+        """A sub agent spawn, as Claude Code asks the gate about it. Returns (exit code, stderr, nudge)."""
+        tmp = tmp or self.tmp
+        t = Path(tmp, "t.jsonl")
+        t.write_text(json.dumps({"type": "assistant", "message": {"model": model, "content": []}}) + "\n")
+        r = run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": tool, "tool_input": args, "cwd": tmp,
+                             "session_id": "s-" + Path(tmp).name,   # one session per repo folder, so "once" means once
+                             "transcript_path": str(t)}, cwd=tmp)
+        nudge = ""
+        if r.stdout.strip():
+            nudge = json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
+        return r.returncode, r.stderr, nudge
+
+    def word(self, tmp, tiers):
+        Path(tmp, ".claude").mkdir(exist_ok=True)
+        Path(tmp, ".claude", "catio-rules.json").write_text(json.dumps(tiers))
+
+    def test_an_errand_on_opus_is_spoken_about_once(self):
+        code, _, nudge = self.spawn({"prompt": "add bananas to my shopping list", "model": "opus"})
+        self.assertEqual(code, 0)                      # a reading only suggests
+        self.assertIn("Sonnet", nudge)
+        self.assertIn("errand", nudge)
+        # and only once a session, so it never nags
+        self.assertEqual(self.spawn({"prompt": "add apples to the shopping list", "model": "opus"})[2], "")
+
+    def test_her_word_for_a_repo_refuses_it(self):
+        self.word(self.tmp, {"tiers": {"errand": "haiku"}})
+        code, err, _ = self.spawn({"prompt": "add bananas to my shopping list", "model": "sonnet"})
+        self.assertEqual(code, 2)
+        self.assertIn("haiku", err)
+        self.assertEqual(self.spawn({"prompt": "add bananas to my shopping list", "model": "haiku"})[0], 0)
+
+    def test_the_tool_is_gated_under_either_name(self):
+        for tool in ("Agent", "Task"):
+            self.word(self.tmp, {"tiers": {"errand": "haiku"}})
+            self.assertEqual(self.spawn({"prompt": "list the files in docs", "model": "opus"}, tool=tool,
+                                        tmp=tempfile.mkdtemp())[0], 0, tool)   # no word in a fresh repo: a reading
+        tmp = tempfile.mkdtemp()
+        self.word(tmp, {"tiers": {"errand": "haiku"}})
+        for tool in ("Agent", "Task"):
+            self.assertEqual(self.spawn({"prompt": "add bananas to the shopping list", "model": "opus"},
+                                        tool=tool, tmp=tmp)[0], 2, tool)
+
+    def test_real_work_is_left_alone(self):
+        for prompt in ("refactor the camera so the minimap and the stage share one transform",
+                       "review this diff for correctness bugs",
+                       "investigate why the gateway drops reports and propose a fix"):
+            self.word(self.tmp, {"tiers": {"errand": "haiku"}})
+            code, _, nudge = self.spawn({"prompt": prompt, "model": "opus"}, tmp=tempfile.mkdtemp())
+            self.assertEqual((code, nudge), (0, ""), prompt)
+
+    def test_nothing_held_private_or_browser_is_sent_down(self):
+        tmp = tempfile.mkdtemp()
+        self.word(tmp, {"tiers": {"errand": "haiku"}, "hold": ["harness/"]})
+        for prompt in ("add a line to harness/rules.json", "add the solicitor's letter to the legal folder",
+                       "check the shopping list in the browser"):
+            code, _, nudge = self.spawn({"prompt": prompt, "model": "opus"}, tmp=tmp)
+            self.assertEqual((code, nudge), (0, ""), prompt)
+
+    # Her word, 5 October: "Make sure this never happens again. Always run the delegation before assigning anything
+    # to anyone" (a workflow's agents had all inherited the session's Opus). Nothing is assigned without a tier.
+    def test_a_spawn_that_names_no_tier_is_refused_until_it_is_delegated(self):
+        code, err, _ = self.spawn({"prompt": "find every caller of route()", "subagent_type": "general-purpose"})
+        self.assertEqual(code, 2)
+        self.assertIn("delegate first", err)
+        self.assertIn("names no model", err)
+        self.assertIn("haiku", err)
+        self.assertEqual(self.spawn({"prompt": "find every caller of route()", "subagent_type": "general-purpose",
+                                     "model": "haiku"}, tmp=tempfile.mkdtemp())[0], 0)
+
+    def test_a_workflow_names_a_model_on_every_agent_call(self):
+        unnamed = "const a = await agent(`walk ${x}`, { label: 'w', phase: 'Walk' })\nlog('agent() is fine in a string')\n" \
+                  "const b = await agent('check', { model: 'sonnet' })\n// agent(in a comment)\nawait agent('z')\n"
+        code, err, _ = self.spawn({"script": unnamed}, tool="Workflow")
+        self.assertEqual(code, 2)
+        self.assertIn("lines 1, 5", err)
+        named = "await agent(`walk ${x}`, { model: 'sonnet', label: 'w' })\nawait agent('z', { model })\n"
+        self.assertEqual(self.spawn({"script": named}, tool="Workflow", tmp=tempfile.mkdtemp())[0], 0)
+        # a script on disk is read too
+        tmp = tempfile.mkdtemp()
+        Path(tmp, "wf.js").write_text(unnamed)
+        self.assertEqual(self.spawn({"scriptPath": "wf.js"}, tool="Workflow", tmp=tmp)[0], 2)
+
+    def test_a_new_session_names_its_model(self):
+        tool = "mcp__claude-code-remote__create_session"
+        code, err, _ = self.spawn({"prompt": "tidy the README"}, tool=tool)
+        self.assertEqual(code, 2)
+        self.assertIn("this new session names no model", err)
+        self.assertEqual(self.spawn({"prompt": "tidy the README", "model": "claude-sonnet-5-5"}, tool=tool,
+                                    tmp=tempfile.mkdtemp())[0], 0)
+
+    def test_held_work_that_names_no_tier_is_told_to_stay_strong(self):
+        tmp = tempfile.mkdtemp()
+        self.word(tmp, {"hold": ["harness/"]})
+        code, err, _ = self.spawn({"prompt": "add a line to harness/rules.json"}, tmp=tmp)
+        self.assertEqual(code, 2)
+        self.assertIn("stays on a strong tier", err)
+
+    def test_only_claude_code_remote_s_new_session_is_a_new_cat(self):
+        for tool in ("mcp__tmux__create_session", "mcp__jupyter__create_session"):
+            self.assertEqual(self.spawn({"session_name": "build"}, tool=tool, tmp=tempfile.mkdtemp())[0], 0, tool)
+
+    def test_an_agent_is_found_by_its_own_name_wherever_claude_code_keeps_it(self):
+        tmp = tempfile.mkdtemp()
+        Path(tmp, ".claude", "agents").mkdir(parents=True)
+        Path(tmp, ".claude", "agents", "my-reviewer.md").write_text("---\nname: reviewer\nmodel: sonnet\n---\nReview.\n")
+        self.assertEqual(self.spawn({"prompt": "review", "subagent_type": "reviewer"}, tmp=tmp)[0], 0)
+        home = tempfile.mkdtemp()
+        Path(home, ".claude", "agents").mkdir(parents=True)
+        Path(home, ".claude", "agents", "x.md").write_text("---\nname: mine\nmodel: haiku\n---\n")
+        sys.path.insert(0, str(HOOKS))
+        import right_sized
+        from unittest import mock
+        with mock.patch.object(right_sized.Path, "home", return_value=Path(home)):   # HOME on POSIX, USERPROFILE on Windows
+            self.assertEqual(right_sized.pinned("mine", tempfile.mkdtemp()), "haiku")
+
+    def test_a_repo_ladder_is_read_whatever_its_case_and_a_missing_tier_says_so(self):
+        tmp = tempfile.mkdtemp()
+        self.word(tmp, {"tiers": {"ladder": ["Haiku", "Sonnet"]}})
+        self.assertEqual(self.spawn({"prompt": "list docs", "model": "haiku"}, tmp=tmp)[0], 0)
+        code, err, _ = self.spawn({"prompt": "design the plan", "model": "opus"}, tmp=tmp)
+        self.assertEqual(code, 2)
+        self.assertIn("isn't one of the tiers here", err)
+
+    def test_a_new_session_off_the_ladder_is_told_so(self):
+        code, err, _ = self.spawn({"prompt": "x", "model": "default"}, tool="mcp__claude-code-remote__create_session")
+        self.assertEqual(code, 2)
+        self.assertIn("isn't one of the tiers here", err)
+
+    def test_a_fork_is_the_parent_and_needs_no_tier(self):
+        self.assertEqual(self.spawn({"prompt": "carry on with the plan", "subagent_type": "fork"})[0], 0)
+
+    def test_an_agent_pinned_to_a_tier_is_already_right_sized(self):
+        for agent in ("scout", "tester"):
+            code, _, nudge = self.spawn({"prompt": "find every caller of route()", "subagent_type": agent},
+                                        tmp=tempfile.mkdtemp())
+            self.assertEqual((code, nudge), (0, ""), agent)
+
+    def test_a_small_session_delegates_too_and_a_repo_can_switch_it_off(self):
+        # "Always": a Haiku session's unnamed spawn would inherit Haiku, whatever the work needs
+        self.assertEqual(self.spawn({"prompt": "find route()"}, model="claude-haiku-4-5")[0], 2)
+        tmp = tempfile.mkdtemp()
+        self.word(tmp, {"right_sized": False, "tiers": {"errand": "haiku"}})
+        self.assertEqual(self.spawn({"prompt": "add bananas to my shopping list", "model": "opus"}, tmp=tmp)[0], 0)
+
+
+class WorkflowReader(unittest.TestCase):
+    """How right_sized reads a Workflow script: every agent() names a tier on the call, whatever the script's text
+    looks like around it (the review of 5 October found each of these)."""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, str(HOOKS))
+        import right_sized
+        cls.r = right_sized
+        cls.ladder = ["haiku", "sonnet", "opus", "fable"]
+
+    def lines(self, src, cwd=None):
+        return self.r.unnamed_agents(src, cwd or tempfile.mkdtemp(), self.ladder)
+
+    def test_regex_literals_are_not_strings_comments_or_templates(self):
+        self.assertEqual(self.lines("await agent(text.replace(/\\)/g, ''), { model: 'haiku' })"), [])
+        self.assertEqual(self.lines("const re = /`/\nconst p = `then call agent(foo) here`\n"), [])
+        self.assertEqual(self.lines("const q = s.replace(/'/g, ''); await agent('a', {label:'x'})"), [1])
+        self.assertEqual(self.lines("const g = /[/*]/\nawait agent('a')\nawait agent('b')\n// */"), [2, 3])
+        self.assertEqual(self.lines("s.replace(/https?:\\/\\//, ''); await agent(u)"), [1])
+        self.assertEqual(self.lines("const tick = /`/g\nawait agent('a')\nconst t = `b`"), [2])
+        self.assertEqual(self.lines("const half = total / 2; await agent('a', { model: 'sonnet' }) / 1"), [])
+
+    def test_an_agent_inside_a_template_is_read(self):
+        self.assertEqual(self.lines("const r = `Summary: ${await agent('summarise the diff')}`"), [1])
+        self.assertEqual(self.lines("const r = `S: ${await agent('x', { model: 'haiku' })}`"), [])
+
+    def test_only_this_call_s_own_model_counts_and_it_must_be_a_tier(self):
+        self.assertEqual(self.lines("await agent(await agent('x', {model: 'haiku'}), {label: 'outer'})"), [1])
+        for src in ("await agent(prompt, { label: model })", "await agent(pick(model), { label: 'x' })",
+                    "await agent('a', { model: undefined })", "await agent('a', { model: '' })",
+                    "await agent('a', { model: 'inherit' })", "await agent('x', {label: cfg.model})"):
+            self.assertEqual(self.lines(src), [1], src)
+        for src in ("await agent('a', { model: w.model })", "await agent('a', { model })",
+                    "await agent('a', { label: 'x', model: 'claude-sonnet-5-5' })"):
+            self.assertEqual(self.lines(src), [], src)
+
+    def test_an_agent_handed_on_uncalled_is_refused(self):
+        for src in ("await Promise.all(items.map(agent))", "const run = agent\nawait run('a')"):
+            self.assertTrue(self.lines(src), src)
+        self.assertEqual(self.lines("await agent?.('a', {label:'x'})"), [1])
+        self.assertEqual(self.lines("const o = { agent: 1 }; await agent('a', { model: 'haiku' })"), [])
+
+    def test_a_pinned_agent_type_names_its_tier(self):
+        self.assertEqual(self.lines("await agent('find callers', {agentType: 'scout'})"), [])
+        self.assertEqual(self.lines("await agent('find callers', {agentType: 'kittychat-house-rules:tester'})"), [])
+        self.assertEqual(self.lines("await agent('find callers', {agentType: 'general-purpose'})"), [1])
+
+    # Round 2 of the review, 5 October
+    def test_a_child_workflow_with_args_is_read(self):
+        tmp = tempfile.mkdtemp()
+        Path(tmp, ".claude", "workflows").mkdir(parents=True)
+        Path(tmp, ".claude", "workflows", "sweep.js").write_text("await agent('a')\n")
+        for src in ("await workflow('sweep', {x: 1})", "await workflow('sweep',args)", "await workflow({name: 'sweep'}, {x: 1})"):
+            self.assertEqual(self.lines(src, tmp), [1], src)
+
+    def test_an_expression_that_builds_a_model_is_the_author_s_choice(self):
+        for src in ("await agent('x', {model: `claude-${tier}`})", "await agent('x', {model: 'claude-' + tier})",
+                    "await agent('x', {model: nullableTier})", "await agent('x', {model: undefinedOr(t, 'haiku')})"):
+            self.assertEqual(self.lines(src), [], src)
+        for src in ("await agent('x', {model: ''})", "await agent('x', {model: `inherit`})", "await agent('x', {model: null})",
+                    "await agent('x', {model: void 0})"):
+            self.assertEqual(self.lines(src), [1], src)
+
+    def test_quoted_keys_are_keys(self):
+        for src in ("await agent('x', {'model': 'haiku'})", 'await agent("x", {"model": "haiku"})',
+                    "await agent('x', {'agentType': 'scout'})"):
+            self.assertEqual(self.lines(src), [], src)
+        self.assertEqual(self.lines("await agent('model', {label: 'model'})"), [1])
+
+    def test_a_name_of_the_script_s_own_called_agent_is_not_the_real_one(self):
+        named = ", {model:'haiku'})"
+        for src in ("if (typeof agent !== 'function') throw 1\nawait agent('a'" + named,
+                    "for (const agent of reviewers) log(agent.name)\nawait agent('a'" + named,
+                    "async function run(agent) { return 1 }\nawait agent('a'" + named,
+                    "const f = (agent, x) => x\nawait agent('a'" + named,
+                    "const { agent } = ctx\nawait agent('a'" + named,
+                    "const rs = xs.map(agent => agent.summary)\nawait agent('a'" + named,
+                    "const o = { agent() { return 1 } }\nawait agent('a'" + named):
+            self.assertEqual(self.lines(src), [], src)
+        self.assertTrue(self.lines("await Promise.all(xs.map(agent))"))
+        self.assertTrue(self.lines("const go = agent.bind(null)"))
+
+    def test_division_after_a_postfix_or_a_property_is_division(self):
+        self.assertEqual(self.lines("const h = i++ / 2; await agent('x')"), [1])
+        self.assertEqual(self.lines("const r = obj.in / 2; const s = 'x'; await agent('x')"), [1])
+        self.assertEqual(self.lines("const ok = /agent('x')/.test(s)"), [])
+
+    def test_a_file_that_isn_t_utf8_never_crashes_the_gate(self):
+        tmp = tempfile.mkdtemp()
+        Path(tmp, ".claude", "agents").mkdir(parents=True)
+        Path(tmp, ".claude", "agents", "old.md").write_bytes(b"---\nname: caf\xe9\nmodel: haiku\n---\n")
+        Path(tmp, "wf.js").write_bytes(b"await agent('\xe9')\n")
+        self.assertIsNone(self.r.pinned("old", tmp))
+        self.assertEqual(self.r.script_of({"scriptPath": "wf.js"}, tmp), "")
+
+    def test_the_first_definition_by_a_name_decides(self):
+        tmp, home = tempfile.mkdtemp(), tempfile.mkdtemp()
+        Path(tmp, ".claude", "agents").mkdir(parents=True)
+        Path(tmp, ".claude", "agents", "reviewer.md").write_text("---\nname: reviewer\n---\nReview.\n")
+        Path(home, ".claude", "agents").mkdir(parents=True)
+        Path(home, ".claude", "agents", "reviewer.md").write_text("---\nname: reviewer\nmodel: haiku\n---\n")
+        from unittest import mock
+        with mock.patch.object(self.r.Path, "home", return_value=Path(home)):
+            self.assertIsNone(self.r.pinned("reviewer", tmp))   # the project's, which inherits, is the one that runs
+
+    def test_a_child_workflow_is_read_too(self):
+        tmp = tempfile.mkdtemp()
+        Path(tmp, ".claude", "workflows").mkdir(parents=True)
+        Path(tmp, ".claude", "workflows", "sweep.js").write_text("await agent('a')\n")
+        Path(tmp, "named.js").write_text("await agent('a', { model: 'haiku' })\n")
+        self.assertEqual(self.lines("log('x')\nawait workflow('sweep')", tmp), [2])
+        self.assertEqual(self.lines("await workflow({scriptPath: 'named.js'})", tmp), [])
+        self.assertEqual(self.lines("await workflow('a-built-in')", tmp), [])   # can't be read: nothing to check
+
+
 class GraphDoc(unittest.TestCase):
     def test_digests_a_graph_for_the_catio(self):
         out = Path(tempfile.mkdtemp(), "graphify-out"); out.mkdir()
@@ -429,7 +755,8 @@ class GraphDoc(unittest.TestCase):
         links = [{"source": "n0", "target": f"n{i}"} for i in range(1, 6)] + [{"source": "n1", "target": "n2"}]
         (out / "graph.json").write_text(json.dumps({"nodes": nodes, "links": links, "built_at_commit": "abc123"}))
         (out / "GRAPH_REPORT.md").write_text("## God Nodes (x)\n1. `thing0()` - 5 edges\n\n## Surprising Connections\n"
-                                             "- `thing1()` --calls--> `thing2()`  [INFERRED]\n  a.py → b.py\n\n## Suggested Questions\n- **Why thing0?**\n  _because_\n")
+                                             "- `thing1()` --calls--> `thing2()`  [INFERRED]\n  a.py → b.py\n\n## Suggested Questions\n- **Why thing0?**\n  _because_\n",
+                                             encoding="utf-8")
         r = subprocess.run([sys.executable, str(HOOKS.parent / "skills" / "catio" / "graph_doc.py"), str(out), "--by", "session_1"], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
         key = r.stdout.splitlines()[0]
@@ -461,9 +788,30 @@ class SessionStart(unittest.TestCase):
         self.assertIn("  cafe merges its own pull requests; changes to harness/ always wait for her.", out)
         self.assertIn("**Semi-automatic merging** (enforced)", out)
 
+    def test_reminds_a_fable_session_of_opus(self):
+        nudge = "suggest /model opus"
+        self.assertIn(nudge, run("session_start.py", {"model": "claude-fable-5-1", "cwd": tempfile.mkdtemp()}).stdout)
+        self.assertNotIn(nudge, run("session_start.py", {"model": "claude-opus-5-5", "cwd": tempfile.mkdtemp()}).stdout)
+        self.assertNotIn(nudge, run("session_start.py", {"cwd": tempfile.mkdtemp()}).stdout)
+
     def test_resume_skips_the_audit_prompt(self):
         r = run("session_start.py", {"source": "resume", "cwd": tempfile.mkdtemp()})
         self.assertNotIn("Start now with the read-only pass", r.stdout)
+
+    def test_a_guest_session_is_told_its_own_cafe(self):
+        def start(url):
+            env = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_CODE_REMOTE", "CATIO_URL")}
+            if url:
+                env["CATIO_URL"] = url
+            return subprocess.run([sys.executable, str(HOOKS / "session_start.py")], capture_output=True, text=True,
+                                  input=json.dumps({"source": "startup", "model": "claude-fable-5-1",
+                                                    "cwd": tempfile.mkdtemp()}), env=env).stdout
+        guest = start("https://catio-gateway.someone.workers.dev")
+        self.assertIn("KittyChat Café of the person you are working for, at https://catio-gateway.someone.workers.dev", guest)
+        for words in ("Charlotte's Catio", "Charlotte's allowance"):
+            self.assertNotIn(words, guest)
+        self.assertIn("Charlotte's Catio, her harness: https://claude.ai/artifact/", start(None))
+        self.assertIn('{"opening_audit": false} in .claude/catio-rules.json', guest)
 
 
 class Plugin(unittest.TestCase):
@@ -481,6 +829,32 @@ class Plugin(unittest.TestCase):
         self.assertTrue((root / "skills" / "catio" / "SKILL.md").read_text().startswith("---\nname: catio\n"))
         self.assertTrue((root / "skills" / "graphify" / "SKILL.md").read_text().startswith("---\nname: graphify\n"))
         self.assertTrue((root / "skills" / "graphify" / "LICENSE").exists())
+
+    def test_every_hook_uses_one_launcher_that_finds_python_on_windows(self):
+        hooks = json.loads((HOOKS / "hooks.json").read_text())["hooks"]
+        launchers = {h["command"].split(' "${CLAUDE_PLUGIN_ROOT}/hooks/')[0]
+                     for groups in hooks.values() for g in groups for h in g["hooks"]}
+        self.assertEqual(len(launchers), 1, launchers)
+        launcher = launchers.pop()
+        empty = tempfile.mkdtemp()   # a PATH with no py on it
+        for os_name, path, want in (("", os.environ["PATH"], "python3"), ("Windows_NT", empty, "python")):
+            env = dict(os.environ, OS=os_name, PATH=path)
+            r = subprocess.run([BASH, "-c", "echo " + launcher], capture_output=True, text=True, env=env)
+            self.assertEqual(r.stdout.strip(), want, os_name)
+        if os.name == "nt":   # a stand-in py needs a POSIX file mode
+            return
+        Path(empty, "py").write_text("#!/bin/sh\n")
+        Path(empty, "py").chmod(0o755)
+        r = subprocess.run([BASH, "-c", "echo " + launcher], capture_output=True, text=True,
+                           env=dict(os.environ, OS="Windows_NT", PATH=empty + os.pathsep + os.environ["PATH"]))
+        self.assertEqual(r.stdout.strip(), "py")
+
+    def test_the_gates_say_what_to_do_without_the_skills(self):
+        tmp = tempfile.mkdtemp()
+        r = run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": "Write", "tool_input":
+                             {"file_path": str(Path(tmp, "x.txt"))}, "transcript_path": transcript(tmp), "cwd": tmp})
+        self.assertEqual(r.returncode, 2)
+        self.assertIn('{"opening_audit": false} in .claude/catio-rules.json', r.stderr)
 
 
 if __name__ == "__main__":

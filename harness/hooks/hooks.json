@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/session_start.py\""
+            "command": "$([ \"$OS\" = Windows_NT ] && { command -v py >/dev/null && echo py || echo python; } || echo python3) \"${CLAUDE_PLUGIN_ROOT}/hooks/session_start.py\""
           }
         ]
       },
@@ -13,7 +13,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/report.py\"",
+            "command": "$([ \"$OS\" = Windows_NT ] && { command -v py >/dev/null && echo py || echo python; } || echo python3) \"${CLAUDE_PLUGIN_ROOT}/hooks/report.py\"",
             "async": true,
             "timeout": 5
           }
@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/report.py\"",
+            "command": "$([ \"$OS\" = Windows_NT ] && { command -v py >/dev/null && echo py || echo python; } || echo python3) \"${CLAUDE_PLUGIN_ROOT}/hooks/report.py\"",
             "async": true,
             "timeout": 5
           }
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/report.py\"",
+            "command": "$([ \"$OS\" = Windows_NT ] && { command -v py >/dev/null && echo py || echo python; } || echo python3) \"${CLAUDE_PLUGIN_ROOT}/hooks/report.py\"",
             "async": true,
             "timeout": 5
           }
@@ -46,11 +46,11 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit|mcp__.*",
+        "matcher": "Task|Agent|Workflow|Bash|Edit|Write|MultiEdit|NotebookEdit|mcp__.*",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/gates.py\""
+            "command": "$([ \"$OS\" = Windows_NT ] && { command -v py >/dev/null && echo py || echo python; } || echo python3) \"${CLAUDE_PLUGIN_ROOT}/hooks/gates.py\""
           }
         ]
       },
@@ -59,7 +59,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/graph_first.py\"",
+            "command": "$([ \"$OS\" = Windows_NT ] && { command -v py >/dev/null && echo py || echo python; } || echo python3) \"${CLAUDE_PLUGIN_ROOT}/hooks/graph_first.py\"",
             "timeout": 10
           }
         ]
@@ -71,7 +71,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/gates.py\""
+            "command": "$([ \"$OS\" = Windows_NT ] && { command -v py >/dev/null && echo py || echo python; } || echo python3) \"${CLAUDE_PLUGIN_ROOT}/hooks/gates.py\""
           }
         ]
       }
@@ -81,7 +81,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/ship_check.py\""
+            "command": "$([ \"$OS\" = Windows_NT ] && { command -v py >/dev/null && echo py || echo python; } || echo python3) \"${CLAUDE_PLUGIN_ROOT}/hooks/ship_check.py\""
           }
         ]
       },
@@ -89,7 +89,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/report.py\"",
+            "command": "$([ \"$OS\" = Windows_NT ] && { command -v py >/dev/null && echo py || echo python; } || echo python3) \"${CLAUDE_PLUGIN_ROOT}/hooks/report.py\"",
             "timeout": 5
           }
         ]
@@ -100,7 +100,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/report.py\"",
+            "command": "$([ \"$OS\" = Windows_NT ] && { command -v py >/dev/null && echo py || echo python; } || echo python3) \"${CLAUDE_PLUGIN_ROOT}/hooks/report.py\"",
             "timeout": 3
           }
         ]

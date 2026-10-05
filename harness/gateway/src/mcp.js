@@ -16,7 +16,7 @@ export async function serveMcp(request, env, ctx) {
 	const { house: name, owner, role } = whose(ctx.props);
 	if (!name) return Response.json({ jsonrpc: "2.0", id: null, error: { code: -32001, message: "this token opens no house" } }, { status: 401 });
 	const house = env.HOUSE.get(env.HOUSE.idFromName(name));
-	const who = owner ? "charlotte" : role === "queen" ? "queen" : "agent";   // the house's owner, its queen's runner, or an agent
+	const who = owner ? "owner" : role === "queen" ? "queen" : "agent";   // the house's owner, its queen's runner, or an agent
 	// a list is answered in order, so a hook can report and then collect what's waiting in one request
 	const many = Array.isArray(body);
 	const replies = [];

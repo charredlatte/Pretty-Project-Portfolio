@@ -1,6 +1,6 @@
 {
   "name": "kittychat-house-rules",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Charlotte's KittyChat harness: the house rules every session follows (preflight before browsers, a read-only opening audit, semi-automatic shipping and merging, map before you dig), the catio skill for files, messages and requests sent from the Catio, and graphify's skill for digesting a repo as a knowledge graph.",
   "author": { "name": "Charlotte Badot" }
 }

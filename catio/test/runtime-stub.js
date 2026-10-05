@@ -68,12 +68,21 @@
   };
   const db = Object.freeze({ doc: docRef, collection: collRef });
   T.put = (path, d) => { T.store[path] = clone(d); notify(path); };   // someone else wrote it: a session's reply, Claude's seed
+  T.drop = (path) => { delete T.store[path]; notify(path); };   // someone else deleted it
 
   T.sessions = [
     session("blocked1", "Shop about page", "montfortoise-shopify", "BLOCKED", "IDLE", 2 * H, { status_category: "need_input", needs_action: "review the French text" }),
     session("work1", "Week tab editing", "Intermarche-grocery-shopping-app", "WORKING", "RUNNING", 60e3, {}),
     session("old1", "Old parser", "Intermarche-grocery-shopping-app", "COMPLETED", "IDLE", 20 * 24 * H, { status_category: "completed" }),
   ];
+  // ?waiting=N: N more sessions waiting on her, from several rooms and both floors, each waiting a little less long than
+  // the one before, for the line at the front door
+  const WAITERS = [["Grocery list", "Intermarche-grocery-shopping-app"], ["Snail mail labels", "Snail-Mail-Trail"], ["Café pitch", ""],
+    ["TikTok tags", "tiktok-saves"], ["Theme colours", "montfortoise-shopify"], ["Portfolio header", "Pretty-Project-Portfolio"]];
+  for (let i = 0; i < Math.min(+params.get("waiting") || 0, 12); i++) {
+    const [title, repo] = WAITERS[i % WAITERS.length];
+    T.sessions.push(session("wait" + i, title + (i >= WAITERS.length ? " (2)" : ""), repo || "no-such-repo", "BLOCKED", "IDLE", (10 - i) * H, { status_category: "need_input", needs_action: "Which one should I keep?" }));
+  }
   if (params.get("mode") === "blocked") T.seedCopy();
   T.push = () => { if (T.handler) T.handler({ type: "data", result: { payload: { data: clone(T.sessions), has_more: false } } }); };
   T.fail = (code) => { if (T.handler) T.handler({ type: "error", error: { code, message: code } }); };
@@ -107,10 +116,10 @@
   if (params.get("queen") !== "away") T.gw.push({ id: "queen", name: "The queen", via: "runner", provider: "anthropic", mood: "done", updated: now - 5e3 });
   T.gwNotes = [{ id: "g1", cat: "cse_blocked1", author: "session", text: "The French text is in, ready for you.", at: now - 50e3 }];
   // the queen speaking (what the gateway pushes to an open café), and a cat bringing her something new
-  T.queenSays = (text, done, turn) => {
+  T.queenSays = (text, done, turn, steps) => {   // steps: what her runner says she is doing, [{tool, cat, action}]
     const id = done ? "q" + Date.now() : null;
     if (done) T.gwNotes.push({ id, cat: "queen", author: "queen", text, at: Date.now() });
-    dispatchEvent(new CustomEvent("catio:queen", { detail: { type: "queen", turn: turn || "t1", text, done: !!done, routine: null, id } }));
+    dispatchEvent(new CustomEvent("catio:queen", { detail: { type: "queen", turn: turn || "t1", text, done: !!done, routine: null, id, steps } }));
   };
   T.handoff = (cat, text) => { const a = T.gw.find((x) => x.id === cat); a.said = { text, at: Date.now() }; dispatchEvent(new Event("catio:agents")); };
   // homework the queen set (what the gateway's quizzes tool lists), and her answers as the page hands them in
@@ -158,6 +167,7 @@
       if (g === "ask") throw { code: "approval_required", message: "ask every time" };
       if (tool === "list_agents") return answer({ agents: clone(T.gw) });
       if (tool === "comments") return answer({ notes: clone(T.gwNotes.filter((n) => n.cat === input.cat)) });
+      if (tool === "comment") { const id = "g" + T.tools.length; T.gwNotes.push({ id, cat: input.cat, author: input.author || "charlotte", text: input.text, at: Date.now() }); return answer({ id, woke: false }); }   // kept, as the gateway keeps it
       if (tool === "quizzes") {
         if (T.quizzesFail) { T.quizzesFail--; throw { code: "tool_error", message: "the gateway is away" }; }
         const out = answer({ quizzes: clone(T.quizzes.filter((z) => input.done || z.status !== "done")) });   // the list as it is now…
@@ -180,7 +190,7 @@
   };
   // assets: kept in memory; sample: answers with T.sampleAnswer, recording each prompt
   T.uploads = []; T.assetsDeleted = [];
-  const assets = { upload: async (blob) => { const id = "a" + (T.uploads.length + 1) + "0123456789abcdef0123456789abcd".slice(0, 30); T.uploads.push({ id, name: blob.name, size: blob.size, type: blob.type }); return { id, url: "/_blob/" + id, sizeBytes: blob.size, contentType: blob.type }; },
+  const assets = { upload: async (blob, opts) => { const id = "a" + (T.uploads.length + 1) + "0123456789abcdef0123456789abcd".slice(0, 30); T.uploads.push({ id, name: blob.name, size: blob.size, type: (opts && opts.type) || blob.type }); return { id, url: "/_blob/" + id, sizeBytes: blob.size, contentType: blob.type }; },
     delete: async (id) => { T.assetsDeleted.push(id); return { deleted: true }; }, list: async () => ({ assets: [], usage: {} }) };
   T.prompts = []; T.sampleAnswer = { cat: null, reason: "nothing fits" };
   // the decider (the gateway's decide tool): what it answers a sort question, until a test changes it

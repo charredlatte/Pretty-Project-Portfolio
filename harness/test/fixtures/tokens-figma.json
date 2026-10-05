@@ -1,0 +1,23 @@
+{
+  "$description": "A Figma export as the café meets it: a primitives layer, aliases, see-through and out-of-range values, and tokens of its own. Read by the page, skin.py, the gateway and catio_mcp.py, which must all find the same (tokens-figma.expected.json).",
+  "primitives": {
+    "$type": "color",
+    "navy": { "$value": { "colorSpace": "srgb", "components": [0.1137, 0.2078, 0.3412], "hex": "#1d3557" } },
+    "grass": { "$value": "#00ff00" }
+  },
+  "colours": {
+    "$type": "color",
+    "Ink": { "$value": "{primitives.navy}" },
+    "grass": { "$value": "#5A8F29" },
+    "go": { "$value": { "colorSpace": "srgb", "components": [0.75, 0.83, 0.44], "alpha": 0.5 } },
+    "tan": { "$value": { "colorSpace": "srgb", "components": [0.3, 0.3, 0.3] } },
+    "brand": { "$value": "#ff0000" },
+    "letgo": { "$value": "{primitives.nothing}" }
+  },
+  "type": {
+    "$type": "dimension",
+    "Px size": { "$value": { "value": 20, "unit": "px" } },
+    "u-desk": { "$value": { "value": 20, "unit": "px" } },
+    "body-size": { "$value": 15 }
+  }
+}

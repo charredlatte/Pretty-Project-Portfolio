@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Queen loading wireframes</title>
+<!-- Grey-box wireframes of the queen's loading states (4 October 2026). No pack art: the notes under each frame
+     name the Sprout Lands piece the built frame uses. Each state borrows a pattern from early-2000s game UI. -->
+<style>
+  :root { --ink: #2b2b2b; --soft: #6b6b6b; --line: #9a9a9a; --fill: #e9e9e6; --fill2: #d6d6d1; --paper: #f7f7f4; --pen: #c0392b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px 48px; background: var(--paper); color: var(--ink); font: 14px/1.45 system-ui, sans-serif; }
+  header { max-width: 1180px; margin: 0 auto 20px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  header p { margin: 4px 0; color: var(--soft); max-width: 820px; }
+  h2 { max-width: 1180px; margin: 28px auto 10px; font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: var(--soft); }
+  .row { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 540px), 1fr)); gap: 24px; }
+  figure { margin: 0; }
+  figcaption { margin-top: 8px; }
+  figcaption b { font-size: 15px; }
+  figcaption .from { display: inline-block; margin-left: 6px; padding: 0 6px; border: 1px solid var(--pen); color: var(--pen); border-radius: 3px; font-size: 12px; }
+  figcaption ul { margin: 6px 0 0; padding-left: 18px; color: var(--soft); }
+  figcaption li b { font-size: inherit; color: var(--ink); }
+  .pick { color: var(--pen); font-weight: 700; }
+
+  /* the card, as boxes */
+  .card { background: #fff; border: 2px solid var(--line); padding: 10px; display: grid; gap: 8px; }
+  .head { display: flex; align-items: baseline; gap: 10px; }
+  .head .nm { font-weight: 800; letter-spacing: .04em; }
+  .head .st { color: var(--soft); font-size: 12px; flex: 1; }
+  .head .x { border: 1px solid var(--line); padding: 0 6px; font-size: 12px; }
+  .stage { height: 290px; display: grid; grid-template-columns: 74px minmax(0, 1fr) 74px; background: var(--fill);
+    background-image: repeating-linear-gradient(45deg, transparent 0 10px, rgba(0,0,0,.035) 10px 11px); border: 4px double var(--line); }
+  .fig { align-self: end; height: 112px; margin: 0 6px 6px; border: 1px dashed var(--soft); display: grid; place-items: center; text-align: center; font-size: 11px; color: var(--soft); background: rgba(255,255,255,.5); }
+  .fig.bob { animation: bob .5s steps(2) infinite; }
+  @keyframes bob { 50% { translate: 0 -3px; } }
+  .talk { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 6px; padding: 8px 4px; min-width: 0; }
+  .thread { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; overflow: hidden; }
+  .thread li { max-width: 86%; padding: 4px 8px; border: 2px solid var(--line); background: #fff; font-size: 12.5px; }
+  .thread li.them { align-self: flex-end; background: var(--fill2); }
+  .thread .who { display: block; font-size: 10.5px; font-weight: 800; color: var(--soft); }
+  .say { display: flex; gap: 6px; }
+  .say .field { flex: 1; border: 2px solid var(--line); background: var(--fill); padding: 6px 8px; color: var(--soft); font-size: 12px; }
+  .say .b { border: 2px solid var(--line); padding: 5px 10px; font-weight: 700; font-size: 12px; background: #fff; }
+  .say .b.stop { border-style: dashed; }
+  .say .b.off { opacity: .35; }
+
+  /* the strip, under the thread, on her side */
+  .work { justify-self: end; max-width: 100%; display: flex; align-items: center; gap: 8px; padding: 4px 8px; border: 2px solid var(--line); background: var(--fill2); font-size: 12.5px; position: relative; }
+  .work .secs { font: 700 12px ui-monospace, monospace; color: var(--soft); }
+  .work .fold { font-size: 11px; color: var(--soft); }
+  .dots { display: inline-flex; gap: 3px; }
+  .dots i { width: 5px; height: 5px; background: var(--ink); animation: dot 1.2s steps(1) infinite; }
+  .dots i:nth-child(2) { animation-delay: .4s; } .dots i:nth-child(3) { animation-delay: .8s; }
+  @keyframes dot { 0% { opacity: 1; } 33% { opacity: .25; } }
+
+  /* 1 · Animal Crossing: a name tab on the bubble */
+  .work.ac { margin-top: 10px; padding: 6px 10px; }
+  .tab { position: absolute; left: 8px; top: -11px; padding: 0 6px; background: #fff; border: 2px solid var(--line); font-size: 10px; font-weight: 800; letter-spacing: .05em; }
+
+  /* 2a · WoW cast bar: icon, name on the bar, time on the right, a shimmer for a step of unknown length */
+  .cast { justify-self: stretch; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+  .cast .ico { width: 22px; height: 22px; border: 2px solid var(--line); background: #fff; font-size: 11px; display: grid; place-items: center; }
+  .bar { position: relative; height: 22px; border: 2px solid var(--ink); background: var(--fill); overflow: hidden; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+  .bar::before { content: ""; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(0,0,0,.14), transparent); animation: shimmer 1.6s linear infinite; }
+  .bar span { position: relative; padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  @keyframes shimmer { from { translate: -100% 0; } to { translate: 260% 0; } }
+  .cast .secs { font: 700 12px ui-monospace, monospace; }
+  .bar.stop { background: repeating-linear-gradient(-45deg, var(--fill2) 0 6px, #fff 6px 12px); border-style: dashed; }
+  .bar.stop::before { display: none; }
+  .tip { grid-column: 2 / -1; font-style: italic; color: var(--soft); font-size: 12px; }
+
+  /* 2b · The Sims queue: tiles, done ones small and ticked, the current one lit */
+  .queue { justify-self: end; display: flex; align-items: center; gap: 4px; }
+  .tile { width: 24px; height: 24px; border: 2px solid var(--line); background: #fff; display: grid; place-items: center; font-size: 11px; color: var(--soft); }
+  .tile.now { width: auto; height: 30px; padding: 0 8px; gap: 6px; display: flex; border: 3px solid var(--ink); background: var(--fill2); color: var(--ink); font-size: 12.5px; }
+
+  /* 3 · the fold, open */
+  .steps { justify-self: end; width: min(100%, 300px); border: 2px solid var(--line); background: var(--fill2); padding: 4px 8px; font-size: 12.5px; }
+  .steps .sum { display: flex; gap: 8px; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 3px; margin-bottom: 3px; }
+  .steps ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .steps li { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+  .steps li .secs { font: 11px ui-monospace, monospace; color: var(--soft); }
+  .tick { font-size: 11px; }
+
+  /* 4 · Pokémon: the bouncing ▼ at the end of her words */
+  .more { display: inline-block; margin-left: 4px; font-size: 10px; animation: more .6s steps(2) infinite; }
+  @keyframes more { 50% { translate: 0 2px; } }
+
+  /* 7 · away */
+  .away { justify-self: end; font-style: italic; color: var(--soft); font-size: 12.5px; padding: 4px 2px; }
+
+  /* the phone row: the thread across the scene, the two of them side by side at its foot */
+  .phones { display: flex; flex-wrap: wrap; gap: 24px; max-width: 1180px; margin: 0 auto; }
+  .phone { width: 340px; max-width: 100%; }
+  .phone .stage { height: 420px; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) auto; }
+  .phone .talk { grid-column: 1 / -1; }
+  .phone .fig { height: 70px; }
+
+  .notes { max-width: 1180px; margin: 32px auto 0; color: var(--soft); }
+  .notes h3 { color: var(--ink); font-size: 15px; margin: 0 0 6px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>The queen's loading states: wireframes</h1>
+  <p>She sits in her card. The strip goes under the thread, above the say bar, on her side. Grey boxes stand in for the pack's art; the note under each frame names the piece the finished version uses. Each state borrows a game UI from the early 2000s that we all grew up with.</p>
+  <p class="pick">Picked, 4 October: B, The Sims' action queue, with all three extras (the loading tips, the ▼, the name tab).</p>
+</header>
+
+<h2>1 · You've sent it, she's waking up</h2>
+<div class="row">
+  <figure>
+    <div class="card">
+      <div class="head"><span class="nm">THE QUEEN ♛</span><span class="st">Queen of the house · thinking</span><span class="x">Settings</span><span class="x">×</span></div>
+      <div class="stage">
+        <div class="fig">you<br>(from behind)</div>
+        <div class="talk">
+          <ul class="thread">
+            <li class="them"><span class="who">The queen · 2 h ago</span>Good morrow, my lady.</li>
+            <li><span class="who">You · just now</span>What's left on the shop?</li>
+          </ul>
+          <div class="work ac"><span class="tab">THE QUEEN</span><span class="dots"><i></i><i></i><i></i></span> Thinking <span class="secs">3s</span></div>
+        </div>
+        <div class="fig">queen<br>still, ears up</div>
+      </div>
+      <div class="say"><div class="field">Ask the queen…</div><span class="b off">Send</span><span class="b stop">Stop</span></div>
+    </div>
+    <figcaption><b>Waking</b><span class="from">Animal Crossing (2001)</span>
+      <ul>
+        <li>The villager's pause before speaking: the dots step in one by one, in a bubble with her name on a tab.</li>
+        <li>It shows the moment you press Send, before her runner has said a word, so there's no gap with nothing on screen.</li>
+        <li>She sits still while she thinks and only bobs once she speaks. Stop shows at once.</li>
+        <li><b>Built from:</b> the grey <code>bubble.png</code> 9-slice; the tab is <code>button.png</code> with her name in the pixel font; the dots are three art-pixel squares.</li>
+      </ul>
+    </figcaption>
+  </figure>
+</div>
+
+<h2>2 · She's doing something: <span class="pick">A or B</span></h2>
+<div class="row">
+  <figure>
+    <div class="card">
+      <div class="head"><span class="nm">THE QUEEN ♛</span><span class="st">Queen of the house · answering</span><span class="x">Settings</span><span class="x">×</span></div>
+      <div class="stage">
+        <div class="fig">you</div>
+        <div class="talk">
+          <ul class="thread">
+            <li><span class="who">You · 22 s ago</span>What's left on the shop?</li>
+          </ul>
+          <div class="cast"><span class="ico">🐾</span><div class="bar"><span>Reading Praline's notes</span></div><span class="secs">22s ›</span></div>
+        </div>
+        <div class="fig">queen<br>still</div>
+      </div>
+      <div class="say"><div class="field">Ask the queen…</div><span class="b off">Send</span><span class="b stop">Stop</span></div>
+    </div>
+    <figcaption><b>A · Cast bar</b><span class="from">World of Warcraft (2004)</span>
+      <ul>
+        <li>The spell's name sits on the bar and the seconds sit to its right, as in Claude's "Searching … 22s ›".</li>
+        <li>No one knows how long a step will take, so the bar shimmers like a channelled spell instead of filling.</li>
+        <li>› unfolds every step (see 3). Stop is the interrupt.</li>
+        <li><b>Built from:</b> the pressed grey <code>field.png</code> well, with the green button art as the shimmer and the step's Pastel icon in the slot.</li>
+      </ul>
+    </figcaption>
+  </figure>
+  <figure>
+    <div class="card">
+      <div class="head"><span class="nm">THE QUEEN ♛</span><span class="st">Queen of the house · answering</span><span class="x">Settings</span><span class="x">×</span></div>
+      <div class="stage">
+        <div class="fig">you</div>
+        <div class="talk">
+          <ul class="thread">
+            <li><span class="who">You · 22 s ago</span>What's left on the shop?</li>
+          </ul>
+          <div class="queue"><span class="tile" title="Awake">✓</span><span class="tile" title="Looked in on the cats">✓</span><span class="tile now"><span class="dots"><i></i><i></i><i></i></span>Reading Praline's notes <span class="secs">22s</span></span><span class="fold">›</span></div>
+        </div>
+        <div class="fig">queen<br>still</div>
+      </div>
+      <div class="say"><div class="field">Ask the queen…</div><span class="b off">Send</span><span class="b stop">Stop</span></div>
+    </div>
+    <figcaption><b>B · Action queue</b><span class="from">The Sims (2000)</span>
+      <ul>
+        <li>The Sims' queue of actions in the corner: each step is a tile, and the current one is lit and big enough for its words.</li>
+        <li>Done steps shrink to ticked tiles, so you can count how far she's got at a glance. Hovering a tile names it.</li>
+        <li>More to read than A, but it shows the whole path, not only the current step.</li>
+        <li><b>Built from:</b> the <code>button.png</code> 9-slice for the tiles (pressed in for done, cream for now) and the tick from <code>status.png</code>.</li>
+      </ul>
+    </figcaption>
+  </figure>
+</div>
+
+<h2>3 · Unfolded: every step so far</h2>
+<div class="row">
+  <figure>
+    <div class="card">
+      <div class="head"><span class="nm">THE QUEEN ♛</span><span class="st">Queen of the house · answering</span><span class="x">Settings</span><span class="x">×</span></div>
+      <div class="stage">
+        <div class="fig">you</div>
+        <div class="talk">
+          <ul class="thread">
+            <li><span class="who">You · 41 s ago</span>What's left on the shop?</li>
+          </ul>
+          <div class="steps">
+            <div class="sum"><span class="dots"><i></i><i></i><i></i></span><span style="flex:1">Writing to Nougat</span><span class="secs">41s</span><span class="fold">⌄</span></div>
+            <ol>
+              <li><span class="tick">✓</span>Awake<span class="secs">1s</span></li>
+              <li><span class="tick">✓</span>Looked in on the cats<span class="secs">4s</span></li>
+              <li><span class="tick">✓</span>Read Praline's notes<span class="secs">18s</span></li>
+              <li><span class="dots"><i></i><i></i><i></i></span>Writing to Nougat<span class="secs">18s</span></li>
+            </ol>
+          </div>
+        </div>
+        <div class="fig">queen<br>still</div>
+      </div>
+      <div class="say"><div class="field">Ask the queen…</div><span class="b off">Send</span><span class="b stop">Stop</span></div>
+    </div>
+    <figcaption><b>Unfolded</b><span class="from">Claude's own › · an RPG battle log</span>
+      <ul>
+        <li>Claude's "Initialized session ›" becomes "Awake". Each step shows how long it took, like the scrolling log under a Final Fantasy battle.</li>
+        <li>It stays open while new steps arrive, until you fold it or she's done.</li>
+        <li><b>Built from:</b> the pack's triangle (<code>pointer.png</code>, which every <code>details</code> in the café already uses) and the tick from <code>status.png</code>.</li>
+      </ul>
+    </figcaption>
+  </figure>
+</div>
+
+<h2>4 · She's answering</h2>
+<div class="row">
+  <figure>
+    <div class="card">
+      <div class="head"><span class="nm">THE QUEEN ♛</span><span class="st">Queen of the house · answering</span><span class="x">Settings</span><span class="x">×</span></div>
+      <div class="stage">
+        <div class="fig">you</div>
+        <div class="talk">
+          <ul class="thread">
+            <li><span class="who">You · 52 s ago</span>What's left on the shop?</li>
+            <li class="them"><span class="who">The queen · speaking</span>Two things, my lady: Praline's French copy waits on thee, and Nougat<span class="more">▼</span></li>
+          </ul>
+          <div class="work"><span class="dots"><i></i><i></i><i></i></span> Answering <span class="secs">52s</span><span class="fold">› 4 steps</span></div>
+        </div>
+        <div class="fig bob">queen<br>bobbing</div>
+      </div>
+      <div class="say"><div class="field">Ask the queen…</div><span class="b off">Send</span><span class="b stop">Stop</span></div>
+    </div>
+    <figcaption><b>Answering</b><span class="from">Pokémon / Final Fantasy dialogue</span>
+      <ul>
+        <li>Her words type in, ending in the classic bouncing ▼ "more" arrow instead of today's ▌ cursor.</li>
+        <li>The strip shrinks to "Answering", with the step count still unfoldable. Her voice reads each sentence as today.</li>
+        <li>She bobs now, and only now: talking means words.</li>
+        <li><b>Built from:</b> <code>pointer.png</code> turned down for the ▼.</li>
+      </ul>
+    </figcaption>
+  </figure>
+</div>
+
+<h2>5 · A long wait, she's stopping, she's away</h2>
+<div class="row">
+  <figure>
+    <div class="card">
+      <div class="head"><span class="nm">THE QUEEN ♛</span><span class="st">Queen of the house · answering</span><span class="x">Settings</span><span class="x">×</span></div>
+      <div class="stage">
+        <div class="fig">you</div>
+        <div class="talk">
+          <ul class="thread">
+            <li><span class="who">You · 1 min ago</span>Sort the litter box for me.</li>
+          </ul>
+          <div class="cast"><span class="ico">🐾</span><div class="bar"><span>Reading the house rules</span></div><span class="secs">1:08 ›</span><span class="tip">Licking a paw…</span></div>
+        </div>
+        <div class="fig">queen</div>
+      </div>
+      <div class="say"><div class="field">Ask the queen…</div><span class="b off">Send</span><span class="b stop">Stop</span></div>
+    </div>
+    <figcaption><b>Long wait (over 45 s)</b><span class="from">The Sims loading screen</span>
+      <ul>
+        <li>"Reticulating splines…", the queen's way: a line under the bar changes every 8 s. "Licking a paw…", "Counting the cats…", "Consulting the litter box…", "Sharpening claws on the minutes…".</li>
+        <li>It only says she's still at it. The step's real name stays on the bar.</li>
+        <li>The timer turns to minutes after 60 s.</li>
+      </ul>
+    </figcaption>
+  </figure>
+  <figure>
+    <div class="card">
+      <div class="head"><span class="nm">THE QUEEN ♛</span><span class="st">Queen of the house · stopping</span><span class="x">Settings</span><span class="x">×</span></div>
+      <div class="stage">
+        <div class="fig">you</div>
+        <div class="talk">
+          <ul class="thread">
+            <li><span class="who">You · 30 s ago</span>What's left on the shop?</li>
+          </ul>
+          <div class="cast"><span class="ico">✕</span><div class="bar stop"><span>Interrupted · stopping…</span></div><span class="secs">30s</span></div>
+        </div>
+        <div class="fig">queen</div>
+      </div>
+      <div class="say"><div class="field">Ask the queen…</div><span class="b off">Send</span><span class="b stop off">Stop</span></div>
+    </div>
+    <figcaption><b>Stopping</b><span class="from">WoW "Interrupted"</span>
+      <ul>
+        <li>The bar turns pink and reads "Interrupted" until her runner says it's done. Stop greys out so it isn't pressed twice.</li>
+        <li><b>Built from:</b> the pink button art (<code>button-pink.png</code>) and the cross from <code>status.png</code>.</li>
+      </ul>
+    </figcaption>
+  </figure>
+  <figure>
+    <div class="card">
+      <div class="head"><span class="nm">THE QUEEN ♛</span><span class="st">Queen of the house · away</span><span class="x">Settings</span><span class="x">×</span></div>
+      <div class="stage">
+        <div class="fig">you</div>
+        <div class="talk">
+          <ul class="thread">
+            <li><span class="who">You · just now</span>What's left on the shop?</li>
+          </ul>
+          <div class="away">There's no one on the throne… She's asleep: start her runner. She'll answer when she wakes.</div>
+        </div>
+        <div class="fig">queen<br>asleep</div>
+      </div>
+      <div class="say"><div class="field">Ask the queen…</div><span class="b">Send</span></div>
+    </div>
+    <figcaption><b>Away</b><span class="from">Pokémon's "There's no one there"</span>
+      <ul>
+        <li>No strip and no timer, because nothing is running. One line says why and what to do. Your note is kept for her as today.</li>
+        <li>Send stays on; Stop is gone.</li>
+      </ul>
+    </figcaption>
+  </figure>
+</div>
+
+<h2>6 · On a phone</h2>
+<div class="phones">
+  <figure class="phone">
+    <div class="card">
+      <div class="head"><span class="nm">THE QUEEN ♛</span><span class="st">thinking</span><span class="x">×</span></div>
+      <div class="stage">
+        <div class="talk">
+          <ul class="thread">
+            <li><span class="who">You · just now</span>What's left on the shop?</li>
+          </ul>
+          <div class="work ac"><span class="tab">THE QUEEN</span><span class="dots"><i></i><i></i><i></i></span> Thinking <span class="secs">3s</span></div>
+        </div>
+        <div class="fig">you</div><div class="fig">queen</div>
+      </div>
+      <div class="say"><div class="field">Ask…</div><span class="b stop">Stop</span></div>
+    </div>
+    <figcaption><b>Phone · waking</b></figcaption>
+  </figure>
+  <figure class="phone">
+    <div class="card">
+      <div class="head"><span class="nm">THE QUEEN ♛</span><span class="st">answering</span><span class="x">×</span></div>
+      <div class="stage">
+        <div class="talk">
+          <ul class="thread">
+            <li><span class="who">You · 22 s ago</span>What's left on the shop?</li>
+          </ul>
+          <div class="cast"><span class="ico">🐾</span><div class="bar"><span>Reading Praline's notes</span></div><span class="secs">22s ›</span></div>
+        </div>
+        <div class="fig">you</div><div class="fig">queen</div>
+      </div>
+      <div class="say"><div class="field">Ask…</div><span class="b stop">Stop</span></div>
+    </div>
+    <figcaption><b>Phone · cast bar</b>: the bar takes the whole width and a long step name is cut short with "…".</figcaption>
+  </figure>
+</div>
+
+<section class="notes">
+  <h3>What makes this possible</h3>
+  <p>Today her runner sends only her words, so the café can't see what she's doing. With this change the runner tells the gateway each step as she takes it (the tool, and the cat it's about), and says "awake" the moment it starts. The page turns that into words with each cat's real name. In claude.ai, where nothing is pushed, the strip still shows "Thinking" and the seconds from your Send until her answer arrives.</p>
+  <p>With reduced motion the dots, the shimmer, the ▼ and her bob all hold still, and the seconds still count.</p>
+</section>
+</body>
+</html>

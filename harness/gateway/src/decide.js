@@ -101,3 +101,11 @@ export function verdict(a) {
 	if (typeof a.score === "number") return String(Math.round(a.score));
 	return null;
 }
+
+/** How sure an answer is: a choice's or a score's confidence, a noul's distance from a coin toss. */
+export function confidence(a) {
+	if (!a || typeof a !== "object") return 0;
+	if (typeof a.confidence === "number") return a.confidence;
+	if (typeof a.noul === "number") return Math.max(a.noul, 1 - a.noul);
+	return 0;
+}

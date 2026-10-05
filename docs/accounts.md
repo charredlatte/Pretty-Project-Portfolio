@@ -15,7 +15,7 @@ The gateway (`harness/gateway/`) already has every piece an account needs, each 
 | Agents' key | one `CATIO_TOKEN` secret, `props.user: "agent"` | a key per account, stored hashed; `resolveExternalToken` looks it up |
 | The queen's key | a registry key with the role `queen`, seeded from the `CATIO_QUEEN` secret for the first account (her runner, `harness/runner`) | any account mints one from its café (`POST /api/keys {role: "queen"}`); the runner routes (`/api/runner/*`) and `/mcp` read the role, and the runner acts in that key's house |
 
-The page needs nothing new: the `Catio` connector is OAuth per claude.ai user, so each person's page reads
+The page needs nothing new: the `CATIO` connector is OAuth per claude.ai user, so each person's page reads
 their own house. GitHub needs nothing either: `list_repos` is Claude Code Remote's, per claude.ai user.
 
 ## The stack: what's there, and nothing else
@@ -45,7 +45,8 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
    from today's secrets, with `house: "house"`, so her data stays where it is. Then `CATIO_PASSWORD` and
    `CATIO_TOKEN` are retired. Tests in `harness/gateway/test/gateway.test.mjs`: two users, two houses, a key
    that only reaches its own house. `report.py` is unchanged: `CATIO_TOKEN` becomes the account's own key.
-2. **Sign-up and keys.** A sign-up form on the sign-in page, invite-only at first (an `INVITE_CODE` secret);
+2. **Sign-up and keys.** A sign-up form on the sign-in page, invite-only at first (built 5 October: invites an
+   admin makes at `/invite`, single-use, a week each, rather than an `INVITE_CODE` secret; see "As built: sign-up");
    a `/keys` page after sign-in to mint an agent key, shown once. The onboarding's "How it works" step links
    there (`docs/onboarding/`).
 3. **Later: a hosted page per account.** The Worker serves `catio/index.html` and the `/api/*` the page
@@ -73,7 +74,7 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
   (`PUT /api/users/<id>`: browsers out, OAuth grants revoked, keys killed, the lock cleared). Never by a key: a
   key is in every session's environment, and a leaked one must not be able to become anyone's owner. A
   signed-in café mints, lists and drops keys (`/api/keys`, names unique per user). The handle `house` is kept.
-  Self sign-up, and a button for keys in the page, are phase 2.
+  Self sign-up is built (below); a button for keys in the page is still phase 2.
 - One handle's password tries run in turn, so five guesses in parallel lock like five in a row, and right
   sign-ins in flight together lock nobody. Known limit: all of them run in the one registry object; against a
   flood of made-up handles, a Cloudflare rate-limiting rule on `/login` and `/authorize` is the gateway's to add.
@@ -83,7 +84,11 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
   `file:<id>` from before accounts), so a delete needs no read. `src/houses.js` is what every part agrees on:
   the first house's name, whose a token is, where a house's files are; plain JavaScript, so
   `test/houses.test.mjs` checks the upgrade paths outside workerd.
-- On the wire the owner is still `charlotte` (the notes' `author`, "Charlotte only" in the tools): shared with
+- On the wire the owner is `owner` since 3 October (the notes' `author`, the tools' `who`, "the owner only" in the
+  tools' wording); `charlotte` is still taken on write as the old name and stored as `owner`, the gateway's house
+  and `catio_mcp.py`'s state rename old notes once, and the page reads both. **Order of shipping:** the gateway
+  first (the merge deploys it, and it takes both names), the artifact's republish after: a page that writes
+  `owner` to a gateway that doesn't take it yet is refused on every message. Before that it was `charlotte`: shared with
   the page and `catio_mcp.py`, so renaming it to `owner` everywhere is its own change.
 
 ## Sources
@@ -94,3 +99,24 @@ Each is under `harness/`, so each waits for Charlotte by the hold rule.
 - KV limits: https://developers.cloudflare.com/kv/platform/limits/
 - Web Crypto on Workers: https://developers.cloudflare.com/workers/runtime-apis/web-crypto/
 - The PBKDF2 cap of 100,000 rounds: https://community.cloudflare.com/t/configure-pbkdf2-iteration-cap/848334
+
+## As built: sign-up (5 October)
+
+Her ask: "My account is admin. Create self-registration."
+
+- An admin signed in to the café opens `/invite` (a server page of its own, so the café's page needs no button and no
+  republish) and makes an invite: a 64-hex code, shown once as a link `/signup?invite=<code>`, kept only as its hash
+  in the registry's `invites` table with who made it and when it lapses (a week). The same page counts the invites
+  still out and takes them all back.
+- `/signup` takes the invite, a handle, a password and the password again, makes the account (never an admin, a
+  house named after the handle) and signs that browser in. `Registry.signUp` spends the invite before the password is
+  hashed, so two sign-ups with one code at once let one in, and gives it back when the account can't be made.
+- Both forms are refused from another site's Origin; the café's cookie is `SameSite=Strict` besides.
+- For an AI setting it up for someone (her ask: "a link I can share with my partner so that his AI can mint his own
+  key"): `/signup` with an invite says what to do, and `POST /signup` as JSON `{invite, handle, password, name}` makes
+  the account the same way and answers with its first agents' key, once, instead of signing a browser in.
+- No open sign-up: every account is a house on her Worker. The licensed art is now served to the first house alone,
+  since the packs' licences are personal and an invite puts the café in a stranger's hands.
+- Tested in `harness/gateway/test/gateway.test.mjs` ("lets an admin invite someone, who makes their own account
+  with it, once").
+

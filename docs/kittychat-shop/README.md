@@ -11,11 +11,13 @@ the business plan's figures go once she has chosen them. The plan itself is priv
 
 1. **Home.** The headline speaks to someone who has never opened a terminal ("Your projects as a cat café. Every task
    is a cat; it meows when it needs you. No terminal required."): her ask of 3 October, to advertise to small business
-   owners using AI for the first time, with the café as a video-game way into a coding environment. Then a screenshot box, "Start free: self-host" and "Join the café: early
-   access", the three ways to get it (self-host, named as the developers' door since the headline promises no terminal; hosted;
+   owners using AI for the first time, with the café as a video-game way into a coding environment. Then "Start free: self-host" and "Join the café: early
+   access", a screenshot box, the two cars side by side (below, "The car"), the three ways to get it (self-host, named as the developers' door since the headline promises no terminal; hosted;
    set up for you from 90 €), and the legal footer every page
    carries (mentions légales, CGV, confidentialité, rétractation, contact).
-2. **Pricing.** Four columns from her paywall (2 and 3 October): Free (one repository, the page), Basic (up to five
+2. **Pricing.** Opens on the car: every plan is the whole car and Ninine drives, Claude is its engine, and the buyer
+   buys the fuel from Anthropic. Then four columns from her paywall (2 and 3 October), each with its place in the car under its
+   price: Free (one repository, the page), Basic (up to five
    repositories, requests and gateway calls capped at `[cap]` a month, no sorter, quiz or homework: files dropped on a
    cat arrive unsorted), Early access (unlimited repositories, uncapped, the brain's sorter, the litter box quiz, the
    queen's homework, new features until the app ships) and Support, which is not a tier but two buttons: "Buy me a coffee" (one-off coffees and small memberships, thanks
@@ -39,7 +41,39 @@ the business plan's figures go once she has chosen them. The plan itself is priv
 7. **Legal pages.** Four tiles: mentions légales (EI, SIREN, host), CGV (object, price, renewal, withdrawal,
    médiateur), politique de confidentialité (what the gateway stores, sub-processors, RGPD rights), and the model
    withdrawal form.
-8. **Home (phone)** and 9. **Pricing (phone)**, at 390 wide, with the tiers stacked.
+8. **Home (phone)** and 9. **Pricing (phone)**, at 390 wide, with the tiers stacked. The phone's home says the car
+   in one line ("Claude is the engine. The café is the rest of the car, and Ninine drives."), and each stacked tier keeps its line.
+10. **About.** The promotion's brief, as Charlotte set it on 4 October: the point of contact (her, as EI, with
+   the email, address and hours as placeholders and a Write button), the due date (when the early-access promotion
+   ends, with launched and last-updated dates), a short description of the promotion (the launch price held for as
+   long as the subscription stays open), the links in their original form (full addresses, never a shortener: the
+   hosted café, the repository, Buy Me a Coffee, Ulule and the shop), and the mentions légales on the page itself
+   (éditeur, directrice de la publication, hébergeurs, TVA, médiateur), pointing to the Legal page for the rest.
+   "About" joins the nav.
+
+## The car
+
+Her ask of 4 October, in two goes: "It's like driving a really nice car in perfect weather. Whereas driving regular
+code UIs requires knowledge a regular schmuck like me doesn't have." Then: "The car is the harness. The driver is
+Simone (AI runner) the queen cat. And the way you normally drive Claude is comparable to starting a totally stripped
+car. No seatbelts. No windshield. No tires." Then the queen's new name: "Rename her everywhere to Ninine."
+
+The home page sets the two side by side (`STORM` and `SUN` in `frames.js`): **Claude on its own**, a stripped car,
+and **Claude in the café**, the whole car with Ninine at the wheel. Which part is which piece of the harness is the
+table in `docs/onboarding/README.md`, "Decided 4 October 2026: the harness is a car"; the wizard fits them one step
+at a time. The shop adds only what a price needs:
+
+| The car | What it is in the shop |
+|---|---|
+| The engine | Claude, the same on every plan |
+| The fuel, bought at the pump | The buyer's Claude plan, paid to Anthropic: the café never resells it |
+| Mileage | Requests and gateway calls (`[cap]` a month on Basic) |
+| The sat-nav | The brain's sorter, the litter box quiz and the queen's homework: at a junction it asks you which way |
+| Driving lessons | Set up for you: the DIY course, and the afternoon with Charlotte |
+
+So the tiers read: **Free**, take it round the block (one repository); **Basic**, your own car with a mileage cap (no
+sat-nav); **Early access**, unlimited mileage and the sat-nav; **Support**, chip in for the next model (the app). The
+lines are `DRIVE` in `frames.js`.
 
 ## Redrawing
 
@@ -55,10 +89,10 @@ Mind the quota: a Starter plan with a View seat gets six MCP calls a month.
 - **The prices, and Basic's cap.** The business plan proposes them (`[basic]`, `[monthly]`, `[cap]`, `[setup-plus]`); the frames show
   placeholders until she picks. The polling calls (`list_agents`, `comments`) are never metered; which others count is
   the plan's list.
-- **The store's name and domain.** A separate store from Montfortoise (her choice, 2 October). Shopify's domain
-  check on "KittyChat Café" (2 October) offered no kittychat domain; it suggested purrchat.store, whiskerchat.com
-  and meowmingle.store, each available that day. An INPI search for "KittyChat" is still to do.
+- **The store's domain.** A separate store from Montfortoise (her choice, 2 October), named KittyChat Café, the
+  one name for the café and its engine (4 October, `docs/engine.md`). On 4 October Shopify's check found
+  kittychatcafe.com available. An INPI search for "KittyChat" comes before buying it.
 - **Monthly or yearly first.** Shopify Subscriptions handles both; the wireframe shows both selling plans.
-- **Ulule or Kickstarter** for the campaign, and whether the coffee page is Buy Me a Coffee or Ko-fi. The business plan
-  weighs them; the frame only links out.
+- ~~Ulule or Kickstarter, Buy Me a Coffee or Ko-fi~~: Ulule and Buy Me a Coffee (her pick, 4 October). The sign-up kit,
+  copy and rewards included, is `support-pages.md`.
 - **The invite code's shape** and whether the Thank-you page or the gateway mints it: phase 2 of `docs/accounts.md`.

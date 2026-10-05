@@ -4,7 +4,7 @@
 
 ## Republishing
 
-The page is **one** private artifact. Its URL is in `artifacts.json`. Always republish to that
+The page is **one** private artifact. Its URL is the `kittychat-cafe` entry in `artifacts.json`. Always republish to that
 URL (`Artifact` publish with `url`, after reading it back), never a new one: the database with
 her rooms, renames and adopted chats belongs to that artifact.
 
@@ -17,21 +17,22 @@ Publish `catio/index.html` with:
   `button-pink`, `field`, `arrow`, `frame`, `divider`, `bubble`, `corners`,
   `toggle`, `status`, `faces`, `crown`, `stars`, `cursor`, `cursor-point`, `pointer`, `logo`, `pastel` `.png`,
   and `sprout.ttf`), and the map panel in `art/licensed/pastel/` (`panel`, `panel-dark`, `frame`, `button`,
-  `button-hover`, `button-down`, `icons` `.png`);
-- `capabilities`: omit it on a republish to keep what's stored: Claude Code Remote's nine tools and the
-  gateway's five (below), `db`, `assets` and `sample`. Pass it only to add a tool on purpose, and then pass the whole set
-  (the first republish after PR #31 must, to add `list_repos`: until it has, the wizard's GitHub step says the page
-  isn't allowed to ask).
+  `button-hover`, `button-down`, `icons` `.png`); and, once she has pieces of her own in `art/skin/`,
+  `art/skin.json` and each file it lists (below, "Plug-and-play design");
+- `capabilities`: omit it on a republish to keep what's stored. Pass it, as the whole set in "The stored capabilities"
+  below, to add a tool on purpose or when that section says a tool joined since the last publish (the first republish
+  after PR #31 must, to add `list_repos`: until it has, the wizard's GitHub step says the page isn't allowed to ask).
 
 `catio/data/` is **not** published: it is for the localhost copy (below).
 
 `art/licensed/` is not in git (licences below). In a fresh session, get it back one of two ways:
 
 1. `Artifact` read with `path: "art/licensed/<file>"` on the published URL, for each file; or
-2. get the ten zips from her Drive folder "KittyChat Cafe Assets" (or ask her for them) and run
-   `python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip "Top down garden castle.zip" "Wood Garden Asset Pack.zip" "Pixel Art Top Down - Basic v1.2.3.zip" "Sprout Lands - UI Pack - Basic pack.zip" plants.zip "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip" Game_UI_Pack_Pastel.zip`
-   (needs `pip install pillow fonttools`; the order matters, not the names). Given only the Sprout Lands zip, it rebuilds just the
-   interface.
+2. get the ten zips from her Drive folder "KittyChat Cafe Assets" (or ask her for them), put them in one
+   folder and run `python3 catio/tools/build-art.py <that folder>` (needs `pip install pillow fonttools`).
+   Neither their names nor their order matters: each zip is recognised by a file only that pack has
+   (`SIGNATURE` in `build-art.py`), and it prints what it took for what before it draws anything — read
+   those lines once. Given only the Sprout Lands zip, it rebuilds just the interface.
 
 ## Licences: what may be committed
 
@@ -118,20 +119,31 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
 - **Controls**: two things sit on screen, and nothing else should:
   - the brand (`#houseBtn`, top left: ToffeeCraft's cat-face bubble, the name and a badge when cats need
     her), which is the House button: its menu holds what belongs to the whole house (whether the cats are
-    live, the brain, house rules, Edit rooms, the attic, Check now and sound);
+    live, the brain, house rules, Project maps, Edit rooms, the attic, Check now and sound). **Project maps**
+    (`openMaps()`, her ask of 3 October: "a customizable dashboard built on Graphify", the graphify of her house
+    rules) shows every `graphs/<repo>` map as a card, pinned first, then in her order, then the newest; she pins,
+    moves, widens and hides each, and `dashboard/maps` keeps it;
   - the map panel (`#controls`, top right; bottom right on a phone), in Game UI Pastel, drawn smooth:
     zoom out, zoom in, whole house and the fold (`#mapFold`, or M, remembered in `localStorage` as
-    `catio.minimap`, folded at first on a phone); the minimap (`#minimap`: the floor's rooms as a plan
+    `catio.minimap`, folded at first on a phone). Folding minimises the whole panel, not just the plan (her ask, 5
+    October: "allow the mini-map to be minimizable"): the fold button alone stays, in the panel's corner, drawn as a
+    folded map, with a pip for every cat that needs her out of view (off screen, or on the other floor); open, it is
+    an arrow into that corner, never an up or down arrow beside the floor tabs. On a phone the buttons sit at the
+    panel's foot, so the fold keeps the bottom right corner. Then the minimap (`#minimap`: the floor's rooms as a plan
     over `MM.box`, the manor and catio, the other floor faint, a pip where a cat needs her, the camera's
     view framed; click goes there, drag pans, double-click looks in, the wheel zooms); and the floor
-    tabs, with a pip when the other floor needs her. Menus open clear of it (`showMenu`). The plan for
+    tabs, with a pip when the other floor needs her. Menus open clear of it (`showMenu`), by whichever of left, below or above moves them least. The plan for
     the rest (the Sims-style camera and Build) is `docs/camera-and-minimap.md`.
 - **The status sign** under the brand shows only when something is wrong. When Claude's saved copy fills
   in for a blocked live read, it is one line ("Saved copy · 17:02") and the why shows on hover or focus.
 - **Room controls**: a control for one room or cat goes in its menu.
 - **The camera is free**: drag to pan (left, right or middle button, or Space), wheel or pinch to zoom,
   + / − / 0 and Shift+arrows. `S.focus` is the room that fills the view.
-- **Hover names a thing** in a line (`#tip`). **A click opens its menu** beside it, pinned until a click
+- **Hover names a thing** in a line (`#tip`), and outlines it if it is a sprite (her ask, 4 October: "it outlines
+  the object boundaries of the 2D asset"): a cat, the queen, a pile, a filing cabinet or the litter box gets one art
+  pixel of the pack's white traced around its own shape (`outline()`, `.hot`; a `drop-shadow` filter, not a box),
+  and a cat, the queen or a pile keeps it while its menu is open (`.lit`) or it has keyboard focus. A room, and a
+  cabinet with keyboard focus, keep their brackets. **A click opens its menu** beside it, pinned until a click
   elsewhere or Escape (`toggleMenu`); a tap does the same. Keyboard focus opens a menu only when
   `:focus-visible`, and a click never closes a menu keyboard focus opened.
 - **Every menu has the same shape, as short as it can be** ("make the menus less bloated and minimize
@@ -149,7 +161,12 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
 - **Cats walk** when their place changes: through the doorways to a new room, up the stair to nap in the
   attic (to the landing's ladder when they're upstairs), down it when they come back, and in by the front
   door when they're new. A journey that changes floor starts at the stair on the floor they're going to.
-  Working cats wander a little. A cat's element must be in the page before `walk()` starts. With reduced
+  Working cats wander a little. A cat's element must be in the page before `walk()` starts.
+- **The line at the front door** (her ask, 3 October): every cat waiting on her (mood `needs`, the meowing ones)
+  lines up in front of the entrance-hall door, beside the queen, the longest wait first (`LINE`, `placeLine()`,
+  `WAITING` keeps when the page first saw it wait), upstairs ones included; one that stops waiting walks back to its
+  room. Its room is still its own (menus, cabinets, Manage); the floor badges and the minimap count it where it
+  stands. Upset and to-review cats stay in their rooms. With reduced
   motion, and for four seconds after the page opens, cats are simply in their places.
 - **Onboarding** (`openSetup()`, `#setupDlg`): a café whose database has no `rooms/*` at all opens the wizard
   on its first snapshot that isn't from cache (Charlotte's has rooms, so she never sees it; the localhost copy
@@ -168,7 +185,7 @@ The interface is Cup Nooble's Sprout Lands UI pack, cut by `build-art.py` into
 `art/licensed/ui/`. Menus, dialogs, the sign and the screen's frame are its tan panel; buttons are
 its cream square button (white on hover, pressed in when held; `green` and `pink` are recoloured
 copies); inputs are its grey pressed-in button; a cat's ask and the replies in its thread are its grey bubble;
-a filing cabinet's project sits in its pressed cream well; rooms and cabinets light up with its
+a filing cabinet's project sits in its pressed cream well; rooms light up with its
 white selection brackets (on a room they stay one size on screen at any zoom), and so does the
 chosen room on the Edit rooms plan, which sits in its picture frame with its arrow, on its white
 button, pointing into the room new cats come in to. Each is a 9-slice `border-image`. The mood faces are its cat emoji
@@ -187,13 +204,99 @@ what works the camera and what builds the house: the map panel and minimap, its 
 house, floors, fold), and Build's tools (the Live / Build switch, the catalogue bar, a filing cabinet's
 "Looks like…" panel, undo and redo). Everything that talks about cats and rooms stays Sprout Lands. Draw each
 panel from one pack, never both. The Pastel art is smooth, not pixel art: scale it down with ordinary
-smoothing, never `pixelated`. See `docs/camera-and-minimap.md`.
+smoothing, never `pixelated` (a map piece she draws as pixel art of her own is the one exception: "Plug-and-play design"). See `docs/camera-and-minimap.md`.
 
-Titles, labels, buttons and names use the pack's pixel font (`--pixel`, `sprout.ttf`) at **18px**,
+Titles, labels, buttons and names use the pack's pixel font (`--pixel`, `sprout.ttf`) at **18px** (`--px-size`),
 where one font pixel is one screen pixel (36px for a cat's name on its card); anything else blurs.
 It has capitals only (small letters draw as capitals), so body text stays in Nunito.
 `build-art.py` adds the accents French names need (à â ä ç é è ê ë î ï ô ö ù û ü ÿ, a middle
 dot, an ellipsis, curly quotes); other symbols fall back to Fredoka.
+
+## Plug-and-play design
+
+Her asks of 3 and 4 October: "Allow all assets to be plug-n-plays", then "Make sure the entire design system is
+plug-n-play". The design system is **tokens and slots**, and a skin can change any of them with no code change.
+
+**Every colour, font and size is a token** in `:root` (`TOKENS` in the page names them for The look): `--ink`,
+`--tan`, `--well`, `--go`, `--grass`, the map panel's and the minimap's colours, a project map's `--hue-1`…`--hue-8`,
+the owner's chair and bow, `--px-size` and `--px-line` (the pixel font, one font pixel a screen pixel: titles are
+twice it), `--body-size`, and the art pixel `--u-desk` and `--u-phone` (`--u` is one of them). A see-through colour
+is mixed from its token (`color-mix(in srgb, var(--glow) 14%, transparent)`), and the script reads a colour it draws
+with `tok()`. Keep it that way: **a new colour, pixel-font size or art-pixel size is a new token**, never a literal in a
+rule or a `"#…"` in the script (only `OWNER`'s choices, which are her look, not the café's). A check walks the page for
+one. The text's smaller sizes stay `rem` steps from the browser's own size, as they always were.
+
+**Every piece of art is a slot** (`ART` in the page, 46 of them, named as `docs/drawing-plan.md` names her files:
+`panel`, `button`, `cat-meow`, `house`, `owner`, `font`, `font-body`…).
+The CSS and the code name the slot, never the file: a 9-slice is `var(--art-panel) var(--panel-s) fill /
+var(--panel-w)`, a sheet `var(--art-faces)`, the house `<img data-art="house">`, the furniture
+`srcOf(ATLAS[…])`. So any piece swaps for her own drawing, or another pack's, with no code change. Keep it that way:
+**a new piece of art is a new slot** (a line in `ART`, a `--art-<slot>` default in `:root`), never a `url(art/…)` in a
+rule. A check walks the page for one.
+
+A skin says which are hers, from two places; the second wins:
+
+- **`art/skin.json`** beside the page: `{ "panel": { "file": "art/skin/panel.png", "slice": [8, 8, 8, 8] }, …,
+  "tokens": { "--ink": "#1D3557", "--px-size": "16px" } }`. `python3 catio/tools/skin.py` writes the slots from
+  whatever is in `catio/art/skin/` (each file named after its slot), keeps the tokens, and says what each file fills
+  or why it can't. Her own drawings may be committed there; **never put a pack's file in `art/skin/`**. The bundle
+  carries it; a publish needs `art/skin.json` and its files in `files`. The café on the gateway's address doesn't
+  get it yet: `cafe/move-in.py` uploads only the packs' art, and teaching it is a change under `harness/`, so hers
+  to approve. The look works there all the same.
+- **The look** in the House menu (`openArt()`): her colours, type and sizes, then every slot, what it is and the size
+  to draw it at. A colour has its picker, a size its field, kept in `skin/theme` when she lets go; Replace… checks
+  her file, asks a 9-slice drawn at another size for its border and a cat for its frames, keeps it with `assets`
+  and writes `skin/<slot>`; Put back deletes either. It works in claude.ai, on the gateway and on localhost (there the
+  file stays in the browser).
+
+A token is checked as a slot is (`tokenOk()`): a colour is six hex digits, a size a length in px or rem inside its
+range (`SIZES`: the art pixel 1 to 4 px, the pixel font 8 to 48, its line 8 to 64, the text 10 to 24, a rem as 16;
+`WHOLE_PX`: the art pixel and the pixel font in whole px, or the pixel art blurs), and a 9-slice's border is at most 64
+of its pixels a side (256 for a smooth map piece, drawn big and shown smaller), so no skin can bury The look under its
+own borders, and a name that isn't in `TOKENS` is ignored.
+
+**Modes and tokens files, as Figma has them** (her ask of 4 October, "reevaluate plug-n-play capabilities of design
+systems like Figma"; read against Figma's variables, its `figma-generate-library` skill and the W3C Design Tokens
+Format 2025.10). Figma keeps a variable's value per **mode** and moves a whole palette as a **design tokens file**
+(`.tokens.json`, the W3C format it imports and exports natively). The café does both:
+
+- **Two modes**, `light` and `dark` (`MODES`): `skin/theme` is `{tokens, dark, at}` and `art/skin.json` has `tokens` and
+  `dark`. Dark says only what differs; the rest stays as in light. The look edits the mode its Light / Dark switch is
+  on. The whole skin is one stylesheet, `#skinCss`, after the page's own (light on `:root`, dark where the page's dark
+  mode is), never inline styles, so dark mode still wins in the dark.
+- **Export tokens** writes the mode The look's switch is on as `kittychat-<mode>.tokens.json` (`toDTCG()`): a group per section of
+  The look (`colours`, `type`, `map-colours`), `$type` on the group, each colour as `{colorSpace: "srgb", components,
+  hex}`, each size as `{value, unit}`, The look's words as `$description`. Through the `downloads` capability when
+  the artifact has it, else the browser's own download. Figma imports dimensions in px only, so `body-size` (rem)
+  doesn't reach it.
+- **Import tokens…** (`fromDTCG()`) reads any such file into the mode The look's switch is on: Figma's export, another café's, or
+  one written by hand. A token is matched by its own name (`ink`, `go`, `px-size`…, or Figma's `Ink`, `Px size`) whatever group it sits in, an
+  alias (`"{primitives.navy}"`) is followed, a colour may be the object or a hex string, and what isn't the café's is
+  counted and left out. A name found twice takes the one in the café's own group (`colours.grass` over
+  `primitives.grass`); a see-through colour or a size out of its range is refused and counted apart. The harness's
+  `tokens` and `set_tokens` tools do both without her (below, "The gateway"). `skin.py` does the same for `*.tokens.json` dropped in `art/skin/` ("dark" in the name: the
+  dark mode).
+
+Not taken from Figma, on purpose: a primitives layer under the semantic tokens (Figma's skill keeps one collection
+for under 50 to 60 tokens, and the café has 57), scopes and code syntax (Figma's own metadata; a token's name here is
+already its CSS variable), and more modes than light and dark (none asked for).
+
+What a slot takes, checked before it is drawn (`misfit()`): **exact** (the house, upstairs, the grounds, both
+furniture sheets, the two cursors) only its own size, because the rooms are measured on it; a **sheet** (faces,
+icons, meadow, logo…) any size of the same shape; a **slice** any size, with its border in its own pixels (a
+family shares its head's: the button's hover, green and pink take the button's, so each is drawn the head's size, and
+while she hasn't drawn one, her head stands in for it (`SKIN.standIn`), so a hover never turns back into the pack's;
+a map piece can be drawn as pixel art, `pixel: true`, its family alone then `pixelated`, or smooth at a `scale`
+(as pixel art its border shows at the art pixel, at most twice the pack's on screen, and the family follows its head:
+a member called pixel art beside a smooth head is refused, `pixelLoud()` and `misfit()`);
+what sits inside a frame follows its border: the HUD and the map panel inside the screen's panel, the portrait inside
+its frame, a plan's tag and door inside its brackets); a **cat** one row of frames, any frame size, its feet at the bottom
+middle unless `anchor` says, its loop in `secs` (the generated rules go in `#skinCss`, and `SPR` takes its frame
+size; `--fs` scales it to fill the pack's place in a portrait, a thumb or the queen's scene); a paw (`cursor`,
+`cursor-point`) says where its tip is, `hot: [x, y]` (`--cursor-hot`); `cat-walk-side` is a new slot, empty until she draws a walk: then every walking cat uses it, drawn facing
+right and mirrored going left; `owner` is her own picture of herself in the queen's scene (30 × 40 or that shape),
+drawn in code from her look until she gives one; `font-body` and `font-display` go ahead of Nunito and Fredoka. A
+piece that doesn't fit isn't used, and The look says why.
 
 ## Data
 
@@ -201,14 +304,16 @@ The artifact database, written by the page and seeded with `ArtifactData`:
 
 | Collection | Document | Holds |
 |---|---|---|
-| `house` | `main` | `name`: the café's own name on the brand and the title (none: "KittyChat Café"), `onboarded`: when the wizard last opened the doors |
+| `house` | `main` | `name`: the café's own name on the brand and the title (none: "KittyChat Café"), `onboarded`: when the wizard last opened the doors, `owner`: how she looks in the queen's scene `{hair, hairColor, top, skin, extra}` |
 | `rooms` | one per room key (`garden` (the catio), `kitchen`, `dining`, `living`, `sunroom`, `study`, `bedroom`, `bath`, `hall`, `brain`) | `name`, `blurb`, `repos[]` (repo names or `owner/repo`), `catchAll`, `model`, `closed` (no key: open) |
 | `sessions` | the Claude Code session id | `name`, `room`: her rename or move of one session's cat |
 | `cats` | generated id | an adopted chat: `title`, `link`, `project`, `room`, `mood` (`needs` / `busy` / `done`), `note`, `name` |
 | `projects` | the project's slug (repo name, or an adopted chat's project) | `name`, `coat`: the look every cat of that project shares, set from a filing cabinet |
 | `graphs` | the repo's slug | its project map from graphify, saved by the catio skill's `graph_doc.py`: counts, the map, hubs, groups, surprises and questions a cat can be asked; shown in the filing cabinet |
+| `skin` | `theme`, and one per art slot (`panel`, `cat-meow`, `house`…) | `theme`: `{tokens: {"--ink": "#…", …}, dark: {…}, at}`, her colours and sizes in light, and what differs in dark (keep both keys when you write it: a missing `dark` loses her night colours). A slot's: her own piece for it: `src` (`/_blob/<asset>`, a gateway `/files/` path or `local:` in a browser), `asset`, `name`, `w`, `h`, and what it needs: `slice` [t, r, b, l], `frames`, `secs`, `pixel` or `scale`. No document: the pack's piece |
+| `dashboard` | `maps` | how she set the Project maps page: `order[]`, `pinned[]`, `hidden[]`, `wide[]` (graph slugs) |
 | `queens` | `house` | the queen of the house: `name`, `coat`, `manner` (how she speaks; the runner reads it each turn), `greeting`, `voice: {on, name, rate, pitch, lang}`, `readAt` (when Charlotte last opened her card: older handoffs are read), `notes[]` of `{text, pinned, at}`. A pinned note is one she says out loud. Older `queens/<room>` documents are hers until her first save |
-| `routines` | generated id | one of her routines: `name`, `time` ("HH:MM"), `days` (0–6, Sunday 0), `tz`, `prompt`, `on`, `last` (when the gateway last handed it to her runner). Only the gateway's copy runs: the runner reads the House, not the artifact |
+| `routines` | generated id | one of her routines: `name`, `time` ("HH:MM"), `days` (0–6, Sunday 0), `tz`, `prompt`, `on`, `last` (the firing the gateway last handed to her runner), `handed` (when), `finished` (the firing her runner answered), `retried` (a lost firing handed out once more). Only the gateway's copy runs: the runner reads the House, not the artifact |
 | `layouts` | the room key | *(planned: Build mode, `docs/camera-and-minimap.md`)* the room's furniture, and `cabinet: {look, x, y}`: the piece its filing cabinet looks like (her choice per room) and where it stands. The cabinet never leaves its room and keeps its Files and review spot whatever it looks like. No document: `MANOR.layout` and the default look |
 | `snapshot` | `sessions` | `{at, savedBy, sessions[]}`: Claude's saved copy of `list_sessions`, shown when the live read is blocked. Written only by Claude, with `ArtifactData` |
 
@@ -228,13 +333,37 @@ that inflates "3 need you" makes the sign a liar.
   Claude Code turn per thing she says or routine due, and streams the answer back. `queenState()` reads the agent
   record `queen`: away (no runner for two minutes: asleep, "start her runner"), busy (answering) or here.
 - **Her conversation** is the gateway's notes for the cat `queen`: Charlotte's lines (`comment`, author
-  `charlotte`) and hers (author `queen`, which only the runner's key may write). In the gateway café a `{type:
+  `owner`) and hers (author `queen`, which only the runner's key may write). In the gateway café a `{type:
   "queen"}` push (`catio:queen`) grows her live bubble as she speaks and her voice says each sentence; in claude.ai
   her card polls `comments` every 5 s. Stop is `manage {cat: "queen", action: "pause"}`.
-- **Her card** (`openQueen(section)`): her greeting until she has spoken, the thread (her replies, what the cats
-  brought her, Charlotte's lines), Speak (`webkitSpeechRecognition`, Chrome and Edge), Send, Stop while busy, and
-  her voice switch; then, folded, What she keeps, Her character (name, coat, greeting, how she speaks, the
-  browser's voice, rate, pitch, what she listens for) and Routines. `speak()` is the browser's `speechSynthesis`
+- **Her turn as it goes** (her ask, 4 October: a loading state like Claude's own, from the games of the early 2000s she
+  picked in `docs/queen-loading/wireframes.html`): `#queenWork`, under the talk on her side. From your Send until her
+  runner's first word it is Animal Crossing's pause (her name on a tab, the dots, the seconds); then The Sims' action
+  queue (each step done a ticked tile, the one she is on lit, unfolding to every step and its time; the runner sends
+  `steps`, the page names them with `stepWords()`); a wait over 45 s gets a loading tip; Stop turns the lit tile pink.
+  Her live bubble ends in the pack's triangle turned down, and she bobs only once she has words. Away, with your words
+  waiting, it is one line saying why. In claude.ai, with no push, it is "Thinking" until her answer turns up.
+- **Her card is a scene** (`openQueen(section)`, her ask of 3 October, like an RPG's dialogue): the owner of the house
+  on the left, seen from behind in her armchair (`ownerSVG()`, pixel art drawn in code since no pack has people,
+  dressed from `house/main.owner`: hair, hair colour, top, skin and a bow, cat ears or a flower); the queen on the
+  right, facing her, her sprite animated and `talking` while she answers; between them the thread as bubbles, hers
+  by her and Charlotte's by Charlotte, scrolling, with her homework above it; under it Speak, Send and Stop. Behind
+  them the hall's own floor from `house.png`, in the pack's picture frame. **The words come first**
+  ("make this window useable", 3 October): the two of them are drawn small enough to leave the thread most of the
+  scene's width (`zoom` on `.owner` and `.qchar`, in steps, each with a crown scale that lands on whole art pixels),
+  the scene's own columns are `auto`, so the two of them take only what they are drawn at, and on a phone they
+  stand side by side along the foot of the scene with the thread across the whole of it. The column the thread and
+  her homework sit in is stated, never left to the content, and every button in them wraps: an `auto` column there
+  grows to the longest word in a bubble or a quiz, and then her words scroll off the side. The card fills the
+  window (the height is on `dialog.scene`, which already states the cap and draws the panel) and the scene takes
+  what the head and the saybar leave, down to a floor on its row: under that the card is taller than the window
+  and the dialog scrolls, which is reachable, where a scene given a `min-height` of its own would simply be drawn
+  over the saybar. Every row inside the scene can shrink, because the scene clips what it cannot hold and a
+  clipped bubble can't be scrolled to; her homework and the talk each keep a share of what is left, so neither
+  can squeeze the other out, and whichever is too tall for its share scrolls.
+  **Every setting is in an overlay**
+  (`#queenSettings`, Settings in the card's head, "Back to her" to leave): her voice switch and voice, What she keeps,
+  Her character, Routines, and You. On the map she is as before: hovering names her, a click opens her menu. `speak()` is the browser's `speechSynthesis`
   (an en-GB voice unless she picks one): one function, so a paid voice could be a second branch.
 - **Handoffs.** A cat's `said` (its latest note by its session or agent, from `list_agents`) newer than
   `queens/house.readAt` is something it brought her: `refreshAgents()` diffs `said.at` and a copy of the cat walks to
@@ -247,6 +376,20 @@ that inflates "3 need you" makes the sign a liar.
   in → `answer`), and her hover says "Homework: N to hand in" (mood `box`). Handing in posts the answers to the
   cat as Charlotte's words (its hook hands them in, `Homework handed in: …`) and to the queen's conversation, so
   she can see to the rest. Only Charlotte hands in; the agents' key sets nothing.
+- **Her quest log** (3 October: "where do I take the litter box quiz in the cafe UI?", then her pick: the queen's
+  quest log, the cards kept in the gateway). Everything waiting on Charlotte is homework, one `quizzes/<id>` each,
+  with a `kind`: `unblock` (above), `litterbox` (one sifted note: which project is it for, or *Settled: drop it*) or
+  `decision` (one decision waiting on her, Claude's recommendation in `hint`). A card carries its `note` (markdown),
+  `from` and `hint`, and a `ref` deals it once (its id is `<kind>-<ref>`; dealt again it is replaced while open, and
+  her answer stands once given). Her card shows the unblock quizzes first, then a deck per kind, a card at a time
+  (`DECKS`, `DECKAT`): a tap on an option hands it in, Skip puts the next on top. A card's answer is only kept, never
+  told to the queen (each line Charlotte says to her is a turn of her runner). Her hover counts each kind
+  ("Homework: 2 notes to sort, 1 decision"); the House menu leads with Homework when anything waits; the library's
+  chest is the litter box (`.cabinet.litter`, no sign): hovering says what waits, a click opens her card at its
+  notes, or the brain's tray when there are none. Dealing and filing: `litterbox/README.md` and
+  `catio-plugin/skills/litterbox-quiz/`; `forget` clears filed and stale cards, never an open unblock quiz. A
+  litterbox or decision card is one question with 2 to 12 options (the gateway refuses others: the café couldn't answer them). `litterbox/quiz.html` stays for a café with no
+  gateway; her two quiz pages are retired.
 - **What she keeps** is hers alone; a note she is *saying* (`pinned`) becomes her line in her menu and hover.
   The room queens of before (`queens/<room>`) are read as hers until her first save, which writes `queens/house`
   and deletes them.
@@ -291,9 +434,11 @@ The page now **writes** through Claude Code Remote, always on an explicit action
   page says it is waiting; the session's own catch-up (catio skill) finds them. Never bind a Routine
   (`create_trigger` with `persistent_session_id`, then `fire_trigger`): it starts a stray new session instead
   (tried 30 September).
-- **Talking**: `notes/<id>` `{cat, text, author: charlotte|session|agent, at, via}`; replies show live.
-- **Managing**: `set_session_title`, `interrupt_session`, `archive_session` (+ `delete_trigger`),
-  `unarchive_session`, `create_session` (New cat, model from `rooms/<k>.model`).
+- **Talking**: `notes/<id>` `{cat, text, author: owner|session|agent, at, via}` (`charlotte` in notes from before
+  accounts: the page reads both, writes `owner`); replies show live.
+- **Managing**: `set_session_title` (a cat's new name retitles its session too, her call on 3 October),
+  `interrupt_session`, `archive_session` (+ `delete_trigger`), `unarchive_session`, `create_session` (New cat, model
+  from `rooms/<k>.model`).
 - **Agents, and the sessions that report**: the gateway through her `CATIO` connector (`GATEWAY` in the page),
   else `host:catio` (on localhost, `/api/*` when served by `catio_mcp.py --serve`): `list_agents` every 30 s,
   `comments`, `comment`, `drop_file`, `manage`. A session that reports to the gateway is one cat with its
@@ -303,10 +448,14 @@ The page now **writes** through Claude Code Remote, always on an explicit action
 - `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet.
 
 The stored capabilities (the full set, to pass whole if a tool is ever added):
-`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","list_repos","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "CATIO", tools: ["list_agents","comment","comments","drop_file","manage","decide"] }] }, db: {}, assets: {}, sample: {} }`
+`{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","list_repos","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "CATIO", tools: ["list_agents","comment","comments","drop_file","manage","decide","quizzes","answer"] }] }, db: {}, assets: {}, sample: {}, downloads: true }`
+
+`downloads` joined it on 4 October (The look's Export tokens): until a republish passes the whole set, Export falls
+back to the browser's own download, which claude.ai's frame may not allow.
 
 `decide` joined the set on 3 October (the decider, below): the first republish after it must pass the whole set, or in claude.ai the
-page cannot ask the decider and the brain simply keeps sorting the old way.
+page cannot ask the decider and the brain simply keeps sorting the old way. `quizzes` and `answer` joined it the same evening (her
+quest log): until a republish passes the whole set, the claude.ai café shows no homework; the café on the gateway's address does.
 
 `host:catio` (the same five tools) can only be declared from the Claude desktop app, so it isn't in the stored
 set. `delete_trigger` stays only to clean up the Routines older versions bound. Posting into a session through a bound Routine doesn't reach the session
@@ -324,24 +473,36 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
   `CATIO_PASSWORD` (her sign-in, nowhere else) and `CATIO_QUEEN` (the queen's runner, on her PC). Never in the
   repo, the chat or a test. With accounts (`src/registry.js`), the first two make the first account once; the
   queen's is a registry key with the role `queen`, kept in step with the secret at every start.
-- **Only she speaks as herself, and only her runner as the queen.** OAuth (her password, through the `Catio`
-  connector in claude.ai) may write as `charlotte`, drop files and manage; the queen's key writes as `queen`,
+- **Only she speaks as herself, and only her runner as the queen.** OAuth (her password, through the `CATIO`
+  connector in claude.ai) may write as `owner`, drop files and manage; the queen's key writes as `queen`,
   tells cats and manages them for her; the agents' key may do neither. Keep it that way: it is what stops a
   leaked key from putting instructions in her mouth, or in her assistant's, which the cats act on.
 - **The queen's routes:** `POST /api/runner/wait` (held up to 25 s: her notes, a routine due, a stop, her
-  character) and `POST /api/runner/say` (a turn as it streams; `done` stores her note), the queen's key only.
+  character, and `homework`, the open quizzes counted by kind) and `POST /api/runner/say` (a turn as it streams;
+  `done` stores her note), the queen's key only. When a kind of homework grows, the runner says the lot on
+  Charlotte's own desktop with whatever the computer has (`notify-send`, `osascript`, a PowerShell balloon;
+  `CATIO_NOTIFY` replaces it, empty turns it off): the quest log stays in the café, this only says it has
+  something new. The words are the runner's own, built from counts, never a document's text.
   Routines are `routines/<id>` documents; the House's alarm wakes a waiting runner when one comes due, and a
-  missed one runs once when the runner is back. `list_agents` gives each cat its `said`; `inbox` hands a cat
+  missed one runs once when the runner is back, and one her runner never finished goes out once more after ten minutes. `list_agents` gives each cat its `said`; `inbox` hands a cat
   what Charlotte and the queen say (`[Catio] The queen says: …` in the hook).
 - **Only Claude's connectors may register** (redirects to `claude.ai` or `claude.com`).
 - **Keep its tools in step with `catio_mcp.py`**: same names, arguments and results, so the page and agents
   use either.
+- **Her look as a design tokens file** (`tokens`, `set_tokens`, `src/tokens.js`; `harness/README.md`, "The café's
+  look as a design tokens file"): The look's Export and Import tokens as tools, for a session with the Figma
+  connector. Only she and the queen write it. The token table is read from the page the gateway bundles, never
+  copied; `harness/test/fixtures/tokens-figma.json` holds the page, `skin.py`, the gateway and `catio_mcp.py` to one
+  answer.
 - **The decider** (`src/decide.js`, the tool `decide`): a typed decision from a System One model, a state and named
   questions (`noul` yes/no, `choice`, `score`) answered with probabilities, no prose. Workers AI through the Worker's
   `AI` binding, Clef (`@cf/cloudflare/clef-flash`, free plan) by default or `DECIDE_MODEL` (`typesafe/jev` is Jev
   itself, paid from AI Gateway credits); or `DECIDE_URL`, any System One server such as `laya-serve`. `preset: easy`
   is the easy-task rubric of `docs/delegation.md`. With `kind`, the decision is logged as `decisions/<id>` beside
-  `old`, what the old path chose, and `agree`. The page asks it where a dropped file goes (`decideSort`):
+  `old`, what the old path chose, and `agree`; with `floor`, a pick less sure than it is `sure: false` and
+  `agree: null` (the decider didn't decide), and `ref` names what was decided (the page's `brain/<id>`, so a pick can
+  be checked against where she sent the file). No `old` when the sorter didn't answer. The page asks it where a
+  dropped file goes (`decideSort`):
   `house/main.decide` unset or `"observe"` logs beside the sorter's pick and changes nothing; `"on"` lets it sort
   first above `DECIDE_FLOOR`. Switch it on only after a week of the log agrees. The plan is `docs/delegation.md`.
 - **Test** with `cd harness/gateway && npm install && npm test` (workerd, the real hook included) and
@@ -381,9 +542,11 @@ into `catio/data/digest.md` and `digest.json`: per project, what needs her, what
 (stale asks, empty reviews, untitled sessions, reruns, duplicates, misfiled repos). Both are gitignored: never
 commit them.
 
-A Routine, "Refresh the catio", does this every two hours from 07:59 to 19:59 Paris time. It fires
-into the Claude Code session it was created from, not a fresh one: a fresh routine session has
-neither `list_sessions` nor `ArtifactData`, so it can't refresh anything (tried September 2026).
+A Routine, "Refresh the catio", did this every two hours from 07:59 to 19:59 Paris time until she paused it
+on 30 September 2026; it is still off, so the copy is refreshed by hand when she asks. Turning it back on is her
+call. It fires into the Claude Code session it was created from, not a fresh one: a fresh routine session has
+neither `list_sessions` nor `ArtifactData`, so it can't refresh anything (tried September 2026). What each
+refusal means and the whole fallback: `docs/live-sessions.md`.
 
 ## Running on localhost
 
@@ -402,6 +565,28 @@ are the saved copy.
 - `catio/data/sessions.json` and `catio/dist/` are gitignored. Her session titles and the
   licensed art are in them: **never commit either**.
 
+## The app draft
+
+`catio-app/` is the café as a native C++ app for a phone (`docs/mobile-app.md`, which says exactly where it
+stands). Its core is built -- the plan, the house, the art, drawing and the view -- and it draws the manor; the
+window loop, the interface and the network are not. Nothing has run on a phone, and `android/` and `ios/` have
+never been configured.
+
+- **Build:** the default, `cmake -S catio-app -B build && cmake --build build`, is the header check and needs
+  nothing installed. `-DCATIO_HEADERS_ONLY=OFF -DCATIO_HEADLESS=ON` fetches SDL3 and nlohmann/json, builds the
+  core, `catio_look` and `catio_tests` (`ctest`). No SDL_image: SDL 3.4's core loads PNG.
+- **Look first, here too.** `catio_look catio catio-app/generated/manor.json catio-app/test/fixtures out.png
+  ground` (or `upper`, or a room key) renders with no window. Open it and hold it against the page. Its frames
+  contain the licensed art: `catio-app/.look/` is gitignored, never commit one.
+- **The port is line for line.** Each rule in `src/` names the page's original (`GEOM`, `roomFor`, `render()`'s
+  placement, `drawFurniture`'s z formula, `COATS`). Change the page's rule and the app's together; the manor
+  matches the page's own `#world` pixel for pixel, the coats match Chromium byte for byte, and a change that
+  breaks either is a regression.
+- **The plan is generated.** `write_page()` in `catio/tools/furniture.py` writes the page's `MANOR` block **and**
+  `catio-app/generated/manor.json` from one `page_data()` call. Never hand-copy those numbers into C++.
+- **No pack art in it, ever.** The app fetches the art from the gateway's `GET /art/*` on first run, behind her
+  sign-in. A store release waits for her own art (`docs/drawing-plan.md`).
+
 ## Checking a change
 
 Look first, test second. A test rewritten to match the code only proves the two agree; looking is what
@@ -413,8 +598,14 @@ proves the page does what she asked. In this order:
    stub's invented cats. Open each and hold it against her words, one ask at a time ("no z Z": find a
    sleeping cat). A sprite sheet isn't in the DOM and no test can see it: open the sheet too. Not what she
    asked for? Back to 1.
-3. **Run the test unchanged:** `sh catio/test/run.sh` (about two minutes). Every failure should be something
+3. **Run the test unchanged:** `sh catio/test/run.sh` (about seven minutes). Every failure should be something
    she asked to change. One she didn't is a regression: fix the page, not the test.
+   **The suite needs `art/licensed/`.** It is gitignored, so a fresh clone or cloud session hasn't got it,
+   and without it the page correctly draws its no-art warning on the status sign: the check that wants no
+   warning sign then fails, and so do the checks of The look and a skin, which read the packs' files from
+   `art/licensed/` to stand in for her own (on 5 October: 29 checks fail, every one of them needing the
+   art). That is the missing art, not the page. `run.sh` says so when it starts.
+   Get the art back the two ways under "Republishing" before trusting a red run.
 4. **Rewrite only those checks, from her words:** what must be true now, not which class names went away
    (`#cats .cat > :not(.spr)`, not a list of deleted classes). Then the whole suite: all checks must pass.
 
