@@ -77,7 +77,9 @@ variables and the plugin, it is in `list_agents`.
 
 - **Sign-up, by invite:** an admin, signed in to the café, opens `/invite` on the gateway's address and presses
   **Make an invite**. The link it shows (once: the registry keeps only its hash) goes to the person invited, who
-  opens it, picks a handle and a password at `/signup`, and is signed in to a café of their own. An invite works
+  opens it, picks a handle and a password at `/signup`, and is signed in to a café of their own: first a page that
+  shows their first agents' key once, the café's address for `CATIO_URL` and the plugin's two install lines, then
+  **Open my café**. An invite works
   once and lapses after a week; **Take back unused invites** on the same page cancels the ones still out. A
   signed-up account is never an admin. A refused sign-up (a taken handle, a short password, two passwords that
   differ) doesn't spend the invite; two sign-ups with one invite at once let one in. There is no open sign-up:
