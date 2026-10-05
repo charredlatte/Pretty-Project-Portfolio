@@ -1685,6 +1685,21 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   await page.keyboard.press("PageDown");
   await settle(page);
+  await openRoom(page, "living");
+  await page.keyboard.press("m");
+  await settle(page);
+  await check("a menu open as the panel opens finds its place clear of it again", async () => {
+    expect(await page.locator("#minimap").isVisible(), "M didn't open it");
+    expect(await page.locator("#menu").isVisible(), "the menu closed");
+    expect(await clear(), "the menu is under the panel");
+  });
+  await closeMenu(page);
+  await page.focus("#zoomIn");
+  await page.keyboard.press("m");
+  await check("minimising from one of its buttons leaves the keyboard on the fold", async () => {
+    expect(!(await page.locator("#minimap").isVisible()), "still open");
+    expect((await page.evaluate(() => document.activeElement && document.activeElement.id)) === "mapFold", "focus fell off");
+  });
   await page.reload(); await page.waitForTimeout(600);
   await check("folded stays folded after a reload", async () => expect(!(await page.locator("#minimap").isVisible()), "open again"));
   await page.locator("#stage").click({ position: { x: 60, y: 800 } });

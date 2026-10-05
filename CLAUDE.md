@@ -225,7 +225,7 @@ with `tok()`. Keep it that way: **a new colour, pixel-font size or art-pixel siz
 rule or a `"#…"` in the script (only `OWNER`'s choices, which are her look, not the café's). A check walks the page for
 one. The text's smaller sizes stay `rem` steps from the browser's own size, as they always were.
 
-**Every piece of art is a slot** (`ART` in the page, 45 of them, named as `docs/drawing-plan.md` names her files:
+**Every piece of art is a slot** (`ART` in the page, 46 of them, named as `docs/drawing-plan.md` names her files:
 `panel`, `button`, `cat-meow`, `house`, `owner`, `font`, `font-body`…).
 The CSS and the code name the slot, never the file: a 9-slice is `var(--art-panel) var(--panel-s) fill /
 var(--panel-w)`, a sheet `var(--art-faces)`, the house `<img data-art="house">`, the furniture

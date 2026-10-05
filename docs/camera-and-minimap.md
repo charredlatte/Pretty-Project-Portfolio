@@ -47,7 +47,7 @@ When this plan is done, there are three things on screen and nothing else:
    └───────────────────────────────┘
    ```
 
-   Folded, only the fold button stays (5 October: the whole panel minimises, see "Iterations"). The fold button then carries the badge (the mood face and a count) when
+   Folded, only the fold button stays (5 October: the whole panel minimises, see "Iterations"). The fold button then carries a pip (the count) when
    a cat that needs Charlotte is off screen or on the other floor.
 3. **The mode switch**, bottom left: `Live` / `Build`. It only appears in iteration 3 (below), when build mode
    exists. The credits move back to the bottom right, which the old corner cluster frees up. They stay hidden
@@ -313,7 +313,8 @@ and its up and down arrows sat beside "Ground" and "Upstairs", where they read a
 - minimised, the button carries one pip for every cat that needs her out of view: off screen on this floor, or
   anywhere on the other one, which the hidden floor tab would have shown;
 - its glyphs are the page's own pixel drawings, like the whole house's: an arrow into the corner (flipped to the
-  bottom right on a phone) and a folded map;
+  bottom right on a phone) and a folded map. They are the slot `map-fold` (two cells, 20 × 8), drawn in code until
+  she draws it, as `owner` is; `map-icons`' up and down cells are no longer drawn;
 - on a phone the zoom row sits at the panel's foot, under her thumb, and the fold stays in the bottom right corner.
 - *Checks:* minimised, the zoom and floor buttons are hidden and the panel is one button in the same corner; going
   upstairs while minimised puts the hidden ground floor's pip on the button and says so in its name; on a phone,
