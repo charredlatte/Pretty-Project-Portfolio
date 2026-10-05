@@ -18,7 +18,6 @@ import os
 import re
 import subprocess
 import sys
-import threading
 import time
 import urllib.request
 import uuid
@@ -37,7 +36,42 @@ KEEP_DECISIONS = 500
 RULES = Path(os.environ.get("CATIO_RULES") or Path(__file__).resolve().parent.parent / "rules.json")
 MAX_FILE = 20 * 1024 * 1024
 MOODS = ("needs", "busy", "review", "failed", "done")
-LOCK = threading.Lock()
+MAX_NOTES = 500
+KINDS = {"string": str, "boolean": bool, "integer": int, "number": (int, float), "array": list, "object": dict, "null": type(None)}
+
+
+class StateLock:
+    """One writer at a time to state.json, across threads and across processes (the stdio servers, --serve). The lock is
+    the exclusive creation of state.lock; one a crash left behind is taken over after STALE seconds."""
+    STALE, WAIT = 30, 10
+
+    def __enter__(self):
+        HOME.mkdir(parents=True, exist_ok=True)
+        path, deadline = HOME / "state.lock", time.monotonic() + self.WAIT
+        while True:
+            try:
+                os.close(os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+                return self
+            except FileExistsError:
+                pass
+            try:
+                if time.time() - path.stat().st_mtime > self.STALE:
+                    path.unlink()
+            except FileNotFoundError:
+                continue
+            if time.monotonic() > deadline:
+                raise OSError("state.json is busy: another Catio process holds it")
+            time.sleep(0.01)
+
+    def __exit__(self, *exc):
+        (HOME / "state.lock").unlink(missing_ok=True)
+
+
+LOCK = StateLock()
+
+
+class UnknownTool(LookupError):
+    pass
 # The café whose look tokens and set_tokens read and write: its folder (index.html, art/skin.json). --serve DIR sets
 # it; else CATIO_CAFE; else the repo's own catio/ when this runs from a clone.
 CAFE = os.environ.get("CATIO_CAFE") or ""
@@ -76,6 +110,17 @@ def safe_name(name):
     return re.sub(r"[^A-Za-z0-9._-]+", "_", str(name))[:120] or "file"
 
 
+def typed(args, properties):
+    """Refuse an argument that isn't the JSON type its schema names. A null stands for an omitted one."""
+    for key, spec in properties.items():
+        named, value = spec.get("type"), args.get(key)
+        if named is None or value is None:
+            continue
+        kinds = [named] if isinstance(named, str) else named
+        if not any(isinstance(value, KINDS[k]) and not (isinstance(value, bool) and k in ("integer", "number")) for k in kinds):
+            raise ValueError("%s must be %s" % (key, " or ".join(kinds)))
+
+
 def need(args, *keys):
     for k in keys:
         if not str(args.get(k) or "").strip():
@@ -109,9 +154,9 @@ def report_status(args):
         s = load()
         a = s["agents"].setdefault(args["agent"], {"id": args["agent"], "since": now()})
         for k in ("name", "model", "provider", "title", "project", "repo", "branch", "ask", "link", "session", "via", "cwd", "room"):
-            if k in args:
+            if args.get(k) is not None:
                 a[k] = str(args[k])[:500]
-        if "mood" in args:
+        if args.get("mood") is not None:
             if args["mood"] not in MOODS:
                 raise ValueError("mood must be one of " + ", ".join(MOODS))
             a["mood"] = args["mood"]
@@ -221,7 +266,8 @@ def comment(args):
 
 def comments(args):
     need(args, "cat")
-    return {"notes": [n for n in load()["notes"] if n["cat"] == args["cat"]][-int(args.get("limit") or 50):]}
+    limit = min(max(args.get("limit") or 50, 1), MAX_NOTES)
+    return {"notes": [n for n in load()["notes"] if n["cat"] == args["cat"]][-limit:]}
 
 
 def manage(args):
@@ -574,18 +620,26 @@ TOOLS = {
 
 
 def call(name, args):
-    if name not in TOOLS:
-        raise KeyError(name)
-    return TOOLS[name][0](args or {})
+    tool = TOOLS.get(name) if isinstance(name, str) else None
+    if not tool:
+        raise UnknownTool(name)
+    args = {} if args is None else args
+    if not isinstance(args, dict):
+        raise ValueError("arguments is an object")
+    typed(args, tool[2])
+    return tool[0](args)
 
 
 # ---------- MCP over stdio ----------
 def handle(msg):
+    if not isinstance(msg, dict):
+        return {"jsonrpc": "2.0", "id": None, "error": {"code": -32600, "message": "invalid request"}}
     method, mid = msg.get("method"), msg.get("id")
     if mid is None:
         return None                                   # a notification
+    params = msg["params"] if isinstance(msg.get("params"), dict) else {}
     if method == "initialize":
-        ver = (msg.get("params") or {}).get("protocolVersion") or "2025-06-18"
+        ver = params.get("protocolVersion") or "2025-06-18"
         result = {"protocolVersion": ver, "capabilities": {"tools": {}}, "serverInfo": {"name": "catio", "version": "0.1.0"},
                   "instructions": "The Catio is its owner's harness. Read house_rules, report_status when you start, need them, or finish, and check inbox."}
     elif method == "ping":
@@ -594,14 +648,15 @@ def handle(msg):
         result = {"tools": [{"name": n, "description": d, "inputSchema": {"type": "object", "properties": p, "required": r}}
                             for n, (_, d, p, r) in TOOLS.items()]}
     elif method == "tools/call":
-        p = msg.get("params") or {}
         try:
-            out = call(p.get("name"), p.get("arguments"))
+            out = call(params.get("name"), params.get("arguments"))
             result = {"content": [{"type": "text", "text": json.dumps(out, ensure_ascii=False)}], "structuredContent": out}
-        except KeyError:
-            return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32602, "message": "unknown tool " + str(p.get("name"))}}
+        except UnknownTool:
+            return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32602, "message": "unknown tool " + str(params.get("name"))}}
         except (ValueError, OSError) as e:
             result = {"content": [{"type": "text", "text": str(e)}], "isError": True}
+        except Exception as e:   # a tool's bug fails that call, never the server
+            result = {"content": [{"type": "text", "text": "internal error: " + type(e).__name__}], "isError": True}
     else:
         return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32601, "message": "method not found: " + str(method)}}
     return {"jsonrpc": "2.0", "id": mid, "result": result}
@@ -614,7 +669,7 @@ def stdio():
             continue
         try:
             reply = handle(json.loads(line))
-        except ValueError:
+        except (ValueError, RecursionError):
             reply = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "parse error"}}
         if reply:
             sys.stdout.write(json.dumps(reply) + "\n")
@@ -638,10 +693,12 @@ class Handler(SimpleHTTPRequestHandler):
     def api(self, name, args):
         try:
             self.reply(200, call(name, args))
-        except KeyError:
+        except UnknownTool:
             self.reply(404, {"error": "no such tool"})
         except (ValueError, OSError) as e:
             self.reply(400, {"error": str(e)})
+        except Exception:
+            self.reply(500, {"error": "internal error"})
 
     def do_GET(self):
         # The tools are POST only: any page she visits can make her browser GET a URL (an <img> will do)
@@ -659,12 +716,15 @@ class Handler(SimpleHTTPRequestHandler):
         origin = self.headers.get("Origin")
         if host not in ("localhost", "127.0.0.1") or origin and urlparse(origin).netloc != self.headers.get("Host"):
             return self.reply(403, {"error": "cross-origin"})
-        n = int(self.headers.get("Content-Length") or 0)
+        length = self.headers.get("Content-Length") or "0"
+        if not (length.isascii() and length.isdigit()):
+            return self.reply(400, {"error": "bad length"})
+        n = int(length)
         if n > MAX_FILE * 2:
             return self.reply(413, {"error": "too large"})
         try:
             args = json.loads(self.rfile.read(n) or b"{}")
-        except ValueError:
+        except (ValueError, RecursionError):
             return self.reply(400, {"error": "bad json"})
         self.api(u.path[5:], args)
 

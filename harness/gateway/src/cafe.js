@@ -6,7 +6,7 @@
 // admin invites make their own account at /signup. An open café keeps a WebSocket to its house and hears every change.
 import PAGE from "../../../catio/index.html";
 import RUNTIME from "../cafe/runtime.js";
-import { esc, noAccount, page } from "./signin.js";
+import { clientIp, esc, noAccount, page } from "./signin.js";
 import { MIN_SECRET, randomToken, sha256 } from "./secret.js";
 import { bootProblem, hasAccount, registry } from "./registry.js";
 import { FIRST_HOUSE, fileKeys } from "./houses.js";
@@ -171,8 +171,9 @@ const NOT_YET = "The gateway has no account yet. Its warning lights:";
 async function login(request, env) {
 	if (!(await hasAccount(env))) return signInPage(NOT_YET, 503, noAccount(env, request));
 	const reg = await registry(env);
-	const form = await request.formData();
-	const user = await reg.checkPassword(String(form.get("user") || ""), String(form.get("password") || ""));
+	const form = await request.formData().catch(() => null);
+	if (!form) return signInPage("That wasn't the sign-in form.", 400);
+	const user = await reg.checkPassword(String(form.get("user") || ""), String(form.get("password") || ""), clientIp(request));
 	if (user && user.locked) return signInPage("Too many wrong passwords. Try again in a quarter of an hour.", 429);
 	if (!user) return signInPage("That handle and password aren't right.", 401);
 	return signedInAs(reg, user);
@@ -233,6 +234,12 @@ export async function cafe(request, env) {
 
 	if (path === "/runtime.js") return new Response(RUNTIME, { headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store" } });
 	if (path === "/login" && method === "POST") return login(request, env);
+	// sign out: this browser's cookie stops working now, not in a month
+	if (path === "/logout" && method === "POST") {
+		const token = cookieOf(request);
+		if (token) await (await registry(env)).logout(await sha256(token));
+		return new Response(null, { status: 303, headers: { Location: "/", "Set-Cookie": `${COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0` } });
+	}
 	if (path === "/signup" && method === "GET") return signUpPage(url.searchParams.get("invite") || "", "", "", 200, url.origin);
 	if (path === "/signup" && method === "POST") return signUp(request, env);
 
