@@ -38,6 +38,9 @@ export async function hasAccount(env) {
 /** Why there is no account yet, for the sign-in pages: what the bootstrap found wrong with the secrets. */
 export const bootProblem = () => problem;
 
+/** A refused sign-in, on both sign-in pages. The first account's handle isn't a secret anyone sets by default, so say where it comes from. */
+export const WRONG_PASSWORD = "That handle and password aren't right. The first account's handle is CATIO_HANDLE as it was when the gateway first ran (charlotte if it wasn't set), and its password is CATIO_PASSWORD.";
+
 /** What a token says about its holder: their user, their house, whether they are its owner (not a key), and a key's role. */
 export const propsOf = (user, owner) => ({ user: user.id, house: user.house, owner, admin: user.admin, ...(user.role ? { role: user.role } : {}) });
 
@@ -54,6 +57,7 @@ export class Registry extends DurableObject {
 			"CREATE TABLE IF NOT EXISTS logins (hash TEXT PRIMARY KEY, user TEXT NOT NULL, until INTEGER NOT NULL)",
 			"CREATE TABLE IF NOT EXISTS wrong (user TEXT NOT NULL, at INTEGER NOT NULL)",
 			"CREATE TABLE IF NOT EXISTS invites (hash TEXT PRIMARY KEY, by TEXT NOT NULL, until INTEGER NOT NULL)",
+			"CREATE TABLE IF NOT EXISTS seen (name TEXT PRIMARY KEY, hash TEXT NOT NULL, salt TEXT NOT NULL)",   // the CATIO_PASSWORD last read
 		]) this.sql.exec(q);
 		// a key's role, on registries made before the queen had one
 		if (!this.sql.exec("PRAGMA table_info(keys)").toArray().some((c) => c.name === "role")) this.sql.exec("ALTER TABLE keys ADD COLUMN role TEXT NOT NULL DEFAULT 'agent'");
@@ -69,22 +73,51 @@ export class Registry extends DurableObject {
 	 * it; charlotte by default). Once, into an empty registry: a key dropped later stays dropped. `{ok}` once the
 	 * registry has an account, else `{error}` saying what is wrong with the secrets. The queen's key is different:
 	 * CATIO_QUEEN is the first account's queen key for as long as the secret is set (it is checked at every start,
-	 * so adding or changing the secret is a deploy away, and removing it retires the key).
+	 * so adding or changing the secret is a deploy away, and removing it retires the key). So is CATIO_PASSWORD, when
+	 * it changes: see followPassword.
 	 */
 	async bootstrap(password, token, handle, queen) {
-		if (!this.empty()) { await this.seedQueen(queen); return { ok: true }; }
+		if (!this.empty()) { await this.followPassword(password); await this.seedQueen(queen); return { ok: true }; }
 		if (token && token.length < MIN_SECRET) return { error: `CATIO_TOKEN is shorter than ${MIN_SECRET} characters: fix it, or remove it and mint a key from the café.` };
 		const id = String(handle || "charlotte").toLowerCase();
 		const made = await this.createUser(id, password || "", { house: FIRST_HOUSE, admin: true });
 		if (made.error) return this.empty() ? { error: "CATIO_PASSWORD or CATIO_HANDLE: " + made.error } : { ok: true };   // two firsts at once: one made it
 		if (token) this.addKey(id, await sha256(token), "bootstrap");
+		await this.seePassword(password);
 		await this.seedQueen(queen);
 		return { ok: true };
 	}
 
+	first() {
+		return this.sql.exec("SELECT id FROM users WHERE house = ? ORDER BY created LIMIT 1", FIRST_HOUSE).toArray()[0];
+	}
+
+	/**
+	 * A new CATIO_PASSWORD becomes the first account's password: changing the secret in Cloudflare is how whoever
+	 * runs the Worker gets back in (issue #100: the secret was read once, so a changed one did nothing). Only when the
+	 * secret itself changes, so a password reset in the café stands until then; a registry that has never seen the
+	 * secret (from before this) only notes it. Its browsers sign in again and its lock lifts; its keys stay, since a
+	 * new secret is a lost password more often than a stolen one (a reset in the café kills them too).
+	 */
+	async followPassword(password) {
+		const first = this.first();
+		if (!first || String(password || "").length < MIN_SECRET || password === this.followed) return;
+		this.followed = password;   // once per wake of this object, not per Worker isolate: the hash is 100,000 rounds
+		const seen = this.sql.exec("SELECT hash, salt FROM seen WHERE name = 'password'").toArray()[0];
+		if (seen && sameHash(await hashPassword(password, seen.salt), seen.hash)) return;
+		if (seen) await this.setPassword(first.id, password, { keepKeys: true });
+		await this.seePassword(password);
+	}
+
+	async seePassword(password) {
+		if (String(password || "").length < MIN_SECRET) return;
+		const salt = randomToken(), hash = await hashPassword(password, salt);
+		this.sql.exec("INSERT OR REPLACE INTO seen (name, hash, salt) VALUES ('password', ?, ?)", hash, salt);
+	}
+
 	/** The first account's queen key is the CATIO_QUEEN secret: kept in step with it, dropped when it goes. */
 	async seedQueen(queen) {
-		const first = this.sql.exec("SELECT id FROM users WHERE house = ? ORDER BY created LIMIT 1", FIRST_HOUSE).toArray()[0];
+		const first = this.first();
 		if (!first) return;
 		const have = this.sql.exec("SELECT hash FROM keys WHERE user = ? AND name = ? AND role = 'queen'", first.id, QUEEN_KEY).toArray()[0];
 		const want = queen && queen.length >= MIN_SECRET ? await sha256(queen) : null;
@@ -113,9 +146,9 @@ export class Registry extends DurableObject {
 
 	/**
 	 * A new password for an account (an admin's reset): the user's browsers, keys and lock all go, so whoever had
-	 * the old password is out everywhere. `{ok, id, house}` with the handle as the registry spells it.
+	 * the old password is out everywhere (but for the keys, with keepKeys: a changed CATIO_PASSWORD). `{ok, id, house}` with the handle as the registry spells it.
 	 */
-	async setPassword(id, password) {
+	async setPassword(id, password, { keepKeys = false } = {}) {
 		id = String(id || "").trim().toLowerCase();
 		const user = this.user(id);
 		if (!user) return { error: "No such account." };
@@ -123,7 +156,7 @@ export class Registry extends DurableObject {
 		const salt = randomToken(), hash = await hashPassword(password, salt);
 		this.sql.exec("UPDATE users SET hash = ?, salt = ? WHERE id = ?", hash, salt, id);
 		this.sql.exec("DELETE FROM logins WHERE user = ?", id);   // every browser signs in again
-		this.sql.exec("DELETE FROM keys WHERE user = ?", id);     // every key is dead: mint new ones
+		if (!keepKeys) this.sql.exec("DELETE FROM keys WHERE user = ?", id);     // every key is dead: mint new ones
 		this.sql.exec("DELETE FROM wrong WHERE user = ?", id);    // and a locked-out user is let back in
 		return { ok: true, id, house: user.house };
 	}

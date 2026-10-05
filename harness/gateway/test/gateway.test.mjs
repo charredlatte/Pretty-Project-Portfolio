@@ -57,7 +57,7 @@ function startDecider() {
 }
 
 // wrangler dev on a fresh state; again on the same state, at the end, as a deploy would start a new isolate
-async function start() {
+async function start(password = PASSWORD) {
 	const [port, inspector] = [await freePort(), await freePort()];
 	base = `http://127.0.0.1:${port}`;
 	log = "";
@@ -65,7 +65,7 @@ async function start() {
 	writeFileSync(CONFIG, readFileSync(join(HERE, "wrangler.jsonc"), "utf8").replace(/^\s*"ai":.*\n/m, ""));
 	wrangler = spawn(process.execPath, [join(HERE, "node_modules/wrangler/bin/wrangler.js"), "dev", "--config", CONFIG, "--ip", "127.0.0.1",
 		"--port", String(port), "--inspector-port", String(inspector), "--persist-to", state,
-		"--var", "CATIO_TOKEN:" + TOKEN, "--var", "CATIO_PASSWORD:" + PASSWORD, "--var", "CATIO_QUEEN:" + QUEEN,
+		"--var", "CATIO_TOKEN:" + TOKEN, "--var", "CATIO_PASSWORD:" + password, "--var", "CATIO_QUEEN:" + QUEEN,
 		"--var", "DECIDE_URL:http://127.0.0.1:" + deciderPort + "/", "--var", "DECIDE_KEY:k1"], {
 		cwd: HERE, env: { ...process.env, WRANGLER_SEND_METRICS: "false", NO_COLOR: "1" }, stdio: ["ignore", "pipe", "pipe"],
 		detached: true,   // its own process group, so workerd goes with it
@@ -990,5 +990,47 @@ print(n)`, ...dbs], { encoding: "utf8" }).trim();
 		assert.equal((await fetch(base + "/api/runner/say", { method: "POST", headers: { Authorization: "Bearer " + QUEEN, "Content-Type": "application/json" }, body: JSON.stringify({ turn: "t9", text: "", done: true }) })).status, 200);
 		const asHer = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "charlotte", password: PASSWORD }), redirect: "manual" });
 		assert.equal(asHer.status, 429, "the lock from the gateway suite is in the registry, not in the isolate");
+	});
+});
+
+// After that, on the same state: CATIO_PASSWORD changed in Cloudflare (issue #100). Her handle is still locked from
+// the gateway suite, so a sign-in that gets past the lock is one the registry let in again.
+describe("a changed CATIO_PASSWORD", () => {
+	const login = (password) => fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "charlotte", password }), redirect: "manual" });
+	const restart = async (password) => { stop(); await new Promise((r) => setTimeout(r, 500)); await start(password); };
+	test("is noted by a registry from before, and becomes her password when it changes after that", async () => {
+		stop();
+		await new Promise((r) => setTimeout(r, 500));
+		// a registry made before the gateway kept the secret it last read has none
+		const dbs = [];
+		const walk = (d) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (f.endsWith(".sqlite")) dbs.push(p); } };
+		walk(state);
+		const forgot = execFileSync("python3", ["-c", `
+import sqlite3, sys
+n = 0
+for p in sys.argv[1:]:
+    c = sqlite3.connect(p)
+    try:
+        if c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='seen'").fetchone():
+            n += c.execute("DELETE FROM seen").rowcount
+            c.commit()
+    finally:
+        c.close()
+print(n)`, ...dbs], { encoding: "utf8" }).trim();
+		assert.equal(forgot, "1", "the first run kept the secret it read");
+		const NEW = "new-password-" + randomBytes(8).toString("hex"), NEWER = "newer-password-" + randomBytes(8).toString("hex");
+		await start(NEW);
+		assert.equal((await login(NEW)).status, 429, "only noted: the password and its lock stand");
+		await restart(NEWER);
+		const old = await login(PASSWORD);
+		assert.equal(old.status, 401, "the lock lifted, and the old password is out");
+		assert.match(await old.text(), /CATIO_HANDLE as it was when the gateway first ran \(charlotte if it wasn&#39;t set\)/, "a refusal says where the handle comes from");
+		const signedIn = await login(NEWER);
+		assert.equal(signedIn.status, 303);
+		const cookie = signedIn.headers.get("set-cookie").split(";")[0];
+		const keys = () => fetch(base + "/api/keys", { headers: { Cookie: cookie, "X-Catio": "1" } });
+		assert.equal((await keys()).status, 200);
+		await restart(NEWER);
+		assert.equal((await keys()).status, 200, "the same secret again changes nothing: she is still signed in");
 	});
 });

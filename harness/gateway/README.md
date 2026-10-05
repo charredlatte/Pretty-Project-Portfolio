@@ -42,7 +42,11 @@ it is the admin, which uploads the café's art, creates the other accounts and i
    *Production*, then Deploy:
    - `CATIO_TOKEN`: the agents' key, 32 random characters or more.
    - `CATIO_PASSWORD`: a different one, the password she signs in with (16 characters or more). It goes into her
-     password manager and nowhere else.
+     password manager and nowhere else. Changing it later makes the new one the first account's password at the
+     next deploy (her browsers sign in again; her keys stay).
+   - `CATIO_HANDLE` (optional, before the first deploy with the password): the first account's handle, the name she
+     signs in with. Without it the handle is `charlotte`. It is read once, when that account is made: changing it
+     later changes nothing.
    - `CATIO_QUEEN`: the queen's runner's own key (below), 32 random characters or more; also on the PC that runs
      her.
 
@@ -56,10 +60,16 @@ it is the admin, which uploads the café's art, creates the other accounts and i
 
    On her PC, the same two variables go under `"env"` in `~/.claude/settings.json`, for local sessions.
 4. **claude.ai.** Customize → Connectors → Add → Custom → Web. Name it `Catio`, with the URL `<address>/mcp`. A
-   window opens on the gateway's sign-in page: type `CATIO_PASSWORD` and choose *Let it in*. Then open the
+   window opens on the gateway's sign-in page: type the handle (`CATIO_HANDLE`, or `charlotte`) and `CATIO_PASSWORD`,
+   and choose *Let it in*. Then open the
    connector and set its tools to **Always allow**. That setting is the one Claude Code Remote, being built in,
    doesn't have, and the reason the page's live read is refused today.
 5. Tell Claude it's done. The page is then republished to read the `Catio` connector (docs/plan.md, phase 5).
+
+**Can't sign in?** The handle is `CATIO_HANDLE` as it was when the account was made, or `charlotte`, never a
+variable added since. Five wrong passwords lock that handle for a quarter of an hour. A `CATIO_PASSWORD` changed
+before the gateway kept track of it (October 2026) is only noted at the next deploy: change it once more, deploy,
+and the new one is the password.
 
 To check: the address alone asks for her handle and password (the café's sign-in), so it says the Worker is up. Both sign-ins
 say when `CATIO_PASSWORD` is missing. The key is right when an agent's call to `/mcp`
