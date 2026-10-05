@@ -1,6 +1,6 @@
 // app.h — the loop, who owns what, and the one place a press becomes a write.
 //
-// Nothing includes this header.
+// Nothing includes this header but main.cpp.
 //
 // The order of a frame: pump the window's events, drain the net's replies, build the scene from the
 // house, settle the walks, draw (meadow, the floor's art, rugs, wall pieces, then floor pieces and cats
@@ -9,7 +9,17 @@
 // WRITES HAPPEN ON HER PRESS AND NEVER OTHERWISE. act() is the only function that sends one, so there
 // is one place to read to know everything this app can change.
 //
-// DRAFT: declarations only. Nothing here is implemented yet.
+// Implemented in src/app.cpp: the window, the loop, the camera (drag, wheel, pinch, keys), the hover
+// line, the menus, the map panel and the Cat card. Until the network code lands, the house is read
+// from a folder (--data, the test's invented cats by default) and the status sign says so.
+//
+//   catio_app [--data <dir>] [--art <dir>] [--manor <file>] [--assets <dir>]
+//             [--shot <out.png> [--size WxH] [--css N] [--touch] [--still] [--do "<steps>"]]
+//
+// --shot draws frames into a plain surface with no window and no GPU, and saves the last one: the
+// app's own "look first". --do plays steps before it, one frame after each, `;` between them, in CSS
+// pixels: move X Y, click X Y, down X Y, up X Y, drag X1 Y1 X2 Y2, wheel X Y DY, key NAME (escape,
+// pageup, pagedown, plus, minus, 0, m, left, right, up, down, shift+left...), wait SECONDS.
 
 #ifndef CATIO_APP_H
 #define CATIO_APP_H
@@ -38,9 +48,10 @@ public:
     App();
     ~App();
 
-    /// The gateway's origin comes from the build, or from her on the sign-in screen when it was not
-    /// baked in. Returns false when the window or the generated floor plan will not open.
+    /// Read the arguments, open the floor plan, the house, the art and the fonts, and the window (or
+    /// the surface, with --shot). False, having said why, when any of them will not open.
     bool start(int argc, char** argv);
+    /// The loop, until she closes the window; or, with --shot, the steps and one saved frame.
     int run();
 
 private:
@@ -53,7 +64,7 @@ private:
     /// THE ONLY PLACE A WRITE HAPPENS.
     void act(ui::Action what, std::string_view arg);
 
-    Phase phase_ = Phase::SignIn;
+    Phase phase_ = Phase::Running;
 
     struct Impl;
     Impl* impl_;

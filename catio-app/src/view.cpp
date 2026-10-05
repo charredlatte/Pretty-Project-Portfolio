@@ -49,8 +49,9 @@ manor::State station_for(Mood m) {
     return manor::State::Sleep;
 }
 
-// margin(): keep the house clear of the screen's frame.
-int margin(Stage s) { return 6 * (s.w <= 560 ? 1 : 2) + 8; }
+// margin(): keep the house clear of the screen's frame -- the frame's 6 art pixels at --u (2 CSS px, 1 on a
+// phone), and 8 CSS px more.
+int margin(Stage s) { return (6 * (s.narrow() ? 1 : 2) + 8) * std::max(1, s.css); }
 
 int lowest(Stage s) {
     const manor::Box w = manor::world();
@@ -83,6 +84,8 @@ Blit cat_blit(const Spot& at, double now) {
 }
 
 }  // namespace
+
+Blit blit_of(const Spot& s, double now) { return cat_blit(s, now); }
 
 // ---- the camera ----------------------------------------------------------------------------------
 
@@ -133,19 +136,29 @@ manor::Point to_world(const Cam& c, float sx, float sy) {
     return {static_cast<int>(std::floor((sx - c.tx) / c.u)), static_cast<int>(std::floor((sy - c.ty) / c.u))};
 }
 
-// roomInView: the room under the middle of the view on this floor, else the one nearest it.
+// roomInView: the room on this floor that fills the view -- one covering most of it, or one shown nearly whole
+// that fills it across or down -- scored as the page scores it, so both settle on the same room.
 std::string room_in_view(const Cam& c, Stage stage) {
-    const manor::Point mid = to_world(c, stage.w / 2.f, stage.h / 2.f);
+    const double vx = -c.tx / c.u, vy = -c.ty / c.u, vw = double(stage.w) / c.u, vh = double(stage.h) / c.u;
     std::string best;
-    double far = std::numeric_limits<double>::infinity();
+    double score = 0;
     for (const auto& g : manor::geom()) {
         if (g.level != c.floor) continue;
         const auto& b = g.box;
-        if (mid.x >= b.x && mid.x < b.x + b.w && mid.y >= b.y && mid.y < b.y + b.h) return g.key;
-        const double d = std::hypot(b.x + b.w / 2.0 - mid.x, b.y + b.h / 2.0 - mid.y);
-        if (d < far) far = d, best = g.key;
+        const double iw = std::max(0.0, std::min(b.x + b.w + 0.0, vx + vw) - std::max(b.x + 0.0, vx));
+        const double ih = std::max(0.0, std::min(b.y + b.h + 0.0, vy + vh) - std::max(b.y + 0.0, vy));
+        const double cover = iw * ih / (vw * vh), shown = iw * ih / (double(b.w) * b.h), fills = std::max(iw / vw, ih / vh);
+        const double sc = cover >= 0.6 ? 1 + cover : shown >= 0.8 && fills >= 0.6 ? cover + 0.5 : 0;
+        if (sc > score) score = sc, best = g.key;
     }
     return best;
+}
+
+manor::Box padded(std::string_view room) {
+    const manor::Geom* g = manor::of(room);
+    if (!g) return manor::world();
+    constexpr int p = 6;
+    return {g->box.x - p, g->box.y - p, g->box.w + 2 * p, g->box.h + 2 * p};
 }
 
 // ---- where everyone stands -----------------------------------------------------------------------
@@ -309,19 +322,20 @@ std::vector<Blit> world(const Scene& s, manor::Level floor, double now) {
 // ---- what is under her finger --------------------------------------------------------------------
 
 Hit pick(const Scene& s, const Cam& c, Stage stage, float sx, float sy, bool coarse) {
-    (void)stage;
     const float k = c.u / 2.f;   // world pixels to screen pixels
+    const float touch = kTouch * std::max(1, stage.css);
     auto screen = [&](draw::Rect r) {
         draw::Rect o{r.x * k + c.tx, r.y * k + c.ty, r.w * k, r.h * k};
         if (coarse) {
-            if (o.w < kTouch) o.x -= (kTouch - o.w) / 2, o.w = kTouch;
-            if (o.h < kTouch) o.y -= (kTouch - o.h) / 2, o.h = kTouch;
+            if (o.w < touch) o.x -= (touch - o.w) / 2, o.w = touch;
+            if (o.h < touch) o.y -= (touch - o.h) / 2, o.h = touch;
         }
         return o;
     };
+    auto art_box = [&](manor::Box b) { return draw::Rect{float(b.x * 2), float(b.y * 2), float(b.w * 2), float(b.h * 2)}; };
     auto inside = [&](draw::Rect r) { return sx >= r.x && sx < r.x + r.w && sy >= r.y && sy < r.y + r.h; };
 
-    // cats before rooms, the topmost first
+    // #cats, over #hits: the topmost first
     struct Cand { Thing what; std::string key; draw::Rect box; int z; };
     std::vector<Cand> cands;
     for (const auto& sp : s.cats) { const Blit b = cat_blit(sp, 0); cands.push_back({Thing::Cat, sp.cat->id, screen(b.dst), b.z}); }
@@ -333,9 +347,16 @@ Hit pick(const Scene& s, const Cam& c, Stage stage, float sx, float sy, bool coa
     std::stable_sort(cands.begin(), cands.end(), [](const Cand& a, const Cand& b) { return a.z > b.z; });
     for (const auto& cd : cands) if (inside(cd.box)) return Hit{cd.what, cd.key, cd.box};
 
+    // #hits: the stair (z 4990, over every room), then the cabinets and the litter box, then the rooms
+    if (const draw::Rect r = screen(art_box(manor::stairs())); inside(r)) return Hit{Thing::Stairs, "stairs", r};
     for (const auto& g : manor::geom()) {
         if (g.level != c.floor) continue;
-        const draw::Rect r = screen(draw::Rect{float(g.box.x * 2), float(g.box.y * 2), float(g.box.w * 2), float(g.box.h * 2)});
+        if (g.litter) if (const draw::Rect r = screen(art_box(*g.litter)); inside(r)) return Hit{Thing::Litter, g.key, r};
+        if (g.cabinet) if (const draw::Rect r = screen(art_box(*g.cabinet)); inside(r)) return Hit{Thing::Cabinet, g.key, r};
+    }
+    for (const auto& g : manor::geom()) {
+        if (g.level != c.floor) continue;
+        const draw::Rect r{g.box.x * 2 * k + c.tx, g.box.y * 2 * k + c.ty, g.box.w * 2 * k, g.box.h * 2 * k};
         if (inside(r)) return Hit{Thing::Room, g.key, r};
     }
     return Hit{};

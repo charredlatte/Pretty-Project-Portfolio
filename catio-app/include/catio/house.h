@@ -53,6 +53,8 @@ struct Room {
 struct Cat {
     std::string id, name, title, ask, link, repo, model;
     std::string project;              ///< the project's key (a slug): projects/<key>, its filing cabinet
+    std::string project_name;         ///< and its name as she reads it: projectOf().name
+    std::string doing;                ///< what it is at, for a cat that is not asking: an agent's title
     std::string room;                 ///< the room it lives in, already resolved by room_for()
     Mood mood = Mood::Idle;
     int coat = 0;                     ///< one of the eight coats: projects/<key>.coat, else a hash of the key

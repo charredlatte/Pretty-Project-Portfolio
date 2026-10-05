@@ -27,8 +27,14 @@
 
 namespace catio::view {
 
-/// The stage, in device pixels.
-struct Stage { int w = 0, h = 0; };
+/// The stage, in device pixels, and how many of them make one of the page's CSS pixels. Every length
+/// the page's stylesheet gives (the 8px margin, the 560px phone width, the 44px touch minimum) is
+/// multiplied by `css` here.
+struct Stage {
+    int w = 0, h = 0;
+    int css = 1;
+    bool narrow() const { return w <= 560 * css; }   ///< @media (max-width: 560px): a phone
+};
 
 struct Cam {
     int u = 2;                                   ///< always whole: one art pixel in device pixels
@@ -46,8 +52,11 @@ Cam pan_by(Cam c, float dx, float dy, Stage stage);
 
 draw::Pt to_screen(const Cam& c, manor::Point p);
 manor::Point to_world(const Cam& c, float sx, float sy);
-/// roomInView / settleFocus: the room the camera has settled on.
+/// roomInView / settleFocus: the room on this floor that fills the view, if one does -- one that covers
+/// most of it, or one shown nearly whole that fills it across or down. Empty when none does.
 std::string room_in_view(const Cam& c, Stage stage);
+/// What Look in fits: a room's box with 6 art pixels round it (padded()).
+manor::Box padded(std::string_view room);
 
 /// Where one cat stands this frame.
 struct Spot {
@@ -98,6 +107,9 @@ struct Blit {
 /// The world size in world pixels: the art doubled, 1920 x 1152.
 draw::Rect world_rect();
 
+/// One cat's blit, as world() makes it: what the outline under the pointer is drawn round.
+Blit blit_of(const Spot& s, double now);
+
 /// Everything to draw for one floor, in the page's order: the meadow, the plates, every piece of
 /// furniture and every cat, sorted into the page's single z-order -- rugs at 900, wall pieces at 950,
 /// floor pieces and cats at 1000 + 2 x their bottom edge (a cat wins a tie; a "top" piece sits one
@@ -105,7 +117,8 @@ draw::Rect world_rect();
 /// nothing, so the order is testable without a window. `now` picks each sprite's frame.
 std::vector<Blit> world(const Scene& s, manor::Level floor, double now);
 
-enum class Thing { None, Room, Cat, Queen, Pile, Cabinet, Litter, Stairs, Attic };
+/// What a press can land on. House is the brand, whose menu is the whole house's.
+enum class Thing { None, Room, Cat, Queen, Pile, Cabinet, Litter, Stairs, Attic, House };
 
 struct Hit {
     Thing what = Thing::None;
@@ -113,8 +126,10 @@ struct Hit {
     draw::Rect box;      ///< in device pixels, already grown to the touch minimum where coarse
 };
 
-/// Cats before rooms, as the page tests them. On a coarse pointer every box is grown to at least
-/// ui::kTouch before testing — her audit measured cats at 6-12px and the smallest rooms at 38x44.
+/// Cats before rooms, as the page tests them: the cats, the queen and the piles, topmost first; then the
+/// stair, the filing cabinets and the litter box; then the rooms. On a coarse pointer every box is
+/// grown to at least ui::kTouch CSS pixels before testing -- her audit measured cats at 6-12px and the
+/// smallest rooms at 38x44.
 Hit pick(const Scene& s, const Cam& c, Stage stage, float sx, float sy, bool coarse);
 
 /// Cats walk when their place changes: through the doorways to a new room, up the stair to the attic,

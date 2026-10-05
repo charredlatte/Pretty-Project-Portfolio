@@ -30,58 +30,111 @@
 // room, swipe left and right through the NEXT map, fit the camera to the manor rather than the whole
 // grounds, and no target under 44px.
 //
-// DRAFT: declarations only. Nothing here is implemented yet.
+// Two layers. The content -- tip_for(), menu_for(), summary(), queen_line() -- is the page's showTip()
+// and its menu builders, ported line for line into plain data: no font, no renderer, so a test reads a
+// menu the way she would. The Ui class lays that data out in the page's own CSS lengths, multiplied by
+// the stage's `css`, draws it from the packs, and answers presses.
+//
+// Implemented in src/ui.cpp. The one card built is the Cat card; every other card is still to come,
+// and its menu item is drawn disabled with "not yet" beside it (cannot() says why) rather than hidden.
 
 #ifndef CATIO_UI_H
 #define CATIO_UI_H
 
+#include <cstdint>
+#include <filesystem>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include "catio/art.h"
 #include "catio/draw.h"
 #include "catio/house.h"
 #include "catio/view.h"
 
 namespace catio::ui {
 
-/// The audit's minimum, in device pixels. Every target on a coarse pointer is grown to it.
+/// The audit's minimum, in CSS pixels (x Stage::css on screen). Every target on a coarse pointer is
+/// grown to it: `@media (pointer: coarse) { .mi { min-height: 44px } }` and the cats' hit boxes.
 inline constexpr float kTouch = 44.0f;
 
 /// What a press asks the app to do. app.h's act() is the only place one becomes a write.
 enum class Action {
     None,
     // looking
-    LookIn, WholeHouse, ZoomIn, ZoomOut, ToFloor, Swipe,
+    LookIn, WholeHouse, ZoomIn, ZoomOut, ToFloor, FoldMap, MapAt, StillCats, Sound, AddACat, Back,
     // opening
-    OpenCat, OpenQueen, OpenPile, OpenCabinet, OpenBrain, OpenRules, OpenMaps, OpenEditRooms,
-    OpenSetup, OpenCredits, OpenLink,
+    OpenHouse, OpenCat, OpenQueen, OpenPile, OpenCabinet, OpenBrain, OpenRules, OpenMaps, OpenLook,
+    OpenEditRooms, OpenSetup, OpenHomework, OpenLink, Adopt, BringDown, CheckNow, CloseCard, Manage,
     // doing: each one is a write, on her press and never otherwise
-    Say, HandIn, AddFiles, Rename, Move, OpenRoom, CloseRoom, Pause, Resume, WrapUp, StopQueen,
+    Say, HandIn, AddFiles, Rename, Move, OpenRoom, CloseRoom, SetMood, Pause, Resume, WrapUp, StopQueen,
     KeepNote, PinNote, FetchArtAgain, SignOut
 };
 
+/// One action in a menu's list (mi()).
 struct Item {
     std::string label;
     Action action = Action::None;
     std::string arg;
-    bool primary = false;    ///< the default, first in the list
-    bool enabled = true;     ///< a disabled item carries cannot() under it, rather than vanishing
+    std::string aside;       ///< a quiet note on its right: "3 on the tray"
+    bool primary = false;    ///< the default: the first in the list (list())
+    bool enabled = true;     ///< a disabled item says "not yet" on its right, and cannot() says why
+    int toggle = -1;         ///< a switch (.mi.sw): -1 none, 0 off, 1 on
 };
 
+/// A row of a menu: a cat that needs her (catRow: its face, its name, " · " and its ask), or a note the
+/// queen keeps (`face` -1, `pinned` for the one she is saying).
+struct Row {
+    std::string id, name, text;
+    int face = -1;           ///< faces.png: MOODS order, then 5, a queen's heart eyes
+    bool pinned = false;
+};
+
+/// The pieces a menu is made of, in the order the page appends them.
+struct Block {
+    enum class Kind {
+        Sub,     ///< a line of prose (.sub)
+        Ask,     ///< the well with an ask or a note in it (.ask-box), a face or a crown beside it
+        Cats,    ///< catRows(): up to three cats (five for a pile), then "and N more"
+        Keeps,   ///< ul.keeps: what the queen keeps, a star each
+        Rule,    ///< the pack's divider
+        List,    ///< the actions
+        Foot     ///< the credits, at the foot of the House menu
+    };
+    Kind kind = Kind::Sub;
+    std::string text;
+    int face = -1;
+    bool crown = false;
+    bool need = false;       ///< an Ask that is waiting on her (.ask-box.need)
+    Action action = Action::None;   ///< an Ask that opens something when pressed
+    std::string arg;
+    std::vector<Row> rows;
+    int more = 0;
+    std::vector<Item> items;
+};
+
+/// Every menu has the same shape: the name (a face or a crown before it, a badge after it) and one
+/// line under it, then its blocks.
 struct Menu {
     view::Thing kind = view::Thing::None;
     std::string key;
-    std::string title;       ///< the name, with a badge when cats need her
-    std::string line;        ///< the one line under it
-    std::vector<std::string> now;   ///< what matters now: up to three cats, a queen's note, an ask
-    std::vector<Item> items;
-    draw::Rect at;           ///< beside its anchor, and clear of the map panel
+    std::string title;
+    int face = -1;
+    bool crown = false;
+    std::vector<const Cat*> need;   ///< the badge: the most urgent face, and how many
+    std::string sub;                ///< clamped to two lines
+    std::vector<Block> blocks;
+};
+
+/// The hover line (#tip): the name, a small word, a badge, and what it says.
+struct Tip {
+    std::string name, small, says;
+    std::vector<const Cat*> need;
 };
 
 /// The cards. Each puts what she came for first and folds the rest.
 enum class Card {
-    None, Cat, Queen, QueenSettings, Pile, Adopt, Cabinet, Brain, Rules, Maps, EditRooms, Setup, Credits
+    None, Cat, Queen, QueenSettings, Pile, Adopt, Cabinet, Brain, Rules, Maps, EditRooms, Setup
 };
 
 struct Frame {
@@ -89,44 +142,96 @@ struct Frame {
     const view::Scene* scene = nullptr;
     const view::Cam* cam = nullptr;
     view::Stage stage;
-    double now = 0;
-    bool coarse = false;     ///< a touch screen: every target grows to kTouch, and there is no hover
-    bool narrow = false;     ///< a phone: the map panel sits bottom right and starts folded
+    double now = 0;             ///< seconds, for the sprites
+    std::int64_t clock_ms = 0;  ///< the wall clock, for "5 min ago"
+    bool coarse = false;        ///< a touch screen: every target grows to kTouch, and there is no hover
+    bool still = false;         ///< Still cats
+    std::string live;           ///< liveLine(): how the cats are reaching her, in a few words
+    std::string status;         ///< the sign under the brand: empty unless something is wrong
 };
+
+// ---- the content: no font, no renderer -----------------------------------------------------------
+
+/// "1 upset, 2 meowing, 1 to review, 3 at work, 1 asleep", or "no cats".
+std::string summary(const std::vector<const Cat*>& cats);
+/// "just now", "5 min ago", "3 h ago", "yesterday", "4 days ago"; empty for no time at all.
+std::string ago(std::int64_t then_ms, std::int64_t now_ms);
+/// The one line she gives without anything being opened (queenLine).
+std::string queen_line(const House& h);
+/// The ones that need her, most urgent first (urgentFirst).
+std::vector<const Cat*> urgent_first(const std::vector<const Cat*>& cats);
+/// What showTip() puts in the line for this thing. Empty name: nothing to say.
+Tip tip_for(const Frame& f, const view::Hit& h);
+/// roomMenu, houseMenu, pileMenu, queenMenu, catMenu. `adding` is the room menu's "Add a cat" step.
+/// An empty title means there is no such thing any more, and no menu.
+Menu menu_for(const Frame& f, view::Thing kind, std::string_view key, bool adding = false);
+
+/// placeMenu(): beside its anchor on the right, else the left; on a narrow screen below it, else above;
+/// a room that fills the screen gets it in its corner; the House menu under the brand; always inside
+/// the stage, and never under the map panel. All in device pixels.
+draw::Pt place_menu(const view::Stage& st, view::Thing kind, draw::Rect anchor, draw::Pt size,
+                    draw::Rect panel, float hud_bottom);
+
+// ---- the interface -------------------------------------------------------------------------------
 
 class Ui {
 public:
     Ui();
     ~Ui();
 
+    /// Open the fonts: the committed Nunito from `assets`, and sprout.ttf from the art cache once it is
+    /// there. Call again when the art arrives or the scale changes; it reopens only what changed.
+    bool fonts(const std::filesystem::path& assets, const art::Art& art, int css);
+
     /// Hover names a thing in one line. Ignored on a coarse pointer, and only when it really moved.
-    void tip(view::Hit h, bool moved);
-    /// A click or tap opens its menu beside it, pinned. Keyboard focus opens one only when the focus is
-    /// visible, and a click never closes a menu the keyboard opened.
-    void toggle(view::Hit h);
+    void tip(const Frame& f, const view::Hit& h, bool moved);
+    const view::Hit& tipped() const;
+    /// A click or tap opens its menu beside it, pinned; on the same thing again, closes it.
+    void toggle(const Frame& f, const view::Hit& h);
     void close_menu();
+    view::Thing menu_kind() const;
+    const std::string& menu_key() const;
+
     void open(Card c, std::string key = {});
     void close_card();
     Card card() const;
+    const std::string& card_key() const;
+
+    /// The map panel, open or folded to its one button. A phone starts folded.
+    bool map_open() const;
+    void set_map_open(bool open);
+    /// Where the map panel is this frame, in device pixels: menus keep clear of it.
+    draw::Rect panel(const Frame& f) const;
+
+    /// Is the point over the interface rather than the house?
+    bool over(const Frame& f, float x, float y) const;
+    /// What is under the point, by the name it was drawn with ("brand", "map:mm", "menu:item:3:0"...).
+    std::string_view under(const Frame& f, float x, float y) const;
+    /// The pointer moved: light the button, the item or the room on the minimap under it.
+    void hover(const Frame& f, float x, float y);
+    /// A press held down on a button draws it pressed in.
+    void hold(const Frame& f, float x, float y, bool down);
+    /// A press, let go. False when it was not on the interface at all.
+    bool press(const Frame& f, float x, float y, Action* what, std::string* arg);
+    /// A drag on the minimap: the point of the grounds under the finger, as MapAt's argument ("x y" in
+    /// art pixels), clamped to the map. False when the drag did not start on it.
+    bool map_drag(const Frame& f, float x, float y, std::string* arg) const;
+    /// Escape: the card, else the menu. False when neither was open.
+    bool escape();
 
     void draw(const draw::Ctx& c, const Frame& f);
 
-    /// A press. False when nothing was pressed.
-    bool press(const Frame& f, float x, float y, Action* what, std::string* arg);
-    /// A phone swipe: the room next door, following manor::next_room.
-    bool swipe(const Frame& f, float dx, std::string* to_room);
-
-    /// Why an action is not here. On the gateway's address the page has an honesty mode for the things
-    /// only claude.ai can do; this app is in that mode always, so the table is small and fixed:
-    /// no list of her claude.ai sessions, no posting into one that does not report to the gateway, no
-    /// starting or archiving one, no LLM file sorter (a dropped file goes to the brain's tray). Those
-    /// items are drawn, disabled, with this sentence under them — never hidden, and never pretended.
+    /// Why an action is not here. This app is always in the page's gateway mode (VIA_GATEWAY): no list
+    /// of her claude.ai sessions, no posting into one that does not report to the gateway, no starting
+    /// or archiving one, no LLM file sorter. And while it is a draft, most cards are not built yet.
+    /// Those items are drawn, disabled, with "not yet" beside them -- never hidden, and never pretended.
     std::string_view cannot(Action a) const;
+    /// Whether this build can do it at all.
+    bool can(Action a) const;
 
     /// SC_siosio's licence requires his credit, word for word, and says it must not be intentionally
-    /// hidden. The page keeps it at the foot of the House menu, because a phone has no room for it
-    /// anywhere else. This app has no footer at all, so Credits is a House-menu item from the first
-    /// frame: a condition of use, not polish. The words are catio/art/CREDITS.md.
+    /// hidden. The page keeps it at the foot of the screen and the foot of the House menu, because a
+    /// phone has no room for a footer; so does this. The words are catio/art/CREDITS.md's.
     std::string_view credits() const;
 
 private:

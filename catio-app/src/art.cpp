@@ -165,6 +165,11 @@ int Art::have() const {
 int Art::total() const { return static_cast<int>(kFiles.size()); }
 std::string_view Art::trouble() const { return impl_->trouble; }
 
+std::filesystem::path Art::path(Id id) const {
+    if (!impl_->have[static_cast<size_t>(id)]) return {};
+    return impl_->cache / std::string(file_of(id).path);
+}
+
 Texture* Art::texture(Id id) const {
     Texture& t = impl_->tex[static_cast<size_t>(id)];
     return t.surface ? &t : nullptr;

@@ -1,4 +1,5 @@
-// catio_tests -- the floor plan and the house, driven from JSON with no window and no network.
+// catio_tests -- the floor plan, the house, the view and the interface, driven from JSON with no window
+// and no network.
 //
 //   catio_tests <generated/manor.json> <test/fixtures>
 //
@@ -6,16 +7,23 @@
 // own hash run in node (names and coats), and the invented fixtures' construction. A test that only
 // asked the C++ what it thinks would prove nothing.
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <filesystem>
+#include <vector>
 #include <fstream>
 #include <set>
 #include <sstream>
 #include <string>
 
+#include "catio/art.h"
+#include "catio/draw.h"
 #include "catio/house.h"
 #include "catio/manor.h"
+#include "catio/ui.h"
 #include "catio/view.h"
+#include "internal.h"
 
 namespace {
 
@@ -259,6 +267,173 @@ void the_draw_list(const std::string& dir) {
 
 }  // namespace
 
+// The interface's words and shapes, from the page's own rules: showTip(), the menu builders, list() and
+// placeMenu(). What each should say is read off catio/index.html and the invented fixtures, not off ui.cpp.
+void the_interface(const std::string& dir) {
+    namespace v = catio::view;
+    namespace ui = catio::ui;
+    using catio::Mood;
+    using ui::Action;
+    using ui::Block;
+    catio::House h;
+    h.docs(slurp(dir + "/db.json"));
+    h.agents(slurp(dir + "/agents.json"));
+    v::Stage stage{1280, 800, 1};
+    v::Cam cam = v::fit(catio::manor::world(), stage);
+    const v::Scene scene = v::build(h, catio::manor::Level::Ground);
+    ui::Frame f;
+    f.house = &h, f.scene = &scene, f.cam = &cam, f.stage = stage;
+    f.clock_ms = 1791000400000 + 5 * 60000;
+    f.live = "On this computer";
+
+    // summary() and ago(), word for word
+    catio::Cat cry, meow1, meow2;
+    cry.mood = Mood::Cry, meow1.mood = meow2.mood = Mood::Meow;
+    check(ui::summary({&cry, &meow1, &meow2}) == "1 upset, 2 meowing", "a room's cats in words, the most urgent first");
+    check(ui::summary({}) == "no cats", "an empty room says no cats");
+    const std::int64_t now = 1791000000000;
+    check(ui::ago(now - 20000, now) == "just now" && ui::ago(now - 5 * 60000, now) == "5 min ago" && ui::ago(now - 3 * 3600000, now) == "3 h ago" &&
+          ui::ago(now - 24 * 3600000LL, now) == "yesterday" && ui::ago(now - 4 * 24 * 3600000LL, now) == "4 days ago" && ui::ago(0, now).empty(),
+          "ago() says just now, minutes, hours, yesterday and days as the page does");
+
+    // the queen's line: her pinned note is what she is saying, while she is not answering
+    check(ui::queen_line(h) == "Said aloud", "the queen's line is the note she is saying");
+
+    // every list has one default, its first item
+    auto one_primary = [](const ui::Menu& m) {
+        for (const Block& b : m.blocks)
+            if (b.kind == Block::Kind::List) {
+                int n = 0;
+                for (const auto& it : b.items) n += it.primary;
+                if (n != 1 || !b.items.front().primary) return false;
+            }
+        return true;
+    };
+    auto items = [](const ui::Menu& m) {
+        std::vector<std::string> out;
+        for (const Block& b : m.blocks) for (const auto& it : b.items) out.push_back(it.label);
+        return out;
+    };
+    auto has = [&](const ui::Menu& m, const std::string& label) {
+        const auto l = items(m);
+        return std::find(l.begin(), l.end(), label) != l.end();
+    };
+
+    // the kitchen: its upset cat, then the queen's said note, then the actions
+    const ui::Menu kitchen = ui::menu_for(f, v::Thing::Room, "kitchen");
+    check(kitchen.title == "Kitchen" && kitchen.need.size() == 1 && kitchen.need[0]->mood == Mood::Cry, "a room's menu: its name, and a badge for the cat that needs her");
+    check(!kitchen.blocks.empty() && kitchen.blocks[0].kind == Block::Kind::Cats && kitchen.blocks[0].rows.size() == 1 &&
+          kitchen.blocks[0].rows[0].text == "Waiting for you.", "then the cats that need her, each with its ask");
+    check(kitchen.blocks.size() > 1 && kitchen.blocks[1].kind == Block::Kind::Ask && kitchen.blocks[1].crown && kitchen.blocks[1].text == "Said aloud",
+          "then the queen's note, when she is saying one, with her crown");
+    check(one_primary(kitchen) && items(kitchen).front() == "Look in", "its default is Look in");
+    check(has(kitchen, "Files") && !has(ui::menu_for(f, v::Thing::Room, "sunroom"), "Files"), "Files only where the room has a filing cabinet");
+    check(has(ui::menu_for(f, v::Thing::Room, "brain"), "The brain") && has(ui::menu_for(f, v::Thing::Room, "brain"), "Choose files"),
+          "the library's menu has the brain, and chooses files for it");
+    const ui::Menu adding = ui::menu_for(f, v::Thing::Room, "kitchen", true);
+    check(items(adding) == std::vector<std::string>{"Adopt a chat", "Back"}, "Add a cat adopts a chat: New session is claude.ai's alone");
+    const ui::Menu closed = ui::menu_for(f, v::Thing::Room, "bath");
+    check(closed.sub == "Closed" && items(closed) == std::vector<std::string>{"Open this room", "Edit rooms"}, "a closed room's menu is its name, Closed, and two ways to open it");
+    v::Cam in_kitchen = cam;
+    in_kitchen.focus = "kitchen";
+    f.cam = &in_kitchen;
+    check(items(ui::menu_for(f, v::Thing::Room, "kitchen")).front() == "Whole house", "in the room already, its default is Whole house");
+    f.cam = &cam;
+
+    // the House menu: how the cats reach her, the actions, the credits at its foot word for word
+    const ui::Menu house = ui::menu_for(f, v::Thing::House, "house");
+    check(!house.blocks.empty() && house.blocks[0].kind == Block::Kind::Sub && house.blocks[0].text.rfind("On this computer. ", 0) == 0,
+          "the House menu starts with how the cats are reaching her");
+    check(house.blocks.back().kind == Block::Kind::Foot &&
+          house.blocks.back().text.find("Game UI Pack created by SC_siosio") != std::string::npos, "SC_siosio's credit, word for word, at its foot");
+    bool switch_last = false;
+    for (const Block& b : house.blocks)
+        if (b.kind == Block::Kind::List) switch_last = b.items.back().label == "Still cats" && b.items.back().toggle == 0;
+    check(switch_last && one_primary(house), "Still cats is a switch, off");
+
+    // the queen: crowned, away (no runner), her line in the well, the rest of what she keeps
+    const ui::Menu queen = ui::menu_for(f, v::Thing::Queen, "hall");
+    check(queen.title == "Duchesse" && queen.crown && queen.sub == "Queen of the house · away", "the queen's menu: her name, crowned, and that she is away");
+    check(queen.blocks.size() > 1 && queen.blocks[0].kind == Block::Kind::Ask && queen.blocks[0].need && queen.blocks[1].kind == Block::Kind::Keeps &&
+          queen.blocks[1].rows.size() == 1 && queen.blocks[1].rows[0].text == "Kept, not said", "her line first, then what else she keeps");
+    check(items(queen) == std::vector<std::string>{"Talk to her", "What she keeps", "Look in"}, "Talk to her is the default");
+    check(queen.need.empty(), "the queen is never counted among the cats that need her");
+
+    // a cat: its link first when it has one, its ask in the well
+    const ui::Menu a1 = ui::menu_for(f, v::Thing::Cat, "agent:a1");
+    check(a1.face == 1 && !a1.blocks.empty() && a1.blocks[0].kind == Block::Kind::Ask && a1.blocks[0].text == "Approve the copy?",
+          "a cat's menu: its face, then its ask");
+    bool open_first = false;
+    for (const Block& b : a1.blocks)
+        if (b.kind == Block::Kind::List) open_first = b.items[0].label == "Open" && b.items[0].arg == "https://claude.ai/code/session_abc123" && b.items[1].label == "Talk";
+    check(open_first, "Open goes to its session; Talk after it");
+    check(ui::menu_for(f, v::Thing::Cat, "agent:nobody").title.empty(), "a cat that has gone has no menu");
+
+    // the hover line
+    const ui::Tip t1 = ui::tip_for(f, v::Hit{v::Thing::Cat, "agent:a1", {}});
+    check(t1.name == h.cat("agent:a1")->name && t1.small == "Needs you" && t1.says == "Approve the copy?", "hovering a cat: its name, its mood, its ask");
+    check(ui::tip_for(f, v::Hit{v::Thing::Stairs, "stairs", {}}).name == "Upstairs", "hovering the stair on the ground floor says Upstairs");
+    const ui::Tip litter = ui::tip_for(f, v::Hit{v::Thing::Litter, "brain", {}});
+    check(litter.name == "The litter box" && litter.says == "Nothing to sort.", "hovering the litter box says what waits in it");
+    const ui::Tip bath = ui::tip_for(f, v::Hit{v::Thing::Room, "bath", {}});
+    check(bath.name == "Ensuite" && bath.small == "closed" && bath.need.empty(), "a closed room is named closed, with no badge");
+    const ui::Tip queen_tip = ui::tip_for(f, v::Hit{v::Thing::Queen, "hall", {}});
+    check(queen_tip.name == "Duchesse" && queen_tip.small == "queen" && queen_tip.says == "Said aloud", "hovering the queen: her name, queen, and her line");
+
+    // placeMenu
+    using catio::draw::Pt;
+    using catio::draw::Rect;
+    const Rect panel{1000, 20, 260, 240};
+    const Pt right = ui::place_menu(stage, v::Thing::Room, Rect{300, 300, 200, 150}, Pt{248, 300}, panel, 60);
+    check(right.x == 512 && right.y == 300, "a room's menu opens on its right, level with its top");
+    const Pt left = ui::place_menu(stage, v::Thing::Cat, Rect{1100, 500, 20, 20}, Pt{248, 200}, panel, 60);
+    check(left.x == 1100 - 248 - 12, "with no room on the right, it opens on the left");
+    const Pt under = ui::place_menu(stage, v::Thing::Room, Rect{700, 100, 200, 150}, Pt{248, 300}, panel, 60);
+    const bool clear = under.x + 248 <= panel.x - 12 || under.x >= panel.x + panel.w + 12 || under.y >= panel.y + panel.h + 12 || under.y + 300 <= panel.y - 12;
+    check(clear, "never under the map panel");
+    const v::Stage phone{390, 844, 1};
+    const Pt corner = ui::place_menu(phone, v::Thing::Room, Rect{20, 200, 360, 200}, Pt{248, 300}, Rect{300, 770, 60, 60}, 60);
+    check(corner.x == 390 - 248 - 12 && corner.y == 200, "on a phone a room that fills the screen gets it in its corner");
+    const Pt hud = ui::place_menu(stage, v::Thing::House, Rect{20, 20, 230, 42}, Pt{248, 400}, panel, 130);
+    check(hud.x == 20 && hud.y == 138, "the House menu opens under the whole header, sign and all");
+
+    // drawn, with no window and no pack art: the fonts are the committed Nunito, and the House menu answers
+    SDL_Surface* s = SDL_CreateSurface(1280, 800, SDL_PIXELFORMAT_RGBA32);
+    SDL_Renderer* r = s ? SDL_CreateSoftwareRenderer(s) : nullptr;
+    catio::draw::Canvas canvas{r};
+    catio::art::Art none(std::filesystem::temp_directory_path() / "catio-tests-no-art");
+    none.scan();
+    ui::Ui face;
+    check(face.fonts(std::filesystem::path(CATIO_SOURCE_DIR) / "assets", none, 1), "the committed body font opens, with no pack art at all");
+    const catio::draw::Ctx c{&canvas, &none, 2, 1};
+    face.draw(c, f);
+    ui::Action a = Action::None;
+    std::string arg;
+    const bool brand = face.press(f, 40, 40, &a, &arg);
+    check(brand && a == Action::OpenHouse && face.menu_kind() == v::Thing::House, "pressing the brand opens the House menu");
+    // every item, pressed once, a frame drawn between presses as the app draws one
+    std::set<std::string> pressed;
+    std::set<Action> seen;
+    auto reopen = [&] {
+        face.draw(c, f);
+        if (face.menu_kind() != v::Thing::House) face.press(f, 40, 40, &a, &arg), face.draw(c, f);
+    };
+    for (float y = 60; y < 800; y += 4) {
+        reopen();
+        const std::string id(face.under(f, 60, y));
+        if (id.rfind("menu:item:", 0) != 0 || !pressed.insert(id).second) continue;
+        face.press(f, 60, y, &a, &arg);
+        seen.insert(a);
+    }
+    check(pressed.size() == 8 && seen.count(Action::StillCats) && seen.count(Action::CheckNow), "all eight of the page's items are there and answer a press, Still cats among them");
+    check(!seen.count(Action::OpenRules) && !seen.count(Action::OpenBrain) && !seen.count(Action::Sound) && !face.can(Action::OpenRules) && !face.cannot(Action::OpenRules).empty(),
+          "what is not built yet does nothing, and says why");
+    reopen();
+    check(face.escape() && face.menu_kind() == v::Thing::None && !face.escape(), "Escape closes the menu, and then there is nothing to close");
+    SDL_DestroyRenderer(r);
+    SDL_DestroySurface(s);
+}
+
 int main(int argc, char** argv) {
     if (argc < 3) {
         std::fprintf(stderr, "catio_tests <generated/manor.json> <test/fixtures>\n");
@@ -267,6 +442,7 @@ int main(int argc, char** argv) {
     the_plan(argv[1]);
     the_house(argv[2]);
     the_draw_list(argv[2]);
+    the_interface(argv[2]);
     std::printf("\n%d passed, %d failed\n", pass, fail);
     return fail ? 1 : 0;
 }

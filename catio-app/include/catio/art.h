@@ -100,6 +100,9 @@ public:
     /// Null until that file is in the cache. Every drawing call tolerates a null texture, so the house
     /// fills in piece by piece as the fetches land.
     Texture* texture(Id id) const;
+    /// Where the cache keeps a file, once it holds it; empty until then. The font is the one file read
+    /// from here rather than decoded: SDL_ttf opens it itself.
+    std::filesystem::path path(Id id) const;
 
 private:
     struct Impl;

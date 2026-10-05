@@ -563,16 +563,21 @@ are the saved copy.
 ## The app draft
 
 `catio-app/` is the café as a native C++ app for a phone (`docs/mobile-app.md`, which says exactly where it
-stands). Its core is built -- the plan, the house, the art, drawing and the view -- and it draws the manor; the
-window loop, the interface and the network are not. Nothing has run on a phone, and `android/` and `ios/` have
-never been configured.
+stands). Its core is built -- the plan, the house, the art, drawing and the view -- and so are the window loop
+and the interface (the brand, the hover line, the menus, the map panel, the Cat card); the network is not, so it
+reads the house from a folder. Nothing has run on a phone, the window has never been opened (no display in the
+cloud), and `android/` and `ios/` have never been configured.
 
 - **Build:** the default, `cmake -S catio-app -B build && cmake --build build`, is the header check and needs
-  nothing installed. `-DCATIO_HEADERS_ONLY=OFF -DCATIO_HEADLESS=ON` fetches SDL3 and nlohmann/json, builds the
-  core, `catio_look` and `catio_tests` (`ctest`). No SDL_image: SDL 3.4's core loads PNG.
-- **Look first, here too.** `catio_look catio catio-app/generated/manor.json catio-app/test/fixtures out.png
-  ground` (or `upper`, or a room key) renders with no window. Open it and hold it against the page. Its frames
-  contain the licensed art: `catio-app/.look/` is gitignored, never commit one.
+  nothing installed. `-DCATIO_HEADERS_ONLY=OFF -DCATIO_HEADLESS=ON` fetches SDL3, SDL3_ttf and nlohmann/json, builds
+  `catio_app`, `catio_look` and `catio_tests` (`ctest`). No SDL_image: SDL 3.4's core loads PNG.
+- **Look first, here too.** `catio_app --art catio --shot out.png --size 390x844 --touch --do "click 200 300"`
+  draws the whole screen after playing clicks, keys and drags, with no window; `catio_look` draws a floor or a
+  room alone. Open each and hold it against the page's own at the same size. Their frames contain the licensed
+  art: `catio-app/.look/` is gitignored, never commit one.
+- **The interface keeps the page's rules** (`include/catio/ui.h` lists them): no signs on the map, nothing on the
+  cats, two things on screen, every menu one shape. What the app cannot do yet is drawn disabled with "not yet",
+  never hidden. The one font it commits is Nunito (`assets/`, OFL); `sprout.ttf` comes with the art.
 - **The port is line for line.** Each rule in `src/` names the page's original (`GEOM`, `roomFor`, `render()`'s
   placement, `drawFurniture`'s z formula, `COATS`). Change the page's rule and the app's together; the manor
   matches the page's own `#world` pixel for pixel, the coats match Chromium byte for byte, and a change that

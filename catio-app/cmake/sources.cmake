@@ -1,18 +1,24 @@
 # The translation units, in one list so the desktop build and ios/ share it.
 
-# What exists: the floor plan, the house, the art, drawing and the view.
+# The core: the floor plan, the house, the art, drawing, the fonts, the view and the interface.
 set(CATIO_CORE_SOURCES
     src/manor.cpp
     src/house.cpp
     src/art.cpp
     src/draw.cpp
+    src/text.cpp
     src/view.cpp
+    src/ui.cpp
 )
 
-# Still to come: the app proper. It is not a target yet because its sources do not exist, and a target
-# naming files that are not there would only fail the build.
+# The app around it: the window, the loop and the one place a press becomes a write.
+set(CATIO_APP_SOURCES
+    src/app.cpp
+    src/main.cpp
+)
+
+# Still to come:
 #
-#   src/main.cpp  src/app.cpp  src/ui.cpp
 #   one net body per platform -- the header names no curl type precisely so this choice is possible:
 #     src/net_curl.cpp     desktop
 #     src/net_android.cpp  HttpsURLConnection over JNI (no system libcurl on the NDK)

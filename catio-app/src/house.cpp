@@ -160,6 +160,7 @@ struct House::Impl {
 
         auto finish = [&](Cat c, const std::string& project_name) {
             c.project = slug(project_name);
+            c.project_name = project_name;
             const json* t = tweak(c.id);
             if (t) if (auto n = str(*t, "name"); !n.empty()) c.name = n;
             if (c.name.empty()) c.name = std::string(kNames[fnv(c.id) % kNames.size()]);
@@ -209,6 +210,7 @@ struct House::Impl {
             c.id = "agent:" + id;
             c.mood = mood_from(str(a, "mood")).value_or(Mood::Sleep);
             c.title = str(a, "title");
+            c.doing = c.title;
             if (c.title.empty()) c.title = str(a, "name");
             if (c.title.empty()) c.title = id;
             if (info(c.mood).needs) { c.ask = str(a, "ask"); if (c.ask.empty()) c.ask = "Waiting for you."; }

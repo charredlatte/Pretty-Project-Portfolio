@@ -2,6 +2,7 @@
 
 #include "catio/draw.h"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <map>
@@ -84,18 +85,22 @@ std::map<std::pair<art::Texture*, int>, art::Texture>& tints() {
     return k;
 }
 
+// The outline's colour: --outline, the pack's white.
+constexpr Uint8 kWhite[3] = {0xFF, 0xF8, 0xE4};
+
 art::Texture* tinted(art::Texture* sheet, int coat) {
-    if (!sheet || coat <= 0 || coat >= 8) return sheet;
+    if (!sheet || coat == 0 || coat >= 8 || (coat < 0 && coat != kOutline)) return sheet;
     auto& cache = tints();
     if (auto it = cache.find({sheet, coat}); it != cache.end()) return &it->second;
     SDL_Surface* s = SDL_ConvertSurface(sheet->surface, SDL_PIXELFORMAT_RGBA32);
     if (!s) return sheet;
-    const auto& chain = coats()[static_cast<size_t>(coat)];
+    const auto& chain = coats()[static_cast<size_t>(coat < 0 ? 0 : coat)];
     for (int y = 0; y < s->h; ++y) {
         auto* row = static_cast<Uint8*>(s->pixels) + y * s->pitch;
         for (int x = 0; x < s->w; ++x) {
             Uint8* p = row + x * 4;
             if (!p[3]) continue;   // nothing to colour where there is nothing
+            if (coat == kOutline) { p[0] = kWhite[0], p[1] = kWhite[1], p[2] = kWhite[2]; continue; }
             float r = p[0] / 255.f, g = p[1] / 255.f, b = p[2] / 255.f;
             for (const M3& m : chain) {
                 const float nr = m[0] * r + m[1] * g + m[2] * b;
@@ -116,14 +121,9 @@ art::Texture* tinted(art::Texture* sheet, int coat) {
 
 }  // namespace
 
-// The integer art pixel for this device: the page's --u (2px, or 1px on a narrow screen, in CSS pixels)
-// times the device's content scale, rounded down and never below one.
-int scale_for(int pixel_width, int /*pixel_height*/, float content_scale) {
-    const float cs = content_scale > 0 ? content_scale : 1.f;
-    const float css_width = static_cast<float>(pixel_width) / cs;
-    const float css_u = css_width <= 560.f ? 1.f : 2.f;
-    const int u = static_cast<int>(std::floor(css_u * cs + 1e-4f));
-    return u < 1 ? 1 : u;
+int css_for(float content_scale) {
+    const int k = static_cast<int>(std::floor((content_scale > 0 ? content_scale : 1.f) + 1e-4f));
+    return k < 1 ? 1 : k;
 }
 
 void panel(const Ctx& c, const Panel& p, Rect dst) {
@@ -131,6 +131,7 @@ void panel(const Ctx& c, const Panel& p, Rect dst) {
     if (!t) return;   // not fetched yet: nothing, and not an error
     const float scale = p.ratio * (p.scales_with_u ? static_cast<float>(c.u) : 1.f);
     const SDL_FRect d = fr(dst);
+    SDL_SetTextureAlphaMod(t, c.alpha);
     SDL_RenderTexture9Grid(c.canvas->r, t, nullptr, p.l, p.r, p.t, p.b, scale, &d);
 }
 
@@ -139,6 +140,7 @@ void cell(const Ctx& c, art::Id id, Rect src, Rect dst, int coat) {
     SDL_Texture* g = gpu(c.canvas, tinted(t, coat));
     if (!g) return;
     const SDL_FRect s = fr(src), d = fr(dst);
+    SDL_SetTextureAlphaMod(g, c.alpha);
     SDL_RenderTexture(c.canvas->r, g, &s, &d);
 }
 
@@ -161,7 +163,46 @@ void fill(const Ctx& c, Rect dst, Colour col) {
     SDL_RenderFillRect(c.canvas->r, &d);
 }
 
-// Pixel and Body -- the pack's pixel font and the bundled body font -- arrive with SDL_ttf, when there
-// is text to draw. The first frame has none: nothing is ever written on the map.
+// CSS border-image, side by side: the four corners at their widths, the edges stretched between them,
+// and the middle only when the rule says `fill`.
+void nine(const Ctx& c, art::Id id, Rect src, Slice cut, Slice w, Rect dst, bool fill) {
+    art::Texture* t = c.art ? c.art->texture(id) : nullptr;
+    SDL_Texture* g = gpu(c.canvas, t);
+    if (!g) return;
+    SDL_SetTextureAlphaMod(g, c.alpha);
+    if (src.w <= 0 || src.h <= 0) src = Rect{0, 0, float(t->surface->w), float(t->surface->h)};
+    const float sx[4] = {src.x, src.x + cut.l, src.x + src.w - cut.r, src.x + src.w};
+    const float sy[4] = {src.y, src.y + cut.t, src.y + src.h - cut.b, src.y + src.h};
+    const float dx[4] = {dst.x, dst.x + w.l, dst.x + dst.w - w.r, dst.x + dst.w};
+    const float dy[4] = {dst.y, dst.y + w.t, dst.y + dst.h - w.b, dst.y + dst.h};
+    for (int j = 0; j < 3; ++j)
+        for (int i = 0; i < 3; ++i) {
+            if (i == 1 && j == 1 && !fill) continue;
+            const SDL_FRect s{sx[i], sy[j], sx[i + 1] - sx[i], sy[j + 1] - sy[j]};
+            const SDL_FRect d{dx[i], dy[j], dx[i + 1] - dx[i], dy[j + 1] - dy[j]};
+            if (s.w <= 0 || s.h <= 0 || d.w <= 0 || d.h <= 0) continue;
+            SDL_RenderTexture(c.canvas->r, g, &s, &d);
+        }
+}
+
+// border-radius on a plain colour: a row at a time through the corners, one rectangle between them.
+void round(const Ctx& c, Rect dst, float radius, Colour col) {
+    if (!c.canvas || !c.canvas->r || dst.w <= 0 || dst.h <= 0) return;
+    const float rad = std::min(radius, std::min(dst.w, dst.h) / 2);
+    if (rad < 1) { fill(c, dst, col); return; }
+    SDL_SetRenderDrawBlendMode(c.canvas->r, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(c.canvas->r, col.r, col.g, col.b, col.a);
+    const int n = static_cast<int>(std::ceil(rad));
+    for (int i = 0; i < n; ++i) {
+        const float y = i + 0.5f, dy = rad - y;
+        const float in = rad - std::sqrt(std::max(0.f, rad * rad - dy * dy));
+        const SDL_FRect top{dst.x + in, dst.y + i, dst.w - 2 * in, 1};
+        const SDL_FRect bottom{dst.x + in, dst.y + dst.h - i - 1, dst.w - 2 * in, 1};
+        SDL_RenderFillRect(c.canvas->r, &top);
+        SDL_RenderFillRect(c.canvas->r, &bottom);
+    }
+    const SDL_FRect mid{dst.x, dst.y + n, dst.w, dst.h - 2 * n};
+    if (mid.h > 0) SDL_RenderFillRect(c.canvas->r, &mid);
+}
 
 }  // namespace catio::draw

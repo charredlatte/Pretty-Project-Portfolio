@@ -23,10 +23,14 @@ find_package(nlohmann_json CONFIG REQUIRED)
 
 include("${CATIO_APP_DIR}/cmake/sources.cmake")
 list(TRANSFORM CATIO_CORE_SOURCES PREPEND "${CATIO_APP_DIR}/")
+list(TRANSFORM CATIO_APP_SOURCES PREPEND "${CATIO_APP_DIR}/")
 
-# The core exists; the app around it -- main, the loop, the interface, net_apple.cpp -- does not yet,
-# so this target will not build until it does (cmake/sources.cmake lists what is to come).
-add_executable(catio_app MACOSX_BUNDLE ${CATIO_CORE_SOURCES})
+# The core, the interface and the loop exist; net_apple.cpp does not yet (cmake/sources.cmake lists
+# what is to come). The plan rides in the bundle beside the fonts: SDL_GetBasePath() finds both.
+add_executable(catio_app MACOSX_BUNDLE ${CATIO_CORE_SOURCES} ${CATIO_APP_SOURCES})
+target_compile_definitions(catio_app PRIVATE CATIO_SOURCE_DIR="${CATIO_APP_DIR}")
+target_sources(catio_app PRIVATE "${CATIO_APP_DIR}/generated/manor.json")
+set_source_files_properties("${CATIO_APP_DIR}/generated/manor.json" PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 target_include_directories(catio_app PRIVATE "${CATIO_APP_DIR}/include")
 target_include_directories(catio_app PRIVATE "${CATIO_APP_DIR}/src")
 target_link_libraries(catio_app PRIVATE SDL3::SDL3 SDL3_ttf::SDL3_ttf nlohmann_json::nlohmann_json)
