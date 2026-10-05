@@ -221,7 +221,7 @@ a { color: var(--ink); }
 .btn .pi { margin: -2px 4px -2px -2px; }
 .btn.sq .pi { margin: 0; }
 /* the map panel, top right (bottom right on a phone): zoom and the fold on top, the minimap, then the
-   floors. It is SC_siosio's Game UI Pastel (art/licensed/pastel/), not Sprout Lands: what works the camera
+   floors. Minimised, it is the fold button alone, in the corner the panel is anchored to. It is SC_siosio's Game UI Pastel (art/licensed/pastel/), not Sprout Lands: what works the camera
    comes from that pack, what talks about the cats stays Sprout. Pastel art is smooth, drawn at twice its
    screen size, so it is scaled with smoothing, never pixelated (a piece she draws as pixel art is hers: --mpanel-render…). Each piece has its own face colour under it,
    so a copy without the licensed art is still a panel of buttons. */
@@ -247,7 +247,11 @@ a { color: var(--ink); }
 .pip.fail { background: var(--pip-fail); }
 /* the minimap: the floor as a plan of rooms, the other floor faint underneath, the camera's view framed */
 .minimap { position: relative; width: 250px; height: 132px; border-radius: 6px; overflow: hidden; background: var(--minimap); touch-action: none; cursor: var(--point); }
-.mappanel.folded .minimap { display: none; }
+.mappanel.folded > :not(.mp-row), .mappanel.folded .mp-row > :not(.fold) { display: none; }
+/* the fold: an arrow into the panel's corner while it is open, a folded map once it is minimised */
+.pbtn.fold svg { width: 16px; height: 16px; } .pbtn.fold .unfold { width: 20px; }
+.mappanel.folded .fold .tuck, .mappanel:not(.folded) .fold .unfold { display: none; }
+.mappanel.folded .pbtn.fold { width: auto; min-width: 40px; padding: 0 9px; }
 .mm-room { position: absolute; background: var(--map-btn); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mm-edge) 45%, transparent); pointer-events: none; }
 .mm-room.faint { background: color-mix(in srgb, var(--map-btn) 35%, transparent); box-shadow: none; }
 .mm-room.landing { background: var(--map-btn-lit); }
@@ -262,6 +266,8 @@ a { color: var(--ink); }
   .btn.sq { width: 44px; height: 44px; }
   .mappanel { top: auto; bottom: calc(var(--panel-b) * var(--u) + 8px + env(safe-area-inset-bottom, 0px)); }
   .pbtn { height: 44px; } .pbtn.sq { width: 44px; }
+  .mappanel .mp-row { order: 1; }          /* the buttons at the foot, under her thumb, the fold in the corner */
+  .pbtn.fold .tuck { transform: scaleY(-1); }
   .credits { display: none; }
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mappanel { border-image-source: var(--art-map-panel-dark); border-image-slice: var(--mpanel-dark-s); background-color: var(--map-face-dark); } }
@@ -773,10 +779,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       <button class="pbtn sq" id="zoomOut" type="button" aria-label="Zoom out" title="Zoom out (−)"><span class="ico" style="--i: 1" aria-hidden="true"></span></button>
       <button class="pbtn sq" id="zoomIn" type="button" aria-label="Zoom in" title="Zoom in (+)"><span class="ico" style="--i: 0" aria-hidden="true"></span></button>
       <button class="pbtn sq" id="zoomAll" type="button" aria-label="Whole house" title="Whole house (0)"><svg viewBox="0 0 9 8" aria-hidden="true"><path d="M4 0h1v1h1v1h1v1h1v1H7v4H5V5H4v3H2V4H1V3h1V2h1V1h1z"/></svg></button>
-      <button class="pbtn sq fold" id="mapFold" type="button" aria-controls="minimap" aria-expanded="true" aria-label="Fold the map" title="Fold the map (M)"><span class="ico" style="--i: 2" aria-hidden="true"></span></button>
+      <button class="pbtn sq fold" id="mapFold" type="button" aria-controls="minimap floors zoomIn zoomOut zoomAll" aria-expanded="true" aria-label="Minimise the map" title="Minimise the map (M)"><svg class="tuck" viewBox="0 0 8 8" aria-hidden="true"><path d="M3 0h5v1H3zM6 1h2v1H6zM5 2h3v1H5zM4 3h2v1H4zM7 3h1v2H7zM3 4h2v1H3zM2 5h2v1H2zM1 6h2v1H1zM0 7h2v1H0z"/></svg><svg class="unfold" viewBox="0 0 10 8" aria-hidden="true"><path d="M3 0h4v1H3zM0 1h4v1H0zM6 1h4v1H6zM0 1h1v7H0zM9 1h1v7H9zM3 0h1v7H3zM6 0h1v7H6zM3 6h4v1H3zM0 7h4v1H0zM6 7h4v1H6z"/></svg></button>
     </div>
     <div class="minimap" id="minimap" aria-hidden="true"><div id="mmRooms"></div><div class="mm-view" id="mmView"></div></div>
-    <div class="floors" role="radiogroup" aria-label="Floor">
+    <div class="floors" id="floors" role="radiogroup" aria-label="Floor">
       <button class="pbtn fl" id="floor-ground" type="button" role="radio" data-floor="ground" aria-checked="true"><span class="w">Ground</span></button>
       <button class="pbtn fl" id="floor-upper" type="button" role="radio" data-floor="upper" aria-checked="false"><span class="w">Upstairs</span></button>
     </div>
@@ -2182,7 +2188,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   /* ---------- the minimap ---------- */
   // The floor you're on as a plan of rooms, the other floor faint underneath, a pip where a cat needs you,
   // and the camera's view framed. Click to go there, drag to pan, double-click a room to look in, wheel to
-  // zoom. Folded or open is remembered in this browser; it starts folded on a phone.
+  // zoom. Minimised (the whole panel down to its fold button) or open is remembered in this browser; it
+  // starts minimised on a phone.
   // It shows the manor and the catio (MM.box, native px), not the whole grounds, so the rooms read larger.
   const MM = { box: [80, 32, 848, 448], hot: null, drag: null };
   MM.k = 250 / MM.box[2];
@@ -2191,7 +2198,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   function drawMap() {
     const box = $("mmRooms"), k = MM.k;
     box.replaceChildren();
-    if (!S.mapOpen) { foldPip(); return; }
+    foldPip();
+    if (!S.mapOpen) return;
     const [bx, by] = MM.box;
     const put = (cls, [x, y, w, h]) => { const d = el("div", cls); Object.assign(d.style, { left: (x - bx) * k + "px", top: (y - by) * k + "px", width: w * k + "px", height: h * k + "px" }); box.appendChild(d); return d; };
     for (const f of [other(S.floor), S.floor]) {
@@ -2222,14 +2230,17 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     $("minimap").classList.toggle("instant", !animate || reduced());
     Object.assign($("mmView").style, { left: x0 * k + "px", top: y0 * k + "px", width: Math.max(6, (x1 - x0) * k) + "px", height: Math.max(6, (y1 - y0) * k) + "px" });
   }
-  // folded, the fold button carries a pip when a cat that needs you on this floor is off screen
+  // Minimised, the fold button is all that's left of the panel, so it carries a pip for every cat that
+  // needs you and isn't in view: off screen on this floor, or anywhere on the other (the floor tabs are hidden).
   function foldPip() {
     const b = $("mapFold"), old = b.querySelector(".badge"); if (old) old.remove();
-    if (S.mapOpen || !S.cam) return;
-    const [x, y, w, h] = viewBox();
-    const off = VIEW.placed.filter((p) => MOODS[p.cat.mood].needs && levelOf(p.room) === S.floor && (p.x / 2 < x || p.x / 2 > x + w || p.feet / 2 < y || p.feet / 2 > y + h));
-    if (off.length) b.appendChild(pip(off.map((p) => p.cat)));
-    b.setAttribute("aria-label", "Unfold the map" + (off.length ? ", " + off.length + " off screen need you" : ""));
+    let away = [];
+    if (!S.mapOpen && S.cam) {
+      const [x, y, w, h] = viewBox();
+      away = VIEW.placed.filter((p) => MOODS[p.cat.mood].needs && levelOf(p.room) === S.floor && (p.x / 2 < x || p.x / 2 > x + w || p.feet / 2 < y || p.feet / 2 > y + h)).map((p) => p.cat).concat(needOn(other(S.floor)));
+    }
+    if (away.length) b.appendChild(pip(away));
+    b.setAttribute("aria-label", (S.mapOpen ? "Minimise the map" : "Open the map") + (away.length ? ", " + away.length + " out of view need you" : ""));
   }
   function setMapOpen(open, remember) {
     S.mapOpen = open;
@@ -2237,9 +2248,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     $("controls").classList.toggle("folded", !open);
     const f = $("mapFold");
     f.setAttribute("aria-expanded", String(open));
-    f.setAttribute("aria-label", open ? "Fold the map" : "Unfold the map");
-    f.title = (open ? "Fold" : "Unfold") + " the map (M)";
-    f.querySelector(".ico").style.setProperty("--i", open ? 2 : 3);
+    f.title = (open ? "Minimise" : "Open") + " the map (M)";
     drawMap();
   }
   // put a point of the grounds (native px) in the middle of the screen
@@ -2406,13 +2415,14 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     }
     left = Math.max(g, Math.min(Math.max(g, W - mw - g), left));
     top = Math.max(g, Math.min(Math.max(g, H - mh - g), top));
-    // never under the map panel: to its left if there's room, else below it or above it
+    // never under the map panel: to its left, below it or above it, whichever moves it least (minimised, the
+    // panel is one button, and sliding a menu a whole menu-width left to dodge it lands it on its own room)
     const p = $("controls").getBoundingClientRect(), P = [p.left - st.left - g, p.top - st.top - g, p.right - st.left + g, p.bottom - st.top + g];
     const under = (l, t) => l < P[2] && l + mw > P[0] && t < P[3] && t + mh > P[1];
     if (under(left, top)) {
-      if (P[0] - mw >= g) left = P[0] - mw;
-      else if (P[3] + mh <= H - g) top = P[3];
-      else if (P[1] - mh >= g) top = P[1] - mh;
+      const fits = ([l, t]) => l >= g && t >= g && t + mh <= H - g, far = ([l, t]) => Math.hypot(l - left, t - top);
+      const best = [[P[0] - mw, top], [left, P[3]], [left, P[1] - mh]].filter(fits).sort((a, b) => far(a) - far(b))[0];
+      if (best) [left, top] = best;
     }
     MENU.at = [left, top];
     Object.assign(menu.style, { left: left + "px", top: top + "px" });
