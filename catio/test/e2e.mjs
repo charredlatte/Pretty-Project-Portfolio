@@ -1226,6 +1226,28 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     await page.mouse.move(8, 8);
     await settle(page);
   });
+  await check("after a skin redraws the furniture, a filing cabinet under the pointer still outlines the cabinet", async () => {
+    await page.evaluate(() => { for (const p of document.querySelectorAll("#props .piece")) p.dataset.old = "1"; window.__catio.put("skin/cat-work", { src: "art/licensed/mochi-idle.png", at: 1 }); });   // a cat of hers: the house is drawn again
+    try {
+      await page.waitForFunction(() => document.querySelector("#props .piece") && !document.querySelector("#props .piece[data-old]"), null, { timeout: 5000 });
+      const cab = await page.locator('#hits .cabinet[data-room="kitchen"]').boundingBox();
+      await page.mouse.move(cab.x + cab.width / 2, cab.y + cab.height / 2, { steps: 3 });
+      await settle(page);
+      const on = await page.evaluate(() => [...document.querySelectorAll("#props .piece")].filter((e) => getComputedStyle(e).filter.includes("drop-shadow")).map((e) => e.dataset.room + "/" + e.dataset.piece));
+      expect(on.length === 1 && on[0] === "kitchen/filing_cabinet", "outlined: " + JSON.stringify(on));
+      // and with the pointer still on it, a redraw outlines the new piece
+      await page.evaluate(() => { for (const p of document.querySelectorAll("#props .piece")) p.dataset.old = "1"; window.__catio.drop("skin/cat-work"); });
+      await page.waitForFunction(() => document.querySelector("#props .piece") && !document.querySelector("#props .piece[data-old]"), null, { timeout: 5000 });
+      const still = await page.evaluate(() => [...document.querySelectorAll("#props .piece")].filter((e) => getComputedStyle(e).filter.includes("drop-shadow")).map((e) => e.dataset.room + "/" + e.dataset.piece));
+      expect(still.length === 1 && still[0] === "kitchen/filing_cabinet", "after the redraw, outlined: " + JSON.stringify(still));
+    } finally {
+      await page.mouse.move(8, 8); await settle(page);
+      if (await page.evaluate(() => !!window.__catio.store["skin/cat-work"])) {
+        await page.evaluate(() => { for (const p of document.querySelectorAll("#props .piece")) p.dataset.old = "1"; window.__catio.drop("skin/cat-work"); });
+        await page.waitForFunction(() => !document.querySelector("#props .piece[data-old]"), null, { timeout: 5000 });
+      }
+    }
+  });
   await openRoom(page, "kitchen");
   await check("the room under the pointer, and the one its menu belongs to, light up with the white brackets", async () => {
     const ring = await page.locator("#room-kitchen").evaluate((e) => e.classList.contains("lit") && getComputedStyle(e).borderImageSource);
@@ -2931,6 +2953,29 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     await page.click("#lookMode-light"); await settle(page);
     await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
   });
+  await check("the shared Figma file comes out the same in The look and in skin.py as in the gateway and catio_mcp.py", async () => {
+    // harness/test/fixtures: the one file all four read, and what each must find in it
+    const FIX = join(here, "..", "..", "harness", "test", "fixtures");
+    const want = JSON.parse(readFileSync(join(FIX, "tokens-figma.expected.json"), "utf8")), sorted = (o) => JSON.stringify(Object.fromEntries(Object.entries(o).sort()));
+    const kept = await page.evaluate(() => { const t = window.__catio.store["skin/theme"]; delete window.__catio.store["skin/theme"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; return t; });
+    await page.waitForTimeout(500);
+    try {
+      await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+      await page.locator("#tokensFile").setInputFiles(join(FIX, "tokens-figma.json"));
+      await page.waitForFunction(() => /tokens-figma/.test(document.getElementById("toast").textContent));
+      const said = await toast(page), t = await page.evaluate(() => window.__catio.store["skin/theme"].tokens);
+      expect(sorted(t) === sorted(want.found), JSON.stringify(t));
+      expect(new RegExp(Object.keys(want.found).length + " tokens from tokens-figma\\.json.*" + want.foreign + " not the café's.*" + want.refused + " the café's with a value it can't take").test(said), said);
+      const { execFileSync } = await import("node:child_process");
+      const py = JSON.parse(execFileSync("python3", ["-c", "import json, sys; sys.path.insert(0, sys.argv[1]); import skin; f, n, r = skin.from_dtcg(json.load(open(sys.argv[2])), skin.token_names()); print(json.dumps([f, n, r]))",
+        join(here, "..", "tools"), join(FIX, "tokens-figma.json")], { encoding: "utf8" }));
+      expect(sorted(py[0]) === sorted(want.found) && py[1] === want.foreign && py[2] === want.refused, JSON.stringify(py));
+    } finally {
+      await page.evaluate(() => { const d = document.getElementById("artDlg"); if (d && d.open) d.close(); });
+      await page.evaluate((t) => { if (t) window.__catio.put("skin/theme", t); else window.__catio.drop("skin/theme"); }, kept);
+      await page.waitForTimeout(500);
+    }
+  });
   await check("Import tokens… takes the café's own group over a namesake, and refuses a see-through colour or a size out of range rather than call it foreign", async () => {
     const kept = await page.evaluate(() => { const t = window.__catio.store["skin/theme"]; delete window.__catio.store["skin/theme"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; return t; });
     await page.waitForTimeout(500);
@@ -3117,16 +3162,17 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
   });
   await check("an address that climbs out of art/ in disguise is refused, and a cat whose frames aren't square is asked for them", async () => {
     await page.evaluate(() => { window.__catio.put("skin/panel", { src: "art/%2e%2e/%2e%2e/files/x", at: 1 }); window.__catio.put("skin/cat-meow", { src: "art/licensed/ui/logo.png", at: 1 }); });
-    await page.waitForTimeout(700);
     try {
       await closeMenu(page); await page.click("#houseBtn"); await page.locator("#menu .mi", { hasText: "The look" }).click(); await settle(page);
+      // The look redraws as the skin lands: wait for both verdicts rather than for a guess at how long they take
+      await page.waitForFunction(() => ["panel", "cat-meow"].every((k) => /Yours isn't used/.test((document.querySelector("#artDlg li[data-slot='" + k + "']") || {}).textContent || "")), null, { timeout: 5000 });
       // refused as an address, never even fetched: not "couldn't be read", which is what a fetched one that failed says
       const panel = await page.locator("#artDlg li[data-slot='panel']").textContent();
       expect(/isn't a file the café can read/.test(panel), panel);
       const row = await page.locator("#artDlg li[data-slot='cat-meow']").textContent();
       expect(/frames aren't square/.test(row), row);
     } finally {
-      await page.evaluate(() => { const d = document.getElementById("artDlg"); if (d.open) d.close(); window.__catio.drop("skin/panel"); window.__catio.drop("skin/cat-meow"); });
+      await page.evaluate(() => { const d = document.getElementById("artDlg"); if (d && d.open) d.close(); window.__catio.drop("skin/panel"); window.__catio.drop("skin/cat-meow"); });
       await page.waitForTimeout(500);
     }
   });

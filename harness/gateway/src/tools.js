@@ -65,6 +65,16 @@ export const TOOLS = [
 			floor: { type: "number", description: "For the log: the confidence under which you would not act on the answer (it then neither agrees nor disagrees with old)" },
 			ref: said("For the log: what was decided about (the page's brain id), to check the decision against what happened") },
 		["state"]),
+	tool("tokens", "The café's colours and sizes as a design tokens file (the W3C format Figma's variables import as a mode), " +
+		"as The look's Export tokens writes it: mode light (the default) or dark.",
+		{ mode: { type: "string", enum: ["light", "dark"] } }),
+	tool("set_tokens", "Bring a design tokens file into the café's look (the owner or the queen), as The look's Import tokens… " +
+		"does: a token is matched by its own name in any group (the café's own group wins a name found twice), aliases are " +
+		"followed, a see-through colour or a size out of range is refused, and what isn't the café's is left out. With " +
+		"replace, the file is the whole of that mode instead of laid over it. Returns what it did: tokens read, changed, " +
+		"foreign, refused. Open cafés redraw at once.",
+		{ mode: { type: "string", enum: ["light", "dark"] }, file: { type: "object", description: "The design tokens file, as JSON" }, replace: { type: "boolean" } },
+		["file"]),
 	tool("answer", "Hand homework in (the owner only): one answer per question, in order. An unblock quiz's answers reach the cat, as the owner's words, and the queen; a litterbox or decision card's are only kept, for filing.",
 		{ quiz: S, answers: { type: "array", items: S } }, ["quiz", "answers"]),
 ];

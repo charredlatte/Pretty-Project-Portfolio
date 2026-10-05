@@ -45,7 +45,7 @@ class Stdio(unittest.TestCase):
         self.assertEqual(init["result"]["serverInfo"]["name"], "catio")
         self.rpc("notifications/initialized", notify=True)
         names = {t["name"] for t in self.rpc("tools/list")["result"]["tools"]}
-        self.assertEqual(names, {"house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "answer", "decide"})
+        self.assertEqual(names, {"house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "answer", "decide", "tokens", "set_tokens"})
         self.assertIn("preflight", [r["id"] for r in self.tool("house_rules")["rules"]])
 
         # an agent joins, with a wake command that records what it was woken with
@@ -183,6 +183,76 @@ class Serve(unittest.TestCase):
                 urllib.request.urlopen(base + "/api/comment?cat=gem&text=hi")
             self.assertEqual(e.exception.code, 404)
             self.assertEqual(json.loads(post("/api/comments", {"cat": "gem"}).read())["notes"], [])
+        finally:
+            p.terminate(); p.wait(5); p.stdout.close()
+
+
+class Tokens(unittest.TestCase):
+    """tokens and set_tokens on the café a server serves: what The look's Export and Import tokens do, written to its
+    art/skin.json, and the shared Figma file read as the page, skin.py and the gateway read it."""
+    REPO = Path(__file__).resolve().parent.parent.parent
+    FIX = Path(__file__).resolve().parent / "fixtures"
+
+    def cafe(self):
+        folder = Path(tempfile.mkdtemp())
+        (folder / "index.html").write_text((self.REPO / "catio" / "index.html").read_text(encoding="utf-8"), encoding="utf-8")
+        (folder / "art").mkdir()
+        (folder / "art" / "skin.json").write_text(json.dumps({"panel": "art/skin/panel.png"}))
+        return folder
+
+    def stdio(self, folder):
+        return subprocess.Popen([sys.executable, str(SERVER)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
+                                env=dict(os.environ, CATIO_HOME=tempfile.mkdtemp(), CATIO_CAFE=str(folder)))
+
+    def call(self, p, tool, **args):
+        p.stdin.write(json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": tool, "arguments": args}}) + "\n")
+        p.stdin.flush()
+        r = json.loads(p.stdout.readline())["result"]
+        return {"refused": r["content"][0]["text"]} if r.get("isError") else r["structuredContent"]
+
+    def test_brings_a_figma_file_in_and_gives_the_look_back(self):
+        folder = self.cafe()
+        p = self.stdio(folder)
+        try:
+            figma = json.loads((self.FIX / "tokens-figma.json").read_text())
+            want = json.loads((self.FIX / "tokens-figma.expected.json").read_text())
+            r = self.call(p, "set_tokens", file=figma)
+            self.assertEqual((r["mode"], r["tokens"], r["foreign"], r["refused"]), ("light", len(want["found"]), want["foreign"], want["refused"]))
+            skin = json.loads((folder / "art" / "skin.json").read_text())
+            self.assertEqual(skin["tokens"], want["found"])
+            self.assertEqual(skin["panel"], "art/skin/panel.png")   # her pieces stay
+            out = self.call(p, "tokens")["file"]
+            self.assertEqual(out["colours"]["ink"]["$value"]["hex"], "#1d3557")
+            self.assertEqual(out["type"]["px-size"]["$value"], {"value": 20, "unit": "px"})
+            # dark says only what differs: the same as light isn't kept
+            self.assertEqual(self.call(p, "set_tokens", mode="dark", file={"colours": {"ink": {"$value": "#eeeeee"}, "grass": {"$value": "#5A8F29"}}})["changed"], 1)
+            self.assertEqual(json.loads((folder / "art" / "skin.json").read_text())["dark"], {"--ink": "#eeeeee"})
+            self.assertEqual(self.call(p, "tokens", mode="dark")["file"]["colours"]["grass"]["$value"]["hex"], "#5a8f29")
+            self.assertRegex(self.call(p, "set_tokens", file={"brand": {"red": {"$value": "#ff0000"}}})["refused"], r"none of the café's tokens \(1 of its own\)")
+            self.assertRegex(self.call(p, "set_tokens", mode="dusk", file=figma)["refused"], "mode is light or dark")
+        finally:
+            p.stdin.close(); p.wait(5); p.stdout.close()
+
+    def test_says_when_it_has_no_cafe(self):
+        p = self.stdio(tempfile.mkdtemp())
+        try:
+            self.assertRegex(self.call(p, "tokens")["refused"], "no café folder here")
+        finally:
+            p.stdin.close(); p.wait(5); p.stdout.close()
+
+    def test_serves_its_own_cafe(self):
+        folder = self.cafe()
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0)); port = s.getsockname()[1]
+        env = {k: v for k, v in os.environ.items() if k != "CATIO_CAFE"}
+        p = subprocess.Popen([sys.executable, str(SERVER), "--serve", str(folder), "--port", str(port)], stdout=subprocess.PIPE,
+                             env=dict(env, CATIO_HOME=tempfile.mkdtemp()))
+        try:
+            p.stdout.readline()
+            req = urllib.request.Request("http://127.0.0.1:%d/api/set_tokens" % port,
+                                         json.dumps({"file": {"colours": {"ink": {"$value": "#1D3557"}}}}).encode(), {"Content-Type": "application/json"})
+            self.assertEqual(json.loads(urllib.request.urlopen(req).read())["changed"], 1)
+            self.assertEqual(json.loads((folder / "art" / "skin.json").read_text())["tokens"], {"--ink": "#1D3557"})
         finally:
             p.terminate(); p.wait(5); p.stdout.close()
 

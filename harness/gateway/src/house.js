@@ -7,6 +7,7 @@ import { DurableObject } from "cloudflare:workers";
 import RULES from "../../rules.json";
 import { MOODS } from "./tools.js";
 import { BadQuestion, NoAnswer, confidence, decide, verdict } from "./decide.js";
+import { importInto, toDTCG } from "./tokens.js";
 
 const FIELDS = ["name", "model", "provider", "title", "project", "repo", "branch", "ask", "link", "session", "via", "cwd", "room"];
 const MAX_FILE = 1024 * 1024;   // a free Worker gets 10 ms of CPU a request: bigger files go through the brain
@@ -275,6 +276,25 @@ const TOOLS = {
 			h.dropDoc("quizzes/" + id); gone++;
 		}
 		return { forgotten: gone };
+	},
+
+	// The café's look as a design tokens file, and a file brought into it (src/tokens.js): what The look's Export tokens
+	// and Import tokens… do, for a session with the Figma connector. Anyone may read it; only the owner and the queen
+	// change her look, so a leaked agents' key can't restyle the café.
+	tokens(h, args) {
+		const mode = args.mode === "dark" ? "dark" : "light";
+		return { mode, file: toDTCG(h.getDoc("skin/theme"), mode) };
+	},
+
+	set_tokens(h, args, who) {
+		if (who !== OWNER && who !== QUEEN) throw new Refusal("only the owner or the queen changes the café's look");
+		if (args.mode !== undefined && args.mode !== "light" && args.mode !== "dark") throw new Refusal("mode is light or dark");
+		const file = typeof args.file === "string" ? (() => { try { return JSON.parse(args.file); } catch { return null; } })() : args.file;
+		if (!file || typeof file !== "object" || Array.isArray(file)) throw new Refusal("file is a design tokens file, as JSON");
+		const { theme, report } = importInto(h.getDoc("skin/theme"), args.mode || "light", file, args.replace === true);
+		if (!report.tokens && !report.refused) throw new Refusal("the file has none of the café's tokens" + (report.foreign ? " (" + report.foreign + " of its own)" : ""));
+		if (theme) h.putDoc("skin/theme", theme); else if (h.getDoc("skin/theme")) h.dropDoc("skin/theme");
+		return report;
 	},
 
 	answer(h, args, who) {

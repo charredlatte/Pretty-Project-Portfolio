@@ -189,7 +189,7 @@ Agents anywhere can join it too, over MCP with the agents' key. Setting it up is
 
 `mcp/catio_mcp.py` is plain Python (standard library only). State is kept in `~/.catio/` (or
 `$CATIO_HOME`). Its tools: `house_rules`, `report_status`, `list_agents`, `inbox`, `pick_up`,
-`drop_file`, `comment`, `comments`, `manage`.
+`drop_file`, `comment`, `comments`, `manage`, the homework tools, `decide`, and `tokens` and `set_tokens` (below).
 
 An agent calls `report_status` when it starts, when it needs Charlotte and when it's done, and it
 becomes a cat. If it registers a `wake` command, anything dropped on it or said to it runs that command
@@ -219,6 +219,28 @@ In the Claude desktop app, the Catio page reaches the same server as `host:catio
 in the manor next to the Claude Code sessions. On her own computer, `python3 catio_mcp.py --serve
 catio-local` serves the localhost copy of the Catio together with the tools, as `/api/*`. They answer only POSTs
 from that page, at `localhost` or `127.0.0.1`, so no other site she has open can talk to a cat.
+
+### The café's look as a design tokens file
+
+`tokens` and `set_tokens`, on the gateway and here alike, carry the café's colours and sizes in and out as a design
+tokens file (the W3C format Figma's variables import and export as a mode): what The look's Export tokens and Import
+tokens… do, for a session with the Figma connector, or anything else, to bring a palette in or take one out without
+her clicking. `tokens {mode}` gives the light (default) or dark mode's file; `set_tokens {mode, file, replace}` brings
+one in with The look's rules (a token found by its own name in any group, the café's own group winning a name found
+twice, aliases followed, see-through colours and sizes out of range refused, the rest not the café's) and says what
+it did: `{mode, tokens, changed, foreign, refused}`. A value the same as it would be anyway isn't kept, and dark keeps
+only what differs from light.
+
+- **On the gateway** it is `skin/theme` in her house, and an open café redraws at once. Anyone may read it; only she
+  and the queen may write it, so a leaked agents' key can't restyle her café. The café in claude.ai keeps its own
+  look in the artifact's database: a session writes that `skin/theme` with `ArtifactData`.
+- **Here** it is `art/skin.json` beside the café this serves (`--serve DIR`, else `$CATIO_CAFE`, else the repo's
+  `catio/`), which the localhost copy reads when it opens.
+- **One set of rules, four places.** The token table, its size ranges and the café's own values are read from the
+  page itself (`gateway/src/tokens.js`, `mcp/design_tokens.py`), never copied; the rules follow the page's
+  `fromDTCG` and `toDTCG` line for line, as `catio/tools/skin.py` does. `test/fixtures/tokens-figma.json` is read by
+  all four (the page's suite, `skin.py`, the gateway's test and `test_mcp.py`), and each must find
+  `tokens-figma.expected.json`.
 
 ## Digesting a repo: graphify
 
