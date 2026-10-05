@@ -130,8 +130,12 @@ screenshots' worth of detail, are in [`harness/gateway/README.md`](harness/gatew
    random string: the key your cats check in with), `CATIO_PASSWORD` (your own sign-in, 16 characters or more) and
    `CATIO_QUEEN` (another long random string: the driver's key). Keep all three in your password manager and
    nowhere else.
-3. On claude.ai, Customize → Connectors → Add → Custom → Web. Name it `CATIO`, URL `<the address>/mcp`, sign in
-   with `CATIO_PASSWORD`, then open the connector and set its tools to **Always allow**.
+3. Your handle. The first account is named by a Worker **variable** (Settings → Variables and Secrets, type Text)
+   called `CATIO_HANDLE`: set it to the name you want to sign in with (2 to 31 lower-case letters, digits or
+   dashes) before the first sign-in, or the account is called `charlotte`. Deploy once more.
+4. On claude.ai, Customize → Connectors → Add → Custom → Web. Name it `CATIO`, URL `<the address>/mcp`, sign in
+   with your handle and `CATIO_PASSWORD` (five wrong tries lock the handle for a quarter of an hour), then open
+   the connector and set its tools to **Always allow**.
 
 **It worked when** opening the Worker's address in a browser asks for your handle and password, and the café's House
 menu says the cats are live.
@@ -159,8 +163,10 @@ and its cat in the café turns busy as it works.
 ### Step 6: the driver. Ninine's runner, on your computer
 
 Ninine thinks on your own computer, with your own Claude plan, so she costs nothing extra and runs only while your
-computer does. Set two variables once (`setx` on Windows, `export` on a Mac or Linux) and start her from the
-repository's folder:
+computer does. Give her the desk's address and her key, then start her from the repository's folder.
+
+On Windows, in PowerShell (`setx` keeps the two variables for every new window, so open a new one before the last
+line):
 
 ```powershell
 setx CATIO_URL "https://catio-gateway.<your name>.workers.dev"
@@ -168,10 +174,18 @@ setx CATIO_QUEEN "<the third secret>"
 python harness\runner\queen.py
 ```
 
-Open a new terminal window between the `setx` lines and the last one. **It worked when** the window says *the
-queen's runner is up* and, in the café, pointing at Ninine says she is here. Keep the window open; close it and she
-falls asleep in the café. [`harness/runner/README.md`](harness/runner/README.md) has the Windows and Mac details and
-how to start her with the computer.
+On a Mac or Linux, in the same terminal window (`export` lasts only for that window; put the two lines in
+`~/.zshrc` or `~/.bashrc` to keep them):
+
+```bash
+export CATIO_URL="https://catio-gateway.<your name>.workers.dev"
+export CATIO_QUEEN="<the third secret>"
+python3 harness/runner/queen.py
+```
+
+**It worked when** the window says *the queen's runner is up* and, in the café, pointing at Ninine says she is
+here. Keep the window open; close it and she falls asleep in the café. [`harness/runner/README.md`](harness/runner/README.md)
+has the details and how to start her with the computer.
 
 ### Step 7: the keys. Open the doors
 
