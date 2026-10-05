@@ -6,19 +6,19 @@
 set -e
 T=$(cd "$(dirname "$0")" && pwd)
 P=$(dirname "$T")
-# The suite assumes this checkout has the licensed art. Without it every check that hands the page a file
-# from art/licensed/ fails -- the whole of The look's section, and the gateway sign -- so the run says
-# nothing about the page. Say so loudly: art/licensed/ is gitignored, so a fresh clone and every cloud
-# session start without it, and reading those failures as breakage costs an hour. CLAUDE.md,
+# The suite assumes this checkout has the licensed art. Without it the page quite correctly shows its
+# no-art warning on the status sign, so the check that wants a clear sign cannot pass, and the checks of
+# The look and a skin can't either: they read the packs' files from art/licensed/ to stand in for her own
+# drawings. A run without it is therefore not a verdict. Say so, so it doesn't read as a regression:
+# art/licensed/ is gitignored, so a fresh clone and every cloud session start without it. CLAUDE.md,
 # "Republishing", has the two ways back (one Artifact read from the published page, or her zips).
 if [ ! -d "$P/art/licensed" ]; then
   echo "note: $P/art/licensed/ is missing, so this run is NOT a verdict."
-  echo "      Every check that hands the page a file from art/licensed/ fails without it: the whole of"
-  echo "      The look's section, and the gateway sign. Measured on 5 October 2026: 29 failures; with the"
-  echo "      art in place, all 339 checks pass. Don't read those 29 as the page being broken."
+  echo "      Expect 29 failures (5 October): the one that wants no warning sign, and the checks of The"
+  echo "      look and a skin, which read the packs' files. With the art there, all 339 pass."
   echo "      Get it back first, one call of a few seconds: CLAUDE.md, \"Republishing\", route 1 reads all"
   echo "      38 files from the published artifact in a single Artifact read with \"paths\"."
-  echo "      After that, a failure is real."
+  echo "      After that, a failure is real. Until then it is the missing art, not the page."
   echo
 fi
 {

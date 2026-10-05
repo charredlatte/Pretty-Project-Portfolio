@@ -1537,7 +1537,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   function queenLine(q) {
     const st = q.state || queenState();
     if (q.pinned.length && st !== "busy") return q.pinned[0].text;
-    if (st === "away") return "Away: start her runner on your PC to talk to her.";
+    if (st === "away") return S.live.state === "local" ? "Away: she only wakes in a café with a front desk (a gateway). On this computer she stays asleep." : "Away: start her runner on your PC to talk to her.";
     if (st === "busy") return "Answering\u2026";
     // a cat waiting on your answer comes first, then what the cats brought her, then the notes and decisions to get through
     const unblock = openQuizzes().some((z) => kindOf(z) === "unblock");
@@ -2720,7 +2720,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       case "not_in_manifest": case "consent_required":
         return { message: "This page isn't allowed to read your Claude Code sessions yet.", action: { label: "Allow", run: allow } };
       case "approval_required": case "blocked_by_policy":
-        return { message: "claude.ai doesn't let pages read your Claude Code sessions live yet. Claude Code Remote is built in, so it has no switch in your Connectors list: there's nothing for you to change.", action: reload };
+        return { message: "claude.ai doesn't let pages read your Claude Code sessions live yet. Claude Code Remote is built in, so it has no switch in your Connectors list: there's nothing for you to change. To see your cats anyway, ask Claude, in a Claude Code chat, to save a copy of your sessions to this café: they show here as of then.", action: reload };
       case "not_granted": case "capability_disabled": case "capability_removed":
         return { message: "Live sessions can't load in this view. Open the page in claude.ai to see them." };
       case "tool_error":
@@ -3289,7 +3289,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       const was = work.querySelector("details"); if (was) workOpen = was.open;   // its toggle event may not have run yet
       work.replaceChildren(); work.hidden = !key; work.className = "qwork";
       if (!key) return;
-      if (key === "away") { work.classList.add("away"); work.appendChild(el("p", "qaway", "She's asleep: start her runner. She'll answer when she wakes.")); return; }
+      if (key === "away") { work.classList.add("away"); work.appendChild(el("p", "qaway", S.live.state === "local" ? "She's asleep: she only wakes in a café with a front desk (a gateway), so on this computer she can't answer." : "She's asleep: start her runner. She'll answer when she wakes.")); return; }
       const label = el("span", "sr");   // what a screen reader hears: the step, not the ticking seconds
       label.setAttribute("role", "status");
       if (key.startsWith("wake")) {   // Animal Crossing: her name on a tab, the dots stepping in
@@ -4048,8 +4048,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const door = () => (A.door && A.open.includes(A.door) ? A.door : open()[0]);
     const nameOf = (k) => A.names[k].trim() || GEOM[k].name;
     const sessions = () => (S.liveSessions || []).filter((s) => !isWarmStart(s)).length;
+    const checkedIn = () => S.agents.filter((a) => a.id !== QUEEN_ID).length;   // the queen is no session (CLAUDE.md, "The house has one queen")
     const queen = () => queenOf().name;   // she drives the car: Ninine, unless the café has named her
-    let step = 0, timer = null;
+    let step = 0, timer = null, looked = 0;   // looked: how long the Sessions step has waited for the front desk
 
     const steps = [
       () => {
@@ -4089,8 +4090,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       () => {
         const sec = el("div", "dlg");
         sec.appendChild(el("p", "note", "The tires. Your repositories are where the work meets the road."));
-        if (!S.mcp) {
+        if (!S.mcp || VIA_GATEWAY) {   // the gateway's runtime refuses every Claude Code Remote call (gateway_only): no button that can only fail
           sec.appendChild(el("p", "note", local ? "On this computer the page can't ask GitHub for your repositories. List them under Edit rooms, when you have the page open in claude.ai or by hand."
+            : VIA_GATEWAY ? "On the café's own address the page can't ask GitHub for your repositories: only claude.ai can. Type them in under Edit rooms, each in the room it belongs to."
             : "The page can't reach Claude Code Remote in this view, so it can't list your repositories. File them under Edit rooms."));
           return sec;
         }
@@ -4142,8 +4144,15 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         if (local) sec.appendChild(el("p", "note", "On this computer the cats are the saved copy of your sessions, data/sessions.json. Ask Claude to refresh it for newer cats."));
         else if (L.state === "loading") { sec.appendChild(el("p", "note", "Looking for your sessions…")); timer = setTimeout(() => { if (dlg.open && step === 3) goStep(3); }, 800); }
         else if (L.state === "ok") sec.appendChild(el("p", "note", sessions() + (sessions() === 1 ? " session" : " sessions") + " found. They'll move in when you open the doors."));
-        else {
+        else if (L.state === "gateway") {
+          // the cats here are the sessions that check in with the café
+          if (!S.hostAt && looked++ < 6) { sec.appendChild(el("p", "note", "Looking for your cats…")); timer = setTimeout(() => { if (dlg.open && step === 3) goStep(3); }, 800); }
+          else if (checkedIn()) sec.appendChild(el("p", "note", checkedIn() + (checkedIn() === 1 ? " cat has" : " cats have") + " checked in. They'll move in when you open the doors."));
+          else sec.appendChild(el("p", "note", "No session has checked in yet. They will once the plugin and your key are set up (How it works, two steps on)."));
+        } else {
           sec.appendChild(el("p", "note", L.message));
+          // Claude's saved copy stands in for a blocked read: one line, so the step isn't a dead end
+          if (S.from === "copy" && S.sessions && S.sessions.length) sec.appendChild(el("p", "note", "Meanwhile the café shows Claude's saved copy: " + S.sessions.length + (S.sessions.length === 1 ? " session" : " sessions") + ", as of " + new Date(S.sessionsAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) + "."));
           const skip = el("button", "btn", "Skip for now"); skip.type = "button"; skip.id = "liveSkip"; skip.addEventListener("click", () => goStep(4));
           sec.appendChild(skip);
         }
@@ -4174,11 +4183,14 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
           const li = el("li"); li.append(el("b", null, t), document.createTextNode(d)); ul.appendChild(li);
         }
         sec.appendChild(ul);
-        sec.appendChild(el("p", "note", "The seatbelts and brakes come as a Claude Code plugin. Two lines fit them:"));
+        sec.appendChild(el("p", "note", VIA_GATEWAY
+          ? "The seatbelts and brakes, and every cat's check-in, come as one Claude Code plugin. Type these two lines in a terminal where Claude Code is installed (or put them in a cloud environment's setup script), then give your sessions this café's address and your key (the one your sign-up page showed you once) as CATIO_URL and CATIO_TOKEN. Without all three, no cat checks in."
+          : "The seatbelts and brakes come as one Claude Code plugin. Type these two lines in a terminal where Claude Code is installed, or put them in a cloud environment's setup script. With a front desk (a gateway), the same plugin is how every cat checks in there: give your sessions its address and your key as CATIO_URL and CATIO_TOKEN."));
         const pre = el("pre", null, INSTALL); pre.id = "installLines";
         const cp = el("button", "btn", "Copy"); cp.type = "button"; cp.id = "copyInstall";
         cp.addEventListener("click", async () => { try { await navigator.clipboard.writeText(INSTALL); toast("Copied."); } catch (e) { toast("Couldn't copy: select the lines instead.", "alert"); } });
         sec.append(pre, cp);
+        if (VIA_GATEWAY) { const url = el("pre", null, "CATIO_URL=" + location.origin); url.id = "cafeAddress"; sec.append(el("p", "note", "This café's address:"), url); }
         return sec;
       },
       () => {
@@ -4187,7 +4199,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         const ul = el("ul", "sum");
         const repos = Object.values(filed()).reduce((n, v) => n + v.length, 0);
         for (const t of [A.name.trim() || "KittyChat Café", A.open.length + (A.open.length === 1 ? " room open" : " rooms open"),
-          repos + (repos === 1 ? " repository filed" : " repositories filed"), S.mcp && S.live.state === "ok" ? sessions() + (sessions() === 1 ? " cat at the door" : " cats at the door") : null].filter(Boolean)) ul.appendChild(el("li", null, t));
+          repos + (repos === 1 ? " repository filed" : " repositories filed"), S.mcp && S.live.state === "ok" ? sessions() + (sessions() === 1 ? " cat at the door" : " cats at the door")
+            : S.live.state === "gateway" && checkedIn() ? checkedIn() + (checkedIn() === 1 ? " cat checked in" : " cats checked in")
+            : !local && S.from === "copy" && S.sessions && S.sessions.length ? S.sessions.length + (S.sessions.length === 1 ? " cat from Claude's saved copy" : " cats from Claude's saved copy") : null].filter(Boolean)) ul.appendChild(el("li", null, t));
         sec.appendChild(ul);
         return sec;
       },
@@ -5433,7 +5447,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     else if (local) {
       S.live = { state: "local", message: "Running on this computer." }; pick(); render();
       // served by harness/mcp/catio_mcp.py --serve: the other agents come through /api
-      fetch("api/list_agents", { cache: "no-store" }).then((r) => r.ok ? r.json() : null).then((j) => { if (j && Array.isArray(j.agents)) { S.host = "api"; refreshAgents(); setInterval(refreshAgents, 60000); } }).catch(() => {});
+      fetch("api/list_agents", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}", cache: "no-store" }).then((r) => r.ok ? r.json() : null).then((j) => { if (j && Array.isArray(j.agents)) { S.host = "api"; refreshAgents(); setInterval(refreshAgents, 60000); } }).catch(() => {});
     }
     else { S.live = { state: "error", message: "Live sessions can't load in this view. Open the page in claude.ai to see them." }; pick(); render(); }
   });

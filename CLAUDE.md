@@ -474,7 +474,7 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
   `CATIO_PASSWORD` (her sign-in, nowhere else) and `CATIO_QUEEN` (the queen's runner, on her PC). Never in the
   repo, the chat or a test. With accounts (`src/registry.js`), the first two make the first account once; the
   queen's is a registry key with the role `queen`, kept in step with the secret at every start.
-- **Only she speaks as herself, and only her runner as the queen.** OAuth (her password, through the `Catio`
+- **Only she speaks as herself, and only her runner as the queen.** OAuth (her password, through the `CATIO`
   connector in claude.ai) may write as `owner`, drop files and manage; the queen's key writes as `queen`,
   tells cats and manages them for her; the agents' key may do neither. Keep it that way: it is what stops a
   leaked key from putting instructions in her mouth, or in her assistant's, which the cats act on.
@@ -599,14 +599,15 @@ proves the page does what she asked. In this order:
    stub's invented cats. Open each and hold it against her words, one ask at a time ("no z Z": find a
    sleeping cat). A sprite sheet isn't in the DOM and no test can see it: open the sheet too. Not what she
    asked for? Back to 1.
-3. **Run the test unchanged:** `sh catio/test/run.sh` (about two minutes). Every failure should be something
+3. **Run the test unchanged:** `sh catio/test/run.sh` (about seven minutes). Every failure should be something
    she asked to change. One she didn't is a regression: fix the page, not the test.
    **The suite needs `art/licensed/`, and a run without it is not a verdict.** It is gitignored, so a fresh
-   clone or cloud session hasn't got it, and every check that hands the page a file from there fails: the
-   whole of The look's section, and the gateway sign. On 5 October 2026 that was **29 failures of 339
-   checks, and all 339 passed once the art was back**. So a red run without the art says nothing about the
-   page, and reading those 29 as breakage costs an hour. Get the art back first -- route 1 under
-   "Republishing" is one `Artifact` read -- then run. `run.sh` says the same when it starts.
+   clone or cloud session hasn't got it, and without it the page correctly draws its no-art warning on the
+   status sign: the check that wants no warning sign then fails, and so do the checks of The look and a
+   skin, which read the packs' files from `art/licensed/` to stand in for her own (on 5 October 2026: **29
+   of 339 checks fail, every one of them needing the art; with it back, all 339 pass**). That is the missing
+   art, not the page, and reading those 29 as breakage costs an hour. Get the art back first -- route 1
+   under "Republishing" is one `Artifact` read -- then run. `run.sh` says the same when it starts.
 4. **Rewrite only those checks, from her words:** what must be true now, not which class names went away
    (`#cats .cat > :not(.spr)`, not a list of deleted classes). Then the whole suite: all checks must pass.
 

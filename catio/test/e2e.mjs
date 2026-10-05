@@ -2424,6 +2424,33 @@ if (LOCAL) {
   });
   await ctx.close();
 }
+// The walkthrough's localhost player: catio_mcp.py --serve answers its tools by POST only, so the page must ask it that
+// way; and with no front desk the queen can't wake, so she says so instead of "start her runner".
+if (LOCAL) {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+  const page = await ctx.newPage();
+  const errors = [], asked = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.route("**/api/list_agents", (r) => {
+    asked.push(r.request().method());
+    if (r.request().method() !== "POST") return r.fulfill({ status: 404, contentType: "application/json", body: '{"error": "the tools are POST only"}' });
+    return r.fulfill({ contentType: "application/json", body: JSON.stringify({ agents: [] }) });
+  });
+  await page.goto(LOCAL);
+  for (let i = 0; i < 100 && asked.length < 2; i++) await page.waitForTimeout(50);   // the probe, then refreshAgents: up to 5 s
+  await check("on localhost the page asks catio_mcp.py --serve for its agents by POST", async () =>
+    expect(asked.length >= 2 && asked.every((m) => m === "POST"), "asked by " + asked.join(", ")));
+  await toFloor(page, "ground");
+  await page.mouse.move(8, 8);
+  await page.locator("#cats .cat.queen").hover();
+  await settle(page);
+  await check("on localhost the queen's hover says she only wakes with a front desk, not to start a runner", async () => {
+    const t = await page.locator("#tip").innerText();
+    expect(t.includes("front desk") && !t.includes("runner"), t);
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
 
 /* ---------- 9. the UI audit's leftovers (phase 0): alerts that stay, the sorter's time limit, Still cats ---------- */
 {
@@ -2797,6 +2824,47 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
     expect(dlg2.x >= 0 && dlg2.x + dlg2.width <= 390, JSON.stringify(dlg2));
     expect(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), "horizontal scroll");
   });
+  await ctx.close();
+}
+// The walkthrough's invitee, on the café's own address: no GitHub button that can only fail, the cats that checked in
+// counted, and How it works saying the plugin is how a cat checks in, where to type the lines and the two variables.
+{
+  const { page, ctx, errors } = await open("?via=gateway&mode=empty");
+  const nextStep = async () => { await page.click("#setupDlg button[type=submit]"); await settle(page); };
+  await wizard(page);
+  await nextStep(); await nextStep();
+  await check("on its own address the GitHub step offers no Connect GitHub, and says to file repositories under Edit rooms", async () => {
+    const t = await page.locator("#setupDlg").innerText();
+    expect(await page.locator("#ghConnect").count() === 0, "a Connect GitHub that can only fail");
+    expect(t.includes("Edit rooms") && !t.includes("Claude GitHub App"), t);
+  });
+  await nextStep();
+  await check("on its own address the Sessions step counts the cats that checked in", async () => {
+    const t = await page.locator("#setupDlg").innerText();
+    expect((await page.locator("#setupTitle").innerText()) === "Sessions", await page.locator("#setupTitle").innerText());
+    expect(t.includes("2 cats have checked in"), t);
+  });
+  await nextStep(); await nextStep();
+  await check("on its own address How it works says the plugin checks the cats in, where to type it, and CATIO_URL and CATIO_TOKEN", async () => {
+    const t = await page.locator("#setupDlg").innerText();
+    expect(t.includes("check-in") && t.includes("terminal") && t.includes("CATIO_URL") && t.includes("CATIO_TOKEN"), t);
+    expect((await page.locator("#cafeAddress").innerText()).startsWith("CATIO_URL="), "no address");
+  });
+  await check("no page errors through the wizard on its own address", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+{
+  const { page, ctx, errors } = await open("?mode=blocked");
+  const nextStep = async () => { await page.click("#setupDlg button[type=submit]"); await settle(page); };
+  await page.click("#houseBtn");
+  await menuButton(page, "Set up again…").click();
+  await wizard(page);
+  await nextStep(); await nextStep(); await nextStep();
+  await check("with the live read blocked, the Sessions step says to ask Claude for a saved copy, and shows the one there is", async () => {
+    const t = await page.locator("#setupDlg").innerText();
+    expect(t.includes("save a copy of your sessions") && t.includes("Claude's saved copy"), t);
+  });
+  await check("no page errors in the blocked wizard", async () => expect(errors.length === 0, errors.join("; ")));
   await ctx.close();
 }
 

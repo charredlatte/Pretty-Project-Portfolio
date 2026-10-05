@@ -10,7 +10,7 @@ keeps its cats, their conversations and the files waiting for them in one SQLite
 
 ```
  Claude Code sessions ── report.py hook ──┐
- Codex, Gemini, Cursor… ── MCP + key ─────┼──►  catio-gateway (Cloudflare)  ◄── claude.ai: the "Catio" connector,
+ Codex, Gemini, Cursor… ── MCP + key ─────┼──►  catio-gateway (Cloudflare)  ◄── claude.ai: the "CATIO" connector,
  her PC's sessions ── report.py hook ─────┘      /mcp, /authorize, /token        which the page reads as her
 ```
 
@@ -29,7 +29,8 @@ it is the admin, which uploads the café's art, creates the other accounts and i
 
 ## Setting it up (once)
 
-1. **Cloudflare.** Workers & Pages → Create → Import a repository → `charredlatte/Pretty-Project-Portfolio`.
+1. **Cloudflare.** Workers & Pages → Create → Import a repository → `charredlatte/Pretty-Project-Portfolio`
+   (on a gateway that isn't hers, your fork of it).
    - Name it `catio-gateway`. Cloudflare fills in the repo's name, `pretty-project-portfolio`: replace it, because
      the Worker's name must match `wrangler.jsonc` or later deploys fail. A Worker made under the wrong name is
      simplest deleted (Settings → Danger zone) and imported again; delete its leftover KV namespace too.
@@ -60,11 +61,12 @@ it is the admin, which uploads the café's art, creates the other accounts and i
      reports is in it, and a cloud session doesn't install it by itself.
 
    On her PC, the same two variables go under `"env"` in `~/.claude/settings.json`, for local sessions.
-4. **claude.ai.** Customize → Connectors → Add → Custom → Web. Name it `Catio`, with the URL `<address>/mcp`. A
-   window opens on the gateway's sign-in page: type `CATIO_PASSWORD` and choose *Let it in*. Then open the
-   connector and set its tools to **Always allow**. That setting is the one Claude Code Remote, being built in,
-   doesn't have, and the reason the page's live read is refused today.
-5. Tell Claude it's done. The page is then republished to read the `Catio` connector (docs/plan.md, phase 5).
+4. **claude.ai.** Customize → Connectors → Add → Custom → Web. Name it `CATIO`, with the URL `<address>/mcp`: the
+   name matters, because the page looks for a connector called `CATIO` exactly. A window opens on the gateway's
+   sign-in page: type the handle (`CATIO_HANDLE`, or `charlotte` when it is unset) and `CATIO_PASSWORD`, and choose
+   *Let it in*. Then open the connector and set its tools to **Always allow**. That setting is the one Claude Code
+   Remote, being built in, doesn't have, and the reason the page's live read is refused today.
+5. Tell Claude it's done. The page is then republished to read the `CATIO` connector (docs/plan.md, phase 5).
 
 To check: the address alone asks for her handle and password (the café's sign-in), so it says the Worker is up. Until
 there is an account, both sign-ins show the setup's warning lights instead of a form: each of the four secrets as this
