@@ -2,11 +2,12 @@
 // the same page as in claude.ai (catio/index.html), with cafe/runtime.js standing in for what claude.ai gives a
 // page. Each user sees their own, behind their password: the page, the brain's files and the café's database of
 // their house, and the gateway's tools, which they use as the house's owner. The licensed art (never in the repo)
-// is shared, uploaded once with an admin's key. An open café keeps a WebSocket to its house and hears every change.
+// is uploaded once with an admin's key and served to the first house alone: its licences are personal. People an
+// admin invites make their own account at /signup. An open café keeps a WebSocket to its house and hears every change.
 import PAGE from "../../../catio/index.html";
 import RUNTIME from "../cafe/runtime.js";
 import { esc, page } from "./signin.js";
-import { randomToken, sha256 } from "./secret.js";
+import { MIN_SECRET, randomToken, sha256 } from "./secret.js";
 import { bootProblem, hasAccount, registry } from "./registry.js";
 import { FIRST_HOUSE, fileKeys } from "./houses.js";
 
@@ -64,7 +65,68 @@ ${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}
 <label for="password">Your Catio password</label>
 <input id="password" name="password" type="password" autocomplete="current-password" required>
 <div class="row"><button class="go">Come in</button></div>
-</form>`, status);
+</form>
+<p class="soft">Invited? <a href="/signup">Make your account</a>.</p>`, status);
+}
+
+function signUpPage(invite = "", user = "", problem = "", status = 200) {
+	return page("Join the KittyChat Café", `<h1>Join the KittyChat Café</h1>
+<p>A café of your own, for your own cats. You need an invite from its admin.</p>
+${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}
+<form method="post" action="/signup">
+<label for="invite">Your invite</label>
+<input id="invite" name="invite" value="${esc(invite)}" autocomplete="off" autocapitalize="none" spellcheck="false" required${invite ? "" : " autofocus"}>
+<label for="user">Pick a handle</label>
+<input id="user" name="user" value="${esc(user)}" autocomplete="username" autocapitalize="none" spellcheck="false" required pattern="[A-Za-z0-9][A-Za-z0-9-]{1,30}"${invite ? " autofocus" : ""}>
+<p class="soft">2 to 31 letters, digits or dashes. It is how you sign in, here and in Claude.</p>
+<label for="password">A password</label>
+<input id="password" name="password" type="password" autocomplete="new-password" minlength="${MIN_SECRET}" required>
+<label for="again">The password again</label>
+<input id="again" name="again" type="password" autocomplete="new-password" minlength="${MIN_SECRET}" required>
+<p class="soft">${MIN_SECRET} characters or more. Nobody can show it to you again: an admin can only set a new one.</p>
+<div class="row"><button class="go">Make my café</button></div>
+</form>
+<p class="soft">Have an account? <a href="/">Sign in</a>.</p>`, status);
+}
+
+// a form posted from the café's own address: the cookie is SameSite=Strict, and the Origin, when sent, must be ours
+const sameOrigin = (request) => { const o = request.headers.get("Origin"); return !o || o === new URL(request.url).origin; };
+
+/** The admin's page for invites: make one (shown once, as a link to pass on), or take back every unused one. */
+function invitePage(open, made = null, note = "") {
+	return page("Invite someone", `<h1>Invite someone</h1>
+<p>An invite lets one person make an account and a café of their own. It works once, for a week.</p>
+${made ? `<p><strong>Send them this link.</strong> It is shown this once:</p>
+<p><input readonly value="${esc(made)}" aria-label="The invite link"></p>` : ""}
+${note ? `<p>${esc(note)}</p>` : ""}
+<p class="soft">${open === 1 ? "1 invite is" : `${open} invites are`} out and unused.</p>
+<form method="post" action="/invite">
+<div class="row"><button class="go" name="do" value="make">Make an invite</button>${open ? `<button name="do" value="drop">Take back unused invites</button>` : ""}</div>
+</form>
+<p class="soft">They see only their own café. The packs' art stays yours: their café is drawn plainly.</p>
+<p class="soft"><a href="/">Back to the café</a></p>`);
+}
+
+const signedInAs = async (reg, user) => {
+	const token = randomToken();
+	await reg.login(await sha256(token), user.id, Date.now() + STAY);
+	return new Response(null, { status: 303, headers: {
+		Location: "/",
+		"Set-Cookie": `${COOKIE}=${token}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=${STAY / 1000}`,
+	} });
+};
+
+async function signUp(request, env) {
+	if (!(await hasAccount(env))) return signUpPage("", "", NO_ACCOUNT(), 503);
+	if (!sameOrigin(request)) return signUpPage("", "", "Sign up from this page.", 403);
+	const form = await request.formData();
+	const invite = String(form.get("invite") || "").trim(), user = String(form.get("user") || "").trim();
+	const password = String(form.get("password") || "");
+	if (password !== String(form.get("again") || "")) return signUpPage(invite, user, "The two passwords aren't the same.", 400);
+	const reg = await registry(env);
+	const made = await reg.signUp(invite, user, password);
+	if (made.error) return signUpPage(invite, user, made.error, 400);
+	return signedInAs(reg, made.user);
 }
 
 const NO_ACCOUNT = () => { const why = bootProblem(); return "The gateway has no account yet: add CATIO_PASSWORD in Cloudflare, and it becomes the first one." + (why ? " " + why : ""); };
@@ -76,12 +138,7 @@ async function login(request, env) {
 	const user = await reg.checkPassword(String(form.get("user") || ""), String(form.get("password") || ""));
 	if (user && user.locked) return signInPage("Too many wrong passwords. Try again in a quarter of an hour.", 429);
 	if (!user) return signInPage("That handle and password aren't right.", 401);
-	const token = randomToken();
-	await reg.login(await sha256(token), user.id, Date.now() + STAY);
-	return new Response(null, { status: 303, headers: {
-		Location: "/",
-		"Set-Cookie": `${COOKIE}=${token}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=${STAY / 1000}`,
-	} });
+	return signedInAs(reg, user);
 }
 
 // the page in the skeleton claude.ai's Artifact publish gives it, with the runtime first
@@ -139,19 +196,36 @@ export async function cafe(request, env) {
 
 	if (path === "/runtime.js") return new Response(RUNTIME, { headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store" } });
 	if (path === "/login" && method === "POST") return login(request, env);
+	if (path === "/signup" && method === "GET") return signUpPage(url.searchParams.get("invite") || "");
+	if (path === "/signup" && method === "POST") return signUp(request, env);
 
-	const cafePaths = path === "/" || path === "/ws" || path.startsWith("/api/") || path.startsWith("/art/") || path.startsWith("/files/");
+	const cafePaths = path === "/" || path === "/invite" || path === "/ws" || path.startsWith("/api/") || path.startsWith("/art/") || path.startsWith("/files/");
 	if (!cafePaths) return null;
 	const user = await signedIn(request, env);
-	if (!user && path === "/") return (await hasAccount(env)) ? signInPage() : signInPage(NO_ACCOUNT(), 503);
+	if (!user && (path === "/" || path === "/invite")) return (await hasAccount(env)) ? signInPage() : signInPage(NO_ACCOUNT(), 503);
 	if (!user) return refuse(401, "signed_out", "Sign in to the café first.");
 
 	if (path === "/") return new Response(CAFE, { headers: PAGE_HEADERS });
+	// invites, from an admin signed in to their café: a form of its own, so it needs no button in the page
+	if (path === "/invite") {
+		if (!user.admin) return page("Not yours", `<h1>Only an admin invites</h1><p><a href="/">Back to the café</a></p>`, 403);
+		const reg = await registry(env);
+		if (method === "GET") return invitePage(await reg.openInvites());
+		if (method !== "POST" || !sameOrigin(request)) return page("Not here", `<h1>Make invites from this page</h1><p><a href="/invite">Invites</a></p>`, 403);
+		if ((await request.formData()).get("do") === "drop") {
+			const n = await reg.dropInvites();
+			return invitePage(0, null, n === 1 ? "1 invite taken back." : `${n} invites taken back.`);
+		}
+		const { code } = await reg.invite(user.id);
+		return invitePage(await reg.openInvites(), `${url.origin}/signup?invite=${code}`);
+	}
 	if (path === "/ws") {
 		if (request.headers.get("Origin") !== url.origin) return refuse(403, "forbidden", "Only the café opens this.");
 		return houseOf(env, user).fetch(request);
 	}
 	if (path.startsWith("/art/") && method === "GET") {
+		// the packs' licences are personal: their art is hers, never her guests'
+		if (path.startsWith("/art/licensed/") && user.house !== FIRST_HOUSE) return new Response("Not found\n", { status: 404 });
 		const { value, metadata } = await env.FILES.getWithMetadata("art:" + path.slice(1), "arrayBuffer");
 		if (!value) return new Response("Not found\n", { status: 404 });
 		return new Response(value, { headers: { "Content-Type": (metadata && metadata.type) || "application/octet-stream", "Cache-Control": "private, max-age=86400", "X-Content-Type-Options": "nosniff" } });
@@ -211,7 +285,7 @@ export async function cafe(request, env) {
 		return gone ? json({ ok: true }) : refuse(404, "not_found", "No key by that name.");
 	}
 	// accounts, made and reset by an admin signed in to their café (never by a key: a key is in every session's
-	// environment, and must not be able to become anyone's owner). The invite-only sign-up until there is a form.
+	// environment, and must not be able to become anyone's owner). Anyone else signs up with an invite (/invite).
 	if (path === "/api/users" && method === "POST") {
 		if (!user.admin) return refuse(403, "forbidden", "Only an admin creates accounts.");
 		const { id, password } = await bodyOf(request);

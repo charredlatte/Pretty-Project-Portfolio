@@ -367,6 +367,48 @@ describe("accounts", () => {
 		assert.equal((await as(herCookie, "/api/users/tester", { method: "PUT", body: JSON.stringify({ password: TESTER_NOW }) })).status, 200);
 		assert.equal((await login("tester", TESTER_NOW)).status, 303);
 	});
+
+	test("lets an admin invite someone, who makes their own account with it, once", async () => {
+		const SIGNUP = "guest-password-" + randomBytes(6).toString("hex");
+		const invite = (cookie, what = "make", headers = {}) => fetch(base + "/invite", { method: "POST", headers: { Cookie: cookie, ...headers }, body: new URLSearchParams({ do: what }), redirect: "manual" });
+		const signUp = (fields) => fetch(base + "/signup", { method: "POST", body: new URLSearchParams({ again: fields.password, ...fields }), redirect: "manual" });
+		const codeOf = async (r) => /\/signup\?invite=([0-9a-f]{64})"/.exec(await r.text())?.[1];
+
+		assert.match(await (await fetch(base + "/")).text(), /href="\/signup"/, "the sign-in page points the invited to sign-up");
+		assert.match(await (await fetch(base + "/invite")).text(), /Your handle/, "signed out, the invite page asks who you are");
+		const { cookie: testerCookie } = await login("tester", TESTER_NOW);
+		assert.equal((await fetch(base + "/invite", { headers: { Cookie: testerCookie } })).status, 403, "only an admin invites");
+		assert.equal((await invite(testerCookie)).status, 403);
+		assert.equal((await invite(herCookie, "make", { Origin: "https://elsewhere.example" })).status, 403, "never from another site");
+		const made = await invite(herCookie);
+		assert.equal(made.status, 200);
+		const code = await codeOf(made);
+		assert.ok(code, "the invite is shown as a link");
+		assert.match(await (await fetch(base + "/invite", { headers: { Cookie: herCookie } })).text(), /1 invite is out/);
+		assert.match(await (await fetch(base + "/signup?invite=" + code)).text(), new RegExp(`value="${code}"`), "the link fills the invite in");
+
+		assert.equal((await signUp({ invite: "0".repeat(64), user: "guest", password: SIGNUP })).status, 400, "a made-up invite opens nothing");
+		assert.equal((await signUp({ invite: code, user: "guest", password: SIGNUP, again: SIGNUP + "x" })).status, 400, "the two passwords must match");
+		assert.equal((await signUp({ invite: code, user: "tester", password: SIGNUP })).status, 400, "a taken handle stays taken");
+		assert.equal((await signUp({ invite: code, user: "guest", password: "short" })).status, 400);
+		// a refused sign-up costs the invite nothing; two at once with one invite let one in
+		const both = await Promise.all(["guest", "guest-two"].map((user) => signUp({ invite: code, user, password: SIGNUP })));
+		assert.deepEqual(both.map((r) => r.status).sort(), [303, 400], "an invite works once");
+		const inRes = both.find((r) => r.status === 303);
+		const guest = inRes === both[0] ? "guest" : "guest-two";
+		const guestCookie = inRes.headers.get("set-cookie").split(";")[0];
+		assert.deepEqual((await (await as(guestCookie, "/api/db")).json()).docs, {}, "signed in to a café of their own");
+		assert.equal((await login(guest, SIGNUP)).status, 303);
+		assert.equal((await fetch(base + "/invite", { headers: { Cookie: guestCookie } })).status, 403, "a guest is no admin");
+		assert.equal((await as(guestCookie, "/api/users", { method: "POST", body: JSON.stringify({ id: "third", password: SIGNUP }) })).status, 403);
+		assert.equal((await as(guestCookie, "/art/licensed/pochi.png")).status, 404, "the packs' art is hers alone");
+		assert.equal((await as(herCookie, "/art/licensed/pochi.png")).status, 200);
+
+		// unused invites can be taken back
+		const spare = await codeOf(await invite(herCookie));
+		assert.match(await (await invite(herCookie, "drop")).text(), /1 invite taken back/);
+		assert.equal((await signUp({ invite: spare, user: "late", password: SIGNUP })).status, 400);
+	});
 });
 
 // The queen of the house: Charlotte talks to her in the café; her runner (harness/runner) waits here with the

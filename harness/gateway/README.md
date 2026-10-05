@@ -25,7 +25,7 @@ their own cats and café. Two kinds of caller, told apart by how they sign in:
   drops files and manages. So a key that leaks out of a session can't put words in her mouth to another one.
 
 The first account is `charlotte`'s, made from the two secrets below the first time the gateway runs with accounts;
-it is the admin, which uploads the café's art and creates the other accounts.
+it is the admin, which uploads the café's art, creates the other accounts and invites people to sign up.
 
 ## Setting it up (once)
 
@@ -68,12 +68,19 @@ variables and the plugin, it is in `list_agents`.
 
 ## Accounts
 
+- **Sign-up, by invite:** an admin, signed in to the café, opens `/invite` on the gateway's address and presses
+  **Make an invite**. The link it shows (once: the registry keeps only its hash) goes to the person invited, who
+  opens it, picks a handle and a password at `/signup`, and is signed in to a café of their own. An invite works
+  once and lapses after a week; **Take back unused invites** on the same page cancels the ones still out. A
+  signed-up account is never an admin. A refused sign-up (a taken handle, a short password, two passwords that
+  differ) doesn't spend the invite; two sign-ups with one invite at once let one in. There is no open sign-up:
+  everyone with an account gets a house on the gateway's Worker, which is hers to pay for.
 - **Another account:** an admin, signed in to the café, `POST /api/users` with `{"id": "<handle>", "password":
   "<16+ characters>"}`: from the browser's console, `fetch("/api/users", {method: "POST", headers: {"X-Catio": "1",
   "Content-Type": "application/json"}, body: JSON.stringify({id: "…", password: "…"})}).then(r => r.json()).then(console.log)`.
   Never with a key: a key sits in every session's environment, and what a key can do, a leaked key can do. A
   handle is 2 to 31 lower-case letters, digits or dashes. The account gets a house named after it, and signs in
-  to the café and the connector with that handle and password. There is no sign-up form yet.
+  to the café and the connector with that handle and password. An invite (above) lets them choose both themselves.
 - **A key:** from a signed-in café, `POST /api/keys` with `{"name": "laptop"}` (the page sends `X-Catio: 1`;
   until it has a button, the browser's console does: `fetch("/api/keys", {method: "POST", headers: {"X-Catio": "1",
   "Content-Type": "application/json"}, body: JSON.stringify({name: "laptop"})}).then(r => r.json()).then(console.log)`).
@@ -90,10 +97,10 @@ variables and the plugin, it is in `list_agents`.
   impossible handle costs no hash. Known limit: every password check runs in the one registry object, so a
   flood of guesses at made-up handles slows every sign-in and key lookup behind it. A rate-limiting rule on
   `/login` and `/authorize` in Cloudflare (Security → WAF, one rule on the free plan) is the gateway's to add.
-- **One house each:** cats, conversations, files and the café's documents are the house's; the licensed art is
-  shared, uploaded by an admin.
+- **One house each:** cats, conversations, files and the café's documents are the house's. The licensed art,
+  uploaded by an admin, is served to the first house alone (`/art/licensed/*` is a 404 to anyone else).
 - **The art's licences are personal.** The packs the café is drawn with allow personal use and no redistribution,
-  so a café served to other people needs their own packs, or none (the page draws plain panels without them).
+  so another account's café is drawn without them (the page draws plain panels), until it has art of its own.
 
 ## The café on its own address
 
