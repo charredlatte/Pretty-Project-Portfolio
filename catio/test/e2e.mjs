@@ -1705,13 +1705,12 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await page.locator("#room-living").focus();
   await page.keyboard.press("Enter");
   await settle(page);
-  const onItem = () => page.evaluate(() => { const a = document.activeElement; return !!a && document.getElementById("menu").contains(a) ? a.textContent : null; });
-  const item = await onItem();
+  const item = await page.evaluate(() => { const a = document.activeElement; window.__was = a; return !!a && document.getElementById("menu").contains(a) ? a.textContent : null; });
   await page.keyboard.press("m");
   await settle(page);
   await check("opening the panel from inside a menu keeps the keyboard on the same item", async () => {
     expect(item !== null, "Enter didn't step into the menu");
-    expect((await onItem()) === item, "focus fell off: " + item);
+    expect(await page.evaluate(() => document.activeElement === window.__was && document.getElementById("menu").contains(window.__was)), "focus fell off: " + item);
   });
   await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
   await page.click("#mapFold");
