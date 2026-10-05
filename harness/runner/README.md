@@ -45,6 +45,10 @@ On a Mac or Linux the same, with `export` in place of `setx` and `python3`.
 
 - Waits on `POST /api/runner/wait` (held up to 25 seconds; Cloudflare holds a request while the client stays
   connected). It comes back the moment she writes to the queen, a routine comes due, or she clicks Stop.
+  Each wait says `{acks: true, ack: <the newest note whose turn is finished>}`, and the gateway offers a note
+  until that acknowledgement reaches it: a connection that drops mid-wait, or a runner that dies mid-turn, means
+  she says a thing twice rather than it being lost. A note is acknowledged when its turn ends, not when it
+  arrives. Anything but a refused key (401) is waited out, 503 included.
 - For each note or routine, one turn: `claude -p --resume <her session> --output-format stream-json
   --include-partial-messages --append-system-prompt-file <queen.md + her character> --mcp-config <the gateway's
   /mcp, with the queen's key> --strict-mcp-config --restricted --allowedTools mcp__catio --permission-prompts

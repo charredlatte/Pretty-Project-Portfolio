@@ -19,11 +19,18 @@ const freePort = () => new Promise((done) => {
 	const s = createServer().listen(0, "127.0.0.1", () => { const { port } = s.address(); s.close(() => done(port)); });
 });
 
-// a stand-in decider that answers with NO answers at all
+// a stand-in decider that answers with NO answers at all: {} normally, and null when the state asks for it
+// (typeof null is "object", so the two are not the same thing to the code that reads the answer)
 let decider, deciderPort;
 const startDecider = () => new Promise((done) => {
-	decider = createHttpServer((req, res) => { req.resume(); req.on("end", () => { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify({ model: "x", answers: {} })); }); })
-		.listen(0, "127.0.0.1", () => done(decider.address().port));
+	decider = createHttpServer((req, res) => {
+		let body = "";
+		req.on("data", (d) => { body += d; });
+		req.on("end", () => {
+			res.setHeader("Content-Type", "application/json");
+			res.end(JSON.stringify({ model: "x", answers: /NOTHING-AT-ALL/.test(body) ? null : {} }));
+		});
+	}).listen(0, "127.0.0.1", () => done(decider.address().port));
 });
 
 const boots = [];
@@ -249,6 +256,59 @@ describe("a normal gateway under hostile input", () => {
 		assert.equal((await from("198.51.100.8", "nobody-20", "wrong-wrong-wrong-0")).status, 429);
 		assert.equal((await from("198.51.100.8", "charlotte", PASSWORD)).status, 429);
 		assert.equal((await from("203.0.113.9", "charlotte", PASSWORD)).status, 303, "everyone else is unaffected");
+	});
+
+	// ---- the audit of 5 October 2026 (docs/audit-2026-10-05.md) ----
+
+	test("a password of megabytes is a refusal, not a crash", async () => {
+		// at 33 MiB the field reached the Durable Object over its RPC limit, and the sign-in answered 500 before it
+		// ever looked at the handle. It is refused unread now, so the big body costs the test nothing.
+		const huge = new URLSearchParams({ user: "charlotte", password: "x".repeat(33 * 1024 * 1024) });
+		for (const path of ["/login", "/authorize"]) {
+			const r = await fetch(g.base + path, { method: "POST", body: huge, redirect: "manual" });
+			assert.ok(r.status < 500, path + " → " + r.status);
+		}
+		// and a password just over the cap is refused the same way, not silently cut short and tried
+		const over = new URLSearchParams({ user: "charlotte", password: "x".repeat(17 * 1024) });
+		assert.ok((await fetch(g.base + "/login", { method: "POST", body: over, redirect: "manual" })).status < 500);
+		// the sign-in still works afterwards, with the real password
+		assert.equal((await login(g.base, "charlotte", PASSWORD)).status, 303);
+	});
+
+	test("a toString key is dropped at the door, not carried to whatever calls String()", async () => {
+		const hostile = { toString: 1 };   // String(this) throws: "Cannot convert object to primitive value"
+		const call = (name, args) => rpcRaw(g.base, TOKEN, { jsonrpc: "2.0", id: nextId++, method: "tools/call", params: { name, arguments: args } });
+		assert.ok((await call("report_status", { agent: "tosh-cat", title: hostile, mood: "busy" })).status < 500, "a tool's arguments");
+		assert.ok((await call("report_status", { agent: hostile })).status < 500, "a tool's own id");
+		assert.ok((await api("/api/db/house/main", { method: "PUT", body: JSON.stringify({ data: { name: hostile } }) })).status < 500, "a café document");
+		assert.ok((await api("/api/db/routines/r9", { method: "PUT", body: JSON.stringify({ data: { time: hostile, on: true } }) })).status < 500, "a stored routine");
+		assert.ok((await api("/api/tools/comment", { method: "POST", body: JSON.stringify({ cat: "x", text: hostile }) })).status < 500, "the owner's JSON routes");
+		assert.ok((await fetch(g.base + "/api/runner/say", { method: "POST", headers: asQueen, body: JSON.stringify({ text: hostile, routine: hostile }) })).status < 500, "a runner's say");
+		// and the café still opens, so nothing hostile was stored that breaks reading it back
+		assert.ok((await api("/api/db")).status < 500, "the café after all that");
+	});
+
+	test("a decider that answers answers: null is a refusal, not a crash", async () => {
+		const r = await api("/api/tools/decide", { method: "POST", body: JSON.stringify({ state: "NOTHING-AT-ALL", questions: { a: { type: "noul" } }, kind: "sort", old: "a" }) });
+		assert.ok(r.status < 500, "→ " + r.status + " " + await r.text());
+	});
+
+	test("a note is offered again until the runner says it has it", async () => {
+		const waitAcking = async (ack) => (await fetch(g.base + "/api/runner/wait", {
+			method: "POST", headers: { ...asQueen, "Content-Type": "application/json" }, body: JSON.stringify({ acks: true, ack }),
+		})).json();
+		await tool(g.base, QUEEN, "report_status", { agent: "queen", mood: "done" });
+		await api("/api/tools/comment", { method: "POST", body: JSON.stringify({ cat: "queen", text: "feed the cats" }) });
+
+		const first = await waitAcking(0);
+		assert.deepEqual(first.notes.map((n) => n.text), ["feed the cats"]);
+		// the runner was handed it and never said so: a dropped connection, or a turn that died. Said twice beats lost.
+		const again = await waitAcking(0);
+		assert.deepEqual(again.notes.map((n) => n.text), ["feed the cats"], "a note nobody acknowledged was never offered again");
+
+		await api("/api/tools/comment", { method: "POST", body: JSON.stringify({ cat: "queen", text: "and the dog" }) });
+		const next = await waitAcking(first.notes[0].at);
+		assert.deepEqual(next.notes.map((n) => n.text), ["and the dog"], "an acknowledged note came back");
 	});
 });
 

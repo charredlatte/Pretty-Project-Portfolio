@@ -66,6 +66,10 @@ class Gateway(BaseHTTPRequestHandler):
             self.send_response(401); self.end_headers(); return
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
         if self.path == "/api/runner/wait":
+            if getattr(s, "refuse_waits", 0) > 0:        # a deploy, a restart: the gateway is briefly away
+                s.refuse_waits -= 1
+                self.send_response(503); self.end_headers(); return
+            s.waits.append(body)
             try:
                 out = dict(EMPTY, **s.jobs.get(timeout=0.3))
             except queue.Empty:
@@ -90,7 +94,8 @@ class Gateway(BaseHTTPRequestHandler):
 class Queen(unittest.TestCase):
     def setUp(self):
         self.srv = ThreadingHTTPServer(("127.0.0.1", 0), Gateway)
-        self.srv.jobs, self.srv.says = queue.Queue(), []
+        self.srv.jobs, self.srv.says, self.srv.waits = queue.Queue(), [], []
+        self.srv.refuse_waits = 0
         self.srv.character = {"name": "Duchesse", "manner": "Elizabethan English, warm.", "greeting": "Good morrow."}
         self.srv.homework = {}
         threading.Thread(target=self.srv.serve_forever, daemon=True).start()
@@ -149,6 +154,19 @@ class Queen(unittest.TestCase):
         self.out.flush()
         self.fail("the runner didn't finish %d turn(s):\n%s" % (n, (self.tmp / "runner.log").read_text()))
 
+    def acks(self, timeout=10):
+        """Wait until the runner has acknowledged something; returns the ack of each wait it has made."""
+        end = time.time() + timeout
+        while time.time() < end:
+            asked = [w.get("ack") for w in list(self.srv.waits) if isinstance(w, dict)]
+            if any(asked):
+                return asked
+            if self.proc.poll() is not None:
+                break
+            time.sleep(0.05)
+        self.out.flush()
+        self.fail("the runner acknowledged nothing: %r\n%s" % (self.srv.waits, (self.tmp / "runner.log").read_text()))
+
     def claude_calls(self):
         return [json.loads(l) for l in self.log.read_text(encoding="utf-8").splitlines() if l.strip()]
 
@@ -186,6 +204,26 @@ class Queen(unittest.TestCase):
         self.assertEqual(len(self.toasted(1)), 1, "homework going down was announced")
         self.srv.homework = {"unblock": 1, "litterbox": 1}
         self.assertEqual(self.toasted(2)[-1], "1 quiz to hand in, 1 note to sort waiting in the cafe")
+
+    def test_acknowledges_a_note_only_once_its_turn_is_done(self):
+        """The gateway offers a note until the runner says it has it, so a runner that dies mid-turn doesn't take
+        her words with it (the audit of 5 October 2026). It says so after the turn, never on receiving it."""
+        self.srv.jobs.put({"notes": [{"id": "n1", "cat": "queen", "author": "owner", "text": "Feed the cats.", "at": 7}]})
+        self.start()
+        self.said(1)                                  # the turn is finished
+        asked = self.acks()
+        self.assertEqual(asked[0], 0, "the first wait acknowledged a note it had not been given")
+        self.assertEqual(asked[-1], 7, "the answered note was never acknowledged: %r" % (asked,))
+        self.assertTrue(all(w.get("acks") is True for w in self.srv.waits), "the runner never said it acknowledges")
+
+    def test_waits_out_a_gateway_that_is_briefly_away(self):
+        """A 503 (a deploy, a restart) is waited out like any other error: only a refused key stops her."""
+        self.srv.refuse_waits = 2
+        self.start()
+        self.srv.jobs.put({"notes": [{"id": "n1", "cat": "queen", "author": "owner", "text": "Still there?", "at": 1}]})
+        says = self.said(1, timeout=40)
+        self.assertEqual(says[-1]["text"], "Good morrow, my lady. Two cats need thee.")
+        self.assertIsNone(self.proc.poll(), "the runner stopped on a 503")
 
     def test_a_kind_nobody_gave_words_to_is_never_said(self):
         """A quiz document's own text must not reach a notification: macOS and Windows take it inside a quoted

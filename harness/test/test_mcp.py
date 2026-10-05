@@ -244,6 +244,52 @@ class Hostile(unittest.TestCase):
         self.assertIn("a", json.loads(Path(self.home, "state.json").read_text())["agents"])
         self.assertFalse(Path(self.home, "state.lock").exists(), "the lock is let go")
 
+    def test_only_one_waiter_takes_over_a_lock_left_by_a_crash(self):
+        """Several waiters on one lock a crash left behind: unlinking it let them all through at the same instant,
+        each deleting the next one's lock. The takeover is a rename now, which exactly one of them can win (the
+        audit of 5 October 2026)."""
+        sys.path.insert(0, str(SERVER.parent))
+        import catio_mcp
+        from unittest import mock
+        stale = Path(self.home, "state.lock")
+        stale.touch()
+        old = time.time() - 60
+        os.utime(stale, (old, old))
+        inside, most, counting = [], [0], threading.Lock()
+
+        def take():
+            with catio_mcp.LOCK:
+                with counting:
+                    inside.append(1)
+                    most[0] = max(most[0], len(inside))
+                time.sleep(0.05)
+                with counting:
+                    inside.pop()
+
+        with mock.patch.object(catio_mcp, "HOME", Path(self.home)):
+            threads = [threading.Thread(target=take) for _ in range(8)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+        self.assertEqual(most[0], 1, "two waiters held the lock at once")
+        self.assertFalse(stale.exists(), "the lock is let go")
+        self.assertEqual(list(Path(self.home).glob("state.lock.stale.*")), [], "a takeover left its own file behind")
+
+    def test_waits_long_enough_for_a_fresh_crash_lock_to_go_stale(self):
+        """A lock a crash left behind a moment ago isn't stale yet. The wait has to outlast staleness, or the server
+        refuses to start for the half minute after a crash: WAIT was 10 against a STALE of 30."""
+        sys.path.insert(0, str(SERVER.parent))
+        import catio_mcp
+        from unittest import mock
+        self.assertGreater(catio_mcp.StateLock.WAIT, catio_mcp.StateLock.STALE,
+                           "a stale lock can outlive the wait for it")
+        Path(self.home, "state.lock").touch()   # left a moment ago: not stale for STALE seconds yet
+        with mock.patch.object(catio_mcp, "HOME", Path(self.home)), \
+                mock.patch.object(catio_mcp.StateLock, "STALE", 0.3), mock.patch.object(catio_mcp.StateLock, "WAIT", 5):
+            with catio_mcp.LOCK:
+                pass
+
     def test_a_lock_left_by_a_crash_is_taken_over(self):
         lock = Path(self.home, "state.lock")
         lock.touch()

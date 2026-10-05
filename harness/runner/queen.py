@@ -118,6 +118,9 @@ class Runner:
         self.child = None              # the turn in progress
         self.lock = threading.Lock()
         self.character = {}            # her name, manner and greeting, as set in the café
+        self.acked = 0                 # the newest note whose turn is finished: told to the gateway on each wait, so
+        #                                a note taken in and then lost (a dropped connection, a runner that dies
+        #                                mid-turn) is offered again instead of vanishing
         self.state_file = home / "state.json"
         try:
             self.state = json.loads(self.state_file.read_text(encoding="utf-8"))
@@ -133,19 +136,19 @@ class Runner:
         pause = 5
         while True:
             try:
-                got = self.gw.post("/api/runner/wait", {}, WAIT_TIMEOUT)
+                got = self.gw.post("/api/runner/wait", {"acks": True, "ack": self.acked}, WAIT_TIMEOUT)
                 pause = 5
             except urllib.error.HTTPError as e:
                 detail = e.read().decode(errors="replace")[:200]
-                if e.code in (401, 503):
+                if e.code == 401:                      # the key itself is refused: waiting changes nothing
                     log("the gateway refused the queen's key:", detail)
                     os._exit(2)
                 log("the gateway answered", e.code, detail)
                 time.sleep(pause)
                 pause = min(pause * 2, 60)
                 continue
-            except (OSError, ValueError) as e:
-                log("no gateway:", e)
+            except Exception as e:                     # a deploy, a 503, a reply cut off half way: she waits it out
+                log("no gateway:", e)                  # this thread is her ears; it must never be the thing that dies
                 time.sleep(pause)
                 pause = min(pause * 2, 60)
                 continue
@@ -204,6 +207,9 @@ class Runner:
                 prompt = "[Catio] Charlotte says: " + str(job.get("text") or "")
                 log("Charlotte:", str(job.get("text") or "")[:80])
                 self.turn(prompt, None)
+                at = job.get("at")
+                if isinstance(at, int) and at > self.acked:   # answered: the gateway need not offer it again
+                    self.acked = at
             else:
                 name = str(job.get("name") or job.get("id") or "")
                 log("routine:", name)

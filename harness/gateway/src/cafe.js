@@ -10,6 +10,7 @@ import { clientIp, esc, noAccount, page } from "./signin.js";
 import { MIN_SECRET, randomToken, sha256 } from "./secret.js";
 import { bootProblem, hasAccount, registry } from "./registry.js";
 import { FIRST_HOUSE, fileKeys } from "./houses.js";
+import { formOf, jsonOf, plain } from "./plain.js";
 
 const COOKIE = "__Host-catio";
 const STAY = 30 * 24 * 3600 * 1000;   // a signed-in browser stays signed in a month
@@ -23,8 +24,9 @@ const json = (body, status = 200) => Response.json(body, { status, headers: { "C
 const refuse = (status, code, error) => json({ code, error }, status);
 /** A path segment, decoded; null when it isn't valid. */
 const tryDecode = (s) => { try { return decodeURIComponent(s); } catch { return null; } };
-/** The request's JSON object, or {} when it isn't one. */
-const bodyOf = async (request) => { const b = await request.json().catch(() => null); return b && typeof b === "object" && !Array.isArray(b) ? b : {}; };
+/** The request's JSON object, or {} when it isn't one. Made plain (src/plain.js): a toString key never reaches
+ *  the String() calls below. */
+const bodyOf = jsonOf;
 
 function cookieOf(request) {
 	for (const part of (request.headers.get("Cookie") || "").split(";")) {
@@ -164,7 +166,8 @@ async function signUp(request, env) {
 	if (/^application\/json\b/.test(request.headers.get("Content-Type") || "")) return signUpForAnAI(request, env);
 	if (!(await hasAccount(env))) return signUpPage("", "", NOT_YET, 503, "", noAccount(env, request));
 	if (!sameOrigin(request)) return signUpPage("", "", "Sign up from this page.", 403);
-	const form = await request.formData();
+	const form = await formOf(request);
+	if (!form) return signUpPage("", "", "That wasn't the sign-up form.", 400);
 	const invite = String(form.get("invite") || "").trim(), user = String(form.get("user") || "").trim();
 	const password = String(form.get("password") || "");
 	if (password !== String(form.get("again") || "")) return signUpPage(invite, user, "The two passwords aren't the same.", 400);
@@ -194,7 +197,7 @@ const NOT_YET = "The gateway has no account yet. Its warning lights:";
 async function login(request, env) {
 	if (!(await hasAccount(env))) return signInPage(NOT_YET, 503, noAccount(env, request));
 	const reg = await registry(env);
-	const form = await request.formData().catch(() => null);
+	const form = await formOf(request);
 	if (!form) return signInPage("That wasn't the sign-in form.", 400);
 	const user = await reg.checkPassword(String(form.get("user") || ""), String(form.get("password") || ""), clientIp(request));
 	if (user && user.locked) return signInPage("Too many wrong passwords. Try again in a quarter of an hour.", 429);
@@ -244,12 +247,12 @@ export async function cafe(request, env) {
 		const by = await agentKey(request, env);
 		if (!by || by.role !== "queen") return refuse(401, "unauthorized", "The queen's key is needed: the CATIO_QUEEN secret in Cloudflare, or a key minted for her in the café.");
 		const house = houseOf(env, by);
-		if (path === "/api/runner/wait") return json(await house.waitForQueen());
+		if (path === "/api/runner/wait") return json(await house.waitForQueen(await jsonOf(request)));
 		if (path === "/api/runner/say") {
 			const text = await request.text();
 			if (text.length > MAX_SAY) return refuse(413, "too_big", "A turn is 64 KB at most.");
 			let body;
-			try { body = JSON.parse(text); } catch { return refuse(400, "bad_request", "The body is JSON: {turn, text, done, routine}."); }
+			try { body = plain(JSON.parse(text)); } catch { return refuse(400, "bad_request", "The body is JSON: {turn, text, done, routine}."); }
 			return json(await house.queenSays(body));
 		}
 		return refuse(404, "not_found", "The runner waits and says; nothing else is here.");
@@ -279,7 +282,7 @@ export async function cafe(request, env) {
 		const reg = await registry(env);
 		if (method === "GET") return invitePage(await reg.openInvites());
 		if (method !== "POST" || !sameOrigin(request)) return page("Not here", `<h1>Make invites from this page</h1><p><a href="/invite">Invites</a></p>`, 403);
-		if ((await request.formData()).get("do") === "drop") {
+		if (((await formOf(request)) || new URLSearchParams()).get("do") === "drop") {
 			const n = await reg.dropInvites();
 			return invitePage(0, null, n === 1 ? "1 invite taken back." : `${n} invites taken back.`);
 		}
@@ -322,7 +325,7 @@ export async function cafe(request, env) {
 		const text = await request.text();
 		if (text.length > MAX_DOC) return refuse(413, "too_big", "A document is 1 MB at most.");
 		let data;
-		try { ({ data } = JSON.parse(text)); } catch { /* checked below */ }
+		try { ({ data } = plain(JSON.parse(text))); } catch { /* checked below */ }
 		if (!data || typeof data !== "object" || Array.isArray(data)) return refuse(400, "bad_request", "The body is {data: {...}}.");
 		if (method === "PUT") { await house.putDoc(doc, data); return json({ ok: true }); }
 		if (method === "PATCH") return (await house.putDoc(doc, data, true)) ? json({ ok: true }) : refuse(404, "not_found", "No such document.");
