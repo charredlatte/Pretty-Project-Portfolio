@@ -16,7 +16,8 @@ Layers, back to front:
     tent-glow.png    the tent's inside light, drawn over the midground at a pulsing opacity
     fire.png         eight flame frames
 And the page's own pieces: panel-tan.png and panel-night.png (9-slice boxes, 8-pixel corners), paw.png (the
-pointer), portrait-0/1.png (the cats' faces for the dialogue box), scene.js (scene.json as a script).
+pointer), portrait-0/1.png (the cats' faces for the dialogue box), ptr.png, adv.png and heart.png (the menu's ▶,
+the dialogue's ▼ and the file slots' ♥, white, coloured by the page), scene.js (scene.json as a script).
 """
 from __future__ import annotations
 
@@ -280,7 +281,7 @@ def bench(L: Layer) -> None:
 
 def tent(L: Layer, lit: bool) -> None:
     """An A-frame tent at the back right, its door toward the fire. `lit` draws the glow layer only."""
-    x0, base, h = 364, 191, 44                          # the front pole's foot, the ground line, the height
+    x0, base, h = 356, 191, 44                          # the front pole's foot, the ground line, the height (the last peg ends at 432: inside a phone's crop)
     apex = (x0 + 16, base - h)
     front = [(x0 - 6, base), apex, (x0 + 38, base)]     # the front face, a triangle, its door toward the fire
     side = [apex, (x0 + 38, base), (x0 + 66, base - 5), (x0 + 42, base - h + 2)]   # the side, receding right
@@ -498,6 +499,22 @@ def portrait(cats_sheet: Image.Image, which: int) -> Image.Image:
     return cats_sheet.crop((x, 0, x + 34, 34))
 
 
+def glyphs(out: Path) -> None:
+    """The page's three little shapes, as pixel art at their screen size (two screen pixels an art pixel), white on
+    clear: the page colours them with mask-image, so one file serves every colour. A CSS clip-path would be
+    anti-aliased beside the pixel art."""
+    def blocks(w: int, h: int, rows: list) -> Layer:
+        L = Layer(w, h)
+        for j, row in enumerate(rows):
+            for i, ch in enumerate(row):
+                if ch == "#":
+                    L.rect(i * 2, j * 2, 2, 2, "#FFFFFF")
+        return L
+    blocks(16, 16, ["#.......", "###.....", "#####...", "#######.", "#######.", "#####...", "###.....", "#......."]).save(out / "ptr.png")   # ▶
+    blocks(16, 12, ["########", ".######.", "..####..", "..####..", "...##...", "...##..."]).save(out / "adv.png")                           # ▼
+    blocks(14, 12, [".##.##.", "#######", "#######", ".#####.", "..###..", "...#..."]).save(out / "heart.png")                               # ♥
+
+
 # ---- putting it together ---------------------------------------------------------------------------------------
 def main(argv: list[str]) -> None:
     here = Path(__file__).resolve().parent
@@ -528,18 +545,24 @@ def main(argv: list[str]) -> None:
     lit_cats = Image.open(out / "cats-1.png")
     portrait(lit_cats, 0).save(out / "portrait-0.png")
     portrait(lit_cats, 1).save(out / "portrait-1.png")
+    glyphs(out)
     scene = {
         "w": W, "h": H, "horizon": HORIZON,
-        "fire": {"x": FIRE[0] - FIRE_W // 2, "y": FIRE[1] + 4 - FIRE_H, "fw": FIRE_W, "fh": FIRE_H, "frames": FIRE_FRAMES, "fps": 10},
+        "fire": {"x": FIRE[0] - FIRE_W // 2, "y": FIRE[1] + 4 - FIRE_H, "fw": FIRE_W, "fh": FIRE_H, "frames": FIRE_FRAMES, "fps": 10,
+                 "floor": FIRE[1] + 10},                                     # the bottom of the pit's stones: the page keeps its box below this
         "smoke": {"x": FIRE[0], "y": FIRE[1] - 36},
         "cats": {"x": CX, "y": CY, "fw": CW, "fh": CH, "frames": 5},
         "tentGlow": {"x": 350, "y": 140},
         "light": {"levels": len(levels)},
         "stars": stars,
-        "safe": [48, 432],
+        "safe": [150, 432],                                                  # the campsite, bench to tent peg: what a narrow crop keeps
     }
     (out / "scene.json").write_text(json.dumps(scene, separators=(",", ":")) + "\n")
-    # The page reads it as a script, so it runs from a double-clicked file too (fetch() can't, from file://).
+    # The page reads it as a script, so it runs from a double-clicked file too (fetch() can't, from file://). The
+    # three glyphs ride along as data URIs: the page colours them with mask-image, which a browser won't fetch from
+    # a file:// page either.
+    import base64
+    scene["glyphs"] = {n: "data:image/png;base64," + base64.b64encode((out / f"{n}.png").read_bytes()).decode() for n in ("ptr", "adv", "heart")}
     (out / "scene.js").write_text("window.SCENE = " + json.dumps(scene, separators=(",", ":")) + ";\n")
     if "--preview" in argv:
         comp = Layer()
@@ -549,8 +572,8 @@ def main(argv: list[str]) -> None:
         comp.over(glow_full(glow))
         comp.im.alpha_composite(fire.im.crop((0, 0, FIRE_W, FIRE_H)), (scene["fire"]["x"], scene["fire"]["y"]))
         comp.im.resize((W * 2, H * 2), Image.NEAREST).save(out / "preview.png")
-    print(f"wrote {out}: sky, far, mid-0..2, cats-0..2, tent-glow, fire, the panels, the paw, two portraits, "
-          f"scene.json and scene.js ({len(stars)} twinkling stars)")
+    print(f"wrote {out}: sky, far, mid-0..2, cats-0..2, tent-glow, fire, the panels, the paw, two portraits, the three "
+          f"glyphs, scene.json and scene.js ({len(stars)} twinkling stars)")
 
 
 def glow_full(glow: Layer) -> Layer:

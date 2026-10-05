@@ -78,23 +78,28 @@ scrolled at any time (PRESS START gates nothing: a visitor who scrolls past the 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | PRESS START | title | gold, blinking | steady, white | opens the dialogue | steady, gold ring | confirm | ALttP title | ☐ |
 | SOUND OFF / ON | top right | small outlined button | – | toggles, remembered in the browser | gold ring | confirm | – | ☐ |
-| STILL | top right | small outlined button | – | stops the scene (fire, smoke, stars, cats, glow) and starts it again; remembered; starts pressed under reduced motion | gold ring | confirm | the café's Still cats switch; WCAG 2.2.2 (anything moving past 5 s can be stopped) | ☐ |
-| SKIP | top right | small outlined button | – | straight to the menu | gold ring | – | every intro since the 90s | ☐ |
-| ▼ (next) | dialogue, bottom right | bobbing triangle in a 44 × 44 target | – | turns the page; a press while it types shows the whole line; takes focus when the box opens | gold ring | confirm | Zelda / Pokémon; WCAG 2.5.8 for the size | ☐ |
-| Menu item | the box | cream text | pointer ▶, white text | bleep, wipe to black, jump to the section | same as hover | move / confirm | Stardew, Zelda's hand cursor | ☐ |
+| STILL | top right | small outlined button | – | stops the scene (fire, smoke, stars, cats, glow) and starts it again; remembered; starts pressed under reduced motion. The review asks whether the player's word is PAUSE / PLAY rather than the product's STILL: ☐ | gold ring | confirm | the café's Still cats switch; WCAG 2.2.2 (anything moving past 5 s can be stopped) | ☐ |
+| SKIP | top right | small outlined button | – | straight to the menu; gone once the menu is there | gold ring | – | every intro since the 90s | ☐ |
+| ▼ (next) | dialogue, bottom right | hidden while the line types; a bobbing triangle in a 44 × 44 target once it is whole | – | turns the page; a press while it types shows the whole line; a press within half a second of the line's end does nothing (a double-click can't skip a page); takes focus when the line is done | gold ring | confirm | Pokémon's ▼ shows only while waiting; Stardew's 750 ms safety delay; WCAG 2.5.8 for the size | ☐ |
+| Menu item | the box | cream text | the mouse moves focus, so there is one pointer ▶ and one white item, and Enter follows it | bleep, wipe to black, jump to the section (Back returns to the title; Escape below the title wipes back up) | same as hover | move / confirm | Stardew, Zelda's hand cursor | ☐ |
 | Button (`.btn`) | files, support | cream face, ink outline, 4 px shadow | white face, ▶ shows | drops 4 px, shadow gone | gold ring | move / confirm | 16-bit menus | ☐ |
 | Primary button | FILE 1 | the café's green face | lighter green | same | same | same | – | ☐ |
 | Placeholder button | FILES 2 and 3, support | faded, "address coming" under it | no change | goes nowhere, the back bleep | gold ring | back | – | ☐ |
-| File slot | files | night panel | pointer ▶ at its left | its button | its button's ring | – | Zelda file select | ☐ |
-| FAQ question | ask the queen | cream text, a rule under it | pointer ▶ | opens the answer under it | gold ring | move / confirm | menu grammar | ☐ |
-| Legal links | footer | cream | underline | – | gold ring | – | – | ☐ |
+| File slot | files | night panel | pointer ▶ at its left, the paw | a click anywhere on the slot presses its button | its button's ring | – | Zelda file select | ☐ |
+| FAQ question | ask the queen | cream text, a rule under it | pointer ▶ | opens the answer under it; an open question's pointer turns down, in grey; closing plays the back bleep | gold ring | move / confirm, back | menu grammar | ☐ |
+| Legal names | footer | cream, no link until the pages exist | – | – | – | – | – | ☐ |
 | Pointer | anything clickable | a 16 × 16 cat paw (ours), tip top left | – | – | – | – | Zelda's hand, OoT's | ☐ |
 
-Keyboard: Tab reaches everything in order (the corner buttons first, then PRESS START); Enter or Space starts and
-turns the pages (also Z and X, the emulator habit), but only while the title is on screen and no link, button or
-question has the key; ↑ ↓ move the menu pointer and wrap; Enter confirms; the first link, hidden until focused,
-skips the title. The corner buttons are 16 px after the accessibility review (7-px capitals were the least readable
-thing on the page); question 4 below asks whether she wants them back at 8. ☐
+The ▶, the ▼ and the ♥ are pixel art drawn by `scene.py` at their screen size and coloured by the page, not CSS
+shapes, which would be anti-aliased beside the scene. The button labels stay centred: the ▶ a button shows on hover
+sits outside its face.
+
+Keyboard: Tab reaches everything in order (the corner buttons first, then PRESS START); Enter or Space starts; Enter,
+Space, Z or X turn the pages (Z and X are the emulator habit), but only while the title is on screen and no link,
+button or question has the key; ↑ ↓ move the menu pointer and wrap; Enter confirms; Escape below the title wipes
+back to it; the first link, hidden until focused, skips the title. The corner buttons are 16 px after the
+accessibility review (7-px capitals were the least readable thing on the page); on a phone they say SOUND, STILL
+and SKIP, the state shown by the pressed look; question 4 below asks what she wants there. ☐
 
 ## 4. Every motion
 
@@ -103,8 +108,9 @@ web page. Timings are in `index.html` beside the thing they time.
 
 | What | Timing | With reduced motion | ref | |
 | --- | --- | --- | --- | --- |
-| Loading frame | ≥ 500 ms; bar fills with the real loads; out in 3 steps over 300 ms | no minimum, no fade | – | ☐ |
-| PRESS START | 530 ms on, 530 ms off, no fade; four blinks, then it holds (nothing blinks past 5 s: WCAG 2.2.2) | steady | The Minish Cap draws it 32 frames on, 32 off at 60 fps: 533 ms each; Mario 64, 20 of every 32 frames at 30 fps | ☐ |
+| Loading frame | ≥ 500 ms in both modes, so it never flashes; the bar fills with the real loads, the three faces counted among them (the title never shows in a fallback face); out in 3 steps over 300 ms | the same half second, no fade | – | ☐ |
+| PRESS START | 530 ms on, 530 ms off, no fade, from the moment the title shows; four blinks, then it holds (nothing blinks past 5 s: WCAG 2.2.2). The games blink forever: should it, with STILL stopping it? ☐ | steady | The Minish Cap draws it 32 frames on, 32 off at 60 fps: 533 ms each; Mario 64, 20 of every 32 frames at 30 fps | ☐ |
+| The scene and the box | when the box would cover the fire pit (every laptop size, with the menu), the scene steps up by just enough; nothing slides | same | the games cut | ☐ |
 | Fire | 8 frames at 10 fps | frame 1, still | – | ☐ |
 | Firelight | flicker between 3 baked light levels every 90 ms (no blending: three pictures) | the middle level, still | – | ☐ |
 | Smoke | a particle every 380 ms; rises 26–40 px over 3–5 s, sine wobble, 3 opacity steps, 1 px wide then 2 | none | – | ☐ |
@@ -112,27 +118,28 @@ web page. Timings are in `index.html` beside the thing they time.
 | Tent glow | 3 opacity levels, one step every 800 ms | the middle level | – | ☐ |
 | Cats | each on its own clocks: breathe (a pixel taller) every 1.2 s; blink 180 ms every 2.5–7 s; an ear flicks 260 ms; the tail 420 ms | still | Stardew's idle animals | ☐ |
 | Dialogue box | grows open in 3 steps over 200 ms | simply there | Ocarina's box grows over 8 frames; Stardew's over ~200 ms with "breathin" | ☐ |
-| Typewriter | one character every 30 ms (Stardew's exact delay), a blinking block cursor; a press completes the line | the whole line at once | Stardew; Ocarina types one a frame at 20 fps | ☐ |
-| ▼ | bobs 2 px at 2 Hz in 2 steps, for five seconds, then rests | still | Pokémon Red toggles its ▼ at the box's bottom-right tile; Stardew's continue icon bounces | ☐ |
+| Typewriter | one character every 30 ms (Stardew's exact delay), a blinking block cursor; a press completes the line. None of the three games draws a cursor while printing (the review: "that is a terminal, not a game text box"), and page 3 says "No terminal needed" beside one: keep the cursor, or let the ▼ be the only signal? ☐ | the whole line at once | Stardew; Ocarina types one a frame at 20 fps | ☐ |
+| ▼ | shows when the line is whole; toggles between two positions 4 px apart, 300 ms each, for five seconds, then rests; starts again on each page | still | Pokémon Red toggles its ▼ at the box's bottom-right tile; Stardew's continue icon bounces | ☐ |
 | Menu items | appear one by one, 120 ms apart, no fade | all at once | Stardew's four buttons land one every 200 ms | ☐ |
 | Menu pointer | snaps, no easing | same | every 16-bit menu | ☐ |
-| Confirm | the screen wipes to black in 3 steps over 240 ms, the page jumps, the wipe lifts in 3 steps | a plain jump | Zelda's fade to black | ☐ |
-| Landing on a file | the slot is pressed for 600 ms and its button takes focus | same | – | ☐ |
+| Confirm | the screen wipes to black in 3 steps over 240 ms, holds black, the page jumps at 330 ms, the wipe lifts in 3 steps | a plain jump | Zelda's fade to black | ☐ |
+| Landing on a file | its button is pressed for 600 ms and takes focus | same | – | ☐ |
 | Buttons | the press drops 4 px, no transition | same | – | ☐ |
 | Sections | **none**: no scroll reveals, no parallax, no fades | same | – | ☐ |
 | When hidden | the scene stops drawing when the tab is hidden or the title is scrolled away | – | – | ☐ |
 | STILL | the scene can be stopped by its button at any time, and stays stopped on the next visit | starts stopped | WCAG 2.2.2 pause, stop, hide | ☐ |
 
 **Sound** is four bleeps made by the page itself (an oscillator; no sound files, nothing to license): move 880 Hz
-for 50 ms, confirm 660 then 990, back 440 then 330, and a 15 ms tick every other letter of the typewriter. **Off by
-default**, because the web is not a console: a page that bleeps unasked is the thing people close. The switch
-remembers. ☐
+for 50 ms, confirm 660 then 990, back 440 then 330, and a 15 ms tick every other letter of the typewriter. A
+placeholder button plays only the back bleep; closing a FAQ answer plays it too. **Off by default**, because the web
+is not a console: a page that bleeps unasked is the thing people close. The sound and STILL switches remember. ☐
 
 ## 5. The scene
 
 Drawn at 480 × 270, the resolution of a 16:9 pixel-art game, so that a laptop at 1440 shows it at exactly 3× and a
-1080p screen at 4×; a phone at 390 wide shows it at 1× cropped to the middle 390, which is why the bench and the tent
-sit inside the middle 384 pixels (`"safe"` in `scene.json`). The firelight is baked as four bands of warmer colour,
+1080p screen at 4×; a phone at 390 wide shows it at 1× cropped to 390, the crop centred on the campsite (bench to
+tent peg, `"safe"` in `scene.json`: 150 to 432), so the bench and the whole tent stay in view down to 390 wide; a
+1024-wide screen at 3× loses the tent's edge, her call whether that width matters. The firelight is baked as four bands of warmer colour,
 dithered at their edges, at three flicker radii, so the flicker is three pictures swapped and never a blur. The
 tent's glow is its own layer at a stepped opacity. The fire is eight frames; the smoke, the twinkle and the shooting
 star are the page's few lines of canvas. The cats face right, toward the fire, and their faces are drawn lit.
@@ -196,6 +203,8 @@ hidden or the title is scrolled away. Without JavaScript the loading frame never
 - **A fake "Continue" slot or a sign-in**, until the hosted café is open. The onboarding's honesty rule.
 - **Testimonials, logos, counters.** There are none yet; invented ones would be lies.
 - **Hearts as a health bar.** They would have meant nothing; here they say open / not open, and say so in words too.
+  Two states only: FILE 3 has three hearts (an afternoon with Charlotte can be booked today), and its lifetime
+  access "when it opens" is said in words.
 - **The packs' paw, panels, faces and font**, however much the product uses them: non-commercial.
 - **Press Start 2P for paragraphs.** Unreadable past a line.
 - **A countdown, a newsletter popup, cookie banners.** Nothing on the page stores anything but the sound switch.
@@ -207,7 +216,9 @@ hidden or the title is scrolled away. Without JavaScript the loading frame never
 2. Sound off by default: agreed? (On by default is one line.) ☐
 3. The hosted café as "JOIN THE LIST" to a mailto, until the shop exists: agreed, or point it at the shop's early
    access product now? ☐
-4. The corner buttons are 16 px now; the first draft had them at 8 px, tiny like a game's HUD. Keep 16? ☐
+4. The corner buttons are 16 px now; the first draft had them at 8 px, tiny like a game's HUD. On a phone the three
+   (SOUND, STILL, SKIP) take most of the width. Keep 16, go back to 8, or icons (a speaker, a pause bar, » for
+   skip) in one small row? ☐
 5. English only, or an FR / EN switch? The shop's home is English with a French legal footer. ☐
 6. "Planned for December 2027" on the page: say the date, or "planned" alone? ☐
 7. The third slot says "WRITE TO CHARLOTTE": her first name on the page, or "the café"? ☐
@@ -319,8 +330,11 @@ The six notes, with every source, are in `docs/landing-page/research/` (`stardew
   and at 390 wide, with and without reduced motion. The screenshots of this draft were taken with Playwright at both
   sizes, in both motion settings, with no console error.
 - No pack art: `grep -rn "art/licensed\|catio/art" landing/` finds nothing (the OFL files do say "licensed").
-- The review's cases, with Playwright: Enter on a FAQ question opens it while the dialogue is open; focus lands on ▼
-  after PRESS START; the live region gets each line once; the menu items take an arrow the moment they land; a
-  disabled placeholder button keeps the page; the loading frame leaves even with one picture missing; STILL stops
-  and starts the scene in both motion settings.
+- The review's cases, with Playwright: Enter on a FAQ question opens it while the dialogue is open; focus lands on
+  the box after PRESS START and on ▼ when a line is done; the live region gets each line once; the menu items take
+  an arrow the moment they land; a disabled placeholder button keeps the page; the loading frame leaves even with
+  one picture missing; STILL stops and starts the scene in both motion settings; with the menu open the box clears
+  the fire pit at 1920, 1440, 1366, 1280 and 768 wide.
+- Two review rounds, five lenses (the script, accessibility, licensing and honesty, game-UI fidelity, layout at six
+  sizes), each finding checked by a skeptic before it was fixed; what was left to her is a ☐ above.
 - The fonts' coverage: each has lowercase and é è ê à ç ù (checked with fontTools).

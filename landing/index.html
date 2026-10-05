@@ -13,6 +13,7 @@
   Fonts: Press Start 2P, Pixelify Sans and Nunito, all under the SIL Open Font License (landing/fonts/).
 -->
 <script src="art/scene.js"></script>
+<script>for (const [k, v] of Object.entries(window.SCENE.glyphs || {})) document.documentElement.style.setProperty("--" + k, 'url("' + v + '")');</script>   <!-- the ▶ ▼ ♥, before any style is computed -->
 <style>
   /* ---- tokens: every colour, size and piece of art, as the café does it ---- */
   :root {
@@ -25,7 +26,7 @@
     --cream: #F3E5C2;        /* the night panel's border, the buttons' face, light text */
     --white: #FFFFFF;
     --gold: #FFD35A;         /* the fire's yellow: focus rings, the pointer, PRESS START */
-    --ember: #FF8E2B;        /* the fire's orange: hover */
+    --ember: #FF8E2B;        /* the fire's orange: hover, the hearts */
     --go: #C0D470;           /* the café's green: the primary button */
     --dim: #9AA0B4;          /* smoke grey: secondary text on the night */
     --u: 2px;                /* one art pixel on screen */
@@ -34,12 +35,15 @@
     --paw: url(art/paw.png);
     --portrait-0: url(art/portrait-0.png);
     --portrait-1: url(art/portrait-1.png);
+    --ptr: url(art/ptr.png);          /* ▶, ▼ and ♥ are pixel art at their screen size, coloured by the page */
+    --adv: url(art/adv.png);
+    --heart: url(art/heart.png);
     --pixel: "Press Start 2P", monospace;       /* the arcade face: the logo, PRESS START, menus, buttons. Crisp at 8, 16, 24, 32px */
     --pixel-text: "Pixelify Sans", sans-serif;  /* the dialogue and headings. Crisp at 20px and 40px only */
     --body: "Nunito", system-ui, sans-serif;    /* paragraphs */
   }
-  @font-face { font-family: "Press Start 2P"; src: url(fonts/PressStart2P-Regular.ttf) format("truetype"); font-display: swap; }
-  @font-face { font-family: "Pixelify Sans"; src: url(fonts/PixelifySans.ttf) format("truetype"); font-weight: 400 700; font-display: swap; }
+  @font-face { font-family: "Press Start 2P"; src: url(fonts/PressStart2P-Regular.ttf) format("truetype"); font-display: block; }   /* never a fallback face on the title */
+  @font-face { font-family: "Pixelify Sans"; src: url(fonts/PixelifySans.ttf) format("truetype"); font-weight: 400 700; font-display: block; }
   @font-face { font-family: "Nunito"; src: url(fonts/Nunito.ttf) format("truetype"); font-weight: 200 1000; font-display: swap; }
 
   * { box-sizing: border-box; }
@@ -62,23 +66,25 @@
   .panel { border: calc(8 * var(--u)) solid transparent; border-image: var(--panel-tan) 8 fill / calc(8 * var(--u)) round; color: var(--ink); image-rendering: pixelated; }
   .panel.night { border-image-source: var(--panel-night); color: var(--cream); }
 
+  /* ---- the pointer ▶: a 16-px pixel-art shape, coloured by the element that shows it ---- */
+  .ptr { width: 16px; height: 16px; flex: none; background: var(--gold); -webkit-mask: var(--ptr) center / 16px 16px no-repeat; mask: var(--ptr) center / 16px 16px no-repeat; visibility: hidden; }
+
   /* ---- buttons: a cream face, an ink outline, a shadow under it that the press removes ---- */
-  .btn { display: inline-flex; align-items: center; gap: 12px; font-family: var(--pixel); font-size: 16px; line-height: 1.5; text-decoration: none; color: var(--ink);
-    background: var(--cream); border: var(--u) solid var(--ink); padding: 10px 20px 8px; box-shadow: 0 calc(2 * var(--u)) 0 var(--ink); cursor: var(--paw) 2 2, pointer; -webkit-font-smoothing: none; }
+  .btn { position: relative; display: inline-flex; align-items: center; font-family: var(--pixel); font-size: 16px; line-height: 1.5; text-decoration: none; color: var(--ink);
+    background: var(--cream); border: var(--u) solid var(--ink); padding: 10px 20px 8px; box-shadow: 0 calc(2 * var(--u)) 0 var(--ink); cursor: var(--paw) 2 2, pointer; -webkit-font-smoothing: none; white-space: nowrap; }
+  .btn .ptr { position: absolute; left: -28px; top: 50%; margin-top: -8px; background: var(--cream); }   /* outside the face, so the label stays centred */
   .btn.primary { background: var(--go); }
   .btn:hover { background: var(--white); }
   .btn.primary:hover { background: #D4E68A; }
   .btn:active, .btn.pressed { transform: translateY(calc(2 * var(--u))); box-shadow: none; }
   .btn[aria-disabled="true"] { opacity: .6; cursor: not-allowed; }
   .btn[aria-disabled="true"]:hover { background: var(--cream); }
-  .ptr { width: 16px; height: 16px; flex: none; background: var(--gold); clip-path: polygon(0 0, 100% 50%, 0 100%); visibility: hidden; }
-  .btn .ptr { background: var(--ink); }
   .btn:hover .ptr, .btn:focus-visible .ptr { visibility: visible; }
   .todo { display: block; font-family: var(--pixel-text); font-size: 20px; color: var(--dim); margin-top: 6px; }   /* a placeholder, said out loud */
 
   /* ---- the title screen ---- */
   .hero { position: relative; min-height: 100svh; display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; background: var(--sky); }
-  .stage { position: absolute; inset: 0; display: flex; justify-content: center; align-items: flex-end; pointer-events: none; }
+  .stage { position: absolute; inset: 0; display: flex; justify-content: center; align-items: flex-end; pointer-events: none; }   /* padding-bottom lifts the scene clear of the box, set by the script as a step */
   #scene { display: block; }
   .hud { display: contents; }
   .masthead, .talk { position: relative; z-index: 2; }     /* above the scene, which is absolute */
@@ -88,8 +94,8 @@
   .tagline { font-family: var(--pixel-text); font-size: 20px; line-height: 1.3; color: var(--cream); text-shadow: var(--u) var(--u) 0 var(--ink); margin: 12px 0 0; }
   .start { text-align: center; margin-top: 40px; }
   .start[hidden] { display: none; }
-  #pressStart { font-family: var(--pixel); font-size: 16px; line-height: 1.5; color: var(--gold); background: none; border: 0; padding: 16px 24px; cursor: var(--paw) 2 2, pointer;
-    text-shadow: var(--u) var(--u) 0 var(--ink); animation: blink 1.06s steps(1, end) 4; }   /* four blinks, then it holds: nothing blinks past five seconds (WCAG 2.2.2) */
+  #pressStart { font-family: var(--pixel); font-size: 16px; line-height: 1.5; color: var(--gold); background: none; border: 0; padding: 16px 24px; cursor: var(--paw) 2 2, pointer; text-shadow: var(--u) var(--u) 0 var(--ink); }
+  #pressStart.go { animation: blink 1.06s steps(1, end) 4; }   /* four blinks from the moment the title shows, then it holds: nothing blinks past five seconds (WCAG 2.2.2) */
   @keyframes blink { 50% { opacity: 0; } }
   #pressStart:hover, #pressStart:focus-visible { animation: none; color: var(--white); }
   .talk { width: min(760px, calc(100% - 32px)); margin: 0 auto 24px; display: none; }
@@ -99,10 +105,12 @@
   .face { width: 68px; height: 68px; background: var(--portrait-0) no-repeat; background-size: 68px 68px; image-rendering: pixelated; }
   .face.b { background-image: var(--portrait-1); }
   .who { font-family: var(--pixel); font-size: 16px; color: var(--gold); margin-bottom: 8px; }
-  .text { min-height: 52px; }
+  .text { min-height: 52px; padding-right: 48px; }       /* clear of the ▼'s target */
   .text .cursor { display: inline-block; width: 10px; height: 20px; vertical-align: -3px; background: var(--cream); animation: blink .8s steps(1, end) infinite; }
   .adv { position: absolute; right: 4px; bottom: 0; width: 44px; height: 44px; background: none; border: 0; padding: 0; cursor: var(--paw) 2 2, pointer; }   /* a 44-px target; the triangle is drawn inside it */
-  .adv::before { content: ""; position: absolute; left: 14px; top: 16px; width: 16px; height: 12px; background: var(--cream); clip-path: polygon(0 0, 100% 0, 50% 100%); animation: bob .6s steps(2, end) 8; }   /* bobs for five seconds, then rests */
+  .adv[hidden] { display: none; }
+  .adv::before { content: ""; position: absolute; left: 14px; top: 16px; width: 16px; height: 12px; background: var(--cream); -webkit-mask: var(--adv) center / 16px 12px no-repeat; mask: var(--adv) center / 16px 12px no-repeat; }
+  .adv.go::before { animation: bob .6s steps(1, end) 8; }   /* from the moment a line is done: two positions, 300 ms each, for five seconds, then rests */
   @keyframes bob { 50% { transform: translateY(4px); } }
   .menu { list-style: none; margin: 8px 0 0 88px; padding: 0; display: none; }    /* under the words, past the portrait */
   .menu.on { display: block; }
@@ -110,13 +118,14 @@
   .menu.on li { animation: appear 0s steps(1, end) both; animation-delay: calc(var(--i) * 120ms); }   /* the items come one by one, as Stardew's buttons do; opacity, so they stay focusable */
   @keyframes appear { from { opacity: 0; } }
   .menu a { display: flex; align-items: center; gap: 12px; padding: 3px 8px; font-family: var(--pixel); font-size: 16px; line-height: 1.5; color: var(--cream); text-decoration: none; white-space: nowrap; cursor: var(--paw) 2 2, pointer; }
-  .menu a .ptr { visibility: hidden; }
-  .menu a:hover, .menu a:focus-visible, .menu a.on { color: var(--white); }
-  .menu a:hover .ptr, .menu a:focus-visible .ptr, .menu a.on .ptr { visibility: visible; }
+  .menu a.on { color: var(--white); }
+  .menu a.on .ptr { visibility: visible; }               /* one pointer: the mouse moves focus, so hover, focus and Enter are one thing */
   .menu a small { font-family: var(--pixel-text); font-size: 20px; color: var(--dim); margin-left: auto; }
   .corner { position: absolute; top: 12px; right: 12px; z-index: 4; display: flex; gap: 8px; }
   .corner button { font-family: var(--pixel); font-size: 16px; line-height: 1.5; color: var(--cream); background: rgba(7, 10, 30, .6); border: var(--u) solid var(--cream); padding: 10px 12px 8px; cursor: var(--paw) 2 2, pointer; }
   .corner button[aria-pressed="true"] { background: var(--cream); color: var(--ink); }
+  .corner button[hidden] { display: none; }
+  .corner .short { display: none; }
 
   /* ---- the screens below ---- */
   main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 64px; }
@@ -128,21 +137,22 @@
   .card p { font-size: 17px; margin: 0; }
   .note { color: var(--dim); font-size: 16px; }
   .files { display: grid; gap: 20px; }
-  .file { display: grid; grid-template-columns: 24px 1fr auto; gap: 16px 20px; align-items: center; padding: 8px 12px; }
-  .file .ptr { background: var(--cream); }
+  .file { display: grid; grid-template-columns: 24px 1fr auto; gap: 16px 20px; align-items: center; padding: 8px 12px; cursor: var(--paw) 2 2, pointer; }   /* a click anywhere on the slot presses its button */
+  .file > .ptr { background: var(--cream); }
   .file:hover > .ptr, .file:focus-within > .ptr { visibility: visible; }
   .file .slot { font-family: var(--pixel); font-size: 16px; color: var(--gold); }
   .file .price { font-family: var(--pixel-text); font-size: 20px; color: var(--cream); }
   .file p { grid-column: 2; margin: 0; font-size: 17px; }
   .file .act { grid-column: 3; grid-row: 1 / span 2; text-align: center; }
   .hearts { display: inline-flex; gap: 4px; vertical-align: middle; margin-left: 12px; }
-  .hearts i { width: 14px; height: 12px; background: var(--ember); clip-path: polygon(50% 100%, 0 45%, 0 20%, 25% 0, 50% 20%, 75% 0, 100% 20%, 100% 45%); }
+  .hearts i { width: 14px; height: 12px; background: var(--ember); -webkit-mask: var(--heart) center / 14px 12px no-repeat; mask: var(--heart) center / 14px 12px no-repeat; }
   .hearts i.off { background: var(--night-line); }
   .faq details { border-bottom: var(--u) solid var(--night-line); }
   .faq summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 12px 8px; font-family: var(--pixel-text); font-size: 20px; cursor: var(--paw) 2 2, pointer; color: var(--cream); }
   .faq summary::-webkit-details-marker { display: none; }
   .faq summary .ptr { visibility: hidden; }
-  .faq summary:hover .ptr, .faq details[open] summary .ptr, .faq summary:focus-visible .ptr { visibility: visible; }
+  .faq summary:hover .ptr, .faq summary:focus-visible .ptr { visibility: visible; }
+  .faq details[open] summary .ptr { visibility: visible; background: var(--dim); -webkit-mask-image: var(--adv); mask-image: var(--adv); }   /* an open question points down, in grey */
   .faq details p { padding: 0 8px 16px 36px; margin: 0; color: var(--cream); }
   .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
   .founder { display: grid; grid-template-columns: 68px 1fr; gap: 20px; align-items: start; }
@@ -150,7 +160,6 @@
   footer .inner { max-width: 1040px; margin: 0 auto; }
   footer nav { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-bottom: 16px; }
   footer nav a { color: var(--cream); text-decoration: none; }
-  footer nav a[href]:hover { text-decoration: underline; }
   footer a { color: var(--cream); }
 
   /* ---- the loading frame and the screen wipe ---- */
@@ -167,12 +176,19 @@
   #wipe.on { opacity: 1; transition: opacity .24s steps(3, end); }
   #wipe.off { opacity: 0; transition: opacity .24s steps(3, end); }
 
+  /* ---- narrower than a laptop: the file slots stack ---- */
+  @media (max-width: 900px) {
+    .file { grid-template-columns: 24px 1fr; }
+    .file p, .file .act { grid-column: 2; }
+    .file .act { grid-row: auto; text-align: left; }
+  }
+
   /* ---- a phone ---- */
   @media (max-width: 760px) {
     :root { --u: 1px; }
-    .hero { grid-template-rows: auto auto auto; min-height: 0; }
-    .stage { position: static; order: 2; align-items: flex-start; overflow: hidden; height: 270px; }
-    .masthead { order: 1; padding: 72px 16px 16px; }   /* under the corner buttons */
+    .hero { grid-template-rows: auto 1fr auto; }     /* still a whole screen: the next section waits below the fold */
+    .stage { position: static; order: 2; align-self: end; justify-content: center; overflow: hidden; }
+    .masthead { order: 1; padding: 64px 16px 16px; }    /* under the corner buttons */
     .logo { font-size: 24px; } .tagline { font-size: 20px; }
     .masthead, .talk { grid-row: auto; }
     .start { margin: 24px 0 8px; }
@@ -180,17 +196,19 @@
     .menu { margin-left: 0; }
     .menu a small { display: none; }        /* the hints would wrap each item onto two lines */
     .menu a { padding: 6px 4px; }
-    .three { grid-template-columns: 1fr; }
-    .file { grid-template-columns: 24px 1fr; }
-    .file .act { grid-column: 2; grid-row: auto; text-align: left; }
     .corner { top: 8px; right: 8px; }
     .corner button { padding: 8px 8px 6px; }
+    .corner .long { display: none; } .corner .short { display: inline; }   /* SOUND, STILL, SKIP: the state is the pressed look */
+    h2 { font-size: 16px; }                 /* the next crisp size down, so a title never wraps */
+    .three { grid-template-columns: 1fr; }
+    .btn { padding-left: 12px; padding-right: 12px; }   /* WRITE TO CHARLOTTE fits a 318-px slot */
+    .btn .ptr { display: none; }
     .panel { border-width: calc(8 * var(--u)); }
   }
 
   /* ---- reduced motion: everything stands still; the text is simply there ---- */
   @media (prefers-reduced-motion: reduce) {
-    #pressStart, .adv::before, .text .cursor, #loading .paws i, .talk.on, .menu.on li { animation: none; }
+    #pressStart.go, .adv.go::before, .text .cursor, #loading .paws i, .talk.on, .menu.on li { animation: none; }
     #loading .paws i { opacity: 1; }
     #loading.done, #wipe.on, #wipe.off { transition: none; }
   }
@@ -204,15 +222,15 @@
   <div class="px">NOW LOADING</div>
   <div class="bar" aria-hidden="true"><i id="loadBar"></i></div>
   <div class="paws" aria-hidden="true"><i></i><i></i><i></i></div>
-  <span class="sr">The page is loading its pictures.</span>
+  <span class="sr">The page is loading its pictures and type.</span>
 </div>
 <div id="wipe" aria-hidden="true"></div>
 
 <header class="hero" id="top">
   <div class="corner">
-    <button id="sound" type="button" aria-pressed="false" aria-label="Sound">SOUND OFF</button>
-    <button id="still" type="button" aria-pressed="false" aria-label="Still: stop the scene">STILL</button>
-    <button id="skipIntro" type="button" aria-label="Skip the intro">SKIP</button>
+    <button id="sound" type="button" aria-pressed="false" aria-label="Sound"><span class="long">SOUND OFF</span><span class="short">SOUND</span></button>
+    <button id="still" type="button" aria-pressed="false" aria-label="Still: stop the scene"><span class="long">STILL</span><span class="short">STILL</span></button>
+    <button id="skipIntro" type="button" aria-label="Skip the intro"><span class="long">SKIP</span><span class="short">SKIP</span></button>
   </div>
   <div class="stage" aria-hidden="true"><canvas id="scene" width="480" height="270"></canvas></div>
   <p class="sr">A pixel-art night: two cats sit side by side on a log bench to the left of a campfire, their faces lit by it. Logs lie around the fire; a tent glows from inside; smoke drifts up in thin trails; behind them a pine forest, mountains and the milky way.</p>
@@ -237,7 +255,7 @@
         <li style="--i: 2"><a href="#how"><span class="ptr"></span>HOW IT WORKS</a></li>
         <li style="--i: 3"><a href="#support"><span class="ptr"></span>SUPPORT THE WORK</a></li>
       </ul>
-      <button class="adv" id="adv" type="button" aria-label="Next"></button>
+      <button class="adv" id="adv" type="button" aria-label="Next" hidden></button>
     </div>
   </div>
 </header>
@@ -270,7 +288,7 @@
       </div>
       <div class="panel night file" id="slot3">
         <span class="ptr" aria-hidden="true"></span>
-        <div><span class="slot">FILE 3 · SET UP FOR YOU</span><span class="hearts" role="img" aria-label="by arrangement"><i></i><i class="off"></i><i class="off"></i></span><div class="price">From 90 €, once</div></div>
+        <div><span class="slot">FILE 3 · SET UP FOR YOU</span><span class="hearts" role="img" aria-label="open today, by arrangement"><i></i><i></i><i></i></span><div class="price">From 90 €, once</div></div>
         <div class="act"><a class="btn" href="mailto:[email]?subject=Set%20up%20my%20caf%C3%A9" aria-disabled="true"><span class="ptr"></span>WRITE TO CHARLOTTE</a><small class="todo">address coming</small></div>
         <p>An afternoon with Charlotte setting up your own café, from [setup-plus] €; or, from 90 €, the DIY course on customizing it (rooms, rules, the queen's manner) and lifetime access to the hosted café when it opens.</p>
       </div>
@@ -323,7 +341,7 @@
   let audio = null, soundOn = false;
   try { soundOn = localStorage.getItem("kc.sound") === "on"; } catch (e) {}
   const soundBtn = $("#sound");
-  const showSound = () => { soundBtn.setAttribute("aria-pressed", String(soundOn)); soundBtn.textContent = soundOn ? "SOUND ON" : "SOUND OFF"; };
+  const showSound = () => { soundBtn.setAttribute("aria-pressed", String(soundOn)); soundBtn.querySelector(".long").textContent = soundOn ? "SOUND ON" : "SOUND OFF"; };
   const bleep = (notes, len = .05, kind = "square") => {
     if (!soundOn) return;
     try {
@@ -346,32 +364,46 @@
   const off = document.createElement("canvas"); off.width = S.w; off.height = S.h;
   const o = off.getContext("2d");
   const art = {};
-  const NAMES = ["sky", "far", "mid-0", "mid-1", "mid-2", "cats-0", "cats-1", "cats-2", "tent-glow", "fire", "panel-night", "panel-tan", "paw", "portrait-0", "portrait-1"];
+  const NAMES = ["sky", "far", "mid-0", "mid-1", "mid-2", "cats-0", "cats-1", "cats-2", "tent-glow", "fire", "panel-night", "panel-tan", "paw", "portrait-0", "portrait-1", "ptr", "adv", "heart"];
+  const FONTS = ['16px "Press Start 2P"', '20px "Pixelify Sans"', '18px "Nunito"'];
+  const total = NAMES.length + FONTS.length;
   let loaded = 0, ready = false;
   const bar = $("#loadBar");
+  const tick = () => { loaded++; bar.style.width = Math.round(100 * loaded / total) + "%"; };
   const blank = document.createElement("canvas"); blank.width = blank.height = 1;   // stands in for a picture that failed, so one bad file never stops the page
   const loads = NAMES.map((n) => new Promise((res) => {
     const im = new Image();
-    im.onload = () => { loaded++; bar.style.width = Math.round(100 * loaded / NAMES.length) + "%"; res(); };
-    im.onerror = () => { art[n] = blank; loaded++; res(); };
+    im.onload = () => { tick(); res(); };
+    im.onerror = () => { art[n] = blank; tick(); res(); };
     im.src = "art/" + n + ".png"; art[n] = im;
   }));
+  for (const f of FONTS) loads.push((document.fonts && document.fonts.load ? document.fonts.load(f) : Promise.resolve()).catch(() => {}).then(tick));   // the title never shows in a fallback face
 
-  let k = 1;
+  let k = 1, s = 1;
+  const talk = $("#talk");
   const fit = () => {
     const dpr = window.devicePixelRatio || 1;
     const stage = canvas.parentElement;
     const vw = stage.clientWidth || innerWidth;
     k = Math.max(1, Math.ceil(vw * dpr / S.w));                 // device pixels an art pixel: always whole
+    s = k / dpr;                                                // CSS pixels an art pixel
     canvas.width = S.w * k; canvas.height = S.h * k;
-    const cssW = S.w * k / dpr, cssH = S.h * k / dpr;
+    const cssW = S.w * s, cssH = S.h * s;
     canvas.style.width = cssW + "px"; canvas.style.height = cssH + "px";
-    // A narrow screen crops the sides: centre the crop on the campsite (bench, fire, tent) rather than the picture's middle.
-    const over = (cssW - vw) / 2, subject = ((S.safe[0] + S.safe[1]) / 2 - S.w / 2) * k / dpr;
+    // A narrow screen crops the sides: centre the crop on the campsite (bench to tent) rather than the picture's middle.
+    const over = (cssW - vw) / 2, subject = ((S.safe[0] + S.safe[1]) / 2 - S.w / 2) * s;
     canvas.style.transform = over > 0 ? "translateX(" + (-Math.min(over, Math.max(0, subject))) + "px)" : "";
     stage.style.height = phone() ? cssH + "px" : "";              // on a phone the stage is in flow: as tall as the scene, whatever the pixel ratio
     ctx.imageSmoothingEnabled = false;
+    lift();
     draw(true);
+  };
+  // The box must never cover the fire: when it would, the scene steps up by just enough (the games cut; nothing slides).
+  const lift = () => {
+    const stage = canvas.parentElement;
+    if (phone() || !talk.classList.contains("on")) { stage.style.paddingBottom = ""; return; }
+    const need = talk.offsetHeight + 24 - (S.h - S.fire.floor) * s;   // the box and its margin, less the ground under the fire pit
+    stage.style.paddingBottom = need > 0 ? Math.ceil(need) + "px" : "";
   };
 
   // What moves, and when. Every change is a step, never a slide: the games had no easing.
@@ -385,10 +417,10 @@
   const paint = (t, still) => {
     o.clearRect(0, 0, S.w, S.h);
     o.drawImage(art.sky, 0, 0);
-    for (const s of st.stars) {                                   // twinkle: a star flips between dim and bright on its own clock
-      if (!still && t > s.at) { s.on = !s.on; s.at = t + rnd(400, 3500); }
-      o.fillStyle = s.on ? "#FFFFFF" : "#6F7BB8"; o.fillRect(s.x, s.y, 1, 1);
-      if (s.lv === 2 && s.on) { o.fillStyle = "#B4BDEA"; o.fillRect(s.x - 1, s.y, 1, 1); o.fillRect(s.x + 1, s.y, 1, 1); o.fillRect(s.x, s.y - 1, 1, 1); o.fillRect(s.x, s.y + 1, 1, 1); }
+    for (const st_ of st.stars) {                                 // twinkle: a star flips between dim and bright on its own clock
+      if (!still && t > st_.at) { st_.on = !st_.on; st_.at = t + rnd(400, 3500); }
+      o.fillStyle = st_.on ? "#FFFFFF" : "#6F7BB8"; o.fillRect(st_.x, st_.y, 1, 1);
+      if (st_.lv === 2 && st_.on) { o.fillStyle = "#B4BDEA"; o.fillRect(st_.x - 1, st_.y, 1, 1); o.fillRect(st_.x + 1, st_.y, 1, 1); o.fillRect(st_.x, st_.y - 1, 1, 1); o.fillRect(st_.x, st_.y + 1, 1, 1); }
     }
     if (st.meteor) {                                              // a shooting star, now and then: a short streak, gone in half a second
       const m = st.meteor, p = (t - m.t0) / 450;
@@ -410,12 +442,12 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(off, 0, 0, S.w, S.h, 0, 0, S.w * k, S.h * k);
   };
-  const catStep = (s, t) => {                                     // breathe, blink, flick an ear, lift the tail: each cat on its own clocks
-    if (t < s.until) return;
-    if (t > s.blinkAt) { s.frame = 2; s.until = t + 180; s.blinkAt = t + rnd(2500, 7000); }
-    else if (t > s.earAt) { s.frame = 3; s.until = t + 260; s.earAt = t + rnd(7000, 15000); }
-    else if (t > s.tailAt) { s.frame = 4; s.until = t + 420; s.tailAt = t + rnd(5000, 11000); }
-    else { if (t - s.breathAt > 1200) { s.breath ^= 1; s.breathAt = t; } s.frame = s.breath; }
+  const catStep = (c, t) => {                                     // breathe, blink, flick an ear, lift the tail: each cat on its own clocks
+    if (t < c.until) return;
+    if (t > c.blinkAt) { c.frame = 2; c.until = t + 180; c.blinkAt = t + rnd(2500, 7000); }
+    else if (t > c.earAt) { c.frame = 3; c.until = t + 260; c.earAt = t + rnd(7000, 15000); }
+    else if (t > c.tailAt) { c.frame = 4; c.until = t + 420; c.tailAt = t + rnd(5000, 11000); }
+    else { if (t - c.breathAt > 1200) { c.breath ^= 1; c.breathAt = t; } c.frame = c.breath; }
   };
   const step = (t) => {
     if (t - st.fireAt > 1000 / S.fire.fps) { st.fire = (st.fire + 1) % S.fire.frames; st.fireAt = t; }
@@ -448,7 +480,7 @@
   Promise.all(loads).then(() => {
     ready = true; fit();
     const wait = Math.max(0, 500 - (now() - t0));
-    setTimeout(() => { $("#loading").classList.add("done"); draw(true); wake(); setTimeout(() => $("#loading").remove(), 400); }, reduced ? 0 : wait);
+    setTimeout(() => { $("#loading").classList.add("done"); $("#pressStart").classList.add("go"); draw(true); wake(); setTimeout(() => $("#loading").remove(), 400); }, wait);
   });
 
   /* ---- the wipe: fade to black, jump, fade back. Reduced motion jumps. ---- */
@@ -456,13 +488,14 @@
   const goTo = (hash, slot) => {
     const target = document.querySelector(hash); if (!target) return;
     const land = () => {
+      try { history.pushState(null, "", hash); } catch (e) {}   // so Back returns to the title
       target.scrollIntoView({ block: "start" });
       if (slot) { const b = $("#slot" + slot + " .btn"); b.classList.add("pressed"); b.focus({ preventScroll: true }); setTimeout(() => b.classList.remove("pressed"), 600); }
       else { target.setAttribute("tabindex", "-1"); target.focus({ preventScroll: true }); }
     };
     if (reduced) { land(); return; }
     wipe.classList.remove("off"); wipe.classList.add("on");
-    setTimeout(() => { land(); wipe.classList.remove("on"); wipe.classList.add("off"); }, 260);
+    setTimeout(() => { land(); wipe.classList.remove("on"); wipe.classList.add("off"); }, 330);   // the wipe takes 240 ms to black; the jump waits for it
   };
 
   /* ---- the title screen: PRESS START, then the two cats talk, then the menu ---- */
@@ -472,15 +505,17 @@
     ["BRIOCHE", 0, "A cat that needs you meows. Point at it and it tells you what it wants. No terminal needed."],
     ["PEPPER", 1, "Where would you like to go?"],
   ];
-  const talk = $("#talk"), text = $("#text"), who = $("#who"), face = $("#face"), menu = $("#menu"), adv = $("#adv"), startRow = $("#startRow"), said = $("#said"), pressStart = $("#pressStart");
-  let page = -1, typing = null, started = false;
+  const text = $("#text"), who = $("#who"), face = $("#face"), menu = $("#menu"), adv = $("#adv"), startRow = $("#startRow"), said = $("#said"), pressStart = $("#pressStart"), skipBtn = $("#skipIntro");
+  let page = -1, typing = null, started = false, completedAt = 0;
   const CPS = 33;                                   // one character every 30 ms, Stardew's characterAdvanceDelay
+  const SAFETY = 500;                               // a press within half a second of a line's end can't turn the page (Stardew waits 750 ms)
   const show = (n) => {
     page = n; const [name, which, line] = PAGES[n];
     who.textContent = name; face.classList.toggle("b", which === 1);
-    menu.classList.remove("on"); adv.hidden = false;
+    menu.classList.remove("on"); adv.hidden = true; adv.classList.remove("go");
     said.textContent = name + ": " + line;          // a screen reader hears the whole line once, not every letter
     text.textContent = "";
+    lift();
     if (reduced) { text.textContent = line; done(); return; }
     const cur = document.createElement("span"); cur.className = "cursor";
     const tn = document.createTextNode(""); text.append(tn, cur);
@@ -491,25 +526,32 @@
       if (i >= line.length) { clearInterval(typing); typing = null; cur.remove(); done(); }
     }, 1000 / CPS);
   };
-  const done = () => { if (page === PAGES.length - 1) { adv.hidden = true; menu.classList.add("on"); menu.querySelector("a").focus({ preventScroll: true }); } };
+  const done = () => {                              // the line is whole: the ▼ shows and bobs, or on the last page the menu lands
+    completedAt = now();
+    if (page === PAGES.length - 1) { adv.hidden = true; skipBtn.hidden = true; menu.classList.add("on"); menu.querySelector("a").focus({ preventScroll: true }); lift(); return; }
+    adv.hidden = false; adv.classList.add("go"); adv.focus({ preventScroll: true });
+  };
   const next = () => {
     if (typing) { clearInterval(typing); typing = null; text.textContent = PAGES[page][2]; done(); return; }    // a press while it types shows the whole line
+    if (now() - completedAt < SAFETY) return;        // too soon after the line ended: a double-click must not skip a page
     if (page < PAGES.length - 1) { SFX.ok(); show(page + 1); }
   };
   const start = () => {
     if (started) return; started = true; SFX.ok();
-    startRow.hidden = true; talk.classList.add("on"); show(0);
-    adv.focus({ preventScroll: true });             // the box's one control, so focus never falls to the page
+    startRow.hidden = true; talk.classList.add("on"); talk.focus({ preventScroll: true }); show(0);
   };
+  talk.setAttribute("tabindex", "-1");
   pressStart.addEventListener("click", start);
   adv.addEventListener("click", next);
   talk.addEventListener("click", (e) => { if (!e.target.closest("a, button")) next(); });
-  $("#skipIntro").addEventListener("click", () => { started = true; startRow.hidden = true; talk.classList.add("on"); if (typing) { clearInterval(typing); typing = null; } page = PAGES.length - 1; who.textContent = PAGES[page][0]; face.classList.add("b"); text.textContent = PAGES[page][2]; said.textContent = PAGES[page][0] + ": " + PAGES[page][2]; done(); });
+  skipBtn.addEventListener("click", () => { started = true; startRow.hidden = true; talk.classList.add("on"); if (typing) { clearInterval(typing); typing = null; } page = PAGES.length - 1; who.textContent = PAGES[page][0]; face.classList.add("b"); text.textContent = PAGES[page][2]; said.textContent = PAGES[page][0] + ": " + PAGES[page][2]; done(); });
   // The title's keys (Enter, Space, Z and X start and turn the pages) work only while the title is on screen and nothing
-  // else owns the key: a focused link, button or question keeps it.
+  // else owns the key: a focused link, button or question keeps it. Escape below the title wipes back up to it.
   const ownsKey = () => { const a = document.activeElement; return a && a !== document.body && a !== pressStart && a !== adv && a !== talk; };
   document.addEventListener("keydown", (e) => {
-    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || !ready || !inView) return;
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || !ready) return;
+    if (e.key === "Escape" && !inView && menu.classList.contains("on")) { SFX.back(); goTo("#top"); return; }
+    if (!inView) return;
     const key = e.key.toLowerCase(), press = key === "enter" || key === " " || key === "z" || key === "x";
     const inMenu = document.activeElement && document.activeElement.closest("#menu");
     if (inMenu && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
@@ -520,12 +562,14 @@
     if (!started) { if (key === "enter" || key === " ") { e.preventDefault(); start(); } return; }
     if (!menu.classList.contains("on")) { e.preventDefault(); next(); }
   });
-  menu.addEventListener("mouseover", (e) => { const a = e.target.closest("a"); if (a && !a.classList.contains("on")) { menu.querySelectorAll("a").forEach((x) => x.classList.remove("on")); a.classList.add("on"); SFX.move(); } });
+  menu.addEventListener("mouseover", (e) => { const a = e.target.closest("a"); if (a && document.activeElement !== a) { a.focus({ preventScroll: true }); SFX.move(); } });   // the mouse moves the one pointer
   menu.addEventListener("focusin", (e) => { const a = e.target.closest("a"); if (a) { menu.querySelectorAll("a").forEach((x) => x.classList.remove("on")); a.classList.add("on"); } });
   menu.addEventListener("click", (e) => { const a = e.target.closest("a"); if (!a) return; e.preventDefault(); SFX.ok(); goTo(a.getAttribute("href"), a.dataset.slot); });
   document.querySelectorAll(".skip").forEach((a) => a.addEventListener("click", (e) => { const h = a.getAttribute("href"); if (h && h.startsWith("#") && h.length > 1) { e.preventDefault(); goTo(h); } }));
-  document.querySelectorAll(".btn[aria-disabled='true']").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); SFX.back(); }));   // a placeholder goes nowhere, and says so
-  document.querySelectorAll(".btn, summary").forEach((b) => { b.addEventListener("mouseenter", SFX.move); b.addEventListener("click", SFX.ok); });
+  document.querySelectorAll(".file").forEach((f) => f.addEventListener("click", (e) => { if (!e.target.closest("a, button")) f.querySelector(".btn").click(); }));   // the whole slot is the file
+  document.querySelectorAll(".btn[aria-disabled='true']").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); e.stopImmediatePropagation(); SFX.back(); }));   // a placeholder goes nowhere, and says so
+  document.querySelectorAll(".btn:not([aria-disabled='true'])").forEach((b) => { b.addEventListener("mouseenter", SFX.move); b.addEventListener("click", SFX.ok); });
+  document.querySelectorAll(".faq summary").forEach((q) => { q.addEventListener("mouseenter", SFX.move); q.addEventListener("click", () => (q.parentElement.open ? SFX.back() : SFX.ok())); });   // opening confirms, closing cancels
 })();
 </script>
 </body>

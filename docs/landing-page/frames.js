@@ -90,7 +90,7 @@ function title(name, width = 1440, height = 900) {
   for (const [n, p, d, b, primary, hearts] of [
     ["FILE 1 · RUN YOUR OWN", "Free · open today", "The developers' door: clone it, deploy the front desk, install the plugin. Your art, your page. A terminal, this once.", "START A NEW CAFÉ", true, "♥♥♥"],
     ["FILE 2 · THE HOSTED CAFÉ", "[monthly] € a month · early access", "Your café on our address, nothing to install. Not open yet: join the list and be first through the door. Prices HT, TVA non applicable, art. 293 B du CGI.", "JOIN THE LIST", false, "♡♡♡"],
-    ["FILE 3 · SET UP FOR YOU", "From 90 €, once", "Lifetime access, and the DIY course on customizing your own café: rooms, rules, the queen's manner. From [setup-plus] €, an afternoon with Charlotte setting it up with you.", "WRITE TO CHARLOTTE", false, "♥♥♥"]]) {
+    ["FILE 3 · SET UP FOR YOU", "From 90 €, once", "An afternoon with Charlotte setting up your own café, from [setup-plus] €; or, from 90 €, the DIY course on customizing it and lifetime access to the hosted café when it opens.", "WRITE TO CHARLOTTE", false, "♥♥♥"]]) {
     const s = card(1040, 16, "file slot (night panel)", NIGHT2); const r = row(20); r.appendChild(text("▶", 14, BOLD, PAPER));
     const c = col(6); c.appendChild(text(n + "   " + hearts, 14, BOLD, PAPER)); c.appendChild(text(p, 16, REG, PAPER)); c.appendChild(text(d, 13, REG, DIM, 700)); r.appendChild(c); r.appendChild(button(b, primary)); s.appendChild(r); slots.appendChild(s); }
   put(f, slots, 200, 150);
