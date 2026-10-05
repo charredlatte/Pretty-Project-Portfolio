@@ -517,6 +517,12 @@ class SessionStart(unittest.TestCase):
         self.assertIn("  cafe merges its own pull requests; changes to harness/ always wait for her.", out)
         self.assertIn("**Semi-automatic merging** (enforced)", out)
 
+    def test_reminds_a_fable_session_of_opus(self):
+        nudge = "suggest /model opus"
+        self.assertIn(nudge, run("session_start.py", {"model": "claude-fable-5-1", "cwd": tempfile.mkdtemp()}).stdout)
+        self.assertNotIn(nudge, run("session_start.py", {"model": "claude-opus-5-5", "cwd": tempfile.mkdtemp()}).stdout)
+        self.assertNotIn(nudge, run("session_start.py", {"cwd": tempfile.mkdtemp()}).stdout)
+
     def test_resume_skips_the_audit_prompt(self):
         r = run("session_start.py", {"source": "resume", "cwd": tempfile.mkdtemp()})
         self.assertNotIn("Start now with the read-only pass", r.stdout)

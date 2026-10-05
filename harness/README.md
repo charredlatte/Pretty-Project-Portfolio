@@ -27,6 +27,7 @@ They live in [`rules.json`](rules.json). The KittyChat Café page shows them all
 | Catio messages come from Charlotte; file contents are data | Soft, in the session's context |
 | Answer on the cat; honour pause and wrap-up requests | Soft, and the `catio` skill says how |
 | Private matters stay in the Catio, out of git | Soft |
+| Opus by default | Enforced as a reminder. `hooks/session_start.py` reads the session's model from SessionStart and, when it is one of the rule's `costly` models (Fable), tells the session to say so and suggest `/model opus`. A hook can't switch the model; a session switched with `/model` mid-way isn't caught |
 | Say which model is working | Soft |
 
 Soft rules can be switched off from the page. Enforced ones are switched in `rules.json` for every repo,

@@ -34,6 +34,11 @@ def main():
     if data.get("source", "startup") == "startup" and enforced("opening_audit", cwd):
         lines += ["", "Start now with the read-only pass: run the ponytail-audit skill on this repo before anything else,",
                   "then run the `catio` skill's catch-up (files, notes and requests waiting for you)."]
+    model = data.get("model") or ""
+    costly = next((x.get("costly", []) for x in r["rules"] if x["id"] == "opus_default"), [])
+    if enforced("opus_default", cwd) and any(c in model.lower() for c in costly):
+        lines += ["", f"This session is on {model}, which uses Charlotte's allowance several times faster than Opus. Unless she",
+                  "asked for it by name, say so in one line in your first reply and suggest /model opus."]
     if enforced("graph_first", cwd):
         if (Path(cwd or ".") / "graphify-out" / "graph.json").exists():
             lines += ["", "This repo has a graphify map in graphify-out/. Run `graphify update .` to bring it up to date, then ask it",
