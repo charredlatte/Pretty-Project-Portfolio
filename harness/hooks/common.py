@@ -27,12 +27,15 @@ def local(cwd=None):
         return {}
 
 
-def once(session, kind, prefix="delegate"):
-    """True the first time this session is told something of this kind, so a nudge never nags."""
+def once(session, kind, prefix="delegate", peek=False):
+    """True the first time this session is told something of this kind, so a nudge never nags. With peek, only
+    ask - the cheap check a hook makes before doing any work it would throw away."""
     name = "catio-{}-{}-{}".format(prefix, re.sub(r"\W", "", str(session or "none")), kind)
     mark = Path(tempfile.gettempdir()) / name
     if mark.exists():
         return False
+    if peek:
+        return True
     try:
         mark.touch()
     except OSError:

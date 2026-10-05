@@ -1,10 +1,13 @@
 # Delegating the easy work to smaller models
 
-**Status (5 October 2026): phase A is built, and so is the rule that puts a ceiling on a spawn**
-(`right_sized` in `rules.json`, `harness/hooks/right_sized.py`, the `tiers` block: a sub agent spawn names its tier,
-an errand has a ceiling, and Charlotte's word for a repo, in its `.claude/catio-rules.json`, turns the harness's
-reading into a refusal. `harness/README.md`, "Spend what the task is worth"). That is phase C's first step arriving
-before B: it needs no job queue, only the spawn the session was going to make anyway.
+**Status (5 October 2026): phase A is built, and so is the cap on a spawn**
+(`right_sized` in `rules.json`, `harness/hooks/right_sized.py`, the `tiers` block: the hook works out the tier a
+spawn would really run on and refuses anything above the cap Charlotte set for that repo in its
+`.claude/catio-rules.json`, and otherwise says once what a spawn is about to inherit. `harness/README.md`, "Spend
+what the task is worth"). That is phase C's first step arriving before B: it needs no job queue, only the spawn the
+session was going to make anyway. It deliberately does **not** judge whether a task is easy - that is the `decide`
+rubric below. A first pass that guessed it from the prompt's words was taken out in review for misreading in both
+directions ("add a null check to walk() and run the tests" is short and starts with *add*).
 
 **Status (3 October 2026, evening): phase A is built** (`harness/agents/scout.md` and `tester.md`, the soft rule
 `delegate`, its nudge in `graph_first.py`, the edit gate in `gates.py`), waiting for her merge with the rest of `harness/`.
@@ -159,13 +162,13 @@ reports, and its line lands in the queen's thread; `harness/test/test_queen.py` 
 
 With B in place, delegation needs no asking. Small steps, each a few hours.
 
-0. **A ceiling on a spawn, and her word as the memory.** Built, 5 October, before B, since it rides the spawn a
+0. **A cap on a spawn, and her word as the memory.** Built, 5 October, before B, since it rides the spawn a
    session was already making. The `right_sized` rule, `hooks/right_sized.py` and `rules.json`'s `tiers`. What it
    adds over the `delegate` nudge: `delegate` suggests a smaller cat for two named jobs (a whole-repo search, a test
-   run); this reads the tier of *every* spawn, says what an unnamed one will inherit, and enforces an errand's
-   ceiling where she has set one. What it does not do: pick a model with a decider. The rubric is run by `decide`
-   (phase D), which needs a server; the hook stays offline and fails open, so a reading never blocks and only her
-   own word does.
+   run); this reads the tier of *every* spawn, says what an unnamed one will inherit, and enforces her cap where she
+   has set one. What it does not do: judge a task. The rubric is `decide`'s (phase D), which needs a server; the
+   hook stays offline and compares facts only, so the one thing that refuses is her own cap, and a repo with no cap
+   is only ever spoken to.
 
 1. **Routines on a small model.** `routines/<id>.model`, a select in her Routines card (Fable off the list), and
    `--model` in the runner's turn. Most routines are easy by nature (a morning report, a test run): the cheapest

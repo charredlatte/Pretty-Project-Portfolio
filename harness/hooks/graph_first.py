@@ -58,6 +58,8 @@ def delegate(data):
         kind = "test"
     else:
         return ""
+    if not once(data.get("session_id"), kind, peek=True):
+        return ""            # said already: ask the cheap question before reading the transcript
     strong = rules()["merging"]["strong"]
     if not any(s in m for m in models(data) for s in strong):
         return ""
