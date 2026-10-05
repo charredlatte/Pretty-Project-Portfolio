@@ -1,6 +1,6 @@
 ---
 name: catio
-description: Handle what Charlotte sends from the Catio, her KittyChat harness - a turn starting with [Catio] that delivers a file, a note, or a request (pause, wrap up) - and do the session-start catch-up of files, notes and requests waiting for this session. Also how to save the opening audit and the project's graphify map to the Catio. Use whenever a message starts with [Catio], when asked to "check the brain" or "check the Catio", and once at the start of every session.
+description: Handle what Charlotte sends from the Catio, her KittyChat harness - a turn starting with [Catio] that delivers a file, a note, or a request (pause, wrap up) - and do the session-start catch-up of files, notes and requests waiting for this session. Also how to save the opening audit and the project's graphify map to the Catio, and how to read or change the café's look as a design tokens file (tokens, set_tokens, Figma). Use whenever a message starts with [Catio], when asked to "check the brain" or "check the Catio", and once at the start of every session.
 ---
 
 # The Catio
@@ -95,3 +95,31 @@ dig"). graphify writes `graphify-out/` in the repo: keep it out of git by adding
    surprising links, and the questions she can ask a cat with one click.
 
 Refresh the map when a piece of work changes the code's shape, not after every edit.
+
+## Design tokens
+
+The café's look (its colours, the pixel font's size and line, the text size, the art pixel) travels as a design
+tokens file: the W3C format Figma's variables import and export as a mode, the same file The look's Export tokens
+writes. Two modes, `light` and `dark`; dark says only what differs. `harness/README.md`, "The café's look as a
+design tokens file", has the rules in full.
+
+- **Read it**: the Catio server's `tokens` tool, `{mode}` (light by default). Groups `colours`, `map-colours` and
+  `type`; each token has `$value` and The look's words as `$description`. Anyone may read it.
+- **Change it**: `set_tokens` `{mode, file, replace}`, only when Charlotte asks for it. A token is matched by its own
+  name in any group (`ink`, or Figma's `Ink`), aliases are followed, and what isn't the café's is left out and
+  counted. `replace: true` makes the file the whole of that mode, dropping every colour she set that it doesn't
+  name, so leave it off unless she says so. Tell her what came back: `tokens`, `changed`, `foreign`, `refused`.
+- **Who may write**: on the gateway only she and the queen. A session whose CATIO connector is signed in as her
+  writes as her; the agents' key (`CATIO_TOKEN`, the hook's) is refused, and that is on purpose. On her computer
+  `catio_mcp.py` writes `art/skin.json` beside the café it serves.
+- **The claude.ai café keeps its own look**, apart from the gateway's: `ArtifactData` `skin/theme`,
+  `{tokens: {"--ink": "#…", …}, dark: {…}, at: <ms>}` (read it first, pass `if_version`, and keep both keys: a
+  missing `dark` loses her night colours). `tokens` doesn't read it.
+- **Into Figma**: hand her the `tokens` file to import as a mode in Figma's variables, or, with the Figma
+  connector, build the variables with `use_figma` after loading its `figma-use` skill. Figma takes sizes in px
+  only, so `body-size` (rem) stays behind.
+- **Back from Figma**: her Figma export (`.tokens.json`) goes straight into `set_tokens`. With only the
+  connector, read the variables with `get_variable_defs` and write them as such a file first.
+
+Never add a colour or size to the page as a literal: a new one is a new token (`TOKENS` in `catio/index.html`),
+and the page, `skin.py`, the gateway and `catio_mcp.py` all read the table from the page.
