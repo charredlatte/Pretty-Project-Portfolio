@@ -6,7 +6,8 @@
 // admin invites make their own account at /signup. An open café keeps a WebSocket to its house and hears every change.
 import PAGE from "../../../catio/index.html";
 import RUNTIME from "../cafe/runtime.js";
-import { clientIp, esc, noAccount, page } from "./signin.js";
+import { clientIp, esc, formOf, noAccount, page } from "./signin.js";
+import { plain } from "./plain.js";
 import { MIN_SECRET, randomToken, sha256 } from "./secret.js";
 import { bootProblem, hasAccount, registry } from "./registry.js";
 import { FIRST_HOUSE, fileKeys } from "./houses.js";
@@ -24,7 +25,7 @@ const refuse = (status, code, error) => json({ code, error }, status);
 /** A path segment, decoded; null when it isn't valid. */
 const tryDecode = (s) => { try { return decodeURIComponent(s); } catch { return null; } };
 /** The request's JSON object, or {} when it isn't one. */
-const bodyOf = async (request) => { const b = await request.json().catch(() => null); return b && typeof b === "object" && !Array.isArray(b) ? b : {}; };
+const bodyOf = async (request) => { const b = await request.json().catch(() => null); return b && typeof b === "object" && !Array.isArray(b) ? plain(b) : {}; };
 
 function cookieOf(request) {
 	for (const part of (request.headers.get("Cookie") || "").split(";")) {
@@ -138,7 +139,7 @@ session, no pushes to the default branch, no Claude credit lines in public repos
 const sameOrigin = (request) => { const o = request.headers.get("Origin"); return !o || o === new URL(request.url).origin; };
 
 /** The admin's page for invites: make one (shown once, as a link to pass on), or take back every unused one. */
-function invitePage(open, made = null, note = "") {
+function invitePage(open, made = null, note = "", status = 200) {
 	return page("Invite someone", `<h1>Invite someone</h1>
 <p>An invite lets one person make an account and a café of their own. It works once, for a week.</p>
 ${made ? `<p><strong>Send them this link.</strong> It is shown this once:</p>
@@ -149,7 +150,7 @@ ${note ? `<p>${esc(note)}</p>` : ""}
 <div class="row"><button class="go" name="do" value="make">Make an invite</button>${open ? `<button name="do" value="drop">Take back unused invites</button>` : ""}</div>
 </form>
 <p class="soft">They see only their own café. The packs' art stays yours: their café is drawn plainly.</p>
-<p class="soft"><a href="/">Back to the café</a></p>`);
+<p class="soft"><a href="/">Back to the café</a></p>`, status);
 }
 
 const signInCookie = async (reg, user) => {
@@ -164,7 +165,8 @@ async function signUp(request, env) {
 	if (/^application\/json\b/.test(request.headers.get("Content-Type") || "")) return signUpForAnAI(request, env);
 	if (!(await hasAccount(env))) return signUpPage("", "", NOT_YET, 503, "", noAccount(env, request));
 	if (!sameOrigin(request)) return signUpPage("", "", "Sign up from this page.", 403);
-	const form = await request.formData();
+	const form = await formOf(request);
+	if (!form) return signUpPage("", "", "That wasn't the sign-up form.", 400);
 	const invite = String(form.get("invite") || "").trim(), user = String(form.get("user") || "").trim();
 	const password = String(form.get("password") || "");
 	if (password !== String(form.get("again") || "")) return signUpPage(invite, user, "The two passwords aren't the same.", 400);
@@ -194,7 +196,7 @@ const NOT_YET = "The gateway has no account yet. Its warning lights:";
 async function login(request, env) {
 	if (!(await hasAccount(env))) return signInPage(NOT_YET, 503, noAccount(env, request));
 	const reg = await registry(env);
-	const form = await request.formData().catch(() => null);
+	const form = await formOf(request);
 	if (!form) return signInPage("That wasn't the sign-in form.", 400);
 	const user = await reg.checkPassword(String(form.get("user") || ""), String(form.get("password") || ""), clientIp(request));
 	if (user && user.locked) return signInPage("Too many wrong passwords. Try again in a quarter of an hour.", 429);
@@ -244,7 +246,10 @@ export async function cafe(request, env) {
 		const by = await agentKey(request, env);
 		if (!by || by.role !== "queen") return refuse(401, "unauthorized", "The queen's key is needed: the CATIO_QUEEN secret in Cloudflare, or a key minted for her in the café.");
 		const house = houseOf(env, by);
-		if (path === "/api/runner/wait") return json(await house.waitForQueen());
+		if (path === "/api/runner/wait") {
+			const { ack } = await bodyOf(request);
+			return json(await house.waitForQueen(typeof ack === "number" ? ack : undefined));
+		}
 		if (path === "/api/runner/say") {
 			const text = await request.text();
 			if (text.length > MAX_SAY) return refuse(413, "too_big", "A turn is 64 KB at most.");
@@ -279,7 +284,9 @@ export async function cafe(request, env) {
 		const reg = await registry(env);
 		if (method === "GET") return invitePage(await reg.openInvites());
 		if (method !== "POST" || !sameOrigin(request)) return page("Not here", `<h1>Make invites from this page</h1><p><a href="/invite">Invites</a></p>`, 403);
-		if ((await request.formData()).get("do") === "drop") {
+		const form = await formOf(request);
+		if (!form) return invitePage(await reg.openInvites(), null, "That wasn't the invites form.", 400);
+		if (form.get("do") === "drop") {
 			const n = await reg.dropInvites();
 			return invitePage(0, null, n === 1 ? "1 invite taken back." : `${n} invites taken back.`);
 		}
