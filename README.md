@@ -59,7 +59,7 @@ Everything below is the detail.
 
 ## Running your own
 
-You can run your own café today, from this repository, for free. The engine (Claude) is yours already; this section
+You can run your own café today, from this repository, for free. The engine (Claude's models in Charlotte's case) is yours already; this section
 fits the rest of the car around it, one part at a time, in the order a novice should take them. Each step says what
 to click or type and how you know it worked. The parts after the windshield are optional: stop after step 3 and you
 have a café that shows your sessions; add the desk, the seatbelts and the driver when you want live cats, house rules
