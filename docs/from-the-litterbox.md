@@ -85,7 +85,7 @@ from. Edit them freely: the sorter only adds, and never files a note that is alr
   homework. *— litterbox/2026-10-03-owner-on-the-wire-loose-ends.md*
 
 - **"Don't touch the artifact"** (her rule, 3 October: "I don't want you touching the artifact again. Run
-  everything through the cafe's deployed address and the repo"). The artifact stays at version 32. Open: whether
+  everything through the cafe's deployed address and the repo"). ~~The artifact stays at version 32.~~: on 4 October she asked for republishes herself (version 33 added `quizzes` and `answer` to the stored capabilities, version 34 the decider-log fix), and later ones followed. Open: whether
   CLAUDE.md records the rule (its Republishing section and post-publish checks still tell sessions to publish),
   whether the catio skill, audits and project maps move off the artifact's database onto the gateway, and whether
   the litter box quiz and decisions quiz count as artifacts too. In her homework. *— litterbox/2026-10-03-owner-on-the-wire-loose-ends.md*
@@ -96,9 +96,9 @@ from. Edit them freely: the sorter only adds, and never files a note that is alr
 
 ### 4 October 2026: the queen's card, held for her
 
-- ~~**PR #64 is ready and held for her, not merged.**~~ Merged on 4 October ("Make this window useable": the queen's card's height). https://github.com/charredlatte/Pretty-Project-Portfolio/pull/64 *— litterbox/2026-10-04-queen-card-held-for-her.md*
+- ~~**PR #64 is ready and held for her, not merged.**~~: merged on 4 October ("Make this window useable": the queen's card's height). https://github.com/charredlatte/Pretty-Project-Portfolio/pull/64 *— litterbox/2026-10-04-queen-card-held-for-her.md*
 
-- **The café still shows the old card until the page is republished.** Both #62 and #64 only change the
+- ~~**The café still shows the old card until the page is republished.**~~: folded into the round of 5 October's note on the claude.ai café trailing `main`. Both #62 and #64 only change the
   repository: the artifact at `artifacts.json`'s `kittychat-cafe` keeps the page it was last published with.
   A session with the licensed art (read it back from the artifact, per CLAUDE.md "Republishing") needs to
   publish `catio/index.html` to that URL for any of this to reach her. *— litterbox/2026-10-04-queen-card-held-for-her.md*
