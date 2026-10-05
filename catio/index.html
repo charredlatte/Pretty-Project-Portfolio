@@ -740,6 +740,10 @@ ul.art > li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; ga
 ul.art .pic { width: 64px; height: 48px; display: grid; place-items: center; overflow: hidden; background: var(--well) padding-box;
   border: solid transparent; border-width: var(--down-px); border-image: var(--art-button-down) var(--down-s) fill / var(--down-px) stretch; image-rendering: pixelated; }
 ul.art .pic img { max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: pixelated; }
+/* the fold drawn in code, its two cells side by side as she would draw them, at the art pixel */
+ul.art .pic.fold { grid-auto-flow: column; gap: calc(2 * var(--u)); }
+ul.art .pic.fold svg { width: calc(8 * var(--u)); height: calc(8 * var(--u)); fill: currentColor; shape-rendering: crispEdges; }
+ul.art .pic.fold svg.unfold { width: calc(10 * var(--u)); }
 ul.art .pic .aa { font: var(--px-size)/var(--px-size) var(--pixel); }
 ul.art .txt { display: grid; min-width: 0; font-size: .8rem; line-height: 1.35; }
 ul.art .txt b { font: var(--px-size)/var(--px-line) var(--pixel); font-weight: normal; }
@@ -4698,7 +4702,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     }
     if (k === "owner") { pic.appendChild(ownerSVG(ownerOf())); return pic; }
     if (k === "map-fold" && !e) {   // the two drawn in code, as the fold shows them, until hers
-      for (const g of $("mapFold").querySelectorAll("svg")) { const c = g.cloneNode(true); c.style.cssText = "display: inline-block; width: " + (g.classList.contains("unfold") ? 20 : 16) + "px; height: 16px; margin: 0 3px; fill: currentColor;"; pic.appendChild(c); }
+      pic.classList.add("fold");
+      for (const g of $("mapFold").querySelectorAll("svg")) pic.appendChild(g.cloneNode(true));
       return pic;
     }
     const src = e ? e.url : a.file;
@@ -4896,7 +4901,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const txt = el("div", "txt");
     txt.append(el("b", null, a.name), el("span", "what", a.what), el("span", "size", artLine(k)));
     const stand = !e && SKIN.standIn && SKIN.standIn[k];
-    const from = e ? (e.from === "db" ? "Yours" : "From art/skin.json") : stand ? "Your " + ART[stand].name.toLowerCase() + " stands in until you draw this one" : a.file ? "The pack's" : "None yet";
+    const from = e ? (e.from === "db" ? "Yours" : "From art/skin.json") : stand ? "Your " + ART[stand].name.toLowerCase() + " stands in until you draw this one" : a.file ? "The pack's" : k === "owner" || k === "map-fold" ? "Drawn in code" : "None yet";
     txt.appendChild(el("span", "from" + (e || stand ? " mine" : ""), from));
     const unread = !SKIN.db[k] && (SKIN.dbIds || []).includes(k);   // kept, but not a piece the page can read at all
     const why = SKIN.problems[k] || (unread ? "It isn't a file the café can read (its address is refused)." : null);

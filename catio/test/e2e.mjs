@@ -1705,13 +1705,15 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await page.locator("#room-living").focus();
   await page.keyboard.press("Enter");
   await settle(page);
-  const item = await page.evaluate(() => { const a = document.activeElement; window.__was = a; return !!a && document.getElementById("menu").contains(a) ? a.textContent : null; });
+  const was = await page.evaluateHandle(() => document.activeElement);
+  const item = await page.evaluate((a) => document.getElementById("menu").contains(a) ? a.textContent : null, was);
   await page.keyboard.press("m");
   await settle(page);
   await check("opening the panel from inside a menu keeps the keyboard on the same item", async () => {
     expect(item !== null, "Enter didn't step into the menu");
-    expect(await page.evaluate(() => document.activeElement === window.__was && document.getElementById("menu").contains(window.__was)), "focus fell off: " + item);
+    expect(await page.evaluate((a) => document.activeElement === a && document.getElementById("menu").contains(a), was), "focus fell off: " + item);
   });
+  await was.dispose();
   await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
   await page.click("#mapFold");
   await page.reload(); await page.waitForTimeout(600);
@@ -2978,11 +2980,12 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
     await page.locator("#artDlg > .dlg > .actions .btn", { hasText: "Close" }).click(); await settle(page);
     await page.evaluate(() => window.__catio.put("skin/map-fold", { src: "art/licensed/ui/stars.png", at: 1 }));   // 20 x 8, the slot's shape
     await page.waitForTimeout(600);
-    expect(await page.locator("#mapFold .glyph").isVisible() && !(await page.locator("#mapFold svg.tuck").isVisible()), "hers isn't shown");
+    expect(await page.locator("#mapFold .glyph").isVisible(), "hers isn't shown");
+    for (const g of ["tuck", "unfold"]) expect(!(await page.locator("#mapFold svg." + g).isVisible()), "the drawn " + g + " shows beside hers");
     const cell = () => page.locator("#mapFold .glyph").evaluate((g) => getComputedStyle(g).backgroundPosition);
     const one = await cell(); await page.click("#mapFold"); const two = await cell(); await page.click("#mapFold");
     expect(one !== two, "the same cell open and minimised: " + one);
-    await page.evaluate(() => { delete window.__catio.store["skin/map-fold"]; window.__catio.put("skin/zz", {}); delete window.__catio.store["skin/zz"]; });
+    await page.evaluate(() => window.__catio.drop("skin/map-fold"));
     await page.waitForTimeout(500);
     expect(!(await page.locator("#mapFold .glyph").isVisible()), "hers stayed after it went");
   });
