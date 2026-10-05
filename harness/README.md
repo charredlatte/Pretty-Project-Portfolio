@@ -39,12 +39,18 @@ list extra browser commands, one pattern per line, in `.claude/browser-commands`
 
 A sub agent runs its own requests on its own model, so an unpinned one started from an Opus session costs Opus for
 work a Haiku would have done. So nothing is assigned without its tier: a spawn, each `agent()` call of a workflow
-script (inline, `scriptPath`, or a saved one in the repo's `.claude/workflows/`) and a new session each name a
-model, or the gate refuses them with the rubric: Haiku to read, search, run and report; Sonnet for spelled-out,
-checkable work in one place; Opus or Fable for the rest, and for anything held, private or needing a browser. A
-script's calls are read with its strings and comments blanked, so `agent()` in a prompt doesn't count, and a model
-must be named on the call itself (`{ model: 'sonnet' }`, or `{ model }`), not hidden in a variable. On 5 October a
-workflow's 58 agents all inherited the session's Opus because the gate didn't read workflows; it does now.
+script (inline, `scriptPath`, or a saved one in `.claude/workflows/`: the repo's, a folder above it, or the user's
+`~/.claude/workflows/`, and a child `workflow()` it runs) and a new Claude Code Remote session each name a model, or
+the gate refuses them with the rubric: Haiku to read, search, run and report; Sonnet for spelled-out, checkable work
+in one place; Opus or Fable for the rest, and for anything held, private or needing a browser. A script is read as
+code: string, template and regex literals and comments are blanked (the code inside a template's `${}` is still
+read), so `agent()` in a prompt doesn't count. A call names its tier in its own options: `{ model: 'sonnet' }` (a
+literal on the ladder), `{ model }` or `{ model: w.model }` (the author's expression), or `{ agentType: 'scout' }`
+when that agent's definition pins one. A spread or a shared options variable doesn't count, and neither do
+`undefined`, `''`, `'inherit'`, an inner call's model, or `agent` handed on uncalled (`items.map(agent)`). Agent
+definitions are found by their frontmatter name in the repo's `.claude/agents/` (and those above it), the user's
+`~/.claude/agents/` and every installed plugin's `agents/`. A saved or built-in workflow the hook can't read passes.
+On 5 October a workflow's 58 agents all inherited the session's Opus because the gate didn't read workflows; it does now.
 
 Then a ceiling on errands, which `rules.json`'s `tiers` block holds:
 

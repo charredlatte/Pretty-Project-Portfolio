@@ -27,8 +27,12 @@ from common import ROOT, enforced, local, rules
 
 SPAWN = ("Task", "Agent")   # the sub agent tool: Agent in this build, Task in older ones
 WORKFLOW = "Workflow"       # a script of agent() calls, each its own sub agent
-NEW_SESSION = re.compile(r"__create_session$")   # a new cat: Claude Code Remote's create_session
-CALL = re.compile(r"(?<![\w$.])agent\s*\(")
+NEW_SESSION = re.compile(r"^mcp__claude[-_]code[-_]remote__create_session$")   # a new cat; other servers' sessions aren't cats
+CALL = re.compile(r"(?<![\w$.])agent\s*(\?\.\s*)?\(")          # agent( and agent?.(
+NAME = re.compile(r"(?<![\w$.])agent(?![\w$])")                # agent itself, called or handed on
+NESTED = re.compile(r"(?<![\w$.])workflow\s*\(")               # a child workflow, run inline
+REGEX_AFTER = set("(,=:[!&|?{};+-*%<>~^")                       # after these, a / starts a regex literal
+REGEX_WORDS = {"return", "typeof", "case", "in", "of", "void", "yield", "await", "else", "do", "throw", "delete", "new"}
 
 # A task worth a strong model says so in its own words: it asks for judgement, or reaches across a repo.
 WORK = re.compile(r"\b(design|architect|refactor|rewrite|migrat|review|audit|investigat|debug|diagnos|"
@@ -47,6 +51,7 @@ def tiers(cwd):
     """The ladder and the errand ceiling here: the house's, with the repo's own word laid over it."""
     house = dict(rules().get("tiers") or {})
     house.update({k: v for k, v in (local(cwd).get("tiers") or {}).items() if k in ("errand", "ladder")})
+    house["ladder"] = [str(t).lower() for t in house.get("ladder") or []]
     return house
 
 
@@ -61,19 +66,44 @@ def tier_of(model, ladder):
     return next((t for t in ladder if t in m), None)
 
 
+def up(cwd, *parts):
+    """<folder>/.claude/<parts> for the folder and each one above it, nearest first, then the user's own."""
+    here, seen = Path(cwd or ".").resolve(), []
+    for folder in [here, *here.parents]:
+        seen.append(folder.joinpath(".claude", *parts))
+    seen.append(Path.home().joinpath(".claude", *parts))
+    return seen
+
+
+def front(path):
+    """An agent definition's frontmatter, as text (empty when it has none or can't be read)."""
+    try:
+        head = path.read_text(encoding="utf-8")[:2000]
+    except OSError:
+        return ""
+    return head.split("---")[1] if head.startswith("---") and "---" in head[3:] else ""
+
+
 def pinned(agent_type, cwd):
-    """The model an agent definition pins, from the repo's .claude/agents or the plugin's own, or None."""
+    """The model an agent definition pins, or None. Claude Code knows an agent by its frontmatter name, from the
+    repo's .claude/agents (and those above it), the user's ~/.claude/agents, and every plugin's agents/."""
     name = str(agent_type or "").split(":")[-1].strip()
     if not name or not re.fullmatch(r"[\w.-]+", name):
         return None
-    for folder in (Path(cwd or ".") / ".claude" / "agents", ROOT / "agents"):
-        try:
-            head = (folder / (name + ".md")).read_text(encoding="utf-8")[:2000]
-        except OSError:
-            continue
-        found = FRONT_MODEL.search(head.split("---")[1] if head.startswith("---") and "---" in head[3:] else head)
-        if found:
-            return found.group(1)
+    cache = Path.home() / ".claude" / "plugins" / "cache"   # <marketplace>/<plugin>/<version>/agents
+    folders = up(cwd, "agents") + [ROOT / "agents"] + (sorted(cache.glob("*/*/*/agents")) if cache.is_dir() else [])
+    for folder in folders:
+        candidates = [folder / (name + ".md")]
+        if folder.is_dir():
+            candidates += sorted(folder.glob("*.md"))
+        for path in candidates:
+            head = front(path)
+            named = re.search(r"^name:\s*['\"]?([\w.:-]+)", head, re.M)
+            if path.stem != name and not (named and named.group(1).split(":")[-1] == name):
+                continue
+            found = FRONT_MODEL.search(head)
+            if found:
+                return found.group(1).strip("'\"")
     return None
 
 
@@ -124,13 +154,38 @@ def delegate_first(what, ladder, why=None):
 
 
 def mask(src):
-    """The script with every string, template literal and comment blanked (newlines kept), so only code is read."""
+    """The script with what isn't code blanked (newlines kept): string and regex literals, comments, and a template
+    literal's text, though not the code in its ${...}. Only code is read for agent() calls and their options."""
     out, n = list(src), len(src)
 
     def blank(i, j):
         for k in range(i, min(j, n)):
             if out[k] != "\n":
                 out[k] = " "
+
+    def starts_regex(i):
+        k = i - 1
+        while k >= 0 and out[k] in " \t\r\n":
+            k -= 1
+        if k < 0 or out[k] in REGEX_AFTER:
+            return True
+        word = re.search(r"[\w$]+$", "".join(out[max(0, k - 12):k + 1]))
+        return bool(word) and word.group(0) in REGEX_WORDS
+
+    def regex_end(i):
+        j, cls = i + 1, False
+        while j < n and src[j] != "\n":
+            if src[j] == "\\":
+                j += 2
+                continue
+            if cls:
+                cls = src[j] != "]"
+            elif src[j] == "[":
+                cls = True
+            elif src[j] == "/":
+                return j
+            j += 1
+        return j
 
     def code(i, in_braces):
         depth = 0
@@ -143,9 +198,7 @@ def mask(src):
                 blank(i + 1, j)
                 i = j + 1
             elif c == "`":
-                j = template(i + 1)
-                blank(i + 1, j)
-                i = j + 1
+                i = template(i + 1) + 1
             elif src.startswith("//", i):
                 j = src.find("\n", i)
                 j = n if j < 0 else j
@@ -156,6 +209,10 @@ def mask(src):
                 j = n if j < 0 else j + 2
                 blank(i, j)
                 i = j
+            elif c == "/" and starts_regex(i):
+                j = regex_end(i)
+                blank(i + 1, j)
+                i = j + 1
             else:
                 if in_braces and c == "{":
                     depth += 1
@@ -167,46 +224,104 @@ def mask(src):
         return n
 
     def template(i):
+        start = i
         while i < n:
             if src[i] == "\\":
                 i += 2
             elif src[i] == "`":
+                blank(start, i)
                 return i
             elif src.startswith("${", i):
+                blank(start, i)
                 i = code(i + 2, True) + 1
+                start = i
             else:
                 i += 1
+        blank(start, n)
         return n
 
     code(0, False)
     return "".join(out)
 
 
-def unnamed_agents(src):
-    """The line of every agent() call in a workflow script whose arguments don't name a model."""
+def close(code, i):
+    """The index of the ) matching the ( at i in masked code (or the end)."""
+    depth = 0
+    for j in range(i, len(code)):
+        depth += {"(": 1, ")": -1}.get(code[j], 0)
+        if not depth:
+            return j
+    return len(code)
+
+
+def option(code, src, key):
+    """The raw value text of `key` in an options object passed straight to this call (not a nested one), or None.
+    Shorthand ({ model }) gives the key itself."""
+    for m in re.finditer(r"(?<![\w$.])%s(?![\w$])" % key, code):
+        before = code[:m.start()]
+        parens = before.count("(") - before.count(")") + before.count("[") - before.count("]")
+        braces = before.count("{") - before.count("}")
+        if parens or braces != 1 or before.rstrip()[-1:] not in ("{", ","):
+            continue   # not a key of an options object given to this call itself
+        rest = code[m.end():].lstrip()
+        if rest[:1] in (",", "}"):
+            return key
+        if rest[:1] == ":":
+            at = m.end() + (len(code[m.end():]) - len(rest)) + 1
+            return src[at:].lstrip()
+    return None
+
+
+def tier_named(value, ladder):
+    """Does an option's raw value name a tier? A literal must be on the ladder; an expression is the author's choice,
+    made on the call, except the ways of saying nothing (undefined, null, empty)."""
+    lit = re.match(r"""(['"`])(.*?)\1""", value or "", re.S)
+    if lit:
+        return bool(tier_of(lit.group(2), ladder))
+    return bool(value) and not re.match(r"(undefined|null|void\b)", value)
+
+
+def unnamed_agents(src, cwd=None, ladder=(), depth=0):
+    """The line of every agent() in a workflow script that names no tier, or is handed on uncalled."""
     code, lines = mask(src), []
+    line = lambda at: src.count("\n", 0, at) + 1
+    calls = set()
     for m in CALL.finditer(code):
-        depth, j = 0, m.end() - 1
-        while j < len(code):
-            depth += {"(": 1, ")": -1}.get(code[j], 0)
-            if not depth:
-                break
-            j += 1
-        if not re.search(r"\bmodel\b", code[m.end():j]):
-            lines.append(src.count("\n", 0, m.start()) + 1)
-    return lines
+        calls.add(m.start())
+        end = close(code, m.end() - 1)
+        args_code, args_src = code[m.end():end], src[m.end():end]
+        model = option(args_code, args_src, "model")
+        kind = option(args_code, args_src, "agentType")
+        kind = re.match(r"""(['"`])([\w.:-]+)\1""", kind or "")
+        if (model and tier_named(model, ladder)) or (not model and kind and tier_of(pinned(kind.group(2), cwd), ladder)):
+            continue
+        lines.append(line(m.start()))
+    for m in NAME.finditer(code):
+        if m.start() in calls or re.match(r"\s*:", code[m.end():]) or re.search(r"(function|const|let|var)\s+$", code[:m.start()]):
+            continue   # a call (above), an object key, or its own definition
+        lines.append(line(m.start()))   # handed on uncalled (items.map(agent), const run = agent): no tier to read
+    if depth == 0:
+        for m in NESTED.finditer(code):
+            arg = src[m.end():close(code, m.end() - 1)].strip()
+            child = script_of({"name": arg.strip("'\"`")} if re.fullmatch(r"""(['"`])[\w.-]+\1""", arg) else
+                              {"scriptPath": re.search(r"""scriptPath\s*:\s*(['"`])(.+?)\1""", arg).group(2)}
+                              if re.search(r"""scriptPath\s*:\s*(['"`])(.+?)\1""", arg) else {}, cwd)
+            if child and unnamed_agents(child, cwd, ladder, depth + 1):
+                lines.append(line(m.start()))   # a child workflow with an unnamed agent() of its own
+    return sorted(set(lines))
 
 
 def script_of(args, cwd):
-    """A Workflow call's script: inline, from its scriptPath, or a saved one in the repo's .claude/workflows."""
+    """A Workflow call's script: inline, from its scriptPath, or a saved one in .claude/workflows (the repo's, those
+    above it, or the user's own)."""
     if args.get("script"):
         return str(args["script"])
-    paths = [args.get("scriptPath")] if args.get("scriptPath") else []
+    paths = [Path(cwd or ".", os.path.expanduser(str(args["scriptPath"])))] if args.get("scriptPath") else []
     if args.get("name") and re.fullmatch(r"[\w.-]+", str(args["name"])):
-        paths.append(Path(cwd or ".") / ".claude" / "workflows" / (str(args["name"]) + ".js"))
+        paths += [folder / (str(args["name"]) + ".js") for folder in up(cwd, "workflows")]
     for path in paths:
         try:
-            return Path(cwd or ".", os.path.expanduser(str(path))).read_text(encoding="utf-8")
+            return path.read_text(encoding="utf-8")
         except OSError:
             continue
     return ""   # a built-in workflow, or one this hook can't read: nothing to check
@@ -224,7 +339,7 @@ def check(data, tool, args, cwd):
         return None, None
 
     if workflow:
-        lines = unnamed_agents(script_of(args, cwd))
+        lines = unnamed_agents(script_of(args, cwd), cwd, ladder)
         if lines:
             return delegate_first("this workflow's agent() call on line%s %s" % ("s" if len(lines) > 1 else "",
                                   ", ".join(map(str, lines))), ladder), None
@@ -239,6 +354,9 @@ def check(data, tool, args, cwd):
     prompt = " ".join(str(args.get(k) or "") for k in ("prompt", "description"))
     keep = never_down(prompt, cwd)
     spawn = tier_of(args.get("model"), ladder) or tier_of(pinned(args.get("subagent_type"), cwd), ladder)
+    if spawn is None and args.get("model"):
+        return ("House rule (KittyChat), delegate first: this spawn names %s, which isn't one of the tiers here (%s). "
+                "Name one of them." % (args.get("model"), ", ".join(ladder))), None
     if spawn is None:   # nothing names a tier: it would inherit the session's model, whatever the work
         return delegate_first("this spawn", ladder, keep), None
     if keep or not ceiling:
