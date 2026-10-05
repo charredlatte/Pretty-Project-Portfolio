@@ -30,6 +30,7 @@ They live in [`rules.json`](rules.json). The KittyChat Café page shows them all
 | Private matters stay in the Catio, out of git | Soft |
 | Opus by default | Enforced as a reminder. `hooks/session_start.py` reads the session's model from SessionStart and, when it is one of the rule's `costly` models (Fable), tells the session to say so and suggest `/model opus`. A hook can't switch the model; a session switched with `/model` mid-way isn't caught |
 | Say which model is working | Soft |
+| Their issue is theirs to close: never close an issue or pull request someone else opened until they say it is fixed | Soft |
 
 Soft rules can be switched off from the page. Enforced ones are switched in `rules.json` for every repo,
 or for one repo in its own `.claude/catio-rules.json`, e.g. `{"opening_audit": false}`. A repo can also

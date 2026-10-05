@@ -100,6 +100,13 @@
       "text": "When asked which model you are, say the model that is actually serving the session.",
       "enforced": false,
       "on": true
+    },
+    {
+      "id": "their_issue",
+      "title": "Their issue is theirs to close",
+      "text": "Never close an issue or pull request someone else opened, or call it settled, until that person says it is fixed. A merged fix is not their word: ask them to try it, and leave the thread open so they can keep talking.",
+      "enforced": false,
+      "on": true
     }
   ],
   "tiers": {
