@@ -28,10 +28,11 @@ Publish `catio/index.html` with:
 `art/licensed/` is not in git (licences below). In a fresh session, get it back one of two ways:
 
 1. `Artifact` read with `path: "art/licensed/<file>"` on the published URL, for each file; or
-2. get the ten zips from her Drive folder "KittyChat Cafe Assets" (or ask her for them) and run
-   `python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip "Top down garden castle.zip" "Wood Garden Asset Pack.zip" "Pixel Art Top Down - Basic v1.2.3.zip" "Sprout Lands - UI Pack - Basic pack.zip" plants.zip "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip" Game_UI_Pack_Pastel.zip`
-   (needs `pip install pillow fonttools`; the order matters, not the names). Given only the Sprout Lands zip, it rebuilds just the
-   interface.
+2. get the ten zips from her Drive folder "KittyChat Cafe Assets" (or ask her for them), put them in one
+   folder and run `python3 catio/tools/build-art.py <that folder>` (needs `pip install pillow fonttools`).
+   Neither their names nor their order matters: each zip is recognised by a file only that pack has
+   (`SIGNATURE` in `build-art.py`), and it prints what it took for what before it draws anything — read
+   those lines once. Given only the Sprout Lands zip, it rebuilds just the interface.
 
 ## Licences: what may be committed
 
@@ -312,7 +313,7 @@ The artifact database, written by the page and seeded with `ArtifactData`:
 | `skin` | `theme`, and one per art slot (`panel`, `cat-meow`, `house`…) | `theme`: `{tokens: {"--ink": "#…", …}, dark: {…}, at}`, her colours and sizes in light, and what differs in dark (keep both keys when you write it: a missing `dark` loses her night colours). A slot's: her own piece for it: `src` (`/_blob/<asset>`, a gateway `/files/` path or `local:` in a browser), `asset`, `name`, `w`, `h`, and what it needs: `slice` [t, r, b, l], `frames`, `secs`, `pixel` or `scale`. No document: the pack's piece |
 | `dashboard` | `maps` | how she set the Project maps page: `order[]`, `pinned[]`, `hidden[]`, `wide[]` (graph slugs) |
 | `queens` | `house` | the queen of the house: `name`, `coat`, `manner` (how she speaks; the runner reads it each turn), `greeting`, `voice: {on, name, rate, pitch, lang}`, `readAt` (when Charlotte last opened her card: older handoffs are read), `notes[]` of `{text, pinned, at}`. A pinned note is one she says out loud. Older `queens/<room>` documents are hers until her first save |
-| `routines` | generated id | one of her routines: `name`, `time` ("HH:MM"), `days` (0–6, Sunday 0), `tz`, `prompt`, `on`, `last` (when the gateway last handed it to her runner). Only the gateway's copy runs: the runner reads the House, not the artifact |
+| `routines` | generated id | one of her routines: `name`, `time` ("HH:MM"), `days` (0–6, Sunday 0), `tz`, `prompt`, `on`, `last` (the firing the gateway last handed to her runner), `handed` (when), `finished` (the firing her runner answered), `retried` (a lost firing handed out once more). Only the gateway's copy runs: the runner reads the House, not the artifact |
 | `layouts` | the room key | *(planned: Build mode, `docs/camera-and-minimap.md`)* the room's furniture, and `cabinet: {look, x, y}`: the piece its filing cabinet looks like (her choice per room) and where it stands. The cabinet never leaves its room and keeps its Files and review spot whatever it looks like. No document: `MANOR.layout` and the default look |
 | `snapshot` | `sessions` | `{at, savedBy, sessions[]}`: Claude's saved copy of `list_sessions`, shown when the live read is blocked. Written only by Claude, with `ArtifactData` |
 
@@ -473,14 +474,18 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
   repo, the chat or a test. With accounts (`src/registry.js`), the first two make the first account once (a
   `CATIO_PASSWORD` changed later becomes its password at the next deploy; its handle is `CATIO_HANDLE`, else
   `charlotte`); the queen's is a registry key with the role `queen`, kept in step with the secret at every start.
-- **Only she speaks as herself, and only her runner as the queen.** OAuth (her password, through the `Catio`
+- **Only she speaks as herself, and only her runner as the queen.** OAuth (her password, through the `CATIO`
   connector in claude.ai) may write as `owner`, drop files and manage; the queen's key writes as `queen`,
   tells cats and manages them for her; the agents' key may do neither. Keep it that way: it is what stops a
   leaked key from putting instructions in her mouth, or in her assistant's, which the cats act on.
 - **The queen's routes:** `POST /api/runner/wait` (held up to 25 s: her notes, a routine due, a stop, her
-  character) and `POST /api/runner/say` (a turn as it streams; `done` stores her note), the queen's key only.
+  character, and `homework`, the open quizzes counted by kind) and `POST /api/runner/say` (a turn as it streams;
+  `done` stores her note), the queen's key only. When a kind of homework grows, the runner says the lot on
+  Charlotte's own desktop with whatever the computer has (`notify-send`, `osascript`, a PowerShell balloon;
+  `CATIO_NOTIFY` replaces it, empty turns it off): the quest log stays in the café, this only says it has
+  something new. The words are the runner's own, built from counts, never a document's text.
   Routines are `routines/<id>` documents; the House's alarm wakes a waiting runner when one comes due, and a
-  missed one runs once when the runner is back. `list_agents` gives each cat its `said`; `inbox` hands a cat
+  missed one runs once when the runner is back, and one her runner never finished goes out once more after ten minutes. `list_agents` gives each cat its `said`; `inbox` hands a cat
   what Charlotte and the queen say (`[Catio] The queen says: …` in the hook).
 - **Only Claude's connectors may register** (redirects to `claude.ai` or `claude.com`).
 - **Keep its tools in step with `catio_mcp.py`**: same names, arguments and results, so the page and agents
@@ -594,11 +599,13 @@ proves the page does what she asked. In this order:
    stub's invented cats. Open each and hold it against her words, one ask at a time ("no z Z": find a
    sleeping cat). A sprite sheet isn't in the DOM and no test can see it: open the sheet too. Not what she
    asked for? Back to 1.
-3. **Run the test unchanged:** `sh catio/test/run.sh` (about two minutes). Every failure should be something
+3. **Run the test unchanged:** `sh catio/test/run.sh` (about seven minutes). Every failure should be something
    she asked to change. One she didn't is a regression: fix the page, not the test.
    **The suite needs `art/licensed/`.** It is gitignored, so a fresh clone or cloud session hasn't got it,
    and without it the page correctly draws its no-art warning on the status sign: the check that wants no
-   warning sign then fails, and that is the missing art, not the page. `run.sh` says so when it starts.
+   warning sign then fails, and so do the checks of The look and a skin, which read the packs' files from
+   `art/licensed/` to stand in for her own (on 5 October: 29 checks fail, every one of them needing the
+   art). That is the missing art, not the page. `run.sh` says so when it starts.
    Get the art back the two ways under "Republishing" before trusting a red run.
 4. **Rewrite only those checks, from her words:** what must be true now, not which class names went away
    (`#cats .cat > :not(.spr)`, not a list of deleted classes). Then the whole suite: all checks must pass.

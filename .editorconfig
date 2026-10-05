@@ -1,0 +1,5 @@
+# Every file is UTF-8: other encodings turn the café's accents into mojibake (Café -> CafÃ©).
+root = true
+
+[*]
+charset = utf-8

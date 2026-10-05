@@ -57,16 +57,16 @@ function startDecider() {
 }
 
 // wrangler dev on a fresh state; again on the same state, at the end, as a deploy would start a new isolate
-async function start(password = PASSWORD) {
+async function start({ password = PASSWORD, dir = state, vars = [] } = {}) {
 	const [port, inspector] = [await freePort(), await freePort()];
 	base = `http://127.0.0.1:${port}`;
 	log = "";
 	// the real config without its AI binding (remote, needs a Cloudflare sign-in): decisions go to the stand-in instead
 	writeFileSync(CONFIG, readFileSync(join(HERE, "wrangler.jsonc"), "utf8").replace(/^\s*"ai":.*\n/m, ""));
 	wrangler = spawn(process.execPath, [join(HERE, "node_modules/wrangler/bin/wrangler.js"), "dev", "--config", CONFIG, "--ip", "127.0.0.1",
-		"--port", String(port), "--inspector-port", String(inspector), "--persist-to", state,
-		"--var", "CATIO_TOKEN:" + TOKEN, "--var", "CATIO_PASSWORD:" + password, "--var", "CATIO_QUEEN:" + QUEEN,
-		"--var", "DECIDE_URL:http://127.0.0.1:" + deciderPort + "/", "--var", "DECIDE_KEY:k1"], {
+		"--port", String(port), "--inspector-port", String(inspector), "--persist-to", dir,
+		"--var", "CATIO_TOKEN:" + TOKEN, ...(password ? ["--var", "CATIO_PASSWORD:" + password] : []), "--var", "CATIO_QUEEN:" + QUEEN,
+		"--var", "DECIDE_URL:http://127.0.0.1:" + deciderPort + "/", "--var", "DECIDE_KEY:k1", ...vars.flatMap((v) => ["--var", v])], {
 		cwd: HERE, env: { ...process.env, WRANGLER_SEND_METRICS: "false", NO_COLOR: "1" }, stdio: ["ignore", "pipe", "pipe"],
 		detached: true,   // its own process group, so workerd goes with it
 	});
@@ -393,10 +393,21 @@ describe("accounts", () => {
 		assert.equal((await signUp({ invite: code, user: "guest", password: "short" })).status, 400);
 		// a refused sign-up costs the invite nothing; two at once with one invite let one in
 		const both = await Promise.all(["guest", "guest-two"].map((user) => signUp({ invite: code, user, password: SIGNUP })));
-		assert.deepEqual(both.map((r) => r.status).sort(), [303, 400], "an invite works once");
-		const inRes = both.find((r) => r.status === 303);
+		// the first user test (5 October): a form sign-up now lands on "your café is ready", its first key shown once,
+		// instead of going straight into an empty café with no key and no word of the plugin
+		assert.deepEqual(both.map((r) => r.status).sort(), [200, 400], "an invite works once");
+		const inRes = both.find((r) => r.status === 200);
 		const guest = inRes === both[0] ? "guest" : "guest-two";
 		const guestCookie = inRes.headers.get("set-cookie").split(";")[0];
+		const ready = await inRes.text();
+		assert.match(ready, /Your café is ready/);
+		assert.match(ready, /kittychat-house-rules@kittychat/, "the plugin's install lines");
+		assert.ok(ready.includes("<code>" + base + "</code>"), "the café's own address");
+		const guestKey = /value="([0-9a-f]{64})" aria-label="Your key"/.exec(ready)?.[1];
+		assert.ok(guestKey, "the key, once");
+		await tool(guestKey, "report_status", { agent: "guest-cat", mood: "busy" });
+		assert.deepEqual((await tool(guestKey, "list_agents")).agents.map((a) => a.id), ["guest-cat"], "the key is theirs, in their café");
+		assert.ok(!(await tool(TOKEN, "list_agents")).agents.some((a) => a.id === "guest-cat"), "and not in hers");
 		assert.deepEqual((await (await as(guestCookie, "/api/db")).json()).docs, {}, "signed in to a café of their own");
 		assert.equal((await login(guest, SIGNUP)).status, 303);
 		assert.equal((await fetch(base + "/invite", { headers: { Cookie: guestCookie } })).status, 403, "a guest is no admin");
@@ -609,6 +620,18 @@ describe("the queen", () => {
 		assert.deepEqual(await tool(her, "forget", { quizzes: [id, "decision-camera", "nothing", open.id] }), { forgotten: 2 });
 		assert.ok((await tool(her, "quizzes")).quizzes.some((z) => z.id === open.id), "an open unblock quiz was forgotten");
 		assert.deepEqual((await tool(her, "quizzes", { done: true })).quizzes.filter((z) => z.kind !== "unblock" && z.kind), []);
+	});
+
+	test("counts her homework in the runner's wait, so her runner can say it on Charlotte's own desktop", async () => {
+		// a word to her brings the wait back at once, instead of its full 25 seconds
+		const now = async () => { await tool(her, "comment", { cat: "queen", text: "." }); return (await wait()).homework; };
+		const before = await now();
+		assert.equal(typeof before, "object", "the counts come with every wait, however few");
+		await tool(her, "quiz", { kind: "litterbox", ref: "where-does-this-go", title: "Where does this go?", note: "One note to sort",
+			questions: [{ q: "Which project?", options: ["kittychat", "Settled: drop it"] }] });
+		const after = await now();
+		assert.equal(after.litterbox || 0, (before.litterbox || 0) + 1, "one more note to sort");
+		assert.ok(Object.values(after).every((n) => Number.isInteger(n) && n > 0), "counts by kind, and nothing else");
 	});
 
 	test("brings a design tokens file into her look and gives it back, for a session with the Figma connector", async () => {
@@ -997,7 +1020,7 @@ print(n)`, ...dbs], { encoding: "utf8" }).trim();
 // the gateway suite, so a sign-in that gets past the lock is one the registry let in again.
 describe("a changed CATIO_PASSWORD", () => {
 	const login = (password) => fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "charlotte", password }), redirect: "manual" });
-	const restart = async (password) => { stop(); await new Promise((r) => setTimeout(r, 500)); await start(password); };
+	const restart = async (password) => { stop(); await new Promise((r) => setTimeout(r, 500)); await start({ password }); };
 	test("is noted by a registry from before, and becomes her password when it changes after that", async () => {
 		stop();
 		await new Promise((r) => setTimeout(r, 500));
@@ -1019,7 +1042,7 @@ for p in sys.argv[1:]:
 print(n)`, ...dbs], { encoding: "utf8" }).trim();
 		assert.equal(forgot, "1", "the first run kept the secret it read");
 		const NEW = "new-password-" + randomBytes(8).toString("hex"), NEWER = "newer-password-" + randomBytes(8).toString("hex");
-		await start(NEW);
+		await start({ password: NEW });
 		assert.equal((await login(NEW)).status, 429, "only noted: the password and its lock stand");
 		await restart(NEWER);
 		const old = await login(PASSWORD);
@@ -1032,5 +1055,50 @@ print(n)`, ...dbs], { encoding: "utf8" }).trim();
 		assert.equal((await keys()).status, 200);
 		await restart(NEWER);
 		assert.equal((await keys()).status, 200, "the same secret again changes nothing: she is still signed in");
+	});
+});
+
+// A fresh gateway with no account says which of the two is wrong with CATIO_PASSWORD: missing, or too short.
+describe("no account yet", () => {
+	test("says whether CATIO_PASSWORD is missing or too short", async () => {
+		for (const [password, says, not] of [["", /CATIO_PASSWORD isn(?:'|&#39;)t set for this Worker/, /under 16/], ["too-short", /CATIO_PASSWORD is under 16 characters/, /t set for this Worker/]]) {
+			stop();
+			await new Promise((r) => setTimeout(r, 500));
+			const dir = mkdtempSync(join(tmpdir(), "catio-gateway-empty-"));
+			try {
+				await start({ password, dir });
+				const page = await fetch(base + "/");
+				assert.equal(page.status, 503);
+				const text = await page.text();
+				assert.match(text, says);
+				assert.doesNotMatch(text, not);
+			} finally {
+				rmSync(dir, { recursive: true, force: true });
+			}
+		}
+	});
+
+	// The first outside run (docs/plan.md, "The first player"): his page said "no account yet" and he couldn't tell
+	// which secret was wrong. The page now lights each one the Worker sees, never its value, and says the handle.
+	test("lights each secret the Worker sees, and says what the handle will be", async () => {
+		for (const [vars, says] of [[[], [/CATIO_PASSWORD isn(?:'|&#39;)t set for this Worker/, /CATIO_HANDLE isn(?:'|&#39;)t set, so your handle will be charlotte/,
+			/CATIO_TOKEN is set\./, /CATIO_QUEEN is set\./, /This is what the Worker at 127\.0\.0\.1:\d+ sees/]],
+		[["CATIO_HANDLE:Dog_Den"], [/CATIO_HANDLE isn(?:'|&#39;)t a handle/]]]) {
+			stop();
+			await new Promise((r) => setTimeout(r, 500));
+			const dir = mkdtempSync(join(tmpdir(), "catio-gateway-empty-"));
+			try {
+				await start({ password: "", dir, vars });
+				for (const path of ["/", "/signup"]) {
+					const page = await fetch(base + path, path === "/signup" ? { method: "POST", headers: { Origin: base }, body: new URLSearchParams({ invite: "x" }) } : {});
+					assert.equal(page.status, 503, path);
+					const text = await page.text();
+					for (const re of says) assert.match(text, re, path);
+					assert.doesNotMatch(text, /her-password-|agent-key-|queen-key-/, "a light never shows a secret's value");
+				}
+			} finally {
+				rmSync(dir, { recursive: true, force: true });
+			}
+		}
 	});
 });

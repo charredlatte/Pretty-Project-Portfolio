@@ -222,8 +222,8 @@ have to change. "A house" is one account's Durable Object.
   registry stores only hashes (SHA-256 for keys and cookies, PBKDF2 for passwords); a leaked key is dropped with
   `DELETE /api/keys/<name>`; a password reset signs out every browser, revokes every grant and kills every key.
 - **The front door.** OAuth clients may only redirect to Claude's own domains; the café's cookie is `__Host-`,
-  `HttpOnly`, `SameSite=Strict`; writes need the `X-Catio` header from the café's origin; five wrong passwords
-  lock the handle for a quarter of an hour; a brain file opens under `Content-Security-Policy: sandbox`, so
+  `HttpOnly`, `SameSite=Strict`; writes need the `X-Catio` header from the café's origin; wrong passwords
+  lock the guessing address out for a quarter of an hour; a brain file opens under `Content-Security-Policy: sandbox`, so
   nothing in it runs as the café; the licensed art is served only signed in.
 - **Prompt injection is the design's real threat**, and it is named rather than solved. Her notes become the
   session's next turn as instructions (`[Catio] Charlotte says:`), by design; so does what the queen says. The

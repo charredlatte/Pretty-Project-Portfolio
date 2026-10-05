@@ -9,6 +9,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 import urllib.request
@@ -154,6 +155,120 @@ class Stdio(unittest.TestCase):
         self.assertIn("error", self.rpc("resources/list"))
 
 
+class Hostile(unittest.TestCase):
+    """Whatever a client sends, one call fails and the server carries on."""
+
+    def setUp(self):
+        self.home = tempfile.mkdtemp()
+        self.env = dict(os.environ, CATIO_HOME=self.home)
+
+    def run_server(self, *messages):
+        lines = [m if isinstance(m, str) else json.dumps(m) for m in messages]
+        done = subprocess.run([sys.executable, str(SERVER)], input="\n".join(lines) + "\n", capture_output=True, text=True, env=self.env, timeout=30)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        return [json.loads(line) for line in done.stdout.splitlines()]
+
+    @staticmethod
+    def call(name, arguments, id=1):
+        return {"jsonrpc": "2.0", "id": id, "method": "tools/call", "params": {"name": name, "arguments": arguments}}
+
+    def test_survives_what_isnt_json_rpc(self):
+        ping = {"jsonrpc": "2.0", "id": 99, "method": "ping"}
+        for bad in ("null", "[]", '"x"', "12", "[" * 100000, '{"id": 1, "method": ["a"]}', '{"id": 1, "method": "tools/call", "params": "x"}',
+                    '{"id": 1, "method": "tools/call", "params": {"name": ["a"]}}'):
+            replies = self.run_server(bad, ping)
+            self.assertEqual(replies[-1]["id"], 99, bad[:40])
+
+    def test_arguments_of_the_wrong_type_are_refused_by_name(self):
+        for name, arguments, why in (("comment", "x", "arguments is an object"), ("comment", [1], "arguments is an object"),
+                                     ("report_status", {"agent": ["x"]}, "agent must be string"), ("inbox", {"agent": {"a": 1}}, "agent must be string"),
+                                     ("comments", {"cat": "x", "limit": [1]}, "limit must be integer"), ("comments", {"cat": "x", "limit": True}, "limit must be integer"),
+                                     ("forget", {"quizzes": 5}, "quizzes must be array"), ("manage", {"cat": ["x"], "action": "done"}, "cat must be string")):
+            reply, probe = self.run_server(self.call(name, arguments), {"jsonrpc": "2.0", "id": 2, "method": "ping"})
+            self.assertTrue(reply["result"]["isError"], (name, arguments))
+            self.assertEqual(reply["result"]["content"][0]["text"], why)
+            self.assertEqual(probe["id"], 2)
+
+    def test_a_null_is_an_omitted_argument(self):
+        reply, = self.run_server(self.call("report_status", {"agent": "a", "branch": None, "mood": None}))
+        self.assertTrue(reply["result"]["structuredContent"]["ok"])
+        agent = json.loads(Path(self.home, "state.json").read_text())["agents"]["a"]
+        self.assertNotIn("branch", agent)
+        self.assertNotIn("mood", agent)
+
+    def test_a_conversation_is_read_a_page_at_a_time(self):
+        notes = [self.call("comment", {"cat": "c", "text": str(i), "author": "agent"}, i) for i in range(1, 8)]
+        replies = self.run_server(*notes, self.call("comments", {"cat": "c", "limit": 3}, 90), self.call("comments", {"cat": "c", "limit": -4}, 91),
+                                  self.call("comments", {"cat": "c", "limit": 10 ** 9}, 92))
+        texts = {r["id"]: [n["text"] for n in r["result"]["structuredContent"]["notes"]] for r in replies if r["id"] >= 90}
+        self.assertEqual(texts[90], ["5", "6", "7"])
+        self.assertEqual(texts[91], ["7"], "a limit under one is one")
+        self.assertEqual(len(texts[92]), 7)
+
+    def test_two_servers_at_once_lose_nothing(self):
+        def visit(tag):
+            self.run_server(*[self.call("report_status", {"agent": "%s-%d" % (tag, i), "mood": "busy"}, i + 1) for i in range(30)])
+        threads = [threading.Thread(target=visit, args=(tag,)) for tag in "abcd"]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        self.assertEqual(len(json.loads(Path(self.home, "state.json").read_text())["agents"]), 120)
+
+    def test_windows_busy_lock_and_state_are_waited_for_not_lost(self):
+        # Windows says PermissionError, not FileExistsError, when the lock just let go is still "delete pending", and
+        # refuses os.replace while anything has state.json open: either lost one agent in four servers' 120 (CI, 5 Oct).
+        sys.path.insert(0, str(SERVER.parent))
+        import catio_mcp
+        from unittest import mock
+        real_open, real_replace = os.open, os.replace
+        busy = {"open": 2, "replace": 2}
+
+        def flaky_open(path, *a, **k):
+            if str(path).endswith("state.lock") and busy["open"]:
+                busy["open"] -= 1
+                raise PermissionError(13, "delete pending")
+            return real_open(path, *a, **k)
+
+        def flaky_replace(src, dst):
+            if busy["replace"]:
+                busy["replace"] -= 1
+                raise PermissionError(13, "in use")
+            return real_replace(src, dst)
+
+        with mock.patch.object(catio_mcp, "HOME", Path(self.home)), mock.patch.object(catio_mcp.os, "open", flaky_open), \
+                mock.patch.object(catio_mcp.os, "replace", flaky_replace):
+            with catio_mcp.LOCK:
+                catio_mcp.store({"agents": {"a": {"id": "a"}}, "files": [], "notes": []})
+        self.assertEqual(busy, {"open": 0, "replace": 0})
+        self.assertIn("a", json.loads(Path(self.home, "state.json").read_text())["agents"])
+        self.assertFalse(Path(self.home, "state.lock").exists(), "the lock is let go")
+
+    def test_a_lock_left_by_a_crash_is_taken_over(self):
+        lock = Path(self.home, "state.lock")
+        lock.touch()
+        old = time.time() - 60
+        os.utime(lock, (old, old))
+        reply, = self.run_server(self.call("report_status", {"agent": "a"}))
+        self.assertTrue(reply["result"]["structuredContent"]["ok"])
+        self.assertFalse(lock.exists(), "the lock is let go")
+
+
+class Bundle(unittest.TestCase):
+    def test_the_server_starts_from_the_localhost_bundle(self):
+        # The first user test (5 October): bundle.py shipped catio_mcp.py without design_tokens.py, which it imports,
+        # so the documented command died on its first line.
+        repo = SERVER.parent.parent.parent
+        done = subprocess.run([sys.executable, str(repo / "catio" / "tools" / "bundle.py")], capture_output=True, text=True, timeout=120)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        server = repo / "catio" / "dist" / "catio-local" / "harness" / "mcp" / "catio_mcp.py"
+        ping = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "ping"}) + "\n"
+        run = subprocess.run([sys.executable, str(server)], input=ping, capture_output=True, text=True, timeout=30,
+                             env=dict(os.environ, CATIO_HOME=tempfile.mkdtemp()))
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertEqual(json.loads(run.stdout.splitlines()[0])["id"], 1, run.stdout)
+
+
 class Serve(unittest.TestCase):
     def test_serves_the_folder_and_the_api(self):
         home, folder = tempfile.mkdtemp(), tempfile.mkdtemp()
@@ -182,6 +297,15 @@ class Serve(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as e:
                 urllib.request.urlopen(base + "/api/comment?cat=gem&text=hi")
             self.assertEqual(e.exception.code, 404)
+            self.assertEqual(json.loads(post("/api/comments", {"cat": "gem"}).read())["notes"], [])
+            # a body that isn't an object, a length that isn't a number, a tool that doesn't exist: refused, and it still answers
+            for path, body, code in (("/api/comment", ["x"], 400), ("/api/report_status", {"agent": ["x"]}, 400), ("/api/nothing", {}, 404)):
+                with self.assertRaises(urllib.error.HTTPError) as e:
+                    post(path, body)
+                self.assertEqual(e.exception.code, code, path)
+            with socket.create_connection(("127.0.0.1", port)) as raw:
+                raw.sendall(b"POST /api/list_agents HTTP/1.1\r\nHost: localhost\r\nContent-Length: -5\r\n\r\n")
+                self.assertIn(b" 400 ", raw.recv(1024).split(b"\r\n")[0])
             self.assertEqual(json.loads(post("/api/comments", {"cat": "gem"}).read())["notes"], [])
         finally:
             p.terminate(); p.wait(5); p.stdout.close()

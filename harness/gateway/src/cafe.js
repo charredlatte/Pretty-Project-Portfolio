@@ -6,7 +6,7 @@
 // admin invites make their own account at /signup. An open café keeps a WebSocket to its house and hears every change.
 import PAGE from "../../../catio/index.html";
 import RUNTIME from "../cafe/runtime.js";
-import { esc, page } from "./signin.js";
+import { clientIp, esc, noAccount, page } from "./signin.js";
 import { MIN_SECRET, randomToken, sha256 } from "./secret.js";
 import { WRONG_PASSWORD, bootProblem, hasAccount, registry } from "./registry.js";
 import { FIRST_HOUSE, fileKeys } from "./houses.js";
@@ -55,10 +55,10 @@ async function agentKey(request, env) {
 }
 const MAX_SAY = 64 * 1024;   // a turn of the queen's, streamed
 
-function signInPage(problem = "", status = 200) {
+function signInPage(problem = "", status = 200, lights = "") {
 	return page("The KittyChat Café", `<h1>The KittyChat Café</h1>
 <p>Your cats, on your own address.</p>
-${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}
+${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}${lights || `
 <form method="post" action="/login">
 <label for="user">Your handle</label>
 <input id="user" name="user" autocomplete="username" autocapitalize="none" required autofocus>
@@ -66,13 +66,13 @@ ${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}
 <input id="password" name="password" type="password" autocomplete="current-password" required>
 <div class="row"><button class="go">Come in</button></div>
 </form>
-<p class="soft">Invited? <a href="/signup">Make your account</a>.</p>`, status);
+<p class="soft">Invited? <a href="/signup">Make your account</a>.</p>`}`, status);
 }
 
-function signUpPage(invite = "", user = "", problem = "", status = 200, origin = "") {
+function signUpPage(invite = "", user = "", problem = "", status = 200, origin = "", lights = "") {
 	return page("Join the KittyChat Café", `<h1>Join the KittyChat Café</h1>
 <p>A café of your own, for your own cats. You need an invite from its admin.</p>
-${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}
+${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}${lights || `
 <form method="post" action="/signup">
 <label for="invite">Your invite</label>
 <input id="invite" name="invite" value="${esc(invite)}" autocomplete="off" autocapitalize="none" spellcheck="false" required${invite ? "" : " autofocus"}>
@@ -87,8 +87,32 @@ ${problem ? `<p class="bad" role="alert">${esc(problem)}</p>` : ""}
 <div class="row"><button class="go">Make my café</button></div>
 </form>
 <p class="soft">Have an account? <a href="/">Sign in</a>.</p>
-${invite && origin ? forAnAI(invite, origin) : ""}`, status);
+${invite && origin ? forAnAI(invite, origin) : ""}`}`, status);
 }
+
+const INSTALL = `claude plugin marketplace add https://github.com/charredlatte/Pretty-Project-Portfolio.git
+claude plugin install kittychat-house-rules@kittychat --scope user`;
+
+// After a sign-up from the form: the café is theirs, and this is the one time its first key can be shown, so the
+// page says what turns their Claude sessions into cats here before they go in (the first user test, 5 October:
+// a guest landed in an empty café with no key, no address and no word of the plugin).
+const readyPage = (handle, key, origin, headers) => page("Your café is ready", `<h1>Your café is ready</h1>
+<p>Welcome, <strong>${esc(handle)}</strong>. Three things make your Claude Code sessions show up here as cats.</p>
+<p><strong>1. Your key.</strong> It is shown this once: keep it in your password manager, and never paste it into a
+chat, an issue or a repository.</p>
+<p><input readonly value="${esc(key)}" aria-label="Your key"></p>
+<p><strong>2. Where your café is.</strong> Give your sessions two settings: <code>CATIO_URL</code> =
+<code>${esc(origin)}</code> and <code>CATIO_TOKEN</code> = your key. On your computer they go in
+<code>~/.claude/settings.json</code> under <code>"env"</code>; in a cloud environment, in its environment variables, with
+<code>${esc(new URL(origin).host)}</code> allowed under its network access.</p>
+<p><strong>3. The plugin that reads them.</strong> The settings do nothing alone: the <code>kittychat-house-rules</code>
+plugin is what makes each session check in. Install it (in a cloud environment, in its setup script), then start a new
+session:</p>
+<pre style="white-space: pre-wrap; word-break: break-all">${INSTALL}</pre>
+<p class="soft">It also brings this café's house rules to every repository you work in: an audit at the start of each
+session, no pushes to the default branch, no Claude credit lines in public repositories.</p>
+<form method="get" action="/"><div class="row"><button class="go">Open my café</button></div></form>
+<p class="soft">Lost the key? Make another from your café, and delete the old one (the gateway's README, "A key").</p>`, 200, headers);
 
 // The same invite, for an AI setting the café up for someone: the account and its first agents' key, as JSON
 const forAnAI = (invite, origin) => `<h2>Setting this up for someone, as their AI?</h2>
@@ -106,8 +130,7 @@ does it, reading <code>CATIO_URL=${esc(origin)}</code> and <code>CATIO_TOKEN=&lt
 <code>~/.claude/settings.json</code> under <code>"env"</code>, or a cloud environment's variables, with
 <code>${esc(new URL(origin).host)}</code> allowed under its network access). Without the plugin the two variables do
 nothing. Install it (in a cloud environment, in its setup script; a session started before then won't have it):</p>
-<pre style="white-space: pre-wrap; word-break: break-all">claude plugin marketplace add https://github.com/charredlatte/Pretty-Project-Portfolio.git
-claude plugin install kittychat-house-rules@kittychat --scope user</pre>
+<pre style="white-space: pre-wrap; word-break: break-all">${INSTALL}</pre>
 <p class="soft">The plugin also brings this café's house rules to every repo they work in: an audit at the start of each
 session, no pushes to the default branch, no Claude credit lines in public repos. Tell them before installing it.</p>`;
 
@@ -129,18 +152,17 @@ ${note ? `<p>${esc(note)}</p>` : ""}
 <p class="soft"><a href="/">Back to the café</a></p>`);
 }
 
-const signedInAs = async (reg, user) => {
+const signInCookie = async (reg, user) => {
 	const token = randomToken();
 	await reg.login(await sha256(token), user.id, Date.now() + STAY);
-	return new Response(null, { status: 303, headers: {
-		Location: "/",
-		"Set-Cookie": `${COOKIE}=${token}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=${STAY / 1000}`,
-	} });
+	return `${COOKIE}=${token}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=${STAY / 1000}`;
 };
+const signedInAs = async (reg, user) =>
+	new Response(null, { status: 303, headers: { Location: "/", "Set-Cookie": await signInCookie(reg, user) } });
 
 async function signUp(request, env) {
 	if (/^application\/json\b/.test(request.headers.get("Content-Type") || "")) return signUpForAnAI(request, env);
-	if (!(await hasAccount(env))) return signUpPage("", "", NO_ACCOUNT(), 503);
+	if (!(await hasAccount(env))) return signUpPage("", "", NOT_YET, 503, "", noAccount(env, request));
 	if (!sameOrigin(request)) return signUpPage("", "", "Sign up from this page.", 403);
 	const form = await request.formData();
 	const invite = String(form.get("invite") || "").trim(), user = String(form.get("user") || "").trim();
@@ -149,7 +171,8 @@ async function signUp(request, env) {
 	const reg = await registry(env);
 	const made = await reg.signUp(invite, user, password);
 	if (made.error) return signUpPage(invite, user, made.error, 400);
-	return signedInAs(reg, made.user);
+	const { key } = await reg.mintKey(made.user.id, "first");
+	return readyPage(made.user.id, key, new URL(request.url).origin, new Headers({ "Set-Cookie": await signInCookie(reg, made.user) }));
 }
 
 // an AI signing up for someone: no browser to sign in, so the answer is the account's first agents' key, once
@@ -165,13 +188,15 @@ async function signUpForAnAI(request, env) {
 	return json({ handle: made.user.id, key, mcp: origin + "/mcp" }, 201);
 }
 
-const NO_ACCOUNT = () => { const why = bootProblem(); return "The gateway has no account yet: add CATIO_PASSWORD in Cloudflare, and it becomes the first one." + (why ? " " + why : ""); };
+const NO_ACCOUNT = () => "The gateway has no account yet. " + bootProblem();
+const NOT_YET = "The gateway has no account yet. Its warning lights:";
 
 async function login(request, env) {
-	if (!(await hasAccount(env))) return signInPage(NO_ACCOUNT(), 503);
+	if (!(await hasAccount(env))) return signInPage(NOT_YET, 503, noAccount(env, request));
 	const reg = await registry(env);
-	const form = await request.formData();
-	const user = await reg.checkPassword(String(form.get("user") || ""), String(form.get("password") || ""));
+	const form = await request.formData().catch(() => null);
+	if (!form) return signInPage("That wasn't the sign-in form.", 400);
+	const user = await reg.checkPassword(String(form.get("user") || ""), String(form.get("password") || ""), clientIp(request));
 	if (user && user.locked) return signInPage("Too many wrong passwords. Try again in a quarter of an hour.", 429);
 	if (!user) return signInPage(WRONG_PASSWORD, 401);
 	return signedInAs(reg, user);
@@ -232,13 +257,19 @@ export async function cafe(request, env) {
 
 	if (path === "/runtime.js") return new Response(RUNTIME, { headers: { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store" } });
 	if (path === "/login" && method === "POST") return login(request, env);
+	// sign out: this browser's cookie stops working now, not in a month
+	if (path === "/logout" && method === "POST") {
+		const token = cookieOf(request);
+		if (token) await (await registry(env)).logout(await sha256(token));
+		return new Response(null, { status: 303, headers: { Location: "/", "Set-Cookie": `${COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0` } });
+	}
 	if (path === "/signup" && method === "GET") return signUpPage(url.searchParams.get("invite") || "", "", "", 200, url.origin);
 	if (path === "/signup" && method === "POST") return signUp(request, env);
 
 	const cafePaths = path === "/" || path === "/invite" || path === "/ws" || path.startsWith("/api/") || path.startsWith("/art/") || path.startsWith("/files/");
 	if (!cafePaths) return null;
 	const user = await signedIn(request, env);
-	if (!user && (path === "/" || path === "/invite")) return (await hasAccount(env)) ? signInPage() : signInPage(NO_ACCOUNT(), 503);
+	if (!user && (path === "/" || path === "/invite")) return (await hasAccount(env)) ? signInPage() : signInPage(NOT_YET, 503, noAccount(env, request));
 	if (!user) return refuse(401, "signed_out", "Sign in to the café first.");
 
 	if (path === "/") return new Response(CAFE, { headers: PAGE_HEADERS });

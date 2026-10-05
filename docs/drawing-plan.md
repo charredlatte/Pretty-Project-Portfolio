@@ -42,6 +42,31 @@ Why:
 | Export | File → Export As… PNG, **scale 100 %**, transparent background. Animations: Export Sprite Sheet, horizontal strip, no padding, no trim |
 | Brushes | 1 px pencil, pixel-perfect on. No anti-aliasing against transparency: the page shows it as a fringe |
 
+### If not Aseprite: LibreSprite
+
+Aseprite is paid. [LibreSprite](https://libresprite.github.io/) is the free fork of the same program, GPL, and
+she already works on it ([LibreSprite/LibreSprite#674](https://github.com/LibreSprite/LibreSprite/pull/674),
+touch gestures and an on-screen keyboard button for tablets) -- so it is both the cheaper route and the one she
+can fix herself when it gets in the way.
+
+Everything section 1 asks for is in both: indexed colour from one palette, a 16 px grid, a 1:1 pixel ratio, a
+100 % export, Export Sprite Sheet as a horizontal strip, and the tiled mode a floor or wall needs to repeat
+with no seam (below). The settings table above stands as written; the menu paths are the likeliest thing to
+differ.
+
+Worth checking once rather than assuming -- none of this was tried for this note:
+
+- the Export Sprite Sheet dialog's "no padding, no trim", and Export As…'s scale field: the fork carries an
+  older Aseprite's dialogs, so they may sit elsewhere or read differently;
+- that a `.ase` file saved by a current Aseprite opens there at all. The fork predates Aseprite's newer
+  features (tilemap layers above all), and a file using them will not come back;
+- batch export from the command line, which both have in some form. If it works, a slot's PNG can be rebuilt
+  from her source file by a script -- the same shape as `build-art.py` cutting the packs today -- and section
+  9's "read her files instead of the zips" gets its first half for nothing.
+
+Either editor, the drawing is the same work and buys the same thing: her own pieces may be committed
+(section 9), which is what gets a fresh clone to a house on screen and a green test run. The packs never can.
+
 ### House style, so every piece belongs together
 
 - **View:** three-quarter top-down. You see the top of a thing and its south face.

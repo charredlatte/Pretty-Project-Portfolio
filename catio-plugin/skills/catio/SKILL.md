@@ -57,14 +57,23 @@ What they need, from `catio/art/CREDITS.md`:
 Most have a free tier. Without the ToffeeCraft pack in particular there are no cats, which is most
 of the point; without Sprout Lands the menus still work, on plain colour.
 
+**Say plainly where it stands today:** the house and the cats are built from all ten zips at once, in the order
+below (in any order, or a folder of them); without `plants.zip` the full build stops. `plants.zip` (the terrace's plants) reached Charlotte with no artist
+or licence, so there is no public copy of it yet, and until there is, nobody else can run the full build. What
+anyone can build is the interface alone, from the Sprout Lands UI zip (and Game UI Pastel's after it): the café
+then works on plain panels, with no house or cats drawn. `CatMegaFree.zip` is the ToffeeCraft row above.
+
 ## Setting one up
 
 Work through these with the person. Stop and ask whenever a step needs something only they have.
 
 ### 1. Get the page
 
+They press **Fork** on <https://github.com/charredlatte/Pretty-Project-Portfolio> first: their fork is the copy
+they change, push to and, for the front desk, import into Cloudflare. Then:
+
 ```bash
-git clone https://github.com/charredlatte/Pretty-Project-Portfolio
+git clone https://github.com/<their GitHub name>/Pretty-Project-Portfolio
 cd Pretty-Project-Portfolio
 ```
 
@@ -73,19 +82,16 @@ root is the operating brief — read it before changing the page itself.
 
 ### 2. Their art
 
-They put their own zips wherever they like and name them on the command line, in this order (the
-names don't matter, the order does):
+They put their own zips wherever they like, under whatever names, and point the script at the folder.
+Neither the names nor the order matters: each zip is recognised by a file only that pack has.
 
 ```bash
 pip install pillow fonttools
-python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip "Top down garden castle.zip" \
-    "Wood Garden Asset Pack.zip" "Pixel Art Top Down - Basic v1.2.3.zip" \
-    "Sprout Lands - UI Pack - Basic pack.zip" plants.zip \
-    "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip" Game_UI_Pack_Pastel.zip
+python3 catio/tools/build-art.py ~/Downloads/KittyChat-Cafe-Assets   # or the zips, in any order
 ```
 
-Given only the Sprout Lands UI zip (and, optionally, Game UI Pastel's after it), it builds just the
-interface.
+It prints which zip it took for which pack before it draws anything. Given only the Sprout Lands UI zip
+(with or without Game UI Pastel's), it builds just the interface.
 
 That writes `catio/art/licensed/`, which stays gitignored. Never commit what it produces, and never
 put it in anything you share — that is the whole reason it is separate.
@@ -134,10 +140,14 @@ page the same idea is the brain's tray: a file dropped on the house waits there 
 ### 4. Their sessions
 
 The page reads its cats live from Claude Code Remote. It also keeps a saved copy for when that read
-is blocked, and that copy is the only source when the page runs off a folder:
+is blocked, and that copy is the only source when the page runs off a folder. Do this now, and again whenever they
+ask to *save my sessions for the café* (the README tells them to say it):
 
 1. Call `list_sessions` (limit 50) and save the result to a file.
 2. `python3 catio/tools/save-sessions.py list_sessions.json` → `catio/data/sessions.json`.
+3. Once the page is published (step 5), write that file's object to `snapshot/sessions` in its database with
+   `ArtifactData` (`set`). claude.ai refuses the page's own read today, so this copy is where their cats come from.
+   Tell them it only changes when they ask a session to save it again.
 
 That output is gitignored, and it should stay that way: it carries their session titles.
 
@@ -149,6 +159,10 @@ database; publishing over it would take her page away from her. Their first publ
 artifact, and they record that URL in their own copy of `artifacts.json`, republishing to it
 afterwards with `url` so nothing they have done on the page is lost.
 
+`docs/self-hosting.md` lists Charlotte's values still written into the page and the harness. Change them on their
+fork; two of them (`CATIO_URL` in the page, `catio` in `harness/rules.json`) are this artifact's link, which only
+exists after the first publish, so set those then and republish to the same URL.
+
 On the first publish it needs these capabilities:
 
 ```
@@ -157,11 +171,21 @@ capabilities: { mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_s
   db: {}, assets: {}, sample: {} }
 ```
 
+Publish the art with it, or the page goes up alone and draws no house: the Artifact tool sends only the HTML
+unless every file the page uses is listed in `files`. List `art/furniture.png` and every file under
+`art/licensed/` that step 2 wrote (the `.png` files beside it, everything in `ui/`, `sprout.ttf` included, and
+everything in `pastel/`), each at its own path, and `art/skin.json` with its files if they drew pieces of their own.
+**It worked when** their café's link draws the house; if its sign says the cat art isn't here, a file was left out.
+
 The `mcp` grant is what lets the page read and manage their sessions as them, and only ever on their
 click (`list_repos` is what the wizard's GitHub step asks for their repositories); `db` is where rooms, renames, adopted chats and the queen's notes are kept; `assets` holds files
 dropped on a cat; `sample` lets the page ask Claude which cat a file is for. On a republish, omit
 `capabilities` to keep what is stored: passing it replaces the whole set, so naming only some revokes
 the rest.
+
+Once their front desk is up (`harness/gateway/README.md`) and its connector is named `CATIO` in claude.ai,
+republish with the whole set in `CLAUDE.md` ("The stored capabilities"), the `CATIO` server included: until then the
+page can't reach the front desk. It worked when the House menu says *Gateway live* with a time.
 
 If the sign says claude.ai won't let the page read sessions live, there is nothing for them to
 switch: Claude Code Remote is built into claude.ai and has no entry in their Connectors list. The
