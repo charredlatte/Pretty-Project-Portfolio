@@ -4,22 +4,40 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
+@lru_cache(maxsize=None)
 def rules():
+    """The house rules. Cached: a hook is one short-lived process, and several gates read them."""
     return json.loads((ROOT / "rules.json").read_text(encoding="utf-8"))
 
 
+@lru_cache(maxsize=None)
 def local(cwd=None):
     """The repo's own switches, .claude/catio-rules.json, or {}."""
     try:
         return json.loads((Path(cwd or os.getcwd()) / ".claude" / "catio-rules.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}
+
+
+def once(session, kind, prefix="delegate"):
+    """True the first time this session is told something of this kind, so a nudge never nags."""
+    name = "catio-{}-{}-{}".format(prefix, re.sub(r"\W", "", str(session or "none")), kind)
+    mark = Path(tempfile.gettempdir()) / name
+    if mark.exists():
+        return False
+    try:
+        mark.touch()
+    except OSError:
+        return False   # can't remember it was said, so say nothing rather than say it every time
+    return True
 
 
 def enforced(rule_id, cwd=None):

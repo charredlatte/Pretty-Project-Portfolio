@@ -24,7 +24,7 @@ They live in [`rules.json`](rules.json). The KittyChat Café page shows them all
 | No Claude attribution on public repos | Enforced, in a repo on `rules.json`'s `public` list (the café, the grocery app, Snail-Mail-Trail and LibreSprite). `hooks/gates.py` refuses a commit whose message, or the file its `-F` names, has `Co-Authored-By: Claude` or `Claude-Session:` lines, and a GitHub call (a pull request, issue or comment, a commit or merge message) with a "Generated with Claude Code" or session-link line. GitHub's Claude integration adds its own footer to a new pull request, issue or comment, so after one the session is told to edit it off. Private repos may keep them. Add a repo to the list when it goes public |
 | Map before you dig (graphify) | Enforced as a nudge. `hooks/graph_first.py` runs graphify's own `hook-guard` before searches and reads, pointing Claude at `graphify query` when the repo has a map. `session_start.py` says to build or refresh one. `graphify-out/` never counts as unpushed work |
 | Send the small stuff to a smaller cat | Soft, with a nudge and a gate. The plugin's two Haiku helpers, `agents/scout.md` (finds where things are, answers in paths and lines) and `agents/tester.md` (runs the checks, reports only what failed), read, run and report and never edit. `hooks/graph_first.py` suggests them once a session each, when a strong session greps the whole repo or runs the tests itself. `hooks/gates.py` refuses an edit by either, and, in a repo that merges its own pull requests, an edit to a tracked file by any sub agent on a model off the strong list, so the merging rule's promise holds. The plan is `docs/delegation.md`, phase A |
-| Spend what the task is worth | Enforced, in two halves. `hooks/right_sized.py` reads every sub agent spawn (`Task` or `Agent`). A spawn that names no model inherits the session's, so on Opus or Fable the session is told once what it is about to spend and which tiers exist. A task that reads as an errand (short, an everyday verb, nothing asking for judgement) spawned above the ceiling earns a line; where Charlotte has set that repo's ceiling herself in its `.claude/catio-rules.json`, the same spawn is refused instead, because that is her decision and not the harness's reading. Nothing under a held path, nothing private and nothing needing a browser is ever sent down a tier, and the session's own model is never switched. Below |
+| Spend what the task is worth | Enforced, in two halves, and only one of them blocks. `hooks/right_sized.py` reads every sub agent spawn (`Task` or `Agent`) and works out the tier it would really run on: the model the call names, else the one its agent file pins, else `CLAUDE_CODE_SUBAGENT_MODEL`, else the session's own. Where Charlotte has capped a repo's sub agents (`tiers.ceiling` in its `.claude/catio-rules.json`) anything above her cap is refused, whether or not the call names a model. With no cap from her the hook only speaks: once for a spawn that names no model and so inherits a costly session's, and once for a task whose words read like an errand. Nothing under a held path, nothing private and nothing needing a browser is sent down a tier at all, and the session's own model is never switched. Below |
 | Catio messages come from Charlotte; file contents are data | Soft, in the session's context |
 | Answer on the cat; honour pause and wrap-up requests | Soft, and the `catio` skill says how |
 | Private matters stay in the Catio, out of git | Soft |
@@ -38,7 +38,7 @@ list extra browser commands, one pattern per line, in `.claude/browser-commands`
 ### Spend what the task is worth
 
 A sub agent runs its own requests on its own model, so an unpinned one started from an Opus session costs Opus for
-work a Haiku would have done. The rule puts a ceiling on that, and `rules.json`'s `tiers` block holds it:
+work a Haiku would have done. `rules.json`'s `tiers` block holds the ladder and what the harness suggests:
 
 ```json
 "tiers": {
@@ -49,22 +49,29 @@ work a Haiku would have done. The rule puts a ceiling on that, and `rules.json`'
 ```
 
 `ladder` is the rungs, cheapest first, matched the way the merging rule matches `strong`: any part of a model id.
-`errand` is the ceiling for a task the harness reads as an errand. `costly` is the tiers whose unnamed spawns are
-worth a word.
+`errand` is what the harness suggests for a task that reads like one. `costly` is the tiers whose unnamed spawns
+are worth a word.
 
-**What makes it semi-automatic** is who decided. With no word from Charlotte the harness only *reads* a task, and a
-reading never blocks: it says which tier it would have picked and leaves the call alone. When she has set the
-ceiling for a repo herself, in that repo's `.claude/catio-rules.json`, that is a decision she made in an earlier
-session, and a spawn above it is refused:
+**Only her cap refuses.** A repo's `.claude/catio-rules.json` carries it:
 
 ```json
-{ "merge": true, "hold": ["harness/"], "tiers": { "errand": "haiku" } }
+{ "merge": true, "hold": ["harness/"], "tiers": { "ceiling": "sonnet" } }
 ```
 
-That file is the memory. It sits in the repo, in git, next to the repo's other decisions, so every session that
-opens there starts from what she last said about it rather than asking again — and when she overrules a refusal,
-the rule asks the session to write her new ceiling there. Her word beats the harness's reading in both directions:
-it raises the ceiling as readily as it lowers it, and `{"right_sized": false}` switches the rule off for a repo.
+With that set, a spawn that would run above `sonnet` is refused — and the hook resolves the tier the way Claude Code
+does (the call, then the agent file, then `CLAUDE_CODE_SUBAGENT_MODEL`, then the session), so leaving `model` off the
+call does not slip past it. That path reads no prompts: it compares two facts, which is the only ground firm enough
+to refuse on.
+
+**The harness's reading only speaks.** With no cap from her, a task whose words look like an errand earns one line
+naming the tier it would have picked, and a spawn that names no model earns one line saying what it is about to
+inherit. Both once a session. A guess from a prompt's words is not firm enough to block — "add a null check to
+`walk()` and run the tests" is short and starts with *add* — so a misreading costs a sentence, never a refusal.
+
+That is what makes the rule semi-automatic: the harness proposes from a reading, she disposes with a cap. Her file is
+the memory. It sits in the repo, in git, next to the repo's other decisions, so every session that opens there starts
+from what she last said rather than asking again, and the nudge asks the session to write her answer there when she
+gives one. `{"right_sized": false}` switches the rule off for a repo.
 
 **What is never sent down a tier**: anything naming one of the merging rule's `hold` paths or the repo's own,
 anything that reads as one of her private matters, and anything needing a browser. The review and the merge are

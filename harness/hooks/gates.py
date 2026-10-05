@@ -169,7 +169,12 @@ def main():
     if data.get("hook_event_name") == "PostToolUse":
         return after(tool, args, cwd)
 
-    refusal, nudge = right_sized.check(data, tool, args, cwd)
+    try:
+        refusal, nudge = right_sized.check(data, tool, args, cwd)
+    except SystemExit:
+        raise
+    except Exception:   # a tier is worth less than the gates below it: say nothing and let them run
+        refusal = nudge = None
     if refusal:
         block(refusal)
     if nudge:
