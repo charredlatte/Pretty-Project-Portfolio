@@ -52,6 +52,8 @@ def tiers(cwd):
     mine = local(cwd).get("tiers")   # hers, whatever shape she wrote it in: a bad one must not stop the gate
     if isinstance(mine, dict):
         ok = {k: v for k, v in mine.items() if k in ("errand", "ladder")}
+        if "errand" in ok and not (isinstance(ok["errand"], str) and ok["errand"].strip()):
+            ok.pop("errand")         # an errand of hers the rule can't read leaves the house's standing
         rungs = ok.get("ladder")
         if not (isinstance(rungs, list) and any(isinstance(t, str) and t.strip() for t in rungs)):
             ok.pop("ladder", None)   # a ladder of hers with no rung the rule can read leaves the house's standing
@@ -118,8 +120,11 @@ def pinned(agent_type, cwd):
 
 
 def held(cwd):
-    """The paths whose change always waits for her: the merging rule's, plus this repo's own."""
-    return list(rules().get("merging", {}).get("hold") or []) + list(local(cwd).get("hold") or [])
+    """The paths whose change always waits for her: the merging rule's, plus this repo's own. A hold written
+    as a string would otherwise be read letter by letter, and every letter taken for a held path."""
+    def paths(v):
+        return [p for p in v if isinstance(p, str) and p.strip()] if isinstance(v, list) else []
+    return paths(rules().get("merging", {}).get("hold")) + paths(local(cwd).get("hold"))
 
 
 def never_down(prompt, cwd):

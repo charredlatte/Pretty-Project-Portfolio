@@ -673,6 +673,11 @@ class RightSized(unittest.TestCase):
             r = run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": "Agent", "cwd": tmp,
                                  "tool_input": {"prompt": "x"}}, cwd=tmp)
             self.assertEqual(r.returncode, 2, (tiers, r.stdout, r.stderr))   # still refuses an unnamed spawn
+            edit = run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": "Edit",
+                                    "tool_input": {"file_path": str(Path(tmp, "a.py"))},
+                                    "transcript_path": transcript(tmp), "cwd": tmp}, cwd=tmp)
+            self.assertEqual(edit.returncode, 2, tiers)          # and the opening audit still speaks
+            self.assertIn("ponytail-audit", edit.stderr, tiers)
 
 class WorkflowReader(unittest.TestCase):
     """How right_sized reads a Workflow script: every agent() names a tier on the call, whatever the script's text
@@ -873,6 +878,23 @@ class Plugin(unittest.TestCase):
         self.assertTrue((root / "skills" / "graphify" / "LICENSE").exists())
 
 
+    def test_a_hook_module_that_cannot_import_refuses_rather_than_exiting_one(self):
+        """What took main down on 5 October: right_sized.py lost an import, gates.py died before any guard,
+        and Claude Code reads a non-2 exit as non-blocking, so every rule was off and nothing said so."""
+        plugin = Path(tempfile.mkdtemp())
+        shutil.copytree(HOOKS, plugin / "hooks")
+        shutil.copy(HOOKS.parent / "rules.json", plugin / "rules.json")
+        broken = plugin / "hooks" / "right_sized.py"
+        broken.write_text(broken.read_text(encoding="utf-8").replace("import re\n", "", 1), encoding="utf-8")
+        tmp = tempfile.mkdtemp()
+        r = subprocess.run([sys.executable, str(plugin / "hooks" / "gates.py")],
+                           input=json.dumps({"hook_event_name": "PreToolUse", "tool_name": "Edit",
+                                             "tool_input": {"file_path": str(Path(tmp, "a.py"))}, "cwd": tmp}),
+                           capture_output=True, text=True, cwd=tmp,
+                           env=dict({k: v for k, v in os.environ.items() if k not in ENV_KEYS}, XDG_CACHE_HOME=CACHE))
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        self.assertIn("House rule", r.stderr)
+
     def test_no_tracked_json_has_a_duplicate_key(self):
         """A merge that fuses two versions of a manifest leaves both keys. json.loads takes the last and says
         nothing, which is how a broken rules.json, plugin.json and hooks.json reached main on 5 October."""
@@ -884,8 +906,10 @@ class Plugin(unittest.TestCase):
                 seen.add(k)
             return dict(pairs)
         root = Path(__file__).resolve().parent.parent.parent
-        listed = subprocess.run(["git", "ls-files", "*.json"], cwd=root, capture_output=True, text=True).stdout.split()
-        checked = 0
+        found = subprocess.run(["git", "ls-files", "-z", "*.json"], cwd=root, capture_output=True, text=True)
+        self.assertEqual(found.returncode, 0, found.stderr)
+        listed = [n for n in found.stdout.split("\0") if n]
+        checked = set()
         for name in listed:
             if "node_modules" in name or name.endswith("package-lock.json"):
                 continue
@@ -893,9 +917,13 @@ class Plugin(unittest.TestCase):
                 text = (root / name).read_text(encoding="utf-8")
             except OSError:
                 continue
-            json.loads(text, object_pairs_hook=once)   # raises ValueError naming the file's repeated key
-            checked += 1
-        self.assertGreater(checked, 5, "no json files were checked")
+            try:
+                json.loads(text, object_pairs_hook=once)
+            except ValueError as e:
+                self.fail("%s: %s" % (name, e))
+            checked.add(name)
+        for must in ("harness/rules.json", "harness/.claude-plugin/plugin.json", "harness/hooks/hooks.json"):
+            self.assertIn(must, checked, "the sweep missed %s" % must)
     def test_every_hook_uses_one_launcher_that_finds_python_on_windows(self):
         hooks = json.loads((HOOKS / "hooks.json").read_text())["hooks"]
         launchers = {h["command"].split(' "${CLAUDE_PLUGIN_ROOT}/hooks/')[0]

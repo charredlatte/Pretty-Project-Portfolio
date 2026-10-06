@@ -22,9 +22,13 @@ import re
 import subprocess
 from pathlib import Path
 
-import right_sized
-import ship_gate
-from common import answered, block, enforced, git, hook_input, merges, ran, rules
+try:   # a gate that cannot even load refuses: exiting 1 here would wave every call through
+    from common import answered, block, enforced, git, hook_input, merges, ran, rules
+except Exception as _e:
+    import sys
+    print("House rule (KittyChat): the house rules couldn't be loaded (%s: %s). Tell Charlotte; don't work "
+          "round it." % (type(_e).__name__, _e), file=sys.stderr)
+    sys.exit(2)
 
 BROWSER_TOOL = re.compile(r"^mcp__.*(playwright|browser|chrome|puppeteer|computer)", re.I)
 BROWSER_CMD = r"playwright|chromium|google-chrome|headless|puppeteer|selenium|webdriver|catio/test/run\.sh"
@@ -155,6 +159,8 @@ MISSING = (" This plugin doesn't ship the {0} skill: if it isn't installed, say 
 
 
 def main():
+    import right_sized   # inside the guard: an ImportError here must refuse, not exit 1 and wave the call on
+    import ship_gate
     data = hook_input()
     tool = data.get("tool_name", "")
     args = data.get("tool_input") or {}

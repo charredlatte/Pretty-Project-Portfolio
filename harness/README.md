@@ -40,9 +40,7 @@ list extra browser commands, one pattern per line, in `.claude/browser-commands`
 ### Delegate first: spend what the task is worth
 
 A sub agent runs its own requests on its own model, so an unpinned one started from an Opus session costs Opus for
-work a Haiku would have done. `rules.json`'s `tiers` block holds the ladder:
-
-So nothing is assigned without its tier: a spawn, each `agent()` call of a workflow
+work a Haiku would have done. So nothing is assigned without its tier: a spawn, each `agent()` call of a workflow
 script (inline, `scriptPath`, or a saved one in `.claude/workflows/`: the repo's, a folder above it, or the user's
 `~/.claude/workflows/`, and a child `workflow()` it runs) and a new Claude Code Remote session each name a model, or
 the gate refuses them with the rubric: Haiku to read, search, run and report; Sonnet for spelled-out, checkable work
@@ -86,11 +84,11 @@ file is the memory. It sits in the repo, in git, next to the repo's other decisi
 there starts from what she last said rather than asking again, and the line asks the session to write her answer
 there when she gives one. `{"right_sized": false}` switches the rule off for a repo.
 
-A setting the rule cannot act on is handled unevenly, and worth tidying: an `errand` that is not one of the tiers
-switches the ceiling off in silence, while a `tiers` the rule cannot read at all makes `check()` raise, which
-`gates.py` catches — the audit, preflight, attribution and shipping gates still run, but the tier gate itself is
-skipped for that call. Saying so instead is the better behaviour: the earlier version of this rule did, and the
-checks that held it to that were lost in the merge of 5 October (`docs/delegation.md`).
+A setting of hers the rule cannot read — a `tiers` that is not an object, a `ladder` with no rung in it, an
+`errand` or a `hold` of the wrong shape — leaves the house's own standing rather than switching the rule off, so
+one typo in her file cannot quietly take the refusals away. It does not yet *say* that her setting is doing
+nothing, which the earlier version of this rule did; the checks that held it to that were lost in the merge of
+5 October (`docs/delegation.md`), and saying so is still the better behaviour.
 
 The review and the merge are untouched, so the merging rule's promise — a strong model did the work, and a small
 model's pull request is always hers to merge — still holds. Neither does the rule switch the session's own model:
