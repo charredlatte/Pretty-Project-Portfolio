@@ -27,8 +27,11 @@ Publish `catio/index.html` with:
 
 `art/licensed/` is not in git (licences below). In a fresh session, get it back one of two ways:
 
-1. `Artifact` read on the published URL with `paths`: all 38 licensed files in one call, `out_dir: "catio"`
-   (`action: "list"`, `scope: "files"` lists them). `path` fetches a single file. Or
+1. `Artifact` read on the published URL with `paths` and `out_dir: "catio"`: every `art/licensed/*` path the
+   artifact holds, in one call, and **only** those. `action: "list"` with `scope: "files"` lists them, but the
+   listing also carries `index.html` and `art/furniture.png`, and `out_dir` writes straight into the checkout:
+   pass those two and you overwrite the page you are working on with the published copy. `path` fetches one
+   file. Or
 2. get the ten zips from her Drive folder "KittyChat Cafe Assets" (or ask her for them), put them in one
    folder and run `python3 catio/tools/build-art.py <that folder>` (needs `pip install pillow fonttools`).
    Neither their names nor their order matters: each zip is recognised by a file only that pack has
@@ -591,7 +594,15 @@ never been configured.
 ## Checking a change
 
 Look first, test second. A test rewritten to match the code only proves the two agree; looking is what
-proves the page does what she asked. In this order:
+proves the page does what she asked.
+
+**Before either, get `art/licensed/`.** It is gitignored, so a fresh clone and every cloud session start
+without it, and without it both steps are blind: the screenshots show the no-art fallbacks rather than the
+page, and every check that reads a file from `art/licensed/` fails -- the one that wants no warning sign, and
+the checks of The look and a skin, which use the packs' files to stand in for her own. Don't carry a count in
+your head or in a file: it has already drifted from "1 failure" to 29 while the suite grew past 339 checks.
+**A failure naming no `art/licensed` path is real, and once the art is there every failure is.** Route 1 under
+"Republishing" is one `Artifact` read. Then, in this order:
 
 1. **Change it.** Art too: re-run `build-art.py` (or `furniture.py`).
 2. **Look at it before touching a test.** `sh catio/test/run.sh look kitchen study` (`ground`, `upper` or any
@@ -601,13 +612,10 @@ proves the page does what she asked. In this order:
    asked for? Back to 1.
 3. **Run the test unchanged:** `sh catio/test/run.sh` (about seven minutes). Every failure should be something
    she asked to change. One she didn't is a regression: fix the page, not the test.
-   **The suite needs `art/licensed/`, and a run without it is not a verdict.** It is gitignored, so a fresh
-   clone or cloud session hasn't got it, and without it the page correctly draws its no-art warning on the
-   status sign: the check that wants no warning sign then fails, and so do the checks of The look and a
-   skin, which read the packs' files from `art/licensed/` to stand in for her own (on 5 October 2026: **29
-   of 339 checks fail, every one of them needing the art; with it back, all 339 pass**). That is the missing
-   art, not the page, and reading those 29 as breakage costs an hour. Get the art back first -- route 1
-   under "Republishing" is one `Artifact` read -- then run. `run.sh` says the same when it starts.
+   **A run without `art/licensed/` is not a verdict** (above). `run.sh` says so when it starts, and names
+   which checks go red for want of the art rather than a count that goes stale. **A run that ends in
+   `CRASH` stopped early**, so its list is partial and a short one reads as nearly green when most of the
+   suite never ran: the totals line is the only proof it reached the end.
 4. **Rewrite only those checks, from her words:** what must be true now, not which class names went away
    (`#cats .cat > :not(.spr)`, not a list of deleted classes). Then the whole suite: all checks must pass.
 

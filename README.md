@@ -516,8 +516,9 @@ has its own browser. Each run
 starts a fresh temporary profile with no logins or saved passwords, and as the page stands it loads only local files
 and the page's Google Fonts, plus, for the test (not the screenshots), its own server on 127.0.0.1 port 8791. Set
 `PORT` if something else, like `catio_mcp.py --serve`, holds that port: `run.sh` doesn't notice. Without the licensed art (see
-[Running your own](#running-your-own)), the check "on its own address the café is live through the gateway, with no
-warning sign" fails, as `run.sh` warns.
+[Running your own](#running-your-own)) the run is not a verdict: every check that reads a file from
+`art/licensed/` fails -- the one that wants no warning sign, and the checks of The look and a skin -- so a
+failure naming no `art/licensed` path is the real one. `run.sh` says so when it starts.
 Sessions under the house rules run the browser preflight first ([`harness/README.md`](harness/README.md)).
 
 ## Licence

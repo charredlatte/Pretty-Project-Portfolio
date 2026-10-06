@@ -9,16 +9,26 @@ P=$(dirname "$T")
 # The suite assumes this checkout has the licensed art. Without it the page quite correctly shows its
 # no-art warning on the status sign, so the check that wants a clear sign cannot pass, and the checks of
 # The look and a skin can't either: they read the packs' files from art/licensed/ to stand in for her own
-# drawings. A run without it is therefore not a verdict. Say so, so it doesn't read as a regression:
-# art/licensed/ is gitignored, so a fresh clone and every cloud session start without it. CLAUDE.md,
-# "Republishing", has the two ways back (one Artifact read from the published page, or her zips).
-if [ ! -d "$P/art/licensed" ]; then
-  echo "note: $P/art/licensed/ is missing, so this run is NOT a verdict."
-  echo "      Expect 29 failures (5 October): the one that wants no warning sign, and the checks of The"
-  echo "      look and a skin, which read the packs' files. With the art there, all 339 pass."
-  echo "      Get it back first, one call of a few seconds: CLAUDE.md, \"Republishing\", route 1 reads all"
-  echo "      38 files from the published artifact in a single Artifact read with \"paths\"."
-  echo "      After that, a failure is real. Until then it is the missing art, not the page."
+# drawings. Say so, so it doesn't read as a regression: art/licensed/ is gitignored, so a fresh clone and
+# every cloud session start without it.
+#   No count belongs here. It has drifted twice in two days -- "1 failure", then "29" -- while the suite
+#   itself grew past 339 checks, and a stale number is read as checks having gone missing. What stays true
+#   is WHICH checks fail, so the note says that and leaves the counting to the run.
+#   One file per group, not the directory: build-art.py given only the Sprout Lands zip writes ui/ alone
+#   and nothing else, which leaves art/licensed/ present and two thirds empty.
+if ! { [ -f "$P/art/licensed/house.png" ] && [ -f "$P/art/licensed/ui/panel.png" ] && [ -f "$P/art/licensed/pastel/panel.png" ]; }; then
+  echo "note: some of $P/art/licensed/ is missing, so the page here draws its no-art fallbacks."
+  if [ "$1" = look ]; then
+    echo "      These screenshots will show the warning sign and the pack-less fallbacks rather than the"
+    echo "      page, so they cannot be held against her words. Get the art first."
+  else
+    echo "      This run is NOT a verdict. Every check that fails for that reason reads a file from"
+    echo "      art/licensed/: the one that wants no warning sign, and the checks of The look and a skin."
+    echo "      A failure naming no art/licensed path is real, and once the art is there every failure is."
+  fi
+  echo "      Two ways back, in CLAUDE.md, \"Republishing\": read the art/licensed/* files back from the"
+  echo "      published artifact (one Artifact read with \"paths\" -- those paths only, never index.html),"
+  echo "      or rebuild them from her zips with catio/tools/build-art.py."
   echo
 fi
 {
