@@ -27,11 +27,12 @@ Publish `catio/index.html` with:
 
 `art/licensed/` is not in git (licences below). In a fresh session, get it back one of two ways:
 
-1. `Artifact` read on the published URL with `paths` and `out_dir: "catio"`: every `art/licensed/*` path the
-   artifact holds, in one call, and **only** those. `action: "list"` with `scope: "files"` lists them, but the
-   listing also carries `index.html` and `art/furniture.png`, and `out_dir` writes straight into the checkout:
-   pass those two and you overwrite the page you are working on with the published copy. `path` fetches one
-   file. Or
+1. `Artifact` on the published URL, with `out_dir: "catio"`: list its files (`action: "list"`,
+   `scope: "files"`), then one read whose `paths` hold every path **under `art/licensed/`** -- the nested
+   `ui/` and `pastel/` ones are most of them -- **and no others**. `out_dir` writes straight into the
+   checkout, and everything else in that listing is committed work here (`index.html`, `art/furniture.png`,
+   and her `art/skin.json` and `art/skin/*` once she has drawn any), which the published copy would
+   overwrite. `path` fetches a single file. Or
 2. get the ten zips from her Drive folder "KittyChat Cafe Assets" (or ask her for them), put them in one
    folder and run `python3 catio/tools/build-art.py <that folder>` (needs `pip install pillow fonttools`).
    Neither their names nor their order matters: each zip is recognised by a file only that pack has
@@ -598,11 +599,13 @@ proves the page does what she asked.
 
 **Before either, get `art/licensed/`.** It is gitignored, so a fresh clone and every cloud session start
 without it, and without it both steps are blind: the screenshots show the no-art fallbacks rather than the
-page, and every check that reads a file from `art/licensed/` fails -- the one that wants no warning sign, and
-the checks of The look and a skin, which use the packs' files to stand in for her own. Don't carry a count in
-your head or in a file: it has already drifted from "1 failure" to 29 while the suite grew past 339 checks.
-**A failure naming no `art/licensed` path is real, and once the art is there every failure is.** Route 1 under
-"Republishing" is one `Artifact` read. Then, in this order:
+page, and the checks that stand in for her own art fail. What the missing art explains is exactly this, and
+nothing else: **the check that wants no warning sign, and the checks of The look and a skin** -- her own
+pieces, slots, frames and fonts. **A failure outside those is real, and once the art is here every failure
+is.** Go by the check, not by what it printed: most of them fail with a computed value or a timeout and
+never mention `art/licensed`. Don't carry a count either, in a file or in your head: every count written
+here has gone stale within the day. Route 1 under "Republishing" is a listing and one read. Then, in this
+order:
 
 1. **Change it.** Art too: re-run `build-art.py` (or `furniture.py`).
 2. **Look at it before touching a test.** `sh catio/test/run.sh look kitchen study` (`ground`, `upper` or any

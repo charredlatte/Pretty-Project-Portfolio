@@ -11,26 +11,32 @@ P=$(dirname "$T")
 # The look and a skin can't either: they read the packs' files from art/licensed/ to stand in for her own
 # drawings. Say so, so it doesn't read as a regression: art/licensed/ is gitignored, so a fresh clone and
 # every cloud session start without it.
-#   No count belongs here. It has drifted twice in two days -- "1 failure", then "29" -- while the suite
-#   itself grew past 339 checks, and a stale number is read as checks having gone missing. What stays true
-#   is WHICH checks fail, so the note says that and leaves the counting to the run.
-#   One file per group, not the directory: build-art.py given only the Sprout Lands zip writes ui/ alone
-#   and nothing else, which leaves art/licensed/ present and two thirds empty.
-if ! { [ -f "$P/art/licensed/house.png" ] && [ -f "$P/art/licensed/ui/panel.png" ] && [ -f "$P/art/licensed/pastel/panel.png" ]; }; then
+#   Say WHICH checks, never how many. A count in prose has drifted every time one was written here, and a
+#   stale one reads as checks having gone missing. Nor by what the failure says: most of these fail with a
+#   computed value or a timeout and never mention art/licensed, so "it names a path" would mark the
+#   majority of them real -- the very chase this note exists to stop.
+art_note() {   # $1: "look" when only screenshots are being taken
   echo "note: some of $P/art/licensed/ is missing, so the page here draws its no-art fallbacks."
   if [ "$1" = look ]; then
-    echo "      These screenshots will show the warning sign and the pack-less fallbacks rather than the"
-    echo "      page, so they cannot be held against her words. Get the art first."
+    echo "      These screenshots show the warning sign and the pack-less fallbacks rather than the page,"
+    echo "      so they cannot be held against her words. Get the art first."
   else
-    echo "      This run is NOT a verdict. Every check that fails for that reason reads a file from"
-    echo "      art/licensed/: the one that wants no warning sign, and the checks of The look and a skin."
-    echo "      A failure naming no art/licensed path is real, and once the art is there every failure is."
+    echo "      This run is NOT a verdict. The missing art explains exactly these, and nothing else: the"
+    echo "      check that wants no warning sign, and the checks of The look and a skin -- the ones about"
+    echo "      her own pieces, slots, frames and fonts. A failure outside those is real, and once the art"
+    echo "      is here every failure is. Most of them say nothing about art/licensed, so go by the check."
   fi
-  echo "      Two ways back, in CLAUDE.md, \"Republishing\": read the art/licensed/* files back from the"
-  echo "      published artifact (one Artifact read with \"paths\" -- those paths only, never index.html),"
-  echo "      or rebuild them from her zips with catio/tools/build-art.py."
+  echo "      Two ways back, in CLAUDE.md, \"Republishing\": read every path under art/licensed/ back from"
+  echo "      the published artifact (list its files, then one read -- those paths and no others: the rest"
+  echo "      of the listing is committed work here), or rebuild from her zips with catio/tools/build-art.py."
   echo
-fi
+}
+# One file per group, each the LAST its build writes -- build-art.py writes pochi.png last of the top-level
+# pieces (463), pastel/icons.png last of the map panel's (364) and ui/logo.png last of the whole run (128) --
+# so a build or a fetch that stopped part way is caught too, not just an empty folder. -s, not -f: a
+# truncated fetch leaves a file of nothing.
+have_art() { [ -s "$P/art/licensed/pochi.png" ] && [ -s "$P/art/licensed/ui/logo.png" ] && [ -s "$P/art/licensed/pastel/icons.png" ]; }
+have_art || art_note "$1"
 {
   printf '<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">'
   printf '<base href="file://%s/"><style>body{margin:0}img{max-width:100%%}[hidden]{display:none!important}</style><script>' "$P"
@@ -59,4 +65,4 @@ python3 -m http.server "$PORT" --bind 127.0.0.1 --directory "$L" >/dev/null 2>&1
 SERVER=$!
 trap 'kill $SERVER 2>/dev/null; rm -rf "$L"' EXIT
 sleep 1
-LOCAL_URL="http://127.0.0.1:$PORT/index.html" node "$T/e2e.mjs"
+LOCAL_URL="http://127.0.0.1:$PORT/index.html" node "$T/e2e.mjs" || { have_art || { echo; art_note; }; exit 1; }
