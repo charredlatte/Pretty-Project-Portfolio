@@ -432,9 +432,14 @@ def assessed(kind, args, cwd, ladder, cap):
 
     if kind == "workflow":
         src = script_of(args, cwd)
-        lines = unnamed_agents(src, cwd, ladder)
+        found = assignments(src, cwd)
+        off = {(at, literal(m)) for at, m in found if m and literal(m) is not None and not tier_of(literal(m), ladder)}
+        lines = sorted({at for at, m in found if not (m and tier_named(m, ladder)) and (at, m and literal(m)) not in off})
         if lines:
             return delegate_first("this workflow's agent() call on %s" % lines_of(lines), ladder, cap=cap)
+        if off:   # a model named, but not one of the tiers: say so, rather than that it names none
+            return off_ladder("this workflow's agent() call on %s" % lines_of(sorted({at for at, _ in off})),
+                              ", ".join(sorted({value for _, value in off})), ladder, cap)
         if not cap or not assignments(src, cwd):
             return None
         refusal = forced(ladder, cap)

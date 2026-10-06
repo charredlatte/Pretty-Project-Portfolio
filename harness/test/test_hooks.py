@@ -580,6 +580,15 @@ class RightSized(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("isn't one of the tiers here", err)
 
+    def test_a_workflow_call_off_the_ladder_is_told_so_not_that_it_names_none(self):
+        code, err, _ = self.spawn(self.repo(), {"script": "await agent('x', {model: 'gpt-4'})"}, tool="Workflow")
+        self.assertEqual(code, 2)
+        self.assertIn("line 1 names gpt-4, which isn't one of the tiers here", err)
+        self.assertNotIn("names no model", err)
+        code, err, _ = self.spawn(self.repo(), {"script": "await agent('x', {model: 'gpt-4'})\nawait agent('y')"},
+                                  tool="Workflow")
+        self.assertIn("line 2 names no model", err)
+
     def test_only_claude_code_remote_s_new_session_is_a_new_cat(self):
         for tool in ("mcp__tmux__create_session", "mcp__jupyter__create_session"):
             self.assertEqual(self.spawn(self.repo(), {"session_name": "build"}, tool=tool)[0], 0, tool)
