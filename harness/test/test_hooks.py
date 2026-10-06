@@ -530,7 +530,6 @@ class RightSized(unittest.TestCase):
 
     def test_the_tool_is_gated_under_either_name(self):
         for tool in ("Agent", "Task"):
-            self.word(self.tmp, {"tiers": {"errand": "haiku"}})
             self.assertEqual(self.spawn({"prompt": "list the files in docs", "model": "opus"}, tool=tool,
                                         tmp=tempfile.mkdtemp())[0], 0, tool)   # no word in a fresh repo: a reading
         tmp = tempfile.mkdtemp()
@@ -543,7 +542,6 @@ class RightSized(unittest.TestCase):
         for prompt in ("refactor the camera so the minimap and the stage share one transform",
                        "review this diff for correctness bugs",
                        "investigate why the gateway drops reports and propose a fix"):
-            self.word(self.tmp, {"tiers": {"errand": "haiku"}})
             code, _, nudge = self.spawn({"prompt": prompt, "model": "opus"}, tmp=tempfile.mkdtemp())
             self.assertEqual((code, nudge), (0, ""), prompt)
 
@@ -667,7 +665,8 @@ class RightSized(unittest.TestCase):
 
     def test_a_tiers_block_she_got_wrong_never_stops_the_gate(self):
         """One typo in her settings must not switch every refusal off for that repo."""
-        for tiers in ("sonnet", {"ladder": 5}, {"errand": False}):
+        for tiers in ("sonnet", 5, True, "errand: haiku", {"ladder": 5}, {"ladder": []},
+                      {"ladder": ["", "haiku"]}, {"errand": False}):
             tmp = tempfile.mkdtemp()
             Path(tmp, ".claude").mkdir()
             Path(tmp, ".claude", "catio-rules.json").write_text(json.dumps({"tiers": tiers}))
@@ -873,6 +872,30 @@ class Plugin(unittest.TestCase):
         self.assertTrue((root / "skills" / "graphify" / "SKILL.md").read_text().startswith("---\nname: graphify\n"))
         self.assertTrue((root / "skills" / "graphify" / "LICENSE").exists())
 
+
+    def test_no_tracked_json_has_a_duplicate_key(self):
+        """A merge that fuses two versions of a manifest leaves both keys. json.loads takes the last and says
+        nothing, which is how a broken rules.json, plugin.json and hooks.json reached main on 5 October."""
+        def once(pairs):
+            seen = set()
+            for k, _ in pairs:
+                if k in seen:
+                    raise ValueError("duplicate key: " + k)
+                seen.add(k)
+            return dict(pairs)
+        root = Path(__file__).resolve().parent.parent.parent
+        listed = subprocess.run(["git", "ls-files", "*.json"], cwd=root, capture_output=True, text=True).stdout.split()
+        checked = 0
+        for name in listed:
+            if "node_modules" in name or name.endswith("package-lock.json"):
+                continue
+            try:
+                text = (root / name).read_text(encoding="utf-8")
+            except OSError:
+                continue
+            json.loads(text, object_pairs_hook=once)   # raises ValueError naming the file's repeated key
+            checked += 1
+        self.assertGreater(checked, 5, "no json files were checked")
     def test_every_hook_uses_one_launcher_that_finds_python_on_windows(self):
         hooks = json.loads((HOOKS / "hooks.json").read_text())["hooks"]
         launchers = {h["command"].split(' "${CLAUDE_PLUGIN_ROOT}/hooks/')[0]

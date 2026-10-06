@@ -20,7 +20,6 @@ Nothing under a held path, nothing private and nothing needing a browser is ever
 """
 import os
 import re
-import tempfile
 from pathlib import Path
 
 from common import ROOT, enforced, local, rules, said, say
@@ -53,17 +52,21 @@ def tiers(cwd):
     mine = local(cwd).get("tiers")   # hers, whatever shape she wrote it in: a bad one must not stop the gate
     if isinstance(mine, dict):
         ok = {k: v for k, v in mine.items() if k in ("errand", "ladder")}
-        if not isinstance(ok.get("ladder"), list):
-            ok.pop("ladder", None)   # a ladder of hers the rule can't read leaves the house's standing
+        rungs = ok.get("ladder")
+        if not (isinstance(rungs, list) and any(isinstance(t, str) and t.strip() for t in rungs)):
+            ok.pop("ladder", None)   # a ladder of hers with no rung the rule can read leaves the house's standing
         house.update(ok)
     ladder = house.get("ladder")
-    house["ladder"] = [str(t).lower() for t in ladder] if isinstance(ladder, list) else []
+    house["ladder"] = [str(t).lower() for t in ladder if isinstance(t, str) and t.strip()] \
+        if isinstance(ladder, list) else []
     return house
 
 
 def hers(cwd):
-    """Has Charlotte set this repo's ceiling herself? Then it is a decision, not a reading."""
-    return "errand" in (local(cwd).get("tiers") or {})
+    """Has Charlotte set this repo's ceiling herself? Then it is a decision, not a reading. Only a block the
+    rule can read counts: a refusal in her name for a decision she never made is worse than no refusal."""
+    mine = local(cwd).get("tiers")
+    return isinstance(mine, dict) and isinstance(mine.get("errand"), str)
 
 
 def tier_of(model, ladder):
@@ -405,9 +408,14 @@ def check(data, tool, args, cwd):
 
     prompt = " ".join(str(args.get(k) or "") for k in ("prompt", "description"))
     keep = never_down(prompt, cwd)
-    spawn = tier_of(args.get("model"), ladder) or tier_of(pinned(args.get("subagent_type"), cwd), ladder)
-    if spawn is None and args.get("model"):
-        return off_ladder("this spawn", args.get("model"), ladder), None
+    # Claude Code reads the call's model ahead of the agent's file, so a name it cannot place is not covered
+    # by the agent's pin: it would still run on whatever that name resolves to.
+    if args.get("model"):
+        spawn = tier_of(args["model"], ladder)
+        if spawn is None:
+            return off_ladder("this spawn", args["model"], ladder), None
+    else:
+        spawn = tier_of(pinned(args.get("subagent_type"), cwd), ladder)
     if spawn is None:   # nothing names a tier: it would inherit the session's model, whatever the work
         return delegate_first("this spawn", ladder, keep), None
     if keep or not ceiling:
