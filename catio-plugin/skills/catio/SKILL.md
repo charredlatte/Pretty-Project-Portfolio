@@ -220,6 +220,11 @@ of those counts.
 
 ## Changing the page
 
+- **Get `catio/art/licensed/` before you look or test.** It is gitignored, so a fresh clone and every cloud
+  session start without it, and without it both are blind: the screenshots show the no-art fallbacks rather
+  than the page, and the check that wants no warning sign fails along with the checks of The look and a
+  skin, which stand in for her own drawings. A failure outside those is real. `run.sh` says so when it
+  starts and again if the run goes red; CLAUDE.md, "Republishing", has the two ways back.
 - `sh catio/test/run.sh` runs the end-to-end suite in headless Chromium, against a stand-in for the
   artifact runtime and against the local bundle on a real server. Run it after every change; it
   builds the bundle as part of the run, so a broken bundler fails the suite.
