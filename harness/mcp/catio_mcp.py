@@ -45,7 +45,7 @@ class StateLock:
     the exclusive creation of state.lock; one a crash left behind is taken over after STALE seconds. On Windows a lock
     just let go can be "delete pending" while another process still looks at it, and creating it then is a
     PermissionError rather than FileExistsError: it is busy all the same, so it is waited for, not given up on."""
-    STALE, WAIT = 30, 10
+    STALE, WAIT = 10, 15   # a waiter outlasts STALE, so it always gets to take over a lock a crash left behind
 
     def __enter__(self):
         HOME.mkdir(parents=True, exist_ok=True)

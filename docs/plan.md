@@ -230,6 +230,9 @@ and #102, and in his fork (ohwellwhy10-jpg/Pretty-Project-Portfolio, `main` and 
 | 9 | Reported with a screenshot alone | Text we couldn't read or search, and no way to tell his fork was a day behind | The issue form, "Something isn't working": which café, the words as text, the fork's last sync |
 | 10 | Hardened the gateway on his fork (his fork's pull request #1) | His Sync fork would conflict in three files with the day's fixes | His two commits brought here, merged with `main`, so the sync is clean |
 | 11 | Signed in to his own gateway at last (18:42), then asked his Gemini to connect | The repositories step can't work on a café's own address, and the café's automatic check-ins exist only as a Claude Code plugin | #113: no Connect GitHub button there; Gemini joins through the café's MCP address and reports when asked (#100) |
+| 12 | Connected his "Gemini": Antigravity, Google's agent editor, which only starts MCP servers as local programs | Our answer was Gemini CLI's address-and-key settings, which Antigravity can't take, and the harness README's local server (`catio_mcp.py`) keeps its cats on the computer it runs on, where his gateway never sees them | He wrote `catio_bridge.py` (his fork's PR 4), a local program that passes everything on to the gateway; brought here, and the harness README now says which server goes with which café |
+| 13 | Made an agents' key for it | No button: he pasted a `fetch` into the browser's console | Keys in the House menu of a café on its own address (`openKeys()`): a key made from a name, shown once beside `CATIO_URL` and `CATIO_TOKEN` with Copy, and deleted after it asks; the console line is only for a café from before it |
+| 14 | Audited the gateway and the MCP server again, fixed what he found (his fork's PR 5) and wrote it up (#115) | His docs-only pull request went red, through nothing he changed: `main` was broken (#114) | #114 restores `main`; his PR 5 and PR 4 brought here, with the same 500 found in sign-up and invites, which his fork doesn't have |
 
 **What the decider guessed** (5 October, `decide` with kind `ux-test-1` in the house's log; Clef answered, as Jev had no
 AI Gateway credits). Asked about the run above, it put the lights page far ahead as the fix that would have let him
@@ -262,7 +265,9 @@ guest, a sign-up gave no key, the bundle's server died on start) and 40 majors i
 path, the CATIO name, the hooks on Windows). Left: the 77 minors (the walkthrough's output, re-run it to list them),
 and the two below that are hers. **Players use other assistants:** he reached for Gemini first, so a café that only
 Claude Code can check in to automatically will lose the second audience; a check-in for other agents as easy as the
-plugin is worth a place on the roadmap.
+plugin is worth a place on the roadmap. And "Gemini" may be the CLI, Antigravity or the app, each joining differently
+(step 12): ask which, and lead with the bridge, which works for any client that can start a local program. A red check
+they didn't cause reads as their fault (step 14): say so on their pull request straight away.
 
 **What it means for the shop** (`docs/kittychat-shop/`). Running your own gateway took him more than a day and is
 still not done. For the second audience the invite to a hosted café is the door, and running your own is the
@@ -315,11 +320,8 @@ decisions quiz page is retired). The small facts (who made `plants.zip`) stay he
      `harness/gateway/` replaces it.
 
    This session's git access can't delete them.
-11. **The first player's fixes** (PR #104, above): merge it, then the friend syncs his fork to get the warning lights.
-12. **His hardening pass**: brought here with his commits as they are, and merged with `main` (her call, 5 October:
-    "bring his work here"), so his Sync fork has no conflict once it merges: the sign-in lock counted by address, the
-    queen's key refused when it is the agents' key too, `/logout`, and an adversarial test suite. It touches `harness/`:
-    hers to merge.
+11. ~~**The first player's fixes** (PR #104, above)~~: merged 5 October; he signed in to his own gateway at 18:42.
+12. ~~**His hardening pass**~~ (his fork's PR 1, brought here with his commits as they are): merged 5 October (#105).
 13. **Jev for the decider**: `typesafe/jev` answers only with AI Gateway credits ("Insufficient AI Gateway credits",
     5 October). Until they are topped up, Clef answers, free.
 14. **A guest's café draws no art.** The packs' licences are personal, so only her own café is given them, and an
@@ -327,6 +329,13 @@ decisions quiz page is retired). The small facts (who made `plants.zip`) stay he
     (`docs/drawing-plan.md`), or a plain café on purpose and said so on the invite.
 15. **`plants.zip`'s source.** It reached her with no artist or licence; until it is credited, or its four plants
     are drawn from another pack, nobody else can run the full art build.
+16. **His audit fixes** (#115 describes them): his fork's PR 5 and the Antigravity bridge under it, brought here like
+    item 12 and merged with `main`, with the same fix for sign-up and invites. It touches `harness/`:
+    hers to merge.
+17. **In flight on 5 October, late** (her tokens were running out, so each lands as soon as it passes): #112's
+    improvements ported onto delegate-first (what #114's description lists: no guessing a task's ease from its words,
+    a typo in a repo's cap reported, the gates failing closed, one transcript reader), and a Keys item in the House
+    menu of a café on its own address (step 13 above). Both are pushed; the port's review was still to come.
 
 ## Publishing
 

@@ -12,9 +12,10 @@ small_writers   the plugin's scout and tester never edit; in a repo that merges 
                 on a model off the strong list edits a tracked file (the merging rule's promise: a strong model did
                 the work).
 right_sized     delegate first: an Agent spawn, every agent() in a Workflow script and a new session
-                (create_session) name a tier, or are refused; an errand above this repo's ceiling is refused when
-                Charlotte set that ceiling herself, and only spoken about when the harness read it that way
-                (right_sized.py).
+                (create_session) name their model on the call, or are refused; where Charlotte has capped a repo's
+                sub agents, a model named above her cap is refused too (right_sized.py).
+
+The gates fail closed: one that can't read the house rules refuses the call rather than waving it through.
 """
 import json
 import os
@@ -24,7 +25,7 @@ from pathlib import Path
 
 import right_sized
 import ship_gate
-from common import block, enforced, git, hook_input, merges, ran, rules
+from common import answered, block, enforced, git, hook_input, merges, ran, rules
 
 BROWSER_TOOL = re.compile(r"^mcp__.*(playwright|browser|chrome|puppeteer|computer)", re.I)
 BROWSER_CMD = r"playwright|chromium|google-chrome|headless|puppeteer|selenium|webdriver|catio/test/run\.sh"
@@ -126,21 +127,9 @@ READ_ONLY = {"scout", "tester"}
 
 
 def agent_models(data):
-    """The models a sub agent has answered with, from its own transcript; empty when it can't be read."""
-    found = set()
-    try:
-        with open(os.path.expanduser(data.get("agent_transcript_path") or ""), encoding="utf-8") as f:
-            for line in f:
-                if '"model"' in line:
-                    try:
-                        e = json.loads(line)
-                    except ValueError:
-                        continue
-                    if e.get("type") == "assistant":
-                        found.add((e.get("message") or {}).get("model"))
-    except OSError:
-        pass
-    return found - {None, "<synthetic>"}
+    """The models a sub agent has answered with, from its own transcript; empty when it can't be read. Its own
+    side counts here: that is the whole file."""
+    return set(answered(data, ("agent_transcript_path",), sidechain=True))
 
 
 def small_writer(data, path, cwd):
@@ -175,7 +164,12 @@ def main():
     if data.get("hook_event_name") == "PostToolUse":
         return after(tool, args, cwd)
 
-    refusal, nudge = right_sized.check(data, tool, args, cwd)
+    try:
+        refusal, nudge = right_sized.check(data, tool, args, cwd)
+    except Exception as e:   # the gates below matter more, so this one speaks and steps aside rather than crashing
+        refusal, nudge = None, ("House rule (KittyChat), delegate first: the tier check couldn't run (%s: %s), so "
+                                "this assignment's model isn't being checked, nor a cap on this repo's sub agents. "
+                                "Name the model on the call anyway, and tell Charlotte." % (type(e).__name__, e))
     if refusal:
         block(refusal)
     if nudge:
@@ -221,4 +215,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception as e:   # the gates are the safety net, so one that cannot run refuses rather than waving on
+        block("House rule (KittyChat): the house rules couldn't be read, so none of the gates can be kept "
+              "(%s: %s). Tell Charlotte; don't work round it." % (type(e).__name__, e))

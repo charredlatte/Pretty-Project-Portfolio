@@ -66,6 +66,13 @@ class Gateway(BaseHTTPRequestHandler):
             self.send_response(401); self.end_headers(); return
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
         if self.path == "/api/runner/wait":
+            s.waits.append(body)
+            if s.refuse:   # a status to answer with before it answers properly
+                self.send_response(s.refuse.pop(0)); self.end_headers(); return
+            if s.garble:   # a reply that is cut off (it promises more than it sends) or isn't an object
+                data, promised = s.garble.pop(0)
+                self.send_response(200); self.send_header("Content-Length", str(promised)); self.end_headers()
+                self.wfile.write(data); self.wfile.flush(); return
             try:
                 out = dict(EMPTY, **s.jobs.get(timeout=0.3))
             except queue.Empty:
@@ -90,7 +97,7 @@ class Gateway(BaseHTTPRequestHandler):
 class Queen(unittest.TestCase):
     def setUp(self):
         self.srv = ThreadingHTTPServer(("127.0.0.1", 0), Gateway)
-        self.srv.jobs, self.srv.says = queue.Queue(), []
+        self.srv.jobs, self.srv.says, self.srv.waits, self.srv.refuse, self.srv.garble = queue.Queue(), [], [], [], []
         self.srv.character = {"name": "Duchesse", "manner": "Elizabethan English, warm.", "greeting": "Good morrow."}
         self.srv.homework = {}
         threading.Thread(target=self.srv.serve_forever, daemon=True).start()
@@ -227,6 +234,38 @@ class Queen(unittest.TestCase):
         self.said(2)
         second = [c for c in self.claude_calls() if "argv" in c][-1]
         self.assertEqual(second["argv"][second["argv"].index("--resume") + 1], state["session"])
+
+    def test_says_which_notes_she_has_been_given_on_her_next_wait(self):
+        self.srv.jobs.put({"notes": [{"id": "n1", "cat": "queen", "author": "owner", "text": "First.", "at": 5}, {"id": "n2", "cat": "queen", "author": "owner", "text": "Second.", "at": 9}]})
+        self.start()
+        self.said(2)
+        end = time.time() + 10
+        while time.time() < end and not any(w.get("ack") == 9 for w in self.srv.waits):
+            time.sleep(0.05)
+        acks = [w.get("ack") for w in self.srv.waits]
+        self.assertEqual(acks[0], 0, "the first wait has been given nothing yet")
+        self.assertIn(9, acks, "a later wait names the newest note she was given")
+        self.assertEqual(acks, sorted(acks), "and never goes back")
+
+    def test_a_503_is_a_blip_she_waits_out_but_a_401_is_the_end(self):
+        self.srv.refuse.append(503)
+        self.srv.jobs.put({"notes": [{"id": "n1", "cat": "queen", "author": "owner", "text": "Hello?", "at": 1}]})
+        self.start()
+        self.said(1, timeout=25)
+        self.assertIsNone(self.proc.poll(), "she is still running after a 503")
+        self.assertIn("the gateway answered 503", (self.tmp / "runner.log").read_text())
+        self.srv.refuse.append(401)
+        self.assertEqual(self.proc.wait(30), 2, "a refused key stops her, so it is seen")
+
+    def test_a_reply_cut_off_or_not_an_object_doesnt_leave_her_deaf(self):
+        self.srv.garble += [(b'{"notes": [{"id": "n0"', 100), (b"[1]", 3)]
+        self.srv.jobs.put({"notes": [{"id": "n1", "cat": "queen", "author": "owner", "text": "Still there?", "at": 1}]})
+        self.start()
+        self.said(1, timeout=45)
+        self.assertIsNone(self.proc.poll())
+        log = (self.tmp / "runner.log").read_text()
+        self.assertIn("no gateway:", log)
+        self.assertIn("isn't an object", log)
 
     def test_runs_a_routine_and_starts_afresh_when_her_session_is_gone(self):
         self.home.mkdir(parents=True)

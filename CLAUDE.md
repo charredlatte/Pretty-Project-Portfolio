@@ -119,7 +119,10 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
 - **Controls**: two things sit on screen, and nothing else should:
   - the brand (`#houseBtn`, top left: ToffeeCraft's cat-face bubble, the name and a badge when cats need
     her), which is the House button: its menu holds what belongs to the whole house (whether the cats are
-    live, the brain, house rules, Project maps, Edit rooms, the attic, Check now and sound). **Project maps**
+    live, the brain, house rules, Project maps, Edit rooms, the attic, Check now and sound; and, on the café's own
+    address alone, **Keys**, `openKeys()`: the account's keys by name, each with a Delete that asks first, and Make a key,
+    which shows the new key once beside `CATIO_URL` and `CATIO_TOKEN` and drops it from the page when the card closes;
+    never log it or write it anywhere, the database and `localStorage` included). **Project maps**
     (`openMaps()`, her ask of 3 October: "a customizable dashboard built on Graphify", the graphify of her house
     rules) shows every `graphs/<repo>` map as a card, pinned first, then in her order, then the newest; she pins,
     moves, widens and hides each, and `dashboard/maps` keeps it;
@@ -478,11 +481,13 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
   tells cats and manages them for her; the agents' key may do neither. Keep it that way: it is what stops a
   leaked key from putting instructions in her mouth, or in her assistant's, which the cats act on.
 - **The queen's routes:** `POST /api/runner/wait` (held up to 25 s: her notes, a routine due, a stop, her
-  character, and `homework`, the open quizzes counted by kind) and `POST /api/runner/say` (a turn as it streams;
-  `done` stores her note), the queen's key only. When a kind of homework grows, the runner says the lot on
-  Charlotte's own desktop with whatever the computer has (`notify-send`, `osascript`, a PowerShell balloon;
-  `CATIO_NOTIFY` replaces it, empty turns it off): the quest log stays in the café, this only says it has
-  something new. The words are the runner's own, built from counts, never a document's text.
+  character, and `homework`, the open quizzes counted by kind; its body's `ack` is the newest note the runner has
+  been given, and a note is offered until it is acknowledged, so one lost with a dropped connection comes round
+  again) and `POST /api/runner/say` (a turn as it streams; `done` stores her note), the queen's key only. When a
+  kind of homework grows, the runner says the lot on Charlotte's own desktop with whatever the computer has
+  (`notify-send`, `osascript`, a PowerShell balloon; `CATIO_NOTIFY` replaces it, empty turns it off): the quest log
+  stays in the café, this only says it has something new. The words are the runner's own, built from counts, never
+  a document's text.
   Routines are `routines/<id>` documents; the House's alarm wakes a waiting runner when one comes due, and a
   missed one runs once when the runner is back, and one her runner never finished goes out once more after ten minutes. `list_agents` gives each cat its `said`; `inbox` hands a cat
   what Charlotte and the queen say (`[Catio] The queen says: …` in the hook).

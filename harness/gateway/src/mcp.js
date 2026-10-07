@@ -1,6 +1,7 @@
 // MCP over Streamable HTTP at /mcp: JSON-RPC in a POST, JSON back, no server-sent stream and no sessions.
 // The OAuth provider has already checked the bearer token: ctx.props says who sent it, and which house is theirs.
 import { whose } from "./houses.js";
+import { plain } from "./plain.js";
 import { INSTRUCTIONS, TOOLS } from "./tools.js";
 
 const NAMES = new Set(TOOLS.map((t) => t.name));
@@ -9,7 +10,7 @@ export async function serveMcp(request, env, ctx) {
 	if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "POST" } });
 	let body;
 	try {
-		body = await request.json();
+		body = plain(await request.json());
 	} catch {
 		return Response.json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "parse error" } }, { status: 400 });
 	}

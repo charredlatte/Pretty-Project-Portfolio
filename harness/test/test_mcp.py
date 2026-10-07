@@ -244,6 +244,16 @@ class Hostile(unittest.TestCase):
         self.assertIn("a", json.loads(Path(self.home, "state.json").read_text())["agents"])
         self.assertFalse(Path(self.home, "state.lock").exists(), "the lock is let go")
 
+    def test_a_lock_left_a_few_seconds_ago_is_waited_out_not_a_failure(self):
+        lock = Path(self.home, "state.lock")
+        lock.touch()
+        recent = time.time() - 4
+        os.utime(lock, (recent, recent))
+        started = time.time()
+        reply, = self.run_server(self.call("report_status", {"agent": "a"}))
+        self.assertTrue(reply["result"]["structuredContent"]["ok"])
+        self.assertGreater(time.time() - started, 3, "it waited for the lock to go stale instead of taking a live one")
+
     def test_a_lock_left_by_a_crash_is_taken_over(self):
         lock = Path(self.home, "state.lock")
         lock.touch()

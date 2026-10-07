@@ -291,8 +291,9 @@ can join as cats too, through the Catio MCP server ([`harness/README.md`](harnes
   read-only audit before any change, a check before any browser, and nothing pushed to your default branch. A
   repository can let its sessions merge their own pull requests; then anything guessed is held for you to review
   ([`harness/README.md`](harness/README.md)).
-- **Other agents too.** Codex, Gemini CLI, Cursor or anything else that speaks MCP joins as a cat through the Catio
-  MCP server.
+- **Other agents too.** Codex, Gemini CLI, Cursor, Antigravity or anything else that speaks MCP joins as a cat: through
+  the café's MCP address on a gateway (`catio_bridge.py` for a client that only starts local programs), or the Catio
+  MCP server on one computer ([`harness/README.md`](harness/README.md), "Which server, for which café").
 
 ### Getting around
 

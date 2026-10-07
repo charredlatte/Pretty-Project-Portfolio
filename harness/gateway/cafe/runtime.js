@@ -87,8 +87,17 @@
 	};
 	const permissions = { request: async () => ({}), state: async () => "granted" };
 
+	// the account's keys, for its sessions and agents (src/cafe.js, /api/keys): a new key is in make's answer once,
+	// and the gateway keeps only its hash. Only the café on this address has these; claude.ai never does.
+	const keys = {
+		list: async () => (await send("GET", "/api/keys")).keys || [],
+		make: (name) => send("POST", "/api/keys", { name }),
+		drop: (name) => send("DELETE", "/api/keys/" + encodeURIComponent(name)),
+	};
+
 	window.claude = {
 		catioGateway: true,
+		keys,
 		use: async (n) => (n === "db" ? db : n === "assets" ? assets : n === "mcp" ? mcp : n === "permissions" ? permissions : null),
 	};
 })();

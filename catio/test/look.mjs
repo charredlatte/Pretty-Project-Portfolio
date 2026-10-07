@@ -132,6 +132,23 @@ for (const name of names) {
     }
     continue;
   }
+  // "keys": the House menu with Keys, its card, a key just made, and a Delete asking first; on the café's own
+  // address alone, so run it with LOOK_QUERY="?via=gateway"
+  if (name === "keys") {
+    await page.evaluate(() => { for (const d of document.querySelectorAll("dialog[open]")) d.close(); });
+    const shot = async (n, sel) => { await page.waitForTimeout(400); await (sel ? page.locator(sel) : page).screenshot({ path: join(out, n + ".png") }); console.log(join(out, n + ".png")); };
+    await page.click("#houseBtn");
+    await shot("keys-menu");
+    await page.locator("#menu .mi", { hasText: "Keys" }).click();
+    await shot("keys");
+    await page.fill("#keyName", "antigravity");
+    await page.click("#keysDlg button[type=submit]");
+    await shot("keys-made", "#keysDlg");
+    await page.locator('#keyList li[data-key="bootstrap"] button').click();
+    await shot("keys-sure", "#keysDlg");
+    await page.evaluate(() => document.getElementById("keysDlg").close());
+    continue;
+  }
   const floor = UPPER.has(name) ? "upper" : "ground";
   if ((await page.locator("#world").getAttribute("data-floor")) !== floor) await page.click("#floor-" + floor);
   await page.keyboard.press("0");   // the whole house, then into the room named

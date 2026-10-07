@@ -12,19 +12,19 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
-from pathlib import Path
 
-from common import enforced, hook_input, models, rules
+from common import enforced, hook_input, models, said, say, rules
 
 TESTS = re.compile(r"(\bnpm (run )?test\b|\bpytest\b|\bunittest\b|node --test|\brun\.sh\b|\bcargo test\b|\bgo test\b|\bvitest\b|\bjest\b)")
 SAY = {
     "search": "House rule (KittyChat), send the small stuff to a smaller cat: a search across the whole repo is the "
-              "scout's job. Agent with subagent_type scout (Haiku) finds it and answers in paths and lines, for a "
-              "fraction of what this session costs. Carry on if you need the raw results yourself.",
+              "scout's job. Agent with subagent_type scout and model haiku (name it on the call: the delegate-first "
+              "rule asks every spawn to) finds it and answers in paths and lines, for a fraction of what this "
+              "session costs. Carry on if you need the raw results yourself.",
     "test": "House rule (KittyChat), send the small stuff to a smaller cat: running the checks is the tester's job. "
-            "Agent with subagent_type tester (Haiku) runs them and reports only what failed, with the failing lines. "
-            "Carry on if you need the whole log yourself.",
+            "Agent with subagent_type tester and model haiku (name it on the call: the delegate-first rule asks "
+            "every spawn to) runs them and reports only what failed, with the failing lines. Carry on if you need "
+            "the whole log yourself.",
 }
 
 
@@ -59,16 +59,12 @@ def delegate(data):
         kind = "test"
     else:
         return ""
-    mark = Path(tempfile.gettempdir()) / "catio-delegate-{}-{}".format(re.sub(r"\W", "", str(data.get("session_id", ""))), kind)
-    if mark.exists():
-        return ""
+    if said(data.get("session_id"), kind, "delegate", data.get("cwd")):
+        return ""            # said already: ask the cheap question before reading the transcript
     strong = rules()["merging"]["strong"]
     if not any(s in m for m in models(data) for s in strong):
         return ""
-    try:
-        mark.touch()
-    except OSError:
-        pass
+    say(data.get("session_id"), kind, "delegate", data.get("cwd"))
     return SAY[kind]
 
 

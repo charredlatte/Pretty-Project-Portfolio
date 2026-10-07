@@ -198,7 +198,31 @@
   const sample = async (input) => { T.prompts.push(input); return { text: JSON.stringify(T.sampleAnswer), truncated: false }; };
   sample.json = async (input) => { T.prompts.push(input); if (T.sampleHang) return new Promise(() => {}); return clone(T.sampleAnswer); };   // sampleHang: a sorter that never answers
   const nodb = params.get("mode") === "nodb";
-  // ?via=gateway: the café served from the gateway's own address (harness/gateway/cafe/runtime.js says so)
-  window.claude = { catioGateway: params.get("via") === "gateway", use: async (n) => (n === "mcp" ? mcp : n === "db" ? (nodb ? null : db) : n === "assets" ? (nodb ? null : assets) : n === "sample" ? sample
+  // the account's keys, as the gateway's /api/keys keeps them (src/registry.js): a name is any text, cut to 60 and
+  // "key" when there is none, unique per account; a new key is in the answer once (T.minted keeps it for the test)
+  T.keys = [{ name: "bootstrap", created: now - 3 * 24 * H, role: "agent" }, { name: "queen", created: now - 2 * 24 * H, role: "queen" }];
+  T.minted = [];
+  const keyName = (name) => String(name || "key").slice(0, 60);
+  const keys = {
+    list: async () => clone(T.keys),
+    make: async (name) => {
+      const n = keyName(name);
+      if (T.keys.some((k) => k.name === n)) throw { code: "bad_request", message: "You already have a key by that name: drop it first." };
+      const key = Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, "0")).join("");
+      T.keys.push({ name: n, created: Date.now(), role: "agent" }); T.minted.push(key);
+      return { key, name: n, role: "agent" };
+    },
+    drop: async (name) => {
+      const i = T.keys.findIndex((k) => k.name === keyName(name));
+      if (i < 0) throw { code: "not_found", message: "No key by that name." };
+      T.keys.splice(i, 1);
+      return { ok: true };
+    },
+  };
+  // ?via=gateway: the café served from the gateway's own address (harness/gateway/cafe/runtime.js says so), with its
+  // keys; &keys=none: an older runtime, from before it had them
+  const viaGateway = params.get("via") === "gateway";
+  window.claude = { catioGateway: viaGateway, use: async (n) => (n === "mcp" ? mcp : n === "db" ? (nodb ? null : db) : n === "assets" ? (nodb ? null : assets) : n === "sample" ? sample
     : n === "permissions" ? { request: async () => ({}), state: async () => "granted" } : null) };
+  if (viaGateway && params.get("keys") !== "none") window.claude.keys = keys;
 })();

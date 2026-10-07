@@ -15,8 +15,16 @@ HOOKS = Path(__file__).resolve().parent.parent / "hooks"
 BASH = shutil.which("bash") or "bash"   # hook commands run in bash (Git Bash on Windows)
 
 
-def run(script, data, cwd=None, cloud=False):
-    env = {k: v for k, v in os.environ.items() if k != "CLAUDE_CODE_REMOTE"}
+# what the hooks read from the environment, cleared for every run and set only where it is the subject
+ENV_KEYS = ("CLAUDE_CODE_REMOTE", "XDG_CACHE_HOME", "CLAUDE_CODE_SUBAGENT_MODEL", "CLAUDE_CODE_SUBAGENT_MODEL_FORCE")
+
+
+# a cache of its own, so a marker left by a real session on this machine can't decide a test
+CACHE = tempfile.mkdtemp()
+
+
+def run(script, data, cwd=None, cloud=False, env=None):
+    env = dict({k: v for k, v in os.environ.items() if k not in ENV_KEYS}, XDG_CACHE_HOME=CACHE, **(env or {}))
     if cloud:
         env["CLAUDE_CODE_REMOTE"] = "true"
     return subprocess.run([sys.executable, str(HOOKS / script)], input=json.dumps(data), capture_output=True, text=True,
@@ -481,155 +489,305 @@ class GraphFirst(unittest.TestCase):
 
 
 class RightSized(unittest.TestCase):
-    """Spend what the task is worth: a spawn names its tier, and an errand has a ceiling."""
+    """Delegate first (Charlotte, 5 October: "Make sure this never happens again. Always run the delegation before
+    assigning anything to anyone", after a workflow's agents had all inherited the session's Opus): every assignment
+    names its model on the call, and where she has capped a repo, at or below her cap. Facts only: the model the call
+    names, never a guess from the prompt or from an agent's file."""
 
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp()
+    def repo(self, **catio):
+        """A fresh repo folder, with her .claude/catio-rules.json when she has said anything about it."""
+        tmp = tempfile.mkdtemp()
+        if catio:
+            Path(tmp, ".claude").mkdir()
+            Path(tmp, ".claude", "catio-rules.json").write_text(json.dumps(catio))
+        return tmp
 
-    def spawn(self, args, model="claude-opus-5-5", tmp=None, tool="Agent"):
-        """A sub agent spawn, as Claude Code asks the gate about it. Returns (exit code, stderr, nudge)."""
-        tmp = tmp or self.tmp
+    def spawn(self, tmp, args, model="claude-opus-5-5", tool="Agent", env=None, agent=None, sid=None):
+        """An assignment, as Claude Code asks the gate about it: (exit code, stderr, the line it says)."""
         t = Path(tmp, "t.jsonl")
-        t.write_text(json.dumps({"type": "assistant", "message": {"model": model, "content": []}}) + "\n")
-        r = run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": tool, "tool_input": args, "cwd": tmp,
-                             "session_id": "s-" + Path(tmp).name,   # one session per repo folder, so "once" means once
-                             "transcript_path": str(t)}, cwd=tmp)
-        nudge = ""
-        if r.stdout.strip():
-            nudge = json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
-        return r.returncode, r.stderr, nudge
+        t.write_text("".join(json.dumps({"type": "assistant", "message": {"model": m, "content": []}}) + "\n"
+                             for m in ([model] if isinstance(model, str) else model)))
+        data = {"hook_event_name": "PreToolUse", "tool_name": tool, "tool_input": args, "cwd": tmp,
+                "session_id": sid or ("s-" + Path(tmp).name), "transcript_path": str(t)}
+        if agent:
+            data["agent_type"] = agent
+        r = run("gates.py", data, cwd=tmp, env=env)
+        said = json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"] if r.stdout.strip() else ""
+        return r.returncode, r.stderr, said
 
-    def word(self, tmp, tiers):
-        Path(tmp, ".claude").mkdir(exist_ok=True)
-        Path(tmp, ".claude", "catio-rules.json").write_text(json.dumps(tiers))
+    BANANAS = "add bananas to my shopping list"
+    NEW_SESSION = "mcp__claude-code-remote__create_session"
 
-    def test_an_errand_on_opus_is_spoken_about_once(self):
-        code, _, nudge = self.spawn({"prompt": "add bananas to my shopping list", "model": "opus"})
-        self.assertEqual(code, 0)                      # a reading only suggests
-        self.assertIn("Sonnet", nudge)
-        self.assertIn("errand", nudge)
-        # and only once a session, so it never nags
-        self.assertEqual(self.spawn({"prompt": "add apples to the shopping list", "model": "opus"})[2], "")
-
-    def test_her_word_for_a_repo_refuses_it(self):
-        self.word(self.tmp, {"tiers": {"errand": "haiku"}})
-        code, err, _ = self.spawn({"prompt": "add bananas to my shopping list", "model": "sonnet"})
-        self.assertEqual(code, 2)
-        self.assertIn("haiku", err)
-        self.assertEqual(self.spawn({"prompt": "add bananas to my shopping list", "model": "haiku"})[0], 0)
-
-    def test_the_tool_is_gated_under_either_name(self):
-        for tool in ("Agent", "Task"):
-            self.word(self.tmp, {"tiers": {"errand": "haiku"}})
-            self.assertEqual(self.spawn({"prompt": "list the files in docs", "model": "opus"}, tool=tool,
-                                        tmp=tempfile.mkdtemp())[0], 0, tool)   # no word in a fresh repo: a reading
-        tmp = tempfile.mkdtemp()
-        self.word(tmp, {"tiers": {"errand": "haiku"}})
-        for tool in ("Agent", "Task"):
-            self.assertEqual(self.spawn({"prompt": "add bananas to the shopping list", "model": "opus"},
-                                        tool=tool, tmp=tmp)[0], 2, tool)
-
-    def test_real_work_is_left_alone(self):
-        for prompt in ("refactor the camera so the minimap and the stage share one transform",
-                       "review this diff for correctness bugs",
-                       "investigate why the gateway drops reports and propose a fix"):
-            self.word(self.tmp, {"tiers": {"errand": "haiku"}})
-            code, _, nudge = self.spawn({"prompt": prompt, "model": "opus"}, tmp=tempfile.mkdtemp())
-            self.assertEqual((code, nudge), (0, ""), prompt)
-
-    def test_nothing_held_private_or_browser_is_sent_down(self):
-        tmp = tempfile.mkdtemp()
-        self.word(tmp, {"tiers": {"errand": "haiku"}, "hold": ["harness/"]})
-        for prompt in ("add a line to harness/rules.json", "add the solicitor's letter to the legal folder",
-                       "check the shopping list in the browser"):
-            code, _, nudge = self.spawn({"prompt": prompt, "model": "opus"}, tmp=tmp)
-            self.assertEqual((code, nudge), (0, ""), prompt)
-
-    # Her word, 5 October: "Make sure this never happens again. Always run the delegation before assigning anything
-    # to anyone" (a workflow's agents had all inherited the session's Opus). Nothing is assigned without a tier.
+    # Nothing is assigned without its model named on the call, whatever the session runs and whatever her cap.
     def test_a_spawn_that_names_no_tier_is_refused_until_it_is_delegated(self):
-        code, err, _ = self.spawn({"prompt": "find every caller of route()", "subagent_type": "general-purpose"})
+        code, err, _ = self.spawn(self.repo(), {"prompt": "find every caller of route()", "subagent_type": "general-purpose"})
         self.assertEqual(code, 2)
         self.assertIn("delegate first", err)
         self.assertIn("names no model", err)
         self.assertIn("haiku", err)
-        self.assertEqual(self.spawn({"prompt": "find every caller of route()", "subagent_type": "general-purpose",
-                                     "model": "haiku"}, tmp=tempfile.mkdtemp())[0], 0)
+        self.assertEqual(self.spawn(self.repo(), {"prompt": "find every caller of route()", "subagent_type": "general-purpose",
+                                                  "model": "haiku"})[0], 0)
+
+    def test_with_no_cap_an_unnamed_spawn_is_refused_every_time_not_told_once(self):
+        """Her later word wins over the line said once: with no cap, an unnamed spawn is refused, every time."""
+        tmp = self.repo()
+        for _ in range(2):
+            code, err, said = self.spawn(tmp, {"prompt": "find every caller of route()"})
+            self.assertEqual((code, said), (2, ""))
+            self.assertIn("names no model", err)
+        self.assertEqual(self.spawn(self.repo(), {"prompt": "x", "model": "opus"}), (0, "", ""))   # it named one
+
+    def test_a_small_session_delegates_too_and_a_repo_can_switch_it_off(self):
+        # "Always": a Haiku session's unnamed spawn would inherit Haiku, whatever the work needs
+        self.assertEqual(self.spawn(self.repo(), {"prompt": "find route()"}, model="claude-haiku-4-5")[0], 2)
+        self.assertEqual(self.spawn(self.repo(), {"prompt": "find route()"},
+                                    model=["claude-opus-5", "claude-haiku-4-5"])[0], 2)   # switched down: still named
+        off = self.repo(right_sized=False, tiers={"ceiling": "haiku"})
+        self.assertEqual(self.spawn(off, {"prompt": self.BANANAS, "model": "opus"})[0], 0)
+        self.assertEqual(self.spawn(off, {"prompt": self.BANANAS})[0], 0)
+
+    def test_the_tool_is_gated_under_either_name_and_a_repo_can_switch_it_off(self):
+        tmp = self.repo(tiers={"ceiling": "haiku"})
+        for tool in ("Agent", "Task"):
+            self.assertEqual(self.spawn(tmp, {"prompt": self.BANANAS, "model": "opus"}, tool=tool)[0], 2, tool)
+            self.assertEqual(self.spawn(self.repo(), {"prompt": self.BANANAS}, tool=tool)[0], 2, tool)
+            self.assertEqual(self.spawn(self.repo(), {"prompt": self.BANANAS, "model": "opus"}, tool=tool)[0], 0, tool)
+        off = self.repo(right_sized=False, tiers={"ceiling": "haiku"})
+        self.assertEqual(self.spawn(off, {"prompt": self.BANANAS, "model": "opus"})[0], 0)
 
     def test_a_workflow_names_a_model_on_every_agent_call(self):
         unnamed = "const a = await agent(`walk ${x}`, { label: 'w', phase: 'Walk' })\nlog('agent() is fine in a string')\n" \
                   "const b = await agent('check', { model: 'sonnet' })\n// agent(in a comment)\nawait agent('z')\n"
-        code, err, _ = self.spawn({"script": unnamed}, tool="Workflow")
+        code, err, _ = self.spawn(self.repo(), {"script": unnamed}, tool="Workflow")
         self.assertEqual(code, 2)
         self.assertIn("lines 1, 5", err)
         named = "await agent(`walk ${x}`, { model: 'sonnet', label: 'w' })\nawait agent('z', { model })\n"
-        self.assertEqual(self.spawn({"script": named}, tool="Workflow", tmp=tempfile.mkdtemp())[0], 0)
+        self.assertEqual(self.spawn(self.repo(), {"script": named}, tool="Workflow")[0], 0)
         # a script on disk is read too
-        tmp = tempfile.mkdtemp()
+        tmp = self.repo()
         Path(tmp, "wf.js").write_text(unnamed)
-        self.assertEqual(self.spawn({"scriptPath": "wf.js"}, tool="Workflow", tmp=tmp)[0], 2)
+        self.assertEqual(self.spawn(tmp, {"scriptPath": "wf.js"}, tool="Workflow")[0], 2)
 
     def test_a_new_session_names_its_model(self):
-        tool = "mcp__claude-code-remote__create_session"
-        code, err, _ = self.spawn({"prompt": "tidy the README"}, tool=tool)
+        code, err, _ = self.spawn(self.repo(), {"prompt": "tidy the README"}, tool=self.NEW_SESSION)
         self.assertEqual(code, 2)
         self.assertIn("this new session names no model", err)
-        self.assertEqual(self.spawn({"prompt": "tidy the README", "model": "claude-sonnet-5-5"}, tool=tool,
-                                    tmp=tempfile.mkdtemp())[0], 0)
+        self.assertEqual(self.spawn(self.repo(), {"prompt": "tidy the README", "model": "claude-sonnet-5-5"},
+                                    tool=self.NEW_SESSION)[0], 0)
 
-    def test_held_work_that_names_no_tier_is_told_to_stay_strong(self):
-        tmp = tempfile.mkdtemp()
-        self.word(tmp, {"hold": ["harness/"]})
-        code, err, _ = self.spawn({"prompt": "add a line to harness/rules.json"}, tmp=tmp)
+    def test_a_new_session_off_the_ladder_is_told_so(self):
+        code, err, _ = self.spawn(self.repo(), {"prompt": "x", "model": "default"}, tool=self.NEW_SESSION)
         self.assertEqual(code, 2)
-        self.assertIn("stays on a strong tier", err)
+        self.assertIn("isn't one of the tiers here", err)
+
+    def test_a_workflow_call_off_the_ladder_is_told_so_not_that_it_names_none(self):
+        code, err, _ = self.spawn(self.repo(), {"script": "await agent('x', {model: 'gpt-4'})"}, tool="Workflow")
+        self.assertEqual(code, 2)
+        self.assertIn("line 1 names gpt-4, which isn't one of the tiers here", err)
+        self.assertNotIn("names no model", err)
+        code, err, _ = self.spawn(self.repo(), {"script": "await agent('x', {model: 'gpt-4'})\nawait agent('y')"},
+                                  tool="Workflow")
+        self.assertIn("line 2 names no model", err)
 
     def test_only_claude_code_remote_s_new_session_is_a_new_cat(self):
         for tool in ("mcp__tmux__create_session", "mcp__jupyter__create_session"):
-            self.assertEqual(self.spawn({"session_name": "build"}, tool=tool, tmp=tempfile.mkdtemp())[0], 0, tool)
-
-    def test_an_agent_is_found_by_its_own_name_wherever_claude_code_keeps_it(self):
-        tmp = tempfile.mkdtemp()
-        Path(tmp, ".claude", "agents").mkdir(parents=True)
-        Path(tmp, ".claude", "agents", "my-reviewer.md").write_text("---\nname: reviewer\nmodel: sonnet\n---\nReview.\n")
-        self.assertEqual(self.spawn({"prompt": "review", "subagent_type": "reviewer"}, tmp=tmp)[0], 0)
-        home = tempfile.mkdtemp()
-        Path(home, ".claude", "agents").mkdir(parents=True)
-        Path(home, ".claude", "agents", "x.md").write_text("---\nname: mine\nmodel: haiku\n---\n")
-        sys.path.insert(0, str(HOOKS))
-        import right_sized
-        from unittest import mock
-        with mock.patch.object(right_sized.Path, "home", return_value=Path(home)):   # HOME on POSIX, USERPROFILE on Windows
-            self.assertEqual(right_sized.pinned("mine", tempfile.mkdtemp()), "haiku")
-
-    def test_a_repo_ladder_is_read_whatever_its_case_and_a_missing_tier_says_so(self):
-        tmp = tempfile.mkdtemp()
-        self.word(tmp, {"tiers": {"ladder": ["Haiku", "Sonnet"]}})
-        self.assertEqual(self.spawn({"prompt": "list docs", "model": "haiku"}, tmp=tmp)[0], 0)
-        code, err, _ = self.spawn({"prompt": "design the plan", "model": "opus"}, tmp=tmp)
-        self.assertEqual(code, 2)
-        self.assertIn("isn't one of the tiers here", err)
-
-    def test_a_new_session_off_the_ladder_is_told_so(self):
-        code, err, _ = self.spawn({"prompt": "x", "model": "default"}, tool="mcp__claude-code-remote__create_session")
-        self.assertEqual(code, 2)
-        self.assertIn("isn't one of the tiers here", err)
+            self.assertEqual(self.spawn(self.repo(), {"session_name": "build"}, tool=tool)[0], 0, tool)
 
     def test_a_fork_is_the_parent_and_needs_no_tier(self):
-        self.assertEqual(self.spawn({"prompt": "carry on with the plan", "subagent_type": "fork"})[0], 0)
+        self.assertEqual(self.spawn(self.repo(), {"prompt": "carry on with the plan", "subagent_type": "fork"})[0], 0)
+        self.assertEqual(self.spawn(self.repo(tiers={"ceiling": "haiku"}),
+                                    {"prompt": "carry on with the plan", "subagent_type": "fork"})[0], 0)
 
-    def test_an_agent_pinned_to_a_tier_is_already_right_sized(self):
-        for agent in ("scout", "tester"):
-            code, _, nudge = self.spawn({"prompt": "find every caller of route()", "subagent_type": agent},
-                                        tmp=tempfile.mkdtemp())
-            self.assertEqual((code, nudge), (0, ""), agent)
+    def test_held_work_that_names_no_tier_is_told_to_stay_strong(self):
+        tmp = self.repo(hold=["harness/"])
+        code, err, _ = self.spawn(tmp, {"prompt": "add a line to harness/rules.json"})
+        self.assertEqual(code, 2)
+        self.assertIn("stays on a strong tier", err)
 
-    def test_a_small_session_delegates_too_and_a_repo_can_switch_it_off(self):
-        # "Always": a Haiku session's unnamed spawn would inherit Haiku, whatever the work needs
-        self.assertEqual(self.spawn({"prompt": "find route()"}, model="claude-haiku-4-5")[0], 2)
-        tmp = tempfile.mkdtemp()
-        self.word(tmp, {"right_sized": False, "tiers": {"errand": "haiku"}})
-        self.assertEqual(self.spawn({"prompt": "add bananas to my shopping list", "model": "opus"}, tmp=tmp)[0], 0)
+    def test_held_private_or_browser_work_is_told_to_stay_strong_and_never_pushed_down(self):
+        """The prompt's words only shape the refusal's advice: they never refuse or allow anything themselves."""
+        tmp = self.repo(hold=["harness/"])
+        for prompt in ("add a line to harness/rules.json", "add the solicitor's letter to the legal folder",
+                       "check the shopping list in the browser"):
+            code, err, _ = self.spawn(tmp, {"prompt": prompt})
+            self.assertEqual(code, 2, prompt)
+            self.assertIn("stays on a strong tier", err, prompt)
+            self.assertEqual(self.spawn(tmp, {"prompt": prompt, "model": "opus"}), (0, "", ""), prompt)
+
+    def test_an_agent_pinned_to_a_tier_names_it_on_the_call_too(self):
+        """The rule reads no agent files: the scout and the tester are Haiku in theirs, and still say so on the call."""
+        for agent in ("scout", "tester", "kittychat-house-rules:scout"):
+            self.assertEqual(self.spawn(self.repo(), {"prompt": "find every caller of route()", "subagent_type": agent})[0],
+                             2, agent)
+            self.assertEqual(self.spawn(self.repo(), {"prompt": "find every caller of route()", "subagent_type": agent,
+                                                      "model": "haiku"}), (0, "", ""), agent)
+
+    def test_an_agent_file_of_the_repo_s_own_is_not_read_either(self):
+        tmp = self.repo()
+        Path(tmp, ".claude", "agents").mkdir(parents=True)
+        Path(tmp, ".claude", "agents", "my-reviewer.md").write_text("---\nname: reviewer\nmodel: sonnet\n---\nReview.\n")
+        self.assertEqual(self.spawn(tmp, {"prompt": "review", "subagent_type": "reviewer"})[0], 2)
+        self.assertEqual(self.spawn(tmp, {"prompt": "review", "subagent_type": "reviewer", "model": "sonnet"})[0], 0)
+
+    def test_a_repo_ladder_is_read_whatever_its_case_and_a_missing_tier_says_so(self):
+        tmp = self.repo(tiers={"ladder": ["Haiku", "Sonnet"]})
+        self.assertEqual(self.spawn(tmp, {"prompt": "list docs", "model": "haiku"})[0], 0)
+        code, err, _ = self.spawn(tmp, {"prompt": "design the plan", "model": "opus"})
+        self.assertEqual(code, 2)
+        self.assertIn("isn't one of the tiers here", err)
+
+    # Her cap (tiers.ceiling in the repo's .claude/catio-rules.json): a model named above it is refused.
+    def test_under_her_cap_a_spawn_names_its_model(self):
+        """The one fact the hook can see is the model on the call, so that is what her cap is kept on."""
+        tmp = self.repo(tiers={"ceiling": "sonnet"})
+        code, err, _ = self.spawn(tmp, {"prompt": self.BANANAS})
+        self.assertEqual(code, 2)
+        self.assertIn("names no model", err)
+        self.assertIn("sonnet", err)
+        for model in ("sonnet", "haiku", "claude-haiku-4-5-20251001"):
+            self.assertEqual(self.spawn(tmp, {"prompt": self.BANANAS, "model": model})[0], 0, model)
+        for model in ("opus", "fable", "claude-opus-5-5"):
+            self.assertEqual(self.spawn(tmp, {"prompt": self.BANANAS, "model": model})[0], 2, model)
+
+    def test_a_model_her_ladder_does_not_know_is_refused_with_the_list(self):
+        tmp = self.repo(tiers={"ceiling": "sonnet"})
+        for model in ("inherit", "default", "gpt-4"):
+            code, err, _ = self.spawn(tmp, {"prompt": "x", "model": model})
+            self.assertEqual(code, 2, model)
+            self.assertIn("haiku, sonnet", err)
+
+    def test_her_cap_is_about_cost_so_no_word_in_the_prompt_escapes_it(self):
+        """Her cap compares two facts. A prompt that happens to say login, bank or harness is still a spawn."""
+        tmp = self.repo(tiers={"ceiling": "haiku"}, hold=["harness/"])
+        for prompt in ("rewrite the whole login flow", "reconcile the bank export", "tidy harness",
+                       "take a screenshot of the page", "add the solicitor's letter"):
+            self.assertEqual(self.spawn(tmp, {"prompt": prompt, "model": "opus"})[0], 2, prompt)
+
+    def test_her_cap_holds_one_level_down_too(self):
+        """A sub agent's own spawn is a sub agent in this repo, and it names its model like any other."""
+        tmp = self.repo(tiers={"ceiling": "haiku"})
+        self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "opus"}, agent="scout")[0], 2)
+        self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "haiku"}, agent="scout")[0], 0)
+        self.assertEqual(self.spawn(tmp, {"prompt": "x"}, agent="scout")[0], 2)
+
+    def test_an_agent_pinned_cheap_is_named_cheap_on_the_call(self):
+        """The rule does not parse agent files: naming the tier is what it asks for, and it always works."""
+        tmp = self.repo(tiers={"ceiling": "haiku"})
+        self.assertEqual(self.spawn(tmp, {"prompt": "x", "subagent_type": "scout"})[0], 2)
+        self.assertEqual(self.spawn(tmp, {"prompt": "x", "subagent_type": "scout", "model": "haiku"})[0], 0)
+
+    def test_the_environment_s_defaults_do_not_name_a_model_on_the_call(self):
+        tmp = self.repo(tiers={"ceiling": "haiku"})
+        for env in ({"CLAUDE_CODE_SUBAGENT_MODEL": "haiku"}, {"CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "haiku"}):
+            self.assertEqual(self.spawn(tmp, {"prompt": "x"}, env=env)[0], 2, env)   # still unnamed on the call
+            self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "haiku"}, env=env)[0], 0, env)
+
+    def test_a_forced_default_above_her_cap_says_what_would_actually_help(self):
+        tmp = self.repo(tiers={"ceiling": "haiku"})
+        for force in ("opus", "something-else"):
+            code, err, _ = self.spawn(tmp, {"prompt": "x", "model": "haiku"},
+                                      env={"CLAUDE_CODE_SUBAGENT_MODEL_FORCE": force})
+            self.assertEqual(code, 2, force)
+            self.assertIn("CLAUDE_CODE_SUBAGENT_MODEL_FORCE", err)   # naming a model on the call cannot help here
+        code, err, _ = self.spawn(tmp, {"script": "await agent('x', {model: 'haiku'})"}, tool="Workflow",
+                                  env={"CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "opus"})
+        self.assertEqual(code, 2)
+        self.assertIn("CLAUDE_CODE_SUBAGENT_MODEL_FORCE", err)
+        # with no cap of hers, the forced default is not the rule's business
+        self.assertEqual(self.spawn(self.repo(), {"prompt": "x", "model": "haiku"},
+                                    env={"CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "opus"})[0], 0)
+
+    def test_under_her_cap_a_workflow_spells_out_each_tier(self):
+        tmp = self.repo(tiers={"ceiling": "sonnet"})
+        ok = "await agent('a', {model: 'haiku'})\nawait agent('b', {model: 'claude-sonnet-5-5'})\n"
+        self.assertEqual(self.spawn(tmp, {"script": ok}, tool="Workflow")[0], 0)
+        for src, line in (("await agent('a', {model: 'haiku'})\nawait agent('b', {model: 'opus'})\n", "line 2"),
+                          ("await agent('a', {model: w.model})\n", "line 1")):   # an expression's cost can't be read
+            code, err, _ = self.spawn(tmp, {"script": src}, tool="Workflow")
+            self.assertEqual(code, 2, src)
+            self.assertIn(line, err, src)
+            self.assertIn("sonnet or below", err, src)
+        self.assertEqual(self.spawn(self.repo(), {"script": "await agent('a', {model: w.model})"}, tool="Workflow")[0], 0)
+
+    def test_her_cap_is_on_this_repo_s_sub_agents_not_a_new_session(self):
+        """A new cat may be for another repo; it names its model, and her cap here is not its own."""
+        tmp = self.repo(tiers={"ceiling": "haiku"})
+        self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "opus"}, tool=self.NEW_SESSION)[0], 0)
+        self.assertEqual(self.spawn(tmp, {"prompt": "x"}, tool=self.NEW_SESSION)[0], 2)
+
+    def test_a_cap_it_cannot_act_on_says_so_instead_of_going_quiet(self):
+        """The shapes a hand-written file comes in: the wrong type, a typo, the key outside the block."""
+        for catio in ({"tiers": {"ceiling": "gpt-4"}}, {"tiers": {"ceiling": False}},
+                      {"tiers": "sonnet"}, {"ceiling": "haiku"}):
+            tmp = self.repo(**catio)
+            code, _, said = self.spawn(tmp, {"prompt": self.BANANAS, "model": "opus"})
+            self.assertEqual(code, 0, catio)
+            self.assertIn("doing nothing", said, catio)
+
+    def test_a_typo_in_her_key_is_said_rather_than_silently_dropped(self):
+        for catio in ({"tiers": {"celing": "haiku"}}, {"tiers": {"ceiling_": "haiku"}},
+                      {"tiers": {"note": "small cats"}}, {"tier": {"ceiling": "haiku"}}):
+            tmp = self.repo(**catio)
+            code, _, said = self.spawn(tmp, {"prompt": "x", "model": "opus"})
+            self.assertEqual(code, 0, catio)
+            self.assertIn("doing nothing", said, catio)
+
+    def test_the_errand_ceiling_of_before_is_said_to_be_gone(self):
+        tmp = self.repo(tiers={"errand": "haiku"})
+        code, _, said = self.spawn(tmp, {"prompt": self.BANANAS, "model": "opus"})
+        self.assertEqual(code, 0)
+        self.assertIn("tiers.ceiling", said)
+
+    def test_a_cap_she_misspelt_still_leaves_the_model_to_be_named(self):
+        """Her typo turns the cap off, never delegate first; and the line is said once the call can go through."""
+        tmp = self.repo(tiers={"celing": "haiku"})
+        code, err, said = self.spawn(tmp, {"prompt": "x"})
+        self.assertEqual((code, said), (2, ""))
+        self.assertIn("names no model", err)
+        self.assertIn("doing nothing", self.spawn(tmp, {"prompt": "x", "model": "opus"})[2])
+        self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "opus"}), (0, "", ""))   # said once
+
+    def test_a_key_the_rule_does_not_know_is_not_an_error(self):
+        """Her own documented block carries a _comment, so an unknown key must not switch the cap off."""
+        tmp = self.repo(tiers={"_comment": "small cats only", "ceiling": "haiku"})
+        self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "opus"})[0], 2)
+        self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "haiku"})[0], 0)
+
+    def test_a_ladder_written_with_capitals_still_matches(self):
+        tmp = self.repo(tiers={"ceiling": "Haiku", "ladder": ["Haiku", "Sonnet", "Opus"]})
+        self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "opus"})[0], 2)
+        self.assertEqual(self.spawn(tmp, {"prompt": "x", "model": "haiku"})[0], 0)
+
+    def test_a_ladder_the_rule_cannot_use_is_a_setting_not_a_crash(self):
+        tmp = self.repo(tiers={"ceiling": "haiku", "ladder": 5})
+        code, _, said = self.spawn(tmp, {"prompt": self.BANANAS, "model": "opus"})
+        self.assertEqual(code, 0)
+        self.assertIn("doing nothing", said)
+        self.assertEqual(self.spawn(tmp, {"prompt": self.BANANAS})[0], 2)   # the house's ladder still names a tier
+        r = run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": "Edit",
+                             "tool_input": {"file_path": str(Path(tmp, "a.py"))},
+                             "transcript_path": transcript(tmp), "cwd": tmp}, cwd=tmp)
+        self.assertEqual(r.returncode, 2)                          # the opening audit still speaks
+        self.assertIn("ponytail-audit", r.stderr)
+
+    def test_a_gate_that_cannot_run_refuses_rather_than_waving_the_call_through(self):
+        """The gates are the safety net. One that cannot read the house rules must not open all of them."""
+        plugin = Path(tempfile.mkdtemp())
+        shutil.copytree(HOOKS, plugin / "hooks")
+        (plugin / "rules.json").write_text("{ this is not json")
+        tmp = self.repo()
+        r = subprocess.run([sys.executable, str(plugin / "hooks" / "gates.py")],
+                           input=json.dumps({"hook_event_name": "PreToolUse", "tool_name": "Edit",
+                                             "tool_input": {"file_path": str(Path(tmp, "a.py"))}, "cwd": tmp}),
+                           capture_output=True, text=True, cwd=tmp)
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        self.assertIn("couldn't be read", r.stderr)
+
+    def test_one_repos_message_does_not_silence_another(self):
+        """A cloud session works in several repos at once, so the marker is per repo, not per session."""
+        a, b = self.repo(tiers={"celing": "haiku"}), self.repo(tiers={"celing": "haiku"})
+        self.assertIn("doing nothing", self.spawn(a, {"prompt": "x", "model": "haiku"}, sid="one")[2])
+        self.assertIn("doing nothing", self.spawn(b, {"prompt": "x", "model": "haiku"}, sid="one")[2])
 
 
 class WorkflowReader(unittest.TestCase):
@@ -675,10 +833,11 @@ class WorkflowReader(unittest.TestCase):
         self.assertEqual(self.lines("await agent?.('a', {label:'x'})"), [1])
         self.assertEqual(self.lines("const o = { agent: 1 }; await agent('a', { model: 'haiku' })"), [])
 
-    def test_a_pinned_agent_type_names_its_tier(self):
-        self.assertEqual(self.lines("await agent('find callers', {agentType: 'scout'})"), [])
-        self.assertEqual(self.lines("await agent('find callers', {agentType: 'kittychat-house-rules:tester'})"), [])
-        self.assertEqual(self.lines("await agent('find callers', {agentType: 'general-purpose'})"), [1])
+    def test_an_agent_type_names_no_tier_its_model_does(self):
+        """The rule reads no agent files, so a helper pinned in its own file names its model on the call too."""
+        for kind in ("scout", "kittychat-house-rules:tester", "general-purpose"):
+            self.assertEqual(self.lines("await agent('find callers', {agentType: '%s'})" % kind), [1], kind)
+            self.assertEqual(self.lines("await agent('find callers', {agentType: '%s', model: 'haiku'})" % kind), [], kind)
 
     # Round 2 of the review, 5 October
     def test_a_child_workflow_with_args_is_read(self):
@@ -698,7 +857,7 @@ class WorkflowReader(unittest.TestCase):
 
     def test_quoted_keys_are_keys(self):
         for src in ("await agent('x', {'model': 'haiku'})", 'await agent("x", {"model": "haiku"})',
-                    "await agent('x', {'agentType': 'scout'})"):
+                    "await agent('x', {'agentType': 'scout', 'model': 'haiku'})"):
             self.assertEqual(self.lines(src), [], src)
         self.assertEqual(self.lines("await agent('model', {label: 'model'})"), [1])
 
@@ -725,18 +884,12 @@ class WorkflowReader(unittest.TestCase):
         Path(tmp, ".claude", "agents").mkdir(parents=True)
         Path(tmp, ".claude", "agents", "old.md").write_bytes(b"---\nname: caf\xe9\nmodel: haiku\n---\n")
         Path(tmp, "wf.js").write_bytes(b"await agent('\xe9')\n")
-        self.assertIsNone(self.r.pinned("old", tmp))
         self.assertEqual(self.r.script_of({"scriptPath": "wf.js"}, tmp), "")
-
-    def test_the_first_definition_by_a_name_decides(self):
-        tmp, home = tempfile.mkdtemp(), tempfile.mkdtemp()
-        Path(tmp, ".claude", "agents").mkdir(parents=True)
-        Path(tmp, ".claude", "agents", "reviewer.md").write_text("---\nname: reviewer\n---\nReview.\n")
-        Path(home, ".claude", "agents").mkdir(parents=True)
-        Path(home, ".claude", "agents", "reviewer.md").write_text("---\nname: reviewer\nmodel: haiku\n---\n")
-        from unittest import mock
-        with mock.patch.object(self.r.Path, "home", return_value=Path(home)):
-            self.assertIsNone(self.r.pinned("reviewer", tmp))   # the project's, which inherits, is the one that runs
+        for tool, args in (("Workflow", {"scriptPath": "wf.js"}), ("Agent", {"prompt": "x", "subagent_type": "old",
+                                                                               "model": "haiku"})):
+            r = run("gates.py", {"hook_event_name": "PreToolUse", "tool_name": tool, "tool_input": args, "cwd": tmp,
+                                 "transcript_path": transcript(tmp)}, cwd=tmp)
+            self.assertEqual((r.returncode, r.stderr), (0, ""), tool)
 
     def test_a_child_workflow_is_read_too(self):
         tmp = tempfile.mkdtemp()
@@ -746,6 +899,56 @@ class WorkflowReader(unittest.TestCase):
         self.assertEqual(self.lines("log('x')\nawait workflow('sweep')", tmp), [2])
         self.assertEqual(self.lines("await workflow({scriptPath: 'named.js'})", tmp), [])
         self.assertEqual(self.lines("await workflow('a-built-in')", tmp), [])   # can't be read: nothing to check
+
+
+class Common(unittest.TestCase):
+    """The shared readers the hooks lean on: one transcript reader, and a remembered "said" with no side effect."""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, str(HOOKS))
+        import common
+        cls.c = common
+
+    def test_one_transcript_reader_and_who_counts(self):
+        tmp = Path(tempfile.mkdtemp())
+        rows = [{"type": "assistant", "message": {"model": "claude-opus-5-5"}},
+                {"type": "assistant", "isSidechain": True, "message": {"model": "claude-haiku-4-5"}},
+                {"type": "assistant", "message": {"model": "<synthetic>"}},
+                {"type": "user", "message": {"model": "not-an-answer"}},
+                {"type": "assistant", "message": {"model": "claude-sonnet-5-5"}}]
+        (tmp / "t.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows) + "not json, \"model\"\n")
+        data = {"transcript_path": str(tmp / "t.jsonl"), "agent_transcript_path": str(tmp / "t.jsonl")}
+        # a session's own: in the order they answered, its sub agents' side left out
+        self.assertEqual(self.c.answered(data, ("transcript_path",)), ["claude-opus-5-5", "claude-sonnet-5-5"])
+        # a sub agent's own transcript: its side is the whole file
+        self.assertEqual(self.c.answered(data, ("agent_transcript_path",), sidechain=True),
+                         ["claude-opus-5-5", "claude-haiku-4-5", "claude-sonnet-5-5"])
+        self.assertEqual(self.c.models({"transcript_path": str(tmp / "t.jsonl")}), {"claude-opus-5-5", "claude-sonnet-5-5"})
+        self.assertEqual(self.c.answered({"transcript_path": str(tmp / "missing.jsonl")}), [])
+
+    def test_said_asks_and_say_remembers_per_session_and_repo(self):
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"XDG_CACHE_HOME": tempfile.mkdtemp()}):
+            self.assertFalse(self.c.said("s1", "k", "test", "/repo/a"))
+            self.assertFalse(self.c.said("s1", "k", "test", "/repo/a"))   # asking twice tells nothing
+            self.c.say("s1", "k", "test", "/repo/a")
+            self.assertTrue(self.c.said("s1", "k", "test", "/repo/a"))
+            for other in (("s2", "k", "test", "/repo/a"), ("s1", "k", "test", "/repo/b"), ("s1", "j", "test", "/repo/a")):
+                self.assertFalse(self.c.said(*other), other)
+            folder = Path(os.environ["XDG_CACHE_HOME"], "catio")
+            self.assertTrue(any(folder.iterdir()))                         # a folder of this user's own, not /tmp
+            if os.name != "nt":
+                self.assertEqual(folder.stat().st_mode & 0o777, 0o700)
+
+    def test_the_rules_hand_out_their_own_copy(self):
+        tmp = tempfile.mkdtemp()
+        Path(tmp, ".claude").mkdir()
+        Path(tmp, ".claude", "catio-rules.json").write_text('{"hold": ["a/"]}')
+        self.c.rules()["tiers"]["ladder"].append("gpt")
+        self.c.local(tmp)["hold"].append("b/")
+        self.assertNotIn("gpt", self.c.rules()["tiers"]["ladder"])
+        self.assertEqual(self.c.local(tmp)["hold"], ["a/"])
 
 
 class GraphDoc(unittest.TestCase):

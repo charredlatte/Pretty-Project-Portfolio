@@ -18,6 +18,7 @@ Environment:
 
 README.md says how to set it up. Standard library only; Python 3.9 or later.
 """
+import http.client
 import json
 import os
 import queue
@@ -130,22 +131,27 @@ class Runner:
 
     # ---- waiting on the gateway, on a thread of its own, so a Stop reaches the turn in progress ----
     def watch(self):
-        pause = 5
+        pause, acked = 5, 0   # acked: the newest note she has been given; the gateway offers a note again until the next wait says so
         while True:
             try:
-                got = self.gw.post("/api/runner/wait", {}, WAIT_TIMEOUT)
+                got = self.gw.post("/api/runner/wait", {"ack": acked}, WAIT_TIMEOUT)
                 pause = 5
             except urllib.error.HTTPError as e:
                 detail = e.read().decode(errors="replace")[:200]
-                if e.code in (401, 503):
+                if e.code == 401:
                     log("the gateway refused the queen's key:", detail)
                     os._exit(2)
                 log("the gateway answered", e.code, detail)
                 time.sleep(pause)
                 pause = min(pause * 2, 60)
                 continue
-            except (OSError, ValueError) as e:
+            except (OSError, ValueError, http.client.HTTPException) as e:   # a reply cut off half way is one of these too
                 log("no gateway:", e)
+                time.sleep(pause)
+                pause = min(pause * 2, 60)
+                continue
+            if not isinstance(got, dict):
+                log("the gateway answered with something that isn't an object:", str(got)[:80])
                 time.sleep(pause)
                 pause = min(pause * 2, 60)
                 continue
@@ -157,6 +163,7 @@ class Runner:
                 self.interrupt()
             for note in got.get("notes") or []:
                 self.jobs.put(("note", note))
+                acked = max(acked, note.get("at") or 0)
             if got.get("routine"):
                 self.jobs.put(("routine", got["routine"]))
 

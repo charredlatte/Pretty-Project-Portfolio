@@ -1,6 +1,6 @@
 ---
 name: tester
-description: Runs a repo's checks (tests, lint, a build) and reports what failed, with the failing lines. Use when the main session would otherwise read a long test log itself. Runs on Haiku and never edits.
+description: Runs a repo's checks (tests, lint, a build) and reports what failed, with the failing lines. Use when the main session would otherwise read a long test log itself. Runs on Haiku and never edits. Spawn it with model haiku named on the call, since the house rules refuse a spawn that names no model.
 model: haiku
 tools: Bash, Read
 maxTurns: 8
