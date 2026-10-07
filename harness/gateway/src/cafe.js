@@ -9,7 +9,7 @@ import RUNTIME from "../cafe/runtime.js";
 import { clientIp, esc, formOf, noAccount, page } from "./signin.js";
 import { plain } from "./plain.js";
 import { MIN_SECRET, randomToken, sha256 } from "./secret.js";
-import { bootProblem, hasAccount, registry } from "./registry.js";
+import { WRONG_PASSWORD, bootProblem, hasAccount, registry } from "./registry.js";
 import { FIRST_HOUSE, fileKeys } from "./houses.js";
 
 const COOKIE = "__Host-catio";
@@ -200,7 +200,7 @@ async function login(request, env) {
 	if (!form) return signInPage("That wasn't the sign-in form.", 400);
 	const user = await reg.checkPassword(String(form.get("user") || ""), String(form.get("password") || ""), clientIp(request));
 	if (user && user.locked) return signInPage("Too many wrong passwords. Try again in a quarter of an hour.", 429);
-	if (!user) return signInPage("That handle and password aren't right.", 401);
+	if (!user) return signInPage(WRONG_PASSWORD, 401);
 	return signedInAs(reg, user);
 }
 

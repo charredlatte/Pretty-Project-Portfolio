@@ -2,7 +2,7 @@
 // password, and Claude gets a token to read and manage their cats as them. Nobody but Claude's connectors may
 // ask: anywhere else, a token would leave with someone else.
 import { AuthorizationError, CimdFetchError } from "@cloudflare/workers-oauth-provider";
-import { bootProblem, hasAccount, propsOf, registry, setupLights } from "./registry.js";
+import { WRONG_PASSWORD, bootProblem, hasAccount, propsOf, registry, setupLights } from "./registry.js";
 
 const CLAUDE = ["claude.ai", "claude.com"];
 
@@ -154,7 +154,7 @@ ${noAccount(env, request)}<p>Then connect again.</p>`, 503);
 		if (!password) return consent(shown, handle, "Type your password first.", 400);
 		const user = await (await registry(env)).checkPassword(String(form.get("user") || ""), password, clientIp(request));
 		if (user && user.locked) return consent(shown, handle, "Too many wrong passwords. Try again in a quarter of an hour.", 429);
-		if (!user) return consent(shown, handle, "That handle and password aren't right.", 401);
+		if (!user) return consent(shown, handle, WRONG_PASSWORD, 401);
 
 		const approved = await oauth.approveConsent(request, handle, { scope: [] });
 		if (!fromClaude(approved.request.redirectUri)) return notClaude();
