@@ -66,6 +66,22 @@ def say(session, kind, prefix, where=None):
         pass           # can't remember it was said; say it anyway rather than lose it
 
 
+def holds(value):
+    """(paths, unreadable): the hold paths in a "hold" setting, and whether it said something this can't read.
+
+    The hold list is the merging rule's sharpest promise - a change under harness/ always waits for her - so
+    losing one quietly is the one failure it must not have. A shape that isn't a list of paths, an entry that
+    isn't one, and a glob (nothing here expands one, so it would protect nothing) all come back unreadable,
+    for the caller to hold on rather than drop.
+    """
+    if value is None:
+        return [], False                      # she has said nothing, which is not the same as saying it wrong
+    if not isinstance(value, list):
+        return [], True
+    paths = [p for p in value if isinstance(p, str) and p.strip() and not set("*?[") & set(p)]
+    return paths, len(paths) != len(value)   # as she wrote them: the caller normalises, the brief quotes
+
+
 def enforced(rule_id, cwd=None):
     """Is this enforced rule on, here? rules.json says so, unless the repo's .claude/catio-rules.json switches it off."""
     rule = next((r for r in rules()["rules"] if r["id"] == rule_id), None)
