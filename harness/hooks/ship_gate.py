@@ -147,7 +147,11 @@ def check_merge(data, cwd, name, number, message, head, method=None):
 
     base = git("merge-base", f"refs/remotes/origin/{default_branch(repo)}", "HEAD", cwd=repo)
     changed = (git("diff", "--name-only", "--no-renames", base, "HEAD", cwd=repo) or "").splitlines() if base else None
-    holds = [h.rstrip("/") for h in cfg.get("hold", []) + local(repo).get("hold", [])]
+    # a hold of the wrong shape (a string, a number in the list) would crash the gate; the merging rule's
+    # promise is the one thing that must not rest on her file being well formed, so read only what is a path
+    def paths(v):
+        return [p.rstrip("/") for p in v if isinstance(p, str) and p.strip()] if isinstance(v, list) else []
+    holds = paths(cfg.get("hold")) + paths(local(repo).get("hold"))
     if changed is None:
         held.append("there's no way to tell what it changes")
     else:

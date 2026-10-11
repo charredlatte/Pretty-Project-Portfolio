@@ -114,8 +114,11 @@ def up(cwd, *parts):
 
 
 def held(cwd):
-    """The paths whose change always waits for her: the merging rule's, plus this repo's own."""
-    return list(rules().get("merging", {}).get("hold") or []) + list(local(cwd).get("hold") or [])
+    """The paths whose change always waits for her: the merging rule's, plus this repo's own. A hold written as
+    a string would otherwise be read letter by letter, and every letter taken for a held path."""
+    def paths(v):
+        return [p for p in v if isinstance(p, str) and p.strip()] if isinstance(v, list) else []
+    return paths(rules().get("merging", {}).get("hold")) + paths(local(cwd).get("hold"))
 
 
 def never_down(prompt, cwd):
