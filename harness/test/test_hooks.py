@@ -329,24 +329,30 @@ class Merging(unittest.TestCase):
         r = self.gate("mcp__github__merge_pull_request", {"owner": "charredlatte", "repo": "elsewhere", "pullNumber": 3})
         self.assertIn("there's no checkout of charredlatte/elsewhere here", r.stderr)
 
-    def test_a_hold_of_the_wrong_shape_neither_crashes_the_gate_nor_holds_nothing(self):
-        """The hold list is the one promise that must not rest on her file being well formed: a change under
-        harness/ always waits for her. Written as a string it was concatenated to a list, which raises - and a
-        gate that raises is caught upstream, so the merge is refused with "couldn't check this" rather than
-        either merging or naming the real reason."""
-        for i, hold in enumerate(("harness/", 5, {"harness/": True}, None, ["harness/", 5])):
-            name = "wrong%d" % i
+    def test_a_hold_she_wrote_in_a_shape_it_cannot_read_holds_the_pull_request(self):
+        """The hold list is the merging rule's sharpest promise - a change under harness/ always waits for her -
+        so a shape it cannot read must hold the pull request and say so, never be dropped. Dropping it is how a
+        change under harness/ merges itself: before this, "hold": "harness/" was concatenated to a list and
+        raised, which at least refused; reading only the strings out of it released the pull request instead.
+        A glob counts as unreadable too, because nothing here expands one, so it would protect nothing."""
+        for i, hold in enumerate(("harness/", 5, {"harness/": True}, ["harness/", None], ["harness/*"], [""])):
+            name = "odd%d" % i
             repo = self.checkout(name, {"merge": True, "hold": hold})
             r = self.merge(repo=name, head=self.head(repo))
-            self.assertEqual(r.returncode, 0, (hold, r.stderr))        # it still merges a clean pull request
-            self.assertNotIn("couldn't check this", r.stderr, hold)    # and never by way of a crash
-            self.assertIsNone(self.note(name), hold)
-        name = "right"                                                 # a hold she wrote properly still holds
-        repo = self.checkout(name, {"merge": True, "hold": ["a"]})     # and "a" is what the feature commit changes
-        r = self.merge(repo=name, head=self.head(repo))
+            self.assertEqual(r.returncode, 2, (hold, r.stderr))
+            self.assertIn("hold list is in a shape I can't read", r.stderr, hold)
+            self.assertIn("shape I can't read", self.note(name) or "", hold)
+
+    def test_a_hold_she_wrote_properly_still_holds_and_still_lets_the_rest_through(self):
+        held = self.checkout("held", {"merge": True, "hold": ["a"]})   # "a" is what the feature commit changes
+        r = self.merge(repo="held", head=self.head(held))
         self.assertEqual(r.returncode, 2, r.stderr)
         self.assertIn("it changes a, which always waits for her", r.stderr)
-        self.assertIn("which always waits for her", self.note(name) or "")
+        for name, hold in (("free", ["docs/"]), ("none", [])):         # not touched, and nothing held at all
+            repo = self.checkout(name, {"merge": True, "hold": hold})
+            r = self.merge(repo=name, head=self.head(repo))
+            self.assertEqual(r.returncode, 0, (hold, r.stderr))
+            self.assertIsNone(self.note(name), hold)
 
     def test_guesswork_is_held_for_her_in_the_litter_box(self):
         r = self.merge("Checks: unit tests pass\nGuesses: that the Drive API rounds prices.")
@@ -1041,6 +1047,21 @@ class SessionStart(unittest.TestCase):
         out = run("session_start.py", {"cwd": str(tmp)}).stdout
         self.assertIn("  cafe merges its own pull requests; changes to harness/ always wait for her.", out)
         self.assertIn("**Semi-automatic merging** (enforced)", out)
+
+    def test_the_brief_never_claims_a_hold_the_merge_gate_will_not_keep(self):
+        """It read her hold list straight into a join, so it announced "changes to harness/* always wait for
+        her" for a glob the gate never expands, and exited 1 on a shape that would not join at all - losing
+        the whole briefing, the opening-audit instruction included, with only a traceback to show."""
+        for hold in ("harness/", 5, {"harness/": True}, ["harness/", None], ["harness/*"], [""]):
+            tmp = Path(tempfile.mkdtemp(), "cafe")
+            subprocess.run(["git", "init", "-q", str(tmp)], check=True)
+            Path(tmp, ".claude").mkdir(parents=True)
+            Path(tmp, ".claude", "catio-rules.json").write_text(json.dumps({"merge": True, "hold": hold}))
+            r = run("session_start.py", {"cwd": str(tmp)})
+            self.assertEqual(r.returncode, 0, (hold, r.stderr))
+            self.assertIn("**Semi-automatic merging** (enforced)", r.stdout, hold)
+            self.assertIn("  cafe merges its own pull requests.", r.stdout, hold)
+            self.assertNotIn("always wait for her", r.stdout, hold)
 
     def test_reminds_a_fable_session_of_opus(self):
         nudge = "suggest /model opus"

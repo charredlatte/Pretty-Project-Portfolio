@@ -17,7 +17,7 @@ import subprocess
 from datetime import date
 from pathlib import Path
 
-from common import block, checkouts, default_branch, enforced, git, local, merges, models, rules, skill_calls
+from common import block, checkouts, default_branch, enforced, git, holds, local, merges, models, rules, skill_calls
 
 REMOTE = re.compile(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?/?$")
 # Where a command starts (after ; & | ( { ! or a quote, or a word like if, then, env, timeout 30), with any VAR=x
@@ -147,15 +147,16 @@ def check_merge(data, cwd, name, number, message, head, method=None):
 
     base = git("merge-base", f"refs/remotes/origin/{default_branch(repo)}", "HEAD", cwd=repo)
     changed = (git("diff", "--name-only", "--no-renames", base, "HEAD", cwd=repo) or "").splitlines() if base else None
-    # a hold of the wrong shape (a string, a number in the list) would crash the gate; the merging rule's
-    # promise is the one thing that must not rest on her file being well formed, so read only what is a path
-    def paths(v):
-        return [p.rstrip("/") for p in v if isinstance(p, str) and p.strip()] if isinstance(v, list) else []
-    holds = paths(cfg.get("hold")) + paths(local(repo).get("hold"))
+    house, house_odd = holds(cfg.get("hold"))
+    mine, mine_odd = holds(local(repo).get("hold"))
+    held_paths = [p.rstrip("/") for p in house + mine]   # compared against git's paths, which carry no slash
+    if house_odd or mine_odd:   # a hold it can't read holds the pull request: dropping it is how harness/ merges itself
+        held.append("its hold list is in a shape I can't read (%r), so I can't tell what it protects"
+                    % (local(repo).get("hold") if mine_odd else cfg.get("hold")))
     if changed is None:
         held.append("there's no way to tell what it changes")
     else:
-        touched = sorted({h for p in changed for h in holds if p == h or p.startswith(h + "/")})
+        touched = sorted({h for p in changed for h in held_paths if p == h or p.startswith(h + "/")})
         if touched:
             held.append(f"it changes {', '.join(touched)}, which always waits for her")
 

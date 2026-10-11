@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 
-from common import enforced, hook_input, local, merges, repos, rules
+from common import enforced, holds, hook_input, local, merges, repos, rules
 
 
 def main():
@@ -34,7 +34,8 @@ def main():
         lines.append(f"- **{rule['title']}**{' (enforced)' if rule['enforced'] else ''}: {rule['text']}")
         if rule["id"] == "merge":
             for repo in repos(cwd):
-                name, held = Path(repo).name, ", ".join(local(repo).get("hold", []))
+                kept, odd = holds(local(repo).get("hold"))
+                name, held = Path(repo).name, ", ".join(kept) if not odd else ""
                 if not merges(repo):
                     lines.append(f"  {name}'s pull requests are hers to merge.")
                 else:
