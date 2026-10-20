@@ -601,6 +601,7 @@ dialog.scene { width: min(980px, calc(100vw - 24px)); height: 792px; padding: 0 
   border: solid transparent; border-width: var(--btn-w); border-image: var(--art-button) var(--btn-s) fill / var(--btn-w) stretch; }
 .sk-section h3::before, .sk-section h3::after { content: ""; flex: none; width: 20px; height: 16px; background: var(--art-stars) 0 0 / 40px 16px no-repeat; image-rendering: pixelated; }
 .sk-body { min-height: 0; }
+.sk-panel[hidden], .sk-count[hidden], .sk-back .btn[hidden], .sk-next[hidden] { display: none; }
 .sk-panel { height: 100%; min-height: 0; overflow: auto; display: grid; gap: 10px; align-content: start; overscroll-behavior: contain; padding: 2px; }
 .sk-page > * { width: min(720px, 100%); margin-inline: auto; }
 .sk-hints { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 20px; font-size: .8rem; color: var(--ink-soft); }
@@ -3191,12 +3192,13 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     look: shapeIcon(12, [[Ci(4.5, 4.5, 3.6), "P"], [Ci(4.5, 4.5, 2.3), "l"], [At([7, 7], [8, 8], [9, 9], [8, 9], [9, 8], [7, 8], [8, 7]), "P"]]),
     sparkle: shapeIcon(12, [[(x, y) => { const a = Math.abs(x - 5.5), b = Math.abs(y - 5.5); return a * b <= 2.6 && a + b <= 5.2; }, "y"], [R(5, 5, 6, 6), "w"]]),
     paw: shapeIcon(12, [[Ci(2.5, 4.5, 1.3), "P"], [Ci(4.5, 2.5, 1.3), "P"], [Ci(7.5, 2.5, 1.3), "P"], [Ci(9.5, 4.5, 1.3), "P"], [Ci(5.5, 7.5, 2.9), "P"], [At([5, 6], [4, 7]), "p"]]),
-    key: shapeIcon(12, [[Ci(3.5, 3.5, 2.6), "y"], [Ci(3.5, 3.5, 1), "w"], [(x, y) => x >= 5 && x <= 10 && y >= 5 && y <= 6 && x - 5 === y - 5 + (x - 5) - (y - 5) && Math.abs((x - 5) - (y - 5)) <= 0, "y"], [At([6, 6], [7, 7], [8, 8], [9, 9], [10, 10], [9, 10], [10, 9]), "y"]]),
+    key: shapeIcon(12, [[Ci(3.5, 3.5, 2.6), "y"], [Ci(3.5, 3.5, 1), "w"], [At([5, 5], [6, 6], [7, 7], [8, 8], [9, 9], [10, 10], [9, 10], [10, 9]), "y"]]),
   };
   // one icon as an SVG, a rect per run, its colours read from the tokens now (so a skin's show)
+  let ROOT_CS = null;
   function skIcon(name, cs) {
     const NS = "http://www.w3.org/2000/svg", s = document.createElementNS(NS, "svg"), rows = SK_ICONS[name], n = rows.length;
-    const st = cs || getComputedStyle(document.documentElement);
+    const st = cs || ROOT_CS || (ROOT_CS = getComputedStyle(document.documentElement));   // live, so it is read once
     s.setAttribute("viewBox", "0 0 " + n + " " + n); s.setAttribute("width", n * 2); s.setAttribute("height", n * 2); s.setAttribute("aria-hidden", "true"); s.setAttribute("shape-rendering", "crispEdges");
     rows.forEach((row, y) => {
       for (let x = 0; x < n; ) {
@@ -3229,7 +3231,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     dlg.classList.add("scene");
     const cs = getComputedStyle(document.documentElement);   // the tokens, read once for every icon
     // coming in from the litter box or the House menu opens the log at that quest
-    if (section === "litterbox" || section === "decision") { const c = deckOf(section)[0]; if (c) QSEL = "d:" + section + ":" + c.id; }
+    if (section === "litterbox" || section === "decision") { const cards = deckOf(section), c = cards.find((z) => z.id === DECKAT.get(section)) || cards[0]; if (c) QSEL = "d:" + section + ":" + c.id; }
     else if (section === "homework") { const u = openQuizzes().find((z) => kindOf(z) === "unblock"); if (u) QSEL = "q:" + u.id; }
 
     // ---- the top: her name and how she is, the tabs, Close ----
@@ -3281,7 +3283,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     });
     box.addEventListener("keydown", (e) => {   // Page Up and Page Down turn the tabs from anywhere that isn't typing
       if ((e.key !== "PageUp" && e.key !== "PageDown") || e.target.closest("input, textarea, select")) return;
-      e.preventDefault(); selectTab(stepTab(e.key === "PageDown" ? 1 : -1));
+      e.preventDefault(); const to = stepTab(e.key === "PageDown" ? 1 : -1); selectTab(to); tabBtns[to].focus();
     });
 
     // ---- Talk: the owner of the house on the left, from behind; the queen on the right; the line being said between ----
@@ -3304,26 +3306,29 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const lines = el("div", "sk-lines"); lines.setAttribute("role", "group"); lines.setAttribute("aria-label", "What is being said");
     const ul = el("ul", "thread"); ul.id = "queenThread"; ul.setAttribute("aria-live", "polite");
     const nav = el("div", "sk-nav"), counter = el("span", "sk-of");
-    let pos = 0, follow = true, last = 0;
-    const earlier = plainBtn("Earlier", "tiny", () => { if (pos > 0) { pos--; follow = false; drawThreadQ(); } });
+    let pos = 0, follow = true, last = 0, curKey = null;   // curKey: the line she is on, so a new line never shifts it
+    const earlier = plainBtn("Earlier", "tiny", () => { if (pos > 0) { pos--; follow = false; curKey = null; drawThreadQ(); } });   // curKey null: pos is the line she chose
     const onward = el("button", "sk-next", "Click to continue"); onward.type = "button";
-    const step = () => { if (pos < last) { pos++; follow = pos === last; drawThreadQ(); } };
+    const step = () => { if (pos < last) { pos++; follow = pos === last; curKey = null; drawThreadQ(); } };
     onward.addEventListener("click", (e) => { e.stopPropagation(); step(); });
     const back = el("span", "sk-back"); back.append(earlier, counter);
     nav.append(back, onward);
     lines.append(ul, nav);
-    lines.addEventListener("click", (e) => { if (!e.target.closest("button, a")) step(); });
+    lines.addEventListener("click", (e) => { if (!e.target.closest("button, a") && !String(getSelection()).trim()) step(); });   // a click, not a selection
     stage.append(owner, her, lines, plateYou, plateHer);
     const drawThreadQ = () => {
-      ul.replaceChildren();
       const cats = allCats(true).cats;
-      const items = (S.queenNotes || []).filter((n) => fromOwner(n) || n.author === QUEEN_ID).map((n) => ({ kind: fromOwner(n) ? "owner" : n.author, text: n.text, at: n.at || 0, routine: n.routine }))
-        .concat(cats.filter((c) => c.said && c.said.text).map((c) => ({ kind: "handoff", cat: c, text: c.said.text, at: c.said.at || 0 })))
+      const items = (S.queenNotes || []).filter((n) => fromOwner(n) || n.author === QUEEN_ID).map((n) => ({ key: "n:" + (n.id || n.at), kind: fromOwner(n) ? "owner" : n.author, text: n.text, at: n.at || 0, routine: n.routine }))
+        .concat(cats.filter((c) => c.said && c.said.text).map((c) => ({ key: "h:" + c.id, kind: "handoff", cat: c, text: c.said.text, at: c.said.at || 0 })))
         .sort((a, b) => a.at - b.at).slice(-20);
-      if (!items.some((it) => it.kind !== "handoff")) items.unshift({ kind: "greet", text: q.greeting, at: 0 });   // nothing said yet: her greeting
-      if (S.queenTurn && S.queenTurn.text) items.push({ kind: "live", text: S.queenTurn.text, at: 0 });
+      if (!items.some((it) => it.kind !== "handoff")) items.unshift({ key: "greet", kind: "greet", text: q.greeting, at: 0 });   // nothing said yet: her greeting
+      if (S.queenTurn && S.queenTurn.text) items.push({ key: "live", kind: "live", text: S.queenTurn.text, at: 0 });
       last = items.length - 1;
-      pos = follow ? last : Math.min(pos, last);
+      const found = follow ? -1 : items.findIndex((it) => it.key === curKey);
+      pos = follow ? last : found >= 0 ? found : Math.min(pos, last);
+      const same = items[pos] && items[pos].key === curKey, keep = ul.scrollTop;   // the same line, grown: she stays where she read
+      curKey = items[pos] ? items[pos].key : null;
+      ul.replaceChildren();
       items.forEach((it, i) => {
         const li = el("li", it.kind === "owner" ? "me" : it.kind === "greet" ? "them greet" : it.kind === "live" ? "them live" : it.kind === "handoff" ? "them handoff" + (it.at > q.readAt ? " new" : "") : "them");
         if (it.kind === "live") li.id = "queenLive";
@@ -3339,7 +3344,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       stage.dataset.speaker = items[pos] && items[pos].kind === "owner" ? "owner" : "queen";
       counter.textContent = (pos + 1) + " / " + (last + 1);
       earlier.hidden = pos === 0; onward.hidden = pos === last;
-      ul.scrollTop = 0;
+      ul.scrollTop = same ? keep : 0;
       dress();
       drawWork();
     };
@@ -3417,7 +3422,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     // what you can say: a few quick replies, and your own words
     const say = el("textarea"); say.id = "queenSay"; say.rows = 2; say.maxLength = 4000; say.placeholder = "Ask " + q.name + "…";
     say.setAttribute("aria-label", "Say to " + q.name);
+    let posting = false;
     const post = async (text) => {
+      if (posting) return false;   // a double tap on a quick reply says it once
+      posting = true;
       try {
         await hostCall("comment", { cat: QUEEN_ID, text, author: "owner" });
         S.queenNotes = (S.queenNotes || []).concat([{ id: "me" + Date.now(), cat: QUEEN_ID, author: "owner", text, at: Date.now() }]);
@@ -3426,6 +3434,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         if (queenState() === "away") toast("Kept for her: she answers once her runner is on.");
         return true;
       } catch (e) { toast(gatewayProblem(e), "alert"); return false; }
+      finally { posting = false; }
     };
     const send = plainBtn("Send", "green", async () => {
       const text = say.value.trim();
