@@ -93,7 +93,8 @@ def listed(repo):
 def public(command, cwd):
     """Does this command commit in a repo on rules.json's "public" list: its own, or one it cds or -Cs into?"""
     for place in places(command, cwd):
-        out = subprocess.run(["git", "-C", place, "remote", "get-url", "origin"], capture_output=True, text=True).stdout.strip()
+        out = subprocess.run(["git", "-C", place, "remote", "get-url", "origin"], capture_output=True,
+                             encoding="utf-8", errors="surrogateescape").stdout.strip()
         m = re.search(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?/?$", out)
         if m and listed(m.group(1)):
             return True

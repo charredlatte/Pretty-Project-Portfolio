@@ -425,8 +425,14 @@ class Merging(unittest.TestCase):
         g("checkout", "-qb", "feature")
         Path(repo, "caf\u00e9").mkdir(); Path(repo, "caf\u00e9", "x.png").write_text("2")
         g("add", "-A"); g("commit", "-qm", "two")
+        # Prove git sees the path before asking the gate about it, so a failure here says which half broke:
+        # this one is git or the filesystem (encoding, normalisation), the one below is the gate's comparison.
+        listed = subprocess.run(["git", "-c", "core.quotepath=false", "diff", "--name-only", "-z",
+                                 "refs/remotes/origin/main", "HEAD"], cwd=repo, capture_output=True,
+                                encoding="utf-8", errors="surrogateescape").stdout
+        self.assertIn("caf\u00e9", listed, "git did not report the accented path as written: %r" % listed)
         r = self.merge(repo=name, head=self.head(repo))
-        self.assertEqual(r.returncode, 2, r.stderr)
+        self.assertEqual(r.returncode, 2, "the gate did not hold it; git reported %r" % listed)
         self.assertIn("which always waits for her", r.stderr)
 
     def test_a_hold_she_wrote_properly_still_holds_and_still_lets_the_rest_through(self):

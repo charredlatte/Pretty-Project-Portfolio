@@ -118,8 +118,12 @@ def merges(cwd=None):
 
 
 def git(*args, cwd=None):
+    """git's answer, or None. Decoded as UTF-8, which is what git writes: text=True would decode with the
+    locale's encoding, cp1252 on Windows, and a path with an accent in it came back mangled - so it matched
+    no held path she had spelt properly, and the change merged unheld on Windows alone."""
     try:
-        r = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
+        r = subprocess.run(["git", *args], cwd=cwd, capture_output=True,
+                           encoding="utf-8", errors="surrogateescape")
     except OSError:  # cwd isn't there
         return None
     return r.stdout.strip() if r.returncode == 0 else None
