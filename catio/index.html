@@ -707,7 +707,8 @@ dialog.scene { width: min(980px, calc(100vw - 24px)); height: 792px; padding: 0 
   .sk-section h3 { font: var(--px-size)/calc(var(--px-size) + 6px) var(--pixel); }
   /* the stage keeps a floor and the words under it stay on screen: the quick replies scroll sideways, and Speak, the box
      and Send share one row, so Send is never pushed under the fold */
-  .sk-talk { height: auto; min-height: 100%; overflow: visible; grid-template-rows: minmax(240px, 1fr) auto; }   /* taller than the screen, the card scrolls as a whole, so Send is never clipped */
+  .dlg.queen { grid-template-rows: auto auto minmax(300px, auto) auto auto; }   /* the body row grows with the talk: taller than the screen, the card scrolls as a whole */
+  .sk-talk { height: auto; min-height: 100%; overflow: visible; grid-template-rows: minmax(240px, 1fr) auto; }   /* so Send is never clipped */
   .sk-quick { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
   .sk-quick .btn { flex: none; }
   .saybar { flex-wrap: nowrap; gap: 4px; }
@@ -3321,7 +3322,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         .concat(cats.filter((c) => c.said && c.said.text).map((c) => ({ key: "h:" + c.id, kind: "handoff", cat: c, text: c.said.text, at: c.said.at || 0 })))
         .sort((a, b) => a.at - b.at).slice(-20);
       if (!items.some((it) => it.kind !== "handoff")) items.unshift({ key: "greet", kind: "greet", text: q.greeting, at: 0 });   // nothing said yet: her greeting
-      if (S.queenTurn && S.queenTurn.text) items.push({ key: "live", kind: "live", text: S.queenTurn.text, at: 0 });
+      const live = (S.queenTurn && S.queenTurn.text) || S.queenSaid;   // her words as they come, and once done, until her note has arrived
+      if (live) items.push({ key: "live", kind: "live", text: live, at: 0 });
       while (items.length > 20) items.shift();   // the last twenty, her live line and greeting counted
       last = items.length - 1;
       const found = follow ? -1 : items.findIndex((it) => it.key === curKey);
@@ -3343,7 +3345,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       });
       stage.dataset.speaker = items[pos] && items[pos].kind === "owner" ? "owner" : "queen";
       counter.textContent = (pos + 1) + " / " + (last + 1);
+      const fe = document.activeElement;
       earlier.hidden = pos === 0; onward.hidden = pos === last; lines.classList.toggle("end", pos === last);
+      if (earlier.hidden && fe === earlier) onward.focus(); else if (onward.hidden && fe === onward) earlier.focus();   // a key's focus stays on the nav
       ul.scrollTop = curKey === "live" ? ul.scrollHeight : same ? keep : 0;   // her words as they come; a line she is reading stays put
       dress();
       drawWork();
@@ -3528,7 +3532,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       SELIDX = Math.max(0, keys.indexOf(QSEL));
       questN.textContent = String(all.length); questBadge.hidden = !all.length;
       tabBtns.quests.setAttribute("aria-label", "Quest log" + (all.length ? ", " + all.length + " waiting" : ""));
-      const sig = items.map((it) => it.key + ":" + (it.z.at || 0) + ":" + sending.has(it.z.id) + ":" + (catOf(it.z) || {}).name).join("|")
+      const sig = items.map((it) => it.key + ":" + (it.z.at || 0) + ":" + (it.z.questions || []).length + ":" + sending.has(it.z.id) + ":" + (catOf(it.z) || {}).name).join("|")
         + "#" + decks.map((d) => d.kind + ":" + d.at + ":" + JSON.stringify([d.z.title, d.z.note, d.z.hint, d.z.questions])).join("|");   // the top card dealt again with new words redraws
       if (sig === drawn) {   // nothing to rebuild: only the "· N minutes ago" moves on
         for (const it of items) if (it.kind === "unblock") { const sub = hw.querySelector('form[data-quiz="' + it.z.id + '"] p.sub'); if (sub) sub.textContent = subOf(it.z, catOf(it.z)); }
@@ -5532,7 +5536,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       turn: m.turn, text: m.text || "", routine: m.routine, steps, since: same ? was.since : now, awakeAt: (same && was.awakeAt) || now,
       stepAt: steps.map((s, i) => (same && was.stepAt[i]) || now), textAt: (same && was.textAt) || (m.text ? now : 0), stopping: !!(same && was.stopping),
     };
-    if (m.done) loadQueenThread();
+    if (m.done) { S.queenSaid = (was && was.text) || m.text || ""; loadQueenThread().finally(() => { S.queenSaid = ""; if (QUEEN_UI) QUEEN_UI.draw(); }); }   // her last words stay up until her note is in
     if (QUEEN_UI) QUEEN_UI.draw();
     speakTurn(m);
   });
