@@ -3248,7 +3248,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const body = el("main", "sk-body");
     const foot = el("footer", "sk-hints");
     const kb = el("p", "sk-keys");
-    for (const [k, w] of [["← →", "tabs"], ["Esc", "close"]]) { const s = el("span"); s.append(el("kbd", null, k), w); kb.appendChild(s); }
+    for (const [k, w] of [["PgUp PgDn", "tabs"], ["Esc", "close"]]) { const s = el("span"); s.append(el("kbd", null, k), w); kb.appendChild(s); }
     const ln = el("p", "sk-line", queenLine(q)); ln.id = "queenLineNote";
     foot.append(kb, ln);
 
@@ -3502,14 +3502,15 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
       const bs = [...qlist.querySelectorAll(".sk-q")], to = bs[bs.indexOf(document.activeElement) + (e.key === "ArrowDown" ? 1 : -1)];
       if (!to) return;
-      e.preventDefault(); to.focus(); to.click(); to.scrollIntoView({ block: "nearest" });
+      e.preventDefault(); to.focus(); to.click();
+      const now = qlist.querySelector('[aria-current="true"]') || to; now.focus(); now.scrollIntoView({ block: "nearest" });   // the click may have redrawn the list
     });
     // A redraw that would change nothing is skipped, so the forms never move under her fingers; one that must
     // happen puts her answers so far (DRAFTS) back.
     const drafts = DRAFTS, sending = SENDING;
     let drawn = null;
     const drawHomework = () => {
-      const all = openQuizzes();
+      const all = openQuizzes().filter((z) => ["unblock"].concat(DECKS.map((d) => d[0])).includes(kindOf(z)));   // what the log can show
       const cats = allCats(true).cats;
       const catOf = (z) => (z.for ? cats.find((c) => c.agentId === z.for) : null);
       const subOf = (z, cat) => "Homework from " + (z.by === QUEEN_ID ? q.name : "you") + (cat ? ", to unblock " + cat.name : z.for ? ", for " + z.for : "") + " · " + ago(z.at);
@@ -3584,7 +3585,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
             picks.push(() => d.text.trim() || d.pick || "");
             f.appendChild(fs);
           });
-          const hand = plainBtn("Hand it in", "green", async () => {
+          const hand = plainBtn("Hand it in", "green", async (ev) => {
             const answers = picks.map((p) => p());
             if (answers.some((a) => !a)) { toast("Answer every question first.", "alert"); return; }
             hand.disabled = true; sending.add(z.id);
@@ -3592,7 +3593,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
               await hostCall("answer", { quiz: z.id, answers });
               drafts.delete(z.id);
               HANDED.add(z.id);   // off her desk now, whatever the next list read says
-              landList = hand.contains(document.activeElement) || document.activeElement === document.body;
+              landList = !(ev && ev.detail);   // from the keyboard: the next quest takes the focus; a mouse leaves it be
               toast("Handed in." + (cat ? " " + cat.name + " has your answers." : ""));
               render(); if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); }   // her card may have closed meanwhile
               await refreshQuizzes();
