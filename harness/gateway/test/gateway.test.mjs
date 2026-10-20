@@ -223,6 +223,15 @@ describe("the café", () => {
 		assert.equal((await up("art/licensed/pochi.png", png, {})).status, 401);
 		assert.equal((await up("art/licensed/evil.html", "<script>")).status, 400);
 		assert.equal((await up("art/licensed/pochi.png", png)).status, 200);
+		assert.equal((await up("art/skin/panel.png", png)).status, 200, "her skin's pieces go up with the packs'");
+		assert.equal((await up("art/skin/evil.html", "<script>")).status, 400);
+		assert.equal((await up("art/skin/deep/panel.png", png)).status, 400, "a skin piece sits in art/skin/ itself");
+		assert.equal((await fetch(base + "/art/skin.json")).status, 401, "her skin's list is behind the sign-in too");
+		const skin = await api("/art/skin.json");
+		assert.equal(skin.status, 200);
+		assert.match(skin.headers.get("content-type"), /^application\/json/);
+		assert.ok("panel" in await skin.json(), "the bundled skin.json names the panel");
+		assert.equal((await api("/art/skin/panel.png")).status, 200, "and its pieces are served");
 		assert.equal((await fetch(base + "/art/licensed/pochi.png")).status, 401);
 		const r = await api("/art/licensed/pochi.png");
 		assert.equal(r.headers.get("content-type"), "image/png");
