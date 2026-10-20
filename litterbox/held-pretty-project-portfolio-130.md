@@ -1,0 +1,10 @@
+---
+project: Pretty-Project-Portfolio
+date: 2026-10-20
+---
+# Held for review: charredlatte/Pretty-Project-Portfolio#130
+
+## Waiting on Charlotte
+
+- [ ] [charredlatte/Pretty-Project-Portfolio#130](https://github.com/charredlatte/Pretty-Project-Portfolio/pull/130) is held for your review before it merges: claude-sonnet-5-5 worked on it, and only opus or fable may merge.
+  Merge it on GitHub if it's right, or say what to change.
