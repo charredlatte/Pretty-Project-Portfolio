@@ -390,7 +390,7 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .mi::before { content: ""; position: absolute; left: 5px; top: 50%; margin-top: -6px; width: 7px; height: 12px; background: var(--art-pointer) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; visibility: hidden; }
 .mi:hover, .mi:focus-visible { background: color-mix(in srgb, var(--mi-lit) 50%, transparent); outline: 0; }
 .mi:hover::before, .mi:focus-visible::before, .list:not(:hover):not(:focus-within) .mi.primary::before { visibility: visible; }
-.mi .mic { flex: none; display: grid; place-items: center; width: 24px; height: 24px; }
+.mi .mic { flex: none; display: grid; place-items: center; width: 28px; height: 28px; }
 .mi .mic svg { display: block; image-rendering: pixelated; shape-rendering: crispEdges; }
 .mi .aside { margin-left: auto; padding-left: 8px; font: 800 .75rem var(--body); color: var(--ink-soft); }
 .mi.sw { padding-left: 4px; }
@@ -644,6 +644,7 @@ dialog.scene { width: min(980px, calc(100vw - 24px)); height: 792px; padding: 0 
 /* the line being said: a see-through box (her ask, 20 October: "opaque, almost transparent"), the hall showing through,
    in the pack's bubble with no fill. Every line is in the thread; one is current and shown, the rest wait for Earlier
    and Click to continue. */
+.sk-lines.end { cursor: default; }
 .sk-lines { grid-area: 1 / 2 / 3 / 3; align-self: end; justify-self: center; width: min(100%, 720px); max-height: 100%; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 4px; padding: 4px 8px 8px; cursor: var(--point);
   border: solid transparent; border-width: var(--bubble-px); border-image: var(--art-bubble) var(--bubble-s) / var(--bubble-px) stretch;
   background: color-mix(in srgb, var(--well) 42%, transparent) padding-box; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
@@ -3196,9 +3197,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   };
   // one icon as an SVG, a rect per run, its colours read from the tokens now (so a skin's show)
   let ROOT_CS = null;
-  function skIcon(name, cs) {
+  function skIcon(name) {
     const NS = "http://www.w3.org/2000/svg", s = document.createElementNS(NS, "svg"), rows = SK_ICONS[name], n = rows.length;
-    const st = cs || ROOT_CS || (ROOT_CS = getComputedStyle(document.documentElement));   // live, so it is read once
+    const st = ROOT_CS || (ROOT_CS = getComputedStyle(document.documentElement));   // live, so it is read once
     s.setAttribute("viewBox", "0 0 " + n + " " + n); s.setAttribute("width", n * 2); s.setAttribute("height", n * 2); s.setAttribute("aria-hidden", "true"); s.setAttribute("shape-rendering", "crispEdges");
     rows.forEach((row, y) => {
       for (let x = 0; x < n; ) {
@@ -3229,10 +3230,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const opened = Date.now();
     const box = el("div", "dlg queen");
     dlg.classList.add("scene");
-    const cs = getComputedStyle(document.documentElement);   // the tokens, read once for every icon
     // coming in from the litter box or the House menu opens the log at that quest
     if (section === "litterbox" || section === "decision") { const cards = deckOf(section), c = cards.find((z) => z.id === DECKAT.get(section)) || cards[0]; if (c) QSEL = "d:" + section + ":" + c.id; }
-    else if (section === "homework") { const u = openQuizzes().find((z) => kindOf(z) === "unblock"); if (u) QSEL = "q:" + u.id; }
+    else if (section === "homework") { const u = openQuizzes().find((z) => kindOf(z) === "unblock"); QSEL = u ? "q:" + u.id : null; SELIDX = 0; }   // none: the first waiting
 
     // ---- the top: her name and how she is, the tabs, Close ----
     const top = el("header", "sk-top");
@@ -3242,7 +3242,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     who.append(h, st);
     const tabs = el("div", "sk-tabs"); tabs.setAttribute("role", "tablist"); tabs.setAttribute("aria-label", "Her card");
     const close = el("button", "btn sq sk-close"); close.type = "button"; close.title = "Close (Esc)"; close.setAttribute("aria-label", "Close");
-    close.appendChild(skIcon("close", cs)); close.addEventListener("click", () => dlg.close());
+    close.appendChild(skIcon("close")); close.addEventListener("click", () => dlg.close());
     top.append(who, tabs, close);
     const sect = el("div", "sk-section"), secTitle = el("h3"); secTitle.id = "queenSection"; sect.append(el("div", "rule"), secTitle, el("div", "rule"));
     const body = el("main", "sk-body");
@@ -3267,7 +3267,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     for (const [key, label, icon, pid, cls] of TABS) {
       const b = el("button", "btn sq sk-tab"); b.type = "button"; b.id = "queenTab-" + key; b.title = label;
       b.setAttribute("role", "tab"); b.setAttribute("aria-controls", pid); b.setAttribute("aria-label", label);
-      b.appendChild(skIcon(icon, cs));
+      b.appendChild(skIcon(icon));
       if (key === "quests") b.appendChild(questBadge);
       b.addEventListener("click", () => selectTab(key));
       tabBtns[key] = b; tabs.appendChild(b);
@@ -3343,7 +3343,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       });
       stage.dataset.speaker = items[pos] && items[pos].kind === "owner" ? "owner" : "queen";
       counter.textContent = (pos + 1) + " / " + (last + 1);
-      earlier.hidden = pos === 0; onward.hidden = pos === last;
+      earlier.hidden = pos === 0; onward.hidden = pos === last; lines.classList.toggle("end", pos === last);
       ul.scrollTop = same ? keep : 0;
       dress();
       drawWork();
@@ -3424,7 +3424,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     say.setAttribute("aria-label", "Say to " + q.name);
     let posting = false;
     const post = async (text) => {
-      if (posting) return false;   // a double tap on a quick reply says it once
+      if (posting) { toast("One moment: she is being told."); return false; }   // a double tap on a quick reply says it once
       posting = true;
       try {
         await hostCall("comment", { cat: QUEEN_ID, text, author: "owner" });
@@ -3523,7 +3523,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       const keys = items.map((it) => it.key);
       if (!keys.includes(QSEL)) QSEL = keys[Math.min(SELIDX, keys.length - 1)] || null;   // the one she had open was handed in: the next one comes up
       // a deck's chosen entry is the card on top: choosing an entry puts that card on top
-      for (const d of decks) { const m = /^d:([a-z]+):(.+)$/.exec(QSEL || ""); if (m && m[1] === d.kind && d.cards.some((z) => z.id === m[2])) { d.at = d.cards.findIndex((z) => z.id === m[2]); d.z = d.cards[d.at]; } }
+      for (const d of decks) { const m = /^d:([a-z]+):(.+)$/.exec(QSEL || ""); if (m && m[1] === d.kind && d.cards.some((z) => z.id === m[2])) { d.at = d.cards.findIndex((z) => z.id === m[2]); d.z = d.cards[d.at]; DECKAT.set(d.kind, m[2]); } }
       SELIDX = Math.max(0, keys.indexOf(QSEL));
       questN.textContent = String(all.length); questBadge.hidden = !all.length;
       tabBtns.quests.setAttribute("aria-label", "Quest log" + (all.length ? ", " + all.length + " waiting" : ""));
@@ -3537,7 +3537,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       drawn = sig;
       const act = document.activeElement;   // the answer she is typing keeps its focus and caret through the rebuild
       const keep = act && hw.contains(act) && act.dataset.q ? { q: act.dataset.q, s: act.selectionStart, e: act.selectionEnd } : null;
-      const inList = act && qlist.contains(act);
+      const inList = act && (qlist.contains(act) || act === document.body || act === dlg);   // in the list, or lost with the form she handed in
       qlist.replaceChildren(); hw.replaceChildren();
       hw.hidden = !all.length;
       if (!items.length) qlist.appendChild(el("p", "sk-none", "No open quests. Nothing is waiting on you."));
