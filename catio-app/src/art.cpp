@@ -118,6 +118,8 @@ Art::~Art() {
 }
 
 void Art::scan() {
+    impl_->scanned = true;
+    if (impl_->cache.empty()) return;   // no folder named: no art, never what the current directory happens to hold
     for (const auto& f : kFiles) {
         const auto path = impl_->cache / std::string(f.path);
         std::error_code ec;
@@ -125,7 +127,6 @@ void Art::scan() {
         if (is_font(f.id) && !looks_like_font(path)) continue;   // a half-written or wrong file: fetched again
         impl_->take(f, is_font(f.id) ? nullptr : SDL_LoadPNG(to_utf8(path).c_str()));
     }
-    impl_->scanned = true;
 }
 
 std::vector<const File*> Art::missing() const {

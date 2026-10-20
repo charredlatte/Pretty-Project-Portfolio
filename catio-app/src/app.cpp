@@ -79,6 +79,7 @@ struct In {
     enum Kind { Move, Down, Up, Wheel, Key, Text, PinchBegin, Pinch, PinchEnd, Resize, Quit } kind = Move;
     float x = 0, y = 0, dy = 0, scale = 1;
     bool touch = false, shift = false;
+    bool primary = true;   // the left button (or a finger): only it clicks, as the page's click; any button drags
     std::string key;
     double at = 0;
 };
@@ -134,6 +135,7 @@ struct App::Impl {
     view::Scene scene;
     double now = 0, start = 0;
     bool still = false, coarse = false, quit = false;
+    bool still_given = false;      // --still: for this run, not written to the prefs
     std::atomic<bool> away{false}; // in the background: a phone ends an app that draws there
     std::vector<In> pending;       // what happened and isn't handled yet: one press a frame
     std::string live = "On this computer", status;
@@ -229,7 +231,10 @@ struct App::Impl {
             const std::string n = std::to_string(art->have()) + " of " + std::to_string(art->total());
             if (!fetching.empty()) told.push_back("Fetching the caf\u00e9's art\u2026 (" + n + ")");
             else if (origin.empty()) wrong.push_back("The caf\u00e9's art isn't all here (" + n + "): it comes from your gateway once you sign in.");
-            else if (read_once) wrong.push_back("The caf\u00e9's art isn't all here yet (" + n + "): the rest is asked for again with the next read.");
+            else if (const auto miss = art->missing(); read_once && std::any_of(miss.begin(), miss.end(), [&](const art::File* m) {
+                         return !failed.count(m->id) && !unkept.count(m->id);
+                     }))
+                wrong.push_back("The caf\u00e9's art isn't all here yet (" + n + "): the rest is asked for again with the next read.");
         }
         if (!cache_trouble.empty()) wrong.push_back(cache_trouble);
         if (origin.empty() && data == from_utf8(CATIO_SOURCE_DIR) / "test" / "fixtures")
@@ -400,9 +405,9 @@ struct App::Impl {
             case Ask::Art:
                 fetching.erase(a.art);
                 if (!r.ok()) {
-                    // the packs' licences are personal: a guest's café is drawn plainly, and says why
-                    // the packs' art is served to the café's first owner alone, once move-in.py has uploaded it
-                    failed.insert(a.art);
+                    // a moment's trouble (busy, a 5xx) is asked again with the next read; a piece that isn't there waits
+                    // for Check now: the packs' art is served to the café's first owner alone, once move-in.py has run
+                    if (r.err.code != "busy" && r.err.code != "unavailable") failed.insert(a.art);
                     art_trouble = r.err.code == "not_found"
                         ? "Your gateway has no " + a.label + ": it serves the packs' art to the caf\u00e9's first owner alone, once move-in.py has uploaded it. Check now tries again."
                         : "The caf\u00e9's art couldn't all come (" + r.err.code + "). Check now tries again.";
@@ -464,7 +469,7 @@ struct App::Impl {
         nlohmann::json j = nlohmann::json::parse(slurp(prefs), nullptr, false);
         if (!j.is_object()) j = nlohmann::json::object();
         if (ui.map_known()) j["minimap"] = ui.map_open() ? "open" : "folded";   // not a phone's default before its first frame
-        j["still"] = still;
+        if (!still_given) j["still"] = still;
         if (form.ask_origin && !origin.empty()) j["gateway"] = origin;
         std::ofstream(prefs) << j.dump();
     }
@@ -526,32 +531,10 @@ struct App::Impl {
         const double t = still ? 0 : now;
         auto blits = view::world(scene, cam.floor, t);
 
-        // what the pointer is on, and whose menu is open, are outlined round their own shapes (.hot and .lit)
-        std::vector<view::Blit> outlined;
-        auto spot_of = [&](Thing what, const std::string& key) -> std::optional<view::Spot> {
-            if (what == Thing::Cat) for (const auto& s : scene.cats) if (s.cat && s.cat->id == key) return s;
-            if (what == Thing::Queen && scene.queen) return *scene.queen;
-            if (what == Thing::Pile)   // the page's VIEW.piles[room]: the last pile placed in a room is the one named
-                for (auto p = scene.piles.rbegin(); p != scene.piles.rend(); ++p)
-                    if (p->room == key) return view::Spot{p->cats[0], p->cats[0]->mood, p->cats[0]->coat, p->at, p->room};
-            return std::nullopt;
-        };
-        if (auto s = spot_of(ui.tipped().what, ui.tipped().key)) outlined.push_back(view::blit_of(*s, t));
-        if (auto m = spot_of(ui.menu_kind(), ui.menu_key())) outlined.push_back(view::blit_of(*m, t));
-        if (ui.tipped().what == Thing::Cabinet || ui.tipped().what == Thing::Litter) {
-            // a filing cabinet or the litter box: the piece of furniture it stands over (outline()'s node.piece)
-            const manor::Geom* g = manor::of(ui.tipped().key);
-            const std::optional<manor::Box> box = !g ? std::nullopt : ui.tipped().what == Thing::Cabinet ? g->cabinet : g->litter;
-            if (box)
-                for (const auto& b : blits)
-                    if (!b.fill && (b.sheet == art::Id::Furniture || b.sheet == art::Id::FurnitureLicensed) &&
-                        b.dst.x == box->x * 2.f && b.dst.y == box->y * 2.f) outlined.push_back(b);
-        }
-        auto is_outlined = [&](const view::Blit& b) {
-            for (const auto& o : outlined)
-                if (b.z == o.z && b.sheet == o.sheet && b.dst.x == o.dst.x && b.dst.y == o.dst.y) return true;
-            return false;
-        };
+        // what the pointer is on, and whose menu is open, are outlined round their own shapes (.hot and .lit); a
+        // filing cabinet or the litter box is the piece of furniture it stands over (outline()'s node.piece)
+        const std::string hot = view::who_of(ui.tipped().what, ui.tipped().key), lit = view::who_of(ui.menu_kind(), ui.menu_key());
+        auto is_outlined = [&](const view::Blit& b) { return !b.who.empty() && (b.who == hot || b.who == lit); };
 
         // a closed room under the pointer, or with its menu open, is lightened to 18%
         auto fill_of = [&](const view::Blit& b) {
@@ -729,7 +712,7 @@ bool App::start(int argc, char** argv) {
         else if (a == "--size") { const std::string v = next(); std::sscanf(v.c_str(), "%dx%d", &I.shot_w, &I.shot_h); }
         else if (a == "--css") I.shot_css = std::max(1, std::atoi(next().c_str()));
         else if (a == "--touch") I.shot_touch = true;
-        else if (a == "--still") I.still = true;
+        else if (a == "--still") I.still = I.still_given = true;
         else if (a == "--do") I.steps = next();
         else { std::fprintf(stderr, "catio_app: what is %s? See include/catio/app.h.\n", a.c_str()); return false; }
     }
@@ -857,7 +840,7 @@ void App::act(ui::Action what, std::string_view arg_v) {
             break;
         case Action::CheckNow:
             I.art_trouble.clear();
-            I.failed.clear();
+            I.failed.clear(), I.unkept.clear(), I.cache_trouble.clear();
             refresh(true);
             break;
         case Action::Field: I.form.field = std::atoi(arg.c_str()); break;
@@ -922,12 +905,21 @@ void App::events() {
             case SDL_EVENT_WILL_ENTER_BACKGROUND: I.away = true; continue;
             case SDL_EVENT_RENDER_TARGETS_RESET: I.world_key = 0; continue;   // the world target's pixels are gone
             case SDL_EVENT_RENDER_DEVICE_RESET: I.lost_device(); continue;     // and every other texture with them
-            case SDL_EVENT_DID_ENTER_FOREGROUND: I.away = false; refresh(true); continue;
+            case SDL_EVENT_DID_ENTER_FOREGROUND: I.away = false, I.pinching = false, I.fingers.clear(); refresh(true); continue;
             case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
             case SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED: in.kind = In::Resize; break;
             case SDL_EVENT_MOUSE_MOTION: in.kind = In::Move, in.x = e.motion.x, in.y = e.motion.y, in.touch = e.motion.which == SDL_TOUCH_MOUSEID; break;
-            case SDL_EVENT_MOUSE_BUTTON_DOWN: in.kind = In::Down, in.x = e.button.x, in.y = e.button.y, in.touch = e.button.which == SDL_TOUCH_MOUSEID; break;
-            case SDL_EVENT_MOUSE_BUTTON_UP: in.kind = In::Up, in.x = e.button.x, in.y = e.button.y, in.touch = e.button.which == SDL_TOUCH_MOUSEID; break;
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            case SDL_EVENT_MOUSE_BUTTON_UP:
+                in.kind = e.type == SDL_EVENT_MOUSE_BUTTON_DOWN ? In::Down : In::Up;
+                in.x = e.button.x, in.y = e.button.y, in.touch = e.button.which == SDL_TOUCH_MOUSEID;
+                in.primary = e.button.button == SDL_BUTTON_LEFT;
+                break;
+            case SDL_EVENT_WINDOW_MOUSE_LEAVE:   // 5: the pointer left the window: nothing is under it (pointerleave)
+                I.pointer.reset();
+                I.ui.hover(I.frame(), -1, -1);
+                I.ui.tip(I.frame(), {}, false);
+                continue;
             case SDL_EVENT_MOUSE_WHEEL: in.kind = In::Wheel, in.x = e.wheel.mouse_x, in.y = e.wheel.mouse_y, in.dy = e.wheel.y; break;
             case SDL_EVENT_TEXT_INPUT: in.kind = In::Text, in.key = e.text.text ? e.text.text : ""; break;
             case SDL_EVENT_FINGER_DOWN:
@@ -935,7 +927,10 @@ void App::events() {
                 if (SDL_GetTouchDeviceType(e.tfinger.touchID) == SDL_TOUCH_DEVICE_DIRECT) I.fingers[e.tfinger.fingerID] = {e.tfinger.x, e.tfinger.y};
                 continue;
             case SDL_EVENT_FINGER_UP:
-            case SDL_EVENT_FINGER_CANCELED: I.fingers.erase(e.tfinger.fingerID); continue;
+            case SDL_EVENT_FINGER_CANCELED:
+                I.fingers.erase(e.tfinger.fingerID);
+                if (I.fingers.empty()) I.pinching = false, I.pinch = 1;   // with no PINCH_END (a cancelled gesture) too
+                continue;
             case SDL_EVENT_PINCH_BEGIN: in.kind = In::PinchBegin, in.touch = true; break;
             case SDL_EVENT_PINCH_END: in.kind = In::PinchEnd, in.touch = true; break;
             case SDL_EVENT_PINCH_UPDATE: {
@@ -953,6 +948,11 @@ void App::events() {
             case SDL_EVENT_KEY_DOWN: {
                 in.kind = In::Key;
                 in.shift = (e.key.mod & SDL_KMOD_SHIFT) != 0;
+                if (e.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI)) {   // the page leaves these to the browser
+                    if (e.key.key != SDLK_V || (e.key.mod & SDL_KMOD_ALT)) continue;
+                    in.key = "paste";
+                    break;
+                }
                 switch (e.key.key) {
                     case SDLK_ESCAPE: in.key = "escape"; break;
                     case SDLK_PAGEUP: in.key = "pageup"; break;
@@ -1006,7 +1006,7 @@ void App::Impl::handle(App& app, const In& in) {
             case In::Up: {
                 ui::Action a;
                 std::string arg;
-                if (ui.under(f, in.x, in.y) != press_on) return;   // slid off what it went down on
+                if (!in.primary || ui.under(f, in.x, in.y) != press_on) return;   // another button, or slid off it
                 if (ui.press(f, in.x, in.y, &a, &arg) && a != Action::None) app.act(a, arg);
                 return;
             }
@@ -1016,6 +1016,13 @@ void App::Impl::handle(App& app, const In& in) {
             case In::Key:
                 if (form.busy) return;
                 if (in.key == "enter") sign_in();
+                else if (in.key == "paste") {   // her password manager's, or the address copied from a browser
+                    char* t = SDL_GetClipboardText();
+                    std::string text = t ? t : "";
+                    SDL_free(t);
+                    std::erase_if(text, [](char ch) { return ch == '\n' || ch == '\r'; });
+                    if (field->size() + text.size() <= 1024) *field += text;
+                }
                 else if (in.key == "backspace") draw::pop_char(*field);
                 else if (in.key == "tab") {
                     const int first = form.ask_origin ? 0 : 1;
@@ -1093,6 +1100,7 @@ void App::Impl::handle(App& app, const In& in) {
             ui.hold(f, in.x, in.y, false);
             if (scrolling) { scrolling = on_ui = false; return; }                     // it scrolled; it wasn't a press
             if (dragging && on_map) { dragging = on_map = on_ui = false; return; }   // the minimap drag is done
+            if (!in.primary && !dragging) { on_ui = false; return; }                // a right or middle click: no click
             if (dragging) {
                 dragging = false;
                 // a quick sideways swipe inside a room, on a phone: the room next door (her fix)
@@ -1184,7 +1192,7 @@ void App::Impl::handle(App& app, const In& in) {
         }
         case In::Key: {
             const std::string& key = in.key;
-            if (key == "escape") { if (!ui.escape() && !cam.focus.empty()) go(""); return; }
+            if (key == "escape") { if (!ui.escape()) go(""); return; }
             if (ui.card() != ui::Card::None) return;
             if (key == "pageup") { set_floor(manor::Level::Upper); return; }
             if (key == "pagedown") { set_floor(manor::Level::Ground); return; }
@@ -1285,6 +1293,17 @@ int App::run() {
                 if (!I.shot_touch) I.handle(*this, m), I.draw();
                 In d = m; d.kind = In::Down; I.handle(*this, d);
                 In u = m; u.kind = In::Up; I.handle(*this, u);
+            }
+            else if (verb == "right") {   // a right click on what says this: "right Sign out"
+                std::string label;
+                std::getline(w, label);
+                if (!label.empty() && label.front() == ' ') label.erase(0, 1);
+                const auto at = I.ui.find(label);
+                if (!at) { std::fprintf(stderr, "catio_app: nothing says \"%s\"\n", label.c_str()); return 2; }
+                In d = in;
+                d.kind = In::Down, d.x = at->x, d.y = at->y, d.primary = false;
+                I.handle(*this, d);
+                In u = d; u.kind = In::Up; I.handle(*this, u);
             }
             else if (verb == "slide") {   // down on what says one thing, up on what says another: "slide Check now > Sign out"
                 std::string rest;

@@ -61,6 +61,7 @@ class State:
         self.redirect = False # True: something in front of the gateway sends /api/db elsewhere
         self.outage = False   # True: Cloudflare's own 503 page in front of /api/db
         self.proxy = False    # True: something in front of the gateway answers /api/db with its own HTML 401
+        self.flaky = set()    # art paths that answer Cloudflare's 503 once, then come
         self.seen = []        # (method, path, headers, body)
         self.docs = json.loads((APP / "test" / "fixtures" / "db.json").read_text())["docs"]
         self.agents = json.loads((APP / "test" / "fixtures" / "agents.json").read_text())
@@ -128,6 +129,9 @@ class Standin(BaseHTTPRequestHandler):
         if not self.signed_in():
             return self.refuse(401, "signed_out", "Sign in to the café first.")
         if path.startswith("/art/") and method == "GET":
+            if path[1:] in s.flaky:
+                s.flaky.discard(path[1:])
+                return self.answer(503, b"<html><h1>Error 503</h1></html>", "text/html")
             data = s.art.get(path[1:])
             return self.answer(200, data, "image/png") if data is not None else self.answer(404, b"Not found\n", "text/plain")
         if path == "/api/db" and method == "GET" and s.proxy:
@@ -484,6 +488,22 @@ class NetTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("form: Fill in your password.", r.stdout)
         self.assertNotIn(("POST", "/login"), [(m, p) for m, p, *_ in self.state.seen])
+
+    def test_a_right_click_is_no_click(self):
+        self.serve_art()
+        self.assertEqual(self.app(f"type {USER}; key tab; type {PASSWORD}; key enter").returncode, 0)
+        r = self.app("click 100 40; right Sign out")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn(("POST", "/logout"), [(m, p) for m, p, *_ in self.state.seen], "only the primary button clicks")
+
+    def test_a_moments_refusal_of_a_piece_of_art_is_asked_again(self):
+        self.serve_art()
+        self.state.flaky = {"art/licensed/house.png"}
+        r = self.app(f"type {USER}; key tab; type {PASSWORD}; key enter; wait 31")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        asked = [p for m, p, *_ in self.state.seen if p == "/art/licensed/house.png"]
+        self.assertEqual(len(asked), 2, "a 503 once, then asked again with the next read")
+        self.assertTrue((Path(self.dir.name) / "home" / "cache" / "art" / "licensed" / "house.png").exists())
 
     def test_a_press_slid_onto_another_item_is_no_press(self):
         self.serve_art()

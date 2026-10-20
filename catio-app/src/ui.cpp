@@ -635,6 +635,7 @@ void Ui::close_menu() {
     impl_->menu_box = {};
     impl_->menu_scroll = 0;
     forget(impl_->regions, "menu:");
+    if (impl_->hot.rfind("menu:", 0) == 0) impl_->hot.clear(), impl_->held.clear();
 }
 view::Thing Ui::menu_kind() const { return impl_->menu; }
 const std::string& Ui::menu_key() const { return impl_->menu_key; }
@@ -651,6 +652,7 @@ void Ui::close_card() {
     impl_->card = Card::None, impl_->card_key.clear();
     impl_->card_box = {};
     forget(impl_->regions, "card:");
+    if (impl_->hot.rfind("card:", 0) == 0) impl_->hot.clear(), impl_->held.clear();
 }
 Card Ui::card() const { return impl_->card; }
 const std::string& Ui::card_key() const { return impl_->card_key; }
@@ -1421,7 +1423,9 @@ bool Ui::press(const Frame& f, float x, float y, Action* what, std::string* arg)
         }
         case Action::None: break;
         default:
-            if (hit->id.rfind("menu:", 0) == 0) close_menu();   // an action in a menu closes it (hideMenu)
+            // an action in a menu closes it (hideMenu), but for the two the page's leave open: Check now (watch) and
+            // a link (an <a>, which a click inside the menu doesn't hide)
+            if (hit->id.rfind("menu:", 0) == 0 && hit->a != Action::CheckNow && hit->a != Action::OpenLink) close_menu();
             break;
     }
     return true;

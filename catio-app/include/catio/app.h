@@ -26,7 +26,7 @@
 // pixels: move X Y, click X Y, down X Y, up X Y, drag X1 Y1 X2 Y2, wheel X Y DY, key NAME (escape,
 // pageup, pagedown, plus, minus, 0, m, left, right, up, down, shift+left, tab, enter, backspace...),
 // type TEXT, wait SECONDS, choose LABEL (press the item or button that says it, wherever it was drawn),
-// slide LABEL > LABEL (down on one, up on the other). After each step it waits for the network to answer,
+// slide LABEL > LABEL (down on one, up on the other), right LABEL (a right click on it). After each step it waits for the network to answer,
 // so a shot is the same every time.
 
 #ifndef CATIO_APP_H

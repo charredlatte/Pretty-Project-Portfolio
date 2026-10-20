@@ -109,13 +109,13 @@ struct Blit {
     bool fill = false;                ///< no sheet: fill `dst` with `colour` (the upper floor's dim)
     draw::Colour colour;
     std::string room;                 ///< a closed room's dim: which room, so a lit one can be lightened
+    std::string who;                  ///< what it is of, for the outline: cat:<id>, queen, pile:<room>, cabinet:<room>,
+                                      ///< litter:<room>; empty for the rest
 };
 
 /// The world size in world pixels: the art doubled, 1920 x 1152.
 draw::Rect world_rect();
 
-/// One cat's blit, as world() makes it: what the outline under the pointer is drawn round.
-Blit blit_of(const Spot& s, double now);
 
 /// Everything to draw for one floor, in the page's order: the meadow, the plates, every piece of
 /// furniture and every cat, sorted into the page's single z-order -- rugs at 900, wall pieces at 950,
@@ -127,6 +127,8 @@ std::vector<Blit> world(const Scene& s, manor::Level floor, double now);
 
 /// What a press can land on. House is the brand, whose menu is the whole house's.
 enum class Thing { None, Room, Cat, Queen, Pile, Cabinet, Litter, Stairs, Attic, House };
+/// The `who` of a thing the pointer is on or a menu is open for, as world() marks its blit ("" for a room).
+std::string who_of(Thing what, std::string_view key);
 
 struct Hit {
     Thing what = Thing::None;

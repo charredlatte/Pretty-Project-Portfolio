@@ -89,7 +89,16 @@ Blit cat_blit(const Spot& at, double now) {
 
 }  // namespace
 
-Blit blit_of(const Spot& s, double now) { return cat_blit(s, now); }
+std::string who_of(Thing what, std::string_view key) {
+    switch (what) {
+        case Thing::Cat: return "cat:" + std::string(key);
+        case Thing::Queen: return "queen";
+        case Thing::Pile: return "pile:" + std::string(key);
+        case Thing::Cabinet: return "cabinet:" + std::string(key);
+        case Thing::Litter: return "litter:" + std::string(key);
+        default: return {};
+    }
+}
 
 // ---- the camera ----------------------------------------------------------------------------------
 
@@ -318,6 +327,11 @@ std::vector<Blit> world(const Scene& s, manor::Level floor, double now) {
                         : p->layer == manor::Layer::Wall ? 950
                         : p->layer == manor::Layer::Top  ? 1001 + bottom
                                                          : 1000 + bottom);
+            // the room's filing cabinet and litter box: GEOM's, the piece standing where it says
+            if (const manor::Geom* g = manor::of(k)) {
+                if (g->cabinet && g->cabinet->x == q.x && g->cabinet->y == q.y) b.who = who_of(Thing::Cabinet, k);
+                if (g->litter && g->litter->x == q.x && g->litter->y == q.y) b.who = who_of(Thing::Litter, k);
+            }
             out.push_back(b);
         }
     }
@@ -339,9 +353,15 @@ std::vector<Blit> world(const Scene& s, manor::Level floor, double now) {
     }
 
     // the cats, after the furniture: on an exact tie the page paints #cats after #props, so a cat wins
-    for (const auto& c : s.cats) out.push_back(cat_blit(c, now));
-    for (const auto& p : s.piles) out.push_back(cat_blit(Spot{p.cats[0], p.cats[0]->mood, p.cats[0]->coat, p.at, p.room}, now));
-    if (s.queen) out.push_back(cat_blit(*s.queen, now));
+    for (const auto& c : s.cats) {
+        out.push_back(cat_blit(c, now));
+        if (c.cat) out.back().who = who_of(Thing::Cat, c.cat->id);
+    }
+    for (const auto& p : s.piles) {
+        out.push_back(cat_blit(Spot{p.cats[0], p.cats[0]->mood, p.cats[0]->coat, p.at, p.room}, now));
+        out.back().who = who_of(Thing::Pile, p.room);
+    }
+    if (s.queen) out.push_back(cat_blit(*s.queen, now)), out.back().who = who_of(Thing::Queen, "");
 
     std::stable_sort(out.begin(), out.end(), [](const Blit& a, const Blit& b) { return a.z < b.z; });
     return out;
