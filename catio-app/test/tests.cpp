@@ -280,6 +280,23 @@ void the_interface(const std::string& dir) {
     h.agents(slurp(dir + "/agents.json"));
     v::Stage stage{1280, 800, 1};
     v::Cam cam = v::fit(catio::manor::world(), stage);
+    {
+        // on a wall two rooms share, the later room in ORDER answers, as the page's .roomhit buttons stack
+        const auto& rooms = catio::manor::geom();
+        bool found = false, later = false;
+        for (size_t i = 0; i < rooms.size() && !found; ++i)
+            for (size_t j = i + 1; j < rooms.size() && !found; ++j) {
+                const auto &a = rooms[i].box, &b = rooms[j].box;
+                if (rooms[i].level != rooms[j].level || rooms[i].level != catio::manor::Level::Ground) continue;
+                const int x0 = std::max(a.x, b.x), x1 = std::min(a.x + a.w, b.x + b.w), y0 = std::max(a.y, b.y), y1 = std::min(a.y + a.h, b.y + b.h);
+                if (x0 >= x1 || y0 >= y1) continue;
+                const v::Scene none;
+                const auto p = v::to_screen(cam, {(x0 + x1) / 2, (y0 + y1) / 2});
+                const v::Hit h = v::pick(none, cam, stage, p.x, p.y, false);
+                found = true, later = h.what == v::Thing::Room && h.key == rooms[j].key;
+            }
+        check(found && later, "a click on a shared wall is the later room's, as on the page");
+    }
     // the page zooms to 8 CSS pixels an art pixel at the most (4 on its doubled world): on a 2x screen, 16 device pixels
     const v::Stage retina{2560, 1600, 2};
     check(v::clamp(v::Cam{1000, 0, 0, {}, catio::manor::Level::Ground}, retina).u == 16, "the zoom's ceiling is in CSS pixels, as the page's");

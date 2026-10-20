@@ -208,7 +208,7 @@ struct App::Impl {
 
     bool read_house() {
         const std::string db = slurp(data / "db.json"), agents = slurp(data / "agents.json");
-        if (db.empty()) { std::fprintf(stderr, "catio_app: no db.json in %s\n", data.string().c_str()); return false; }
+        if (db.empty()) { std::fprintf(stderr, "catio_app: no db.json in %s\n", to_utf8(data).c_str()); return false; }
         house.docs(db);
         house.agents(agents.empty() ? R"({"agents": []})" : agents);
         if (const std::string q = slurp(data / "quizzes.json"); !q.empty()) house.quizzes(q);
@@ -310,8 +310,8 @@ struct App::Impl {
     // whose art the cache holds: the gateway and the handle that fetched it
     std::filesystem::path owner_file() const { return home / "art-owner"; }
     std::string owner_now() const {
-        std::string user = form.user;
-        for (char& ch : user) ch = char(std::tolower(static_cast<unsigned char>(ch)));   // a handle is lower case
+        std::string user = net::bare(form.user);   // as registry.js's checkPassword reads it: trimmed, lower case
+        for (char& ch : user) ch = char(std::tolower(static_cast<unsigned char>(ch)));
         return origin + "\n" + user + "\n";
     }
 
@@ -325,6 +325,7 @@ struct App::Impl {
         got_docs = got_agents = read_once = false;
         live_at = 0;
         net_trouble.clear(), art_trouble.clear();
+        failed.clear();   // what failed is asked for again after the next sign-in, as the sign will say
         if (leaving) {
             forget_art();
             std::error_code ec;
@@ -372,7 +373,7 @@ struct App::Impl {
                 form.problem.clear();
                 if (slurp(owner_file()) != owner_now()) {   // another account's art, or nobody's: not this one's to see
                     forget_art();
-                    std::ofstream(owner_file()) << owner_now();
+                    std::ofstream(owner_file(), std::ios::binary) << owner_now();   // read back as bytes: no \r\n
                 }
                 phase = Phase::FirstRead;
                 save_prefs();   // the address that worked
@@ -414,7 +415,7 @@ struct App::Impl {
                         art_trouble = "A piece of the art came back broken (" + a.label + ", " + std::string(art->trouble()) + "). Check now tries again.";
                     } else {   // drawn now if it could be decoded, but not kept
                         unkept.insert(a.art);
-                        cache_trouble = "The app can't keep its art in " + art_dir.string() + " (full, or not writable): it is fetched again next time.";
+                        cache_trouble = "The app can't keep its art in " + to_utf8(art_dir) + " (full, or not writable): it is fetched again next time.";
                     }
                 }
                 fetch_art();
@@ -530,9 +531,9 @@ struct App::Impl {
         auto spot_of = [&](Thing what, const std::string& key) -> std::optional<view::Spot> {
             if (what == Thing::Cat) for (const auto& s : scene.cats) if (s.cat && s.cat->id == key) return s;
             if (what == Thing::Queen && scene.queen) return *scene.queen;
-            if (what == Thing::Pile)
-                for (const auto& p : scene.piles)
-                    if (p.room == key) return view::Spot{p.cats[0], p.cats[0]->mood, p.cats[0]->coat, p.at, p.room};
+            if (what == Thing::Pile)   // the page's VIEW.piles[room]: the last pile placed in a room is the one named
+                for (auto p = scene.piles.rbegin(); p != scene.piles.rend(); ++p)
+                    if (p->room == key) return view::Spot{p->cats[0], p->cats[0]->mood, p->cats[0]->coat, p->at, p->room};
             return std::nullopt;
         };
         if (auto s = spot_of(ui.tipped().what, ui.tipped().key)) outlined.push_back(view::blit_of(*s, t));
@@ -740,7 +741,7 @@ bool App::start(int argc, char** argv) {
 #if defined(SDL_PLATFORM_ANDROID) || defined(SDL_PLATFORM_IOS)
     gateway_given = true;   // a phone has no folder of documents: its gateway, or the sign-in asks for the address
 #endif
-    if (!manor::load_text(read_shipped(I.manor_json))) { std::fprintf(stderr, "catio_app: no floor plan at %s\n", I.manor_json.string().c_str()); return false; }
+    if (!manor::load_text(read_shipped(I.manor_json))) { std::fprintf(stderr, "catio_app: no floor plan at %s\n", to_utf8(I.manor_json).c_str()); return false; }
 
     // where her cookie, the prefs and the art's cache live: the app's own private folder, or the one she names
     if (I.home.empty()) {
@@ -796,7 +797,7 @@ bool App::start(int argc, char** argv) {
     float scale = float(I.shot_css);
     if (I.window) SDL_GetRenderOutputSize(I.r, &w, &h), scale = SDL_GetWindowDisplayScale(I.window);
     I.resize(w, h, scale);
-    if (!I.ui.fonts(I.assets, *I.art, I.stage.css)) { std::fprintf(stderr, "catio_app: no fonts in %s\n", I.assets.string().c_str()); return false; }
+    if (!I.ui.fonts(I.assets, *I.art, I.stage.css)) { std::fprintf(stderr, "catio_app: no fonts in %s\n", to_utf8(I.assets).c_str()); return false; }
 
     I.make_cursors();
 
@@ -1318,7 +1319,7 @@ int App::run() {
         I.draw();
         SDL_RenderPresent(I.r);
         if (!SDL_SavePNG(I.surface, to_utf8(I.shot).c_str())) { std::fprintf(stderr, "catio_app: %s\n", SDL_GetError()); return 1; }
-        std::printf("%s: %dx%d at css %d\n", I.shot.string().c_str(), I.stage.w, I.stage.h, I.stage.css);
+        std::printf("%s: %dx%d at css %d\n", to_utf8(I.shot).c_str(), I.stage.w, I.stage.h, I.stage.css);
         // what the frame says, for a test to read
         std::printf("sign: %s\ntoast: %s\nform: %s\n", I.status.c_str(), I.toast.c_str(), I.form.problem.c_str());
         return 0;

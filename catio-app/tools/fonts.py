@@ -49,6 +49,7 @@ def main():
         s.populate(unicodes=subset.parse_unicodes(UNICODES))
         s.subset(font)
         out = ASSETS / f"Nunito-{style}.ttf"
+        font.recalcTimestamp = False   # head.modified stays the source's: the same bytes on every run
         font.save(out)
         print(out.name, out.stat().st_size, "bytes")
 

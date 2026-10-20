@@ -382,10 +382,12 @@ Hit pick(const Scene& s, const Cam& c, Stage stage, float sx, float sy, bool coa
         if (g.litter) if (const draw::Rect r = screen(art_box(*g.litter)); inside(r)) return Hit{Thing::Litter, g.key, r};
         if (g.cabinet) if (const draw::Rect r = screen(art_box(*g.cabinet)); inside(r)) return Hit{Thing::Cabinet, g.key, r};
     }
-    for (const auto& g : manor::geom()) {
-        if (g.level != c.floor) continue;
-        const draw::Rect r{g.box.x * 2 * k + c.tx, g.box.y * 2 * k + c.ty, g.box.w * 2 * k, g.box.h * 2 * k};
-        if (inside(r)) return Hit{Thing::Room, g.key, r};
+    // the page's .roomhit buttons, appended in ORDER: on a wall two rooms share, the later one is on top
+    const auto& rooms = manor::geom();
+    for (auto g = rooms.rbegin(); g != rooms.rend(); ++g) {
+        if (g->level != c.floor) continue;
+        const draw::Rect r{g->box.x * 2 * k + c.tx, g->box.y * 2 * k + c.ty, g->box.w * 2 * k, g->box.h * 2 * k};
+        if (inside(r)) return Hit{Thing::Room, g->key, r};
     }
     return Hit{};
 }

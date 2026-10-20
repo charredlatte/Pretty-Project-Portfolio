@@ -190,7 +190,10 @@ void Art::forget_all() {
     for (const auto& f : kFiles) {
         impl_->drop(f.id);
         std::error_code ec;
-        std::filesystem::remove(impl_->cache / std::string(f.path), ec);
+        auto path = impl_->cache / std::string(f.path);
+        std::filesystem::remove(path, ec);
+        path += ".part";   // and what a killed app was halfway through writing
+        std::filesystem::remove(path, ec);
     }
     impl_->trouble.clear();
 }

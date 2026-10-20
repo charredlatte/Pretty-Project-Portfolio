@@ -10,6 +10,7 @@ lacks, and opens a closed room, drawn into a PNG with no window.
 """
 import json
 import os
+import re
 import secrets
 import stat
 import struct
@@ -38,6 +39,8 @@ WRONG = ("That handle and password aren't right. The first account's handle is C
 def esc(text):
     return "".join(f"&#{ord(c)};" if c in "&<>\"'" else c for c in text)
 PASSWORD = "an invented password, with spaces & signs=+"   # a test's, nobody's
+# cafe.js's DOC_PATH: what a document's path may be, segments of these characters only, none of them empty
+DOC_PATH = re.compile(r"^[A-Za-z0-9_.~:@+-]{1,200}(/[A-Za-z0-9_.~:@+-]{1,200}){1,7}$")
 GUEST, GUEST_PASSWORD = "guest", "another invented password"  # a second account on the same stand-in
 
 
@@ -115,7 +118,8 @@ class Standin(BaseHTTPRequestHandler):
             return self.answer(303, b"", "text/plain", [("Location", "/"), ("Set-Cookie", "__Host-catio=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0")])
         if path == "/login" and method == "POST":
             form = parse_qs(body.decode(), keep_blank_values=True)
-            if (form.get("user"), form.get("password")) in (([USER], [PASSWORD]), ([GUEST], [GUEST_PASSWORD])):
+            user = (form.get("user") or [""])[0].strip().lower()   # registry.js's checkPassword: trimmed, lower case
+            if (user, form.get("password")) in ((USER, [PASSWORD]), (GUEST, [GUEST_PASSWORD])):
                 s.token = secrets.token_hex(32)
                 return self.answer(303, b"", "text/plain", [("Location", "/"), ("Set-Cookie",
                     f"__Host-catio={s.token}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=2592000")])
@@ -139,7 +143,9 @@ class Standin(BaseHTTPRequestHandler):
         if self.headers.get("X-Catio") != "1" or (origin and origin != f"http://{self.headers.get('Host')}"):
             return self.refuse(403, "forbidden", "Only the café's own page writes here.")
         if path.startswith("/api/db/"):
-            doc = "/".join(unquote(p) for p in path[len("/api/db/"):].split("/"))
+            doc = unquote(path[len("/api/db/"):])
+            if not DOC_PATH.match(doc) or len(doc.split("/")) % 2:   # as cafe.js refuses it
+                return self.refuse(400, "bad_request", "That isn't a document's path.")
             if method == "DELETE":
                 s.docs.pop(doc, None)
                 return self.answer(200, {"ok": True})
@@ -248,8 +254,10 @@ class NetTest(unittest.TestCase):
 
     def test_writes_say_they_come_from_the_cafe_and_from_no_other_site(self):
         self.run_check(f"login:{USER}:{PASSWORD}")
-        put, patch, erase = self.run_check('put:cats/café au lait:{"title": "A chat"}', 'patch:rooms/bath:{"closed": false}', "erase:cats/café au lait")
+        put, patch, erase, odd = self.run_check('put:cats/au-lait:{"title": "A chat"}', 'patch:rooms/bath:{"closed": false}', "erase:cats/au-lait",
+                                                'put:cats/café au lait:{"title": "A chat"}')
         self.assertTrue(put["ok"] and patch["ok"] and erase["ok"], (put, patch, erase))
+        self.assertEqual((odd["status"], odd["code"]), (400, "bad_request"), "the gateway takes only its own characters in a path")
         method, path, headers, body = self.last("PATCH", "/api/db/rooms/bath")
         self.assertEqual(headers.get("X-Catio"), "1")
         self.assertIsNone(headers.get("Origin"), "a native client sends no Origin, which fromCafe() lets through")
@@ -257,7 +265,7 @@ class NetTest(unittest.TestCase):
         self.assertEqual(json.loads(body), {"data": {"closed": False}}, "the data, wrapped as the gateway wants it")
         self.assertFalse(self.state.docs["rooms/bath"]["closed"])
         self.assertIn(("PUT", "/api/db/cats/caf%C3%A9%20au%20lait"), [(m, p) for m, p, *_ in self.state.seen], "each segment encoded")
-        self.assertNotIn("cats/café au lait", self.state.docs)
+        self.assertNotIn("cats/au-lait", self.state.docs)
 
     def test_a_document_that_isnt_there_and_a_tool_that_refuses(self):
         self.run_check(f"login:{USER}:{PASSWORD}")
@@ -285,6 +293,10 @@ class NetTest(unittest.TestCase):
         self.assertTrue(got["ok"])
         self.assertEqual(got["size"], len(self.state.art["art/licensed/ui/panel.png"]))
         self.assertEqual((gone["status"], gone["code"]), (404, "not_found"))
+
+    def test_a_handle_is_read_as_the_gateway_reads_it(self):
+        (r,) = self.run_check(f"login: {USER.upper()} :{PASSWORD}")
+        self.assertTrue(r["ok"], "trimmed and lower case, as registry.js's checkPassword")
 
     def test_a_wrong_password_keeps_the_cookie_already_kept(self):
         self.run_check(f"login:{USER}:{PASSWORD}")
@@ -390,8 +402,9 @@ class NetTest(unittest.TestCase):
 
     def test_an_empty_segment_stays_empty(self):
         self.run_check(f"login:{USER}:{PASSWORD}")
-        self.run_check("erase:cats//kitchen")
-        self.assertIn(("DELETE", "/api/db/cats//kitchen"), [(m, p) for m, p, *_ in self.state.seen])
+        (r,) = self.run_check("erase:cats//kitchen")
+        self.assertIn(("DELETE", "/api/db/cats//kitchen"), [(m, p) for m, p, *_ in self.state.seen], "sent as it is, not tidied into another path")
+        self.assertEqual(r["code"], "bad_request", "which the gateway refuses")
 
     def test_signing_out_from_the_house_menu(self):
         self.serve_art()

@@ -21,6 +21,11 @@ project(catio_app LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# every narrow literal is UTF-8 ("Caf\u00e9", the ellipsis, the middle dot), as SDL_ttf reads it: MSVC's own
+# default is the Windows code page
+if(MSVC)
+  add_compile_options(/utf-8)
+endif()
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(CATIO_HEADERS_ONLY "Compile each header alone, needing nothing installed." ON)
