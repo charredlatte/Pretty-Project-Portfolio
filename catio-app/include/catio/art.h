@@ -22,6 +22,7 @@
 #define CATIO_ART_H
 
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -70,6 +71,12 @@ enum class State {
     Missing     ///< a fetch failed; the stage says the code and offers Retry
 };
 
+/// A fetched file made ready off the main thread: decoded (a PNG) or checked (the font). prepare() touches no
+/// renderer, no file and nothing of an Art, so the network's thread runs it; adopt() writes it to the cache on the
+/// main thread, so nothing a signed-out session asked for is ever written after it.
+struct Fetched;
+std::shared_ptr<Fetched> prepare(Id id, std::string bytes);
+
 /// The cache, and the textures over it.
 class Art {
 public:
@@ -87,8 +94,13 @@ public:
     /// Write a fetched file to the cache and decode it. False if the bytes are not a PNG (or a font).
     /// This is where the scale mode is set, from File::pixel.
     bool store(Id id, std::string_view bytes);
+    /// What prepare() made of a fetched file, on the main thread: the cache's now. False, with trouble(),
+    /// when it was not a PNG (or a font), or could not be written (then a PNG is drawn all the same, not kept).
+    bool adopt(Id id, const std::shared_ptr<Fetched>& ready);
     /// Throw the cache away: "Fetch the art again" in the House menu.
     void forget_all();
+    /// The GPU lost its textures (a device reset): each is made again from its surface when next drawn.
+    void forget_gpu();
 
     State state() const;
     int have() const;
@@ -100,6 +112,9 @@ public:
     /// Null until that file is in the cache. Every drawing call tolerates a null texture, so the house
     /// fills in piece by piece as the fetches land.
     Texture* texture(Id id) const;
+    /// Where the cache keeps a file, once it holds it; empty until then. The font is the one file read
+    /// from here rather than decoded: SDL_ttf opens it itself.
+    std::filesystem::path path(Id id) const;
 
 private:
     struct Impl;

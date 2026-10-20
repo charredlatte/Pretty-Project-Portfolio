@@ -160,6 +160,7 @@ struct House::Impl {
 
         auto finish = [&](Cat c, const std::string& project_name) {
             c.project = slug(project_name);
+            c.project_name = project_name;
             const json* t = tweak(c.id);
             if (t) if (auto n = str(*t, "name"); !n.empty()) c.name = n;
             if (c.name.empty()) c.name = std::string(kNames[fnv(c.id) % kNames.size()]);
@@ -190,7 +191,8 @@ struct House::Impl {
             c.mood = m == "needs" ? Mood::Meow : m == "busy" ? Mood::Idle : Mood::Sleep;
             c.title = str(d, "title");
             if (c.title.empty()) c.title = "A chat";
-            if (c.mood == Mood::Meow) { c.ask = str(d, "note"); if (c.ask.empty()) c.ask = "You marked this as needing you."; }
+            c.doing = str(d, "note");
+            if (c.mood == Mood::Meow) { c.ask = c.doing; if (c.ask.empty()) c.ask = "You marked this as needing you."; }
             c.updated = num(d, "updatedAt") ? num(d, "updatedAt") : num(d, "adoptedAt");
             c.link = str(d, "link");
             c.room = str(d, "room");
@@ -209,6 +211,7 @@ struct House::Impl {
             c.id = "agent:" + id;
             c.mood = mood_from(str(a, "mood")).value_or(Mood::Sleep);
             c.title = str(a, "title");
+            c.doing = c.title;
             if (c.title.empty()) c.title = str(a, "name");
             if (c.title.empty()) c.title = id;
             if (info(c.mood).needs) { c.ask = str(a, "ask"); if (c.ask.empty()) c.ask = "Waiting for you."; }
@@ -297,13 +300,22 @@ struct House::Impl {
 House::House() : impl_(new Impl) {}
 House::~House() { delete impl_; }
 
-void House::docs(std::string_view body) {
+bool House::docs(std::string_view body) {
     json j = json::parse(body, nullptr, false);
+    const auto d = j.is_object() ? j.find("docs") : j.end();
+    if (!j.is_object() || d == j.end() || !d->is_object()) return false;
     impl_->docs.clear();
-    if (j.is_object())
-        if (auto d = j.find("docs"); d != j.end() && d->is_object())
-            for (auto& [path, data] : d->items()) impl_->docs[path] = data;
+    for (auto& [path, data] : d->items()) impl_->docs[path] = data;
     impl_->ready = true;
+    impl_->rebuild(*this);
+    return true;
+}
+
+void House::clear() {
+    impl_->docs.clear();
+    impl_->agents = json::array();
+    impl_->quizzes = json::array();
+    impl_->ready = false;
     impl_->rebuild(*this);
 }
 
@@ -313,16 +325,20 @@ void House::doc(std::string_view path, std::string_view body) {
     impl_->rebuild(*this);
 }
 
-void House::agents(std::string_view body) {
+bool House::agents(std::string_view body) {
     json j = json::parse(body, nullptr, false);
-    impl_->agents = j.is_object() && j.contains("agents") && j["agents"].is_array() ? j["agents"] : json::array();
+    if (!j.is_object() || !j.contains("agents") || !j["agents"].is_array()) return false;
+    impl_->agents = j["agents"];
     impl_->rebuild(*this);
+    return true;
 }
 
-void House::quizzes(std::string_view body) {
+bool House::quizzes(std::string_view body) {
     json j = json::parse(body, nullptr, false);
-    impl_->quizzes = j.is_object() && j.contains("quizzes") && j["quizzes"].is_array() ? j["quizzes"] : json::array();
+    if (!j.is_object() || !j.contains("quizzes") || !j["quizzes"].is_array()) return false;
+    impl_->quizzes = j["quizzes"];
     impl_->rebuild(*this);
+    return true;
 }
 
 bool House::ready() const { return impl_->ready; }
@@ -331,6 +347,16 @@ bool House::never_set_up() const {
     if (!impl_->ready) return false;
     return std::none_of(impl_->docs.begin(), impl_->docs.end(),
                         [](const auto& d) { return d.first.rfind("rooms/", 0) == 0; });
+}
+
+int House::tray() const {
+    return int(std::count_if(impl_->docs.begin(), impl_->docs.end(), [](const auto& d) {
+        return d.first.rfind("brain/", 0) == 0 && str(d.second, "status") == "unsorted";
+    }));
+}
+
+bool House::has_maps() const {
+    return std::any_of(impl_->docs.begin(), impl_->docs.end(), [](const auto& d) { return d.first.rfind("graphs/", 0) == 0; });
 }
 
 std::string House::name() const {
@@ -411,14 +437,13 @@ std::vector<const Cat*> House::queue() const {
     return out;
 }
 
-// The other floor's badge counts a cat where it stands: a meowing one stands in the queue, in the hall.
+std::string_view stands_in(const Cat& c) { return c.mood == Mood::Meow ? std::string_view("hall") : std::string_view(c.room); }
+
+// The other floor's badge counts a cat where it stands.
 int House::needing_on(std::string_view floor) const {
     const manor::Level want = floor == "upper" ? manor::Level::Upper : manor::Level::Ground;
     int n = 0;
-    for (const Cat* c : needing()) {
-        const manor::Level at = c->mood == Mood::Meow ? manor::Level::Ground : manor::level_of(c->room);
-        if (at == want) ++n;
-    }
+    for (const Cat* c : needing()) if (manor::level_of(stands_in(*c)) == want) ++n;
     return n;
 }
 

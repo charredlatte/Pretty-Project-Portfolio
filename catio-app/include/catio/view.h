@@ -27,8 +27,15 @@
 
 namespace catio::view {
 
-/// The stage, in device pixels.
-struct Stage { int w = 0, h = 0; };
+/// The stage, in device pixels, and how many of them make one of the page's CSS pixels. Every length
+/// the page's stylesheet gives (the 8px margin, the 560px phone width, the 44px touch minimum) is
+/// multiplied by `css` here.
+struct Stage {
+    int w = 0, h = 0;
+    int css = 1;
+    bool narrow() const { return w <= 560 * css; }   ///< @media (max-width: 560px): a phone
+    int u() const { return css * (narrow() ? 1 : 2); }  ///< --u, the interface's art pixel: 2px, or 1px on a phone
+};
 
 struct Cam {
     int u = 2;                                   ///< always whole: one art pixel in device pixels
@@ -45,9 +52,20 @@ Cam zoom_by(Cam c, int du, float at_x, float at_y, Stage stage);
 Cam pan_by(Cam c, float dx, float dy, Stage stage);
 
 draw::Pt to_screen(const Cam& c, manor::Point p);
+/// The room of this floor at a point of the plan (art pixels), or none. On a wall two rooms share, the later in
+/// ORDER: the page's .roomhit buttons stack in that order. A click on the house and the minimap both ask this.
+std::string room_at(manor::Level floor, float ax, float ay);
+
+/// A box of the plan (a room, the stair, a piece of furniture), on screen.
+draw::Rect screen_box(const Cam& c, manor::Box b);
+/// The other way: what of the plan the camera shows, in art pixels (the minimap's frame, roomInView).
+draw::Rect visible(const Cam& c, Stage stage);
 manor::Point to_world(const Cam& c, float sx, float sy);
-/// roomInView / settleFocus: the room the camera has settled on.
+/// roomInView / settleFocus: the room on this floor that fills the view, if one does -- one that covers
+/// most of it, or one shown nearly whole that fills it across or down. Empty when none does.
 std::string room_in_view(const Cam& c, Stage stage);
+/// What Look in fits: a room's box with 6 art pixels round it (padded()).
+manor::Box padded(std::string_view room);
 
 /// Where one cat stands this frame.
 struct Spot {
@@ -74,6 +92,7 @@ struct Scene {
     std::optional<Spot> queen;              ///< her seat in the entrance hall; never in `cats`
     std::vector<const Cat*> attic;          ///< napping out of sight, counted nowhere
     std::map<std::string, int> needing;     ///< per room, for the minimap's pips
+    std::vector<std::string> closed;        ///< this floor's closed rooms: dimmed, with no sign
 };
 
 /// One frame's placement: stations, the free floor for wanderers, the piles, and the queue at the door.
@@ -93,19 +112,27 @@ struct Blit {
     int coat = 0;                     ///< a cat's tint; 0 is the untinted cream
     bool fill = false;                ///< no sheet: fill `dst` with `colour` (the upper floor's dim)
     draw::Colour colour;
+    std::string room;                 ///< a closed room's dim: which room, so a lit one can be lightened
+    std::string who;                  ///< what it is of, for the outline: cat:<id>, queen, pile:<room>, cabinet:<room>,
+                                      ///< litter:<room>; empty for the rest
 };
 
 /// The world size in world pixels: the art doubled, 1920 x 1152.
 draw::Rect world_rect();
 
+
 /// Everything to draw for one floor, in the page's order: the meadow, the plates, every piece of
 /// furniture and every cat, sorted into the page's single z-order -- rugs at 900, wall pieces at 950,
 /// floor pieces and cats at 1000 + 2 x their bottom edge (a cat wins a tie; a "top" piece sits one
-/// above its counter), the upper floor lifted by 4000 over a dimmed ground floor. Pure: it draws
-/// nothing, so the order is testable without a window. `now` picks each sprite's frame.
+/// above its counter), the upper floor lifted by 4000 over a dimmed ground floor. A closed room is
+/// dimmed too, under its furniture as the page's room button is: --shade at 30%, at z 0 (3950 upstairs).
+/// Pure: it draws nothing, so the order is testable without a window. `now` picks each sprite's frame.
 std::vector<Blit> world(const Scene& s, manor::Level floor, double now);
 
-enum class Thing { None, Room, Cat, Queen, Pile, Cabinet, Litter, Stairs, Attic };
+/// What a press can land on. House is the brand, whose menu is the whole house's.
+enum class Thing { None, Room, Cat, Queen, Pile, Cabinet, Litter, Stairs, Attic, House };
+/// The `who` of a thing the pointer is on or a menu is open for, as world() marks its blit ("" for a room).
+std::string who_of(Thing what, std::string_view key);
 
 struct Hit {
     Thing what = Thing::None;
@@ -113,8 +140,11 @@ struct Hit {
     draw::Rect box;      ///< in device pixels, already grown to the touch minimum where coarse
 };
 
-/// Cats before rooms, as the page tests them. On a coarse pointer every box is grown to at least
-/// ui::kTouch before testing — her audit measured cats at 6-12px and the smallest rooms at 38x44.
+/// Cats before rooms, as the page tests them: the cats, the queen and the piles, topmost first; then the
+/// stair, the filing cabinets and the litter box; then the rooms. On a coarse pointer every box but a
+/// room's is grown to at least ui::kTouch CSS pixels before testing -- her audit measured cats at 6-12px.
+/// The rooms are not: they tile the floor, so a grown room would take its neighbour's taps. A room too
+/// small for a finger is why a phone opens zoomed into one, with a swipe to the next.
 Hit pick(const Scene& s, const Cam& c, Stage stage, float sx, float sy, bool coarse);
 
 /// Cats walk when their place changes: through the doorways to a new room, up the stair to the attic,
