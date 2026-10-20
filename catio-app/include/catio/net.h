@@ -40,6 +40,28 @@ struct Reply {
 /// 401 {code:"signed_out"} — the cookie has run out (30 days) or been revoked. Sign in again.
 bool signed_out(const Reply&);
 
+/// An origin as the jar, the requests and the sign-in screen all write it: no spaces round it, no slash after it.
+inline std::string bare(std::string origin) {
+    while (!origin.empty() && (origin.back() == '/' || origin.back() == ' ')) origin.pop_back();
+    const size_t start = origin.find_first_not_of(' ');
+    return start == std::string::npos ? std::string{} : origin.substr(start);
+}
+
+/// Plain http only to this machine (the tests' stand-in): anywhere else her password and cookie would cross
+/// the network in the clear. The host is read as a URL reads it -- after any user@, up to the port or the
+/// path -- so "http://localhost:x@far.example" is far.example, and refused.
+inline bool safe_origin(const std::string& origin) {
+    if (origin.rfind("https://", 0) == 0) return true;
+    if (origin.rfind("http://", 0) != 0) return false;
+    const std::string rest = origin.substr(7);
+    const std::string authority = rest.substr(0, rest.find_first_of("/?#"));
+    if (authority.find('@') != std::string::npos) return false;
+    std::string host = authority;
+    if (host.rfind("[::1]", 0) == 0) host = "[::1]";
+    else host = host.substr(0, host.find(':'));
+    return host == "127.0.0.1" || host == "localhost" || host == "[::1]";
+}
+
 /// The routes, one method each. Writes carry `X-Catio: 1` and no Origin, which is what fromCafe() in
 /// harness/gateway/src/cafe.js checks; a native client sends no Origin, so it passes.
 ///

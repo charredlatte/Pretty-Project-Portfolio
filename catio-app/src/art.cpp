@@ -123,21 +123,37 @@ std::vector<const File*> Art::missing() const {
     return out;
 }
 
-bool Art::store(Id id, std::string_view bytes) {
-    const File& f = file_of(id);
-    if (!is_font(id)) {
+std::shared_ptr<Fetched> prepare(Id id, std::string_view bytes, const std::filesystem::path& cache_dir) {
+    auto ready = std::make_shared<Fetched>();
+    if (is_font(id)) {
+        // a TrueType or OpenType font, not a portal's page answered with a 200
+        const std::string_view head = bytes.substr(0, 4);
+        if (head != std::string_view("\0\1\0\0", 4) && head != "true" && head != "OTTO" && head != "ttcf") {
+            ready->trouble = "not_a_font";
+            return ready;
+        }
+    } else {
         SDL_IOStream* io = SDL_IOFromConstMem(bytes.data(), bytes.size());
-        SDL_Surface* s = io ? SDL_LoadPNG_IO(io, true) : nullptr;
-        if (!s) { impl_->trouble = "not_a_png"; return false; }
-        impl_->take(f, s);
+        ready->surface = io ? SDL_LoadPNG_IO(io, true) : nullptr;
+        if (!ready->surface) { ready->trouble = "not_a_png"; return ready; }
     }
-    const auto path = impl_->cache / std::string(f.path);
+    const auto path = cache_dir / std::string(file_of(id).path);
     std::error_code ec;
     std::filesystem::create_directories(path.parent_path(), ec);
     std::ofstream out(path, std::ios::binary);
     out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
-    if (!out) { impl_->trouble = "cache_unwritable"; return false; }
-    if (is_font(id)) impl_->take(f, nullptr);
+    if (!out) ready->trouble = "cache_unwritable";
+    return ready;
+}
+
+bool Art::store(Id id, std::string_view bytes) { return adopt(id, prepare(id, bytes, impl_->cache)); }
+
+bool Art::adopt(Id id, const std::shared_ptr<Fetched>& ready) {
+    if (!ready) { impl_->trouble = "not_a_png"; return false; }
+    const File& f = file_of(id);
+    if (ready->surface) impl_->take(f, ready->surface), ready->surface = nullptr;   // drawn, even if not kept
+    else if (is_font(id) && ready->trouble.empty()) impl_->take(f, nullptr);         // the font is read from its file
+    if (!ready->trouble.empty()) { impl_->trouble = ready->trouble; return false; }
     return true;
 }
 

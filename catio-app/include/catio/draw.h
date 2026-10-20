@@ -156,19 +156,21 @@ public:
     bool ready() const;
     float px() const;
     Pt measure(std::string_view text) const;
-    /// Break into lines no wider than `width`, at spaces where it can and anywhere where it must. Newlines
-    /// and tabs are spaces here, as white-space: normal makes them on the page.
-    /// (overflow-wrap: anywhere). More than `max_lines` and the last one ends in an ellipsis, as
-    /// -webkit-line-clamp does. 0 means no limit.
+    /// Break into lines no wider than `width`, at spaces where it can and anywhere where it must
+    /// (overflow-wrap: anywhere). Newlines and tabs are spaces here, as white-space: normal makes them on the
+    /// page. More than `max_lines` and the last one ends in an ellipsis, as -webkit-line-clamp does. 0 means
+    /// no limit. Kept: the same text at the same width is broken once, not every frame.
     std::vector<std::string> wrap(std::string_view text, float width, int max_lines = 0) const;
     /// One line, cut with an ellipsis to fit (text-overflow: ellipsis).
-    std::string cut(std::string_view text, float width) const;
+    /// `as_typed`: what she typed in a field, every space kept, rather than prose's white-space: normal.
+    std::string cut(std::string_view text, float width, bool as_typed = false) const;
     /// The same from the other end: an ellipsis, then as much of the end as fits. A field she is typing in
     /// shows where she is typing, as an input scrolls to its caret.
-    std::string tail(std::string_view text, float width) const;
+    std::string tail(std::string_view text, float width, bool as_typed = false) const;
     void put(const Ctx& c, std::string_view text, float x, float y, Colour col) const;
 
 private:
+    std::vector<std::string> lay_out(std::string_view text, float width, int max_lines) const;
     struct Impl;
     Impl* impl_;
 };

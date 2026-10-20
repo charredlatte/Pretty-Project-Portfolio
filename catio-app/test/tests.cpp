@@ -280,6 +280,9 @@ void the_interface(const std::string& dir) {
     h.agents(slurp(dir + "/agents.json"));
     v::Stage stage{1280, 800, 1};
     v::Cam cam = v::fit(catio::manor::world(), stage);
+    // the page zooms to 8 CSS pixels an art pixel at the most (4 on its doubled world): on a 2x screen, 16 device pixels
+    const v::Stage retina{2560, 1600, 2};
+    check(v::clamp(v::Cam{1000, 0, 0, {}, catio::manor::Level::Ground}, retina).u == 16, "the zoom's ceiling is in CSS pixels, as the page's");
     v::Scene scene = v::build(h, catio::manor::Level::Ground);
     // the scene points into the house's cats: built again whenever a document changes them, as the app does
     auto change = [&](std::string_view path, std::string_view body) { h.doc(path, body); scene = v::build(h, catio::manor::Level::Ground); };
@@ -507,6 +510,7 @@ void the_interface(const std::string& dir) {
     check(short_.size() > 3 && short_.compare(short_.size() - 3, 3, "\u2026") == 0 && body.measure(short_).x <= 70 && whole &&
           body.measure(body.cut("Caf\u00e9 \u00e9t\u00e9 au lait, tr\u00e8s chaud", 90)).x > body.measure(short_).x,
           "a line cut short ends in an ellipsis, fits, keeps whole characters, and keeps as much as fits");
+    check(body.cut(" a  b ", 1000, true) == " a  b " && body.tail("x ", 1000, true) == "x ", "what she typed is shown as she typed it, every space kept");
     const std::string address = body.tail("https://catio-gateway.example.workers.dev", 120);
     check(address.rfind("\u2026", 0) == 0 && address.size() > 12 && address.compare(address.size() - 12, 12, ".workers.dev") == 0 && body.measure(address).x <= 120,
           "a field she is typing in shows the end, where she types");

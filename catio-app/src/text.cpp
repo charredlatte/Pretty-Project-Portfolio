@@ -11,7 +11,9 @@
 #include <SDL3_ttf/SDL_ttf.h>
 
 #include <algorithm>
+#include <cmath>
 #include <map>
+#include <unordered_map>
 #include <memory>
 #include <utility>
 
@@ -71,6 +73,19 @@ Pt size_of(TTF_Font* font, std::string_view text) {
     return {float(w), float(h)};
 }
 
+// What a font has measured, kept: a frame measures the same words the last one did. Emptied when it grows large
+// (a long session's every ask) or the font changes.
+struct Sizes {
+    std::unordered_map<std::string, Pt> got;
+    Pt of(TTF_Font* font, std::string_view text) {
+        if (!font) return {};
+        const std::string key(text);
+        if (auto it = got.find(key); it != got.end()) return it->second;
+        if (got.size() > 4096) got.clear();
+        return got.emplace(key, size_of(font, text)).first->second;
+    }
+};
+
 // white-space: normal -- a newline, a tab or a run of spaces is one space, as the page shows an ask. One at the
 // start stays: " · Waiting" follows a cat's name inline
 std::string collapsed(std::string_view text) {
@@ -100,6 +115,7 @@ struct Pixel::Impl {
     float round_px = 0;
     mutable std::map<int, std::unique_ptr<Body>> rounds;   // the round font, at each css it is drawn at
     mutable Cache cache;
+    mutable Sizes sizes;
     const Body* round(int css) const {
         if (round_ttf.empty()) return nullptr;
         auto& b = rounds[css];
@@ -129,6 +145,7 @@ void Pixel::fallback(const std::filesystem::path& ttf, float px) {
 
 void Pixel::close() {
     impl_->cache.clear();
+    impl_->sizes.got.clear();
     if (impl_->font) TTF_CloseFont(impl_->font), impl_->font = nullptr;
 }
 
@@ -136,7 +153,7 @@ bool Pixel::ready() const { return impl_->font || impl_->round(1); }
 
 Pt Pixel::measure(std::string_view text, int css) const {
     if (!impl_->font) { const Body* r = impl_->round(css); return r ? r->measure(text) : Pt{}; }
-    const Pt p = size_of(impl_->font, text);
+    const Pt p = impl_->sizes.of(impl_->font, text);
     return {p.x * css, p.y * css};
 }
 
@@ -157,6 +174,8 @@ struct Body::Impl {
     TTF_Font* font = nullptr;
     float px = 0;
     mutable Cache cache;
+    mutable Sizes sizes;
+    mutable std::unordered_map<std::string, std::vector<std::string>> wraps;   // the lines each text was broken into
 };
 
 Body::Body() : impl_(new Impl) {}
@@ -170,6 +189,7 @@ bool Body::open(const std::filesystem::path& ttf, float px) {
     if (!ttf_ready()) return false;
     if (impl_->font) TTF_CloseFont(impl_->font), impl_->font = nullptr;
     impl_->cache.clear();
+    impl_->sizes.got.clear(), impl_->wraps.clear();
     impl_->font = TTF_OpenFont(ttf.string().c_str(), px);
     if (impl_->font) TTF_SetFontHinting(impl_->font, TTF_HINTING_LIGHT);
     impl_->px = px;
@@ -179,10 +199,10 @@ bool Body::open(const std::filesystem::path& ttf, float px) {
 bool Body::ready() const { return impl_->font != nullptr; }
 float Body::px() const { return impl_->px; }
 
-Pt Body::measure(std::string_view text) const { return size_of(impl_->font, text); }
+Pt Body::measure(std::string_view text) const { return impl_->sizes.of(impl_->font, text); }
 
-std::string Body::cut(std::string_view text, float width) const {
-    const std::string s = collapsed(text);
+std::string Body::cut(std::string_view text, float width, bool as_typed) const {
+    const std::string s = as_typed ? std::string(text) : collapsed(text);
     if (!impl_->font || measure(s).x <= width) return s;
     // the longest run of whole characters that fits with its ellipsis, found by halving
     std::vector<size_t> ends{0};
@@ -198,8 +218,8 @@ std::string Body::cut(std::string_view text, float width) const {
     return out + "…";
 }
 
-std::string Body::tail(std::string_view text, float width) const {
-    const std::string s = collapsed(text);
+std::string Body::tail(std::string_view text, float width, bool as_typed) const {
+    const std::string s = as_typed ? std::string(text) : collapsed(text);
     if (!impl_->font || measure(s).x <= width) return s;
     std::vector<size_t> starts;   // every character's first byte, and the end
     for (size_t i = 0; i < s.size(); ++i) if ((static_cast<unsigned char>(s[i]) & 0xC0) != 0x80) starts.push_back(i);
@@ -214,6 +234,14 @@ std::string Body::tail(std::string_view text, float width) const {
 }
 
 std::vector<std::string> Body::wrap(std::string_view raw, float width, int max_lines) const {
+    // the same text at the same width is broken the same way every frame: once
+    const std::string key = std::to_string(std::lround(width * 4)) + "|" + std::to_string(max_lines) + "|" + std::string(raw);
+    if (auto it = impl_->wraps.find(key); it != impl_->wraps.end()) return it->second;
+    if (impl_->wraps.size() > 1024) impl_->wraps.clear();
+    return impl_->wraps.emplace(key, lay_out(raw, width, max_lines)).first->second;
+}
+
+std::vector<std::string> Body::lay_out(std::string_view raw, float width, int max_lines) const {
     std::vector<std::string> lines;
     const std::string text = collapsed(raw);
     if (!impl_->font || text.empty()) return lines;

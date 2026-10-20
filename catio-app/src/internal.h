@@ -13,6 +13,15 @@ namespace catio::art {
 
 /// One decoded pack file. The surface is the truth; a texture is made from it the first time a renderer
 /// draws it, which keeps the cache free of any renderer and so testable over a directory of files.
+struct Fetched {
+    SDL_Surface* surface = nullptr;   ///< owned until adopted
+    std::string trouble;              ///< not_a_png, not_a_font, cache_unwritable
+    Fetched() = default;
+    Fetched(const Fetched&) = delete;
+    Fetched& operator=(const Fetched&) = delete;
+    ~Fetched() { if (surface) SDL_DestroySurface(surface); }
+};
+
 struct Texture {
     SDL_Surface* surface = nullptr;   ///< owned
     bool pixel = true;                ///< nearest-neighbour (the pixel packs) or linear (the Pastel pieces)

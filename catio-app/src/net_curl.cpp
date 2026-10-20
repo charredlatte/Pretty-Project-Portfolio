@@ -49,27 +49,6 @@ std::string read_jar(const std::filesystem::path& jar, const std::string& origin
     return from == origin ? token : std::string{};
 }
 
-// An origin as the jar and the requests both write it: no trailing slash.
-std::string bare(std::string origin) {
-    while (!origin.empty() && origin.back() == '/') origin.pop_back();
-    return origin;
-}
-
-// Plain http only to this machine (the tests' stand-in): anywhere else her password and cookie would cross the
-// network in the clear. The host is read as a URL reads it -- after any user@, up to the port or the path -- so
-// "http://localhost:x@far.example" is far.example, and refused.
-bool safe_origin(const std::string& origin) {
-    if (origin.rfind("https://", 0) == 0) return true;
-    if (origin.rfind("http://", 0) != 0) return false;
-    const std::string rest = origin.substr(7);
-    const std::string authority = rest.substr(0, rest.find_first_of("/?#"));
-    if (authority.find('@') != std::string::npos) return false;
-    std::string host = authority;
-    if (host.rfind("[::1]", 0) == 0) host = "[::1]";
-    else host = host.substr(0, host.find(':'));
-    return host == "127.0.0.1" || host == "localhost" || host == "[::1]";
-}
-
 // Asked between the bytes of a transfer: a non-zero answer abandons it, so closing the app never waits out a timeout.
 int on_progress(void* stop, curl_off_t, curl_off_t, curl_off_t, curl_off_t) {
     return stop && static_cast<const std::atomic<bool>*>(stop)->load() ? 1 : 0;

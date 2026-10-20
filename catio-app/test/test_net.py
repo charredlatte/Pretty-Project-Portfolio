@@ -423,6 +423,22 @@ class NetTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(fetched(), len(from_list), "another account's sign-in starts from no art: each piece is asked for, as served to it")
 
+    def test_one_missing_piece_of_art_does_not_keep_the_rest_away(self):
+        from_list = self.serve_art()
+        del self.state.art["art/licensed/house.png"]                         # never uploaded
+        self.state.art["art/licensed/ui/sprout.ttf"] = b"<html>a portal's page</html>"   # a 200 that isn't a font
+        r = self.app(f"type {USER}; key tab; type {PASSWORD}; key enter")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        asked = [p[1:] for m, p, *_ in self.state.seen if p.startswith("/art/")]
+        self.assertEqual(sorted(asked), sorted(from_list), "every piece asked for once, the ones after the missing one included")
+        cache = Path(self.dir.name) / "home" / "cache"
+        kept = sorted(str(f.relative_to(cache)) for f in cache.rglob("*") if f.is_file())
+        self.assertEqual(kept, sorted(p for p in from_list if p not in ("art/licensed/house.png", "art/licensed/ui/sprout.ttf")),
+                         "the missing one isn't there, and a page that isn't a font isn't kept as one")
+        self.assertIn("sign:", r.stdout)
+        sign = r.stdout.split("sign: ", 1)[1].split("\n", 1)[0]
+        self.assertTrue("house.png" in sign or "sprout.ttf" in sign, sign)
+
     def test_a_press_slid_onto_another_item_is_no_press(self):
         self.serve_art()
         self.assertEqual(self.app(f"type {USER}; key tab; type {PASSWORD}; key enter").returncode, 0)

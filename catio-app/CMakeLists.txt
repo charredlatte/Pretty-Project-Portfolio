@@ -83,7 +83,6 @@ if(CATIO_FETCH_DEPS)
     set(SDLTTF_PLUTOSVG OFF CACHE BOOL "" FORCE)
     set(SDLTTF_SAMPLES OFF CACHE BOOL "" FORCE)
     set(SDLTTF_INSTALL OFF CACHE BOOL "" FORCE)
-    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
     FetchContent_Declare(SDL3_ttf
         GIT_REPOSITORY https://github.com/libsdl-org/SDL_ttf.git
         GIT_TAG release-3.2.2
@@ -91,7 +90,11 @@ if(CATIO_FETCH_DEPS)
         GIT_SUBMODULES external/freetype)
     list(APPEND CATIO_FETCHED SDL3_ttf)
   endif()
+  # the fetched libraries are static, for this call alone: a cache's own BUILD_SHARED_LIBS stays as it was set
+  set(CATIO_SHARED_WAS "${BUILD_SHARED_LIBS}")
+  set(BUILD_SHARED_LIBS OFF)
   FetchContent_MakeAvailable(${CATIO_FETCHED})
+  set(BUILD_SHARED_LIBS "${CATIO_SHARED_WAS}")
 endif()
 if(NOT TARGET SDL3::SDL3)
   find_package(SDL3 CONFIG REQUIRED)

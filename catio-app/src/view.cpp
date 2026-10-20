@@ -60,6 +60,10 @@ int lowest(Stage s) {
     return std::max(1, static_cast<int>(std::floor(std::min(double(s.w - 2 * m) / w.w, double(s.h - 2 * m) / w.h))));
 }
 
+// limits(): the zoom between the whole grounds and twice that, and at least 8 CSS pixels an art pixel (the page's
+// 4 on its doubled world), in device pixels
+int highest(Stage s) { return std::max(lowest(s) * 2, 8 * std::max(1, s.css)); }
+
 Blit cat_blit(const Spot& at, double now) {
     const Spr s = spr(at.mood);
     int f = 0;
@@ -99,9 +103,9 @@ Cam fit(manor::Box what, Stage stage) {
     return c;
 }
 
-// clampCam: the zoom between the whole grounds and twice that (at least 8), and never past the meadow.
+// clampCam: the zoom within those, and never past the meadow.
 Cam clamp(Cam c, Stage stage) {
-    const int lo = lowest(stage), hi = std::max(lo * 2, 8);
+    const int lo = lowest(stage), hi = highest(stage);
     c.u = std::clamp(c.u, lo, hi);
     const manor::Box w = manor::world();
     const float m = float(margin(stage));
@@ -115,7 +119,7 @@ Cam clamp(Cam c, Stage stage) {
 
 // zoomAt: whole steps, and the point under her finger stays under it.
 Cam zoom_by(Cam c, int du, float at_x, float at_y, Stage stage) {
-    const int lo = lowest(stage), hi = std::max(lo * 2, 8);
+    const int lo = lowest(stage), hi = highest(stage);
     const int u = std::clamp(c.u + du, lo, hi);
     const float k = float(u) / float(c.u);
     c.tx = std::round(at_x - (at_x - c.tx) * k);
@@ -131,6 +135,10 @@ Cam pan_by(Cam c, float dx, float dy, Stage stage) {
 }
 
 draw::Pt to_screen(const Cam& c, manor::Point p) { return {p.x * float(c.u) + c.tx, p.y * float(c.u) + c.ty}; }
+draw::Rect visible(const Cam& c, Stage stage) {
+    const float u = float(c.u);
+    return {-c.tx / u, -c.ty / u, float(stage.w) / u, float(stage.h) / u};
+}
 draw::Rect screen_box(const Cam& c, manor::Box b) {
     const float u = float(c.u);
     return {b.x * u + c.tx, b.y * u + c.ty, b.w * u, b.h * u};
@@ -143,7 +151,8 @@ manor::Point to_world(const Cam& c, float sx, float sy) {
 // roomInView: the room on this floor that fills the view -- one covering most of it, or one shown nearly whole
 // that fills it across or down -- scored as the page scores it, so both settle on the same room.
 std::string room_in_view(const Cam& c, Stage stage) {
-    const double vx = -c.tx / c.u, vy = -c.ty / c.u, vw = double(stage.w) / c.u, vh = double(stage.h) / c.u;
+    const draw::Rect v = visible(c, stage);
+    const double vx = v.x, vy = v.y, vw = v.w, vh = v.h;
     std::string best;
     double score = 0;
     for (const auto& g : manor::geom()) {

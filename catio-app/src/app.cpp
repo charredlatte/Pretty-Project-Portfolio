@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <map>
+#include <memory>
 #include <optional>
 #include <set>
 #include <thread>
@@ -84,6 +85,7 @@ struct Asked {
     Ask what = Ask::Docs;
     art::Id art = art::Id::Count;
     std::string label;
+    std::shared_ptr<std::shared_ptr<art::Fetched>> ready;   // a piece of art, decoded and kept on the net's thread
 };
 
 }  // namespace
@@ -132,11 +134,13 @@ struct App::Impl {
     bool said_bad = false;         // what was said is an error (the sign), not news (the toast)
     bool read_failed = false;      // a read in this batch failed: its trouble stands until a whole batch is clean
     bool got_docs = false, got_agents = false;   // the house needs both before it is drawn as hers
-    float wheel = 0;               // a trackpad's fractions of a notch, added up
+    float wheel = 0;               // a trackpad's fractions of a notch, added up, within one gesture
+    double wheel_at = -1;
     bool vsync = false;            // the display paces the frames; without it the loop does
     std::int64_t live_at = 0;
     std::set<art::Id> fetching;
     std::set<art::Id> unkept;      // fetched but not written to the cache (full or read-only): not asked for again
+    std::set<art::Id> failed;      // refused or broken: not asked for again until Check now, while the rest come
     std::string cache_trouble;
 
     // the pointer
@@ -220,8 +224,9 @@ struct App::Impl {
 
     // ---- the gateway ----
 
-    void ask(Ask what, net::Job job, art::Id id = art::Id::Count, std::string label = {}) {
-        asked[net->send(std::move(job))] = Asked{what, id, std::move(label)};
+    void ask(Ask what, net::Job job, art::Id id = art::Id::Count, std::string label = {},
+             std::shared_ptr<std::shared_ptr<art::Fetched>> ready = {}) {
+        asked[net->send(std::move(job))] = Asked{what, id, std::move(label), std::move(ready)};
         if (what == Ask::Docs || what == Ask::Agents || what == Ask::Quizzes) ++reads_out;
     }
     // the documents, the cats and the homework, together, as the page reads them
@@ -239,18 +244,25 @@ struct App::Impl {
         if (!net || !art) return;
         for (const art::File* file : art->missing()) {
             if (fetching.size() >= 4) break;
-            if (fetching.count(file->id) || unkept.count(file->id)) continue;
+            if (fetching.count(file->id) || unkept.count(file->id) || failed.count(file->id)) continue;
             fetching.insert(file->id);
             const std::string path(file->path);
-            ask(Ask::Art, [path](net::Gateway& g) { return g.art(path); }, file->id, path);
+            const art::Id id = file->id;
+            const std::filesystem::path dir = art_dir;
+            // fetched, decoded and written on the net's thread: the frame loop only takes what is ready
+            auto ready = std::make_shared<std::shared_ptr<art::Fetched>>();
+            ask(Ask::Art, [path, id, dir, ready](net::Gateway& g) {
+                net::Reply r = g.art(path);
+                if (r.ok()) *ready = art::prepare(id, r.body, dir), r.body = {};
+                return r;
+            }, id, path, ready);
         }
     }
     void sign_in() {
         if (form.busy || form.user.empty() || form.password.empty()) return;
         if (form.ask_origin) {
-            std::string o = form.origin;
-            while (!o.empty() && (o.back() == '/' || o.back() == ' ')) o.pop_back();
-            if (o.rfind("https://", 0) != 0) { form.problem = "Your gateway's address starts with https://."; return; }
+            const std::string o = net::bare(form.origin);
+            if (!net::safe_origin(o)) { form.problem = "Your gateway's address starts with https://."; return; }
             if (o != origin || !net) origin = o, net = std::make_unique<net::Net>(origin, home / "cookie");
         }
         form.busy = true;
@@ -267,7 +279,7 @@ struct App::Impl {
         draw::forget_tints();
         forget_cursors();
         art->forget_all();
-        fetching.clear(), unkept.clear(), cache_trouble.clear();
+        fetching.clear(), unkept.clear(), failed.clear(), cache_trouble.clear();
     }
     // whose art the cache holds: the gateway and the handle that fetched it
     std::filesystem::path owner_file() const { return home / "art-owner"; }
@@ -363,18 +375,23 @@ struct App::Impl {
                 if (!r.ok()) {
                     // the packs' licences are personal: a guest's café is drawn plainly, and says why
                     // the packs' art is served to the café's first owner alone, once move-in.py has uploaded it
+                    failed.insert(a.art);
                     art_trouble = r.err.code == "not_found"
                         ? "Your gateway has no " + a.label + ": it serves the packs' art to the caf\u00e9's first owner alone, once move-in.py has uploaded it. Check now tries again."
                         : "The caf\u00e9's art couldn't all come (" + r.err.code + "). Check now tries again.";
+                    fetch_art();   // the rest still comes
                     return;
                 }
-                if (!art->store(a.art, r.body)) {
-                    if (art->trouble() != "cache_unwritable") { art_trouble = "A piece of the art came back broken (" + std::string(art->trouble()) + ")."; return; }
-                    // drawn now if it could be decoded, but not kept: the rest still comes
-                    unkept.insert(a.art);
-                    cache_trouble = "The app can't keep its art in " + art_dir.string() + " (full, or not writable): it is fetched again next time.";
+                if (!art->adopt(a.art, a.ready ? *a.ready : nullptr)) {
+                    if (art->trouble() != "cache_unwritable") {
+                        failed.insert(a.art);
+                        art_trouble = "A piece of the art came back broken (" + a.label + ", " + std::string(art->trouble()) + "). Check now tries again.";
+                    } else {   // drawn now if it could be decoded, but not kept
+                        unkept.insert(a.art);
+                        cache_trouble = "The app can't keep its art in " + art_dir.string() + " (full, or not writable): it is fetched again next time.";
+                    }
                 }
-                if (art_trouble.empty()) fetch_art();
+                fetch_art();
                 if (a.art == art::Id::SproutFont) ui.fonts(assets, *art, stage.css);
                 if (a.art == art::Id::UiCursor || a.art == art::Id::UiCursorPoint) make_cursors();
                 return;
@@ -455,7 +472,7 @@ struct App::Impl {
     // the room that needs her most, for a phone's first view (her fix to "the house is tiny")
     // -- the upset cat first, upstairs or down (go() changes floor)
     std::string urgent_room() const {
-        const auto need = house.needing();
+        const auto need = ui::urgent_first(house.needing());   // the page's urgentFirst: upset, then meowing, then the rest
         return need.empty() ? "" : std::string(stands_in(*need.front()));
     }
 
@@ -463,8 +480,10 @@ struct App::Impl {
 
     void resize(int w, int h, float content_scale) {
         stage.w = w, stage.h = h;
+        const int was = stage.css;
         stage.css = draw::css_for(content_scale);
         ui.fonts(assets, *art, stage.css);
+        if (stage.css != was) forget_cursors(), make_cursors();   // the paw is one CSS pixel an art pixel too
         place(cam);
     }
 
@@ -766,6 +785,7 @@ void App::act(ui::Action what, std::string_view arg_v) {
             break;
         case Action::CheckNow:
             I.art_trouble.clear();
+            I.failed.clear();
             refresh(true);
             break;
         case Action::Field: I.form.field = std::atoi(arg.c_str()); break;
@@ -791,7 +811,7 @@ void App::refresh(bool now) {
     if (I.phase == Phase::SignIn) return;
     if (now || I.now - I.last_read >= 30) {
         I.read_all();
-        if (I.read_once && I.fetching.empty() && I.art_trouble.empty()) I.fetch_art();
+        if (I.read_once && I.fetching.empty()) I.fetch_art();   // what failed waits for Check now
     }
 }
 
@@ -801,9 +821,9 @@ void App::pump_net() {
     const Phase was = I.phase;
     std::uint32_t t = 0;
     net::Reply r;
-    // each piece of art is decoded and written here, so one a frame: the house's plates are the size of the house
+    // the art comes decoded from the net's thread; making its textures is the draw's, a few a frame
     int art = 0;
-    while (art < 1 && I.net && I.net->take(&t, &r)) {
+    while (art < 4 && I.net && I.net->take(&t, &r)) {
         auto it = I.asked.find(t);
         if (it == I.asked.end()) continue;   // asked before she was signed out: nowhere to go now
         const Asked a = it->second;
@@ -983,8 +1003,8 @@ void App::Impl::handle(App& app, const In& in) {
                     // grabbed inside the view's frame, it holds the view where it was grabbed (MM.drag.off)
                     int mx = 0, my = 0;
                     std::sscanf(arg.c_str(), "%d %d", &mx, &my);
-                    const float u = float(cam.u), vx = -cam.tx / u, vy = -cam.ty / u, vw = stage.w / u, vh = stage.h / u;
-                    if (mx >= vx && mx <= vx + vw && my >= vy && my <= vy + vh) map_off_x = vx + vw / 2 - mx, map_off_y = vy + vh / 2 - my;
+                    const draw::Rect v = view::visible(cam, stage);
+                    if (mx >= v.x && mx <= v.x + v.w && my >= v.y && my <= v.y + v.h) map_off_x = v.x + v.w / 2 - mx, map_off_y = v.y + v.h / 2 - my;
                 }
             }
             return;
@@ -1038,7 +1058,13 @@ void App::Impl::handle(App& app, const In& in) {
         }
         case In::Wheel: {
             // over a card or a menu the wheel is theirs: it scrolls one taller than the screen
-            if (ui.scroll(f, in.x, in.y, -in.dy * 48 * k()) || ui.card() != ui::Card::None || ui.under(f, in.x, in.y).rfind("menu:", 0) == 0) return;
+            if (ui.scroll(f, in.x, in.y, -in.dy * 48 * k()) || ui.card() != ui::Card::None || ui.under(f, in.x, in.y).rfind("menu:", 0) == 0) {
+                wheel = 0;
+                return;
+            }
+            // a pause, or the other way, starts a new gesture: no leftover from the last one zooms this one
+            if (in.at - wheel_at > 0.5 || (wheel != 0 && (wheel > 0) != (in.dy > 0))) wheel = 0;
+            wheel_at = in.at;
             wheel += in.dy;   // a trackpad sends fractions of a notch, a flick several at once, a sideways scroll nothing
             const int steps = int(wheel);
             if (!steps) return;
@@ -1222,7 +1248,7 @@ int App::run() {
         if (I.phase == Phase::SignIn && !SDL_TextInputActive(I.window)) SDL_StartTextInput(I.window);
         else if (I.phase != Phase::SignIn && SDL_TextInputActive(I.window)) SDL_StopTextInput(I.window);
         // with the cats stilled nothing moves on its own: wait for something to happen (or the net, or the clock)
-        if (I.still && I.phase != Phase::SignIn) SDL_WaitEventTimeout(nullptr, 250);
+        if (I.still && I.phase != Phase::SignIn && !(I.net && I.net->outstanding())) SDL_WaitEventTimeout(nullptr, 250);
         const double began = clock_s();
         events();
         pump_net();

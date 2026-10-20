@@ -22,6 +22,7 @@
 #define CATIO_ART_H
 
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -70,6 +71,12 @@ enum class State {
     Missing     ///< a fetch failed; the stage says the code and offers Retry
 };
 
+/// A fetched file made ready off the main thread: decoded (a PNG) or checked (the font), and written to the
+/// cache. prepare() touches no renderer and nothing of an Art, so the network's thread runs it, and the frame
+/// loop only adopts what is ready.
+struct Fetched;
+std::shared_ptr<Fetched> prepare(Id id, std::string_view bytes, const std::filesystem::path& cache_dir);
+
 /// The cache, and the textures over it.
 class Art {
 public:
@@ -87,6 +94,9 @@ public:
     /// Write a fetched file to the cache and decode it. False if the bytes are not a PNG (or a font).
     /// This is where the scale mode is set, from File::pixel.
     bool store(Id id, std::string_view bytes);
+    /// What prepare() made of a fetched file, on the main thread: the cache's now. False, with trouble(),
+    /// when it was not a PNG (or a font), or could not be written (then a PNG is drawn all the same, not kept).
+    bool adopt(Id id, const std::shared_ptr<Fetched>& ready);
     /// Throw the cache away: "Fetch the art again" in the House menu.
     void forget_all();
 

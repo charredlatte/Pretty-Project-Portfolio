@@ -10,10 +10,12 @@
 #include "catio/ui.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <map>
 #include <memory>
 #include <optional>
+#include <tuple>
 
 #include "catio/manor.h"
 #include "internal.h"
@@ -590,6 +592,13 @@ void Ui::toggle(const Frame& f, const view::Hit& h) {
 }
 
 // what a closed menu or card drew is gone at once, not at the next frame: two presses can land in one
+// MM.k: device pixels a plan pixel on the minimap; and the plan's point under a screen point on it
+float mm_scale(const Frame& f) { return kMmW / kMmBox[2] * float(std::max(1, f.stage.css)); }
+Pt mm_point(const Frame& f, Rect mm, float x, float y) {
+    const float s = mm_scale(f);
+    return {kMmBox[0] + (x - mm.x) / s, kMmBox[1] + (y - mm.y) / s};
+}
+
 // With a card open only the card answers: the rest is under its shade.
 bool live(const State& I, const Region& r) { return I.card == Card::None || r.id.rfind("card:", 0) == 0; }
 
@@ -850,7 +859,7 @@ void pbtn(Painter& P, Rect r, const std::string& id, Action a, std::string arg, 
 }
 
 void draw_minimap(Painter& P, const Frame& f, Rect mm) {
-    const float k = P.k, s = kMmW / kMmBox[2] * k;   // MM.k, on screen
+    const float k = P.k, s = mm_scale(f);   // MM.k, on screen
     auto put = [&](manor::Box b) {
         return Rect{mm.x + (b.x - kMmBox[0]) * s, mm.y + (b.y - kMmBox[1]) * s, b.w * s, b.h * s};
     };
@@ -889,8 +898,8 @@ void draw_minimap(Painter& P, const Frame& f, Rect mm) {
     const Rect st = put(manor::stairs());
     for (float y = st.y + st.h - k; y >= st.y; y -= 3 * k) P.fill(Rect{st.x, std::round(y), st.w, k}, kMmEdge45);
     // the camera's view, framed (drawView)
-    const view::Cam& c = *f.cam;
-    const float vx = -c.tx / c.u, vy = -c.ty / c.u, vw = float(f.stage.w) / c.u, vh = float(f.stage.h) / c.u;
+    const Rect v = view::visible(*f.cam, f.stage);
+    const float vx = v.x, vy = v.y, vw = v.w, vh = v.h;
     const float x0 = std::max(kMmBox[0], vx) - kMmBox[0], y0 = std::max(kMmBox[1], vy) - kMmBox[1];
     const float x1 = std::min(kMmBox[0] + kMmBox[2], vx + vw) - kMmBox[0], y1 = std::min(kMmBox[1] + kMmBox[3], vy + vh) - kMmBox[1];
     const Rect view{mm.x + x0 * s, mm.y + y0 * s, std::max(6 * k, (x1 - x0) * s), std::max(6 * k, (y1 - y0) * s)};
@@ -912,8 +921,8 @@ void draw_map_panel(Painter& P, const Frame& f) {
         std::vector<const Cat*> away;
         if (!P.I.map_open) {
             // foldPip(): every cat that needs her and isn't in view -- on the other floor, or off screen on this one
-            const view::Cam& c = *f.cam;
-            const float vx = -c.tx / c.u, vy = -c.ty / c.u, vw = float(f.stage.w) / c.u, vh = float(f.stage.h) / c.u;
+            const Rect v = view::visible(*f.cam, f.stage);
+            const float vx = v.x, vy = v.y, vw = v.w, vh = v.h;
             auto in_view = [&](const Cat* cat) {
                 std::optional<manor::Point> at;
                 if (f.scene) {
@@ -1269,7 +1278,9 @@ float menu_pass(Painter& P, const Menu& m, float x0, float y0, float w) {
                     } else if (enabled && (hot || (it.primary && !any_lit)))
                         P.cell(art::Id::UiPointer, Rect{0, 0, 7, 12}, Rect{r.x + 5 * k, r.y + h / 2 - 6 * k, 7 * k, 12 * k});
                     P.px(it.label, tx, r.y + (h - 22 * k) / 2, 22, ink);
-                    const std::string aside = enabled ? it.aside : it.action == Action::OpenRoom ? "gateway only" : "not yet";
+                    // a disabled item says why, after its own count ("3 waiting · not yet")
+                    const std::string why = it.action == Action::OpenRoom ? "gateway only" : "not yet";
+                    const std::string aside = enabled ? it.aside : it.aside.empty() ? why : it.aside + " \u00b7 " + why;
                     if (!aside.empty()) {
                         const draw::Body& a = P.body(800, 12);
                         P.text(a, aside, r.x + r.w - 6 * k - a.measure(aside).x, r.y + (h - 22 * k) / 2, 22, kSoft);
@@ -1319,8 +1330,8 @@ void Ui::hover(const Frame& f, float x, float y) {
         if (!live(I, *it)) break;   // under the card's shade
         I.hot = it->id;
         if (it->id == "map:mm" && f.cam) {
-            const float s = kMmW / kMmBox[2] * float(std::max(1, f.stage.css));
-            const float ax = kMmBox[0] + (x - it->r.x) / s, ay = kMmBox[1] + (y - it->r.y) / s;
+            const Pt a = mm_point(f, it->r, x, y);
+            const float ax = a.x, ay = a.y;
             for (const auto& g : manor::geom())
                 if (g.level == f.cam->floor && ax >= g.box.x && ax < g.box.x + g.box.w && ay >= g.box.y && ay < g.box.y + g.box.h) I.mm_hot = g.key;
         }
@@ -1338,9 +1349,8 @@ bool Ui::map_drag(const Frame& f, float x, float y, std::string* arg) const {
     if (impl_->card != Card::None) return false;   // the card is modal
     for (const Region& r : impl_->regions) {
         if (r.id != "map:mm") continue;
-        const float s = kMmW / kMmBox[2] * float(std::max(1, f.stage.css));
-        const float cx = std::clamp(x, r.r.x, r.r.x + r.r.w), cy = std::clamp(y, r.r.y, r.r.y + r.r.h);
-        *arg = std::to_string(int(kMmBox[0] + (cx - r.r.x) / s)) + " " + std::to_string(int(kMmBox[1] + (cy - r.r.y) / s));
+        const Pt a = mm_point(f, r.r, std::clamp(x, r.r.x, r.r.x + r.r.w), std::clamp(y, r.r.y, r.r.y + r.r.h));
+        *arg = std::to_string(int(a.x)) + " " + std::to_string(int(a.y));
         return true;
     }
     return false;
@@ -1378,8 +1388,8 @@ bool Ui::press(const Frame& f, float x, float y, Action* what, std::string* arg)
         case Action::Back: I.adding = false; break;
         case Action::StillCats: break;   // the menu stays, its switch flipped
         case Action::MapAt: {
-            const float s = kMmW / kMmBox[2] * float(std::max(1, f.stage.css));
-            const float ax = kMmBox[0] + (x - hit->r.x) / s, ay = kMmBox[1] + (y - hit->r.y) / s;
+            const Pt a = mm_point(f, hit->r, x, y);
+            const float ax = a.x, ay = a.y;
             *arg = std::to_string(int(ax)) + " " + std::to_string(int(ay));
             // a second press on the same room soon after looks in (the minimap's double-click)
             std::string room;
@@ -1510,7 +1520,7 @@ void draw_cat_card(Painter& P, const Frame& f, const Cat& c) {
                     for (size_t i = 0; i < lines.size(); ++i) P.text(fact, lines[i], x + kw + 12 * k, y + i * lh * k, lh, kInk);
                     y += std::max<size_t>(1, lines.size()) * lh * k + 4 * k;
                 }
-                P.text(note, "Renaming and moving it arrive with the app's network code.", x, y, 12.8f * 1.5f, kSoft);
+                P.text(note, "Renaming and moving it aren't in the app yet: the caf\u00e9 in a browser has them.", x, y, 12.8f * 1.5f, kSoft);
                 y += 12.8f * 1.5f * k;
             }
             y += 12 * k;
@@ -1588,7 +1598,8 @@ void Ui::draw_sign_in(const draw::Ctx& c, const Frame& f, const SignIn& form) {
             if (secret) for (size_t n = 0, cp = 0; n < value.size(); ++n) { if ((static_cast<unsigned char>(value[n]) & 0xC0) != 0x80) shown += "\u2022", ++cp; }
             else shown = value;
             const float room = r.w - 24 * k - 2 * k;
-            const std::string fits = form.field == i ? body.tail(shown, room) : body.cut(shown, room);   // where she types
+            // as she typed it, every space kept; the end of the one she is typing in
+            const std::string fits = form.field == i ? body.tail(shown, room, true) : body.cut(shown, room, true);
             P.text(body, fits, r.x + 13 * k, r.y + 11 * k, 24, ink);
             if (form.field == i && !form.busy) P.fill(Rect{r.x + 13 * k + body.measure(fits).x + k, r.y + 13 * k, std::max(1.f, k), 20 * k}, ink);
             y += r.h;
