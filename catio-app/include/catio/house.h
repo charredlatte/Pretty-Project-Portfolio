@@ -13,7 +13,8 @@
 //
 // What this app never reads or writes: snapshot/sessions, sessions/<id>, notes/<id>, brain/<id> and
 // outbox/<id>. Those are claude.ai's path, keyed off list_sessions ids a native client never sees. On
-// the gateway the same things are the notes and files tables, reached through the tools.
+// the gateway the same things are the notes and files tables, reached through the tools. (Of brain/<id> it
+// reads one thing: how many wait unsorted on the tray, which the page's hover and House menu count.)
 //
 // Implemented in src/house.cpp, and tested in test/tests.cpp.
 
@@ -53,6 +54,8 @@ struct Room {
 struct Cat {
     std::string id, name, title, ask, link, repo, model;
     std::string project;              ///< the project's key (a slug): projects/<key>, its filing cabinet
+    std::string project_name;         ///< and its name as she reads it: projectOf().name
+    std::string doing;                ///< what it is at, for a cat that is not asking: an agent's title
     std::string room;                 ///< the room it lives in, already resolved by room_for()
     Mood mood = Mood::Idle;
     int coat = 0;                     ///< one of the eight coats: projects/<key>.coat, else a hash of the key
@@ -63,6 +66,11 @@ struct Cat {
     std::string said;                 ///< its latest note, what it brought her
     std::int64_t said_at = 0;
 };
+
+/// The room a cat stands in: a meowing one in the line at the front door, in the hall; the rest in their
+/// own rooms. Every count of where cats are -- the minimap's pips, the floors' badges, a phone's first room --
+/// asks this one rule.
+std::string_view stands_in(const Cat& c);
 
 /// One of the queen's kept notes. A pinned one is the line she says out loud.
 struct Note {
@@ -104,10 +112,15 @@ public:
     ~House();
 
     // ---- what comes in off the wire -------------------------------------------------------------
-    void docs(std::string_view body);                      ///< GET /api/db
+    /// Each of these takes only an answer of its own shape ({"docs": {...}}, {"agents": [...]},
+    /// {"quizzes": [...]}) and returns false, keeping what it had, for anything else: a page that
+    /// isn't the café's must never empty the house.
+    bool docs(std::string_view body);                      ///< GET /api/db
     void doc(std::string_view path, std::string_view json); ///< one change; empty json means deleted
-    void agents(std::string_view body);                    ///< list_agents
-    void quizzes(std::string_view body);                   ///< quizzes
+    bool agents(std::string_view body);                    ///< list_agents
+    bool quizzes(std::string_view body);                   ///< quizzes
+    /// Forget everything: signed out, the next account's café starts empty.
+    void clear();
 
     /// True once a first docs() has landed. A `rooms` collection that arrives with nothing in it is a
     /// café nobody has opened yet: the app shows the wizard rather than an empty house.
@@ -116,6 +129,8 @@ public:
 
     // ---- the house ------------------------------------------------------------------------------
     std::string name() const;                              ///< house/main.name, else "KittyChat Café"
+    bool has_maps() const;                                 ///< any graphs/<repo> at all, hidden ones too
+    int tray() const;                                      ///< files on the brain's tray: brain/<id> still unsorted
     const Room& room(std::string_view key) const;
     bool open(std::string_view key) const;
     std::string catch_all_room() const;

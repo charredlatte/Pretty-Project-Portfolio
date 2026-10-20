@@ -23,10 +23,24 @@ find_package(nlohmann_json CONFIG REQUIRED)
 
 include("${CATIO_APP_DIR}/cmake/sources.cmake")
 list(TRANSFORM CATIO_CORE_SOURCES PREPEND "${CATIO_APP_DIR}/")
+list(TRANSFORM CATIO_APP_SOURCES PREPEND "${CATIO_APP_DIR}/")
+list(TRANSFORM CATIO_NET_APPLE_SOURCES PREPEND "${CATIO_APP_DIR}/")
 
-# The core exists; the app around it -- main, the loop, the interface, net_apple.cpp -- does not yet,
-# so this target will not build until it does (cmake/sources.cmake lists what is to come).
-add_executable(catio_app MACOSX_BUNDLE ${CATIO_CORE_SOURCES})
+# The core, the interface and the loop exist; net_apple.cpp, the NSURLSession body net.h needs, does not
+# yet (cmake/sources.cmake lists what is to come), and without it the app cannot link. Say so here rather
+# than at the linker. The plan rides in the bundle beside the fonts: SDL_GetBasePath() finds both.
+if(NOT EXISTS "${CATIO_APP_DIR}/src/net_apple.cpp")
+  message(FATAL_ERROR "catio-app on iOS needs src/net_apple.cpp, the network body for iOS, which is still to come.")
+endif()
+add_executable(catio_app MACOSX_BUNDLE ${CATIO_CORE_SOURCES} ${CATIO_APP_SOURCES} ${CATIO_NET_APPLE_SOURCES})
+target_compile_definitions(catio_app PRIVATE CATIO_SOURCE_DIR="${CATIO_APP_DIR}")
+# her gateway's address, baked in as the desk build does it (CMakeLists.txt): empty, the sign-in asks for it
+set(CATIO_GATEWAY_ORIGIN "" CACHE STRING "Her gateway's address (https://...), baked into her build")
+if(CATIO_GATEWAY_ORIGIN)
+  target_compile_definitions(catio_app PRIVATE CATIO_GATEWAY_ORIGIN="${CATIO_GATEWAY_ORIGIN}")
+endif()
+target_sources(catio_app PRIVATE "${CATIO_APP_DIR}/generated/manor.json")
+set_source_files_properties("${CATIO_APP_DIR}/generated/manor.json" PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 target_include_directories(catio_app PRIVATE "${CATIO_APP_DIR}/include")
 target_include_directories(catio_app PRIVATE "${CATIO_APP_DIR}/src")
 target_link_libraries(catio_app PRIVATE SDL3::SDL3 SDL3_ttf::SDL3_ttf nlohmann_json::nlohmann_json)
@@ -44,5 +58,5 @@ set_target_properties(catio_app PROPERTIES
     MACOSX_BUNDLE_BUNDLE_VERSION "1"
     XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")
 
-# No libcurl on iOS: src/net_apple.cpp is the NSURLSession body (cmake/sources.cmake picks it).
+# No libcurl on iOS: src/net_apple.cpp is the NSURLSession body (CATIO_NET_APPLE_SOURCES, above).
 target_link_libraries(catio_app PRIVATE "-framework Foundation")

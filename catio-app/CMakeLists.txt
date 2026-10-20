@@ -7,19 +7,25 @@
 #       including only that header, which proves every header is self-contained C++20. The public
 #       headers name no SDL, curl or JSON type, which is what makes this possible.
 #
-#   cmake -S catio-app -B build -DCATIO_HEADERS_ONLY=OFF -DCATIO_HEADLESS=ON && cmake --build build
-#       The core for real: the floor plan, the house, the art, drawing and the view, plus
-#       catio_look, which renders a floor to a PNG with no window and no GPU, and catio_tests.
-#       SDL3 and nlohmann/json are fetched and built from source (about 35 s for SDL).
+#   cmake -S catio-app -B build -DCATIO_HEADERS_ONLY=OFF && cmake --build build
+#       The app: catio_app (a window, the loop, the interface), catio_look, which renders a floor to a
+#       PNG with no window and no GPU, and catio_tests. SDL3, SDL3_ttf and nlohmann/json are fetched
+#       and built from source (about a minute). Add -DCATIO_HEADLESS=ON where there is no windowing
+#       system at all (CI, a cloud session): catio_app then only draws frames to PNGs (--shot).
 #
-# The app proper -- a window, the loop, input, the interface and the net layer -- is still to come
-# (cmake/sources.cmake lists it). This builds what exists, and nothing pretends otherwise.
+# On a desk the network is libcurl's, found installed (libcurl4-openssl-dev on Debian and Ubuntu); the
+# phones' own bodies are still to come (cmake/sources.cmake lists them).
 
 cmake_minimum_required(VERSION 3.24)
 project(catio_app LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# every narrow literal is UTF-8 ("Caf\u00e9", the ellipsis, the middle dot), as SDL_ttf reads it: MSVC's own
+# default is the Windows code page
+if(MSVC)
+  add_compile_options(/utf-8)
+endif()
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(CATIO_HEADERS_ONLY "Compile each header alone, needing nothing installed." ON)
@@ -52,8 +58,9 @@ if(CATIO_HEADERS_ONLY)
 endif()
 
 # ---- dependencies --------------------------------------------------------------------------------
-# SDL3 only: since 3.4 its core loads and saves PNG (SDL_LoadPNG, SDL_SavePNG), and every pack file is a
-# PNG, so SDL_image is not needed. SDL_ttf arrives with the pixel font.
+# SDL3: since 3.4 its core loads and saves PNG (SDL_LoadPNG, SDL_SavePNG), and every pack file is a PNG,
+# so SDL_image is not needed. SDL3_ttf draws the two fonts, with its own FreeType and nothing else:
+# no HarfBuzz (the words are Latin, left to right) and no plutosvg (no colour emoji).
 if(CATIO_FETCH_DEPS)
   include(FetchContent)
   FetchContent_Declare(nlohmann_json
@@ -76,14 +83,47 @@ if(CATIO_FETCH_DEPS)
         GIT_TAG release-3.4.18
         GIT_SHALLOW TRUE)
     list(APPEND CATIO_FETCHED SDL3)
+    set(SDLTTF_VENDORED ON CACHE BOOL "" FORCE)
+    set(SDLTTF_HARFBUZZ OFF CACHE BOOL "" FORCE)
+    set(SDLTTF_PLUTOSVG OFF CACHE BOOL "" FORCE)
+    set(SDLTTF_SAMPLES OFF CACHE BOOL "" FORCE)
+    set(SDLTTF_INSTALL OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(SDL3_ttf
+        GIT_REPOSITORY https://github.com/libsdl-org/SDL_ttf.git
+        GIT_TAG release-3.2.2
+        GIT_SHALLOW TRUE
+        GIT_SUBMODULES external/freetype)
+    list(APPEND CATIO_FETCHED SDL3_ttf)
   endif()
+  # the fetched libraries are static, for this call alone: a cache's own BUILD_SHARED_LIBS stays as it was set
+  set(CATIO_SHARED_WAS "${BUILD_SHARED_LIBS}")
+  set(BUILD_SHARED_LIBS OFF)
   FetchContent_MakeAvailable(${CATIO_FETCHED})
+  set(BUILD_SHARED_LIBS "${CATIO_SHARED_WAS}")
 endif()
 if(NOT TARGET SDL3::SDL3)
   find_package(SDL3 CONFIG REQUIRED)
 endif()
+if(NOT TARGET SDL3_ttf::SDL3_ttf)
+  find_package(SDL3_ttf CONFIG REQUIRED)
+endif()
 if(NOT TARGET nlohmann_json::nlohmann_json)
   find_package(nlohmann_json CONFIG REQUIRED)
+endif()
+# The network is a desk's libcurl. The NDK and iOS have none: their net bodies (net_android.cpp, net_apple.cpp) are
+# still to come, so a phone build gets the core, and the app once its own net body exists.
+set(CATIO_DESK_NET ON)
+if(ANDROID OR IOS)
+  set(CATIO_DESK_NET OFF)
+  message(STATUS "catio-app: the core only. This platform's net body is still to come (cmake/sources.cmake).")
+else()
+  # without libcurl's development files the core, catio_look and catio_tests still build: only the app and its
+  # network test need it
+  find_package(CURL)
+  if(NOT CURL_FOUND)
+    set(CATIO_DESK_NET OFF)
+    message(STATUS "catio-app: no libcurl, so no catio_app or catio_net (install libcurl's development files for them).")
+  endif()
 endif()
 
 # ---- the core ------------------------------------------------------------------------------------
@@ -91,7 +131,21 @@ include(cmake/sources.cmake)   # CATIO_CORE_SOURCES, shared with ios/
 
 add_library(catio_core STATIC ${CATIO_CORE_SOURCES})
 target_include_directories(catio_core PRIVATE src)
-target_link_libraries(catio_core PUBLIC catio_headers SDL3::SDL3 nlohmann_json::nlohmann_json)
+target_link_libraries(catio_core PUBLIC catio_headers SDL3::SDL3 SDL3_ttf::SDL3_ttf nlohmann_json::nlohmann_json)
+# where a desktop build finds the plan and the fonts when it is run from the build tree
+target_compile_definitions(catio_core PUBLIC
+    CATIO_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+
+# catio_app: the window, the loop and the interface. With no windowing system it draws frames to PNGs:
+#   catio_app --shot out.png [--size 1280x800] [--css 1] [--do "<steps>"]
+if(CATIO_DESK_NET)
+add_library(catio_net STATIC ${CATIO_NET_DESKTOP_SOURCES})
+target_link_libraries(catio_net PUBLIC catio_headers PRIVATE CURL::libcurl nlohmann_json::nlohmann_json)
+
+add_executable(catio_app ${CATIO_APP_SOURCES})
+target_include_directories(catio_app PRIVATE src)
+target_link_libraries(catio_app PRIVATE catio_core catio_net)
+endif()
 
 # catio_look: render a floor to a PNG, with no window and no GPU. What CLAUDE.md's "look first" is for:
 #   catio_look <catio dir> <manor.json> <fixtures dir> <out.png> [ground|upper|<room>]
@@ -99,10 +153,22 @@ add_executable(catio_look src/look.cpp)
 target_include_directories(catio_look PRIVATE src)
 target_link_libraries(catio_look PRIVATE catio_core)
 
-# catio_tests: the floor plan and the house, driven from JSON with no graphics.
+# catio_tests: the floor plan, the house, the view and the interface's content, driven from JSON.
 enable_testing()
 add_executable(catio_tests test/tests.cpp)
 target_include_directories(catio_tests PRIVATE src)
 target_link_libraries(catio_tests PRIVATE catio_core)
 add_test(NAME catio_tests
          COMMAND catio_tests "${CMAKE_CURRENT_SOURCE_DIR}/generated/manor.json" "${CMAKE_CURRENT_SOURCE_DIR}/test/fixtures")
+
+# catio_net_check: every route of net.h against a gateway, for test/test_net.py, which runs a stand-in on the
+# loopback and checks both sides: what the app sent, and what it made of the answers. Never her gateway.
+if(CATIO_DESK_NET)
+add_executable(catio_net_check test/net_check.cpp)
+target_link_libraries(catio_net_check PRIVATE catio_net nlohmann_json::nlohmann_json)
+find_package(Python3 COMPONENTS Interpreter)
+if(Python3_FOUND)
+  add_test(NAME catio_net
+           COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/test/test_net.py" "${CMAKE_CURRENT_BINARY_DIR}")
+endif()
+endif()

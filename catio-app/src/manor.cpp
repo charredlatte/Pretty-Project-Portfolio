@@ -9,6 +9,7 @@
 #include <array>
 #include <cmath>
 #include <fstream>
+#include <sstream>
 #include <limits>
 #include <map>
 
@@ -149,10 +150,16 @@ void derive_next() {
 }  // namespace
 
 bool load(const std::filesystem::path& manor_json) {
+    std::ifstream in(manor_json, std::ios::binary);
+    if (!in) { P = Plan{}; return false; }
+    std::stringstream text;
+    text << in.rdbuf();
+    return load_text(text.str());
+}
+
+bool load_text(std::string_view text) {
     P = Plan{};
-    std::ifstream in(manor_json);
-    if (!in) return false;
-    json j = json::parse(in, nullptr, /*allow_exceptions=*/false);
+    json j = json::parse(text, nullptr, /*allow_exceptions=*/false);
     if (j.is_discarded() || !j.is_object()) return false;
     try {
         P.world = Box{0, 0, j.at("world").at(0).get<int>(), j.at("world").at(1).get<int>()};
