@@ -51,6 +51,8 @@ Cam zoom_by(Cam c, int du, float at_x, float at_y, Stage stage);
 Cam pan_by(Cam c, float dx, float dy, Stage stage);
 
 draw::Pt to_screen(const Cam& c, manor::Point p);
+/// A box of the plan (a room, the stair, a piece of furniture), on screen.
+draw::Rect screen_box(const Cam& c, manor::Box b);
 manor::Point to_world(const Cam& c, float sx, float sy);
 /// roomInView / settleFocus: the room on this floor that fills the view, if one does -- one that covers
 /// most of it, or one shown nearly whole that fills it across or down. Empty when none does.

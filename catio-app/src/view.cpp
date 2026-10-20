@@ -131,6 +131,10 @@ Cam pan_by(Cam c, float dx, float dy, Stage stage) {
 }
 
 draw::Pt to_screen(const Cam& c, manor::Point p) { return {p.x * float(c.u) + c.tx, p.y * float(c.u) + c.ty}; }
+draw::Rect screen_box(const Cam& c, manor::Box b) {
+    const float u = float(c.u);
+    return {b.x * u + c.tx, b.y * u + c.ty, b.w * u, b.h * u};
+}
 
 manor::Point to_world(const Cam& c, float sx, float sy) {
     return {static_cast<int>(std::floor((sx - c.tx) / c.u)), static_cast<int>(std::floor((sy - c.ty) / c.u))};

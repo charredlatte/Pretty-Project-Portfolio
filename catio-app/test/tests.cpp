@@ -474,6 +474,16 @@ void the_interface(const std::string& dir) {
           "what is not built yet does nothing, and says why");
     reopen();
     check(face.escape() && face.menu_kind() == v::Thing::None && !face.escape(), "Escape closes the menu, and then there is nothing to close");
+    // a card is modal: what is under its shade neither lights nor answers
+    const Rect map = face.panel(f);
+    const float mx = map.x + map.w / 2, my = map.y + map.h / 2;
+    face.draw(c, f);
+    const bool map_answers = !face.under(f, mx, my).empty();
+    face.open(ui::Card::Cat, h.cats().front().id);
+    face.draw(c, f);
+    std::string drag;
+    check(map_answers && face.under(f, mx, my).empty() && !face.map_drag(f, mx, my, &drag), "under a cat's card the map panel neither answers nor drags");
+    face.close_card();
 
     // an ask an agent wrote over two lines is shown as the page shows it, white-space: normal
     catio::draw::Body body;
@@ -497,6 +507,9 @@ void the_interface(const std::string& dir) {
     check(short_.size() > 3 && short_.compare(short_.size() - 3, 3, "\u2026") == 0 && body.measure(short_).x <= 70 && whole &&
           body.measure(body.cut("Caf\u00e9 \u00e9t\u00e9 au lait, tr\u00e8s chaud", 90)).x > body.measure(short_).x,
           "a line cut short ends in an ellipsis, fits, keeps whole characters, and keeps as much as fits");
+    const std::string address = body.tail("https://catio-gateway.example.workers.dev", 120);
+    check(address.rfind("\u2026", 0) == 0 && address.size() > 12 && address.compare(address.size() - 12, 12, ".workers.dev") == 0 && body.measure(address).x <= 120,
+          "a field she is typing in shows the end, where she types");
     catio::draw::Pixel stand_in;
     stand_in.fallback(std::filesystem::path(CATIO_SOURCE_DIR) / "assets" / "Nunito-Bold.ttf", 18);
     const float one = stand_in.measure("REGLISSE", 1).x, two = stand_in.measure("REGLISSE", 2).x;

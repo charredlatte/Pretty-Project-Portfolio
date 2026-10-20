@@ -12,6 +12,8 @@
 
 #include "catio/app.h"
 
+#include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -134,6 +136,8 @@ struct App::Impl {
     bool vsync = false;            // the display paces the frames; without it the loop does
     std::int64_t live_at = 0;
     std::set<art::Id> fetching;
+    std::set<art::Id> unkept;      // fetched but not written to the cache (full or read-only): not asked for again
+    std::string cache_trouble;
 
     // the pointer
     std::optional<draw::Pt> pointer;   // where it last really moved
@@ -146,6 +150,7 @@ struct App::Impl {
     std::string press_on;              // what of the interface it went down on: let go elsewhere, it is no press
     bool pinching = false;             // two fingers: the first finger's mouse is not a drag, a swipe or a click
     float pinch = 1;
+    float map_off_x = 0, map_off_y = 0;   // a minimap drag: from the finger's spot to the view's centre, as grabbed
     std::map<SDL_FingerID, draw::Pt> fingers;   // where each finger is, for the point a pinch zooms about
 
     float k() const { return float(std::max(1, stage.css)); }
@@ -172,7 +177,12 @@ struct App::Impl {
 
     // The scene points into the house's cats: whatever changes the house builds it again at once, before another
     // event in the same batch picks a cat out of it.
-    void rescene() { scene = view::build(house, cam.floor); }
+    void rescene() {
+        scene = view::build(house, cam.floor);
+        // a cat that started meowing has walked to the line: the hover line names what is under the pointer now,
+        // or nothing, as anything that slides under a still pointer
+        if (ui.tipped().what != Thing::None && pointer) ui.tip(frame(), pick(pointer->x, pointer->y), false);
+    }
 
     bool read_house() {
         const std::string db = slurp(data / "db.json"), agents = slurp(data / "agents.json");
@@ -193,6 +203,7 @@ struct App::Impl {
         else if (phase == Phase::FirstRead) told.push_back("Waking the cats\u2026");
         if (phase == Phase::Setup) wrong.push_back("This caf\u00e9 has no rooms yet: set it up in a browser for now, at your gateway's address.");
         if (!art_trouble.empty()) wrong.push_back(art_trouble);
+        if (!cache_trouble.empty()) wrong.push_back(cache_trouble);
         else if (art && art->have() < art->total()) {
             const std::string n = std::to_string(art->have()) + " of " + std::to_string(art->total());
             if (!fetching.empty()) told.push_back("Fetching the caf\u00e9's art\u2026 (" + n + ")");
@@ -228,7 +239,7 @@ struct App::Impl {
         if (!net || !art) return;
         for (const art::File* file : art->missing()) {
             if (fetching.size() >= 4) break;
-            if (fetching.count(file->id)) continue;
+            if (fetching.count(file->id) || unkept.count(file->id)) continue;
             fetching.insert(file->id);
             const std::string path(file->path);
             ask(Ask::Art, [path](net::Gateway& g) { return g.art(path); }, file->id, path);
@@ -247,23 +258,42 @@ struct App::Impl {
         const std::string user = form.user, password = form.password;
         ask(Ask::Login, [user, password](net::Gateway& g) { return g.login(user, password); });
     }
-    // Back to the sign-in: signed out, or the cookie ran out. Nothing of the account that left stays: its queued work,
-    // its cookie, its house, and the art its sign-in fetched -- the packs' licences are personal, so the next person
-    // to sign in on this device gets what the gateway serves them, not what it served her. (Not a folder she named
-    // with --art: that is hers to keep.)
-    void signed_out(std::string why) {
+    // The art an account's sign-in fetched, and everything drawn from it. The packs' licences are personal, so the
+    // next person to sign in on this device gets what the gateway serves them, not what it served her. (Not a folder
+    // she named with --art: that is hers to keep.)
+    void forget_art() {
+        if (!own_cache || !art) return;
+        ui.forget_art();      // first: an open font holds its file, which Windows then won't delete
+        draw::forget_tints();
+        forget_cursors();
+        art->forget_all();
+        fetching.clear(), unkept.clear(), cache_trouble.clear();
+    }
+    // whose art the cache holds: the gateway and the handle that fetched it
+    std::filesystem::path owner_file() const { return home / "art-owner"; }
+    std::string owner_now() const {
+        std::string user = form.user;
+        for (char& ch : user) ch = char(std::tolower(static_cast<unsigned char>(ch)));   // a handle is lower case
+        return origin + "\n" + user + "\n";
+    }
+
+    // Back to the sign-in: she signed out (`leaving`), or the cookie ran out. Nothing of the session stays: its queued
+    // work, its cookie, its house. Signing out forgets the art too; a cookie that ran out keeps it, since the one to
+    // sign in next is most likely her, and a sign-in as anyone else forgets it then (heard()'s Login).
+    void signed_out(std::string why, bool leaving = false) {
         if (net) net->drop_waiting(), net->forget_cookie();
         house.clear();
         rescene();
         got_docs = got_agents = read_once = false;
         live_at = 0;
         net_trouble.clear(), art_trouble.clear();
-        if (own_cache && art) {   // and what was drawn from it: the pack's font, the tinted sheets, the paw
-            ui.forget_art();      // first: an open font holds its file, which Windows then won't delete
-            draw::forget_tints();
-            forget_cursors();
-            art->forget_all();
+        if (leaving) {
+            forget_art();
+            std::error_code ec;
+            std::filesystem::remove(owner_file(), ec);
         }
+        // a press held through it is over: its release lands on the sign-in, and nothing of it is a drag later
+        pressed = dragging = scrolling = on_ui = on_map = pinching = false;
         phase = Phase::SignIn;
         form.busy = false;
         form.password.clear();
@@ -302,6 +332,10 @@ struct App::Impl {
                 }
                 form.password.clear();
                 form.problem.clear();
+                if (slurp(owner_file()) != owner_now()) {   // another account's art, or nobody's: not this one's to see
+                    forget_art();
+                    std::ofstream(owner_file()) << owner_now();
+                }
                 phase = Phase::FirstRead;
                 save_prefs();   // the address that worked
                 read_all();
@@ -334,7 +368,12 @@ struct App::Impl {
                         : "The caf\u00e9's art couldn't all come (" + r.err.code + "). Check now tries again.";
                     return;
                 }
-                if (!art->store(a.art, r.body)) { art_trouble = "A piece of the art came back broken (" + std::string(art->trouble()) + ")."; return; }
+                if (!art->store(a.art, r.body)) {
+                    if (art->trouble() != "cache_unwritable") { art_trouble = "A piece of the art came back broken (" + std::string(art->trouble()) + ")."; return; }
+                    // drawn now if it could be decoded, but not kept: the rest still comes
+                    unkept.insert(a.art);
+                    cache_trouble = "The app can't keep its art in " + art_dir.string() + " (full, or not writable): it is fetched again next time.";
+                }
                 if (art_trouble.empty()) fetch_art();
                 if (a.art == art::Id::SproutFont) ui.fonts(assets, *art, stage.css);
                 if (a.art == art::Id::UiCursor || a.art == art::Id::UiCursorPoint) make_cursors();
@@ -370,7 +409,7 @@ struct App::Impl {
         try {
             const auto j = nlohmann::json::parse(slurp(prefs));
             if (j.contains("minimap")) ui.set_map_open(j["minimap"] == "open");
-            still = j.value("still", false);
+            still = still || j.value("still", false);   // --still stays still
             if (form.ask_origin && j.contains("gateway") && j["gateway"].is_string()) form.origin = j["gateway"].get<std::string>();
         } catch (...) {}
     }
@@ -511,7 +550,7 @@ struct App::Impl {
         auto lit_room = [&](const std::string& key) {
             const manor::Geom* g = manor::of(key);
             if (!g || g->level != cam.floor || key == cam.focus) return;
-            const draw::Rect box{g->box.x * float(cam.u) + cam.tx, g->box.y * float(cam.u) + cam.ty, g->box.w * float(cam.u), g->box.h * float(cam.u)};
+            const draw::Rect box = view::screen_box(cam, g->box);
             if (house.open(key)) draw::fill(c, box, {0xFF, 0xFA, 0xE1, 31});   // a closed room keeps its shade, lightened
             brackets(box, float(u_ui()));
         };
@@ -519,7 +558,7 @@ struct App::Impl {
         if (ui.menu_kind() == Thing::Room && !(ui.tipped().what == Thing::Room && ui.tipped().key == ui.menu_key())) lit_room(ui.menu_key());
         if (ui.tipped().what == Thing::Stairs) {
             const manor::Box s = manor::stairs();
-            const draw::Rect box{s.x * float(cam.u) + cam.tx, s.y * float(cam.u) + cam.ty, s.w * float(cam.u), s.h * float(cam.u)};
+            const draw::Rect box = view::screen_box(cam, s);
             draw::fill(c, box, {0xFF, 0xFA, 0xE1, 36});
             brackets(box, k());
         }
@@ -722,7 +761,7 @@ void App::act(ui::Action what, std::string_view arg_v) {
         case Action::SignOut:
             // the gateway ends the cookie and the file goes, on the net's own thread; the sign-in comes back here at once
             if (!I.net) break;
-            I.signed_out("");   // the queue emptied of the leaving account's work, and the cookie's file gone, now
+            I.signed_out("", true);   // the queue emptied of the leaving account's work, the cookie and the art gone, now
             I.net->send([](net::Gateway& g) { g.sign_out(); return net::Reply{}; }, true);   // then /logout, first in line
             break;
         case Action::CheckNow:
@@ -745,8 +784,8 @@ void App::act(ui::Action what, std::string_view arg_v) {
 
 void App::refresh(bool now) {
     Impl& I = *impl_;
-    if (!I.net) {   // a folder of documents: read it again when asked
-        if (now) I.read_house();
+    if (!I.net) {   // a folder of documents: read it again when asked (and on a phone's sign-in screen, nothing)
+        if (now && !I.data.empty()) I.read_house();
         return;
     }
     if (I.phase == Phase::SignIn) return;
@@ -762,9 +801,9 @@ void App::pump_net() {
     const Phase was = I.phase;
     std::uint32_t t = 0;
     net::Reply r;
-    // each piece of art is decoded and written here, so a few a frame: the first sign-in brings them all at once
+    // each piece of art is decoded and written here, so one a frame: the house's plates are the size of the house
     int art = 0;
-    while (art < 4 && I.net && I.net->take(&t, &r)) {
+    while (art < 1 && I.net && I.net->take(&t, &r)) {
         auto it = I.asked.find(t);
         if (it == I.asked.end()) continue;   // asked before she was signed out: nowhere to go now
         const Asked a = it->second;
@@ -900,8 +939,12 @@ void App::Impl::handle(App& app, const In& in) {
                     scrolling = true;
                 } else if (on_map) {   // dragging on the minimap pans the view with it, once it is a drag and not a tap
                     std::string arg;
-                    if ((dragging || std::hypot(in.x - press_at.x, in.y - press_at.y) > 4 * k()) && ui.map_drag(f, in.x, in.y, &arg))
-                        app.act(Action::MapAt, arg), dragging = true;
+                    if ((dragging || std::hypot(in.x - press_at.x, in.y - press_at.y) >= 3 * k()) && ui.map_drag(f, in.x, in.y, &arg)) {
+                        int mx = 0, my = 0;
+                        std::sscanf(arg.c_str(), "%d %d", &mx, &my);
+                        app.act(Action::MapAt, std::to_string(int(std::lround(mx + map_off_x))) + " " + std::to_string(int(std::lround(my + map_off_y))));
+                        dragging = true;
+                    }
                 } else if (!on_ui && (dragging || std::hypot(in.x - press_at.x, in.y - press_at.y) > 4 * k())) {
                     if (!dragging) ui.close_menu(), ui.tip(f, {}, false);
                     dragging = true;
@@ -935,6 +978,14 @@ void App::Impl::handle(App& app, const In& in) {
             if (on_ui) {
                 ui.hold(f, in.x, in.y, true);
                 on_map = ui.under(f, in.x, in.y) == "map:mm";   // a drag on the minimap pans the view with it
+                map_off_x = map_off_y = 0;
+                if (std::string arg; on_map && ui.map_drag(f, in.x, in.y, &arg)) {
+                    // grabbed inside the view's frame, it holds the view where it was grabbed (MM.drag.off)
+                    int mx = 0, my = 0;
+                    std::sscanf(arg.c_str(), "%d %d", &mx, &my);
+                    const float u = float(cam.u), vx = -cam.tx / u, vy = -cam.ty / u, vw = stage.w / u, vh = stage.h / u;
+                    if (mx >= vx && mx <= vx + vw && my >= vy && my <= vy + vh) map_off_x = vx + vw / 2 - mx, map_off_y = vy + vh / 2 - my;
+                }
             }
             return;
         }
@@ -978,7 +1029,7 @@ void App::Impl::handle(App& app, const In& in) {
                     // their cards are still to come: the room's menu, which has them, instead
                     const manor::Geom* g = manor::of(h.key);
                     if (!g) return;
-                    view::Hit room{Thing::Room, h.key, {g->box.x * float(cam.u) + cam.tx, g->box.y * float(cam.u) + cam.ty, g->box.w * float(cam.u), g->box.h * float(cam.u)}};
+                    view::Hit room{Thing::Room, h.key, view::screen_box(cam, g->box)};
                     ui.toggle(f, room);
                     return;
                 }
@@ -988,12 +1039,19 @@ void App::Impl::handle(App& app, const In& in) {
         case In::Wheel: {
             // over a card or a menu the wheel is theirs: it scrolls one taller than the screen
             if (ui.scroll(f, in.x, in.y, -in.dy * 48 * k()) || ui.card() != ui::Card::None || ui.under(f, in.x, in.y).rfind("menu:", 0) == 0) return;
-            wheel += in.dy;   // a trackpad sends fractions of a notch, and a sideways scroll nothing
-            if (std::fabs(wheel) < 1) return;
-            const int step = wheel > 0 ? 1 : -1;
-            wheel = 0;
+            wheel += in.dy;   // a trackpad sends fractions of a notch, a flick several at once, a sideways scroll nothing
+            const int steps = int(wheel);
+            if (!steps) return;
+            wheel -= float(steps);
             ui.close_menu();
-            place(view::zoom_by(cam, step, in.x, in.y, stage));
+            // over the minimap it zooms about the spot on the map under the pointer, as the page's does
+            draw::Pt at{in.x, in.y};
+            if (std::string arg; ui.under(f, in.x, in.y) == "map:mm" && ui.map_drag(f, in.x, in.y, &arg)) {
+                int mx = 0, my = 0;
+                std::sscanf(arg.c_str(), "%d %d", &mx, &my);
+                at = {std::clamp(cam.tx + mx * float(cam.u), 0.f, float(stage.w)), std::clamp(cam.ty + my * float(cam.u), 0.f, float(stage.h))};
+            }
+            place(view::zoom_by(cam, steps, at.x, at.y, stage));
             settle();
             return;
         }
@@ -1047,7 +1105,7 @@ void App::Impl::handle(App& app, const In& in) {
                 if (!cam.focus.empty()) { go(std::string(to)); return; }
                 const manor::Geom* g = manor::of(to);
                 ui.close_menu();
-                ui.toggle(f, view::Hit{Thing::Room, std::string(to), {g->box.x * float(cam.u) + cam.tx, g->box.y * float(cam.u) + cam.ty, g->box.w * float(cam.u), g->box.h * float(cam.u)}});
+                ui.toggle(f, view::Hit{Thing::Room, std::string(to), view::screen_box(cam, g->box)});
                 return;
             }
             return;

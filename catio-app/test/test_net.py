@@ -38,6 +38,7 @@ WRONG = ("That handle and password aren't right. The first account's handle is C
 def esc(text):
     return "".join(f"&#{ord(c)};" if c in "&<>\"'" else c for c in text)
 PASSWORD = "an invented password, with spaces & signs=+"   # a test's, nobody's
+GUEST, GUEST_PASSWORD = "guest", "another invented password"  # a second account on the same stand-in
 
 
 def png(r, g, b):
@@ -113,7 +114,7 @@ class Standin(BaseHTTPRequestHandler):
             return self.answer(303, b"", "text/plain", [("Location", "/"), ("Set-Cookie", "__Host-catio=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0")])
         if path == "/login" and method == "POST":
             form = parse_qs(body.decode(), keep_blank_values=True)
-            if form.get("user") == [USER] and form.get("password") == [PASSWORD]:
+            if (form.get("user"), form.get("password")) in (([USER], [PASSWORD]), ([GUEST], [GUEST_PASSWORD])):
                 s.token = secrets.token_hex(32)
                 return self.answer(303, b"", "text/plain", [("Location", "/"), ("Set-Cookie",
                     f"__Host-catio={s.token}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=2592000")])
@@ -402,6 +403,25 @@ class NetTest(unittest.TestCase):
         cache = Path(self.dir.name) / "home" / "cache"
         self.assertFalse([f for f in cache.rglob("*") if f.is_file()] if cache.exists() else [],
                          "and the art it fetched: the packs' licences are personal, the next person here gets their own")
+
+    def test_a_cookie_run_out_keeps_the_art_and_another_account_does_not(self):
+        from_list = self.serve_art()
+        cache = Path(self.dir.name) / "home" / "cache"
+        fetched = lambda: len([p for m, p, *_ in self.state.seen if p.startswith("/art/")])
+        self.assertEqual(self.app(f"type {USER}; key tab; type {PASSWORD}; key enter").returncode, 0)
+        self.assertEqual(fetched(), len(from_list))
+        self.state.token = None   # thirty days on
+        self.assertEqual(self.app("").returncode, 0)
+        self.assertEqual(len([f for f in cache.rglob("*") if f.is_file()]), len(from_list), "her cookie running out keeps her art")
+        self.state.seen.clear()
+        self.assertEqual(self.app(f"type {USER}; key tab; type {PASSWORD}; key enter").returncode, 0)
+        self.assertEqual(fetched(), 0, "and signing in again as her fetches none of it again")
+        self.state.token = None
+        self.assertEqual(self.app("").returncode, 0)
+        self.state.seen.clear()
+        r = self.app(f"type {GUEST}; key tab; type {GUEST_PASSWORD}; key enter")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(fetched(), len(from_list), "another account's sign-in starts from no art: each piece is asked for, as served to it")
 
     def test_a_press_slid_onto_another_item_is_no_press(self):
         self.serve_art()

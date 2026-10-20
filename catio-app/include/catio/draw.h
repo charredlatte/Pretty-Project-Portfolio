@@ -163,6 +163,9 @@ public:
     std::vector<std::string> wrap(std::string_view text, float width, int max_lines = 0) const;
     /// One line, cut with an ellipsis to fit (text-overflow: ellipsis).
     std::string cut(std::string_view text, float width) const;
+    /// The same from the other end: an ellipsis, then as much of the end as fits. A field she is typing in
+    /// shows where she is typing, as an input scrolls to its caret.
+    std::string tail(std::string_view text, float width) const;
     void put(const Ctx& c, std::string_view text, float x, float y, Colour col) const;
 
 private:

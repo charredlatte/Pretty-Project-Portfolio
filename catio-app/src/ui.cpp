@@ -572,7 +572,7 @@ void Ui::tip(const Frame& f, const view::Hit& h, bool moved) {
         I.tip = {};
         return;
     }
-    I.tip = h;   // the box follows the camera
+    I.tip = h;   // the box as it is now: a camera move clears it, and a changed house asks again
 }
 const view::Hit& Ui::tipped() const { return impl_->tip; }
 
@@ -590,6 +590,9 @@ void Ui::toggle(const Frame& f, const view::Hit& h) {
 }
 
 // what a closed menu or card drew is gone at once, not at the next frame: two presses can land in one
+// With a card open only the card answers: the rest is under its shade.
+bool live(const State& I, const Region& r) { return I.card == Card::None || r.id.rfind("card:", 0) == 0; }
+
 void forget(std::vector<Region>& regions, std::string_view prefix) {
     regions.erase(std::remove_if(regions.begin(), regions.end(), [&](const Region& r) { return r.id.rfind(prefix, 0) == 0; }), regions.end());
 }
@@ -1303,7 +1306,7 @@ std::optional<draw::Pt> Ui::find(std::string_view label) const {
 
 std::string_view Ui::under(const Frame&, float x, float y) const {
     for (auto it = impl_->regions.rbegin(); it != impl_->regions.rend(); ++it)
-        if (inside(it->r, x, y)) return it->id;
+        if (inside(it->r, x, y)) return live(*impl_, *it) ? std::string_view(it->id) : std::string_view();
     return {};
 }
 
@@ -1313,6 +1316,7 @@ void Ui::hover(const Frame& f, float x, float y) {
     I.mm_hot.clear();
     for (auto it = I.regions.rbegin(); it != I.regions.rend(); ++it) {
         if (!inside(it->r, x, y)) continue;
+        if (!live(I, *it)) break;   // under the card's shade
         I.hot = it->id;
         if (it->id == "map:mm" && f.cam) {
             const float s = kMmW / kMmBox[2] * float(std::max(1, f.stage.css));
@@ -1331,6 +1335,7 @@ void Ui::hold(const Frame& f, float x, float y, bool down) {
 }
 
 bool Ui::map_drag(const Frame& f, float x, float y, std::string* arg) const {
+    if (impl_->card != Card::None) return false;   // the card is modal
     for (const Region& r : impl_->regions) {
         if (r.id != "map:mm") continue;
         const float s = kMmW / kMmBox[2] * float(std::max(1, f.stage.css));
@@ -1582,7 +1587,8 @@ void Ui::draw_sign_in(const draw::Ctx& c, const Frame& f, const SignIn& form) {
             std::string shown;
             if (secret) for (size_t n = 0, cp = 0; n < value.size(); ++n) { if ((static_cast<unsigned char>(value[n]) & 0xC0) != 0x80) shown += "\u2022", ++cp; }
             else shown = value;
-            const std::string fits = body.cut(shown, r.w - 24 * k - 2 * k);
+            const float room = r.w - 24 * k - 2 * k;
+            const std::string fits = form.field == i ? body.tail(shown, room) : body.cut(shown, room);   // where she types
             P.text(body, fits, r.x + 13 * k, r.y + 11 * k, 24, ink);
             if (form.field == i && !form.busy) P.fill(Rect{r.x + 13 * k + body.measure(fits).x + k, r.y + 13 * k, std::max(1.f, k), 20 * k}, ink);
             y += r.h;

@@ -198,6 +198,21 @@ std::string Body::cut(std::string_view text, float width) const {
     return out + "…";
 }
 
+std::string Body::tail(std::string_view text, float width) const {
+    const std::string s = collapsed(text);
+    if (!impl_->font || measure(s).x <= width) return s;
+    std::vector<size_t> starts;   // every character's first byte, and the end
+    for (size_t i = 0; i < s.size(); ++i) if ((static_cast<unsigned char>(s[i]) & 0xC0) != 0x80) starts.push_back(i);
+    starts.push_back(s.size());
+    size_t lo = 0, hi = starts.size() - 1;   // the earliest start whose tail fits with its ellipsis
+    while (lo < hi) {
+        const size_t mid = (lo + hi) / 2;
+        if (measure("…" + s.substr(starts[mid])).x <= width) hi = mid;
+        else lo = mid + 1;
+    }
+    return "…" + s.substr(starts[lo]);
+}
+
 std::vector<std::string> Body::wrap(std::string_view raw, float width, int max_lines) const {
     std::vector<std::string> lines;
     const std::string text = collapsed(raw);
