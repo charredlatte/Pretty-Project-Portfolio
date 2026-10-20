@@ -133,7 +133,7 @@ Pixel::~Pixel() {
 
 bool Pixel::open(const std::filesystem::path& ttf) {
     if (impl_->font || ttf.empty() || !ttf_ready()) return impl_->font != nullptr;
-    impl_->font = TTF_OpenFont(ttf.string().c_str(), 18.0f);
+    impl_->font = TTF_OpenFont(to_utf8(ttf).c_str(), 18.0f);
     if (impl_->font) TTF_SetFontHinting(impl_->font, TTF_HINTING_MONO);   // a pixel font: whole pixels or nothing
     return impl_->font != nullptr;
 }
@@ -190,7 +190,7 @@ bool Body::open(const std::filesystem::path& ttf, float px) {
     if (impl_->font) TTF_CloseFont(impl_->font), impl_->font = nullptr;
     impl_->cache.clear();
     impl_->sizes.got.clear(), impl_->wraps.clear();
-    impl_->font = TTF_OpenFont(ttf.string().c_str(), px);
+    impl_->font = TTF_OpenFont(to_utf8(ttf).c_str(), px);
     if (impl_->font) TTF_SetFontHinting(impl_->font, TTF_HINTING_LIGHT);
     impl_->px = px;
     return impl_->font != nullptr;

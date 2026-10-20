@@ -16,6 +16,7 @@
 #include <cctype>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -104,6 +105,7 @@ struct App::Impl {
     SDL_Renderer* r = nullptr;
     SDL_Surface* surface = nullptr;
     SDL_Texture* world = nullptr;
+    std::uint64_t world_key = 0;   // what the world target holds: 0, nothing yet (or the GPU lost it)
     SDL_Cursor* paw = nullptr;
     SDL_Cursor* point = nullptr;
     bool pointing = false;
@@ -207,14 +209,14 @@ struct App::Impl {
         else if (phase == Phase::FirstRead) told.push_back("Waking the cats\u2026");
         if (phase == Phase::Setup) wrong.push_back("This caf\u00e9 has no rooms yet: set it up in a browser for now, at your gateway's address.");
         if (!art_trouble.empty()) wrong.push_back(art_trouble);
-        if (!cache_trouble.empty()) wrong.push_back(cache_trouble);
         else if (art && art->have() < art->total()) {
             const std::string n = std::to_string(art->have()) + " of " + std::to_string(art->total());
             if (!fetching.empty()) told.push_back("Fetching the caf\u00e9's art\u2026 (" + n + ")");
             else if (origin.empty()) wrong.push_back("The caf\u00e9's art isn't all here (" + n + "): it comes from your gateway once you sign in.");
             else if (read_once) wrong.push_back("The caf\u00e9's art isn't all here yet (" + n + "): the rest is asked for again with the next read.");
         }
-        if (origin.empty() && data == std::filesystem::path(CATIO_SOURCE_DIR) / "test" / "fixtures")
+        if (!cache_trouble.empty()) wrong.push_back(cache_trouble);
+        if (origin.empty() && data == from_utf8(CATIO_SOURCE_DIR) / "test" / "fixtures")
             wrong.push_back("Example cats, not yours: give the app your gateway (--gateway) to see your caf\u00e9.");
         status.clear(), toast.clear();
         for (const auto& w : wrong) status += (status.empty() ? "" : " ") + w;
@@ -259,7 +261,12 @@ struct App::Impl {
         }
     }
     void sign_in() {
-        if (form.busy || form.user.empty() || form.password.empty()) return;
+        if (form.busy) return;
+        if ((form.ask_origin && net::bare(form.origin).empty()) || form.user.empty() || form.password.empty()) {
+            form.problem = form.ask_origin && net::bare(form.origin).empty() ? "Fill in your gateway's address." : form.user.empty() ? "Fill in your handle." : "Fill in your password.";
+            form.field = form.ask_origin && net::bare(form.origin).empty() ? 0 : form.user.empty() ? 1 : 2;
+            return;
+        }
         if (form.ask_origin) {
             const std::string o = net::bare(form.origin);
             if (!net::safe_origin(o)) { form.problem = "Your gateway's address starts with https://."; return; }
@@ -525,26 +532,43 @@ struct App::Impl {
             return false;
         };
 
-        draw::Ctx wc{&canvas, art.get(), 2, 1};
-        SDL_SetRenderTarget(r, world);
-        SDL_SetRenderDrawColor(r, 0x8F, 0xBF, 0x4F, 255);
-        SDL_RenderClear(r);
+        // a closed room under the pointer, or with its menu open, is lightened to 18%
+        auto fill_of = [&](const view::Blit& b) {
+            const bool lit = !b.room.empty() && ((ui.tipped().what == Thing::Room && ui.tipped().key == b.room) ||
+                                                 (ui.menu_kind() == Thing::Room && ui.menu_key() == b.room));
+            draw::Colour col = b.colour;
+            if (lit) col.a = 46;
+            return col;
+        };
+        // The world target is drawn again only when what is in it changed -- a cat's frame, the house, the floor, an
+        // outline, a piece of art arriving -- not at the display's rate: a phone's battery is the reason.
+        std::uint64_t key = 1469598103934665603ull;   // FNV-1a over everything drawn into it
+        auto mix = [&](const void* p, size_t n) {
+            for (size_t i = 0; i < n; ++i) key = (key ^ static_cast<const unsigned char*>(p)[i]) * 1099511628211ull;
+        };
         for (const auto& b : blits) {
-            if (b.fill) {
-                // a closed room under the pointer, or with its menu open, is lightened to 18%
-                const bool lit = !b.room.empty() && ((ui.tipped().what == Thing::Room && ui.tipped().key == b.room) ||
-                                                     (ui.menu_kind() == Thing::Room && ui.menu_key() == b.room));
-                draw::Colour col = b.colour;
-                if (lit) col.a = 46;
-                draw::fill(wc, b.dst, col);
-                continue;
-            }
-            if (is_outlined(b))
-                for (auto [dx, dy] : {std::pair{2.f, 0.f}, {-2.f, 0.f}, {0.f, 2.f}, {0.f, -2.f}})
-                    draw::cell(wc, b.sheet, b.src, draw::Rect{b.dst.x + dx, b.dst.y + dy, b.dst.w, b.dst.h}, draw::kOutline);
-            draw::cell(wc, b.sheet, b.src, b.dst, b.coat);
+            mix(&b.dst, sizeof b.dst);
+            if (b.fill) { const draw::Colour col = fill_of(b); mix(&col, sizeof col); continue; }
+            const bool out = is_outlined(b);
+            mix(&b.sheet, sizeof b.sheet), mix(&b.src, sizeof b.src), mix(&b.coat, sizeof b.coat), mix(&out, sizeof out);
         }
-        SDL_SetRenderTarget(r, nullptr);
+        const int have = art->have();
+        mix(&have, sizeof have);
+        if (key != world_key) {
+            world_key = key;
+            draw::Ctx wc{&canvas, art.get(), 2, 1};
+            SDL_SetRenderTarget(r, world);
+            SDL_SetRenderDrawColor(r, 0x8F, 0xBF, 0x4F, 255);
+            SDL_RenderClear(r);
+            for (const auto& b : blits) {
+                if (b.fill) { draw::fill(wc, b.dst, fill_of(b)); continue; }
+                if (is_outlined(b))
+                    for (auto [dx, dy] : {std::pair{2.f, 0.f}, {-2.f, 0.f}, {0.f, 2.f}, {0.f, -2.f}})
+                        draw::cell(wc, b.sheet, b.src, draw::Rect{b.dst.x + dx, b.dst.y + dy, b.dst.w, b.dst.h}, draw::kOutline);
+                draw::cell(wc, b.sheet, b.src, b.dst, b.coat);
+            }
+            SDL_SetRenderTarget(r, nullptr);
+        }
 
         // the stage: the lawn, the meadow tiled to follow the camera, the world over it
         SDL_SetRenderDrawColor(r, 0x8F, 0xBF, 0x4F, 255);
@@ -639,21 +663,22 @@ App::~App() {
 
 bool App::start(int argc, char** argv) {
     Impl& I = *impl_;
-    const std::filesystem::path src = CATIO_SOURCE_DIR;
+    const std::filesystem::path src = from_utf8(CATIO_SOURCE_DIR);
     const char* base_c = SDL_GetBasePath();
-    const std::filesystem::path base = base_c ? base_c : "";
+    const std::filesystem::path base = base_c ? from_utf8(base_c) : std::filesystem::path();
     std::string gateway;
     bool gateway_given = false;
     for (int i = 1; i < argc; ++i) {
         const std::string a = argv[i];
         auto next = [&]() -> std::string { return i + 1 < argc ? argv[++i] : ""; };
-        if (a == "--data") I.data = next();
+        auto path = [&] { return from_utf8(next()); };   // SDL's argv is UTF-8 on every platform
+        if (a == "--data") I.data = path();
         else if (a == "--gateway") gateway = next(), gateway_given = true;
-        else if (a == "--home") I.home = next();
-        else if (a == "--art") I.art_dir = next();
-        else if (a == "--manor") I.manor_json = next();
-        else if (a == "--assets") I.assets = next();
-        else if (a == "--shot") I.shot = next();
+        else if (a == "--home") I.home = path();
+        else if (a == "--art") I.art_dir = path();
+        else if (a == "--manor") I.manor_json = path();
+        else if (a == "--assets") I.assets = path();
+        else if (a == "--shot") I.shot = path();
         else if (a == "--size") { const std::string v = next(); std::sscanf(v.c_str(), "%dx%d", &I.shot_w, &I.shot_h); }
         else if (a == "--css") I.shot_css = std::max(1, std::atoi(next().c_str()));
         else if (a == "--touch") I.shot_touch = true;
@@ -674,20 +699,22 @@ bool App::start(int argc, char** argv) {
     // where her cookie, the prefs and the art's cache live: the app's own private folder, or the one she names
     if (I.home.empty()) {
         char* pref = SDL_GetPrefPath("KittyChat", "Cafe");
-        if (pref) I.home = pref, SDL_free(pref);
+        if (pref) I.home = from_utf8(pref), SDL_free(pref);
     }
     if (gateway_given && I.home.empty()) {   // never a cookie written wherever it was started from
         std::fprintf(stderr, "catio_app: no private folder for the cookie (%s): give one with --home.\n", SDL_GetError());
         return false;
     }
-    if (I.art_dir.empty() && !I.home.empty()) I.art_dir = I.home / "cache", I.own_cache = true;
+    // the cache holds what a sign-in fetched, and is a gateway's alone: a folder of documents draws only the art
+    // it is given with --art, never the licensed packs a past sign-in left there
+    if (I.art_dir.empty() && gateway_given && !I.home.empty()) I.art_dir = I.home / "cache", I.own_cache = true;
     if (I.shot.empty() && !I.home.empty()) I.prefs = I.home / "prefs.json";
 
     if (gateway_given) {
         // the gateway: signed in already, or the sign-in screen first
         I.form.ask_origin = gateway.empty() || gateway == "ask";
         I.load_prefs();
-        I.origin = I.form.ask_origin ? I.form.origin : gateway;
+        I.origin = net::bare(I.form.ask_origin ? I.form.origin : gateway);
         if (!I.origin.empty()) I.net = std::make_unique<net::Net>(I.origin, I.home / "cookie");
         I.phase = I.net && I.net->has_cookie() ? Phase::FirstRead : Phase::SignIn;
         I.form.field = I.form.ask_origin && I.origin.empty() ? 0 : 1;
@@ -781,7 +808,14 @@ void App::act(ui::Action what, std::string_view arg_v) {
             // the gateway ends the cookie and the file goes, on the net's own thread; the sign-in comes back here at once
             if (!I.net) break;
             I.signed_out("", true);   // the queue emptied of the leaving account's work, the cookie and the art gone, now
-            I.net->send([](net::Gateway& g) { g.sign_out(); return net::Reply{}; }, true);   // then /logout, first in line
+            // then /logout, first in line; and the cache once more, on the net's one thread, so a piece of art a fetch
+            // in flight writes after the sign-out goes too
+            I.net->send([cache = I.own_cache ? I.art_dir : std::filesystem::path()](net::Gateway& g) {
+                g.sign_out();
+                std::error_code ec;
+                if (!cache.empty()) std::filesystem::remove_all(cache, ec);
+                return net::Reply{};
+            }, true);
             break;
         case Action::CheckNow:
             I.art_trouble.clear();
@@ -849,6 +883,8 @@ void App::events() {
         switch (e.type) {
             case SDL_EVENT_QUIT: in.kind = In::Quit; break;
             case SDL_EVENT_WILL_ENTER_BACKGROUND: I.away = true; continue;
+            case SDL_EVENT_RENDER_TARGETS_RESET:
+            case SDL_EVENT_RENDER_DEVICE_RESET: I.world_key = 0; continue;   // the world target's pixels are gone
             case SDL_EVENT_DID_ENTER_FOREGROUND: I.away = false; refresh(true); continue;
             case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
             case SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED: in.kind = In::Resize; break;
@@ -917,6 +953,7 @@ void App::events() {
 
 // The page's pointer and keys, for the window and for a shot's steps alike.
 void App::Impl::handle(App& app, const In& in) {
+    if (in.kind == In::Move || in.kind == In::Down) coarse = in.touch;   // before the frame that carries it
     const ui::Frame f = frame();
     if (phase == Phase::SignIn) {   // a form: its fields, Tab between them, Enter to come in
         std::string* field = form.field == 0 ? &form.origin : form.field == 1 ? &form.user : &form.password;
@@ -949,7 +986,6 @@ void App::Impl::handle(App& app, const In& in) {
     if (pinching && in.touch && (in.kind == In::Move || in.kind == In::Down || in.kind == In::Up)) return;
     switch (in.kind) {
         case In::Move: {
-            coarse = in.touch;
             if (pressed) {
                 const float dx = in.x - last_at.x, dy = in.y - last_at.y;
                 if (in.touch && on_ui && !on_map && (scrolling || std::hypot(in.x - press_at.x, in.y - press_at.y) > 4 * k()) &&
@@ -987,7 +1023,6 @@ void App::Impl::handle(App& app, const In& in) {
             return;
         }
         case In::Down: {
-            coarse = in.touch;
             pressed = true;
             dragging = scrolling = false;
             press_at = last_at = {in.x, in.y};
@@ -1082,7 +1117,8 @@ void App::Impl::handle(App& app, const In& in) {
             return;
         }
         case In::PinchBegin:
-            // what the first finger started is dropped: a pinch is neither a drag nor a press
+            // what the first finger started is dropped: a pinch is neither a drag nor a press (and under a card,
+            // nothing at all: the card is modal)
             pinching = true;
             pinch = 1;
             if (pressed) ui.hold(f, press_at.x, press_at.y, false);
@@ -1094,6 +1130,7 @@ void App::Impl::handle(App& app, const In& in) {
             pinch = 1;
             return;
         case In::Pinch: {
+            if (ui.card() != ui::Card::None) return;
             pinch *= in.scale;
             if (pinch > 1.25f || pinch < 0.8f) {
                 place(view::zoom_by(cam, pinch > 1 ? 1 : -1, in.x, in.y, stage));
@@ -1238,9 +1275,10 @@ int App::run() {
         drain();
         I.draw();
         SDL_RenderPresent(I.r);
-        if (!SDL_SavePNG(I.surface, I.shot.string().c_str())) { std::fprintf(stderr, "catio_app: %s\n", SDL_GetError()); return 1; }
+        if (!SDL_SavePNG(I.surface, to_utf8(I.shot).c_str())) { std::fprintf(stderr, "catio_app: %s\n", SDL_GetError()); return 1; }
         std::printf("%s: %dx%d at css %d\n", I.shot.string().c_str(), I.stage.w, I.stage.h, I.stage.css);
-        std::printf("sign: %s\ntoast: %s\n", I.status.c_str(), I.toast.c_str());   // what the frame says, for a test to read
+        // what the frame says, for a test to read
+        std::printf("sign: %s\ntoast: %s\nform: %s\n", I.status.c_str(), I.toast.c_str(), I.form.problem.c_str());
         return 0;
     }
     while (!I.quit) {

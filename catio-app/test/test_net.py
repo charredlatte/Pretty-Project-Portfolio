@@ -57,6 +57,7 @@ class State:
         self.homework = True  # False: an older gateway, with no quizzes tool
         self.redirect = False # True: something in front of the gateway sends /api/db elsewhere
         self.outage = False   # True: Cloudflare's own 503 page in front of /api/db
+        self.proxy = False    # True: something in front of the gateway answers /api/db with its own HTML 401
         self.seen = []        # (method, path, headers, body)
         self.docs = json.loads((APP / "test" / "fixtures" / "db.json").read_text())["docs"]
         self.agents = json.loads((APP / "test" / "fixtures" / "agents.json").read_text())
@@ -125,6 +126,8 @@ class Standin(BaseHTTPRequestHandler):
         if path.startswith("/art/") and method == "GET":
             data = s.art.get(path[1:])
             return self.answer(200, data, "image/png") if data is not None else self.answer(404, b"Not found\n", "text/plain")
+        if path == "/api/db" and method == "GET" and s.proxy:
+            return self.answer(401, b"<html><h1>Access denied</h1></html>", "text/html")
         if path == "/api/db" and method == "GET" and s.outage:
             return self.answer(503, b"<html><title>503 Service Unavailable</title><h1>Error 503</h1></html>", "text/html")
         if path == "/api/db" and method == "GET" and s.redirect:
@@ -438,6 +441,29 @@ class NetTest(unittest.TestCase):
         self.assertIn("sign:", r.stdout)
         sign = r.stdout.split("sign: ", 1)[1].split("\n", 1)[0]
         self.assertTrue("house.png" in sign or "sprout.ttf" in sign, sign)
+
+    def test_a_proxys_refusal_is_not_her_signing_out(self):
+        self.run_check(f"login:{USER}:{PASSWORD}")
+        self.state.proxy = True
+        (r,) = self.run_check("docs")
+        self.assertEqual((r["status"], r["code"]), (401, "unauthorized"), "signed_out is the gateway's own word, in its own JSON")
+        self.assertTrue(self.jar.exists(), "and her cookie is kept")
+
+    def test_a_folder_of_documents_never_draws_a_sign_ins_art(self):
+        from_list = self.serve_art()
+        self.assertEqual(self.app(f"type {USER}; key tab; type {PASSWORD}; key enter").returncode, 0)
+        home = Path(self.dir.name) / "home"
+        r = subprocess.run([str(CAFE), "--home", str(home), "--shot", str(Path(self.dir.name) / "folder.png"), "--size", "1280x800"],
+                           capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn(f"isn't all here (0 of {len(from_list)})", r.stdout, "the cache is the gateway's, and only for her signed in")
+
+    def test_an_empty_field_says_so(self):
+        self.serve_art()
+        r = self.app(f"type {USER}; key enter")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("form: Fill in your password.", r.stdout)
+        self.assertNotIn(("POST", "/login"), [(m, p) for m, p, *_ in self.state.seen])
 
     def test_a_press_slid_onto_another_item_is_no_press(self):
         self.serve_art()

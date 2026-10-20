@@ -131,7 +131,7 @@ std::string words_of(const std::string& html) {
 
 std::string code_for(long status) {
     switch (status) {
-        case 401: return "signed_out";
+        case 401: return "unauthorized";   // signed_out only when the gateway says so, in its own JSON: not a proxy's page
         case 403: return "forbidden";
         case 404: return "not_found";
         case 413: return "too_big";

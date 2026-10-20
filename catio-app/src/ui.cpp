@@ -15,6 +15,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <unordered_set>
 #include <tuple>
 
 #include "catio/manor.h"
@@ -54,10 +55,9 @@ std::string where_is(const Cat* c) { return std::string(stands_in(*c)); }
 std::vector<const Cat*> shown(const Frame& f) {
     std::vector<const Cat*> out;
     if (!f.house) return out;
-    for (const Cat& c : f.house->cats()) {
-        const bool attic = f.scene && std::find(f.scene->attic.begin(), f.scene->attic.end(), &c) != f.scene->attic.end();
-        if (!attic) out.push_back(&c);
-    }
+    std::unordered_set<const Cat*> attic;
+    if (f.scene) attic.insert(f.scene->attic.begin(), f.scene->attic.end());
+    for (const Cat& c : f.house->cats()) if (!attic.count(&c)) out.push_back(&c);
     return out;
 }
 
@@ -599,6 +599,21 @@ Pt mm_point(const Frame& f, Rect mm, float x, float y) {
     return {kMmBox[0] + (x - mm.x) / s, kMmBox[1] + (y - mm.y) / s};
 }
 
+// The room of this floor at a point of the plan (art pixels), or none.
+std::string room_at(manor::Level floor, float ax, float ay) {
+    std::string room;
+    for (const auto& g : manor::geom())
+        if (g.level == floor && ax >= g.box.x && ax < g.box.x + g.box.w && ay >= g.box.y && ay < g.box.y + g.box.h) room = g.key;
+    return room;
+}
+
+// Why an action isn't here: the word a menu puts on its right, and the sentence a test or a hover reads. One table.
+struct WhyNot { std::string_view brief, sentence; };
+WhyNot why_not(Action a) {
+    if (a == Action::OpenRoom) return {"gateway only", "Only through your gateway: this caf\u00e9 is a folder of documents."};
+    return {"not yet", kNotYet};
+}
+
 // With a card open only the card answers: the rest is under its shade.
 bool live(const State& I, const Region& r) { return I.card == Card::None || r.id.rfind("card:", 0) == 0; }
 
@@ -676,8 +691,7 @@ bool Ui::can(Action a) const {
 
 std::string_view Ui::cannot(Action a) const {
     if (can(a)) return {};
-    if (a == Action::OpenRoom) return "Only through your gateway: this caf\u00e9 is a folder of documents.";
-    return kNotYet;
+    return why_not(a).sentence;
 }
 std::string_view Ui::credits() const { return kCredits; }
 
@@ -1249,7 +1263,7 @@ float menu_pass(Painter& P, const Menu& m, float x0, float y0, float w) {
                 y += bh;
                 if (all_off && !b.items.empty()) {
                     const draw::Body& a = P.body(800, 12);
-                    const std::string why = "not yet";
+                    const std::string why(why_not(b.items.front().action).brief);
                     P.text(a, why, cx + cw - a.measure(why).x, y + 2 * k, 18, kSoft);
                     y += 18 * k + 2 * k;
                 }
@@ -1279,7 +1293,7 @@ float menu_pass(Painter& P, const Menu& m, float x0, float y0, float w) {
                         P.cell(art::Id::UiPointer, Rect{0, 0, 7, 12}, Rect{r.x + 5 * k, r.y + h / 2 - 6 * k, 7 * k, 12 * k});
                     P.px(it.label, tx, r.y + (h - 22 * k) / 2, 22, ink);
                     // a disabled item says why, after its own count ("3 waiting · not yet")
-                    const std::string why = it.action == Action::OpenRoom ? "gateway only" : "not yet";
+                    const std::string why(why_not(it.action).brief);
                     const std::string aside = enabled ? it.aside : it.aside.empty() ? why : it.aside + " \u00b7 " + why;
                     if (!aside.empty()) {
                         const draw::Body& a = P.body(800, 12);
@@ -1331,9 +1345,7 @@ void Ui::hover(const Frame& f, float x, float y) {
         I.hot = it->id;
         if (it->id == "map:mm" && f.cam) {
             const Pt a = mm_point(f, it->r, x, y);
-            const float ax = a.x, ay = a.y;
-            for (const auto& g : manor::geom())
-                if (g.level == f.cam->floor && ax >= g.box.x && ax < g.box.x + g.box.w && ay >= g.box.y && ay < g.box.y + g.box.h) I.mm_hot = g.key;
+            I.mm_hot = room_at(f.cam->floor, a.x, a.y);
         }
         break;
     }
@@ -1392,9 +1404,7 @@ bool Ui::press(const Frame& f, float x, float y, Action* what, std::string* arg)
             const float ax = a.x, ay = a.y;
             *arg = std::to_string(int(ax)) + " " + std::to_string(int(ay));
             // a second press on the same room soon after looks in (the minimap's double-click)
-            std::string room;
-            for (const auto& g : manor::geom())
-                if (f.cam && g.level == f.cam->floor && ax >= g.box.x && ax < g.box.x + g.box.w && ay >= g.box.y && ay < g.box.y + g.box.h) room = g.key;
+            const std::string room = f.cam ? room_at(f.cam->floor, ax, ay) : std::string();
             if (!room.empty() && room == I.mm_pressed_room && f.now - I.mm_pressed_at < 0.4) *what = Action::LookIn, *arg = room, I.mm_pressed_at = -1;
             else I.mm_pressed_room = room, I.mm_pressed_at = f.now;
             break;
@@ -1487,8 +1497,37 @@ void draw_cat_card(Painter& P, const Frame& f, const Cat& c) {
             y += 12 * k;
         }
 
-        // Manage, folded: the facts. Renaming and moving it are writes, and arrive with the network.
-        {
+        const float lh = 14.4f * 1.5f;
+        auto facts_of = [&](const std::vector<std::pair<std::string, std::string>>& facts) {
+            float kw = 0;
+            for (const auto& [key, v] : facts) kw = std::max(kw, factk.measure(key).x);
+            for (const auto& [key, v] : facts) {
+                P.text(factk, key, x, y, lh, kSoft);
+                const auto lines = fact.wrap(v, cw - kw - 12 * k);
+                for (size_t i = 0; i < lines.size(); ++i) P.text(fact, lines[i], x + kw + 12 * k, y + i * lh * k, lh, kInk);
+                y += std::max<size_t>(1, lines.size()) * lh * k + 4 * k;
+            }
+        };
+        auto not_yet = [&](const std::string& what) {   // the card's own way of drawing what isn't built: said
+            for (const auto& l : note.wrap(what, cw)) P.text(note, l, x, y, 12.8f * 1.5f, kSoft), y += 12.8f * 1.5f * k;
+        };
+
+        if (c.adopted) {
+            // an adopted chat: the page's adopt form, to change its details. What they are, and that the form is to come
+            std::vector<std::pair<std::string, std::string>> facts{{"Title", c.title}};
+            if (c.updated) facts.push_back({"Last active", ago(c.updated, f.clock_ms)});
+            facts_of(facts);
+            not_yet("Changing its title, link, project, note or mood isn't in the app yet: the caf\u00e9 in a browser has it.");
+            y += 12 * k;
+        } else {
+            // the brain's files for it and the conversation with it, as the page shows them under the blurb
+            not_yet(join({c.waiting ? plural(c.waiting, "file", "files") + " from the brain wait for it" : "",
+                          "Talking to it isn't in the app yet: the caf\u00e9 in a browser has it."}, ". "));
+            y += 12 * k;
+        }
+
+        // Manage, folded: the facts, and what managing it will be
+        if (!c.adopted) {
             const Rect r{x, y - (f.coarse ? 11 * k : 0), std::max(P.px_w("Manage") + 15 * k, f.coarse ? kTouch * k : 0.f), f.coarse ? kTouch * k : 22 * k};
             P.region(r, "card:manage", Action::Manage);
             if (P.paint) {
@@ -1506,22 +1545,12 @@ void draw_cat_card(Painter& P, const Frame& f, const Cat& c) {
             if (P.I.manage) {
                 y += 10 * k;
                 std::vector<std::pair<std::string, std::string>> facts;
-                if (!c.doing.empty() && c.title != c.doing) facts.push_back({"Title", c.title});
-                else if (c.doing.empty() && !c.adopted) facts.push_back({"Title", c.title});
+                if (c.title != c.doing) facts.push_back({"Title", c.title});   // row("Title", c.title !== c.doing ? c.title : "")
                 if (!c.repo.empty() && c.repo != c.project_name) facts.push_back({"Repository", c.repo});
-                if (!c.model.empty()) facts.push_back({c.adopted ? "Model" : "Agent", c.model});
+                if (!c.model.empty()) facts.push_back({"Agent", c.model});
                 if (c.updated) facts.push_back({"Last active", ago(c.updated, f.clock_ms)});
-                float kw = 0;
-                for (const auto& [key, v] : facts) kw = std::max(kw, factk.measure(key).x);
-                const float lh = 14.4f * 1.5f;
-                for (const auto& [key, v] : facts) {
-                    P.text(factk, key, x, y, lh, kSoft);
-                    const auto lines = fact.wrap(v, cw - kw - 12 * k);
-                    for (size_t i = 0; i < lines.size(); ++i) P.text(fact, lines[i], x + kw + 12 * k, y + i * lh * k, lh, kInk);
-                    y += std::max<size_t>(1, lines.size()) * lh * k + 4 * k;
-                }
-                P.text(note, "Renaming and moving it aren't in the app yet: the caf\u00e9 in a browser has them.", x, y, 12.8f * 1.5f, kSoft);
-                y += 12.8f * 1.5f * k;
+                facts_of(facts);
+                not_yet("Pausing it, waking it, wrapping it up, renaming it and moving it aren't in the app yet: the caf\u00e9 in a browser has them.");
             }
             y += 12 * k;
         }

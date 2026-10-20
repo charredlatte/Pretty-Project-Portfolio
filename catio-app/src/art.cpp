@@ -63,6 +63,16 @@ const std::vector<File> kFiles = {
 constexpr size_t kCount = static_cast<size_t>(Id::Count);
 bool is_font(Id id) { return id == Id::SproutFont; }
 
+// a TrueType or OpenType font, by its first four bytes: not a portal's page, nor half a file
+bool font_head(std::string_view head) {
+    return head == std::string_view("\0\1\0\0", 4) || head == "true" || head == "OTTO" || head == "ttcf";
+}
+bool looks_like_font(const std::filesystem::path& p) {
+    std::ifstream in(p, std::ios::binary);
+    char head[4] = {};
+    return in.read(head, 4) && font_head(std::string_view(head, 4));
+}
+
 }  // namespace
 
 const std::vector<File>& files() { return kFiles; }
@@ -112,7 +122,8 @@ void Art::scan() {
         const auto path = impl_->cache / std::string(f.path);
         std::error_code ec;
         if (!std::filesystem::exists(path, ec)) continue;
-        impl_->take(f, is_font(f.id) ? nullptr : SDL_LoadPNG(path.string().c_str()));
+        if (is_font(f.id) && !looks_like_font(path)) continue;   // a half-written or wrong file: fetched again
+        impl_->take(f, is_font(f.id) ? nullptr : SDL_LoadPNG(to_utf8(path).c_str()));
     }
     impl_->scanned = true;
 }
@@ -127,8 +138,7 @@ std::shared_ptr<Fetched> prepare(Id id, std::string_view bytes, const std::files
     auto ready = std::make_shared<Fetched>();
     if (is_font(id)) {
         // a TrueType or OpenType font, not a portal's page answered with a 200
-        const std::string_view head = bytes.substr(0, 4);
-        if (head != std::string_view("\0\1\0\0", 4) && head != "true" && head != "OTTO" && head != "ttcf") {
+        if (!font_head(bytes.substr(0, 4))) {
             ready->trouble = "not_a_font";
             return ready;
         }
@@ -137,12 +147,19 @@ std::shared_ptr<Fetched> prepare(Id id, std::string_view bytes, const std::files
         ready->surface = io ? SDL_LoadPNG_IO(io, true) : nullptr;
         if (!ready->surface) { ready->trouble = "not_a_png"; return ready; }
     }
+    // written beside it, then put in place whole: a full disk or a killed app leaves no half a file behind
     const auto path = cache_dir / std::string(file_of(id).path);
+    auto part = path;
+    part += ".part";
     std::error_code ec;
     std::filesystem::create_directories(path.parent_path(), ec);
-    std::ofstream out(path, std::ios::binary);
-    out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
-    if (!out) ready->trouble = "cache_unwritable";
+    {
+        std::ofstream out(part, std::ios::binary);
+        out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+        if (!out) ready->trouble = "cache_unwritable";
+    }
+    if (ready->trouble.empty()) std::filesystem::rename(part, path, ec);
+    if (ec || !ready->trouble.empty()) ready->trouble = "cache_unwritable", std::filesystem::remove(part, ec);
     return ready;
 }
 

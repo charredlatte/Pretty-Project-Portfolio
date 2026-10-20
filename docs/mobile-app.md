@@ -430,7 +430,7 @@ client.
 | `src/net_curl.cpp` | `net.h` over libcurl: `/login`'s form, the `__Host-catio` cookie kept by hand in a file only its owner can read, `/api/db` and its writes (`X-Catio: 1`, no Origin, each path segment encoded, the data sent as `{"data": …}`), the tools, the brain's files, `/art/*`; every refusal as the gateway's own `{code, error}`, and `/login`'s as the words on the page it would have shown -- with, when the gateway has no account yet, each of its warning lights that is a cross, which name the Cloudflare secret to fix. Signing out ends the cookie at the gateway too (`/logout`). One worker thread, so no frame waits |
 | `src/app.cpp` | the sign-in screen (the gateway's own sign-in page, ported: it comes before any art, so it is drawn in the committed Nunito); the first read -- documents, `list_agents` and `quizzes` together, as the page reads them; then every piece of art the cache lacks, the house and the meadow first, each drawn as it lands; a read every 30 seconds and at once after a write; a cookie run out or revoked back to the sign-in, the cookie deleted; Sign out, or another account signing in on the device, forgets the art too, and everything drawn from it (the pack's font, the tinted sheets, the paw), since the packs' licences are personal |
 | the first write | **Open this room**, a closed room's PATCH `rooms/<k>` `{closed: false}`, on her press, through `act()` |
-| `test/test_net.py` | a stand-in gateway on the loopback that answers as `cafe.js` does and records what it was sent; 26 tests check both sides, one of them the app itself: it signs in by typing, reads, fetches every file once, keeps them, and on its next start goes straight in and opens the closed ensuite. `ctest` runs it. It never touches her gateway, and the only password in it is invented |
+| `test/test_net.py` | a stand-in gateway on the loopback that answers as `cafe.js` does and records what it was sent; 29 tests check both sides, one of them the app itself: it signs in by typing, reads, fetches every file once, keeps them, and on its next start goes straight in and opens the closed ensuite. `ctest` runs it. It never touches her gateway, and the only password in it is invented |
 
 What looking showed: the sign-in screen is the gateway's page, and a refusal shows in its own red words
 ("That handle and password aren't right."), the password field emptied as the page does. Served by the
@@ -449,9 +449,9 @@ python3 catio-app/test/test_net.py catio-app/build
   (NSURLSession). Neither platform has a system libcurl.
 - **The other writes the menus draw**: a chat's mood, renaming and moving a cat, Talk; and the WebSocket
   (`/ws` checks the Origin, so a native client polls every 30 seconds instead).
-- **Drawing only what changed.** Each frame draws the whole world target and lays the interface out again,
-  at the display's rate (still cats wait for an event instead). A phone's battery would rather the world were
-  redrawn only when a cat's frame, the camera or the house changes, and the menus' words kept between frames.
+- **Laying the interface out only when it changed.** The world target is drawn again only when something
+  in it changed, and each font keeps what it measured and how it broke each text, but the menus, the header and
+  the map panel are still laid out every frame, at the display's rate (still cats wait for an event instead).
 - **The other cards**, the queen's first; **walking** (`way_to`, `Walks`); the keyboard's focus ring (Tab);
   the meow; **the voice**.
 - **The window itself has never been opened**: there is no display in the cloud session. The window's
