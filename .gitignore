@@ -18,9 +18,6 @@ catio/dist/
 # graphify's map of the repo: a local build (graphify update .)
 graphify-out/
 
-# the gateway tests' copies of wrangler.jsonc (the AI binding left out, one per run)
-harness/gateway/.wrangler.*.jsonc
-
 # the C++ app draft: its build, and the frames catio_look renders (they show the licensed art)
 catio-app/build/
 catio-app/.look/

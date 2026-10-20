@@ -160,8 +160,16 @@ MISSING = (" This plugin doesn't ship the {0} skill: if it isn't installed, say 
 
 
 def main():
-    import right_sized   # inside the guard: an ImportError here must refuse, not exit 1 and wave the call on
-    import ship_gate
+    # Inside main(), so the guard below covers them: at module level an ImportError exits 1 before any handler
+    # and waves the call through, which is how main went quiet on 5 October. Named here, because "the house
+    # rules couldn't be read" would send her to rules.json, which parses fine.
+    for module in ("right_sized", "ship_gate"):
+        try:
+            globals()[module] = __import__(module)
+        except Exception as e:
+            block("House rule (KittyChat): the gate %s.py couldn't be loaded (%s: %s), so none of the gates can "
+                  "be kept. It is a hook of this plugin, not her rules file. Tell Charlotte; don't work round it."
+                  % (module, type(e).__name__, e))
     data = hook_input()
     tool = data.get("tool_name", "")
     args = data.get("tool_input") or {}

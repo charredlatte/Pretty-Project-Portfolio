@@ -66,20 +66,33 @@ def say(session, kind, prefix, where=None):
         pass           # can't remember it was said; say it anyway rather than lose it
 
 
+UNSET = object()   # the "hold" key absent, which is not the same as her writing null
+
+
 def holds(value):
     """(paths, unreadable): the hold paths in a "hold" setting, and whether it said something this can't read.
 
     The hold list is the merging rule's sharpest promise - a change under harness/ always waits for her - so
-    losing one quietly is the one failure it must not have. A shape that isn't a list of paths, an entry that
-    isn't one, and a glob (nothing here expands one, so it would protect nothing) all come back unreadable,
-    for the caller to hold on rather than drop.
+    losing one quietly is the one failure it must not have. Read it with .get("hold", UNSET): only the key
+    being absent means she has said nothing. Everything she did write that this cannot match against git's
+    own paths comes back unreadable, for the caller to hold on rather than drop: a shape that isn't a list,
+    an entry that isn't a string, a glob or brace (nothing here expands one), a backslash, an absolute or
+    dot-relative path, and anything with a .. segment. A path is returned trimmed but otherwise as she
+    spelt it, so the brief quotes her and the caller normalises where it compares.
     """
-    if value is None:
-        return [], False                      # she has said nothing, which is not the same as saying it wrong
+    if value is UNSET:
+        return [], False
     if not isinstance(value, list):
-        return [], True
-    paths = [p for p in value if isinstance(p, str) and p.strip() and not set("*?[") & set(p)]
-    return paths, len(paths) != len(value)   # as she wrote them: the caller normalises, the brief quotes
+        return [], True        # a string, a number, an object - and an explicit null
+    paths = [q for q in (p.strip() for p in value if isinstance(p, str)) if q and path_like(q)]
+    return paths, len(paths) != len(value)
+
+
+def path_like(p):
+    """Is this a repo-relative path git's own --name-only output could equal or sit under?"""
+    if set("*?[]{}\\") & set(p) or p.startswith("/") or p.startswith("./") or p.startswith("../"):
+        return False
+    return ".." not in p.strip("/").split("/") and p.strip("/") != ""
 
 
 def enforced(rule_id, cwd=None):

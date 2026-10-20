@@ -4,6 +4,7 @@
 """
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -12,6 +13,13 @@ import unittest
 from pathlib import Path
 
 HOOKS = Path(__file__).resolve().parent.parent / "hooks"
+
+# Every "hold" a hand-written catio-rules.json has come in that the harness cannot match against git's own
+# paths. Each must hold the pull request AND keep the session brief from claiming a hold the gate won't keep,
+# so the gate's check and the brief's check read the same list: adding a shape here covers both.
+# A bare null, a padded entry and a "/"- or "./"-prefixed one each merged a harness/ change before 20 Oct.
+ODD_HOLDS = ("harness/", 5, {"harness/": True}, None, ["harness/", None], ["harness/*"],
+             [""], ["   "], ["/harness"], ["./harness"], ["../harness"], ["a{b,c}"], ["/"], ["harness\\x"])
 BASH = shutil.which("bash") or "bash"   # hook commands run in bash (Git Bash on Windows)
 
 
@@ -335,13 +343,33 @@ class Merging(unittest.TestCase):
         change under harness/ merges itself: before this, "hold": "harness/" was concatenated to a list and
         raised, which at least refused; reading only the strings out of it released the pull request instead.
         A glob counts as unreadable too, because nothing here expands one, so it would protect nothing."""
-        for i, hold in enumerate(("harness/", 5, {"harness/": True}, ["harness/", None], ["harness/*"], [""])):
+        for i, hold in enumerate(ODD_HOLDS):
             name = "odd%d" % i
             repo = self.checkout(name, {"merge": True, "hold": hold})
             r = self.merge(repo=name, head=self.head(repo))
             self.assertEqual(r.returncode, 2, (hold, r.stderr))
-            self.assertIn("hold list is in a shape I can't read", r.stderr, hold)
+            self.assertIn("hold list in its .claude/catio-rules.json is in a shape I can't read", r.stderr, hold)
             self.assertIn("shape I can't read", self.note(name) or "", hold)
+
+    def test_a_broken_hold_in_the_house_rules_names_the_house_rules_not_her_repo(self):
+        """Both lists can be unreadable, and the note has to send her to the file that is actually wrong."""
+        plugin = Path(tempfile.mkdtemp())
+        shutil.copytree(HOOKS, plugin / "hooks")
+        rules = json.loads((HOOKS.parent / "rules.json").read_text(encoding="utf-8"))
+        rules["merging"]["hold"] = "/.claude"                       # hers is fine; the house's is not
+        (plugin / "rules.json").write_text(json.dumps(rules))
+        repo = self.checkout("housebad", {"merge": True, "hold": ["docs/"]})
+        args = {"owner": "charredlatte", "repo": "housebad", "pullNumber": 7, "commit_message": self.CARD,
+                "expectedHeadSha": self.head(repo), "merge_method": None}
+        r = subprocess.run([sys.executable, str(plugin / "hooks" / "gates.py")],
+                           input=json.dumps({"hook_event_name": "PreToolUse", "cwd": str(self.tmp),
+                                             "tool_name": "mcp__github__merge_pull_request", "tool_input": args,
+                                             "transcript_path": self.transcript()}),
+                           capture_output=True, text=True, cwd=self.tmp,
+                           env=dict({k: v for k, v in os.environ.items() if k not in ENV_KEYS}, XDG_CACHE_HOME=CACHE))
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        self.assertIn("the house rules' own merging.hold", r.stderr)
+        self.assertNotIn("its .claude/catio-rules.json", r.stderr)   # hers is readable: don't send her there
 
     def test_a_hold_she_wrote_properly_still_holds_and_still_lets_the_rest_through(self):
         held = self.checkout("held", {"merge": True, "hold": ["a"]})   # "a" is what the feature commit changes
@@ -353,6 +381,13 @@ class Merging(unittest.TestCase):
             r = self.merge(repo=name, head=self.head(repo))
             self.assertEqual(r.returncode, 0, (hold, r.stderr))
             self.assertIsNone(self.note(name), hold)
+        # And saying nothing is not saying it wrong: with no "hold" key at all the gate must not accuse her of
+        # a list she never wrote. Reading it without the UNSET sentinel holds every merge in such a repo.
+        quiet = self.checkout("quiet", {"merge": True})
+        r = self.merge(repo="quiet", head=self.head(quiet))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("shape I can't read", r.stderr)
+        self.assertIsNone(self.note("quiet"))
 
     def test_guesswork_is_held_for_her_in_the_litter_box(self):
         r = self.merge("Checks: unit tests pass\nGuesses: that the Drive API rounds prices.")
@@ -820,11 +855,14 @@ class RightSized(unittest.TestCase):
         self.assertIn("couldn't be read", r.stderr)
 
     def test_a_hook_module_that_cannot_import_refuses_rather_than_exiting_one(self):
-        """The other half of the same safety net, and what actually took main down on 5 October: right_sized.py
-        lost an import. gates.py imported it at module level, so it died before the guard above could run, and
-        Claude Code reads a non-2 exit as a warning - so every rule was off and nothing said so."""
+        """What actually took main down on 5 October: right_sized.py lost an import. gates.py imported it at
+        module level, so it died before the guard above could run, and Claude Code reads a non-2 exit as a
+        warning - so every rule was off and nothing said so. The wording matters as much as the exit code: a
+        healthy tree also exits 2 here, through the opening-audit gate, so asserting only "exit 2, House rule"
+        would stay green if a later change swallowed the error and waved the call on to the other gates."""
         for break_it in (lambda s: s.replace("import re\n", "", 1),             # a lost import, as it happened
-                         lambda s: s + "\nraise RuntimeError('at import')\n"):   # anything else at module level
+                         lambda s: s + "\nraise RuntimeError('at import')\n",   # anything else at module level
+                         lambda s: "import nonexistent_module_xyz\n" + s):
             plugin = Path(tempfile.mkdtemp())
             shutil.copytree(HOOKS, plugin / "hooks")
             shutil.copy(HOOKS.parent / "rules.json", plugin / "rules.json")
@@ -838,7 +876,22 @@ class RightSized(unittest.TestCase):
                                env=dict({k: v for k, v in os.environ.items() if k not in ENV_KEYS},
                                         XDG_CACHE_HOME=CACHE))
             self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
-            self.assertIn("House rule", r.stderr)
+            self.assertIn("the gate right_sized.py couldn't be loaded", r.stderr)   # names the hook, not rules.json
+            self.assertIn("not her rules file", r.stderr)
+            self.assertNotIn("ponytail-audit", r.stderr)      # it never reached the gates below
+
+    def test_gates_imports_nothing_at_module_level_that_could_exit_one(self):
+        """The fix for the above is two imports moved into main(). A third hook module imported at the top of
+        gates.py later would reopen the same outage, and the test above (which breaks right_sized.py) would
+        stay green. So pin the shape: gates.py's own module level imports the standard library and common,
+        and nothing else - every sibling hook is imported inside the guard."""
+        src = (HOOKS / "gates.py").read_text(encoding="utf-8")
+        body = src[:src.index("def main(")]
+        imported = set(re.findall(r"^\s*(?:from|import)\s+([\w.]+)", body, re.M))
+        siblings = {f.stem for f in HOOKS.glob("*.py")} - {"gates"}
+        self.assertEqual(imported & siblings, {"common"}, imported & siblings)
+        for name in sorted(imported - siblings):
+            self.assertIn(name.split(".")[0], sys.stdlib_module_names, name)
 
     def test_one_repos_message_does_not_silence_another(self):
         """A cloud session works in several repos at once, so the marker is per repo, not per session."""
@@ -1052,7 +1105,7 @@ class SessionStart(unittest.TestCase):
         """It read her hold list straight into a join, so it announced "changes to harness/* always wait for
         her" for a glob the gate never expands, and exited 1 on a shape that would not join at all - losing
         the whole briefing, the opening-audit instruction included, with only a traceback to show."""
-        for hold in ("harness/", 5, {"harness/": True}, ["harness/", None], ["harness/*"], [""]):
+        for hold in ODD_HOLDS:
             tmp = Path(tempfile.mkdtemp(), "cafe")
             subprocess.run(["git", "init", "-q", str(tmp)], check=True)
             Path(tmp, ".claude").mkdir(parents=True)
@@ -1060,8 +1113,16 @@ class SessionStart(unittest.TestCase):
             r = run("session_start.py", {"cwd": str(tmp)})
             self.assertEqual(r.returncode, 0, (hold, r.stderr))
             self.assertIn("**Semi-automatic merging** (enforced)", r.stdout, hold)
-            self.assertIn("  cafe merges its own pull requests.", r.stdout, hold)
-            self.assertNotIn("always wait for her", r.stdout, hold)
+            # the gate holds every merge there, so the brief must not say it merges its own
+            self.assertIn("hold list is in a shape the harness can't read", r.stdout, hold)
+            self.assertNotIn("cafe merges its own pull requests", r.stdout, hold)
+            self.assertNotIn("always wait for her.", r.stdout, hold)
+        padded = Path(tempfile.mkdtemp(), "cafe")   # trimmed, and quoted as she spelt it
+        subprocess.run(["git", "init", "-q", str(padded)], check=True)
+        Path(padded, ".claude").mkdir(parents=True)
+        Path(padded, ".claude", "catio-rules.json").write_text('{"merge": true, "hold": ["  harness/  "]}')
+        self.assertIn("  cafe merges its own pull requests; changes to harness/ always wait for her.",
+                      run("session_start.py", {"cwd": str(padded)}).stdout)
 
     def test_reminds_a_fable_session_of_opus(self):
         nudge = "suggest /model opus"
@@ -1090,22 +1151,26 @@ class SessionStart(unittest.TestCase):
 
 
 class Plugin(unittest.TestCase):
-    def test_no_tracked_json_has_a_duplicate_key(self):
+    def test_no_tracked_manifest_has_a_duplicate_key(self):
         """A merge that fuses two versions of a manifest leaves both keys, and json.loads takes the last and
         says nothing - which is how a broken rules.json, plugin.json and hooks.json all reached main on
-        5 October, each found by hand after the damage. The check above parses them the silent way, so this
-        one parses every tracked .json the strict way."""
+        5 October, each found by hand after the damage. The check below parses them the silent way, so this
+        one parses every tracked manifest the strict way, .jsonc included: wrangler.jsonc is the one Workers
+        Builds deploys on every merge to main, where a fused "vars" or "ai" block is worse than a fused
+        rules.json. "Parses at all" and "has no repeated key" are reported apart, so a future manifest that
+        simply isn't strict JSON names itself instead of looking like a duplicate key."""
         def once(pairs):
             seen = set()
             for k, _ in pairs:
                 if k in seen:
-                    raise ValueError("duplicate key: " + k)
+                    raise ValueError("duplicate key %r" % k)
                 seen.add(k)
             return dict(pairs)
         root = HOOKS.parent.parent
-        found = subprocess.run(["git", "ls-files", "-z", "*.json"], cwd=root, capture_output=True, text=True)
+        found = subprocess.run(["git", "ls-files", "-z", "*.json", "*.jsonc"], cwd=root,
+                               capture_output=True, text=True)
         self.assertEqual(found.returncode, 0, found.stderr)
-        checked = set()
+        checked, unparsed = set(), []
         for name in [n for n in found.stdout.split("\0") if n]:
             if "node_modules" in name or name.endswith("package-lock.json"):
                 continue
@@ -1113,12 +1178,22 @@ class Plugin(unittest.TestCase):
                 text = (root / name).read_text(encoding="utf-8")
             except OSError:
                 continue
+            if name.endswith(".jsonc"):   # // comments are part of the format, as the gateway's own tests strip them
+                text = re.sub(r"^\s*//.*$", "", text, flags=re.M)
+            try:
+                parsed = json.loads(text)
+            except ValueError as e:
+                unparsed.append("%s: %s" % (name, e))
+                continue
+            del parsed
             try:
                 json.loads(text, object_pairs_hook=once)
             except ValueError as e:
-                self.fail("%s: %s" % (name, e))
+                self.fail("%s has a repeated key, which a merge of two versions leaves: %s" % (name, e))
             checked.add(name)
-        for must in ("harness/rules.json", "harness/.claude-plugin/plugin.json", "harness/hooks/hooks.json"):
+        self.assertEqual(unparsed, [], "these are tracked but are not valid JSON at all")
+        for must in ("harness/rules.json", "harness/.claude-plugin/plugin.json", "harness/hooks/hooks.json",
+                     "harness/gateway/wrangler.jsonc"):
             self.assertIn(must, checked, "the sweep missed %s" % must)
 
     def test_manifests_parse_and_point_at_real_files(self):

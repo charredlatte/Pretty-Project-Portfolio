@@ -17,7 +17,8 @@ import subprocess
 from datetime import date
 from pathlib import Path
 
-from common import block, checkouts, default_branch, enforced, git, holds, local, merges, models, rules, skill_calls
+from common import UNSET, block, checkouts, default_branch, enforced, git, holds, local, merges, models, rules, \
+    skill_calls
 
 REMOTE = re.compile(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?/?$")
 # Where a command starts (after ; & | ( { ! or a quote, or a word like if, then, env, timeout 30), with any VAR=x
@@ -147,12 +148,16 @@ def check_merge(data, cwd, name, number, message, head, method=None):
 
     base = git("merge-base", f"refs/remotes/origin/{default_branch(repo)}", "HEAD", cwd=repo)
     changed = (git("diff", "--name-only", "--no-renames", base, "HEAD", cwd=repo) or "").splitlines() if base else None
-    house, house_odd = holds(cfg.get("hold"))
-    mine, mine_odd = holds(local(repo).get("hold"))
+    house, house_odd = holds(cfg.get("hold", UNSET))
+    mine, mine_odd = holds(local(repo).get("hold", UNSET))
     held_paths = [p.rstrip("/") for p in house + mine]   # compared against git's paths, which carry no slash
-    if house_odd or mine_odd:   # a hold it can't read holds the pull request: dropping it is how harness/ merges itself
-        held.append("its hold list is in a shape I can't read (%r), so I can't tell what it protects"
-                    % (local(repo).get("hold") if mine_odd else cfg.get("hold")))
+    # a hold it can't read holds the pull request: dropping it is how a change under harness/ merges itself.
+    # Name the file each broken list is in, and both when both are, or she edits the wrong one.
+    for odd, where, raw in ((mine_odd, "its .claude/catio-rules.json", local(repo).get("hold", UNSET)),
+                            (house_odd, "the house rules' own merging.hold", cfg.get("hold", UNSET))):
+        if odd:
+            held.append("the hold list in %s is in a shape I can't read (%r), so I can't tell what it protects"
+                        % (where, raw))
     if changed is None:
         held.append("there's no way to tell what it changes")
     else:

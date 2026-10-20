@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 
-from common import enforced, holds, hook_input, local, merges, repos, rules
+from common import UNSET, enforced, holds, hook_input, local, merges, repos, rules
 
 
 def main():
@@ -34,10 +34,13 @@ def main():
         lines.append(f"- **{rule['title']}**{' (enforced)' if rule['enforced'] else ''}: {rule['text']}")
         if rule["id"] == "merge":
             for repo in repos(cwd):
-                kept, odd = holds(local(repo).get("hold"))
-                name, held = Path(repo).name, ", ".join(kept) if not odd else ""
+                kept, odd = holds(local(repo).get("hold", UNSET))
+                name, held = Path(repo).name, ", ".join(kept)
                 if not merges(repo):
                     lines.append(f"  {name}'s pull requests are hers to merge.")
+                elif odd:   # the gate holds every merge there, so don't tell the session it may merge
+                    lines.append(f"  {name}'s hold list is in a shape the harness can't read, so every pull "
+                                 "request there waits for her until she fixes it.")
                 else:
                     lines.append(f"  {name} merges its own pull requests" +
                                  (f"; changes to {held} always wait for her." if held else "."))

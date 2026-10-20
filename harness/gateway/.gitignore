@@ -1,3 +1,5 @@
 node_modules/
 .wrangler/
+# the tests' copies of wrangler.jsonc, the AI binding left out, one per run
+.wrangler.*.jsonc
 .dev.vars
