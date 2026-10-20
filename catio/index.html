@@ -606,7 +606,7 @@ dialog.scene { width: min(980px, calc(100vw - 24px)); height: 792px; padding: 0 
 .sk-page > * { width: min(720px, 100%); margin-inline: auto; }
 .sk-hints { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 20px; font-size: .8rem; color: var(--ink-soft); }
 .sk-keys { margin: 0; display: flex; gap: 14px; align-items: center; }
-.sk-keys kbd { font: 800 11px/1 var(--body); color: var(--ink); padding: 0 1px; margin-right: 5px; border: solid transparent; border-width: var(--btn-thin); border-image: var(--art-button-hover) var(--btn-s) fill / var(--btn-thin) stretch; }
+.sk-keys kbd { font: 800 .7rem/1 var(--body); color: var(--ink); padding: 0 1px; margin-right: 5px; border: solid transparent; border-width: var(--btn-thin); border-image: var(--art-button-hover) var(--btn-s) fill / var(--btn-thin) stretch; }
 .sk-line { margin: 0; min-width: 0; overflow-wrap: anywhere; font-weight: 700; color: var(--ink); }
 @media (pointer: coarse) { .sk-keys { display: none; } }
 /* Talk: the two of them on the hall's floor in the pack's picture frame, a name plate under each, the line being said
@@ -733,7 +733,7 @@ dialog.scene { width: min(980px, calc(100vw - 24px)); height: 792px; padding: 0 
    with her name on a tab. At work it is The Sims' action queue: each step done a small pressed-in tile with the
    pack's tick, the one she is on a lit cream tile. The dots are art pixels; stopping is the pink button and the cross. */
 #queenWork { grid-row: 3; justify-self: end; max-width: 100%; min-width: 0; display: grid; justify-items: end; gap: 2px; }
-#queenWork[hidden] { display: none; }
+#queenWork[hidden], .homework[hidden] { display: none; }
 .qwork .secs { font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink-soft); flex: none; }
 .qwork .w { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .qdots { display: inline-flex; gap: var(--u); flex: none; }
@@ -3195,17 +3195,15 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     paw: shapeIcon(12, [[Ci(2.5, 4.5, 1.3), "P"], [Ci(4.5, 2.5, 1.3), "P"], [Ci(7.5, 2.5, 1.3), "P"], [Ci(9.5, 4.5, 1.3), "P"], [Ci(5.5, 7.5, 2.9), "P"], [At([5, 6], [4, 7]), "p"]]),
     key: shapeIcon(12, [[Ci(3.5, 3.5, 2.6), "y"], [Ci(3.5, 3.5, 1), "w"], [At([5, 5], [6, 6], [7, 7], [8, 8], [9, 9], [10, 10], [9, 10], [10, 9]), "y"]]),
   };
-  // one icon as an SVG, a rect per run, its colours read from the tokens now (so a skin's show)
-  let ROOT_CS = null;
+  // one icon as an SVG, a rect per run, each filled with its token by name, so the mode and a skin change it live
   function skIcon(name) {
     const NS = "http://www.w3.org/2000/svg", s = document.createElementNS(NS, "svg"), rows = SK_ICONS[name], n = rows.length;
-    const st = ROOT_CS || (ROOT_CS = getComputedStyle(document.documentElement));   // live, so it is read once
     s.setAttribute("viewBox", "0 0 " + n + " " + n); s.setAttribute("width", n * 2); s.setAttribute("height", n * 2); s.setAttribute("aria-hidden", "true"); s.setAttribute("shape-rendering", "crispEdges");
     rows.forEach((row, y) => {
       for (let x = 0; x < n; ) {
         const c = row[x]; let run = 1;
         while (x + run < n && row[x + run] === c) run++;
-        if (c !== ".") { const r = document.createElementNS(NS, "rect"); r.setAttribute("x", x); r.setAttribute("y", y); r.setAttribute("width", run); r.setAttribute("height", 1); r.setAttribute("fill", tok(SK_PIX[c] || "--ink", st)); s.appendChild(r); }
+        if (c !== ".") { const r = document.createElementNS(NS, "rect"); r.setAttribute("x", x); r.setAttribute("y", y); r.setAttribute("width", run); r.setAttribute("height", 1); r.setAttribute("fill", "var(" + (SK_PIX[c] || "--ink") + ")"); s.appendChild(r); }
         x += run;
       }
     });
@@ -3230,6 +3228,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const opened = Date.now();
     const box = el("div", "dlg queen");
     dlg.classList.add("scene");
+    landList = false;   // a hand-in from a card since closed is nobody's focus now
     // coming in from the litter box or the House menu opens the log at that quest
     if (section === "litterbox" || section === "decision") { const cards = deckOf(section), c = cards.find((z) => z.id === DECKAT.get(section)) || cards[0]; if (c) QSEL = "d:" + section + ":" + c.id; }
     else if (section === "homework") { const u = openQuizzes().find((z) => kindOf(z) === "unblock"); QSEL = u ? "q:" + u.id : null; SELIDX = 0; }   // none: the first waiting
@@ -3314,7 +3313,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const back = el("span", "sk-back"); back.append(earlier, counter);
     nav.append(back, onward);
     lines.append(ul, nav);
-    lines.addEventListener("click", (e) => { if (!e.target.closest("button, a") && !String(getSelection()).trim()) step(); });   // a click, not a selection
+    lines.addEventListener("click", (e) => { if (!e.target.closest("button, a") && !(getSelection() || "").toString().trim()) step(); });   // a click, not a selection
     stage.append(owner, her, lines, plateYou, plateHer);
     const drawThreadQ = () => {
       const cats = allCats(true).cats;
@@ -3510,7 +3509,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const drafts = DRAFTS, sending = SENDING;
     let drawn = null;
     const drawHomework = () => {
-      const all = openQuizzes().filter((z) => ["unblock"].concat(DECKS.map((d) => d[0])).includes(kindOf(z)));   // what the log can show
+      const all = openQuizzes();
       const cats = allCats(true).cats;
       const catOf = (z) => (z.for ? cats.find((c) => c.agentId === z.for) : null);
       const subOf = (z, cat) => "Homework from " + (z.by === QUEEN_ID ? q.name : "you") + (cat ? ", to unblock " + cat.name : z.for ? ", for " + z.for : "") + " · " + ago(z.at);
