@@ -31,7 +31,7 @@ for (const name of names) {
     await page.waitForTimeout(500);
     continue;
   }
-  // "queen": her card, the scene she talks in; "queen-settings": its Settings overlay, open at You
+  // "queen": her card, the talk; "queen-settings": its You tab
   if (name === "queen" || name === "queen-settings") {
     if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") await page.click("#floor-ground");
     if (!(await page.locator("#queenDlg").evaluate((d) => d.open))) {
@@ -41,8 +41,7 @@ for (const name of names) {
       await page.waitForTimeout(600);
     }
     if (name === "queen-settings") {
-      await page.click("#queenSettingsBtn");
-      await page.click("#queenYou summary");
+      await page.click("#queenTab-you");
       await page.waitForTimeout(300);
     }
     await page.screenshot({ path: join(out, name + ".png") });

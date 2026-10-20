@@ -1,0 +1,202 @@
+{
+  "arrow": {
+    "file": "art/skin/arrow.png",
+    "w": 10,
+    "h": 9
+  },
+  "bubble": {
+    "slice": [
+      5,
+      5,
+      6,
+      5
+    ],
+    "file": "art/skin/bubble.png",
+    "w": 12,
+    "h": 14
+  },
+  "button-down": {
+    "slice": [
+      4,
+      4,
+      4,
+      4
+    ],
+    "file": "art/skin/button-down.png",
+    "w": 12,
+    "h": 12
+  },
+  "button-green": {
+    "file": "art/skin/button-green.png",
+    "w": 14,
+    "h": 16
+  },
+  "button-hover": {
+    "file": "art/skin/button-hover.png",
+    "w": 14,
+    "h": 16
+  },
+  "button-pink": {
+    "file": "art/skin/button-pink.png",
+    "w": 14,
+    "h": 16
+  },
+  "button": {
+    "slice": [
+      4,
+      4,
+      6,
+      4
+    ],
+    "file": "art/skin/button.png",
+    "w": 14,
+    "h": 16
+  },
+  "divider": {
+    "slice": [
+      4,
+      1,
+      0,
+      1
+    ],
+    "file": "art/skin/divider.png",
+    "w": 18,
+    "h": 4
+  },
+  "field": {
+    "slice": [
+      4,
+      4,
+      5,
+      4
+    ],
+    "file": "art/skin/field.png",
+    "w": 12,
+    "h": 13
+  },
+  "frame": {
+    "slice": [
+      7,
+      7,
+      7,
+      7
+    ],
+    "file": "art/skin/frame.png",
+    "w": 16,
+    "h": 16
+  },
+  "map-button-down": {
+    "file": "art/skin/map-button-down.png",
+    "w": 14,
+    "h": 16
+  },
+  "map-button-hover": {
+    "file": "art/skin/map-button-hover.png",
+    "w": 14,
+    "h": 16
+  },
+  "map-button": {
+    "slice": [
+      4,
+      4,
+      6,
+      4
+    ],
+    "pixel": true,
+    "file": "art/skin/map-button.png",
+    "w": 14,
+    "h": 16
+  },
+  "map-fold": {
+    "file": "art/skin/map-fold.png",
+    "w": 20,
+    "h": 8
+  },
+  "map-frame": {
+    "slice": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "pixel": true,
+    "file": "art/skin/map-frame.png",
+    "w": 8,
+    "h": 8
+  },
+  "map-icons": {
+    "file": "art/skin/map-icons.png",
+    "w": 90,
+    "h": 18,
+    "pixel": true,
+    "auto": {
+      "pixel": true
+    }
+  },
+  "map-panel": {
+    "slice": [
+      6,
+      6,
+      6,
+      6
+    ],
+    "pixel": true,
+    "file": "art/skin/map-panel.png",
+    "w": 16,
+    "h": 16
+  },
+  "panel": {
+    "slice": [
+      6,
+      6,
+      6,
+      6
+    ],
+    "file": "art/skin/panel.png",
+    "w": 16,
+    "h": 16
+  },
+  "pattern": {
+    "file": "art/skin/pattern.png",
+    "w": 24,
+    "h": 24
+  },
+  "pointer": {
+    "file": "art/skin/pointer.png",
+    "w": 7,
+    "h": 12
+  },
+  "toggle": {
+    "file": "art/skin/toggle.png",
+    "w": 56,
+    "h": 18
+  },
+  "tokens": {
+    "--accent": "#FF3FA4",
+    "--cream": "#FFB0DB",
+    "--disabled": "#E9D9F6",
+    "--field-face": "#FFF6FC",
+    "--glow": "#FFE0F1",
+    "--go": "#5FD6D0",
+    "--ink": "#4B1C5E",
+    "--ink-soft": "#7A4E8C",
+    "--letgo": "#FF9D9D",
+    "--map-btn": "#FFB0DB",
+    "--map-btn-down": "#EBDDFF",
+    "--map-btn-lit": "#FFD3EA",
+    "--map-face": "#DCC8FF",
+    "--map-face-dark": "#2A1838",
+    "--mi-lit": "#FFE0F1",
+    "--minimap": "#F3E8FF",
+    "--mm-edge": "#4B1C5E",
+    "--mm-here": "#9FF1EA",
+    "--outline": "#FFF6FC",
+    "--paper": "#F3E8FF",
+    "--pip": "#FF3FA4",
+    "--pip-fail": "#FF6B6B",
+    "--placeholder": "#8A6C94",
+    "--pressed": "#EBDDFF",
+    "--tan": "#DCC8FF",
+    "--well": "#F3E8FF"
+  }
+}

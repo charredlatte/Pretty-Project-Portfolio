@@ -200,7 +200,14 @@ button, pointing into the room new cats come in to. Each is a 9-slice `border-im
 (`faces.png`, in `MOODS` order, then a queen's heart eyes), the sound control is its toggle, the
 sign's tick and cross are its own, a queen's crown (in her menu and card, never on the map) is its crown icon gilded, what she keeps is
 starred with its stars, and the pointer is its cat paw. Keep it that way: a new control should
-reuse one of these pieces rather than a CSS border or gradient. The controls' icons are SC_siosio's Game UI
+reuse one of these pieces rather than a CSS border or gradient. **Her own interface is a skin over it**, the 90s
+Barbie kit (her asks, 20 October: no beige, "lavender and pink everywhere", then "a refresh in the 90s Barbie
+digital style with pixel art and icons"): `catio/art/skin/` holds its pieces, drawn for the café and from no pack
+(so they are committed), and `art/skin.json`, written by `skin.py`, their borders and the palette as tokens. It
+fills the panel, every button, the field, the bubble, the frame, the divider, the switch, the arrow and the pointer,
+the map panel's pieces as pixel art (`pixel: true`), and the wallpaper behind every panel: the slot `pattern`, a
+square tile at 24 art pixels, `none` until a skin gives one. The gateway's café gets it once `cafe/move-in.py`
+uploads `art/skin/` and the gateway serves `art/skin.json` (a change under `harness/`). The controls' icons are SC_siosio's Game UI
 Pack (Pastel Edition), pixelated (`pastel.png`: up, down, plus, minus, Sprout Lands' house recoloured to match,
 pause, play, check, lock, unlock; also on a cat's Manage buttons and enforced house rules), the menus'
 cursor is its cream triangle (`pointer.png`), and the logo is ToffeeCraft's Cat UI cat-face bubble
@@ -351,27 +358,30 @@ that inflates "3 need you" makes the sign a liar.
   `steps`, the page names them with `stepWords()`); a wait over 45 s gets a loading tip; Stop turns the lit tile pink.
   Her live bubble ends in the pack's triangle turned down, and she bobs only once she has words. Away, with your words
   waiting, it is one line saying why. In claude.ai, with no push, it is "Thinking" until her answer turns up.
-- **Her card is a scene** (`openQueen(section)`, her ask of 3 October, like an RPG's dialogue): the owner of the house
-  on the left, seen from behind in her armchair (`ownerSVG()`, pixel art drawn in code since no pack has people,
-  dressed from `house/main.owner`: hair, hair colour, top, skin and a bow, cat ears or a flower); the queen on the
-  right, facing her, her sprite animated and `talking` while she answers; between them the thread as bubbles, hers
-  by her and Charlotte's by Charlotte, scrolling, with her homework above it; under it Speak, Send and Stop. Behind
-  them the hall's own floor from `house.png`, in the pack's picture frame. **The words come first**
-  ("make this window useable", 3 October): the two of them are drawn small enough to leave the thread most of the
-  scene's width (`zoom` on `.owner` and `.qchar`, in steps, each with a crown scale that lands on whole art pixels),
-  the scene's own columns are `auto`, so the two of them take only what they are drawn at, and on a phone they
-  stand side by side along the foot of the scene with the thread across the whole of it. The column the thread and
-  her homework sit in is stated, never left to the content, and every button in them wraps: an `auto` column there
-  grows to the longest word in a bubble or a quiz, and then her words scroll off the side. The card fills the
-  window (the height is on `dialog.scene`, which already states the cap and draws the panel) and the scene takes
-  what the head and the saybar leave, down to a floor on its row: under that the card is taller than the window
-  and the dialog scrolls, which is reachable, where a scene given a `min-height` of its own would simply be drawn
-  over the saybar. Every row inside the scene can shrink, because the scene clips what it cannot hold and a
-  clipped bubble can't be scrolled to; her homework and the talk each keep a share of what is left, so neither
-  can squeeze the other out, and whichever is too tall for its share scrolls.
-  **Every setting is in an overlay**
-  (`#queenSettings`, Settings in the card's head, "Back to her" to leave): her voice switch and voice, What she keeps,
-  Her character, Routines, and You. On the map she is as before: hovering names her, a click opens her menu. `speak()` is the browser's `speechSynthesis`
+- **Her card is a pause menu** (`openQueen(section)`, her asks of 20 October: "a Legend of Zelda Breath of the Wild
+  style menu interface", then "retro looking, think Zelda Minish Cap, keeping with the pixel art theme"): a row of
+  tabs along the top, each a square button with a pixel icon, the chosen one pressed in with the pack's pointer
+  bobbing over it; its name on a cream banner between two rules; its page; the keys along the foot (← → tabs, Esc;
+  Page Up and Page Down turn the tabs from anywhere that isn't typing). The tabs are Talk, Quest log (with a count),
+  What she keeps, Her character, Routines (on the gateway) and You: the last four are what the Settings overlay held
+  (`#queenKeeps`, `#queenCharacter`, `#queenRoutines`, `#queenYou`; her voice switch is on Her character). The icons
+  are cat-themed 90s Barbie tech, drawn in code from the tokens (`SK_ICONS`, `skIcon()`, each letter a token), as her
+  own figure is, so a skin recolours them; the menus' actions carry icons the same way (`MI_ICONS`).
+  **Talk is a game dialogue** (her screens: Breath of the Wild's talk with a trader, Dota 2's Crownfall): the owner
+  of the house on the left, seen from behind (`ownerSVG()`, pixel art drawn in code since no pack has people,
+  dressed from `house/main.owner`), the queen on the right, a name plate under each, whoever isn't speaking dimmed
+  (`data-speaker` on `.qstage`), her sprite `talking` once she has words. Between them the line being said, in a
+  see-through box (her ask: "opaque, almost transparent": the pack's bubble with no fill over the hall, `color-mix`
+  of `--well`), in the speaker's name. **Every line is in the thread** (`#queenThread`, the last twenty: yours
+  `li.me`, hers `li.them`, a handoff `li.handoff` with its Open button, her greeting `li.greet`, her live answer
+  `#queenLive`) and one is current (`aria-current`), the newest unless she stepped back: Click to continue steps
+  on, Earlier back, a new line jumps to the newest. Under the stage, on her side, her turn as it goes
+  (`#queenWork`, below); then quick replies ("What is waiting for me?", "Anything for me to hand in?", "Good-bye.")
+  and Speak, the box and Send. The two of them are drawn at `zoom` steps (`--fz`, each with a crown scale that
+  lands on whole art pixels); on a phone the box takes the whole width of the scene and they stand under it, and
+  Speak, the box and Send share one row so Send is never under the fold. The card fills the window (the height is
+  on `dialog.scene`) and the stage keeps a floor on its row: under it the dialog scrolls, which is reachable.
+  On the map she is as before: hovering names her, a click opens her menu. `speak()` is the browser's `speechSynthesis`
   (an en-GB voice unless she picks one): one function, so a paid voice could be a second branch.
 - **Handoffs.** A cat's `said` (its latest note by its session or agent, from `list_agents`) newer than
   `queens/house.readAt` is something it brought her: `refreshAgents()` diffs `said.at` and a copy of the cat walks to
@@ -389,10 +399,12 @@ that inflates "3 need you" makes the sign a liar.
   with a `kind`: `unblock` (above), `litterbox` (one sifted note: which project is it for, or *Settled: drop it*) or
   `decision` (one decision waiting on her, Claude's recommendation in `hint`). A card carries its `note` (markdown),
   `from` and `hint`, and a `ref` deals it once (its id is `<kind>-<ref>`; dealt again it is replaced while open, and
-  her answer stands once given). Her card shows the unblock quizzes first, then a deck per kind, a card at a time
-  (`DECKS`, `DECKAT`): a tap on an option hands it in, Skip puts the next on top. A card's answer is only kept, never
+  her answer stands once given). Her card's **Quest log** tab lists everything waiting on her in a well, grouped
+  Homework, The litter box and Decisions with a star each (gold, brown, blue), the pointer on the chosen one (`QSEL`;
+  ↑ ↓ move it), and the chosen one open beside it: a homework quiz as its form, a deck's card on top (`DECKS`,
+  `DECKAT`): a tap on an option hands it in, Skip puts the next on top; handed in, the next in the list comes up. A card's answer is only kept, never
   told to the queen (each line Charlotte says to her is a turn of her runner). Her hover counts each kind
-  ("Homework: 2 notes to sort, 1 decision"); the House menu leads with Homework when anything waits; the library's
+  ("Homework: 2 notes to sort, 1 decision"); the House menu leads with Quest log when anything waits; the library's
   chest is the litter box (`.cabinet.litter`, no sign): hovering says what waits, a click opens her card at its
   notes, or the brain's tray when there are none. Dealing and filing: `litterbox/README.md` and
   `catio-plugin/skills/litterbox-quiz/`; `forget` clears filed and stale cards, never an open unblock quiz. A

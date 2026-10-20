@@ -79,6 +79,7 @@
   --art-map-button: url(art/licensed/pastel/button.png); --art-map-button-hover: url(art/licensed/pastel/button-hover.png);
   --art-map-button-down: url(art/licensed/pastel/button-down.png); --art-map-frame: url(art/licensed/pastel/frame.png);
   --art-map-icons: url(art/licensed/pastel/icons.png); --art-map-fold: none;   /* drawn in code until she draws it */
+  --art-pattern: none;   /* the wallpaper behind every panel: a square tile at 24 art pixels, none until she draws one */
   --art-meadow: url(art/licensed/meadow.png); --art-house: url(art/licensed/house.png);
   --art-house-upper: url(art/licensed/house-upper.png); --art-decor: url(art/licensed/decor.png);   /* drawn as <img>, from srcOf() */
   --art-furniture: url(art/licensed/furniture.png); --art-furniture-cabin: url(art/furniture.png);   /* drawn by drawFurniture() */
@@ -146,7 +147,7 @@ a { color: var(--ink); }
 /* the Sprout Lands pieces, each a 9-slice scaled by --u. The plain colour under each is the piece's
    own face: the art paints over it, and a copy without the licensed art is still readable. */
 .menu, dialog, .toast, .stage-msg {
-  border: solid transparent; border-width: var(--panel-w); border-image: var(--art-panel) var(--panel-s) fill / var(--panel-w) stretch; background: var(--tan) padding-box; image-rendering: pixelated; }
+  border: solid transparent; border-width: var(--panel-w); border-image: var(--art-panel) var(--panel-s) fill / var(--panel-w) stretch; background: var(--tan) var(--art-pattern) 0 0 / calc(24 * var(--u)) padding-box; image-rendering: pixelated; }
 .btn { font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); padding: 0 calc(2 * var(--u)); text-decoration: none; display: inline-block; background: var(--cream) padding-box; white-space: nowrap;
   border-style: solid; border-color: transparent; border-width: var(--btn-w);
   border-image: var(--art-button) var(--btn-s) fill / var(--btn-w) stretch; }
@@ -207,7 +208,7 @@ a { color: var(--ink); }
 .hud .status .words { flex: 0 1 auto; }
 .hud .status .more { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .hud .status:hover .more, .hud .status:focus-within .more { position: static; width: auto; height: auto; clip-path: none; white-space: normal; }
-.hud .status.warn { padding: 0 calc(2 * var(--u)); border: solid transparent; border-width: var(--panel-w); border-image: var(--art-panel) var(--panel-s) fill / var(--panel-w) stretch; background: var(--tan) padding-box; image-rendering: pixelated; }
+.hud .status.warn { padding: 0 calc(2 * var(--u)); border: solid transparent; border-width: var(--panel-w); border-image: var(--art-panel) var(--panel-s) fill / var(--panel-w) stretch; background: var(--tan) var(--art-pattern) 0 0 / calc(24 * var(--u)) padding-box; image-rendering: pixelated; }
 .credits { position: fixed; z-index: 19; left: calc(var(--panel-l) * var(--u) + 8px); bottom: calc(var(--panel-b) * var(--u) + 4px + env(safe-area-inset-bottom, 0px)); margin: 0; font-size: .66rem; color: var(--credits); opacity: .75;
   text-shadow: 0 1px 0 var(--credits-edge), 1px 0 0 var(--credits-edge), -1px 0 0 var(--credits-edge), 0 -1px 0 var(--credits-edge); max-width: calc(100vw - (var(--panel-l) + var(--panel-r)) * var(--u) - 16px); }
 .btn.sq { width: 40px; height: 40px; padding: 0; display: grid; place-items: center; }
@@ -389,6 +390,8 @@ ul.keeps .pin .dot { background-position: 0 0; }
 .mi::before { content: ""; position: absolute; left: 5px; top: 50%; margin-top: -6px; width: 7px; height: 12px; background: var(--art-pointer) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; visibility: hidden; }
 .mi:hover, .mi:focus-visible { background: color-mix(in srgb, var(--mi-lit) 50%, transparent); outline: 0; }
 .mi:hover::before, .mi:focus-visible::before, .list:not(:hover):not(:focus-within) .mi.primary::before { visibility: visible; }
+.mi .mic { flex: none; display: grid; place-items: center; width: 24px; height: 24px; }
+.mi .mic svg { display: block; image-rendering: pixelated; shape-rendering: crispEdges; }
 .mi .aside { margin-left: auto; padding-left: 8px; font: 800 .75rem var(--body); color: var(--ink-soft); }
 .mi.sw { padding-left: 4px; }
 .mi.sw::before { display: none; }
@@ -565,62 +568,165 @@ ul.thread li.handoff.new .who::after { content: " · new"; color: var(--ink); }
    from the house art, in the pack's picture frame. Every setting sits in an overlay over the scene.
    The words get as much of the scene as the two of them leave: the gap between them used to be a column a third of
    the card wide, with her answers running off the side of it ("make this window useable", 3 October). */
-/* the card fills the window it is given and the scene takes what the head and the saybar leave: a share of the
-   window (62vh and the like) fits one window and spills out of a short one, pushing Send off the bottom. The
-   height is set on the dialog, which already states the cap and draws the panel, so the card has no chrome of its
-   own to allow for, and the scene's floor is on its row rather than a min-height of its own: a min-height
-   overflows the row it sits in and, the scene being positioned, is drawn over the saybar, so Send would be on
-   screen and still not clickable. Under the floor the card is taller than the window and the dialog scrolls. */
-dialog.scene { width: min(920px, calc(100vw - 24px)); height: 792px; }   /* dialog's own max-height brings it down to the window */
-.dlg.queen { position: relative; height: 100%; display: grid; grid-template-rows: auto minmax(200px, 1fr) auto; }
-.dlg.queen:has(> .qsettings:not([hidden])) { overflow: hidden; }
-.qhead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: start; }
-.qhead h2 { display: flex; align-items: center; gap: 10px; }
-.qhead h2 .crown { position: static; flex: none; transform: scale(2); margin: 0 6px; }
-.qhead .acts { display: flex; gap: 6px; align-items: center; }
-.qhead .note { grid-column: 1 / -1; }
-/* they take only as much width as they are drawn at, and the talk has the rest: the fixed 168 and 160 px columns
-   left the words a strip too narrow to read on her screen */
-.qstage { position: relative; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
-  overflow: hidden; image-rendering: pixelated; background: var(--scene-face) var(--art-house) no-repeat; background-size: 3840px 2304px;
-  background-position: -1120px -1010px; border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
+/* Her card is a pause menu (her asks, 20 October: "a Legend of Zelda Breath of the Wild style menu", then "retro
+   looking, think Zelda Minish Cap, keeping with the pixel art theme"): a row of tabs along the top, each a square
+   button with a pixel icon (the icons are drawn in code from the tokens, like her own figure), the chosen one pressed
+   in with the pack's pointer bobbing over it; its name on a cream banner between two rules; its page; and the keys
+   along the foot. Talk is a game dialogue (her Breath of the Wild and Dota 2 Crownfall screens): the two of them on
+   the hall's floor with a name plate each, the line being said in a see-through box between them, one at a time,
+   Click to continue stepping on, quick replies under it. Quest log is the list of everything waiting on her, the
+   chosen one open beside it. What she keeps, Her character, Routines and You are the tabs that were the Settings
+   overlay. The card fills the window it is given (the height is on the dialog, which draws the panel); under the floor
+   the dialog scrolls. */
+dialog.scene { width: min(980px, calc(100vw - 24px)); height: 792px; padding: 0 calc(4 * var(--u)); }   /* under the floor the card is taller than the window and the dialog scrolls */   /* dialog's own max-height brings it down to the window */
+.dlg.queen { position: relative; height: 100%; display: grid; grid-template-rows: auto auto minmax(300px, 1fr) auto auto; gap: 8px; padding: calc(8 * var(--u)) 2px 2px; }
+.sk-top { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; }
+.sk-id { display: grid; min-width: 0; }
+.sk-id h2 { margin: 0; font: var(--px-size)/var(--px-line) var(--pixel); display: flex; align-items: center; gap: 6px; overflow-wrap: anywhere; }
+.sk-id h2 .crown { position: static; flex: none; }
+.sk-tabs { display: flex; gap: 6px; justify-content: center; }
+.btn.sq.sk-tab { position: relative; width: 52px; height: 52px; }
+.sk-tab svg, .sk-close svg { display: block; width: 28px; height: 28px; image-rendering: pixelated; shape-rendering: crispEdges; }
+.sk-tab[aria-selected="true"] { border-image: var(--art-button-down) var(--down-s) fill / var(--down-w) stretch; translate: 0 calc(2 * var(--u)); background-color: var(--pressed); }
+/* the pack's pointer, turned to point down, bobbing over the chosen tab */
+.sk-tab[aria-selected="true"]::before { content: ""; position: absolute; left: 50%; top: calc(-9px - 2 * var(--u)); width: 7px; height: 12px; margin-left: -3px; rotate: 90deg;
+  background: var(--art-pointer) no-repeat; image-rendering: pixelated; animation: sk-bob .8s steps(2) infinite; }
+@keyframes sk-bob { 50% { translate: 0 -3px; } }
+.sk-count { position: absolute; top: -8px; right: -8px; z-index: 1; }
+.sk-close { justify-self: end; }
+/* the chosen tab's name: a cream banner between two of the pack's rules, a star each side */
+.sk-section { display: flex; align-items: center; gap: 10px; }
+.sk-section > .rule { flex: 1; }
+.sk-section h3 { margin: 0; display: flex; align-items: center; gap: 10px; font: calc(2 * var(--px-size))/calc(2 * var(--px-line)) var(--pixel); color: var(--ink); background: var(--cream) padding-box; padding: 0 calc(3 * var(--u)); text-align: center;
+  border: solid transparent; border-width: var(--btn-w); border-image: var(--art-button) var(--btn-s) fill / var(--btn-w) stretch; }
+.sk-section h3::before, .sk-section h3::after { content: ""; flex: none; width: 20px; height: 16px; background: var(--art-stars) 0 0 / 40px 16px no-repeat; image-rendering: pixelated; }
+.sk-body { min-height: 0; }
+.sk-panel { height: 100%; min-height: 0; overflow: auto; display: grid; gap: 10px; align-content: start; overscroll-behavior: contain; padding: 2px; }
+.sk-page > * { width: min(720px, 100%); margin-inline: auto; }
+.sk-hints { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 20px; font-size: .8rem; color: var(--ink-soft); }
+.sk-keys { margin: 0; display: flex; gap: 14px; align-items: center; }
+.sk-keys kbd { font: 800 11px/1 var(--body); color: var(--ink); padding: 0 1px; margin-right: 5px; border: solid transparent; border-width: var(--btn-thin); border-image: var(--art-button-hover) var(--btn-s) fill / var(--btn-thin) stretch; }
+.sk-line { margin: 0; min-width: 0; overflow-wrap: anywhere; font-weight: 700; color: var(--ink); }
+@media (pointer: coarse) { .sk-keys { display: none; } }
+/* Talk: the two of them on the hall's floor in the pack's picture frame, a name plate under each, the line being said
+   between them. Whoever isn't speaking is dimmed; she bobs only once she has words (talking). */
+.sk-talk { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(200px, 1fr) auto; gap: 8px; overflow: hidden; align-content: stretch; }   /* the stage keeps a floor the two of them fit in */
+.qstage { position: relative; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr) auto; column-gap: 6px; padding: 6px 8px 8px; overflow: hidden;
+  image-rendering: pixelated; background: var(--scene-face) var(--art-house) no-repeat; background-size: 3840px 2304px; background-position: -1108px -1000px;
+  border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
 .qstage::before { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--scene-shade) 30%, transparent); pointer-events: none; }
 .qstage::after { content: ""; position: absolute; inset: 0; pointer-events: none; filter: var(--scene); }
 .qstage > * { position: relative; min-width: 0; min-height: 0; }
 /* zoom, not a transform: it scales the figure's own pixel offsets too, so the crown stays on her head. A step
    narrower than this only changes --fz; the crown's own scale is derived from it, so it is always drawn on two
-   whole art pixels rather than a fraction of one, which blurs the pack's art. That holds its size as she shrinks,
-   so she wears it a little larger at the narrow steps: the whole numbers either side, 1 and 3, are further off.
-   (The cat sheet keeps the scales it was tuned at, 2.6 and 5, which were never whole either.) */
-.owner, .qchar { --fz: .8; zoom: var(--fz); }
-.owner { align-self: end; justify-self: start; margin: 0 0 -2px 4px; }
+   whole art pixels rather than a fraction of one, which blurs the pack's art. */
+.owner, .qchar { --fz: .9; zoom: var(--fz); transition: filter .2s; }   /* the words come first: the two of them leave the box most of the scene at every width (the e2e check says how much) */
+.owner { grid-area: 1 / 1; align-self: end; justify-self: center; margin: 0 0 -2px; }
 .owner svg, .owner img { display: block; width: 150px; height: auto; }
 .ownerprev svg, .ownerprev img { display: block; width: 112px; height: auto; }
 .ownerimg { image-rendering: pixelated; }
-.qchar { align-self: end; justify-self: end; width: 150px; height: 190px; margin-right: 4px; }
+.qchar { grid-area: 1 / 3; align-self: end; justify-self: center; width: 150px; height: 190px; }
 .qchar .spr { position: absolute; left: 50%; bottom: 2px; transform-origin: 50% 100%; transform: translateX(-50%) scale(calc(2.6 * var(--fs, 1))); }   /* the sheets face left: toward her */
 .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(calc(5 * var(--fs, 1))); }
-.qchar .crown { position: absolute; left: 50%; top: 22px; transform: translateX(-50%) scale(calc(2 / var(--fz, .8))); transform-origin: 50% 0; }   /* × the zoom: 2 whole art pixels, whatever the step */
+.qchar .crown { position: absolute; left: 50%; top: 22px; transform: translateX(-50%) scale(calc(2 / var(--fz, .9))); transform-origin: 50% 0; }   /* × the zoom: 2 whole art pixels, whatever the step */
 .qchar[data-mood="meow"] .crown, .qchar[data-mood="cry"] .crown { top: 54px; }   /* on her head, for each pose */
 .qchar[data-mood="idle"] .crown { top: 58px; }
 .qchar[data-mood="box"] .crown { top: 40px; }
 .qchar[data-mood="sleep"] .crown { top: 104px; left: 34%; }
-.qchar.talking { animation: talk .5s steps(2) infinite; }
+.qchar.talking, .owner.talking { animation: talk .5s steps(2) infinite; }
 @keyframes talk { 50% { translate: 0 -3px; } }
-/* her homework over the talk, taking what a card needs and no more, down to a floor of talk under it: a flat share
-   of the scene cut the card off above its Hand it in on a short screen. The column is stated, never left to the
-   content: an auto column grows to the longest word in a bubble or a quiz, and her words then scroll sideways. The last row is her work as it goes (#queenWork). */
-.qtalk { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(max(50%, calc(100% - 96px))) minmax(0, 1fr) auto; gap: 6px; padding: 8px 4px 10px; }
-.qtalk .homework { min-width: 0; overflow: auto; }   /* the row is what caps her homework: max-height: 46% on it resolved against nothing, so homework took the lot and left the talk no height at all */
-#queenThread { grid-row: 2; min-width: 0; height: 100%; overflow: auto; display: flex; flex-direction: column; gap: 6px; padding: 0 2px; overscroll-behavior: contain; }
-#queenThread li { max-width: min(86%, 460px); margin: 0; }   /* wide enough to read, narrow enough to stay a bubble */
-#queenThread li .open { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }   /* .btn is nowrap: without this a cat with a long name runs off the side */
-#queenThread li.me { align-self: flex-start; }
-#queenThread li.them { align-self: flex-end; }
-#queenThread li.handoff { align-self: center; max-width: min(92%, 460px); }
-#queenThread > li:first-child { margin-top: auto; }   /* a short conversation sits at the bottom, by the speakers */
+.qstage[data-speaker="owner"] .qchar, .qstage[data-speaker="queen"] .owner { filter: brightness(.72) saturate(.8); }
+.sk-plate { grid-row: 2; justify-self: center; margin-top: 6px; padding: 0 2px; font: var(--px-size)/var(--px-size) var(--pixel); color: var(--ink); white-space: nowrap; background: var(--cream) padding-box;
+  border: solid transparent; border-width: var(--btn-px); border-image: var(--art-button) var(--btn-s) fill / var(--btn-px) stretch; }
+.sk-plate.you { grid-column: 1; }
+.sk-plate.her { grid-column: 3; }
+/* the line being said: a see-through box (her ask, 20 October: "opaque, almost transparent"), the hall showing through,
+   in the pack's bubble with no fill. Every line is in the thread; one is current and shown, the rest wait for Earlier
+   and Click to continue. */
+.sk-lines { grid-area: 1 / 2 / 3 / 3; align-self: end; justify-self: center; width: min(100%, 720px); max-height: 100%; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 4px; padding: 4px 8px 8px; cursor: var(--point);
+  border: solid transparent; border-width: var(--bubble-px); border-image: var(--art-bubble) var(--bubble-s) / var(--bubble-px) stretch;
+  background: color-mix(in srgb, var(--well) 42%, transparent) padding-box; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+#queenThread { list-style: none; margin: 0; padding: 0; min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+#queenThread li { display: none; }
+#queenThread li[aria-current="true"] { display: block; max-width: none; margin: 0; padding: 0; background: none; border: 0; border-image: none; font: 700 clamp(1.05rem, 2.2vw, 1.4rem)/1.45 var(--body); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+#queenThread li .who { display: block; margin-bottom: 2px; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); }
+#queenThread li .lead { display: block; font-size: .8rem; font-weight: 800; color: var(--ink); }
+#queenThread li .open { display: inline-block; margin-top: 6px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }   /* .btn is nowrap: without this a cat with a long name runs off the side */
+.sk-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 26px; }
+.sk-back { display: flex; align-items: center; gap: 8px; }
+.sk-of { font-size: .78rem; font-weight: 800; color: var(--ink); }
+.sk-next { position: relative; margin-left: auto; padding: 0 16px 0 0; background: none; border: 0; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); }
+.sk-next::after { content: ""; position: absolute; right: 2px; top: 50%; margin-top: -6px; width: 7px; height: 12px; rotate: 90deg; background: var(--art-pointer) no-repeat; image-rendering: pixelated; animation: sk-bob .8s steps(2) infinite; }
+/* under the stage: her turn as it goes (#queenWork, on her side), the quick replies, then your own words */
+.sk-reply { display: grid; gap: 6px; }
+.sk-reply > #queenWork { grid-row: auto; }
+.sk-quick { display: flex; flex-wrap: wrap; gap: 6px; }
 .saybar { align-items: end; }
+.saybar > .field { flex: 1 1 220px; }
+.saybar textarea { resize: none; }
 #queenStop:disabled { cursor: default; border-image-source: var(--art-button-down); translate: 0 calc(2 * var(--u)); filter: none; }   /* pressed, until she has stopped */
+/* Quest log: everything waiting on her in a well, the pointer on the chosen one, grouped Homework, The litter box,
+   Decisions (a gold star is homework a cat is waiting on, a brown one a note to sort, a blue one a decision); the chosen
+   one open beside it, a card at a time. */
+.sk-quests { grid-template-columns: minmax(230px, 310px) minmax(0, 1fr); gap: 10px; overflow: hidden; align-content: stretch; }
+.sk-qlist { min-height: 0; overflow: auto; display: grid; align-content: start; gap: 2px; padding: 0 2px 4px; overscroll-behavior: contain; background: var(--pressed) padding-box;
+  border: solid transparent; border-width: var(--down-w); border-image: var(--art-button-down) var(--down-s) fill / var(--down-w) stretch; }
+.sk-qlist h4 { margin: 4px 0 0; display: flex; justify-content: space-between; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink-soft); }
+.sk-none { margin: 0; padding: 4px; color: var(--ink-soft); }
+.sk-q { position: relative; display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 6px; align-items: start; width: 100%; min-height: 44px; padding: 4px 6px 4px 18px; text-align: left; background: none; border: 0; color: var(--ink); font: inherit; }
+.sk-q::before { content: ""; position: absolute; left: 4px; top: 50%; margin-top: -6px; width: 7px; height: 12px; background: var(--art-pointer) no-repeat; image-rendering: pixelated; visibility: hidden; }
+.sk-q[aria-current="true"]::before, .sk-q:hover::before, .sk-q:focus-visible::before { visibility: visible; }
+.sk-q[aria-current="true"] { background: color-mix(in srgb, var(--mi-lit) 50%, transparent); }
+.sk-q:hover, .sk-q:focus-visible { background: color-mix(in srgb, var(--mi-lit) 35%, transparent); outline: 0; }
+.sk-q[aria-current="true"]:hover, .sk-q[aria-current="true"]:focus-visible { background: color-mix(in srgb, var(--mi-lit) 50%, transparent); }
+.sk-q .star { width: 20px; height: 16px; margin-top: 3px; background: var(--art-stars) -20px 0 / 40px 16px no-repeat; image-rendering: pixelated; }
+.sk-q.main .star { background-position: 0 0; }
+.sk-q.decision .star { filter: hue-rotate(170deg) saturate(1.6); }
+.sk-q .t { display: block; font: var(--px-size)/var(--px-line) var(--pixel); overflow-wrap: anywhere; }
+.sk-q .s { display: block; font-size: .78rem; font-weight: 700; color: var(--ink-soft); overflow-wrap: anywhere; }
+.sk-quests .homework { min-height: 0; overflow: auto; align-content: start; overscroll-behavior: contain; }
+.sk-quests .homework .quiz[hidden] { display: none; }
+.ownerprev { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: end; }
+.ownerprev .pic { padding: 6px 8px 0; background: var(--scene-face) padding-box; border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
+@media (max-width: 1000px) and (min-width: 781px) { .owner, .qchar { --fz: .75; } }
+/* a card this narrow has no width to spare for them: drawn smaller, they leave the words two thirds of the scene */
+@media (max-width: 780px), (max-height: 560px) {
+  .owner, .qchar { --fz: .5; }
+  .qstage { padding: 6px 4px 8px; column-gap: 4px; }
+  .sk-lines { padding: 4px 4px 6px; }
+}
+@media (max-width: 560px) {
+  /* a phone is tall and narrow: the line box takes the whole width of the scene and the two of them stand under it;
+     the tabs go on their own row; the quest list sits above the open quest; the quick replies scroll sideways */
+  dialog.scene { width: min(980px, calc(100vw - 12px)); }
+  .sk-top { grid-template-columns: minmax(0, 1fr) auto; }
+  .sk-tabs { grid-column: 1 / -1; grid-row: 2; }
+  .btn.sq.sk-tab { width: 44px; height: 44px; }
+  .sk-section h3 { font: var(--px-size)/calc(var(--px-size) + 6px) var(--pixel); }
+  /* the stage keeps a floor and the words under it stay on screen: the quick replies scroll sideways, and Speak, the box
+     and Send share one row, so Send is never pushed under the fold */
+  .sk-talk { height: auto; min-height: 100%; overflow: visible; grid-template-rows: minmax(240px, 1fr) auto; }   /* taller than the screen, the card scrolls as a whole, so Send is never clipped */
+  .sk-quick { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+  .sk-quick .btn { flex: none; }
+  .saybar { flex-wrap: nowrap; gap: 4px; }
+  .saybar > .field { flex: 1 1 80px; }
+  .saybar textarea { height: 2.6em; }
+  .saybar .btn { padding-inline: calc(1 * var(--u)); }
+  .qstage { grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) auto auto; }
+  .qstage { padding: 4px 2px 6px; }
+  .sk-lines { grid-area: 1 / 1 / 2 / 3; align-self: start; width: 100%; padding: 4px 6px 6px; }   /* its row's height at most: under that the line scrolls, and the two of them keep their own row */
+  .owner { grid-area: 2 / 1; justify-self: start; }
+  .qchar { grid-area: 2 / 2; justify-self: end; }
+  .sk-plate { grid-row: 3; }
+  .sk-plate.you { grid-column: 1; justify-self: start; }
+  .sk-plate.her { grid-column: 2; justify-self: end; }
+  .sk-id h2 { font: var(--px-size)/calc(var(--px-size) + 6px) var(--pixel); }   /* the pack's font draws at 18 or 36: at 36 her name broke mid-word */
+  .sk-quests { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(110px, 36%) minmax(0, 1fr); }
+  .ownerprev { grid-template-columns: minmax(0, 1fr); justify-items: start; }
+  /* a short phone (the keyboard up, or a small one): the two of them give way again so the line keeps a bubble's worth */
+  @media (max-height: 620px) { .owner, .qchar { --fz: .4; } }
+}
+@media (prefers-reduced-motion: reduce) { .sk-tab[aria-selected="true"]::before, .sk-next::after { animation: none; } }
 /* her turn as it goes, under the talk on her side (4 October). Waking is Animal Crossing's pause: the grey bubble
    with her name on a tab. At work it is The Sims' action queue: each step done a small pressed-in tile with the
    pack's tick, the one she is on a lit cream tile. The dots are art pixels; stopping is the pink button and the cross. */
@@ -654,36 +760,6 @@ dialog.scene { width: min(920px, calc(100vw - 24px)); height: 792px; }   /* dial
 .qwork ol .secs { font: .78rem var(--body); }
 .qwork ol li.on { font-weight: 800; }
 .qtip, .qaway { margin: 0; font-style: italic; font-size: .82rem; color: var(--ink); text-align: right; }
-.saybar > .field { flex: 1 1 220px; }
-.qsettings { position: absolute; inset: 0; z-index: 5; overflow: auto; display: grid; gap: 12px; align-content: start; padding: 6px calc(4 * var(--u));
-  border: solid transparent; border-width: var(--panel-w); border-image: var(--art-panel) var(--panel-s) fill / var(--panel-w) stretch; background: var(--tan) padding-box; }
-.qsettings .shead { display: flex; align-items: center; gap: 8px; }
-.qsettings .shead h3 { margin: 0; flex: 1; font: calc(2 * var(--px-size))/calc(2 * var(--px-line)) var(--pixel); }
-.ownerprev { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: end; }
-.ownerprev .pic { padding: 6px 8px 0; background: var(--scene-face) padding-box; border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
-/* a card this narrow has no width to spare for them: drawn smaller, they leave the words two thirds of the scene
-   instead of half. Without this step the talk is back to the strip this whole change is about. */
-@media (max-width: 780px), (max-height: 560px) {
-  .owner, .qchar { --fz: .6; }
-}
-@media (max-width: 560px) {
-  /* a phone is tall and narrow, so the two of them stand side by side along the foot of the scene and the
-     words take its whole width: flanking her they left a strip under 200 px wide */
-  /* the words keep a floor and the two of them give way: their row is what the talk was squeezed to nothing by */
-  .qstage { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(72px, 1fr) auto; }
-  .qtalk { grid-area: 1 / 1; }
-  .owner, .qchar { grid-area: 2 / 1; --fz: 1; }
-  .qhead h2 { font: var(--px-size)/calc(var(--px-size) + 6px) var(--pixel); }   /* the pack's font draws at 18 or 36: at 36 her name broke mid-word beside Settings and Close */
-  .owner svg, .owner img { width: 62px; }
-  .qchar { width: 76px; height: 110px; }
-  .qchar .spr { transform: translateX(-50%) scale(calc(1.4 * var(--fs, 1))); }
-  .qchar .spr.s-idle, .qchar .spr.s-box { transform: translateX(-50%) scale(calc(2.6 * var(--fs, 1))); }
-  .qchar .crown, .qchar[data-mood] .crown { top: auto; bottom: 74px; }
-  .qchar[data-mood="sleep"] .crown { bottom: 44px; }
-  /* a phone with the keyboard up is half as tall: the two of them give way again so a bubble still shows */
-  @media (max-height: 620px) { .owner, .qchar { --fz: .7; } }
-  .ownerprev { grid-template-columns: minmax(0, 1fr); justify-items: start; }
-}
 /* her homework: a quiz a blocked cat, answered by tapping */
 .homework { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }   /* stated, so a long option can't widen the card and scroll her card sideways */
 .homework .quiz { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 4px 6px 6px; background: var(--well) padding-box; border: solid transparent; border-width: var(--bubble-bw); border-image: var(--art-bubble) var(--bubble-s) fill / var(--bubble-px) stretch; }
@@ -1009,6 +1085,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "stars":         { group: "Interface", kind: "sheet", name: "Stars", file: LIC + "ui/stars.png", size: [20, 8], what: "Two cells: what the queen says, what she keeps." },
     "arrow":         { group: "Interface", kind: "sheet", name: "Arrow", file: LIC + "ui/arrow.png", size: [10, 9], what: "A list's arrow, and the front door on the plan." },
     "pointer":       { group: "Interface", kind: "sheet", name: "Menu pointer", file: LIC + "ui/pointer.png", size: [7, 12], what: "The triangle beside the chosen menu item." },
+    "pattern":       { group: "Interface", kind: "sheet", name: "Wallpaper", file: null, size: [24, 24], what: "A tile behind every panel, over its face colour: sparkles, dots, anything square. Until there is one, the panels are plain." },
     "crown":         { group: "Interface", kind: "sheet", name: "Crown", file: LIC + "ui/crown.png", size: [14, 13], what: "The queen's, in her menu and card." },
     "logo":          { group: "Interface", kind: "sheet", name: "Logo", file: LIC + "ui/logo.png", size: [21, 18], what: "The brand: a cat face in a bubble." },
     "cursor":        { group: "Interface", kind: "exact", name: "Paw", file: LIC + "ui/cursor.png", size: [32, 32], hot: [9, 5], what: "The pointer: a cursor isn't scaled, so draw it at 16 and save it doubled." },
@@ -2469,6 +2546,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // one action in a menu's list: a button, or a link when it opens a page; an aside is a quiet note on its right
   function mi(label, run, opt) {
     const o = opt || {}, b = el(o.href ? "a" : "button", "mi", label);
+    if (MI_ICONS[label]) { const ic = el("span", "mic"); ic.appendChild(skIcon(MI_ICONS[label])); b.prepend(ic); }
     if (o.href) { b.href = o.href; b.target = "_blank"; b.rel = "noopener"; } else { b.type = "button"; b.addEventListener("click", run); }
     if (o.aside) { b.setAttribute("aria-label", label + ", " + o.aside); b.appendChild(el("span", "aside", o.aside)); }
     return b;
@@ -2563,7 +2641,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     still.addEventListener("click", () => { S.still = !S.still; try { localStorage.setItem("catio.still", S.still ? "on" : "off"); } catch (e) {} document.documentElement.classList.toggle("still", S.still); showMenu("house", "house"); });
     const hw = openQuizzes();
     out.push(list([
-      hw.length && mi("Homework", () => { hideMenu(); openQueen("homework"); }, { aside: hw.length + " waiting" }),
+      hw.length && mi("Quest log", () => { hideMenu(); openQueen("homework"); }, { aside: hw.length + " waiting" }),
       mi("The brain", () => { hideMenu(); openBrain(); }, { aside: tray ? tray + " on the tray" : "" }),
       mi("House rules", () => { hideMenu(); openRules(); }),
       (() => {   // any map at all, hidden ones too: the page is where a hidden one comes back
@@ -3078,6 +3156,69 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   const DRAFTS = new Map();   // quiz id -> one {pick, idx, text} per question
   const SENDING = new Set();
   const DECKAT = new Map();   // deck kind -> the id of the card on top, which Skip moves on
+  // The pixel icons the card and the menus draw in code (as her own figure is drawn), from the tokens, so a skin
+  // recolours them: each letter is a token, and a rect per run of a colour. The tab icons are cat-themed, 90s
+  // Barbie tech (her asks, 20 October): a flip phone with cat ears, a laptop, a floppy disk with a paw, the queen
+  // crowned, an alarm clock with cat ears, a girl in a cat-ear headband; the rest are the menus' and the card's.
+  const SK_PIX = { "#": "--ink", P: "--accent", p: "--cream", l: "--mi-lit", v: "--pressed", a: "--go", w: "--outline", s: "--disabled", y: "--owner-flower-heart", n: "--owner-chair", r: "--letgo" };
+  const R = (x0, y0, x1, y1) => (x, y) => x >= x0 && x <= x1 && y >= y0 && y <= y1;
+  const Ci = (cx, cy, r) => (x, y) => (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
+  const At = (...pts) => (x, y) => pts.some((p) => p[0] === x && p[1] === y);
+  // rows from shapes, outlined in ink wherever an empty cell touches a drawn one
+  function shapeIcon(n, layers) {
+    const g = Array.from({ length: n }, () => Array(n).fill("."));
+    for (const [test, ch] of layers) for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (test(x, y)) g[y][x] = ch;
+    return g.map((row, y) => row.map((c, x) => (c === "." && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => (g[y + dy] || [])[x + dx] && g[y + dy][x + dx] !== ".") ? "#" : c)).join(""));
+  }
+  const SK_ICONS = {
+    chat: ["..##......##..", "..#p#....#p#..", ".############.", ".#PPPPPPPPPP#.", ".#P########P#.", ".#P#aPaaPa#P#.", ".#P#aPPPPa#P#.", ".#P#aaPPaa#P#.", ".#P########P#.", ".#PPwPwPwPPP#.", ".#PPwPwPwPPP#.", ".#PPPPPPPPPP#.", ".############.", ".............."],
+    quest: ["..##......##..", ".############.", ".#PPPPPPPPPP#.", ".#P########P#.", ".#P#Pwvvvw#P#.", ".#P#wwwwww#P#.", ".#P#Pwvvvw#P#.", ".#P#wwwwww#P#.", ".#P########P#.", ".#PPPPPPPPPP#.", "##############", "#swswswswswsw#", ".############.", ".............."],
+    star: ["..............", ".############.", ".#PP#ssss#PP#.", ".#PP#ss#s#PP#.", ".#PP#ssss#PP#.", ".#PP######PP#.", ".#PPPPPPPPPP#.", ".#P########P#.", ".#P#PwPPwP#P#.", ".#P#wPPPPw#P#.", ".#P#wwPPww#P#.", ".#P########P#.", ".############.", ".............."],
+    crown: ["....#.##.#....", "....#yyyy#....", ".#..######..#.", ".#p#wwwwww#p#.", ".#wwwwwwwwww#.", "#wwwwwwwwwwww#", "#wwPPwwwwPPww#", "#wwwPwwwwPwww#", "#wllwwPPwwllw#", ".#wwwwwwwwww#.", "..##########..", "..#PPP##PPP#..", "..###P##P###..", ".............."],
+    clock: ["..##......##..", ".#pp#....#pp#.", ".#pp######pp#.", "#PPPPPPPPPPPP#", "#PPwwwwwwwwPP#", "#PwwwwwwwwwwP#", "#Pwwwww#wwwwP#", "#Pwwwww#wwwwP#", "#Pwwwww####wP#", "#PwwwwwwwwwwP#", "#PPwwwwwwwwPP#", ".#PPPPPPPPPP#.", "..##......##..", ".............."],
+    person: ["..##......##..", ".#PP#....#PP#.", ".#PPP####PPP#.", ".#yyyyyyyyyy#.", "#yynnnnnnnnyy#", "#ynnnnnnnnnny#", "#ynn#nnnn#nny#", "#ynnnnPPnnnny#", "#yynnnnnnnnyy#", ".#yy######yy#.", "..#PPPPPPPP#..", ".#PPPPPPPPPP#.", "#PPPPPPPPPPPP#", "##############"],
+    close: ["##..........##", "#P#........#P#", ".#P#......#P#.", "..#P#....#P#..", "...#P#..#P#...", "....#P##P#....", ".....#PP#.....", ".....#PP#.....", "....#P##P#....", "...#P#..#P#...", "..#P#....#P#..", ".#P#......#P#.", "#P#........#P#", "##..........##"],
+    heart: ["............", "..###..###..", ".#wPP##PPP#.", "#wPPPPPPPPP#", "#PPPPPPPPPP#", "#PPPPPPPPPP#", ".#PPPPPPPP#.", "..#PPPPPP#..", "...#PPPP#...", "....#PP#....", ".....##.....", "............"],
+    house: [".....##.....", "....#PP#....", "...#PPPP#...", "..#PPPPPP#..", ".#PPPPPPPP#.", "############", ".#wwwwwwww#.", ".#wwwPPwww#.", ".#wwwPPwww#.", ".#wwwPPwww#.", ".##########.", "............"],
+    disc: shapeIcon(12, [[Ci(5.5, 5.5, 4.4), "P"], [Ci(5.5, 5.5, 3.3), "s"], [Ci(5.5, 5.5, 1.3), "l"], [At([3, 3], [4, 2], [3, 4]), "w"]]),
+    diary: shapeIcon(12, [[R(2, 1, 9, 10), "P"], [R(3, 2, 8, 9), "l"], [At([4, 3], [5, 3], [6, 3], [7, 3], [4, 5], [5, 5], [6, 5], [7, 5], [4, 7], [5, 7], [6, 7]), "v"], [R(8, 5, 9, 6), "y"]]),
+    map: shapeIcon(12, [[R(1, 3, 10, 9), "l"], [R(4, 3, 4, 9), "v"], [R(7, 3, 7, 9), "v"], [At([2, 7], [3, 6], [5, 5], [6, 6], [8, 4], [9, 5]), "P"], [At([9, 8], [8, 7]), "r"]]),
+    up: shapeIcon(12, [[(x, y) => y >= 1 && y <= 5 && Math.abs(x - 5.5) <= y - 0.5, "P"], [R(4, 6, 7, 10), "P"], [At([5, 2], [5, 3]), "w"]]),
+    down: shapeIcon(12, [[(x, y) => y >= 6 && y <= 10 && Math.abs(x - 5.5) <= 10 - y + 0.5, "P"], [R(4, 1, 7, 5), "P"], [At([5, 2], [5, 3]), "w"]]),
+    left: shapeIcon(12, [[(x, y) => x >= 1 && x <= 5 && Math.abs(y - 5.5) <= x - 0.5, "P"], [R(6, 4, 10, 7), "P"], [At([7, 5], [8, 5]), "w"]]),
+    plus: shapeIcon(12, [[R(4, 1, 7, 10), "P"], [R(1, 4, 10, 7), "P"], [At([5, 2], [2, 5]), "w"]]),
+    folder: shapeIcon(12, [[R(1, 2, 5, 4), "P"], [R(1, 4, 10, 9), "p"], [R(2, 5, 9, 5), "l"]]),
+    look: shapeIcon(12, [[Ci(4.5, 4.5, 3.6), "P"], [Ci(4.5, 4.5, 2.3), "l"], [At([7, 7], [8, 8], [9, 9], [8, 9], [9, 8], [7, 8], [8, 7]), "P"]]),
+    sparkle: shapeIcon(12, [[(x, y) => { const a = Math.abs(x - 5.5), b = Math.abs(y - 5.5); return a * b <= 2.6 && a + b <= 5.2; }, "y"], [R(5, 5, 6, 6), "w"]]),
+    paw: shapeIcon(12, [[Ci(2.5, 4.5, 1.3), "P"], [Ci(4.5, 2.5, 1.3), "P"], [Ci(7.5, 2.5, 1.3), "P"], [Ci(9.5, 4.5, 1.3), "P"], [Ci(5.5, 7.5, 2.9), "P"], [At([5, 6], [4, 7]), "p"]]),
+    key: shapeIcon(12, [[Ci(3.5, 3.5, 2.6), "y"], [Ci(3.5, 3.5, 1), "w"], [(x, y) => x >= 5 && x <= 10 && y >= 5 && y <= 6 && x - 5 === y - 5 + (x - 5) - (y - 5) && Math.abs((x - 5) - (y - 5)) <= 0, "y"], [At([6, 6], [7, 7], [8, 8], [9, 9], [10, 10], [9, 10], [10, 9]), "y"]]),
+  };
+  // one icon as an SVG, a rect per run, its colours read from the tokens now (so a skin's show)
+  function skIcon(name, cs) {
+    const NS = "http://www.w3.org/2000/svg", s = document.createElementNS(NS, "svg"), rows = SK_ICONS[name], n = rows.length;
+    const st = cs || getComputedStyle(document.documentElement);
+    s.setAttribute("viewBox", "0 0 " + n + " " + n); s.setAttribute("width", n * 2); s.setAttribute("height", n * 2); s.setAttribute("aria-hidden", "true"); s.setAttribute("shape-rendering", "crispEdges");
+    rows.forEach((row, y) => {
+      for (let x = 0; x < n; ) {
+        const c = row[x]; let run = 1;
+        while (x + run < n && row[x + run] === c) run++;
+        if (c !== ".") { const r = document.createElementNS(NS, "rect"); r.setAttribute("x", x); r.setAttribute("y", y); r.setAttribute("width", run); r.setAttribute("height", 1); r.setAttribute("fill", tok(SK_PIX[c] || "--ink", st)); s.appendChild(r); }
+        x += run;
+      }
+    });
+    return s;
+  }
+  // which icon a menu's action gets, by its words
+  const MI_ICONS = { "Quest log": "quest", "The brain": "disc", "House rules": "diary", "Project maps": "map", "Edit rooms": "house", "Edit room": "house", "Set up again…": "sparkle", "Check now": "sparkle",
+    "Send them back up": "up", "Bring them down": "down", "Look in": "look", "Whole house": "house", "Files": "folder", "Add files": "plus", "Choose files": "plus", "Add a cat": "paw",
+    "Adopt a chat": "heart", "New session": "sparkle", "Back": "left", "Open this room": "house", "Talk to her": "chat", "What she keeps": "star", "Talk": "chat", "Details": "chat",
+    "Open chat": "chat", "Open session": "chat", "Open": "chat", "See them all": "paw", "The look": "sparkle", "Keys": "key" };
+  // Her card, as a pause menu (her asks, 20 October; CSS: "Her card is a pause menu"): tabs along the top (Talk, Quest
+  // log, What she keeps, Her character, Routines on the gateway, You), the chosen one named under them, its page below.
+  // Talk is a game dialogue: the two of them on the hall's floor, the line being said between them, one at a time.
+  // Quest log is everything waiting on her in a list, the chosen one open beside it. The last four are what the
+  // Settings overlay held. Opening it counts the handoffs as read.
+  let QSEL = null, SELIDX = 0;   // the quest open in the log ("q:<id>" for homework, "d:<deck>:<id>" for a card), and where it sat in the list
   function openQueen(section) {
     const dlg = $("queenDlg"); dlg.replaceChildren();
     const q = queenOf();
@@ -3086,196 +3227,130 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const opened = Date.now();
     const box = el("div", "dlg queen");
     dlg.classList.add("scene");
+    const cs = getComputedStyle(document.documentElement);   // the tokens, read once for every icon
+    // coming in from the litter box or the House menu opens the log at that quest
+    if (section === "litterbox" || section === "decision") { const c = deckOf(section)[0]; if (c) QSEL = "d:" + section + ":" + c.id; }
+    else if (section === "homework") { const u = openQuizzes().find((z) => kindOf(z) === "unblock"); if (u) QSEL = "q:" + u.id; }
 
-    // her name, how she is and her line; Settings and Close
-    const head = el("header", "qhead");
-    const hd = el("div");
+    // ---- the top: her name and how she is, the tabs, Close ----
+    const top = el("header", "sk-top");
+    const who = el("div", "sk-id");
     const h = el("h2", null, q.name); h.id = "queenName"; h.prepend(el("span", "crown"));
     const st = el("span", "mood " + (q.state === "away" ? "sleep" : "work"), "Queen of the house · " + stateWord(q.state)); st.id = "queenState";
-    hd.append(h, st);
-    const ln = el("p", "note", queenLine(q)); ln.id = "queenLineNote";
-    const hacts = el("div", "acts");
-    const setBtn = plainBtn("Settings", "", () => openSettings()); setBtn.id = "queenSettingsBtn"; setBtn.setAttribute("aria-haspopup", "dialog"); setBtn.setAttribute("aria-expanded", "false");
-    hacts.append(setBtn, closeBtn(dlg));
-    head.append(hd, hacts, ln);
-    box.appendChild(head);
+    who.append(h, st);
+    const tabs = el("div", "sk-tabs"); tabs.setAttribute("role", "tablist"); tabs.setAttribute("aria-label", "Her card");
+    const close = el("button", "btn sq sk-close"); close.type = "button"; close.title = "Close (Esc)"; close.setAttribute("aria-label", "Close");
+    close.appendChild(skIcon("close", cs)); close.addEventListener("click", () => dlg.close());
+    top.append(who, tabs, close);
+    const sect = el("div", "sk-section"), secTitle = el("h3"); secTitle.id = "queenSection"; sect.append(el("div", "rule"), secTitle, el("div", "rule"));
+    const body = el("main", "sk-body");
+    const foot = el("footer", "sk-hints");
+    const kb = el("p", "sk-keys");
+    for (const [k, w] of [["← →", "tabs"], ["Esc", "close"]]) { const s = el("span"); s.append(el("kbd", null, k), w); kb.appendChild(s); }
+    const ln = el("p", "sk-line", queenLine(q)); ln.id = "queenLineNote";
+    foot.append(kb, ln);
 
-    // the scene: the owner of the house on the left, from behind; the queen on the right, talking; their words between
+    const TABS = [["talk", "Talk", "chat", "queenTalk", "sk-talk"], ["quests", "Quest log", "quest", "queenQuests", "sk-quests"], ["keeps", "What she keeps", "star", "queenKeeps", "sk-page"],
+      ["character", "Her character", "crown", "queenCharacter", "sk-page"]]
+      .concat(VIA_GATEWAY ? [["routines", "Routines", "clock", "queenRoutines", "sk-page"]] : [], [["you", "You", "person", "queenYou", "sk-page"]]);
+    const tabBtns = {}, panels = {}, questBadge = el("span", "badge sk-count"), questN = el("span", "n");
+    questBadge.setAttribute("aria-hidden", "true"); questBadge.appendChild(questN);
+    let current = "talk";
+    const selectTab = (key) => {
+      if (!tabBtns[key]) key = "talk";
+      current = key;
+      for (const [k, b] of Object.entries(tabBtns)) { const on = k === key; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; panels[k].hidden = !on; }
+      secTitle.textContent = TABS.find((t) => t[0] === key)[1];
+    };
+    for (const [key, label, icon, pid, cls] of TABS) {
+      const b = el("button", "btn sq sk-tab"); b.type = "button"; b.id = "queenTab-" + key; b.title = label;
+      b.setAttribute("role", "tab"); b.setAttribute("aria-controls", pid); b.setAttribute("aria-label", label);
+      b.appendChild(skIcon(icon, cs));
+      if (key === "quests") b.appendChild(questBadge);
+      b.addEventListener("click", () => selectTab(key));
+      tabBtns[key] = b; tabs.appendChild(b);
+      const p = el("section", "sk-panel " + cls); p.id = pid; p.hidden = true;
+      p.setAttribute("role", "tabpanel"); p.setAttribute("aria-labelledby", "queenTab-" + key);
+      panels[key] = p; body.appendChild(p);
+    }
+    const stepTab = (d) => { const ks = TABS.map((t) => t[0]); return ks[(ks.indexOf(current) + d + ks.length) % ks.length]; };
+    tabs.addEventListener("keydown", (e) => {
+      const to = e.key === "ArrowRight" ? stepTab(1) : e.key === "ArrowLeft" ? stepTab(-1) : e.key === "Home" ? TABS[0][0] : e.key === "End" ? TABS[TABS.length - 1][0] : null;
+      if (!to) return;
+      e.preventDefault(); selectTab(to); tabBtns[to].focus();
+    });
+    box.addEventListener("keydown", (e) => {   // Page Up and Page Down turn the tabs from anywhere that isn't typing
+      if ((e.key !== "PageUp" && e.key !== "PageDown") || e.target.closest("input, textarea, select")) return;
+      e.preventDefault(); selectTab(stepTab(e.key === "PageDown" ? 1 : -1));
+    });
+
+    // ---- Talk: the owner of the house on the left, from behind; the queen on the right; the line being said between ----
     const stage = el("section", "qstage"); stage.setAttribute("aria-label", "Talking with " + q.name);
     const owner = el("div", "owner"); owner.id = "queenOwnerFig"; owner.appendChild(ownerSVG(ownerOf()));
     const her = el("div", "qchar"); her.id = "queenFig"; her.setAttribute("aria-hidden", "true");
+    const plateYou = el("span", "sk-plate you", "You"), plateHer = el("span", "sk-plate her", q.name);
+    plateYou.setAttribute("aria-hidden", "true"); plateHer.setAttribute("aria-hidden", "true");
     const dress = () => {
       const talking = !!(S.queenTurn && S.queenTurn.text);   // words, not thinking: she sits still while she thinks, and bobs once she speaks
       const mood = talking ? "meow" : queenMood(q);
       her.replaceChildren(sprite(mood, q.coat), el("span", "crown"));
       her.classList.toggle("talking", talking);
+      owner.classList.toggle("talking", stage.dataset.speaker === "owner");
       her.dataset.mood = mood;
     };
     dress();
-
-    // ---- the talk, between them: her homework first, when she set some ----
-    const talk = el("div", "qtalk");
-    const hw = el("div", "homework"); hw.id = "queenHomework";
-    // A redraw that would change nothing is skipped, so the forms never move under her fingers; one that must
-    // happen puts her answers so far (DRAFTS) back.
-    const drafts = DRAFTS, sending = SENDING;
-    let drawn = null;
-    const drawHomework = () => {
-      const all = openQuizzes(), open = all.filter((z) => kindOf(z) === "unblock");
-      const decks = DECKS.map(([kind, name]) => {
-        const cards = all.filter((z) => kindOf(z) === kind);
-        const at = Math.max(0, cards.findIndex((z) => z.id === DECKAT.get(kind)));
-        return { kind, name, cards, at, z: cards[at] };
-      }).filter((d) => d.z);
-      const cats = allCats(true).cats;
-      const catOf = (z) => (z.for ? cats.find((c) => c.agentId === z.for) : null);
-      const subOf = (z, cat) => "Homework from " + (z.by === QUEEN_ID ? q.name : "you") + (cat ? ", to unblock " + cat.name : z.for ? ", for " + z.for : "") + " · " + ago(z.at);
-      const sig = open.map((z) => z.id + ":" + (z.at || 0) + ":" + (z.questions || []).length + ":" + (catOf(z) || {}).name).join("|")
-        + "#" + decks.map((d) => d.kind + ":" + d.at + ":" + sending.has(d.z.id) + ":" + d.cards.map((z) => z.id + "@" + (z.at || 0)).join(",") + ":" + JSON.stringify([d.z.note, d.z.hint, d.z.questions])).join("|");   // the top card dealt again with new words redraws
-      if (sig === drawn) {   // nothing to rebuild: only the "· N minutes ago" moves on
-        for (const z of open) { const sub = hw.querySelector('form[data-quiz="' + z.id + '"] p.sub'); if (sub) sub.textContent = subOf(z, catOf(z)); }
-        return;
-      }
-      drawn = sig;
-      const act = document.activeElement;   // the answer she is typing keeps its focus and caret through the rebuild
-      const keep = act && hw.contains(act) && act.dataset.q ? { q: act.dataset.q, s: act.selectionStart, e: act.selectionEnd } : null;
-      hw.replaceChildren();
-      hw.hidden = !all.length;
-      for (const z of open) {
-        const draft = drafts.get(z.id) || [];
-        drafts.set(z.id, draft);
-        const f = el("form", "quiz"); f.dataset.quiz = z.id;
-        f.addEventListener("submit", (e) => e.preventDefault());
-        const cat = catOf(z);
-        f.appendChild(el("h3", null, z.title));
-        f.appendChild(el("p", "sub", subOf(z, cat)));
-        const picks = [];
-        (z.questions || []).forEach((qq, i) => {
-          const d = draft[i] || (draft[i] = { pick: null, idx: -1, text: "" });
-          const fs = el("fieldset", "q");
-          fs.appendChild(el("legend", null, (i + 1) + ". " + qq.q));
-          const row = el("div", "opts");
-          const mark = (idx) => { [...row.children].forEach((x, j) => { x.classList.toggle("green", j === idx); x.setAttribute("aria-pressed", String(j === idx)); }); };
-          const free = el("input"); free.maxLength = 1000; free.placeholder = qq.options && qq.options.length ? "Something else…" : "Your answer";
-          free.value = d.text; free.dataset.q = z.id + ":" + i;
-          (qq.options || []).forEach((o, j) => {
-            const b = plainBtn(o, "tiny", () => { d.pick = o; d.idx = j; d.text = ""; free.value = ""; mark(j); });
-            b.setAttribute("aria-pressed", "false");
-            row.appendChild(b);
-          });
-          if (d.pick) mark(d.idx);
-          fs.appendChild(row);
-          if (qq.free || !(qq.options && qq.options.length)) {
-            free.addEventListener("input", () => { d.text = free.value; if (free.value.trim()) { d.pick = null; d.idx = -1; mark(-1); } });
-            free.setAttribute("aria-label", "Your answer to: " + qq.q);
-            const l = el("label", "field"); l.appendChild(free); fs.appendChild(l);
-          }
-          picks.push(() => d.text.trim() || d.pick || "");
-          f.appendChild(fs);
-        });
-        const hand = plainBtn("Hand it in", "green", async () => {
-          const answers = picks.map((p) => p());
-          if (answers.some((a) => !a)) { toast("Answer every question first.", "alert"); return; }
-          hand.disabled = true; sending.add(z.id);
-          try {
-            await hostCall("answer", { quiz: z.id, answers });
-            drafts.delete(z.id);
-            HANDED.add(z.id);   // off her desk now, whatever the next list read says
-            toast("Handed in." + (cat ? " " + cat.name + " has your answers." : ""));
-            render(); if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); }   // her card may have closed meanwhile
-            await refreshQuizzes();
-            loadQueenThread();
-          } catch (e) {
-            toast(gatewayProblem(e), "alert");
-            const again = document.querySelector('#queenHomework form[data-quiz="' + z.id + '"] .hand'); if (again) again.disabled = false;   // in whichever card is open now
-            refreshQuizzes();   // refused because it was handed in elsewhere? then the list says so and it goes
-          }
-          finally { sending.delete(z.id); }
-        });
-        hand.disabled = sending.has(z.id);
-        hand.className += " hand";
-        const acts = el("div", "actions"); acts.append(el("span", "spacer"), hand);
-        f.appendChild(acts);
-        hw.appendChild(f);
-      }
-      // the litter box and the decisions: a card at a time, a tap hands it in, Skip puts it at the back of the deck
-      for (const d of decks) {
-        const z = d.z, qq = (z.questions || [])[0] || { q: "", options: [] };
-        const f = el("section", "quiz card"); f.dataset.deck = d.kind; f.dataset.quiz = z.id; f.tabIndex = -1;
-        f.setAttribute("aria-label", d.name);
-        f.appendChild(el("h3", null, d.name));
-        const sub = el("p", "sub", [z.title, (d.at + 1) + " of " + d.cards.length].filter(Boolean).join(" · "));
-        if (z.from) sub.title = "From " + z.from;
-        f.appendChild(sub);
-        if (z.note) {   // a note is markdown: its **bold** kept, its list bullet and *emphasis* marks dropped
-          const p = el("p", "note-text");
-          z.note.replace(/^[ \t]*[-*] /gm, "").replace(/\n[ \t]+/g, "\n").replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s.,;:!?)]|$)/gm, "$1$2").split(/\*\*(.+?)\*\*/).forEach((part, i) => p.append(i % 2 ? el("strong", null, part) : document.createTextNode(part)));
-          f.appendChild(p);
-        }
-        const fs = el("fieldset", "q");
-        fs.appendChild(el("legend", null, qq.q));
-        if (z.hint) fs.appendChild(el("p", "sub", (d.kind === "litterbox" ? "The sifter guessed " : "Claude recommends ") + z.hint + "."));
-        const row = el("div", "opts");
-        const next = () => { const after = d.cards[(d.at + 1) % d.cards.length]; if (after && after.id !== z.id) DECKAT.set(d.kind, after.id); else DECKAT.delete(d.kind); };
-        for (const o of qq.options || []) {
-          const b = plainBtn(o, "tiny", async () => {
-            next(); sending.add(z.id); drawHomework();
-            try {
-              await hostCall("answer", { quiz: z.id, answers: [o] });
-              HANDED.add(z.id);
-              toast("Handed in: " + o + ".");
-              render(); if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); }
-              refreshQuizzes();
-            } catch (e) {
-              DECKAT.set(d.kind, z.id);   // back on top, to try again
-              toast(gatewayProblem(e), "alert");
-              refreshQuizzes();
-            }
-            finally { sending.delete(z.id); if (QUEEN_UI) QUEEN_UI.homework(); }
-          });
-          b.disabled = sending.has(z.id);
-          row.appendChild(b);
-        }
-        fs.appendChild(row);
-        f.appendChild(fs);
-        if (d.cards.length > 1) {
-          const acts = el("div", "actions");
-          acts.append(el("span", "spacer"), plainBtn("Skip", "", () => { next(); drawHomework(); const card = hw.querySelector('[data-deck="' + d.kind + '"]'); if (card) card.focus(); }));
-          f.appendChild(acts);
-        }
-        hw.appendChild(f);
-      }
-      if (keep) { const again = hw.querySelector('input[data-q="' + keep.q + '"]'); if (again) { again.focus(); try { again.setSelectionRange(keep.s, keep.e); } catch (e) { /* no caret to put back */ } } }
-    };
-    drawHomework();
-    talk.appendChild(hw);
+    // every line is in the thread; one is current and shown, in the speaker's name. Click to continue steps on; the
+    // latest shows by default, and a new line jumps to it unless she has stepped back.
+    const lines = el("div", "sk-lines"); lines.setAttribute("role", "group"); lines.setAttribute("aria-label", "What is being said");
     const ul = el("ul", "thread"); ul.id = "queenThread"; ul.setAttribute("aria-live", "polite");
+    const nav = el("div", "sk-nav"), counter = el("span", "sk-of");
+    let pos = 0, follow = true, last = 0;
+    const earlier = plainBtn("Earlier", "tiny", () => { if (pos > 0) { pos--; follow = false; drawThreadQ(); } });
+    const onward = el("button", "sk-next", "Click to continue"); onward.type = "button";
+    const step = () => { if (pos < last) { pos++; follow = pos === last; drawThreadQ(); } };
+    onward.addEventListener("click", (e) => { e.stopPropagation(); step(); });
+    const back = el("span", "sk-back"); back.append(earlier, counter);
+    nav.append(back, onward);
+    lines.append(ul, nav);
+    lines.addEventListener("click", (e) => { if (!e.target.closest("button, a")) step(); });
+    stage.append(owner, her, lines, plateYou, plateHer);
     const drawThreadQ = () => {
-      dress();
       ul.replaceChildren();
       const cats = allCats(true).cats;
       const items = (S.queenNotes || []).filter((n) => fromOwner(n) || n.author === QUEEN_ID).map((n) => ({ kind: fromOwner(n) ? "owner" : n.author, text: n.text, at: n.at || 0, routine: n.routine }))
         .concat(cats.filter((c) => c.said && c.said.text).map((c) => ({ kind: "handoff", cat: c, text: c.said.text, at: c.said.at || 0 })))
         .sort((a, b) => a.at - b.at).slice(-20);
-      if (!items.some((it) => it.kind !== "handoff")) { const li = el("li", "them greet"); li.append(el("span", "who", q.name), document.createTextNode(q.greeting)); ul.appendChild(li); }   // nothing said yet: her greeting
-      for (const it of items) {
-        const li = el("li", it.kind === "owner" ? "me" : it.kind === "handoff" ? "them handoff" + (it.at > q.readAt ? " new" : "") : "them");
-        const who = it.kind === "owner" ? "You" : it.kind === "handoff" ? it.cat.name + " brought you" : q.name + (it.routine && it.routine.name ? " · " + it.routine.name : "");
-        li.append(el("span", "who", who + " · " + ago(it.at)), document.createTextNode(it.text));
+      if (!items.some((it) => it.kind !== "handoff")) items.unshift({ kind: "greet", text: q.greeting, at: 0 });   // nothing said yet: her greeting
+      if (S.queenTurn && S.queenTurn.text) items.push({ kind: "live", text: S.queenTurn.text, at: 0 });
+      last = items.length - 1;
+      pos = follow ? last : Math.min(pos, last);
+      items.forEach((it, i) => {
+        const li = el("li", it.kind === "owner" ? "me" : it.kind === "greet" ? "them greet" : it.kind === "live" ? "them live" : it.kind === "handoff" ? "them handoff" + (it.at > q.readAt ? " new" : "") : "them");
+        if (it.kind === "live") li.id = "queenLive";
+        const who = it.kind === "owner" ? "You" : q.name;
+        const lead = it.kind === "handoff" ? it.cat.name + " brought you" : it.kind === "live" ? "speaking" : it.routine && it.routine.name ? it.routine.name : "";
+        li.append(el("span", "who", who + (it.at ? " · " + ago(it.at) : "")));
+        if (lead) li.appendChild(el("span", "lead", lead));
+        li.appendChild(document.createTextNode(it.text));
         if (it.kind === "handoff" && VIEW.cats.some((x) => x.id === it.cat.id)) { const o = plainBtn("Open " + it.cat.name, "tiny open", () => { dlg.close(); openCat(it.cat.id); }); li.appendChild(o); }
+        if (i === pos) li.setAttribute("aria-current", "true");
         ul.appendChild(li);
-      }
-      if (S.queenTurn && S.queenTurn.text) { const li = el("li", "them live"); li.id = "queenLive"; li.append(el("span", "who", q.name + " · speaking"), document.createTextNode(S.queenTurn.text)); ul.appendChild(li); }
-      ul.scrollTop = ul.scrollHeight;
+      });
+      stage.dataset.speaker = items[pos] && items[pos].kind === "owner" ? "owner" : "queen";
+      counter.textContent = (pos + 1) + " / " + (last + 1);
+      earlier.hidden = pos === 0; onward.hidden = pos === last;
+      ul.scrollTop = 0;
+      dress();
       drawWork();
     };
-    talk.appendChild(ul);
-    // ---- her turn as it goes, under the talk, on her side (her ask, 4 October, from the games of the early 2000s) ----
+    // ---- under the stage: her turn as it goes (her ask, 4 October, from the games of the early 2000s), the quick
+    // replies, then your own words ----
     // Waking: Animal Crossing's pause, her name on a tab over the dots. At work: The Sims' action queue, each step
     // done a small ticked tile, the step she is on lit; unfolded, every step and how long it took. A long wait gets
     // The Sims' loading tips. Away, with your words waiting: one line saying why.
+    const reply = el("div", "sk-reply");
     const work = el("div", "qwork"); work.id = "queenWork"; work.hidden = true;
-    talk.appendChild(work);
+    reply.appendChild(work);
     let workKey = "", workOpen = false, ticker = null;
     const dots = () => { const d = el("span", "qdots"); d.setAttribute("aria-hidden", "true"); d.append(el("i"), el("i"), el("i")); return d; };
     const secs = (from) => { const t = el("time", "secs", secsWords(Date.now() - from)); t.dataset.from = from; t.setAttribute("aria-hidden", "true"); return t; };
@@ -3293,8 +3368,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (t) st.textContent = "Queen of the house · " + (t.stopping ? "stopping" : t.text ? "answering" : "thinking");
       if (!t) { clearInterval(ticker); ticker = null; }
       else if (!ticker) ticker = setInterval(tick, 1000);
-      const last = (S.queenNotes || []).filter((n) => fromOwner(n) || n.author === QUEEN_ID).pop();
-      const waiting = !t && q.state === "away" && last && fromOwner(last);
+      const lastNote = (S.queenNotes || []).filter((n) => fromOwner(n) || n.author === QUEEN_ID).pop();
+      const waiting = !t && q.state === "away" && lastNote && fromOwner(lastNote);
       const list = t ? turnSteps(t) : [];
       const key = !t ? (waiting ? "away" : "") : list.length < 2 && !t.text ? "wake" + (t.stopping ? "!" : "") : "q" + (t.stopping ? "!" : "") + list.map((s) => s.words).join("|");
       if (key === workKey) return tick();
@@ -3339,20 +3414,24 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       work.appendChild(tip);
       tick();
     }
+    // what you can say: a few quick replies, and your own words
     const say = el("textarea"); say.id = "queenSay"; say.rows = 2; say.maxLength = 4000; say.placeholder = "Ask " + q.name + "…";
     say.setAttribute("aria-label", "Say to " + q.name);
+    const post = async (text) => {
+      try {
+        await hostCall("comment", { cat: QUEEN_ID, text, author: "owner" });
+        S.queenNotes = (S.queenNotes || []).concat([{ id: "me" + Date.now(), cat: QUEEN_ID, author: "owner", text, at: Date.now() }]);
+        if (queenState() !== "away" && !S.queenTurn) S.queenTurn = { turn: "", local: true, text: "", steps: [], stepAt: [], since: Date.now(), awakeAt: 0, textAt: 0 };   // Thinking, from your Send
+        follow = true; drawThreadQ();
+        if (queenState() === "away") toast("Kept for her: she answers once her runner is on.");
+        return true;
+      } catch (e) { toast(gatewayProblem(e), "alert"); return false; }
+    };
     const send = plainBtn("Send", "green", async () => {
       const text = say.value.trim();
       if (!text) { say.focus(); return; }
       send.disabled = true;
-      try {
-        await hostCall("comment", { cat: QUEEN_ID, text, author: "owner" });
-        say.value = "";
-        S.queenNotes = (S.queenNotes || []).concat([{ id: "me" + Date.now(), cat: QUEEN_ID, author: "owner", text, at: Date.now() }]);
-        if (queenState() !== "away" && !S.queenTurn) S.queenTurn = { turn: "", local: true, text: "", steps: [], stepAt: [], since: Date.now(), awakeAt: 0, textAt: 0 };   // Thinking, from your Send
-        drawThreadQ();
-        if (queenState() === "away") toast("Kept for her: she answers once her runner is on.");
-      } catch (e) { toast(gatewayProblem(e), "alert"); }
+      if (await post(text)) say.value = "";
       send.disabled = false;
       say.focus();
     });
@@ -3363,6 +3442,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       catch (e) { toast(gatewayProblem(e), "alert"); }
     });
     stop.id = "queenStop"; stop.hidden = !(S.queenTurn || q.state === "busy");
+    const quick = el("div", "sk-quick"); quick.setAttribute("aria-label", "Quick replies");
+    for (const text of ["What is waiting for me?", "Anything for me to hand in?"]) quick.appendChild(plainBtn(text, "tiny", () => post(text)));
+    quick.appendChild(plainBtn("Good-bye.", "tiny", () => dlg.close()));
     const row = el("div", "row saybar");
     const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (Rec) {   // voice to text: the browser's own (Chrome, Edge); what it heard stays in the box for her to send or fix
@@ -3380,7 +3462,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       row.appendChild(sp);
     }
     row.append(el("label", "field").appendChild(say).parentNode, send, stop);
-    // her voice, on or off, saved with her
+    reply.append(quick, row);
+    panels.talk.append(stage, reply);
+    // her voice, on or off, saved with her (its switch is on Her character)
     let voiceOn = !!q.voice.on;
     const vb = el("button", "btn sw sound voice"); vb.type = "button"; vb.id = "queenVoice";
     const vbt = el("span", null, voiceOn ? "Voice on" : "Voice off");
@@ -3393,33 +3477,188 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (voiceOn) speak(gr.value.trim() || q.greeting, currentVoice());
       await persist();
     });
-    stage.append(owner, talk, her);
-    box.append(stage, row);
 
-    // ---- Settings: everything else, in an overlay over the scene ----
-    const set = el("section", "qsettings"); set.id = "queenSettings"; set.hidden = true;
-    set.setAttribute("role", "dialog"); set.setAttribute("aria-label", "Settings");
-    const shead = el("div", "shead");
-    const back = plainBtn("Back to her", "green", () => closeSettings()); back.id = "queenSettingsClose";
-    shead.append(el("h3", null, "Settings"), back);
-    const voiceBox = el("div", "row"); voiceBox.id = "queenVoiceBox";
-    voiceBox.appendChild(vb);
-    set.append(shead, voiceBox);
-    const openSettings = (part) => {
-      set.hidden = false; setBtn.setAttribute("aria-expanded", "true");
-      for (const d of set.querySelectorAll("details")) d.open = d.id === part;
-      const target = part ? set.querySelector("#" + part + " summary") : back;
-      (target || back).focus({ preventScroll: true });
+    // ---- Quest log: her homework, the litter box and the decisions, one list, one open at a time ----
+    const qlist = el("nav", "sk-qlist"); qlist.id = "questList"; qlist.setAttribute("aria-label", "Quest log");
+    const hw = el("div", "homework"); hw.id = "queenHomework";
+    panels.quests.append(qlist, hw);
+    // which quest is open: its entry is current, its card shown. A choice redraws nothing, so the forms never move under her fingers.
+    const applySel = () => {
+      for (const b of qlist.querySelectorAll(".sk-q")) b.setAttribute("aria-current", String(b.dataset.key === QSEL));
+      for (const f of hw.children) f.hidden = f.dataset.key !== QSEL;
     };
-    const closeSettings = () => { set.hidden = true; setBtn.setAttribute("aria-expanded", "false"); say.focus({ preventScroll: true }); };
+    const choose = (key) => { QSEL = key; SELIDX = Math.max(0, [...qlist.querySelectorAll(".sk-q")].findIndex((b) => b.dataset.key === key)); applySel(); };
+    qlist.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+      const bs = [...qlist.querySelectorAll(".sk-q")], to = bs[bs.indexOf(document.activeElement) + (e.key === "ArrowDown" ? 1 : -1)];
+      if (!to) return;
+      e.preventDefault(); to.focus(); to.click(); to.scrollIntoView({ block: "nearest" });
+    });
+    // A redraw that would change nothing is skipped, so the forms never move under her fingers; one that must
+    // happen puts her answers so far (DRAFTS) back.
+    const drafts = DRAFTS, sending = SENDING;
+    let drawn = null;
+    const drawHomework = () => {
+      const all = openQuizzes();
+      const cats = allCats(true).cats;
+      const catOf = (z) => (z.for ? cats.find((c) => c.agentId === z.for) : null);
+      const subOf = (z, cat) => "Homework from " + (z.by === QUEEN_ID ? q.name : "you") + (cat ? ", to unblock " + cat.name : z.for ? ", for " + z.for : "") + " · " + ago(z.at);
+      // the list: every homework quiz, then each deck's cards; the card drawn for a deck is the one on top (DECKAT)
+      const items = all.filter((z) => kindOf(z) === "unblock").map((z) => ({ key: "q:" + z.id, z, kind: "unblock", name: "Homework" }));
+      const decks = DECKS.map(([kind, name]) => {
+        const cards = all.filter((z) => kindOf(z) === kind);
+        cards.forEach((z, i) => items.push({ key: "d:" + kind + ":" + z.id, z, kind, name, i, cards }));
+        const at = Math.max(0, cards.findIndex((z) => z.id === DECKAT.get(kind)));
+        return { kind, name, cards, at, z: cards[at] };
+      }).filter((d) => d.z);
+      const keys = items.map((it) => it.key);
+      if (!keys.includes(QSEL)) QSEL = keys[Math.min(SELIDX, keys.length - 1)] || null;   // the one she had open was handed in: the next one comes up
+      // a deck's chosen entry is the card on top: choosing an entry puts that card on top
+      for (const d of decks) { const m = /^d:([a-z]+):(.+)$/.exec(QSEL || ""); if (m && m[1] === d.kind && d.cards.some((z) => z.id === m[2])) { d.at = d.cards.findIndex((z) => z.id === m[2]); d.z = d.cards[d.at]; } }
+      SELIDX = Math.max(0, keys.indexOf(QSEL));
+      questN.textContent = String(all.length); questBadge.hidden = !all.length;
+      tabBtns.quests.setAttribute("aria-label", "Quest log" + (all.length ? ", " + all.length + " waiting" : ""));
+      const sig = items.map((it) => it.key + ":" + (it.z.at || 0) + ":" + sending.has(it.z.id) + ":" + (catOf(it.z) || {}).name).join("|")
+        + "#" + decks.map((d) => d.kind + ":" + d.at + ":" + JSON.stringify([d.z.title, d.z.note, d.z.hint, d.z.questions])).join("|");   // the top card dealt again with new words redraws
+      if (sig === drawn) {   // nothing to rebuild: only the "· N minutes ago" moves on
+        for (const it of items) if (it.kind === "unblock") { const sub = hw.querySelector('form[data-quiz="' + it.z.id + '"] p.sub'); if (sub) sub.textContent = subOf(it.z, catOf(it.z)); }
+        applySel();
+        return;
+      }
+      drawn = sig;
+      const act = document.activeElement;   // the answer she is typing keeps its focus and caret through the rebuild
+      const keep = act && hw.contains(act) && act.dataset.q ? { q: act.dataset.q, s: act.selectionStart, e: act.selectionEnd } : null;
+      const inList = act && qlist.contains(act);
+      qlist.replaceChildren(); hw.replaceChildren();
+      hw.hidden = !all.length;
+      if (!items.length) qlist.appendChild(el("p", "sk-none", "No open quests. Nothing is waiting on you."));
+      let group = null;
+      for (const it of items) {
+        const z = it.z, cat = catOf(z);
+        if (it.name !== group) { group = it.name; const gh = el("h4", null, group); gh.appendChild(el("span", null, String(items.filter((x) => x.name === group).length))); qlist.appendChild(gh); }
+        const b = el("button", "sk-q " + (it.kind === "unblock" ? "main" : it.kind)); b.type = "button"; b.dataset.key = it.key;
+        if (it.kind !== "unblock") b.dataset.deck = it.kind;
+        const txt = el("span"); txt.append(el("span", "t", z.title || it.name), el("span", "s", [it.kind === "unblock" ? (cat ? "Unblocks " + cat.name : "Homework") : it.kind === "litterbox" ? "Note to sort" : "Decision", ago(z.at)].filter(Boolean).join(" · ")));
+        b.append(el("span", "star"), txt);
+        b.addEventListener("click", () => { if (it.kind !== "unblock") DECKAT.set(it.kind, z.id); choose(it.key); if (it.kind !== "unblock") drawHomework(); });
+        qlist.appendChild(b);
+        if (it.kind === "unblock") {
+          const draft = drafts.get(z.id) || [];
+          drafts.set(z.id, draft);
+          const f = el("form", "quiz"); f.dataset.quiz = z.id; f.dataset.key = it.key;
+          f.addEventListener("submit", (e) => e.preventDefault());
+          f.appendChild(el("p", "kicker", "Homework"));
+          f.appendChild(el("h3", null, z.title));
+          f.appendChild(el("p", "sub", subOf(z, cat)));
+          const picks = [];
+          (z.questions || []).forEach((qq, i) => {
+            const d = draft[i] || (draft[i] = { pick: null, idx: -1, text: "" });
+            const fs = el("fieldset", "q");
+            fs.appendChild(el("legend", null, (i + 1) + ". " + qq.q));
+            const opts = el("div", "opts");
+            const mark = (idx) => { [...opts.children].forEach((x, j) => { x.classList.toggle("green", j === idx); x.setAttribute("aria-pressed", String(j === idx)); }); };
+            const free = el("input"); free.maxLength = 1000; free.placeholder = qq.options && qq.options.length ? "Something else…" : "Your answer";
+            free.value = d.text; free.dataset.q = z.id + ":" + i;
+            (qq.options || []).forEach((o, j) => {
+              const ob = plainBtn(o, "tiny", () => { d.pick = o; d.idx = j; d.text = ""; free.value = ""; mark(j); });
+              ob.setAttribute("aria-pressed", "false");
+              opts.appendChild(ob);
+            });
+            if (d.pick) mark(d.idx);
+            fs.appendChild(opts);
+            if (qq.free || !(qq.options && qq.options.length)) {
+              free.addEventListener("input", () => { d.text = free.value; if (free.value.trim()) { d.pick = null; d.idx = -1; mark(-1); } });
+              free.setAttribute("aria-label", "Your answer to: " + qq.q);
+              const l = el("label", "field"); l.appendChild(free); fs.appendChild(l);
+            }
+            picks.push(() => d.text.trim() || d.pick || "");
+            f.appendChild(fs);
+          });
+          const hand = plainBtn("Hand it in", "green", async () => {
+            const answers = picks.map((p) => p());
+            if (answers.some((a) => !a)) { toast("Answer every question first.", "alert"); return; }
+            hand.disabled = true; sending.add(z.id);
+            try {
+              await hostCall("answer", { quiz: z.id, answers });
+              drafts.delete(z.id);
+              HANDED.add(z.id);   // off her desk now, whatever the next list read says
+              toast("Handed in." + (cat ? " " + cat.name + " has your answers." : ""));
+              render(); if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); }   // her card may have closed meanwhile
+              await refreshQuizzes();
+              loadQueenThread();
+            } catch (e) {
+              toast(gatewayProblem(e), "alert");
+              const again = document.querySelector('#queenHomework form[data-quiz="' + z.id + '"] .hand'); if (again) again.disabled = false;   // in whichever card is open now
+              refreshQuizzes();   // refused because it was handed in elsewhere? then the list says so and it goes
+            }
+            finally { sending.delete(z.id); }
+          });
+          hand.disabled = sending.has(z.id);
+          hand.className += " hand";
+          const acts = el("div", "actions"); acts.append(el("span", "spacer"), hand);
+          f.appendChild(acts);
+          hw.appendChild(f);
+        }
+      }
+      // the litter box and the decisions: the card on top of each deck; a tap on an option hands it in, Skip puts the next on top
+      for (const d of decks) {
+        const z = d.z, qq = (z.questions || [])[0] || { q: "", options: [] };
+        const f = el("section", "quiz card"); f.dataset.deck = d.kind; f.dataset.quiz = z.id; f.dataset.key = "d:" + d.kind + ":" + z.id; f.tabIndex = -1;
+        f.setAttribute("aria-label", d.name);
+        f.appendChild(el("p", "kicker", d.name));
+        f.appendChild(el("h3", null, z.title || d.name));
+        const sub = el("p", "sub", [(d.at + 1) + " of " + d.cards.length, z.from && "From " + z.from].filter(Boolean).join(" · "));
+        f.appendChild(sub);
+        if (z.note) {   // a note is markdown: its **bold** kept, its list bullet and *emphasis* marks dropped
+          const p = el("p", "note-text");
+          z.note.replace(/^[ \t]*[-*] /gm, "").replace(/\n[ \t]+/g, "\n").replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s.,;:!?)]|$)/gm, "$1$2").split(/\*\*(.+?)\*\*/).forEach((part, i) => p.append(i % 2 ? el("strong", null, part) : document.createTextNode(part)));
+          f.appendChild(p);
+        }
+        const fs = el("fieldset", "q");
+        fs.appendChild(el("legend", null, qq.q));
+        if (z.hint) fs.appendChild(el("p", "sub", (d.kind === "litterbox" ? "The sifter guessed " : "Claude recommends ") + z.hint + "."));
+        const opts = el("div", "opts");
+        const next = () => { const after = d.cards[(d.at + 1) % d.cards.length]; if (after && after.id !== z.id) { DECKAT.set(d.kind, after.id); QSEL = "d:" + d.kind + ":" + after.id; } else DECKAT.delete(d.kind); };
+        for (const o of qq.options || []) {
+          const ob = plainBtn(o, "tiny", async () => {
+            next(); sending.add(z.id); drawHomework();
+            try {
+              await hostCall("answer", { quiz: z.id, answers: [o] });
+              HANDED.add(z.id);
+              toast("Handed in: " + o + ".");
+              render(); if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); }
+              refreshQuizzes();
+            } catch (e) {
+              DECKAT.set(d.kind, z.id); QSEL = "d:" + d.kind + ":" + z.id;   // back on top, to try again
+              toast(gatewayProblem(e), "alert");
+              refreshQuizzes();
+            }
+            finally { sending.delete(z.id); if (QUEEN_UI) QUEEN_UI.homework(); }
+          });
+          ob.disabled = sending.has(z.id);
+          opts.appendChild(ob);
+        }
+        fs.appendChild(opts);
+        f.appendChild(fs);
+        if (d.cards.length > 1) {
+          const acts = el("div", "actions");
+          acts.append(el("span", "spacer"), plainBtn("Skip", "", () => { next(); drawHomework(); const card = hw.querySelector('[data-deck="' + d.kind + '"]'); if (card) card.focus(); }));
+          f.appendChild(acts);
+        }
+        hw.appendChild(f);
+      }
+      applySel();
+      if (keep) { const again = hw.querySelector('input[data-q="' + keep.q + '"]'); if (again) { again.focus(); try { again.setSelectionRange(keep.s, keep.e); } catch (e) { /* no caret to put back */ } } }
+      else if (inList) { const b = qlist.querySelector('[aria-current="true"]'); if (b) b.focus(); }
+    };
+    drawHomework();
 
     // ---- what she keeps ----
-    const kd = el("details", "more"); kd.id = "queenKeeps"; kd.open = section === "keeps";
-    kd.appendChild(el("summary", null, "What she keeps"));
-    const list = el("ul", "keeps");
+    const kp = panels.keeps;
+    const klist = el("ul", "keeps");
     function draw() {
-      list.replaceChildren();
-      if (!notes.length) list.appendChild(el("li", "sub", "She is keeping nothing for you yet."));
+      klist.replaceChildren();
+      if (!notes.length) klist.appendChild(el("li", "sub", "She is keeping nothing for you yet."));
       notes.forEach((n, i) => {
         const li = el("li", n.pinned ? "kept pin" : "kept");
         const pin = plainBtn(n.pinned ? "Saying it" : "Say it", "tiny" + (n.pinned ? " green" : ""), () => { n.pinned = !n.pinned; draw(); keep(); });
@@ -3428,11 +3667,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         const rm = plainBtn("Forget", "tiny pink", () => { notes.splice(i, 1); draw(); keep(); });
         rm.setAttribute("aria-label", "Forget: " + n.text);
         li.append(el("span", "dot"), el("span", "t", n.text), pin, rm);
-        list.appendChild(li);
+        klist.appendChild(li);
       });
     }
     draw();
-    kd.appendChild(list);
     const add = el("input"); add.id = "queenAdd"; add.maxLength = NOTE_MAX; add.placeholder = "The Drive order goes in on Sunday";
     const give = () => {
       const t = add.value.trim();
@@ -3444,21 +3682,18 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     add.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); give(); } });
     const krow = el("div", "row");
     krow.append(field("Something she should keep", add), plainBtn("Give it to her", "green", give));
-    kd.appendChild(krow);
-    set.appendChild(kd);
+    kp.append(el("p", "note", "What matters to you, kept for you. The one she is saying is her line in the hall."), klist, krow);
 
     // ---- her character ----
-    const cd = el("details", "more"); cd.id = "queenCharacter"; cd.open = section === "character";
-    cd.appendChild(el("summary", null, "Her character"));
+    const cp = panels.character;
     const nm = el("input"); nm.id = "queenRename"; nm.value = (S.queens.house && S.queens.house.name) || ""; nm.placeholder = q.name; nm.maxLength = 30;
     const coat = el("select"); coat.id = "queenCoat";
     COATS.forEach((c, i) => { const o = el("option", null, c.name); o.value = String(i); if (i === q.coatIdx) o.selected = true; coat.appendChild(o); });
-    const r1 = el("div", "row"); r1.append(field("Her name", nm), field("Her coat", coat)); cd.appendChild(r1);
+    const r1 = el("div", "row"); r1.append(field("Her name", nm), field("Her coat", coat));
     const gr = el("input"); gr.id = "queenGreeting"; gr.value = q.greeting; gr.maxLength = 200;
-    cd.appendChild(field("Her greeting", gr));
-    let manner = null;
-    if (VIA_GATEWAY) { manner = el("textarea"); manner.id = "queenManner"; manner.rows = 3; manner.maxLength = 2000; manner.value = q.manner; cd.appendChild(field("How she speaks", manner)); }
-    else cd.appendChild(el("p", "note", "How she speaks, and her routines, are set in the café on your gateway: her runner reads them there."));
+    let manner = null, mannerBox;
+    if (VIA_GATEWAY) { manner = el("textarea"); manner.id = "queenManner"; manner.rows = 3; manner.maxLength = 2000; manner.value = q.manner; mannerBox = field("How she speaks", manner); }
+    else mannerBox = el("p", "note", "How she speaks, and her routines, are set in the café on your gateway: her runner reads them there.");
     let vsel = null;
     if (window.speechSynthesis) {
       vsel = el("select"); vsel.id = "queenVoiceName";
@@ -3471,32 +3706,23 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const lang = el("select"); lang.id = "queenLang";
     for (const [v, l] of LISTEN) { const o = el("option", null, l); o.value = v; if (v === q.voice.lang) o.selected = true; lang.appendChild(o); }
     const currentVoice = () => ({ on: voiceOn, name: vsel ? vsel.value : q.voice.name, rate: +rate.value || 1, pitch: +pitch.value || 1, lang: lang.value });
+    const voiceBox = el("div", "row"); voiceBox.id = "queenVoiceBox"; voiceBox.appendChild(vb);
     const r2 = el("div", "row");
     if (vsel) r2.appendChild(field("Her voice", vsel));
     r2.append(field("How fast", rate), field("How high", pitch));
     const r3 = el("div", "row"); r3.appendChild(field("She listens for", lang));
     const hear = plainBtn("Hear her", "", () => speak(gr.value.trim() || q.greeting, Object.assign(currentVoice(), { on: true }))); hear.id = "queenHear"; hear.hidden = !window.speechSynthesis;
     r3.appendChild(hear);
-    voiceBox.after(r2, r3);
-    cd.appendChild(el("p", "note", "Saved in this page: anyone you share it with can read it, so keep sensitive details out."));
     const sv = el("button", "btn green", "Save"); sv.type = "button"; sv.id = "queenSave";
     sv.addEventListener("click", async () => { if (await persist("Saved. " + (nm.value.trim() || q.name) + " has it.")) dlg.close(); });
-    const sa = el("div", "actions"); sa.append(el("span", "spacer"), sv); cd.appendChild(sa);
-    set.appendChild(cd);
+    const sa = el("div", "actions"); sa.append(el("span", "spacer"), sv);
+    cp.append(r1, field("Her greeting", gr), mannerBox, voiceBox, r2, r3, el("p", "note", "Saved in this page: anyone you share it with can read it, so keep sensitive details out."), sa);
 
     // ---- her routines ----
     let routines = null;
-    if (VIA_GATEWAY) {
-      const rd = el("details", "more"); rd.id = "queenRoutines"; rd.open = section === "routines";
-      rd.appendChild(el("summary", null, "Routines"));
-      routines = routinesPanel();
-      rd.appendChild(routines);
-      set.appendChild(rd);
-    }
+    if (VIA_GATEWAY) { routines = routinesPanel(); panels.routines.appendChild(routines); }
 
     // ---- you: the owner of the house, as she sits in the scene ----
-    const yd = el("details", "more"); yd.id = "queenYou";
-    yd.appendChild(el("summary", null, "You"));
     const look = ownerOf();
     const prev = el("div", "pic"), opts = el("div");
     const sel = (id, label, list, value, num) => {
@@ -3519,11 +3745,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     });
     osv.id = "ownerSave";
     const oa = el("div", "actions"); oa.append(el("span", "spacer"), osv);
-    yd.append(el("p", "note", skinOf("owner") ? "Your own picture is in the hall (The look, in the House menu). These choices draw you again once you put it back."
+    panels.you.append(el("p", "note", skinOf("owner") ? "Your own picture is in the hall (The look, in the House menu). These choices draw you again once you put it back."
       : "How you sit in the hall when you talk to her, seen from behind."), pv, oa);
-    set.appendChild(yd);
 
-    box.appendChild(set);
+    box.append(top, sect, body, el("div", "rule"), foot);
     dlg.appendChild(box);
 
     // what she is, as one document; saving it moves what the room queens kept into it
@@ -3551,13 +3776,13 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     drawThreadQ();
     loadQueenThread();
     if (!VIA_GATEWAY && S.host) QUEEN_POLL = setInterval(loadQueenThread, 5000);   // no live line in claude.ai: look every few seconds while her card is open
+    const start = { homework: "quests", litterbox: "quests", decision: "quests", keeps: "keeps", character: "character", routines: "routines", you: "you" }[section] || "talk";
+    selectTab(start);
     show(dlg);
-    const part = { keeps: "queenKeeps", character: "queenCharacter", routines: "queenRoutines", you: "queenYou" }[section];
-    if (part) openSettings(part); else say.focus();
-    // opened at her homework (the House menu) or the litter box (on the map): that deck, else the first card
-    const desk = section === "homework" || section === "litterbox" || section === "decision" ? hw.querySelector(section === "homework" ? ".quiz" : '[data-deck="' + section + '"]') || hw.querySelector(".quiz") : null;
-    if (desk) { desk.scrollIntoView({ block: "nearest" }); (desk.matches(".card") ? desk : desk.querySelector(".opts button, input") || desk).focus(); }   // never onto an answer that a held key would hand in
-    else if (section === "talk" || !section) say.focus();
+    // focus goes where she came for; never onto an answer that a held key would hand in
+    if (current === "talk") say.focus();
+    else if (current === "quests") { const b = qlist.querySelector('[aria-current="true"]') || qlist.querySelector(".sk-q"); if (b) { b.scrollIntoView({ block: "nearest" }); b.focus(); } }
+    else { const t = panels[current].querySelector("input, select, textarea, button"); if (t) t.focus({ preventScroll: true }); }
     if (q.unread) save((db) => db.doc("queens/house").set(Object.assign({}, S.queens.house || {}, { readAt: opened })));   // read: one write, on her action
     if (voiceOn) speak(q.greeting, currentVoice());
   }
