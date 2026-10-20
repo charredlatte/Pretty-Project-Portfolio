@@ -66,22 +66,24 @@ def say(session, kind, prefix, where=None):
         pass           # can't remember it was said; say it anyway rather than lose it
 
 
-UNSET = object()   # the "hold" key absent, which is not the same as her writing null
+def holds(mapping, key="hold"):
+    """(paths, unreadable): the hold paths in mapping[key], and whether it said something this can't read.
 
+    It does its own lookup on purpose. The hold list is what makes a change under harness/ wait for her, so
+    losing one quietly is the one failure this must not have - and the way it was lost before was a caller
+    reading the setting itself: .get("hold") cannot tell an absent key from one she wrote as null, so a null
+    read as silence and the pull request merged. With the lookup in here no caller can write that.
 
-def holds(value):
-    """(paths, unreadable): the hold paths in a "hold" setting, and whether it said something this can't read.
-
-    The hold list is the merging rule's sharpest promise - a change under harness/ always waits for her - so
-    losing one quietly is the one failure it must not have. Read it with .get("hold", UNSET): only the key
-    being absent means she has said nothing. Everything she did write that this cannot match against git's
-    own paths comes back unreadable, for the caller to hold on rather than drop: a shape that isn't a list,
-    an entry that isn't a string, a glob or brace (nothing here expands one), a backslash, an absolute or
-    dot-relative path, and anything with a .. segment. A path is returned trimmed but otherwise as she
-    spelt it, so the brief quotes her and the caller normalises where it compares.
+    Only the key being absent is silence. Everything she did write that cannot be matched against git's own
+    --name-only output comes back unreadable, for the caller to hold on rather than drop: a shape that isn't
+    a list, an entry that isn't a string, a glob or brace (nothing here expands one), a backslash, an
+    absolute or dot-relative path, a "." or ".." segment anywhere, and a ~ or $ the shell would have grown.
+    A path is returned trimmed but otherwise as she spelt it, so the brief quotes her and the caller
+    normalises where it compares.
     """
-    if value is UNSET:
+    if not isinstance(mapping, dict) or key not in mapping:
         return [], False
+    value = mapping[key]
     if not isinstance(value, list):
         return [], True        # a string, a number, an object - and an explicit null
     paths = [q for q in (p.strip() for p in value if isinstance(p, str)) if q and path_like(q)]
@@ -90,9 +92,10 @@ def holds(value):
 
 def path_like(p):
     """Is this a repo-relative path git's own --name-only output could equal or sit under?"""
-    if set("*?[]{}\\") & set(p) or p.startswith("/") or p.startswith("./") or p.startswith("../"):
+    if set("*?[]{}\\~$") & set(p) or p.startswith("/"):
         return False
-    return ".." not in p.strip("/").split("/") and p.strip("/") != ""
+    parts = p.strip("/").split("/")
+    return bool(parts) and all(parts) and not ({".", ".."} & set(parts))
 
 
 def enforced(rule_id, cwd=None):

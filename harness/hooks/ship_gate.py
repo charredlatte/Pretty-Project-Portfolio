@@ -17,7 +17,7 @@ import subprocess
 from datetime import date
 from pathlib import Path
 
-from common import UNSET, block, checkouts, default_branch, enforced, git, holds, local, merges, models, rules, \
+from common import block, checkouts, default_branch, enforced, git, holds, local, merges, models, rules, \
     skill_calls
 
 REMOTE = re.compile(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?/?$")
@@ -148,13 +148,14 @@ def check_merge(data, cwd, name, number, message, head, method=None):
 
     base = git("merge-base", f"refs/remotes/origin/{default_branch(repo)}", "HEAD", cwd=repo)
     changed = (git("diff", "--name-only", "--no-renames", base, "HEAD", cwd=repo) or "").splitlines() if base else None
-    house, house_odd = holds(cfg.get("hold", UNSET))
-    mine, mine_odd = holds(local(repo).get("hold", UNSET))
+    mine_cfg = local(repo)                               # read once: the message must quote what was parsed
+    house, house_odd = holds(cfg)
+    mine, mine_odd = holds(mine_cfg)
     held_paths = [p.rstrip("/") for p in house + mine]   # compared against git's paths, which carry no slash
     # a hold it can't read holds the pull request: dropping it is how a change under harness/ merges itself.
     # Name the file each broken list is in, and both when both are, or she edits the wrong one.
-    for odd, where, raw in ((mine_odd, "its .claude/catio-rules.json", local(repo).get("hold", UNSET)),
-                            (house_odd, "the house rules' own merging.hold", cfg.get("hold", UNSET))):
+    for odd, where, raw in ((mine_odd, "its .claude/catio-rules.json", mine_cfg.get("hold")),
+                            (house_odd, "the house rules' own merging.hold", cfg.get("hold"))):
         if odd:
             held.append("the hold list in %s is in a shape I can't read (%r), so I can't tell what it protects"
                         % (where, raw))

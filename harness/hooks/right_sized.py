@@ -28,7 +28,7 @@ import os
 import re
 from pathlib import Path
 
-from common import UNSET, enforced, holds, local, rules, said, say
+from common import enforced, holds, local, rules, said, say
 
 SPAWN = ("Task", "Agent")   # the sub agent tool: Agent in this build, Task in older ones
 WORKFLOW = "Workflow"       # a script of agent() calls, each its own sub agent
@@ -117,7 +117,7 @@ def held(cwd):
     """The paths whose change always waits for her: the merging rule's, plus this repo's own, through the one
     reader (common.holds). Here they only word a refusal, so a shape it can't read needs no holding: the merge
     gate is where that matters, and it holds the pull request for her."""
-    return holds(rules().get("merging", {}).get("hold", UNSET))[0] + holds(local(cwd).get("hold", UNSET))[0]
+    return holds(rules().get("merging", {}))[0] + holds(local(cwd))[0]
 
 
 def never_down(prompt, cwd):

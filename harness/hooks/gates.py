@@ -160,16 +160,6 @@ MISSING = (" This plugin doesn't ship the {0} skill: if it isn't installed, say 
 
 
 def main():
-    # Inside main(), so the guard below covers them: at module level an ImportError exits 1 before any handler
-    # and waves the call through, which is how main went quiet on 5 October. Named here, because "the house
-    # rules couldn't be read" would send her to rules.json, which parses fine.
-    for module in ("right_sized", "ship_gate"):
-        try:
-            globals()[module] = __import__(module)
-        except Exception as e:
-            block("House rule (KittyChat): the gate %s.py couldn't be loaded (%s: %s), so none of the gates can "
-                  "be kept. It is a hook of this plugin, not her rules file. Tell Charlotte; don't work round it."
-                  % (module, type(e).__name__, e))
     data = hook_input()
     tool = data.get("tool_name", "")
     args = data.get("tool_input") or {}
@@ -178,6 +168,16 @@ def main():
     if data.get("hook_event_name") == "PostToolUse":
         return after(tool, args, cwd)
 
+    # A gate that cannot LOAD refuses; a gate that cannot RUN speaks and steps aside. They are different
+    # failures: a module that will not import is a broken plugin (what took main down on 5 October, and at
+    # module level it exits 1 before any handler), while an exception inside check() leaves the gates below
+    # working, and main's design chooses not to take them down with it.
+    try:
+        import right_sized
+    except Exception as e:
+        block("House rule (KittyChat): the gate right_sized.py couldn't be loaded (%s: %s), so delegate first "
+              "is not being kept. It is a hook of this plugin, not her rules file. Tell Charlotte; don't work "
+              "round it." % (type(e).__name__, e))
     try:
         refusal, nudge = right_sized.check(data, tool, args, cwd)
     except Exception as e:   # the gates below matter more, so this one speaks and steps aside rather than crashing
@@ -220,12 +220,18 @@ def main():
               "then try again.")
 
     try:
+        import ship_gate
+    except Exception as e:
+        block("House rule (KittyChat): the gate ship_gate.py couldn't be loaded (%s: %s), so shipping and "
+              "merging are not being kept. It is a hook of this plugin, not her rules file. Tell Charlotte; "
+              "don't work round it." % (type(e).__name__, e))
+    try:
         ship_gate.check(data, tool, args, cwd, command)
     except SystemExit:
         raise
     except Exception as e:  # a hook that crashes lets the call through, so this one fails closed
-        block(f"House rule (KittyChat): the shipping gate couldn't check this ({type(e).__name__}: {e}). "
-              "Tell Charlotte, and leave the push or merge for her.")
+        block(f"House rule (KittyChat): the shipping gate couldn't be run ({type(e).__name__}: {e}). It is a "
+              "hook of this plugin, not her rules file. Tell Charlotte, and leave the push or merge for her.")
 
 
 if __name__ == "__main__":
