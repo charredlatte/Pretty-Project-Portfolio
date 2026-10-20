@@ -70,12 +70,13 @@ Pt size_of(TTF_Font* font, std::string_view text) {
     return {float(w), float(h)};
 }
 
-// white-space: normal -- a newline, a tab or a run of spaces is one space, as the page shows an ask
+// white-space: normal -- a newline, a tab or a run of spaces is one space, as the page shows an ask. One at the
+// start stays: " · Waiting" follows a cat's name inline
 std::string collapsed(std::string_view text) {
     std::string out;
     bool space = false;
     for (char c : text) {
-        if (c == ' ' || c == '\n' || c == '\r' || c == '\t') { space = !out.empty(); continue; }
+        if (c == ' ' || c == '\n' || c == '\r' || c == '\t') { space = true; continue; }
         if (space) out += ' ', space = false;
         out += c;
     }

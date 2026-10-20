@@ -123,6 +123,7 @@ public:
 
     // ---- the house ------------------------------------------------------------------------------
     std::string name() const;                              ///< house/main.name, else "KittyChat Café"
+    bool has_maps() const;                                 ///< any graphs/<repo> at all, hidden ones too
     const Room& room(std::string_view key) const;
     bool open(std::string_view key) const;
     std::string catch_all_room() const;

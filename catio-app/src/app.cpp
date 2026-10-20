@@ -200,7 +200,8 @@ struct App::Impl {
         else if (art && art->have() < art->total()) {
             const std::string n = std::to_string(art->have()) + " of " + std::to_string(art->total());
             if (!fetching.empty()) told.push_back("Fetching the caf\u00e9's art\u2026 (" + n + ")");
-            else if (origin.empty() || read_once) wrong.push_back("The caf\u00e9's art isn't all here (" + n + "): it comes from your gateway once you sign in.");
+            else if (origin.empty()) wrong.push_back("The caf\u00e9's art isn't all here (" + n + "): it comes from your gateway once you sign in.");
+            else if (read_once) wrong.push_back("The caf\u00e9's art isn't all here yet (" + n + "): the rest is asked for again with the next read.");
         }
         if (origin.empty() && data == std::filesystem::path(CATIO_SOURCE_DIR) / "test" / "fixtures")
             wrong.push_back("Example cats, not yours: give the app your gateway (--gateway) to see your caf\u00e9.");
@@ -225,10 +226,12 @@ struct App::Impl {
         ask(Ask::Agents, [](net::Gateway& g) { return g.tool("list_agents", "{}"); });
         ask(Ask::Quizzes, [](net::Gateway& g) { return g.tool("quizzes", "{}"); });
     }
-    // what the cache lacks, the house and the meadow first
+    // what the cache lacks, the house and the meadow first: a few at a time, each one that lands asking for the next,
+    // so a read or her press never waits behind the whole download
     void fetch_art() {
         if (!net || !art) return;
         for (const art::File* file : art->missing()) {
+            if (fetching.size() >= 4) break;
             if (fetching.count(file->id)) continue;
             fetching.insert(file->id);
             const std::string path(file->path);
@@ -260,10 +263,10 @@ struct App::Impl {
         live_at = 0;
         net_trouble.clear(), art_trouble.clear();
         if (own_cache && art) {   // and what was drawn from it: the pack's font, the tinted sheets, the paw
-            art->forget_all();
-            ui.forget_art();
+            ui.forget_art();      // first: an open font holds its file, which Windows then won't delete
             draw::forget_tints();
             forget_cursors();
+            art->forget_all();
         }
         phase = Phase::SignIn;
         form.busy = false;
@@ -329,12 +332,14 @@ struct App::Impl {
                 fetching.erase(a.art);
                 if (!r.ok()) {
                     // the packs' licences are personal: a guest's café is drawn plainly, and says why
+                    // the packs' art is served to the café's first owner alone, once move-in.py has uploaded it
                     art_trouble = r.err.code == "not_found"
-                        ? "Your gateway has no art for this caf\u00e9 (" + a.label + "): the packs' art is its first owner's alone."
+                        ? "Your gateway has no " + a.label + ": it serves the packs' art to the caf\u00e9's first owner alone, once move-in.py has uploaded it. Check now tries again."
                         : "The caf\u00e9's art couldn't all come (" + r.err.code + "). Check now tries again.";
                     return;
                 }
                 if (!art->store(a.art, r.body)) { art_trouble = "A piece of the art came back broken (" + std::string(art->trouble()) + ")."; return; }
+                if (art_trouble.empty()) fetch_art();
                 if (a.art == art::Id::SproutFont) ui.fonts(assets, *art, stage.css);
                 if (a.art == art::Id::UiCursor || a.art == art::Id::UiCursorPoint) make_cursors();
                 return;
@@ -375,7 +380,11 @@ struct App::Impl {
     }
     void save_prefs() {
         if (prefs.empty() || !shot.empty()) return;
-        nlohmann::json j{{"minimap", ui.map_open() ? "open" : "folded"}, {"still", still}};
+        // what this run doesn't set stays: a run with --gateway <url> keeps the address the sign-in screen saved
+        nlohmann::json j = nlohmann::json::parse(slurp(prefs), nullptr, false);
+        if (!j.is_object()) j = nlohmann::json::object();
+        j["minimap"] = ui.map_open() ? "open" : "folded";
+        j["still"] = still;
         if (form.ask_origin && !origin.empty()) j["gateway"] = origin;
         std::ofstream(prefs) << j.dump();
     }
@@ -433,7 +442,6 @@ struct App::Impl {
             ui.draw_sign_in(c, frame(), form);
             return;
         }
-        rescene();
         const double t = still ? 0 : now;
         auto blits = view::world(scene, cam.floor, t);
 
@@ -510,7 +518,7 @@ struct App::Impl {
             draw::nine(c, art::Id::UiCorners, {}, {8, 8, 9, 9}, {8 * U, 8 * U, 9 * U, 9 * U}, box, false);
         };
         if (ui.tipped().what == Thing::Room) lit_room(ui.tipped().key);
-        if (ui.menu_kind() == Thing::Room && ui.menu_key() != ui.tipped().key) lit_room(ui.menu_key());
+        if (ui.menu_kind() == Thing::Room && !(ui.tipped().what == Thing::Room && ui.tipped().key == ui.menu_key())) lit_room(ui.menu_key());
         if (ui.tipped().what == Thing::Stairs) {
             const manor::Box s = manor::stairs();
             const draw::Rect box{s.x * float(cam.u) + cam.tx, s.y * float(cam.u) + cam.ty, s.w * float(cam.u), s.h * float(cam.u)};
@@ -555,16 +563,22 @@ struct App::Impl {
 
 App::App() : impl_(new Impl) {}
 App::~App() {
+    // everything drawn with the renderer -- the world, the art, the tinted sheets, the fonts' words in the Ui -- goes
+    // while the renderer still stands; then the renderer, the window and SDL itself
     Impl& I = *impl_;
     if (I.world) SDL_DestroyTexture(I.world);
-    I.art.reset();   // its textures belong to the renderer
-    if (I.r) SDL_DestroyRenderer(I.r);
-    if (I.surface) SDL_DestroySurface(I.surface);
-    if (I.paw) SDL_DestroyCursor(I.paw);
-    if (I.point) SDL_DestroyCursor(I.point);
-    if (I.window) SDL_DestroyWindow(I.window);
+    I.art.reset();
+    draw::forget_tints();
+    SDL_Renderer* r = I.r;
+    SDL_Surface* surface = I.surface;
+    SDL_Window* window = I.window;
+    SDL_Cursor* cursors[] = {I.paw, I.point};
+    delete impl_;   // the Ui and its fonts, and the net, which finishes a sign-out's /logout
+    if (r) SDL_DestroyRenderer(r);
+    if (surface) SDL_DestroySurface(surface);
+    for (SDL_Cursor* c : cursors) if (c) SDL_DestroyCursor(c);
+    if (window) SDL_DestroyWindow(window);
     SDL_Quit();
-    delete impl_;
 }
 
 bool App::start(int argc, char** argv) {
@@ -605,6 +619,10 @@ bool App::start(int argc, char** argv) {
     if (I.home.empty()) {
         char* pref = SDL_GetPrefPath("KittyChat", "Cafe");
         if (pref) I.home = pref, SDL_free(pref);
+    }
+    if (gateway_given && I.home.empty()) {   // never a cookie written wherever it was started from
+        std::fprintf(stderr, "catio_app: no private folder for the cookie (%s): give one with --home.\n", SDL_GetError());
+        return false;
     }
     if (I.art_dir.empty() && !I.home.empty()) I.art_dir = I.home / "cache", I.own_cache = true;
     if (I.shot.empty() && !I.home.empty()) I.prefs = I.home / "prefs.json";
@@ -657,6 +675,7 @@ bool App::start(int argc, char** argv) {
 
     // the first view: the whole manor; on a phone, the room that needs her most
     I.cam.floor = manor::Level::Ground;
+    I.rescene();
     const std::string urgent = I.stage.narrow() ? I.urgent_room() : "";
     if (!urgent.empty()) I.go(urgent);
     else I.go("");
@@ -877,9 +896,10 @@ void App::Impl::handle(App& app, const In& in) {
                     // a finger dragging a menu taller than the screen, or a card, scrolls it
                     if (!scrolling) ui.hold(f, in.x, in.y, false);
                     scrolling = true;
-                } else if (on_map) {   // dragging on the minimap pans the view with it
+                } else if (on_map) {   // dragging on the minimap pans the view with it, once it is a drag and not a tap
                     std::string arg;
-                    if (ui.map_drag(f, in.x, in.y, &arg)) app.act(Action::MapAt, arg), dragging = true;
+                    if ((dragging || std::hypot(in.x - press_at.x, in.y - press_at.y) > 4 * k()) && ui.map_drag(f, in.x, in.y, &arg))
+                        app.act(Action::MapAt, arg), dragging = true;
                 } else if (!on_ui && (dragging || std::hypot(in.x - press_at.x, in.y - press_at.y) > 4 * k())) {
                     if (!dragging) ui.close_menu(), ui.tip(f, {}, false);
                     dragging = true;

@@ -282,6 +282,12 @@ class NetTest(unittest.TestCase):
         self.assertEqual(got["size"], len(self.state.art["art/licensed/ui/panel.png"]))
         self.assertEqual((gone["status"], gone["code"]), (404, "not_found"))
 
+    def test_a_wrong_password_keeps_the_cookie_already_kept(self):
+        self.run_check(f"login:{USER}:{PASSWORD}")
+        (r,) = self.run_check(f"login:{USER}:not it")
+        self.assertEqual(r["code"], "wrong")
+        self.assertTrue(self.jar.exists(), "a wrong password says nothing of the cookie kept, perhaps another gateway's")
+
     def test_a_cookie_run_out_signs_out_and_forgets_it(self):
         self.run_check(f"login:{USER}:{PASSWORD}")
         self.state.token = None   # revoked, or thirty days on

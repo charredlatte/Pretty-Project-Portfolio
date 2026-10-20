@@ -299,9 +299,11 @@ Menu menu_for(const Frame& f, Thing kind, std::string_view key, bool adding) {
         if (const int hw = int(H.homework().size())) items.push_back(mi("Homework", Action::OpenHomework, "", std::to_string(hw) + " waiting"));
         items.push_back(mi("The brain", Action::OpenBrain));
         items.push_back(mi("House rules", Action::OpenRules));
+        if (H.has_maps()) items.push_back(mi("Project maps", Action::OpenMaps));   // any map at all, hidden ones too
         items.push_back(mi("Edit rooms", Action::OpenEditRooms, f.cam->focus));
         items.push_back(mi("The look", Action::OpenLook));
         items.push_back(mi("Set up again…", Action::OpenSetup));
+        if (f.gateway) items.push_back(mi("Keys", Action::OpenKeys));   // the page's KEYS: the gateway's café alone
         if (attic) items.push_back(mi("Bring them down", Action::BringDown));
         items.push_back(mi("Check now", Action::CheckNow));
         if (f.gateway) items.push_back(mi("Sign out", Action::SignOut));   // the app's own: the page signs in through claude.ai
@@ -380,6 +382,16 @@ Menu menu_for(const Frame& f, Thing kind, std::string_view key, bool adding) {
         } else
             m.blocks.push_back(sub(!c->doing.empty() ? c->doing : c->title));
         if (c->waiting) m.blocks.push_back(sub(plural(c->waiting, "file", "files") + " from the brain"));
+        if (c->adopted) {
+            Block moods;
+            moods.kind = Block::Kind::Moods;
+            for (auto [v, label, mood] : {std::tuple{"needs", "Needs me", Mood::Meow}, {"busy", "In progress", Mood::Idle}, {"done", "Done", Mood::Sleep}}) {
+                Item it = mi(label, Action::SetMood, c->id + " " + v);
+                it.toggle = c->mood == mood ? 1 : 0;
+                moods.items.push_back(it);
+            }
+            m.blocks.push_back(moods);
+        }
         m.blocks.push_back(rule());
         std::vector<Item> items;
         if (web(c->link)) items.push_back(mi(c->adopted ? "Open chat" : "Open", Action::OpenLink, c->link));
@@ -514,7 +526,7 @@ struct State {
     double mm_pressed_at = -1;
     std::string mm_pressed_room;
     std::vector<Region> regions;
-    Rect brand, status, menu_box, card_box, tip_box;
+    Rect brand, brand_hit, status, menu_box, card_box, tip_box;
 
     const draw::Body& body(int weight, float size) {
         const int px = int(std::lround(size * css * 100));
@@ -773,14 +785,16 @@ struct Painter {
     // a Sprout Lands button (.btn): cream, white on hover, pressed in when held, green for the main one
     float btn_w(std::string_view label) { return px_w(label) + 4 * U + 8 * U; }
     float btn_h() { return std::max(22 * k + 10 * U, f.coarse ? kTouch * k : 0.f); }   // no target under 44px to a finger
-    void btn(Rect r, std::string_view label, const std::string& id, Action a, std::string arg, bool green = false) {
-        region(r, id, a, arg, true, std::string(label));
-        const bool down = held(id);
+    void btn(Rect r, std::string_view label, const std::string& id, Action a, std::string arg, bool green = false,
+             bool enabled = true, bool centred = false) {
+        region(r, id, a, arg, enabled, std::string(label));
+        const bool down = enabled && held(id);
         const Rect at = down ? Rect{r.x, r.y + 2 * U, r.w, r.h} : r;
         fill(Rect{at.x + 4 * U, at.y + 4 * U, at.w - 8 * U, at.h - 10 * U}, down ? kPressed : green ? kGo : kCream);
         if (down) panel(draw::kPressed, at);
-        else nine(green ? art::Id::UiButtonGreen : lit(id) ? art::Id::UiButtonHover : art::Id::UiButton, {4, 4, 4, 6}, {4 * U, 4 * U, 4 * U, 6 * U}, at, true);
-        px(label, at.x + 4 * U + 2 * U, at.y + (at.h - 2 * U - 22 * k) / 2, 22, kInk);
+        else nine(green ? art::Id::UiButtonGreen : enabled && lit(id) ? art::Id::UiButtonHover : art::Id::UiButton, {4, 4, 4, 6}, {4 * U, 4 * U, 4 * U, 6 * U}, at, true);
+        const float lx = centred ? at.x + (at.w - px_w(label)) / 2 : at.x + 4 * U + 2 * U;
+        px(label, lx, at.y + (at.h - 2 * U - 22 * k) / 2, 22, enabled ? kInk : with(kInk, 115));
     }
 };
 
@@ -968,7 +982,8 @@ void draw_hud(Painter& P, const Frame& f) {
     const float h = 4 * U + 22 * k + 6 * U;
     const Rect r{x, y, w, h};
     P.I.brand = r;
-    P.region(r, "brand", Action::OpenHouse);
+    P.I.brand_hit = f.coarse ? Rect{r.x, r.y, r.w, std::max(r.h, kTouch * k)} : r;   // no target under 44px to a finger
+    P.region(P.I.brand_hit, "brand", Action::OpenHouse);
     const bool open = P.I.menu == Thing::House;
     const Rect at = open ? Rect{r.x, r.y + 2 * U, r.w, r.h} : r;
     P.fill(Rect{at.x + 4 * U, at.y + 4 * U, at.w - 8 * U, at.h - 10 * U}, open ? kPressed : kCream);
@@ -1202,6 +1217,32 @@ float menu_pass(Painter& P, const Menu& m, float x0, float y0, float w) {
                 P.rule(cx, y, cw);
                 y += 4 * U;
                 break;
+            case Block::Kind::Moods: {
+                // three to a row, the label centred and cut short if it must be; its own mood green. What this build
+                // cannot do yet is faded, and says so under the row as a list item says it on its right
+                const float bw = (cw - 2 * 4 * k) / 3, bh = P.btn_h();
+                bool all_off = true;
+                for (size_t i = 0; i < b.items.size(); ++i) {
+                    const Item& it = b.items[i];
+                    all_off &= !it.enabled;
+                    const Rect r{cx + i * (bw + 4 * k), y, bw, bh};
+                    std::string label = it.label;
+                    const float room = bw - 4 * U - 4 * U;
+                    if (P.px_w(label) > room) {
+                        while (!label.empty() && P.px_w(label + "…") > room) label.pop_back();
+                        label += "…";
+                    }
+                    P.btn(r, label, "menu:mood:" + std::to_string(i), it.action, it.arg, it.toggle == 1, it.enabled, true);
+                }
+                y += bh;
+                if (all_off && !b.items.empty()) {
+                    const draw::Body& a = P.body(800, 12);
+                    const std::string why = "not yet";
+                    P.text(a, why, cx + cw - a.measure(why).x, y + 2 * k, 18, kSoft);
+                    y += 18 * k + 2 * k;
+                }
+                break;
+            }
             case Block::Kind::List: {
                 // .menu .list { margin: 0 -u }, and the pack's triangle beside the item under the pointer, or the
                 // default when none is
@@ -1252,7 +1293,7 @@ draw::Rect Ui::panel(const Frame& f) const {
 bool Ui::over(const Frame& f, float x, float y) const {
     const Impl& I = *impl_;
     if (I.card != Card::None) return true;
-    for (const Rect r : {panel(f), I.brand, I.status, I.menu_box})
+    for (const Rect r : {panel(f), I.brand_hit, I.status, I.menu_box})
         if (r.w > 0 && inside(r, x, y)) return true;
     return false;
 }
@@ -1509,7 +1550,7 @@ void draw_cat_card(Painter& P, const Frame& f, const Cat& c) {
 void Ui::draw_sign_in(const draw::Ctx& c, const Frame& f, const SignIn& form) {
     Impl& I = *impl_;
     I.regions.clear();
-    I.menu_box = I.card_box = I.brand = I.status = {};
+    I.menu_box = I.card_box = I.brand = I.brand_hit = I.status = {};
     Painter P(c, I, f);
     const float k = P.k;
     // :root { --bg: #f6efe2; --card: #fffaf0; --ink: #3b2f25; --soft: #75665a; --line: #e2d5bf; --go: #a85a34; --bad: #a33a2a }

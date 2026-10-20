@@ -350,6 +350,20 @@ void the_interface(const std::string& dir) {
     check(items(ui::menu_for(f, v::Thing::Room, "kitchen")).front() == "Whole house", "in the room already, its default is Whole house");
     f.cam = &cam;
 
+    // what the page lists and the app hasn't built is there all the same, drawn disabled: never hidden
+    h.doc("graphs/pretty-project-portfolio", R"({"nodes": 3})");
+    f.gateway = true;
+    const ui::Menu more = ui::menu_for(f, v::Thing::House, "house");
+    check(has(more, "Project maps") && has(more, "Keys"), "Project maps once a map exists, and Keys on her gateway, as the page lists them");
+    h.doc("graphs/pretty-project-portfolio", "");
+    f.gateway = false;
+    check(!has(ui::menu_for(f, v::Thing::House, "house"), "Project maps"), "and no Project maps with no map at all");
+    const ui::Menu chat = ui::menu_for(f, v::Thing::Cat, "adopted:caf\u00e9");
+    const auto moods = std::find_if(chat.blocks.begin(), chat.blocks.end(), [](const Block& b) { return b.kind == Block::Kind::Moods; });
+    check(moods != chat.blocks.end() && moods->items.size() == 3 && moods->items[0].label == "Needs me" && moods->items[0].toggle == 1 &&
+          moods->items[2].label == "Done" && moods->items[2].toggle == 0 && moods->items[0].action == Action::SetMood,
+          "an adopted chat's menu has its three moods, the one it is in pressed");
+
     // the House menu: how the cats reach her, the actions, the credits at its foot word for word
     const ui::Menu house = ui::menu_for(f, v::Thing::House, "house");
     check(!house.blocks.empty() && house.blocks[0].kind == Block::Kind::Sub && house.blocks[0].text.rfind("On this computer. ", 0) == 0,
@@ -421,6 +435,8 @@ void the_interface(const std::string& dir) {
     // drawn, with no window and no pack art: the fonts are the committed Nunito, and the House menu answers
     SDL_Surface* s = SDL_CreateSurface(1280, 800, SDL_PIXELFORMAT_RGBA32);
     SDL_Renderer* r = s ? SDL_CreateSoftwareRenderer(s) : nullptr;
+    // the renderer goes last, after the art, the Ui and the fonts that drew with it
+    struct Last { SDL_Renderer* r; SDL_Surface* s; ~Last() { SDL_DestroyRenderer(r); SDL_DestroySurface(s); } } last{r, s};
     catio::draw::Canvas canvas{r};
     catio::art::Art none(std::filesystem::temp_directory_path() / "catio-tests-no-art");
     none.scan();
@@ -458,8 +474,7 @@ void the_interface(const std::string& dir) {
     const auto lines = body.wrap("Approve the copy?\nIt's\tin   docs/", 1000, 3);
     check(lines.size() == 1 && lines[0] == "Approve the copy? It's in docs/", "a newline, a tab or a run of spaces is one space");
     check(body.cut("Approve\nthe copy?", 1000) == "Approve the copy?", "and the same where a line is cut short");
-    SDL_DestroyRenderer(r);
-    SDL_DestroySurface(s);
+    check(body.cut(" \u00b7 Waiting for you.", 1000) == " \u00b7 Waiting for you.", "a space after a cat's name stays: one, as the page keeps it");
 }
 
 int main(int argc, char** argv) {

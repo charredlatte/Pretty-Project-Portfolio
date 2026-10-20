@@ -66,7 +66,7 @@ enum class Action {
     LookIn, WholeHouse, ZoomIn, ZoomOut, ToFloor, FoldMap, MapAt, StillCats, Sound, AddACat, Back,
     // opening
     OpenHouse, OpenCat, OpenQueen, OpenPile, OpenCabinet, OpenBrain, OpenRules, OpenMaps, OpenLook,
-    OpenEditRooms, OpenSetup, OpenHomework, OpenLink, Adopt, BringDown, CheckNow, CloseCard, Manage,
+    OpenEditRooms, OpenSetup, OpenKeys, OpenHomework, OpenLink, Adopt, BringDown, CheckNow, CloseCard, Manage,
     // signing in: a field chosen, and Come in
     Field, ComeIn,
     // doing: each one is a write, on her press and never otherwise
@@ -102,6 +102,7 @@ struct Block {
         Keeps,   ///< ul.keeps: what the queen keeps, a star each
         Rule,    ///< the pack's divider
         List,    ///< the actions
+        Moods,   ///< an adopted chat's three moods (.moods): Needs me, In progress, Done; its own one pressed in
         Foot     ///< the credits, at the foot of the House menu
     };
     Kind kind = Kind::Sub;

@@ -224,7 +224,11 @@ struct Gateway::Impl {
         curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "KittyChatCafe/0.1");
+#if LIBCURL_VERSION_NUM >= 0x075500
         curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "https,http");
+#else   // before 7.85 (Ubuntu 22.04 has 7.81)
+        curl_easy_setopt(curl, CURLOPT_PROTOCOLS, long(CURLPROTO_HTTPS | CURLPROTO_HTTP));
+#endif
         curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
         curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
         curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, on_progress);
@@ -272,7 +276,9 @@ struct Gateway::Impl {
                 r.err.message = words_of(r.body);
             }
             if (r.err.message.empty()) r.err.message = "The gateway answered " + std::to_string(r.status) + ".";
-            if (r.err.code == "signed_out") forget();   // run out or revoked: it would only be refused again
+            // run out or revoked: it would only be refused again. Not /login's 401, a wrong password, which says
+            // nothing of the cookie kept (perhaps another gateway's)
+            if (r.err.code == "signed_out" && path != "/login") forget();
         }
         return r;
     }

@@ -348,6 +348,10 @@ bool House::never_set_up() const {
                         [](const auto& d) { return d.first.rfind("rooms/", 0) == 0; });
 }
 
+bool House::has_maps() const {
+    return std::any_of(impl_->docs.begin(), impl_->docs.end(), [](const auto& d) { return d.first.rfind("graphs/", 0) == 0; });
+}
+
 std::string House::name() const {
     const json* h = impl_->doc("house/main");
     std::string n = h ? str(*h, "name") : std::string{};
