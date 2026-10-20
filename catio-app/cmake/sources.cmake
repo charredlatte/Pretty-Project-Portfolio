@@ -23,6 +23,11 @@ set(CATIO_NET_DESKTOP_SOURCES
     src/net_curl.cpp
 )
 
+# iOS's, NSURLSession, once it is written (ios/CMakeLists.txt stops at configure until then):
+set(CATIO_NET_APPLE_SOURCES
+    src/net_apple.cpp
+)
+
 # Still to come:
 #
 #   the phones' net bodies:

@@ -299,13 +299,22 @@ struct House::Impl {
 House::House() : impl_(new Impl) {}
 House::~House() { delete impl_; }
 
-void House::docs(std::string_view body) {
+bool House::docs(std::string_view body) {
     json j = json::parse(body, nullptr, false);
+    const auto d = j.is_object() ? j.find("docs") : j.end();
+    if (!j.is_object() || d == j.end() || !d->is_object()) return false;
     impl_->docs.clear();
-    if (j.is_object())
-        if (auto d = j.find("docs"); d != j.end() && d->is_object())
-            for (auto& [path, data] : d->items()) impl_->docs[path] = data;
+    for (auto& [path, data] : d->items()) impl_->docs[path] = data;
     impl_->ready = true;
+    impl_->rebuild(*this);
+    return true;
+}
+
+void House::clear() {
+    impl_->docs.clear();
+    impl_->agents = json::array();
+    impl_->quizzes = json::array();
+    impl_->ready = false;
     impl_->rebuild(*this);
 }
 
@@ -315,16 +324,20 @@ void House::doc(std::string_view path, std::string_view body) {
     impl_->rebuild(*this);
 }
 
-void House::agents(std::string_view body) {
+bool House::agents(std::string_view body) {
     json j = json::parse(body, nullptr, false);
-    impl_->agents = j.is_object() && j.contains("agents") && j["agents"].is_array() ? j["agents"] : json::array();
+    if (!j.is_object() || !j.contains("agents") || !j["agents"].is_array()) return false;
+    impl_->agents = j["agents"];
     impl_->rebuild(*this);
+    return true;
 }
 
-void House::quizzes(std::string_view body) {
+bool House::quizzes(std::string_view body) {
     json j = json::parse(body, nullptr, false);
-    impl_->quizzes = j.is_object() && j.contains("quizzes") && j["quizzes"].is_array() ? j["quizzes"] : json::array();
+    if (!j.is_object() || !j.contains("quizzes") || !j["quizzes"].is_array()) return false;
+    impl_->quizzes = j["quizzes"];
     impl_->rebuild(*this);
+    return true;
 }
 
 bool House::ready() const { return impl_->ready; }

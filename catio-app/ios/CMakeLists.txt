@@ -24,6 +24,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 include("${CATIO_APP_DIR}/cmake/sources.cmake")
 list(TRANSFORM CATIO_CORE_SOURCES PREPEND "${CATIO_APP_DIR}/")
 list(TRANSFORM CATIO_APP_SOURCES PREPEND "${CATIO_APP_DIR}/")
+list(TRANSFORM CATIO_NET_APPLE_SOURCES PREPEND "${CATIO_APP_DIR}/")
 
 # The core, the interface and the loop exist; net_apple.cpp, the NSURLSession body net.h needs, does not
 # yet (cmake/sources.cmake lists what is to come), and without it the app cannot link. Say so here rather
@@ -31,7 +32,7 @@ list(TRANSFORM CATIO_APP_SOURCES PREPEND "${CATIO_APP_DIR}/")
 if(NOT EXISTS "${CATIO_APP_DIR}/src/net_apple.cpp")
   message(FATAL_ERROR "catio-app on iOS needs src/net_apple.cpp, the network body for iOS, which is still to come.")
 endif()
-add_executable(catio_app MACOSX_BUNDLE ${CATIO_CORE_SOURCES} ${CATIO_APP_SOURCES})
+add_executable(catio_app MACOSX_BUNDLE ${CATIO_CORE_SOURCES} ${CATIO_APP_SOURCES} ${CATIO_NET_APPLE_SOURCES})
 target_compile_definitions(catio_app PRIVATE CATIO_SOURCE_DIR="${CATIO_APP_DIR}")
 target_sources(catio_app PRIVATE "${CATIO_APP_DIR}/generated/manor.json")
 set_source_files_properties("${CATIO_APP_DIR}/generated/manor.json" PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
@@ -52,5 +53,5 @@ set_target_properties(catio_app PROPERTIES
     MACOSX_BUNDLE_BUNDLE_VERSION "1"
     XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")
 
-# No libcurl on iOS: src/net_apple.cpp is the NSURLSession body (cmake/sources.cmake picks it).
+# No libcurl on iOS: src/net_apple.cpp is the NSURLSession body (CATIO_NET_APPLE_SOURCES, above).
 target_link_libraries(catio_app PRIVATE "-framework Foundation")

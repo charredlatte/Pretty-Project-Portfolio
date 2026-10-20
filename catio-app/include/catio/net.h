@@ -45,12 +45,19 @@ bool signed_out(const Reply&);
 ///
 /// Not thread-safe: one Gateway lives on Net's worker thread.
 class Gateway {
+    friend class Net;
+
 public:
     /// `origin` is "https://catio-gateway.<her subdomain>.workers.dev". The cookie jar holds
     /// __Host-catio (Secure, HttpOnly, SameSite=Strict, 30 days) and is the app's whole credential: a
     /// file of its own, readable by its owner alone, holding the cookie's value and nothing else. It is
     /// kept by hand rather than by libcurl's cookie engine, which (rightly) refuses a __Host- cookie
-    /// over plain HTTP -- and the stand-in gateway the tests run is plain HTTP on the loopback.
+    /// over plain HTTP -- and the stand-in gateway the tests run is plain HTTP on the loopback. The file
+    /// names the gateway it came from, and a cookie is only read back for that gateway.
+    ///
+    /// An origin that is not https:// is refused ("insecure") unless it is this machine's loopback.
+    /// A redirect is an error ("redirected") on every route but /login: something stands in front of
+    /// the gateway, and what it answers is not the café's.
     Gateway(std::string origin, std::filesystem::path cookie_jar);
     ~Gateway();
 
@@ -107,13 +114,18 @@ public:
     Net(std::string origin, std::filesystem::path cookie_jar);
     ~Net();
 
-    std::uint32_t send(Job job);
+    /// `first` jumps the queue: signing out goes before the art still waiting to be fetched.
+    std::uint32_t send(Job job, bool first = false);
+    /// Drop every job not yet started (signing out: the art and reads queued for the account that left).
+    void drop_waiting();
     /// False when nothing has come back this frame.
     bool take(std::uint32_t* ticket, Reply* out);
     /// How many jobs are still out — the app shows a quiet spinner above zero.
     int outstanding() const;
     /// Whether the jar holds a cookie, read at start: the app opens on the sign-in screen without one.
     bool has_cookie() const;
+    /// Delete the cookie's file at once, on the caller's thread: signing out must not wait on the queue.
+    void forget_cookie();
 
 private:
     struct Impl;

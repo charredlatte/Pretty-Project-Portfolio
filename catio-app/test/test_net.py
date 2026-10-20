@@ -54,6 +54,7 @@ class State:
         self.token = None
         self.account = True   # False: the gateway's secrets made no account yet, and it shows its warning lights
         self.homework = True  # False: an older gateway, with no quizzes tool
+        self.redirect = False # True: something in front of the gateway sends /api/db elsewhere
         self.seen = []        # (method, path, headers, body)
         self.docs = json.loads((APP / "test" / "fixtures" / "db.json").read_text())["docs"]
         self.agents = json.loads((APP / "test" / "fixtures" / "agents.json").read_text())
@@ -122,6 +123,8 @@ class Standin(BaseHTTPRequestHandler):
         if path.startswith("/art/") and method == "GET":
             data = s.art.get(path[1:])
             return self.answer(200, data, "image/png") if data is not None else self.answer(404, b"Not found\n", "text/plain")
+        if path == "/api/db" and method == "GET" and s.redirect:
+            return self.answer(302, b"", "text/plain", [("Location", "https://sign-in.example/")])
         if path == "/api/db" and method == "GET":
             return self.answer(200, {"docs": s.docs})
         # fromCafe(): only the café's own page writes
@@ -220,7 +223,7 @@ class NetTest(unittest.TestCase):
         method, path, headers, body = self.last("POST", "/login")
         self.assertEqual(headers.get("Content-Type"), "application/x-www-form-urlencoded")
         self.assertEqual(parse_qs(body.decode()), {"user": [USER], "password": [PASSWORD]}, "the form survives spaces, & and =")
-        self.assertEqual(self.jar.read_text().strip(), self.state.token)
+        self.assertEqual(self.jar.read_text().split(), [self.origin, self.state.token], "the gateway it is for, then its cookie")
         self.assertEqual(stat.S_IMODE(os.stat(self.jar).st_mode), 0o600, "the cookie file is readable by its owner alone")
         # a later start finds it there: no sign-in screen
         (again,) = self.run_check("signed_in")
@@ -332,6 +335,33 @@ class NetTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         art = [p for m, p, *_ in self.state.seen if p.startswith("/art/")]
         self.assertEqual(len(art), len(from_list), "past waking the cats: the house is hers and its art fetched")
+        self.assertIn("sign: \n", r.stdout, "and nothing on the sign: no homework tool is nothing wrong")
+
+    def test_a_cookie_is_only_ever_sent_to_the_gateway_that_gave_it(self):
+        self.run_check(f"login:{USER}:{PASSWORD}")
+        other = self.origin.replace("127.0.0.1", "localhost")   # the same machine, another address
+        inside, docs = self.run_check("signed_in", "docs", origin=other)
+        self.assertFalse(inside["value"])
+        self.assertEqual(docs["code"], "signed_out")
+        _, _, headers, _ = self.last("GET", "/api/db")
+        self.assertIsNone(headers.get("Cookie"), "the first gateway's cookie never went to the second")
+
+    def test_a_redirect_is_not_the_cafes_answer(self):
+        self.run_check(f"login:{USER}:{PASSWORD}")
+        self.state.redirect = True
+        (r,) = self.run_check("docs")
+        self.assertFalse(r["ok"])
+        self.assertEqual((r["status"], r["code"]), (302, "redirected"))
+
+    def test_plain_http_only_on_this_machine(self):
+        (r,) = self.run_check(f"login:{USER}:{PASSWORD}", origin="http://catio-gateway.example.workers.dev")
+        self.assertEqual(r["code"], "insecure", "her password never crosses the network in the clear")
+        self.assertFalse(self.state.seen)
+
+    def test_an_empty_segment_stays_empty(self):
+        self.run_check(f"login:{USER}:{PASSWORD}")
+        self.run_check("erase:cats//kitchen")
+        self.assertIn(("DELETE", "/api/db/cats//kitchen"), [(m, p) for m, p, *_ in self.state.seen])
 
     def test_signing_out_from_the_house_menu(self):
         self.serve_art()
@@ -343,6 +373,9 @@ class NetTest(unittest.TestCase):
         self.assertEqual(headers.get("Cookie"), f"__Host-catio={token}")
         self.assertIsNone(self.state.token, "the gateway ended it")
         self.assertFalse((Path(self.dir.name) / "home" / "cookie").exists(), "and the app forgot it")
+        cache = Path(self.dir.name) / "home" / "cache"
+        self.assertFalse([f for f in cache.rglob("*") if f.is_file()] if cache.exists() else [],
+                         "and the art it fetched: the packs' licences are personal, the next person here gets their own")
 
     def test_the_app_signs_in_reads_fetches_the_art_and_opens_a_room(self):
         from_list = self.serve_art()

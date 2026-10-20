@@ -735,7 +735,7 @@ struct Painter {
 
     // a Sprout Lands button (.btn): cream, white on hover, pressed in when held, green for the main one
     float btn_w(std::string_view label) { return px_w(label) + 4 * U + 8 * U; }
-    float btn_h() { return 22 * k + 10 * U; }
+    float btn_h() { return std::max(22 * k + 10 * U, f.coarse ? kTouch * k : 0.f); }   // no target under 44px to a finger
     void btn(Rect r, std::string_view label, const std::string& id, Action a, std::string arg, bool green = false) {
         region(r, id, a, arg, true, std::string(label));
         const bool down = held(id);
@@ -743,7 +743,7 @@ struct Painter {
         fill(Rect{at.x + 4 * U, at.y + 4 * U, at.w - 8 * U, at.h - 10 * U}, down ? kPressed : green ? kGo : kCream);
         if (down) panel(draw::kPressed, at);
         else nine(green ? art::Id::UiButtonGreen : lit(id) ? art::Id::UiButtonHover : art::Id::UiButton, {4, 4, 4, 6}, {4 * U, 4 * U, 4 * U, 6 * U}, at, true);
-        px(label, at.x + 4 * U + 2 * U, at.y + 4 * U, 22, kInk);
+        px(label, at.x + 4 * U + 2 * U, at.y + (at.h - 2 * U - 22 * k) / 2, 22, kInk);
     }
 };
 
@@ -1117,10 +1117,12 @@ float menu_pass(Painter& P, const Menu& m, float x0, float y0, float w) {
             }
             case Block::Kind::Cats: {
                 const draw::Body& t = P.body(500, 13.12f);
+                const float rh = P.f.coarse ? kTouch * k : 30 * k;   // a finger's 44px, else the face's 30
                 for (size_t i = 0; i < b.rows.size(); ++i) {
                     if (i) y += 2 * k;
                     const Row& row = b.rows[i];
-                    const Rect r{cx, y, cw, 30 * k};
+                    const Rect r{cx, y, cw, rh};
+                    y += (rh - 30 * k) / 2;
                     const std::string id = "menu:cat:" + row.id;
                     P.region(r, id, Action::OpenCat, row.id);
                     P.face(row.face, cx, y);
@@ -1130,7 +1132,7 @@ float menu_pass(Painter& P, const Menu& m, float x0, float y0, float w) {
                     const std::string rest = t.cut(" · " + row.text, cx + cw - tx);
                     P.text(t, rest, tx, y + 4 * k, 22, kInk);
                     if (P.lit(id) && P.paint) P.fill(Rect{tx, y + 4 * k + 17 * k, t.measure(rest).x, k}, kInk);   // underlined on hover
-                    y += 30 * k;
+                    y += 30 * k + (rh - 30 * k) / 2;
                 }
                 if (b.more) {
                     y += 2 * k;
@@ -1189,7 +1191,7 @@ float menu_pass(Painter& P, const Menu& m, float x0, float y0, float w) {
                     } else if (enabled && (hot || (i == primary && !any_lit)))
                         P.cell(art::Id::UiPointer, Rect{0, 0, 7, 12}, Rect{r.x + 5 * k, r.y + h / 2 - 6 * k, 7 * k, 12 * k});
                     P.px(it.label, tx, r.y + (h - 22 * k) / 2, 22, ink);
-                    const std::string aside = enabled ? it.aside : "not yet";
+                    const std::string aside = enabled ? it.aside : it.action == Action::OpenRoom ? "gateway only" : "not yet";
                     if (!aside.empty()) {
                         const draw::Body& a = P.body(800, 12);
                         P.text(a, aside, r.x + r.w - 6 * k - a.measure(aside).x, r.y + (h - 22 * k) / 2, 22, kSoft);
@@ -1396,7 +1398,7 @@ void draw_cat_card(Painter& P, const Frame& f, const Cat& c) {
 
         // Manage, folded: the facts. Renaming and moving it are writes, and arrive with the network.
         {
-            const Rect r{x, y, P.px_w("Manage") + 15 * k, 22 * k};
+            const Rect r{x, y - (f.coarse ? 11 * k : 0), std::max(P.px_w("Manage") + 15 * k, f.coarse ? kTouch * k : 0.f), f.coarse ? kTouch * k : 22 * k};
             P.region(r, "card:manage", Action::Manage);
             if (P.paint) {
                 const Rect tri{x, y + 5 * k, 7 * k, 12 * k};
@@ -1551,7 +1553,12 @@ void Ui::draw(const draw::Ctx& c, const Frame& f) {
             const float h = std::min(menu_pass(P, m, 0, 0, w), f.stage.h - 24 * P.k);
             P.paint = true;
             const float hud_bottom = std::max(I.brand.y + I.brand.h, I.status.y + I.status.h);   // the whole #hud, sign and all
-            const Pt at = I.menu_at ? *I.menu_at : place_menu(f.stage, I.menu, I.anchor, Pt{w, h}, panel(f), hud_bottom);
+            Pt at = I.menu_at && I.menu != Thing::House ? *I.menu_at : place_menu(f.stage, I.menu, I.anchor, Pt{w, h}, panel(f), hud_bottom);
+            // kept where it was opened (a redraw never slides it from under the pointer), but never past the stage's
+            // edge when it grows or the window shrinks
+            const float g = 12 * P.k;
+            at.x = std::max(g, std::min(at.x, f.stage.w - w - g));
+            at.y = std::max(g, std::min(at.y, f.stage.h - h - g));
             I.menu_at = at;
             const Rect box{std::round(at.x), std::round(at.y), w, h};
             I.menu_box = box;

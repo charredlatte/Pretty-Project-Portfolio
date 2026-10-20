@@ -106,10 +106,15 @@ public:
     ~House();
 
     // ---- what comes in off the wire -------------------------------------------------------------
-    void docs(std::string_view body);                      ///< GET /api/db
+    /// Each of these takes only an answer of its own shape ({"docs": {...}}, {"agents": [...]},
+    /// {"quizzes": [...]}) and returns false, keeping what it had, for anything else: a page that
+    /// isn't the café's must never empty the house.
+    bool docs(std::string_view body);                      ///< GET /api/db
     void doc(std::string_view path, std::string_view json); ///< one change; empty json means deleted
-    void agents(std::string_view body);                    ///< list_agents
-    void quizzes(std::string_view body);                   ///< quizzes
+    bool agents(std::string_view body);                    ///< list_agents
+    bool quizzes(std::string_view body);                   ///< quizzes
+    /// Forget everything: signed out, the next account's café starts empty.
+    void clear();
 
     /// True once a first docs() has landed. A `rooms` collection that arrives with nothing in it is a
     /// café nobody has opened yet: the app shows the wizard rather than an empty house.

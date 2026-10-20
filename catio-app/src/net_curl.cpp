@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
+#include <atomic>
 #include <condition_variable>
 #include <deque>
 #include <fstream>
@@ -34,12 +35,30 @@ void global_init() {
     std::call_once(once, [] { curl_global_init(CURL_GLOBAL_DEFAULT); });
 }
 
-std::string read_jar(const std::filesystem::path& jar) {
+// The jar is two lines: the gateway it was given by, then its cookie. A cookie is only ever read back for that
+// same gateway, so a different address typed in, or passed, never receives another gateway's credential.
+std::string read_jar(const std::filesystem::path& jar, const std::string& origin) {
     std::ifstream in(jar, std::ios::binary);
-    std::string token;
+    std::string from, token;
+    std::getline(in, from);
     std::getline(in, token);
-    while (!token.empty() && (token.back() == '\r' || token.back() == ' ')) token.pop_back();
-    return token;
+    for (std::string* s : {&from, &token})
+        while (!s->empty() && (s->back() == '\r' || s->back() == ' ')) s->pop_back();
+    return from == origin ? token : std::string{};
+}
+
+// Plain http only to this machine (the tests' stand-in): anywhere else her password and cookie would cross the
+// network in the clear.
+bool safe_origin(const std::string& origin) {
+    if (origin.rfind("https://", 0) == 0) return true;
+    for (const char* local : {"http://127.0.0.1:", "http://127.0.0.1/", "http://localhost:", "http://localhost/", "http://[::1]:"})
+        if (origin.rfind(local, 0) == 0) return true;
+    return origin == "http://127.0.0.1" || origin == "http://localhost";
+}
+
+// Asked between the bytes of a transfer: a non-zero answer abandons it, so closing the app never waits out a timeout.
+int on_progress(void* stop, curl_off_t, curl_off_t, curl_off_t, curl_off_t) {
+    return stop && static_cast<const std::atomic<bool>*>(stop)->load() ? 1 : 0;
 }
 
 // the cookie's value is 64 hex characters; anything else is not one of the gateway's
@@ -139,6 +158,8 @@ struct Gateway::Impl {
     std::filesystem::path jar;
     std::string token;
     CURL* curl = nullptr;
+    bool safe = false;                         // https, or the loopback
+    const std::atomic<bool>* stop = nullptr;   // Net's: set when the app is closing
 
     void keep(const std::string& t) {
         token = t;
@@ -149,7 +170,7 @@ struct Gateway::Impl {
         std::filesystem::permissions(jar, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write,
                                      std::filesystem::perm_options::replace, ec);
         std::ofstream out(jar, std::ios::binary | std::ios::trunc);
-        out << t << "\n";
+        out << origin << "\n" << t << "\n";
     }
     void forget() {
         token.clear();
@@ -158,6 +179,7 @@ struct Gateway::Impl {
     }
 
     std::string escape(std::string_view s) {
+        if (s.empty()) return {};   // curl reads a length of 0 as "up to the first NUL"
         char* e = curl_easy_escape(curl, s.data(), int(s.size()));
         std::string out = e ? e : "";
         curl_free(e);
@@ -179,6 +201,7 @@ struct Gateway::Impl {
                bool write, std::vector<std::string> extra = {}, std::string* set_cookie = nullptr) {
         Reply r;
         if (!curl) { r.err = {"unreachable", "The network isn't ready."}; return r; }
+        if (!safe) { r.err = {"insecure", "Your gateway's address must start with https://."}; return r; }
         curl_easy_reset(curl);
         const std::string url = origin + path;
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
@@ -189,6 +212,9 @@ struct Gateway::Impl {
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "KittyChatCafe/0.1");
         curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "https,http");
         curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+        curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+        curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, on_progress);
+        curl_easy_setopt(curl, CURLOPT_XFERINFODATA, const_cast<std::atomic<bool>*>(stop));
         if (std::string_view(method) != "GET" && std::string_view(method) != "DELETE") {
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.data());
             curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, curl_off_t(body.size()));
@@ -213,6 +239,13 @@ struct Gateway::Impl {
         }
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &r.status);
         if (set_cookie) *set_cookie = cookie;
+        // A redirect is the answer only to /login (its 303 and the cookie). Anywhere else something stands in front of
+        // the gateway -- a sign-in page, a captive portal -- and its body is not the café's.
+        if (r.status >= 300 && r.status < 400 && !set_cookie) {
+            r.err = {"redirected", "Something in front of your gateway sent the app elsewhere (" + std::to_string(r.status) +
+                                       "), so this wasn't the caf\u00e9's answer."};
+            return r;
+        }
         if (r.status >= 400) {
             r.err.code = code_for(r.status);
             try {
@@ -236,7 +269,8 @@ Gateway::Gateway(std::string origin, std::filesystem::path cookie_jar) : impl_(n
     while (!origin.empty() && origin.back() == '/') origin.pop_back();
     impl_->origin = std::move(origin);
     impl_->jar = std::move(cookie_jar);
-    if (const std::string t = read_jar(impl_->jar); plausible(t)) impl_->token = t;
+    impl_->safe = safe_origin(impl_->origin);
+    if (const std::string t = read_jar(impl_->jar, impl_->origin); plausible(t)) impl_->token = t;
     impl_->curl = curl_easy_init();
 }
 
@@ -297,6 +331,8 @@ Reply Gateway::art(std::string_view path) {
 struct Net::Impl {
     Gateway gateway;
     std::filesystem::path jar;
+    std::string origin;
+    std::atomic<bool> closing{false};
     std::mutex m;
     std::condition_variable cv;
     std::deque<std::pair<std::uint32_t, Job>> in;
@@ -306,7 +342,8 @@ struct Net::Impl {
     bool stop = false;
     std::thread worker;
 
-    Impl(std::string origin, std::filesystem::path j) : gateway(std::move(origin), j), jar(std::move(j)) {
+    Impl(std::string o, std::filesystem::path j) : gateway(o, j), jar(std::move(j)), origin(std::move(o)) {
+        gateway.impl_->stop = &closing;
         worker = std::thread([this] { run(); });
     }
     void run() {
@@ -332,22 +369,30 @@ Net::~Net() {
     {
         std::lock_guard<std::mutex> lock(impl_->m);
         impl_->stop = true;
+        impl_->closing = true;   // and the request in flight, if any, is abandoned rather than waited out
     }
     impl_->cv.notify_all();
     impl_->worker.join();
     delete impl_;
 }
 
-std::uint32_t Net::send(Job job) {
+std::uint32_t Net::send(Job job, bool first) {
     std::uint32_t t;
     {
         std::lock_guard<std::mutex> lock(impl_->m);
         t = impl_->next++;
-        impl_->in.emplace_back(t, std::move(job));
+        if (first) impl_->in.emplace_front(t, std::move(job));
+        else impl_->in.emplace_back(t, std::move(job));
         ++impl_->busy;
     }
     impl_->cv.notify_one();
     return t;
+}
+
+void Net::drop_waiting() {
+    std::lock_guard<std::mutex> lock(impl_->m);
+    impl_->busy -= int(impl_->in.size());
+    impl_->in.clear();
 }
 
 bool Net::take(std::uint32_t* ticket, Reply* out) {
@@ -365,6 +410,11 @@ int Net::outstanding() const {
     return impl_->busy;
 }
 
-bool Net::has_cookie() const { return plausible(read_jar(impl_->jar)); }
+bool Net::has_cookie() const { return plausible(read_jar(impl_->jar, impl_->origin)); }
+
+void Net::forget_cookie() {
+    std::error_code ec;
+    std::filesystem::remove(impl_->jar, ec);
+}
 
 }  // namespace catio::net

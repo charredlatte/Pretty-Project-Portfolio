@@ -16,7 +16,6 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <ctime>
 #include <fstream>
 #include <map>
 #include <optional>
@@ -68,13 +67,12 @@ struct In {
 
 constexpr manor::Dir kArrows[] = {manor::Dir::Left, manor::Dir::Right, manor::Dir::Up, manor::Dir::Down};
 
-// HH:MM, as the page's clock() puts it
+// HH:MM, as the page's clock() puts it, in local time: SDL's, so it builds on Windows too
 std::string clock_of(std::int64_t ms) {
-    const std::time_t t = std::time_t(ms / 1000);
-    std::tm tm{};
-    localtime_r(&t, &tm);
+    SDL_DateTime dt{};
+    if (!SDL_TimeToDateTime(SDL_Time(ms) * 1000000, &dt, true)) return "";
     char buf[8];
-    std::strftime(buf, sizeof buf, "%H:%M", &tm);
+    std::snprintf(buf, sizeof buf, "%02d:%02d", dt.hour, dt.minute);
     return buf;
 }
 
@@ -98,6 +96,7 @@ struct App::Impl {
     // what it was started with
     std::filesystem::path data, home, art_dir, manor_json, assets, shot, prefs;
     std::string origin;            // her gateway; empty, a folder of documents
+    bool own_cache = false;        // the art is in the app's own cache (not a folder she named with --art)
     int shot_w = 1280, shot_h = 800, shot_css = 1;
     bool shot_touch = false;
     std::string steps;
@@ -137,6 +136,7 @@ struct App::Impl {
     bool read_failed = false;      // a read in this batch failed: its trouble stands until a whole batch is clean
     bool got_docs = false, got_agents = false;   // the house needs both before it is drawn as hers
     float wheel = 0;               // a trackpad's fractions of a notch, added up
+    bool vsync = false;            // the display paces the frames; without it the loop does
     std::int64_t live_at = 0;
     std::set<art::Id> fetching;
 
@@ -175,7 +175,7 @@ struct App::Impl {
         const std::string db = slurp(data / "db.json"), agents = slurp(data / "agents.json");
         if (db.empty()) { std::fprintf(stderr, "catio_app: no db.json in %s\n", data.string().c_str()); return false; }
         house.docs(db);
-        house.agents(agents.empty() ? "[]" : agents);
+        house.agents(agents.empty() ? R"({"agents": []})" : agents);
         if (const std::string q = slurp(data / "quizzes.json"); !q.empty()) house.quizzes(q);
         return true;
     }
@@ -240,7 +240,17 @@ struct App::Impl {
         const std::string user = form.user, password = form.password;
         ask(Ask::Login, [user, password](net::Gateway& g) { return g.login(user, password); });
     }
+    // Back to the sign-in: signed out, or the cookie ran out. Nothing of the account that left stays: its queued work,
+    // its cookie, its house, and the art its sign-in fetched -- the packs' licences are personal, so the next person
+    // to sign in on this device gets what the gateway serves them, not what it served her. (Not a folder she named
+    // with --art: that is hers to keep.)
     void signed_out(std::string why) {
+        if (net) net->drop_waiting(), net->forget_cookie();
+        house.clear();
+        got_docs = got_agents = false;
+        live_at = 0;
+        net_trouble.clear(), art_trouble.clear();
+        if (own_cache && art) art->forget_all();
         phase = Phase::SignIn;
         form.busy = false;
         form.password.clear();
@@ -287,11 +297,17 @@ struct App::Impl {
             case Ask::Agents:
             case Ask::Quizzes:
                 if (!r.ok()) {
+                    // an older gateway has no homework tool: nothing is wrong, there is just no homework
+                    if (a.what == Ask::Quizzes && r.err.code == "not_found") { settle_reads(); return; }
                     read_failed = true;
                     net_trouble = "Your gateway didn't answer (" + r.err.code + "): " + r.err.message;
-                } else if (a.what == Ask::Docs) house.docs(r.body), got_docs = true;
-                else if (a.what == Ask::Agents) house.agents(r.body), got_agents = true, live_at = wall_ms();
-                else house.quizzes(r.body);
+                } else if (a.what == Ask::Docs ? house.docs(r.body) : a.what == Ask::Agents ? house.agents(r.body) : house.quizzes(r.body)) {
+                    if (a.what == Ask::Docs) got_docs = true;
+                    if (a.what == Ask::Agents) got_agents = true, live_at = wall_ms();
+                } else {   // a 200 that isn't the café's answer (a portal's page): the house keeps what it had
+                    read_failed = true;
+                    net_trouble = "Your gateway's answer wasn't the caf\u00e9's: something may be standing in front of it.";
+                }
                 settle_reads();
                 return;
             case Ask::Art:
@@ -416,6 +432,15 @@ struct App::Impl {
         };
         if (auto s = spot_of(ui.tipped().what, ui.tipped().key)) outlined = view::blit_of(*s, t);
         else if (auto m = spot_of(ui.menu_kind(), ui.menu_key())) outlined = view::blit_of(*m, t);
+        else if (ui.tipped().what == Thing::Cabinet || ui.tipped().what == Thing::Litter) {
+            // a filing cabinet or the litter box: the piece of furniture it stands over (outline()'s node.piece)
+            const manor::Geom* g = manor::of(ui.tipped().key);
+            const std::optional<manor::Box> box = !g ? std::nullopt : ui.tipped().what == Thing::Cabinet ? g->cabinet : g->litter;
+            if (box)
+                for (const auto& b : blits)
+                    if (!b.fill && (b.sheet == art::Id::Furniture || b.sheet == art::Id::FurnitureLicensed) &&
+                        b.dst.x == box->x * 2.f && b.dst.y == box->y * 2.f) outlined = b;
+        }
 
         draw::Ctx wc{&canvas, art.get(), 2, 1};
         SDL_SetRenderTarget(r, world);
@@ -540,7 +565,7 @@ bool App::start(int argc, char** argv) {
         char* pref = SDL_GetPrefPath("KittyChat", "Cafe");
         if (pref) I.home = pref, SDL_free(pref);
     }
-    if (I.art_dir.empty() && !I.home.empty()) I.art_dir = I.home / "cache";
+    if (I.art_dir.empty() && !I.home.empty()) I.art_dir = I.home / "cache", I.own_cache = true;
     if (I.shot.empty() && !I.home.empty()) I.prefs = I.home / "prefs.json";
 
     if (gateway_given) {
@@ -573,7 +598,7 @@ bool App::start(int argc, char** argv) {
         I.window = SDL_CreateWindow("KittyChat Café", 1280, 800, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
         I.r = I.window ? SDL_CreateRenderer(I.window, nullptr) : nullptr;
         if (!I.r) { std::fprintf(stderr, "catio_app: no window: %s\n", SDL_GetError()); return false; }
-        SDL_SetRenderVSync(I.r, 1);
+        I.vsync = SDL_SetRenderVSync(I.r, 1);
     }
     I.canvas.r = I.r;
     I.world = SDL_CreateTexture(I.r, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, 1920, 1152);
@@ -648,8 +673,8 @@ void App::act(ui::Action what, std::string_view arg_v) {
         case Action::SignOut:
             // the gateway ends the cookie and the file goes, on the net's own thread; the sign-in comes back here at once
             if (!I.net) break;
-            I.net->send([](net::Gateway& g) { g.sign_out(); return net::Reply{}; });
-            I.signed_out("");
+            I.signed_out("");   // the queue emptied of the leaving account's work, and the cookie's file gone, now
+            I.net->send([](net::Gateway& g) { g.sign_out(); return net::Reply{}; }, true);   // then /logout, first in line
             break;
         case Action::CheckNow:
             I.art_trouble.clear();
@@ -1019,18 +1044,26 @@ int App::run() {
         SDL_RenderPresent(I.r);
         if (!SDL_SavePNG(I.surface, I.shot.string().c_str())) { std::fprintf(stderr, "catio_app: %s\n", SDL_GetError()); return 1; }
         std::printf("%s: %dx%d at css %d\n", I.shot.string().c_str(), I.stage.w, I.stage.h, I.stage.css);
+        std::printf("sign: %s\ntoast: %s\n", I.status.c_str(), I.toast.c_str());   // what the frame says, for a test to read
         return 0;
     }
     while (!I.quit) {
         // the sign-in form takes typing; the house does not
         if (I.phase == Phase::SignIn && !SDL_TextInputActive(I.window)) SDL_StartTextInput(I.window);
         else if (I.phase != Phase::SignIn && SDL_TextInputActive(I.window)) SDL_StopTextInput(I.window);
+        // with the cats stilled nothing moves on its own: wait for something to happen (or the net, or the clock)
+        if (I.still && I.phase != Phase::SignIn) SDL_WaitEventTimeout(nullptr, 250);
+        const double began = clock_s();
         events();
         pump_net();
         I.now = clock_s() - I.start;
         refresh(false);
         I.draw();
         SDL_RenderPresent(I.r);
+        if (!I.vsync) {   // no display pacing: about sixty frames a second, not as many as the core can draw
+            const double left = 1.0 / 60 - (clock_s() - began);
+            if (left > 0) SDL_DelayNS(Uint64(left * 1e9));
+        }
     }
     return 0;
 }

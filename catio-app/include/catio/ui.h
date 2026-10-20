@@ -81,7 +81,7 @@ struct Item {
     std::string arg;
     std::string aside;       ///< a quiet note on its right: "3 on the tray"
     bool primary = false;    ///< the default: the first in the list (list())
-    bool enabled = true;     ///< a disabled item says "not yet" on its right, and cannot() says why
+    bool enabled = true;     ///< a disabled item says why on its right, short: "not yet", or "gateway only" 
     int toggle = -1;         ///< a switch (.mi.sw): -1 none, 0 off, 1 on
 };
 
@@ -247,7 +247,8 @@ public:
     /// Why an action is not here. This app is always in the page's gateway mode (VIA_GATEWAY): no list
     /// of her claude.ai sessions, no posting into one that does not report to the gateway, no starting
     /// or archiving one, no LLM file sorter. And while it is a draft, most cards are not built yet.
-    /// Those items are drawn, disabled, with "not yet" beside them -- never hidden, and never pretended.
+    /// Those items are drawn, disabled, with the short reason beside them ("not yet", "gateway only") --
+    /// never hidden, and never pretended.
     std::string_view cannot(Action a) const;
     /// Whether this build can do it at all.
     bool can(Action a) const;

@@ -296,6 +296,16 @@ void the_interface(const std::string& dir) {
           ui::ago(now - 24 * 3600000LL, now) == "yesterday" && ui::ago(now - 4 * 24 * 3600000LL, now) == "4 days ago" && ui::ago(0, now).empty(),
           "ago() says just now, minutes, hours, yesterday and days as the page does");
 
+    {
+        // a page that isn't the café's answer (a portal's, a sign-in's) never empties the house
+        catio::House kept;
+        kept.docs(slurp(dir + "/db.json"));
+        const bool refused = !kept.docs("<html><body>Sign in to the Wi-Fi</body></html>") && !kept.agents("[]") && !kept.quizzes("{}");
+        check(refused && kept.room("kitchen").name == "Kitchen" && !kept.never_set_up(), "an answer that isn't the café's is refused, and the rooms stay");
+        kept.clear();
+        check(!kept.ready() && kept.cats().empty(), "signed out, the house is emptied for whoever signs in next");
+    }
+
     // the queen's line: her pinned note is what she is saying, while she is not answering
     check(ui::queen_line(h) == "Said aloud", "the queen's line is the note she is saying");
 
