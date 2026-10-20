@@ -262,11 +262,13 @@ Call the Agent tool multiple times IN THE SAME RESPONSE - one call per chunk. Th
 
 **IMPORTANT - subagent type:** Always use `subagent_type="general-purpose"`. Do NOT use `Explore` - it is read-only and cannot write chunk files to disk, which silently drops extraction results. General-purpose has Write and Bash access which the subagent needs.
 
+**IMPORTANT - model:** Always pass `model="haiku"`. Extraction is reading and reporting, Haiku's work (docs/delegation.md), and the house rule `right_sized` refuses a spawn that names no model. If the map's quality drops, use `model="sonnet"` instead; never leave it out.
+
 Concrete example for 3 chunks:
 ```
-[Agent tool call 1: files 1-15, subagent_type="general-purpose"]
-[Agent tool call 2: files 16-30, subagent_type="general-purpose"]
-[Agent tool call 3: files 31-45, subagent_type="general-purpose"]
+[Agent tool call 1: files 1-15, subagent_type="general-purpose", model="haiku"]
+[Agent tool call 2: files 16-30, subagent_type="general-purpose", model="haiku"]
+[Agent tool call 3: files 31-45, subagent_type="general-purpose", model="haiku"]
 ```
 All three in one message. Not three separate messages.
 

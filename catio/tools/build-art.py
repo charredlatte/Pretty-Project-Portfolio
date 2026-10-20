@@ -2,13 +2,14 @@
 """Rebuild the catio's art from Charlotte's ten asset-pack zips.
 
     pip install pillow fonttools
-    python3 catio/tools/build-art.py CosyCabin.zip CatMegaFree.zip "Top down garden castle.zip" \
-        "Wood Garden Asset Pack.zip" "Pixel Art Top Down - Basic v1.2.3.zip" \
-        "Sprout Lands - UI Pack - Basic pack.zip" plants.zip \
-        "Sprout Lands - Sprites - Basic pack.zip" "Little Dreamyland - Free Pack.zip" Game_UI_Pack_Pastel.zip
-    python3 catio/tools/build-art.py "Sprout Lands - UI Pack - Basic pack.zip" [Game_UI_Pack_Pastel.zip]   # the interface alone
+    python3 catio/tools/build-art.py ~/Downloads/KittyChat-Cafe-Assets        # the folder with the zips in it
+    python3 catio/tools/build-art.py *.zip                                    # or the zips, in any order
+    python3 catio/tools/build-art.py "Sprout Lands - UI Pack - Basic pack.zip"   # the interface alone
 
-(The zips' names don't matter, only their order.) Writes, next to catio/index.html:
+Neither the zips' names nor their order matters: each one is recognised by a file only that pack has
+(SIGNATURE below), and a folder means every zip directly inside it. What it took for what is printed first,
+and whatever is missing, it builds what those packs can: the Sprout Lands UI pack alone rebuilds the
+interface. Writes, next to catio/index.html:
   art/licensed/house.png         the manor's ground floor (floors, walls, glass, doors, the south facade),
                                  drawn to manor.py from every pack
   art/licensed/house-upper.png   its upper floor: the library, bedroom and ensuite, and the landing over the
@@ -364,20 +365,73 @@ def map_panel(pastel_zip):
     return out
 
 
+# Which pack a zip is, by a file only that pack holds, in the order load() should search them. The eight
+# packs this file reaches for by name are here; plants.zip and Sprout Lands' sprites are only ever read
+# through load(), which searches every zip, so they need no signature and come last.
+SIGNATURE = {
+    "cabin": "CosyCabin_Objects.png",                                      # Marie Pepo's Cosy Cabin
+    "cats": "MochiFree/Idle.png",                                          # ToffeeCraft's cats
+    "garden": "Top down Garden Castle.png",                                # Heosphorus's garden castle
+    "wood": "White fence/White-fence-2.png",                               # rowdy41's Wood Garden
+    "stone": "Texture/TX Props.png",                                       # Cainos's Pixel Art Top Down
+    "sprout": "Sprite sheet for Basic Pack.png",                           # Cup Nooble's Sprout Lands UI
+    "dreamy": "Little Dreamyland - Free Pack/Tileset/Nature_Tileset.png",  # Starmixu & Utaskuas
+    "pastel": "PNG/Filled/Icons/",                                         # SC_siosio's Game UI Pastel
+}
+
+
+def find_zips(args):
+    """Every zip the arguments name: a zip is itself, a folder is each zip directly inside it, sorted."""
+    found = []
+    for a in args:
+        p = Path(a)
+        for q in (sorted(q for q in p.iterdir() if q.suffix.lower() == ".zip") if p.is_dir() else [p]):
+            if q not in found:
+                found.append(q)
+    return found
+
+
+def identify(paths):
+    """Which zip is which pack, by its contents. Returns {key: path} for the packs with a signature, and every
+    zip open in the order load() should search: the signed ones in SIGNATURE's order, then the rest. Prints
+    what it took for what, since a wrong guess is easier to see than to debug."""
+    opened = [(p, zipfile.ZipFile(p)) for p in paths]
+    pack, signed = {}, []
+    for key, sig in SIGNATURE.items():
+        for p, zf in opened:
+            if p not in pack.values() and any(sig in n for n in zf.namelist()):
+                pack[key] = p
+                signed.append(zf)
+                print(f"  {key:7} {p.name}")
+                break
+    rest = []
+    for p, zf in opened:
+        if p not in pack.values():
+            rest.append(zf)
+            print(f"  {'?':7} {p.name} (searched for whatever the named packs don't have)")
+    return pack, signed + rest
+
+
 def main():
-    if len(sys.argv) in (2, 3):
-        sprout(sys.argv[1])
-        if len(sys.argv) == 3:
-            pastel(sys.argv[2], sys.argv[1])
-            map_panel(sys.argv[2])
+    paths = find_zips(sys.argv[1:])
+    if not paths:
+        raise SystemExit(__doc__)
+    print("packs:")
+    pack, zips = identify(paths)
+    missing = [k for k in SIGNATURE if k not in pack]
+    if missing and "sprout" not in pack:
+        raise SystemExit("none of these is Sprout Lands' UI pack, so there is nothing to build: " + __doc__)
+    if missing:
+        print("the interface alone:", ", ".join(missing), "not among these zips")
+        sprout(pack["sprout"])
+        if "pastel" in pack:
+            pastel(pack["pastel"], pack["sprout"])
+            map_panel(pack["pastel"])
         print("interface written to", OUT / "licensed" / "ui")
         return
-    if len(sys.argv) != 11:
-        raise SystemExit(__doc__)
-    (cabin_zip, cats_zip, garden_zip, wood_zip, stone_zip, sprout_zip, plants_zip,
-     sprites_zip, dreamy_zip, pastel_zip) = sys.argv[1:]
+    cats_zip, garden_zip, wood_zip, stone_zip = pack["cats"], pack["garden"], pack["wood"], pack["stone"]
+    sprout_zip, pastel_zip = pack["sprout"], pack["pastel"]
     (OUT / "licensed").mkdir(parents=True, exist_ok=True)
-    zips = [zipfile.ZipFile(z) for z in sys.argv[1:]]
 
     def load(end):
         for z in zips:

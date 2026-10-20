@@ -1,5 +1,29 @@
 # Delegating the easy work to smaller models
 
+**Status (5 October 2026, evening): delegate first, on facts only.** Her word: "Make sure this never happens again.
+Always run the delegation before assigning anything to anyone." A workflow had sent 58 agents out on the session's
+Opus, because `right_sized` read only `Task` and `Agent` and only spoke about an unnamed spawn. Now every assignment
+names its model on the call, whatever the session runs and whether or not she has capped the repo: a spawn, each
+`agent()` call in a `Workflow` script, and `create_session`. One that names none, or a model off the ladder, is
+refused, and the block says how to choose (the table below, or the decider's `preset: easy`). A fork keeps its
+parent's. A workflow's `agent()` defaults to the session's model, exactly as Explore does (step 0 below), so naming
+the model on each call is the only way to choose it.
+
+Her cap stays hers: `tiers.ceiling` in a repo's `.claude/catio-rules.json` caps its sub agents, a model named above it
+is refused (and so is every sub agent while `CLAUDE_CODE_SUBAGENT_MODEL_FORCE`, which overrides the call, is above
+it), and a cap written in a shape the rule can't use, a typo'd key or a ceiling outside the block, is said rather than
+silently doing nothing. There is no house ceiling (`harness/README.md`, "Delegate first: spend what the task is
+worth").
+
+Two things it deliberately does **not** do, both built, reviewed and taken out (#112) because they were wrong in both
+directions. It does not judge whether a task is easy from the prompt's words: that is the `decide` rubric below, and
+the errand ceiling that read prompts is gone. And it does not work out what an unnamed spawn would resolve to: Claude
+Code decides that from `_FORCE`, the call, the agent's file, `CLAUDE_CODE_SUBAGENT_MODEL` and the session, and a hook
+reimplementing that chain waved spawns past the cap when it guessed low and refused Haiku-pinned helpers when it
+guessed high. It reads no agent files, so the scout and the tester, Haiku in theirs, are spawned with
+`model: "haiku"` on the call, and graphify's extraction agents with `model="haiku"`. The model on the call is the one
+fact a hook can see, and the one thing a session can always provide.
+
 **Status (3 October 2026, evening): phase A is built** (`harness/agents/scout.md` and `tester.md`, the soft rule
 `delegate`, its nudge in `graph_first.py`, the edit gate in `gates.py`), waiting for her merge with the rest of `harness/`.
 The agents live in the house-rules plugin (`harness/agents/`) rather than `catio-plugin/agents/`, since the house rules
@@ -53,7 +77,8 @@ open-source tools that do this (below); the review changed it in four places, ma
    costs Opus. Setting `CLAUDE_CODE_SUBAGENT_MODEL=haiku` in her Claude environments puts every unpinned sub agent on
    Haiku with no file in the repo. Try that for a week before anything below: it also moves graphify's extraction
    sub agents to Haiku, so watch the map's quality; if it drops, pin graphify's agents to `sonnet` and keep the
-   variable.
+   variable. (Superseded on 5 October: every assignment now names its model on the call, which beats the variable,
+   and graphify's skill names `model="haiku"`, or `"sonnet"` if the map's quality drops.)
 1. **Two agent definitions** in `catio-plugin/agents/`, each with `model`, `tools`, `maxTurns` and `omitClaudeMd:
    true` in its frontmatter (the built-in Explore skips CLAUDE.md for the same reason; hers is long):
    - `scout` (haiku): Glob, Grep, Read, and the graphify query preloaded with `skills:`. Finds where things are and
@@ -152,6 +177,14 @@ reports, and its line lands in the queen's thread; `harness/test/test_queen.py` 
 ## Phase C: automatic
 
 With B in place, delegation needs no asking. Small steps, each a few hours.
+
+0. **The model on every call, and her cap as the memory.** Built, 5 October, before B, since it rides the spawn a
+   session was already making. The `right_sized` rule, `hooks/right_sized.py` and `rules.json`'s `tiers`. What it
+   adds over the `delegate` nudge: `delegate` suggests a smaller cat for two named jobs (a whole-repo search, a test
+   run); this reads *every* assignment, refuses one that names no model on the call (her "always run the
+   delegation"), and keeps her cap where she has set one. What it does not do: pick the model itself, judge a task,
+   or resolve a model it cannot see. The session picks, by the table above or the decider's `preset: easy` (phase D,
+   which needs a server); the hook stays offline and checks only what the call says.
 
 1. **Routines on a small model.** `routines/<id>.model`, a select in her Routines card (Fable off the list), and
    `--model` in the runner's turn. Most routines are easy by nature (a morning report, a test run): the cheapest

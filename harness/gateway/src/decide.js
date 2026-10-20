@@ -89,7 +89,7 @@ export async function decide(env, args) {
 	} finally {
 		clearTimeout(timer);
 	}
-	if (!r || typeof r.answers !== "object") throw new NoAnswer("the decider answered without answers");
+	if (!r || !r.answers || typeof r.answers !== "object" || Array.isArray(r.answers)) throw new NoAnswer("the decider answered without answers");
 	return { model: String(r.model || model), answers: r.answers, usage: r.usage || null };
 }
 

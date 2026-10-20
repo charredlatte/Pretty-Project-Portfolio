@@ -456,6 +456,12 @@ python3 catio-app/test/test_net.py catio-app/build
   every pixel above went through the same drawing code in the software renderer. The first desk build with
   a windowing system (`-DCATIO_HEADLESS=OFF`, the default) is its first run. **Nor has it met her real
   gateway**: only the stand-in, by design.
+- **The look.** The app knows nothing of the skin: no tokens, no slots, nothing that edits her colours. If it
+  ever grows them, the gap to know about is that SDL3 gives file, save and folder dialogs but **no colour
+  picker**, and a colour token needs one. On a desktop that is one call to tinyfiledialogs'
+  `tinyfd_colorChooser` (zlib, single file -- `catio-app/third_party/README.md` says why the rest of that
+  library stays out); on a phone there is no native picker to call, so it would be drawn from the pack's own
+  pieces like everything else. Until then, her colours are set in the page and the app only reads them.
 - **`android/` and `ios/` have never been configured.** No Android SDK or NDK was in reach and no Mac
   at all. The versions in them are now SDL's real current releases; the gradle lines, plist keys and
   `.aar` filenames are still read from the documentation, not tried.

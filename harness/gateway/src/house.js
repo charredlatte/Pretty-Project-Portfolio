@@ -6,6 +6,7 @@
 import { DurableObject } from "cloudflare:workers";
 import RULES from "../../rules.json";
 import { MOODS } from "./tools.js";
+import { plain } from "./plain.js";
 import { BadQuestion, NoAnswer, confidence, decide, verdict } from "./decide.js";
 import { importInto, toDTCG } from "./tokens.js";
 
@@ -16,6 +17,7 @@ const ACTIONS = ["rename", "move", "archive", "unarchive", "pause", "resume", "w
 const QUEEN = "queen";          // the queen's cat: her conversation with Charlotte, and her runner's presence
 const HOLD = 25 * 1000;         // how long the runner's wait is held before it comes back empty
 const AWAY = 90 * 1000;         // a runner silent this long is back when it next waits: the cafés are told
+const LEASE = 10 * 60 * 1000;   // a routine handed to a runner that never finishes it is handed out once more after this
 const DAY = 24 * 3600 * 1000;
 const DEFAULT_TZ = "Europe/Paris";
 const OWNER = "owner";          // the house's owner on the wire; "charlotte" was the name before accounts
@@ -109,9 +111,10 @@ const TOOLS = {
 		return { catio: RULES.catio, rules: RULES.rules.filter((r) => r.on !== false) };
 	},
 
-	report_status(h, args) {
+	report_status(h, args, who) {
 		need(args, "agent");
 		const id = String(args.agent).slice(0, 200);
+		if (id === QUEEN && who !== QUEEN) throw new Refusal("that cat is the queen's: only her runner reports as her");
 		const a = h.agent(id) || { id, since: Date.now() };
 		for (const k of FIELDS) if (args[k] != null) a[k] = String(args[k]).slice(0, 500);
 		if (args.mood != null) {
@@ -139,9 +142,11 @@ const TOOLS = {
 	// requests and files in once each. Handing over keeps its own place (handedNotes), apart from what an answer
 	// counts as read (seenNotes), so a note she sends while the session is answering still gets handed in.
 	// A cat is handed what the owner and the queen say; the queen herself only what the owner says.
-	inbox(h, args) {
+	inbox(h, args, who) {
 		need(args, "agent");
 		const id = String(args.agent);
+		// her inbox is the owner's words to her: an agent reading it with mark would hand them over to nobody
+		if (id === QUEEN && who === "agent") throw new Refusal("the queen's inbox is her runner's");
 		const a = h.agent(id);
 		const mark = args.mark === true && !!a;
 		const files = h.sql.exec("SELECT id, name, type, size, note, at FROM files WHERE cat = ? AND status = 'waiting'" +
@@ -304,6 +309,7 @@ const TOOLS = {
 		const row = h.sql.exec("SELECT data FROM docs WHERE path = ?", path).toArray()[0];
 		if (!row) throw new Refusal("no such quiz");
 		const z = JSON.parse(row.data);
+		if (!Array.isArray(z.questions)) throw new Refusal("no such quiz");
 		if (z.status === "done") throw new Refusal("that homework is handed in already");
 		const given = Array.isArray(args.answers) ? args.answers.map((a) => String(a == null ? "" : a).trim().slice(0, QUIZ.answer)) : [];
 		if (given.length !== z.questions.length || given.some((a) => !a)) throw new Refusal("answers is one answer per question, in order");
@@ -381,7 +387,7 @@ export class House extends DurableObject {
 		const tool = Object.hasOwn(TOOLS, name) && TOOLS[name];
 		if (!tool) return { unknown: true };
 		try {
-			const ok = await tool(this, args && typeof args === "object" && !Array.isArray(args) ? args : {}, who === OWNER || who === QUEEN ? who : "agent");
+			const ok = await tool(this, args && typeof args === "object" && !Array.isArray(args) ? plain(args) : {}, who === OWNER || who === QUEEN ? who : "agent");
 			if (CHANGES.has(name)) this.tell({ type: "agents" });   // an open café redraws its cats now, not at its next look
 			return { ok };
 		} catch (e) {
@@ -393,37 +399,70 @@ export class House extends DurableObject {
 	// ---- the queen: her runner waits here for what to do, and streams what she says back ----
 
 	/** Held until Charlotte writes to the queen, a routine comes due or her turn is to stop, or HOLD passes:
-	 * {notes, routine, stop, character}. Each note and routine is handed out once. */
-	async waitForQueen() {
+	 * {notes, routine, stop, character}. A routine is handed out once (a lost one comes round again, see LEASE). A note
+	 * is handed out until the runner acknowledges it: `ack` is the `at` of the last note it was given, sent with its next
+	 * wait, so a note lost with a dropped connection is offered again. A runner that sends no `ack` is handed each note once. */
+	async waitForQueen(ack) {
+		const acking = Number.isFinite(ack);
+		if (acking) this.ackQueen(ack);
 		const a = this.agent(QUEEN);
 		const back = !a || Date.now() - (a.updated || 0) > AWAY;
 		if (this.presence(a && a.mood === "busy" ? "busy" : "done") || back) this.tell({ type: "agents" });   // she is back: the cafés show her
 		this.armAlarm();
-		let out = this.queenReady();
+		let out = this.queenReady(acking);
 		if (!out) {
 			await new Promise((resolve) => {
 				const done = () => { this.waiters = this.waiters.filter((w) => w !== done); resolve(); };
 				this.waiters.push(done);
 				setTimeout(done, HOLD);
 			});
-			out = this.queenReady() || { notes: [], routine: null, stop: false };
+			out = this.queenReady(acking) || { notes: [], routine: null, stop: false };
 		}
-		return { ...out, character: this.character() };
+		return { ...out, character: this.character(), homework: this.homeworkByKind() };
 	}
 
-	queenReady() {
+	/** The homework waiting on Charlotte, counted by kind. Her runner says it on her own desktop when it grows:
+	 *  the café shows her quest log when it is open, and the runner is the part of it that is always running. */
+	homeworkByKind() {
+		const by = {};
+		for (const z of TOOLS.quizzes(this, {}).quizzes) {
+			const kind = z.kind || "unblock";
+			by[kind] = (by[kind] || 0) + 1;
+		}
+		return by;
+	}
+
+	queenReady(acking) {
 		if (this.flagged("queenStop")) {
 			this.flag("queenStop", null);
 			return { notes: [], routine: null, stop: true };
 		}
-		const { notes } = TOOLS.inbox(this, { agent: QUEEN, mark: true });
+		const notes = acking ? this.unacknowledged() : TOOLS.inbox(this, { agent: QUEEN, mark: true }).notes;
 		const routine = this.dueRoutine();
 		return notes.length || routine ? { notes, routine, stop: false } : null;
 	}
 
+	/** Charlotte's notes to the queen that her runner has not acknowledged, oldest first. */
+	unacknowledged() {
+		const a = this.agent(QUEEN);
+		return this.sql.exec("SELECT id, cat, text, author, at FROM notes WHERE cat = ? AND author = ? AND at > ? ORDER BY at",
+			QUEEN, OWNER, (a && (a.handedNotes ?? a.seenNotes)) || 0).toArray();
+	}
+
+	/** The runner has been given every note up to `at`: they are handed over for good. */
+	ackQueen(at) {
+		const a = this.agent(QUEEN);
+		const newest = this.sql.exec("SELECT MAX(at) AS at FROM notes WHERE cat = ? AND author = ?", QUEEN, OWNER).one().at || 0;
+		at = Math.min(at, newest);   // she can't have been given a note that doesn't exist yet, whatever the runner says
+		if (!a || at <= (a.handedNotes || 0)) return;
+		a.handedNotes = at;
+		a.seenNotes = Math.max(a.seenNotes || 0, at);
+		this.save(a);
+	}
+
 	/** What the runner streams: a turn in progress reaches every open café; done, it is the queen's note. */
 	queenSays(m) {
-		m = m && typeof m === "object" ? m : {};
+		m = m && typeof m === "object" ? plain(m) : {};
 		const text = String(m.text || "").slice(0, 8000);
 		const done = m.done === true;
 		const routine = m.routine && typeof m.routine === "object" && m.routine.id
@@ -435,6 +474,7 @@ export class House extends DurableObject {
 			return o;
 		}) : undefined;
 		const changed = this.presence(done ? "done" : "busy");
+		if (routine) done ? this.finishRoutine(routine.id) : this.renewRoutine(routine.id);
 		let id = null;
 		if (done && text.trim()) {
 			id = newId();
@@ -480,21 +520,37 @@ export class House extends DurableObject {
 
 	// Routines are documents, routines/<id> {name, time: "HH:MM", days: [0-6], tz, prompt, on, last}, written by
 	// the page. One is due when its latest firing is newer than the last it was handed out at: a missed one runs
-	// once when the runner is back, never twice. The alarm wakes a waiting runner at the next firing.
+	// once when the runner is back, never twice. The alarm wakes a waiting runner at the next firing. A firing is
+	// finished when the runner's answer to it is done (finished); one handed out and never finished, because the
+	// runner died, goes out once more after LEASE (retried).
 	routines() {
-		return this.sql.exec("SELECT path, data FROM docs WHERE path LIKE 'routines/%'").toArray().map((r) => [r.path.slice("routines/".length), JSON.parse(r.data)]);
+		return this.sql.exec("SELECT path, data FROM docs WHERE path LIKE 'routines/%'").toArray().map((r) => [r.path.slice("routines/".length), plain(JSON.parse(r.data))]);
 	}
 
 	dueRoutine(now = Date.now()) {
 		for (const [id, r] of this.routines()) {
 			if (!r.on) continue;
 			const at = lastFire(r, now);
-			if (at && at > (Number(r.last) || 0)) {
-				this.putDoc("routines/" + id, { last: at }, true);
-				return { id, name: String(r.name || id).slice(0, 100), prompt: String(r.prompt || "").slice(0, 4000), at };
-			}
+			if (!at) continue;
+			const last = Number(r.last) || 0, handed = Number(r.handed) || 0;
+			const lost = at === last && handed > 0 && now - handed > LEASE && !(Number(r.finished) >= at) && !r.retried;
+			if (at <= last && !lost) continue;
+			this.putDoc("routines/" + id, { last: at, handed: now, retried: at === last }, true);
+			return { id, name: String(r.name || id).slice(0, 100), prompt: String(r.prompt || "").slice(0, 4000), at };
 		}
 		return null;
+	}
+
+	finishRoutine(id) {
+		const r = this.getDoc("routines/" + id);
+		if (r && r.last) this.putDoc("routines/" + id, { finished: r.last }, true);
+	}
+
+	/** A turn that is still streaming keeps its lease, so a routine that runs longer than LEASE is not handed out twice. Renewed
+	 * at most once in a tenth of a lease: every streamed word would otherwise rewrite the document. */
+	renewRoutine(id) {
+		const r = this.getDoc("routines/" + id), now = Date.now();
+		if (r && r.handed && now - r.handed > LEASE / 10) this.putDoc("routines/" + id, { handed: now }, true);
 	}
 
 	armAlarm() {
@@ -524,11 +580,11 @@ export class House extends DurableObject {
 
 	/** Write a document: replace it, or (merge) add fields to one that exists. False when merging into nothing. */
 	putDoc(path, data, merge = false) {
-		let next = data;
+		let next = plain(data);
 		if (merge) {
 			const row = this.sql.exec("SELECT data FROM docs WHERE path = ?", path).toArray()[0];
 			if (!row) return false;
-			next = { ...JSON.parse(row.data), ...data };
+			next = { ...JSON.parse(row.data), ...next };
 		}
 		this.sql.exec("INSERT INTO docs (path, data, at) VALUES (?, ?, ?) ON CONFLICT (path) DO UPDATE SET data = excluded.data, at = excluded.at",
 			path, JSON.stringify(next), Date.now());
@@ -551,7 +607,7 @@ export class House extends DurableObject {
 	/** The café's data, moved from claude.ai once: refused when the café already has any. */
 	importDocs(docs) {
 		if (this.sql.exec("SELECT COUNT(*) AS n FROM docs").one().n) return false;
-		for (const [path, data] of Object.entries(docs)) this.sql.exec("INSERT INTO docs (path, data, at) VALUES (?, ?, ?)", path, JSON.stringify(data), Date.now());
+		for (const [path, data] of Object.entries(docs)) this.sql.exec("INSERT INTO docs (path, data, at) VALUES (?, ?, ?)", path, JSON.stringify(plain(data)), Date.now());
 		this.tell({ type: "reload" });
 		return true;
 	}

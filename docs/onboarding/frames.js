@@ -112,7 +112,7 @@ screen("Layout: the shell", false);
     ["The intercom.", "The café can't wake a cat. What you say is kept, and the cat hears it the next time it checks in."],
     ["The glovebox.", "Loose notes and held pull requests wait in the litter box until you check them."]]) {
     const li = col(2, "part"); li.appendChild(text(l[0], 14, BOLD)); li.appendChild(text(l[1], 13, REG, GREY, 560)); c.appendChild(li); }
-  c.appendChild(text("The seatbelts and brakes come as a Claude Code plugin. Two lines fit them:", 13, REG, GREY, 560));
+  c.appendChild(text("The seatbelts and brakes come as one Claude Code plugin. Type these two lines in a terminal where Claude Code is installed, or put them in a cloud environment's setup script. With a front desk (a gateway), the same plugin is how every cat checks in there: give your sessions its address and your key as CATIO_URL and CATIO_TOKEN.", 13, REG, GREY, 560));
   const code = col(4, "install lines"); for (const l of ["claude plugin marketplace add https://github.com/charredlatte/Pretty-Project-Portfolio.git", "claude plugin install kittychat-house-rules@kittychat --scope user"]) code.appendChild(text(l, 12, REG, INK, 560)); c.appendChild(code);
   step(6, "How it works", c); }
 

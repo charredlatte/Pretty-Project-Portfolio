@@ -15,4 +15,5 @@
 | Game UI Pack – Pastel Edition (itch.io) | SC_siosio | The map panel: its panel (light and dark), buttons, icons and the minimap's view frame (`licensed/pastel/`, cut and recoloured by `build-art.py`); Build mode's tools to come (`docs/camera-and-minimap.md`) | No. Use in websites and changes allowed; credit required ("Game UI Pack created by SC_siosio"); no redistribution, no uploading to a repository, and the files must not be easy to extract. |
 
 `art/licensed/` is gitignored and is published only as files of the private artifact.
-Rebuild it from Charlotte's ten zips with `catio/tools/build-art.py`.
+Rebuild it from Charlotte's ten zips with `catio/tools/build-art.py <the folder they are in>`: it knows each
+pack by a file only that pack has, so their names and order don't matter.

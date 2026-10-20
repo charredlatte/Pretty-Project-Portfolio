@@ -1,6 +1,6 @@
 ---
 name: scout
-description: Finds where things are in a repo and reports paths and line numbers, nothing else. Use for any search that would otherwise grep the whole repo from the main session, or read many files to find one fact. Runs on Haiku and never edits.
+description: Finds where things are in a repo and reports paths and line numbers, nothing else. Use for any search that would otherwise grep the whole repo from the main session, or read many files to find one fact. Runs on Haiku and never edits. Spawn it with model haiku named on the call, since the house rules refuse a spawn that names no model.
 model: haiku
 tools: Glob, Grep, Read, Bash
 maxTurns: 12

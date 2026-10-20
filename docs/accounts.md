@@ -15,7 +15,7 @@ The gateway (`harness/gateway/`) already has every piece an account needs, each 
 | Agents' key | one `CATIO_TOKEN` secret, `props.user: "agent"` | a key per account, stored hashed; `resolveExternalToken` looks it up |
 | The queen's key | a registry key with the role `queen`, seeded from the `CATIO_QUEEN` secret for the first account (her runner, `harness/runner`) | any account mints one from its café (`POST /api/keys {role: "queen"}`); the runner routes (`/api/runner/*`) and `/mcp` read the role, and the runner acts in that key's house |
 
-The page needs nothing new: the `Catio` connector is OAuth per claude.ai user, so each person's page reads
+The page needs nothing new: the `CATIO` connector is OAuth per claude.ai user, so each person's page reads
 their own house. GitHub needs nothing either: `list_repos` is Claude Code Remote's, per claude.ai user.
 
 ## The stack: what's there, and nothing else

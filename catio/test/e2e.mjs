@@ -2424,6 +2424,33 @@ if (LOCAL) {
   });
   await ctx.close();
 }
+// The walkthrough's localhost player: catio_mcp.py --serve answers its tools by POST only, so the page must ask it that
+// way; and with no front desk the queen can't wake, so she says so instead of "start her runner".
+if (LOCAL) {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+  const page = await ctx.newPage();
+  const errors = [], asked = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.route("**/api/list_agents", (r) => {
+    asked.push(r.request().method());
+    if (r.request().method() !== "POST") return r.fulfill({ status: 404, contentType: "application/json", body: '{"error": "the tools are POST only"}' });
+    return r.fulfill({ contentType: "application/json", body: JSON.stringify({ agents: [] }) });
+  });
+  await page.goto(LOCAL);
+  for (let i = 0; i < 100 && asked.length < 2; i++) await page.waitForTimeout(50);   // the probe, then refreshAgents: up to 5 s
+  await check("on localhost the page asks catio_mcp.py --serve for its agents by POST", async () =>
+    expect(asked.length >= 2 && asked.every((m) => m === "POST"), "asked by " + asked.join(", ")));
+  await toFloor(page, "ground");
+  await page.mouse.move(8, 8);
+  await page.locator("#cats .cat.queen").hover();
+  await settle(page);
+  await check("on localhost the queen's hover says she only wakes with a front desk, not to start a runner", async () => {
+    const t = await page.locator("#tip").innerText();
+    expect(t.includes("front desk") && !t.includes("runner"), t);
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
 
 /* ---------- 9. the UI audit's leftovers (phase 0): alerts that stay, the sorter's time limit, Still cats ---------- */
 {
@@ -2484,6 +2511,20 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
   const { page, ctx } = await open("");
   await page.waitForTimeout(1500);   // past the second the wizard gives the rooms
   await check("a café with rooms never sees the wizard", async () => expect(await page.locator("#setupDlg[open]").count() === 0, "wizard open"));
+  await ctx.close();
+}
+// The first user test (5 October): with no licensed art, which is every invited guest and every fresh clone, the
+// Welcome step threw "NOART is not defined" and the wizard never opened.
+{
+  const { page, ctx, errors } = await open("?mode=empty", { base: NOART });
+  await check("with no licensed art the wizard still opens on Welcome, saying once that the art isn't here", async () => {
+    await wizard(page);
+    expect(await page.locator("#setupDlg[open]").count() === 1, "wizard not open");
+    const words = await page.locator("#setupDlg").innerText();
+    expect(words.split("The cat art isn't here").length === 2, "the art note, not once: " + words);
+    expect(words.split("All your Claude chats").length === 2, "the welcome, not once: " + words);
+    expect(!errors.some((e) => /NOART|ReferenceError/.test(e)), errors.join(" | "));
+  });
   await ctx.close();
 }
 {
@@ -2783,6 +2824,121 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
     expect(dlg2.x >= 0 && dlg2.x + dlg2.width <= 390, JSON.stringify(dlg2));
     expect(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), "horizontal scroll");
   });
+  await ctx.close();
+}
+// The walkthrough's invitee, on the café's own address: no GitHub button that can only fail, the cats that checked in
+// counted, and How it works saying the plugin is how a cat checks in, where to type the lines and the two variables.
+{
+  const { page, ctx, errors } = await open("?via=gateway&mode=empty");
+  const nextStep = async () => { await page.click("#setupDlg button[type=submit]"); await settle(page); };
+  await wizard(page);
+  await nextStep(); await nextStep();
+  await check("on its own address the GitHub step offers no Connect GitHub, and says to file repositories under Edit rooms", async () => {
+    const t = await page.locator("#setupDlg").innerText();
+    expect(await page.locator("#ghConnect").count() === 0, "a Connect GitHub that can only fail");
+    expect(t.includes("Edit rooms") && !t.includes("Claude GitHub App"), t);
+  });
+  await nextStep();
+  await check("on its own address the Sessions step counts the cats that checked in", async () => {
+    const t = await page.locator("#setupDlg").innerText();
+    expect((await page.locator("#setupTitle").innerText()) === "Sessions", await page.locator("#setupTitle").innerText());
+    expect(t.includes("2 cats have checked in"), t);
+  });
+  await nextStep(); await nextStep();
+  await check("on its own address How it works says the plugin checks the cats in, where to type it, and CATIO_URL and CATIO_TOKEN", async () => {
+    const t = await page.locator("#setupDlg").innerText();
+    expect(t.includes("check-in") && t.includes("terminal") && t.includes("CATIO_URL") && t.includes("CATIO_TOKEN"), t);
+    expect((await page.locator("#cafeAddress").innerText()).startsWith("CATIO_URL="), "no address");
+  });
+  await check("no page errors through the wizard on its own address", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+// The first outside player (5 October) made his Antigravity agent's key by pasting a fetch into the browser's console,
+// because the café had no button for it. On its own address the House menu has Keys: the account's keys by name, each
+// with a Delete that asks first, and Make a key, which shows the new key once beside CATIO_URL, and nowhere else.
+{
+  const { page, ctx, errors } = await open("?via=gateway");
+  const T0 = (f, a) => page.evaluate(f, a);
+  const keysOpen = async () => { await openHouse(page); await menuButton(page, "Keys").click(); await settle(page); };
+  await openHouse(page);
+  await check("on its own address the House menu has Keys, opening the account's keys by name", async () => {
+    expect(await menuButton(page, "Keys").count() === 1, await menuText(page));
+    await menuButton(page, "Keys").click(); await settle(page);
+    expect(await page.locator("#keysDlg[open]").count() === 1, "no Keys card");
+    const t = await page.locator("#keysDlg").innerText();
+    expect(/report to this café as a cat/.test(t) && /shown once/.test(t) && /password manager/.test(t), t);
+    expect(await page.locator('#keyList li[data-key="bootstrap"]').count() === 1 && await page.locator('#keyList li[data-key="queen"]').count() === 1, t);
+  });
+  let key = "";
+  await check("Make a key shows the new key once, with CATIO_URL as the café's address and CATIO_TOKEN as the key", async () => {
+    await page.fill("#keyName", "laptop");
+    await page.click("#keysDlg button[type=submit]"); await settle(page);
+    key = await T0(() => window.__catio.minted[0]);
+    expect(key && key.length === 64, "no key minted: " + key);
+    expect((await page.locator("#keyValue").inputValue()) === key, "the field isn't the key");
+    expect((await page.locator("#keyUrl").inputValue()) === (await T0(() => location.origin)), "the address isn't the café's");
+    const t = await page.locator("#keysDlg").innerText();
+    expect(t.includes("CATIO_URL") && t.includes("CATIO_TOKEN") && /shown this once/.test(t), t);
+    expect(await page.locator("#keyValue").evaluate((i) => i.readOnly) && await page.locator("#keyUrl").evaluate((i) => i.readOnly), "a setting can be edited");
+    expect(await page.locator('#keysDlg button[aria-label="Copy CATIO_TOKEN"]').count() === 1, "no Copy beside the key");
+    expect(await page.locator('#keyList li[data-key="laptop"]').count() === 1, "laptop isn't listed");
+    expect(!(await toast(page)).includes(key), "the key is in a note");
+  });
+  await check("the key goes with the card, and is nowhere in the database, the browser's storage or a tool call", async () => {
+    await page.click("#keysDlg .actions .btn:has-text('Close')"); await settle(page);
+    const found = await T0((k) => {
+      const where = [];
+      if (document.documentElement.outerHTML.includes(k)) where.push("the page");
+      if ([...document.querySelectorAll("input, textarea")].some((i) => i.value.includes(k))) where.push("a field");
+      if (JSON.stringify(window.__catio.store).includes(k) || JSON.stringify(window.__catio.writes).includes(k)) where.push("the database");
+      if (JSON.stringify(window.__catio.tools).includes(k)) where.push("a tool call");
+      for (const s of [localStorage, sessionStorage]) for (let i = 0; i < s.length; i++) if ((s.key(i) + s.getItem(s.key(i))).includes(k)) where.push("storage");
+      return where;
+    }, key);
+    expect(!found.length, "the key is still in " + found.join(", "));
+    await keysOpen();
+    expect(await page.locator("#keyValue").count() === 0 && await page.locator('#keyList li[data-key="laptop"]').count() === 1, "opened again, the key shows, or laptop is gone");
+  });
+  await check("Delete asks first, then the key is gone", async () => {
+    const del = page.locator('#keyList li[data-key="laptop"] button');
+    await del.click(); await settle(page);
+    expect((await del.innerText()).trim() === "Yes, delete it", await del.innerText());
+    expect(await T0(() => window.__catio.keys.some((k) => k.name === "laptop")), "deleted without asking");
+    await del.click(); await settle(page);
+    expect(!(await T0(() => window.__catio.keys.some((k) => k.name === "laptop"))), "still kept");
+    expect(await page.locator('#keyList li[data-key="laptop"]').count() === 0, "still listed");
+  });
+  await check("a name already taken shows the gateway's own refusal, and no key", async () => {
+    await page.fill("#keyName", "bootstrap");
+    await page.click("#keysDlg button[type=submit]"); await settle(page);
+    expect((await toast(page)).includes("You already have a key by that name: drop it first."), await toast(page));
+    expect(await page.locator("#keyValue").count() === 0, "a key shown");
+    expect(await T0(() => window.__catio.minted.length) === 1, "minted anyway");
+  });
+  await check("no page errors with the keys", async () => expect(errors.length === 0, errors.join("; ")));
+  await ctx.close();
+}
+for (const [q, why] of [["", "in claude.ai"], ["?gateway=1", "in claude.ai with the gateway's connector"], ["?via=gateway&keys=none", "on an older gateway runtime"]]) {
+  const { page, ctx } = await open(q);
+  await openHouse(page);
+  await check("there is no Keys " + why, async () => {
+    expect((await menuText(page)).includes("Edit rooms"), "no House menu: " + await menuText(page));
+    expect(await menuButton(page, "Keys").count() === 0, await menuText(page));
+  });
+  await ctx.close();
+}
+{
+  const { page, ctx, errors } = await open("?mode=blocked");
+  const nextStep = async () => { await page.click("#setupDlg button[type=submit]"); await settle(page); };
+  await page.click("#houseBtn");
+  await menuButton(page, "Set up again…").click();
+  await wizard(page);
+  await nextStep(); await nextStep(); await nextStep();
+  await check("with the live read blocked, the Sessions step says to ask Claude for a saved copy, and shows the one there is", async () => {
+    const t = await page.locator("#setupDlg").innerText();
+    expect(t.includes("save a copy of your sessions") && t.includes("Claude's saved copy"), t);
+  });
+  await check("no page errors in the blocked wizard", async () => expect(errors.length === 0, errors.join("; ")));
   await ctx.close();
 }
 

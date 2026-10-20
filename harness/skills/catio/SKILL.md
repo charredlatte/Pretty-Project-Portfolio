@@ -51,6 +51,8 @@ with the two commands to use. Handle it as above, except:
 - fetch a delivered file with `python3 "${CLAUDE_PLUGIN_ROOT}/hooks/report.py" pick <file id>`, which prints where
   it saved it.
 
+On Windows, use `py` (or `python`, where there is no `py`) in place of `python3`, as the `[Catio]` turn does.
+
 There is nothing to mark: the gateway hands each note, request and file over once.
 
 ## Catch-up (start of a session, or "check the brain")

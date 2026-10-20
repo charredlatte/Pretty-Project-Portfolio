@@ -1,0 +1,44 @@
+name: Something isn't working
+description: The café, the gateway or the house rules didn't do what you expected.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for telling us. Never paste a password, a key or a secret here: we never need them.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Which café?
+      options:
+        - My own gateway, on my Cloudflare account
+        - Charlotte's gateway, with an invite
+        - The café in claude.ai (an artifact)
+        - The café on my computer (localhost)
+        - The house rules plugin, in a Claude Code session
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: words
+    attributes:
+      label: The words on the screen
+      description: Copy them as text, the whole red line if there is one. A screenshot can go below as well.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: did
+    attributes:
+      label: What you did, step by step
+      placeholder: "1. Opened my Worker's address\n2. ..."
+    validations:
+      required: true
+  - type: input
+    id: fork
+    attributes:
+      label: Running your own? Your fork, and when you last pressed Sync fork
+      placeholder: "github.com/you/Pretty-Project-Portfolio, synced today"
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else (screenshots welcome)

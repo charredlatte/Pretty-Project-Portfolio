@@ -1,5 +1,6 @@
 ---
-project: LibreSprite  # a guess by litterbox/sort.py: check it, then delete this comment to file these notes
+project: pixel-art-app
+date: 2026-10-11
 ---
 
 # 3 to 5 October 2026: what the café's sessions left (sifted)

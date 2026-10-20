@@ -18,13 +18,14 @@ Making these one setting, read from one place, is the step that turns "run your 
 | `catio/index.html` | `CATIO_URL` | Her café's artifact link, quoted in every file delivery so the session knows where to fetch the file | Your café's artifact link |
 | `catio/index.html` | `INSTALL` | The two install lines the wizard's How it works step shows | Your fork's address in the first line |
 | `catio/index.html` | `"charredlatte/" + rp` in `openNewCat()` | Turns a bare repository name in a room into one of her repositories when New cat starts a session | Your GitHub name, or write `owner/repo` in Edit rooms |
-| `catio/index.html` | `GATEWAY = "CATIO"` | The connector the page asks claude.ai for | Name your gateway's connector `CATIO`, as hers is (`harness/gateway/README.md` says `Catio`) |
+| `catio/index.html` | `GATEWAY = "CATIO"` | The connector the page asks claude.ai for | Name your gateway's connector `CATIO`, as hers is |
 | `harness/rules.json` | `catio` | The café every session is told it lives in, and where the `catio` skill reads and writes | Your café's artifact link |
 | `harness/rules.json` | `public` | The repositories where nothing may credit Claude | Your public repositories, or none |
 | `harness/rules.json` | `merging.audits`, `merging.review` | The skills a self-merge needs to have run, `ponytail-audit` and `code-review`; the first even with the opening audit switched off | Skills you have |
 | The rules' skills | `ponytail-audit`, `browser-agent-preflight` | Called by the rules, not in this repository (`code-review` comes with Claude Code) | Install them, or switch their rules off in a repository's `.claude/catio-rules.json` |
 | `harness/README.md`, `.claude/settings.json` | The `kittychat` marketplace | Where the house rules are installed from | Your fork |
 | The gateway | `CATIO_HANDLE` (a Worker secret: a plain variable is wiped by each deploy from GitHub) | Names the first account, made by the first request; `charlotte` when unset (`src/registry.js`) | Your handle, set with `CATIO_PASSWORD` |
+| `harness/gateway/wrangler.jsonc` | `name`: `catio-gateway` | The Worker Workers Builds deploys; it refuses a build when this differs from the Worker's name in Cloudflare | Your Worker's name, on your fork only |
 | `catio/data/rooms.json` | Her rooms | Seeds a fresh browser's localhost café once; after that, Edit rooms | Your rooms, or `{}` to get the wizard |
 | `artifacts.json` | Her published pages | Where republishing goes | Yours, once published |
 | `README.md`, `catio-plugin/skills/catio/SKILL.md`, `harness/gateway/README.md` | `charredlatte/Pretty-Project-Portfolio` | The clone in Running your own and in the setup skill, and the repository the gateway's Worker is imported from (and redeployed from on every merge) | Your fork |

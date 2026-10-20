@@ -68,7 +68,9 @@ its last sentence alone, because the wireframe ends on the name field and the pa
 so they still name the real tools and commands. The look is `sh catio/test/run.sh look setup`. The suite stands where it stood: 225 pass and one fails, "on its
 own address the café is live through the gateway, with no warning sign", the same on the merge base. In a checkout
 with no `art/licensed/` the sign shows what is missing, so it shows in gateway mode too. It is a real failure and
-someone's to fix; this change neither caused it nor hides it.
+someone's to fix; this change neither caused it nor hides it. (Since then The look's checks have joined the suite,
+and they read the packs' files: on 5 October a checkout with no `art/licensed/` has 29 checks failing, every one
+of them needing the art. CLAUDE.md, "Checking a change", says so.)
 
 ## Decided 4 October 2026: the harness is a car
 
