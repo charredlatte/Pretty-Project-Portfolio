@@ -81,7 +81,7 @@ struct Menu {
 
 /// The cards. Each puts what she came for first and folds the rest.
 enum class Card {
-    None, Cat, Queen, QueenSettings, Pile, Adopt, Cabinet, Brain, Rules, Maps, EditRooms, Setup, Credits
+    None, Cat, Queen, Pile, Adopt, Cabinet, Brain, Rules, Maps, EditRooms, Setup, Credits
 };
 
 struct Frame {

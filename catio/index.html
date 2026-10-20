@@ -722,13 +722,13 @@ dialog.scene { width: min(980px, calc(100vw - 24px)); height: 792px; padding: 0 
   .sk-plate { grid-row: 3; }
   .sk-plate.you { grid-column: 1; justify-self: start; }
   .sk-plate.her { grid-column: 2; justify-self: end; }
-  .sk-id h2 { font: var(--px-size)/calc(var(--px-size) + 6px) var(--pixel); }   /* the pack's font draws at 18 or 36: at 36 her name broke mid-word */
+  .sk-id h2 { font: var(--px-size)/calc(var(--px-size) + 6px) var(--pixel); }   /* a tighter line on a phone; the size is the base rule's */
   .sk-quests { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(110px, 36%) minmax(0, 1fr); }
   .ownerprev { grid-template-columns: minmax(0, 1fr); justify-items: start; }
   /* a short phone (the keyboard up, or a small one): the two of them give way again so the line keeps a bubble's worth */
   @media (max-height: 620px) { .owner, .qchar { --fz: .4; } }
 }
-@media (prefers-reduced-motion: reduce) { .sk-tab[aria-selected="true"]::before, .sk-next::after { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .sk-tab[aria-selected="true"]::before, .sk-next::after, .qchar.talking, .owner.talking { animation: none; } }
 /* her turn as it goes, under the talk on her side (4 October). Waking is Animal Crossing's pause: the grey bubble
    with her name on a tab. At work it is The Sims' action queue: each step done a small pressed-in tile with the
    pack's tick, the one she is on a lit cream tile. The dots are art pixels; stopping is the pink button and the cross. */
@@ -3221,7 +3221,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // Talk is a game dialogue: the two of them on the hall's floor, the line being said between them, one at a time.
   // Quest log is everything waiting on her in a list, the chosen one open beside it. The last four are what the
   // Settings overlay held. Opening it counts the handoffs as read.
-  let QSEL = null, SELIDX = 0;   // the quest open in the log ("q:<id>" for homework, "d:<deck>:<id>" for a card), and where it sat in the list
+  let QSEL = null, SELIDX = 0, landList = false;   // landList: a hand-in just took the focus with its form, so the next quest gets it   // the quest open in the log ("q:<id>" for homework, "d:<deck>:<id>" for a card), and where it sat in the list
   function openQueen(section) {
     const dlg = $("queenDlg"); dlg.replaceChildren();
     const q = queenOf();
@@ -3323,6 +3323,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         .sort((a, b) => a.at - b.at).slice(-20);
       if (!items.some((it) => it.kind !== "handoff")) items.unshift({ key: "greet", kind: "greet", text: q.greeting, at: 0 });   // nothing said yet: her greeting
       if (S.queenTurn && S.queenTurn.text) items.push({ key: "live", kind: "live", text: S.queenTurn.text, at: 0 });
+      while (items.length > 20) items.shift();   // the last twenty, her live line and greeting counted
       last = items.length - 1;
       const found = follow ? -1 : items.findIndex((it) => it.key === curKey);
       pos = follow ? last : found >= 0 ? found : Math.min(pos, last);
@@ -3344,7 +3345,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       stage.dataset.speaker = items[pos] && items[pos].kind === "owner" ? "owner" : "queen";
       counter.textContent = (pos + 1) + " / " + (last + 1);
       earlier.hidden = pos === 0; onward.hidden = pos === last; lines.classList.toggle("end", pos === last);
-      ul.scrollTop = same ? keep : 0;
+      ul.scrollTop = curKey === "live" ? ul.scrollHeight : same ? keep : 0;   // her words as they come; a line she is reading stays put
       dress();
       drawWork();
     };
@@ -3537,7 +3538,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       drawn = sig;
       const act = document.activeElement;   // the answer she is typing keeps its focus and caret through the rebuild
       const keep = act && hw.contains(act) && act.dataset.q ? { q: act.dataset.q, s: act.selectionStart, e: act.selectionEnd } : null;
-      const inList = act && (qlist.contains(act) || act === document.body || act === dlg);   // in the list, or lost with the form she handed in
+      const inList = (act && qlist.contains(act)) || landList; landList = false;   // in the list, or just handed in from the keyboard
       qlist.replaceChildren(); hw.replaceChildren();
       hw.hidden = !all.length;
       if (!items.length) qlist.appendChild(el("p", "sk-none", "No open quests. Nothing is waiting on you."));
@@ -3591,6 +3592,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
               await hostCall("answer", { quiz: z.id, answers });
               drafts.delete(z.id);
               HANDED.add(z.id);   // off her desk now, whatever the next list read says
+              landList = hand.contains(document.activeElement) || document.activeElement === document.body;
               toast("Handed in." + (cat ? " " + cat.name + " has your answers." : ""));
               render(); if (QUEEN_UI) { QUEEN_UI.state(); QUEEN_UI.homework(); }   // her card may have closed meanwhile
               await refreshQuizzes();
@@ -3791,7 +3793,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     // focus goes where she came for; never onto an answer that a held key would hand in
     if (current === "talk") say.focus();
     else if (current === "quests") { const b = qlist.querySelector('[aria-current="true"]') || qlist.querySelector(".sk-q"); if (b) { b.scrollIntoView({ block: "nearest" }); b.focus(); } }
-    else { const t = panels[current].querySelector("input, select, textarea, button"); if (t) t.focus({ preventScroll: true }); }
+    else tabBtns[current].focus({ preventScroll: true });   // the tab: a held Enter from the menu item only re-selects it
     if (q.unread) save((db) => db.doc("queens/house").set(Object.assign({}, S.queens.house || {}, { readAt: opened })));   // read: one write, on her action
     if (voiceOn) speak(q.greeting, currentVoice());
   }
