@@ -46,10 +46,10 @@ bool needs(const Cat* c) { return info(c->mood).needs; }
 
 // A link the app will hand to the system: a web address, never a file or an app's own scheme (app.cpp's act() refuses
 // the rest too; an agent reports its own link, with the key a leak would be).
-bool web(std::string_view link) { return link.rfind("https://", 0) == 0; }
+bool web(std::string_view link) { return web_link(link); }
 
 // where a cat is now: a cat waiting on her is in the line at the front door, whatever its room
-std::string where_is(const Cat* c) { return std::string(stands_in(*c)); }
+std::string_view where_is(const Cat* c) { return stands_in(*c); }
 
 // VIEW.cats: every cat that is drawn somewhere, which is all of them but the ones napping in the attic
 std::vector<const Cat*> shown(const Frame& f) {
@@ -517,6 +517,7 @@ struct State {
     bool manage = false;
 
     bool online = false;   // signed in to a gateway: the writes are possible
+    bool on_gateway = false;   // on one at all, read or not yet
 
     // a menu or a card taller than the stage scrolls (overflow: auto on the page)
     float menu_scroll = 0, card_scroll = 0;
@@ -591,7 +592,8 @@ void Ui::toggle(const Frame& f, const view::Hit& h) {
     (void)f;
 }
 
-// what a closed menu or card drew is gone at once, not at the next frame: two presses can land in one
+namespace {
+
 // MM.k: device pixels a plan pixel on the minimap; and the plan's point under a screen point on it
 float mm_scale(const Frame& f) { return kMmW / kMmBox[2] * float(std::max(1, f.stage.css)); }
 Pt mm_point(const Frame& f, Rect mm, float x, float y) {
@@ -609,7 +611,8 @@ std::string room_at(manor::Level floor, float ax, float ay) {
 
 // Why an action isn't here: the word a menu puts on its right, and the sentence a test or a hover reads. One table.
 struct WhyNot { std::string_view brief, sentence; };
-WhyNot why_not(Action a) {
+WhyNot why_not(const State& I, Action a) {
+    if (a == Action::OpenRoom && I.on_gateway) return {"reading\u2026", "Your gateway's first read isn't back yet: then the writes are open."};
     if (a == Action::OpenRoom) return {"gateway only", "Only through your gateway: this caf\u00e9 is a folder of documents."};
     return {"not yet", kNotYet};
 }
@@ -617,9 +620,12 @@ WhyNot why_not(Action a) {
 // With a card open only the card answers: the rest is under its shade.
 bool live(const State& I, const Region& r) { return I.card == Card::None || r.id.rfind("card:", 0) == 0; }
 
+// What a closed menu or card drew is gone at once, not at the next frame.
 void forget(std::vector<Region>& regions, std::string_view prefix) {
     regions.erase(std::remove_if(regions.begin(), regions.end(), [&](const Region& r) { return r.id.rfind(prefix, 0) == 0; }), regions.end());
 }
+
+}  // namespace
 
 void Ui::close_menu() {
     impl_->menu = Thing::None;
@@ -651,6 +657,7 @@ const std::string& Ui::card_key() const { return impl_->card_key; }
 
 bool Ui::map_open() const { return impl_->map_open; }
 void Ui::set_map_open(bool open) { impl_->map_open = open, impl_->map_decided = true; }
+bool Ui::map_known() const { return impl_->map_decided; }
 
 bool Ui::escape() {
     if (impl_->card != Card::None) { close_card(); return true; }
@@ -659,6 +666,11 @@ bool Ui::escape() {
 }
 
 void Ui::online(bool on) { impl_->online = on; }
+
+void Ui::forget_words() {
+    impl_->pixel.forget_words();
+    for (auto& [key, b] : impl_->bodies) if (b) b->forget_words();
+}
 
 void Ui::forget_art() { impl_->pixel.close(); }
 
@@ -691,9 +703,8 @@ bool Ui::can(Action a) const {
 
 std::string_view Ui::cannot(Action a) const {
     if (can(a)) return {};
-    return why_not(a).sentence;
+    return why_not(*impl_, a).sentence;
 }
-std::string_view Ui::credits() const { return kCredits; }
 
 // ---- painting --------------------------------------------------------------------------------------
 
@@ -741,7 +752,6 @@ struct Painter {
         const float h = I.pixel.measure("A", cc.css).y;
         I.pixel.put(cc, t, std::round(x), std::round(y + (line * k * times - h) / 2), col);
     }
-    float px_wide(std::string_view t, int times) const { return I.pixel.measure(t, int(k) * times).x; }
 
     const draw::Body& body(int weight, float size) { return I.body(weight, size); }
     void text(const draw::Body& b, std::string_view t, float x, float y, float line, Colour col) {
@@ -1263,7 +1273,7 @@ float menu_pass(Painter& P, const Menu& m, float x0, float y0, float w) {
                 y += bh;
                 if (all_off && !b.items.empty()) {
                     const draw::Body& a = P.body(800, 12);
-                    const std::string why(why_not(b.items.front().action).brief);
+                    const std::string why(why_not(P.I, b.items.front().action).brief);
                     P.text(a, why, cx + cw - a.measure(why).x, y + 2 * k, 18, kSoft);
                     y += 18 * k + 2 * k;
                 }
@@ -1293,7 +1303,7 @@ float menu_pass(Painter& P, const Menu& m, float x0, float y0, float w) {
                         P.cell(art::Id::UiPointer, Rect{0, 0, 7, 12}, Rect{r.x + 5 * k, r.y + h / 2 - 6 * k, 7 * k, 12 * k});
                     P.px(it.label, tx, r.y + (h - 22 * k) / 2, 22, ink);
                     // a disabled item says why, after its own count ("3 waiting · not yet")
-                    const std::string why(why_not(it.action).brief);
+                    const std::string why(why_not(P.I, it.action).brief);
                     const std::string aside = enabled ? it.aside : it.aside.empty() ? why : it.aside + " \u00b7 " + why;
                     if (!aside.empty()) {
                         const draw::Body& a = P.body(800, 12);
@@ -1311,7 +1321,7 @@ float menu_pass(Painter& P, const Menu& m, float x0, float y0, float w) {
 }  // namespace
 
 draw::Rect Ui::panel(const Frame& f) const {
-    const float k = float(std::max(1, f.stage.css)), U = k * (f.stage.narrow() ? 1 : 2);
+    const float k = float(std::max(1, f.stage.css)), U = float(f.stage.u());
     return map_boxes(f, impl_->map_open, k, U).panel;
 }
 
@@ -1663,6 +1673,7 @@ void Ui::draw(const draw::Ctx& c, const Frame& f) {
     I.card_box = {};
     if (!f.house || !f.cam) return;
     if (!I.map_decided) I.map_open = !f.stage.narrow(), I.map_decided = true;   // folded at first on a phone
+    I.on_gateway = f.gateway;
     Painter P(c, I, f);
     P.paint = false;   // where the brand and the sign are this frame, for the House menu to open under them
     draw_hud(P, f);
@@ -1688,7 +1699,7 @@ void Ui::draw(const draw::Ctx& c, const Frame& f) {
             I.menu_scroll = std::max(0.f, std::min(I.menu_scroll, full - h));
             I.menu_tall = full > h;
             const float hud_bottom = std::max(I.brand.y + I.brand.h, I.status.y + I.status.h);   // the whole #hud, sign and all
-            Pt at = I.menu_at && I.menu != Thing::House ? *I.menu_at : place_menu(f.stage, I.menu, I.anchor, Pt{w, h}, panel(f), hud_bottom);
+            Pt at = I.menu_at ? *I.menu_at : place_menu(f.stage, I.menu, I.anchor, Pt{w, h}, panel(f), hud_bottom);
             // kept where it was opened (a redraw never slides it from under the pointer), but never past the stage's
             // edge when it grows or the window shrinks
             const float g = 12 * P.k;

@@ -458,6 +458,13 @@ class NetTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn(f"isn't all here (0 of {len(from_list)})", r.stdout, "the cache is the gateway's, and only for her signed in")
 
+    def test_a_gateway_given_as_nothing_is_asked_for(self):
+        r = subprocess.run([str(CAFE), "--gateway", "/", "--home", str(Path(self.dir.name) / "home"), "--shot", str(Path(self.dir.name) / "blank.png"),
+                            "--size", "390x844", "--do", "type owner; key tab; type x; key enter"], capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("form: Fill in", r.stdout, "the sign-in asks for what is missing rather than falling over")
+        self.assertFalse(self.state.seen)
+
     def test_an_empty_field_says_so(self):
         self.serve_art()
         r = self.app(f"type {USER}; key enter")

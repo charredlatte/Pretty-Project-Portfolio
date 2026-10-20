@@ -129,6 +129,8 @@ public:
     bool open(const std::filesystem::path& ttf);
     /// Close it: signed out, the next account may not be served the pack's font.
     void close();
+    /// The GPU lost its textures: the words drawn so far are drawn again when next asked for.
+    void forget_words();
     /// Draw with this round font instead while sprout.ttf is missing, at `px` a CSS pixel: opened at each
     /// size it is drawn at, so a name drawn twice as big is as crisp.
     void fallback(const std::filesystem::path& ttf, float px);
@@ -168,6 +170,8 @@ public:
     /// shows where she is typing, as an input scrolls to its caret.
     std::string tail(std::string_view text, float width, bool as_typed = false) const;
     void put(const Ctx& c, std::string_view text, float x, float y, Colour col) const;
+    /// The GPU lost its textures: the words drawn so far are drawn again when next asked for.
+    void forget_words();
 
 private:
     std::vector<std::string> lay_out(std::string_view text, float width, int max_lines) const;

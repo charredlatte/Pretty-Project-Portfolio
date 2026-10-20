@@ -34,6 +34,7 @@ struct Stage {
     int w = 0, h = 0;
     int css = 1;
     bool narrow() const { return w <= 560 * css; }   ///< @media (max-width: 560px): a phone
+    int u() const { return css * (narrow() ? 1 : 2); }  ///< --u, the interface's art pixel: 2px, or 1px on a phone
 };
 
 struct Cam {

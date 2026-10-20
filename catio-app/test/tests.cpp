@@ -458,6 +458,14 @@ void the_interface(const std::string& dir) {
     std::string arg;
     const bool brand = face.press(f, 40, 40, &a, &arg);
     check(brand && a == Action::OpenHouse && face.menu_kind() == v::Thing::House, "pressing the brand opens the House menu");
+    face.draw(c, f);
+    const auto before = face.find("Check now");
+    ui::Frame troubled = f;
+    troubled.status = "Can't reach your gateway (an invented reason, long enough to take the sign onto a second line). Trying again in half a minute.";
+    face.draw(c, troubled);
+    const auto after = face.find("Check now");
+    check(before && after && before->y == after->y, "an open House menu stays where it opened when the sign comes or goes (the page's MENU.at)");
+    face.draw(c, f);
     // every item, pressed once, a frame drawn between presses as the app draws one
     std::set<std::string> pressed;
     std::set<Action> seen;

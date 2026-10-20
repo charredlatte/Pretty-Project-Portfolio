@@ -59,6 +59,10 @@ namespace catio::ui {
 /// grown to it: `@media (pointer: coarse) { .mi { min-height: 44px } }` and the cats' hit boxes.
 inline constexpr float kTouch = 44.0f;
 
+/// The one rule for a link handed to the system: a web address. A cat's link is what its agent reported,
+/// and an agents' key is the one a leak would be, so never file:, smb: or an app's own scheme.
+inline bool web_link(std::string_view link) { return link.rfind("https://", 0) == 0; }
+
 /// What a press asks the app to do. app.h's act() is the only place one becomes a write.
 enum class Action {
     None,
@@ -246,6 +250,8 @@ public:
     void online(bool on);
     /// Signed out: close the pack's font, which the next account may not be served.
     void forget_art();
+    /// The GPU lost its textures: every word is drawn again when next needed.
+    void forget_words();
     /// A wheel or a finger over a card or a menu taller than the stage: scroll it by `dy` device pixels
     /// (positive shows what is further down). False when there is nothing there to scroll.
     bool scroll(const Frame& f, float x, float y, float dy);
@@ -258,11 +264,13 @@ public:
     std::string_view cannot(Action a) const;
     /// Whether this build can do it at all.
     bool can(Action a) const;
+    /// Whether the map panel's open or folded is known yet (a phone's first frame folds it): until then the
+    /// prefs have nothing to keep.
+    bool map_known() const;
 
     /// SC_siosio's licence requires his credit, word for word, and says it must not be intentionally
     /// hidden. The page keeps it at the foot of the screen and the foot of the House menu, because a
     /// phone has no room for a footer; so does this. The words are catio/art/CREDITS.md's.
-    std::string_view credits() const;
 
 private:
     struct Impl;

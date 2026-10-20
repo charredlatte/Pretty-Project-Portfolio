@@ -71,11 +71,11 @@ enum class State {
     Missing     ///< a fetch failed; the stage says the code and offers Retry
 };
 
-/// A fetched file made ready off the main thread: decoded (a PNG) or checked (the font), and written to the
-/// cache. prepare() touches no renderer and nothing of an Art, so the network's thread runs it, and the frame
-/// loop only adopts what is ready.
+/// A fetched file made ready off the main thread: decoded (a PNG) or checked (the font). prepare() touches no
+/// renderer, no file and nothing of an Art, so the network's thread runs it; adopt() writes it to the cache on the
+/// main thread, so nothing a signed-out session asked for is ever written after it.
 struct Fetched;
-std::shared_ptr<Fetched> prepare(Id id, std::string_view bytes, const std::filesystem::path& cache_dir);
+std::shared_ptr<Fetched> prepare(Id id, std::string bytes);
 
 /// The cache, and the textures over it.
 class Art {
@@ -99,6 +99,8 @@ public:
     bool adopt(Id id, const std::shared_ptr<Fetched>& ready);
     /// Throw the cache away: "Fetch the art again" in the House menu.
     void forget_all();
+    /// The GPU lost its textures (a device reset): each is made again from its surface when next drawn.
+    void forget_gpu();
 
     State state() const;
     int have() const;

@@ -91,6 +91,8 @@ enum class Dir { Left, Right, Up, Down };
 /// Load the generated plan. False if the file is missing or does not parse — the app then says so
 /// rather than drawing an empty meadow.
 bool load(const std::filesystem::path& manor_json);
+/// The same from its text: on a phone the plan is inside the app's package, which only SDL's files reach.
+bool load_text(std::string_view json);
 bool loaded();
 
 Box world();

@@ -27,6 +27,7 @@ namespace catio::art {
 /// A fetched file made ready off the main thread (art.h's prepare()).
 struct Fetched {
     SDL_Surface* surface = nullptr;   ///< owned until adopted
+    std::string bytes;                ///< the file as it came, for the cache
     std::string trouble;              ///< not_a_png, not_a_font, cache_unwritable
     Fetched() = default;
     Fetched(const Fetched&) = delete;

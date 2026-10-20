@@ -13,6 +13,7 @@
 #include "catio/app.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cctype>
 #include <chrono>
 #include <cmath>
@@ -47,9 +48,22 @@ std::string slurp(const std::filesystem::path& p) {
     return s.str();
 }
 
-std::filesystem::path first_of(std::initializer_list<std::filesystem::path> ps) {
-    std::error_code ec;
-    for (const auto& p : ps) if (!p.empty() && std::filesystem::exists(p, ec)) return p;
+// SDL's files reach inside a phone's package (an APK's assets), where std::filesystem sees nothing
+bool readable(const std::filesystem::path& p) {
+    SDL_IOStream* io = p.empty() ? nullptr : SDL_IOFromFile(to_utf8(p).c_str(), "rb");
+    if (io) SDL_CloseIO(io);
+    return io != nullptr;
+}
+std::string read_shipped(const std::filesystem::path& p) {
+    size_t n = 0;
+    void* data = SDL_LoadFile(to_utf8(p).c_str(), &n);
+    std::string out = data ? std::string(static_cast<const char*>(data), n) : std::string();
+    SDL_free(data);
+    return out;
+}
+// the first of these that is there: a file, or a folder holding `probe`
+std::filesystem::path first_of(std::initializer_list<std::filesystem::path> ps, const char* probe = nullptr) {
+    for (const auto& p : ps) if (!p.empty() && readable(probe ? p / probe : p)) return p;
     return {};
 }
 
@@ -120,7 +134,8 @@ struct App::Impl {
     view::Scene scene;
     double now = 0, start = 0;
     bool still = false, coarse = false, quit = false;
-    bool away = false;             // in the background: a phone ends an app that draws there
+    std::atomic<bool> away{false}; // in the background: a phone ends an app that draws there
+    std::vector<In> pending;       // what happened and isn't handled yet: one press a frame
     std::string live = "On this computer", status;
 
     // the gateway
@@ -131,6 +146,7 @@ struct App::Impl {
     double last_read = -1e9;       // when the 30-second clock last struck
     int reads_out = 0;             // documents, cats and homework still on their way
     bool read_once = false;
+    bool read_again = false;       // a read was asked for while one was out
     std::string net_trouble, art_trouble, said, toast;
     double said_until = 0;
     bool said_bad = false;         // what was said is an error (the sign), not news (the toast)
@@ -160,7 +176,7 @@ struct App::Impl {
     std::map<SDL_FingerID, draw::Pt> fingers;   // where each finger is, for the point a pinch zooms about
 
     float k() const { return float(std::max(1, stage.css)); }
-    int u_ui() const { return stage.css * (stage.narrow() ? 1 : 2); }
+    int u_ui() const { return stage.u(); }
 
     ui::Frame frame() const {
         ui::Frame f;
@@ -228,13 +244,16 @@ struct App::Impl {
 
     void ask(Ask what, net::Job job, art::Id id = art::Id::Count, std::string label = {},
              std::shared_ptr<std::shared_ptr<art::Fetched>> ready = {}) {
+        if (!net) return;
         asked[net->send(std::move(job))] = Asked{what, id, std::move(label), std::move(ready)};
         if (what == Ask::Docs || what == Ask::Agents || what == Ask::Quizzes) ++reads_out;
     }
     // the documents, the cats and the homework, together, as the page reads them
     void read_all() {
-        if (!net || reads_out) return;
         last_read = now;
+        if (!net) return;
+        if (reads_out) { read_again = true; return; }   // after a write: read again as soon as this read is back
+        read_again = false;
         read_failed = false;
         ask(Ask::Docs, [](net::Gateway& g) { return g.docs(); });
         ask(Ask::Agents, [](net::Gateway& g) { return g.tool("list_agents", "{}"); });
@@ -250,18 +269,18 @@ struct App::Impl {
             fetching.insert(file->id);
             const std::string path(file->path);
             const art::Id id = file->id;
-            const std::filesystem::path dir = art_dir;
-            // fetched, decoded and written on the net's thread: the frame loop only takes what is ready
+            // fetched and decoded on the net's thread; written to the cache when the frame loop adopts it
             auto ready = std::make_shared<std::shared_ptr<art::Fetched>>();
-            ask(Ask::Art, [path, id, dir, ready](net::Gateway& g) {
+            ask(Ask::Art, [path, id, ready](net::Gateway& g) {
                 net::Reply r = g.art(path);
-                if (r.ok()) *ready = art::prepare(id, r.body, dir), r.body = {};
+                if (r.ok()) *ready = art::prepare(id, std::move(r.body)), r.body = {};
                 return r;
             }, id, path, ready);
         }
     }
     void sign_in() {
         if (form.busy) return;
+        if (!form.ask_origin && !net) { form.ask_origin = true, form.field = 0, form.problem = "Fill in your gateway's address."; return; }
         if ((form.ask_origin && net::bare(form.origin).empty()) || form.user.empty() || form.password.empty()) {
             form.problem = form.ask_origin && net::bare(form.origin).empty() ? "Fill in your gateway's address." : form.user.empty() ? "Fill in your handle." : "Fill in your password.";
             form.field = form.ask_origin && net::bare(form.origin).empty() ? 0 : form.user.empty() ? 1 : 2;
@@ -415,6 +434,7 @@ struct App::Impl {
     // Whether it is still waiting to be set up is asked again every time, so setting it up in a browser shows here.
     void settle_reads() {
         if (reads_out) return;
+        if (read_again) { read_all(); return; }
         if (!read_failed) net_trouble.clear();
         if (!got_docs || !got_agents || phase == Phase::SignIn) return;
         const bool first = phase == Phase::FirstRead;
@@ -442,7 +462,7 @@ struct App::Impl {
         // what this run doesn't set stays: a run with --gateway <url> keeps the address the sign-in screen saved
         nlohmann::json j = nlohmann::json::parse(slurp(prefs), nullptr, false);
         if (!j.is_object()) j = nlohmann::json::object();
-        j["minimap"] = ui.map_open() ? "open" : "folded";
+        if (ui.map_known()) j["minimap"] = ui.map_open() ? "open" : "folded";   // not a phone's default before its first frame
         j["still"] = still;
         if (form.ask_origin && !origin.empty()) j["gateway"] = origin;
         std::ofstream(prefs) << j.dump();
@@ -554,7 +574,7 @@ struct App::Impl {
         }
         const int have = art->have();
         mix(&have, sizeof have);
-        if (key != world_key) {
+        if (key != world_key && world) {
             world_key = key;
             draw::Ctx wc{&canvas, art.get(), 2, 1};
             SDL_SetRenderTarget(r, world);
@@ -615,6 +635,31 @@ struct App::Impl {
 
     void handle(App& app, const In& in);
 
+    // the world target: the plan's world, doubled (never a number copied out of it)
+    bool make_world() {
+        if (world) SDL_DestroyTexture(world);
+        const draw::Rect wr = view::world_rect();
+        world = SDL_CreateTexture(r, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, int(wr.w), int(wr.h));
+        if (world) SDL_SetTextureScaleMode(world, SDL_SCALEMODE_NEAREST);
+        world_key = 0;
+        return world != nullptr;
+    }
+    // The GPU was reset (a driver update on Windows, a lost context on Android): every texture is gone. Each is
+    // made again from what is kept -- the art's surfaces, the fonts -- as it is next drawn.
+    void lost_device() {
+        if (art) art->forget_gpu();
+        draw::forget_tints();
+        ui.forget_words();
+        make_world();
+    }
+    // A phone's going to the background is told in a watch, as it happens: from the queue it would come after the
+    // next frame had already been drawn, which iOS ends the app for.
+    static bool SDLCALL lifecycle(void* self, SDL_Event* e) {
+        if (e->type == SDL_EVENT_WILL_ENTER_BACKGROUND) static_cast<Impl*>(self)->away = true;
+        if (e->type == SDL_EVENT_DID_ENTER_FOREGROUND) static_cast<Impl*>(self)->away = false;
+        return true;
+    }
+
     void cursor(bool on_something) {
         if (!window || on_something == pointing) return;
         pointing = on_something;
@@ -646,6 +691,7 @@ App::~App() {
     // everything drawn with the renderer -- the world, the art, the tinted sheets, the fonts' words in the Ui -- goes
     // while the renderer still stands; then the renderer, the window and SDL itself
     Impl& I = *impl_;
+    if (I.window) SDL_RemoveEventWatch(Impl::lifecycle, &I);
     if (I.world) SDL_DestroyTexture(I.world);
     I.art.reset();
     draw::forget_tints();
@@ -687,14 +733,14 @@ bool App::start(int argc, char** argv) {
         else { std::fprintf(stderr, "catio_app: what is %s? See include/catio/app.h.\n", a.c_str()); return false; }
     }
     if (I.manor_json.empty()) I.manor_json = first_of({base / "manor.json", src / "generated" / "manor.json"});
-    if (I.assets.empty()) I.assets = first_of({base / "assets", src / "assets"});
+    if (I.assets.empty()) I.assets = first_of({base / "assets", src / "assets"}, "Nunito-Bold.ttf");
 #ifdef CATIO_GATEWAY_ORIGIN
     if (!gateway_given && I.data.empty()) gateway = CATIO_GATEWAY_ORIGIN, gateway_given = true;   // her build
 #endif
 #if defined(SDL_PLATFORM_ANDROID) || defined(SDL_PLATFORM_IOS)
     gateway_given = true;   // a phone has no folder of documents: its gateway, or the sign-in asks for the address
 #endif
-    if (!manor::load(I.manor_json)) { std::fprintf(stderr, "catio_app: no floor plan at %s\n", I.manor_json.string().c_str()); return false; }
+    if (!manor::load_text(read_shipped(I.manor_json))) { std::fprintf(stderr, "catio_app: no floor plan at %s\n", I.manor_json.string().c_str()); return false; }
 
     // where her cookie, the prefs and the art's cache live: the app's own private folder, or the one she names
     if (I.home.empty()) {
@@ -712,7 +758,7 @@ bool App::start(int argc, char** argv) {
 
     if (gateway_given) {
         // the gateway: signed in already, or the sign-in screen first
-        I.form.ask_origin = gateway.empty() || gateway == "ask";
+        I.form.ask_origin = net::bare(gateway).empty() || gateway == "ask";   // "/" or spaces are no address
         I.load_prefs();
         I.origin = net::bare(I.form.ask_origin ? I.form.origin : gateway);
         if (!I.origin.empty()) I.net = std::make_unique<net::Net>(I.origin, I.home / "cookie");
@@ -741,12 +787,10 @@ bool App::start(int argc, char** argv) {
         I.r = I.window ? SDL_CreateRenderer(I.window, nullptr) : nullptr;
         if (!I.r) { std::fprintf(stderr, "catio_app: no window: %s\n", SDL_GetError()); return false; }
         I.vsync = SDL_SetRenderVSync(I.r, 1);
+        SDL_AddEventWatch(Impl::lifecycle, &I);
     }
     I.canvas.r = I.r;
-    const draw::Rect wr = view::world_rect();   // the plan's world, doubled: never a number copied out of it
-    I.world = SDL_CreateTexture(I.r, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, int(wr.w), int(wr.h));
-    if (!I.world) { std::fprintf(stderr, "catio_app: no world target: %s\n", SDL_GetError()); return false; }
-    SDL_SetTextureScaleMode(I.world, SDL_SCALEMODE_NEAREST);
+    if (!I.make_world()) { std::fprintf(stderr, "catio_app: no world target: %s\n", SDL_GetError()); return false; }
 
     int w = I.shot_w, h = I.shot_h;
     float scale = float(I.shot_css);
@@ -800,7 +844,7 @@ void App::act(ui::Action what, std::string_view arg_v) {
         case Action::OpenLink:
             // A cat's link is what its agent reported, and an agents' key is the one a leak would be: only a web address
             // is handed to the system, never a file:, smb: or an app's own scheme.
-            if (arg.rfind("https://", 0) != 0) { I.say("That link isn't a web address, so the app won't open it.", true, 6); break; }
+            if (!ui::web_link(arg)) { I.say("That link isn't a web address, so the app won't open it.", true, 6); break; }
             if (I.window) SDL_OpenURL(arg.c_str());
             else std::printf("open %s\n", arg.c_str());
             break;
@@ -808,14 +852,7 @@ void App::act(ui::Action what, std::string_view arg_v) {
             // the gateway ends the cookie and the file goes, on the net's own thread; the sign-in comes back here at once
             if (!I.net) break;
             I.signed_out("", true);   // the queue emptied of the leaving account's work, the cookie and the art gone, now
-            // then /logout, first in line; and the cache once more, on the net's one thread, so a piece of art a fetch
-            // in flight writes after the sign-out goes too
-            I.net->send([cache = I.own_cache ? I.art_dir : std::filesystem::path()](net::Gateway& g) {
-                g.sign_out();
-                std::error_code ec;
-                if (!cache.empty()) std::filesystem::remove_all(cache, ec);
-                return net::Reply{};
-            }, true);
+            I.net->send([](net::Gateway& g) { g.sign_out(); return net::Reply{}; }, true);   // then /logout, first in line
             break;
         case Action::CheckNow:
             I.art_trouble.clear();
@@ -874,7 +911,6 @@ void App::pump_net() {
 
 void App::events() {
     Impl& I = *impl_;
-    std::vector<In> ins;
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
         SDL_ConvertEventToRenderCoordinates(I.r, &e);
@@ -883,8 +919,8 @@ void App::events() {
         switch (e.type) {
             case SDL_EVENT_QUIT: in.kind = In::Quit; break;
             case SDL_EVENT_WILL_ENTER_BACKGROUND: I.away = true; continue;
-            case SDL_EVENT_RENDER_TARGETS_RESET:
-            case SDL_EVENT_RENDER_DEVICE_RESET: I.world_key = 0; continue;   // the world target's pixels are gone
+            case SDL_EVENT_RENDER_TARGETS_RESET: I.world_key = 0; continue;   // the world target's pixels are gone
+            case SDL_EVENT_RENDER_DEVICE_RESET: I.lost_device(); continue;     // and every other texture with them
             case SDL_EVENT_DID_ENTER_FOREGROUND: I.away = false; refresh(true); continue;
             case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
             case SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED: in.kind = In::Resize; break;
@@ -937,9 +973,13 @@ void App::events() {
             }
             default: continue;
         }
-        ins.push_back(in);
+        I.pending.push_back(in);
     }
-    for (const In& in : ins) {
+    // One press a frame: a press can open a menu or close one, and a menu's buttons are only where they are once it
+    // is drawn, so what came after a press waits for the next frame rather than landing on the last frame's buttons.
+    size_t used = 0;
+    while (used < I.pending.size()) {
+        const In in = I.pending[used++];
         if (in.kind == In::Quit) { I.quit = true; continue; }
         if (in.kind == In::Resize) {
             int w = 0, h = 0;
@@ -948,7 +988,9 @@ void App::events() {
             continue;
         }
         I.handle(*this, in);
+        if (in.kind == In::Up) break;
     }
+    I.pending.erase(I.pending.begin(), I.pending.begin() + std::ptrdiff_t(used));
 }
 
 // The page's pointer and keys, for the window and for a shot's steps alike.

@@ -134,44 +134,56 @@ std::vector<const File*> Art::missing() const {
     return out;
 }
 
-std::shared_ptr<Fetched> prepare(Id id, std::string_view bytes, const std::filesystem::path& cache_dir) {
+std::shared_ptr<Fetched> prepare(Id id, std::string bytes) {
     auto ready = std::make_shared<Fetched>();
     if (is_font(id)) {
         // a TrueType or OpenType font, not a portal's page answered with a 200
-        if (!font_head(bytes.substr(0, 4))) {
-            ready->trouble = "not_a_font";
-            return ready;
-        }
+        if (!font_head(std::string_view(bytes).substr(0, 4))) ready->trouble = "not_a_font";
     } else {
         SDL_IOStream* io = SDL_IOFromConstMem(bytes.data(), bytes.size());
         ready->surface = io ? SDL_LoadPNG_IO(io, true) : nullptr;
-        if (!ready->surface) { ready->trouble = "not_a_png"; return ready; }
+        if (!ready->surface) ready->trouble = "not_a_png";
     }
-    // written beside it, then put in place whole: a full disk or a killed app leaves no half a file behind
-    const auto path = cache_dir / std::string(file_of(id).path);
+    if (ready->trouble.empty()) ready->bytes = std::move(bytes);
+    return ready;
+}
+
+namespace {
+// written beside its place, then put there whole: a full disk or a killed app leaves no half a file behind
+bool keep(const std::filesystem::path& path, const std::string& bytes) {
     auto part = path;
     part += ".part";
     std::error_code ec;
     std::filesystem::create_directories(path.parent_path(), ec);
+    bool ok;
     {
         std::ofstream out(part, std::ios::binary);
         out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
-        if (!out) ready->trouble = "cache_unwritable";
+        ok = bool(out);
     }
-    if (ready->trouble.empty()) std::filesystem::rename(part, path, ec);
-    if (ec || !ready->trouble.empty()) ready->trouble = "cache_unwritable", std::filesystem::remove(part, ec);
-    return ready;
+    if (ok) std::filesystem::rename(part, path, ec);
+    if (!ok || ec) std::filesystem::remove(part, ec);
+    return ok && !ec;
 }
+}  // namespace
 
-bool Art::store(Id id, std::string_view bytes) { return adopt(id, prepare(id, bytes, impl_->cache)); }
+bool Art::store(Id id, std::string_view bytes) { return adopt(id, prepare(id, std::string(bytes))); }
 
 bool Art::adopt(Id id, const std::shared_ptr<Fetched>& ready) {
     if (!ready) { impl_->trouble = "not_a_png"; return false; }
     const File& f = file_of(id);
+    if (ready->trouble.empty() && !keep(impl_->cache / std::string(f.path), ready->bytes)) ready->trouble = "cache_unwritable";
     if (ready->surface) impl_->take(f, ready->surface), ready->surface = nullptr;   // drawn, even if not kept
     else if (is_font(id) && ready->trouble.empty()) impl_->take(f, nullptr);         // the font is read from its file
     if (!ready->trouble.empty()) { impl_->trouble = ready->trouble; return false; }
     return true;
+}
+
+void Art::forget_gpu() {
+    for (auto& t : impl_->tex) {
+        if (t.gpu) SDL_DestroyTexture(t.gpu);
+        t.gpu = nullptr, t.owner = nullptr;
+    }
 }
 
 void Art::forget_all() {

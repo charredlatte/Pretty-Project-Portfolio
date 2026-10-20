@@ -51,7 +51,7 @@ manor::State station_for(Mood m) {
 
 // margin(): keep the house clear of the screen's frame -- the frame's 6 art pixels at --u (2 CSS px, 1 on a
 // phone), and 8 CSS px more.
-int margin(Stage s) { return (6 * (s.narrow() ? 1 : 2) + 8) * std::max(1, s.css); }
+int margin(Stage s) { return 6 * s.u() + 8 * std::max(1, s.css); }   // the screen's frame, 6u, and 8px
 
 int lowest(Stage s) {
     const manor::Box w = manor::world();

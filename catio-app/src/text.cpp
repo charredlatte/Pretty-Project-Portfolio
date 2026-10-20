@@ -143,6 +143,11 @@ void Pixel::fallback(const std::filesystem::path& ttf, float px) {
     impl_->round_ttf = ttf, impl_->round_px = px;
 }
 
+void Pixel::forget_words() {
+    impl_->cache.clear();
+    for (auto& [css, b] : impl_->rounds) if (b) b->forget_words();
+}
+
 void Pixel::close() {
     impl_->cache.clear();
     impl_->sizes.got.clear();
@@ -197,6 +202,7 @@ bool Body::open(const std::filesystem::path& ttf, float px) {
 }
 
 bool Body::ready() const { return impl_->font != nullptr; }
+void Body::forget_words() { impl_->cache.clear(); }
 float Body::px() const { return impl_->px; }
 
 Pt Body::measure(std::string_view text) const { return impl_->sizes.of(impl_->font, text); }
