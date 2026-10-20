@@ -235,7 +235,7 @@ Scene build(const House& h, manor::Level floor) {
     }
 
     // the minimap's pips: a cat that needs her counts where it stands
-    for (const Cat* c : h.needing()) s.needing[c->mood == Mood::Meow ? std::string("hall") : c->room]++;
+    for (const Cat* c : h.needing()) s.needing[std::string(stands_in(*c))]++;
     return s;
 }
 

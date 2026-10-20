@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <utility>
 
 #include "catio/draw.h"
@@ -83,20 +84,28 @@ std::string collapsed(std::string_view text) {
     return out;
 }
 
+}  // namespace
+
 // One UTF-8 character off the end.
 void pop_char(std::string& s) {
     while (!s.empty() && (static_cast<unsigned char>(s.back()) & 0xC0) == 0x80) s.pop_back();
     if (!s.empty()) s.pop_back();
 }
 
-}  // namespace
-
 // ---- the pixel font --------------------------------------------------------------------------------
 
 struct Pixel::Impl {
     TTF_Font* font = nullptr;
-    const Body* round = nullptr;
+    std::filesystem::path round_ttf;
+    float round_px = 0;
+    mutable std::map<int, std::unique_ptr<Body>> rounds;   // the round font, at each css it is drawn at
     mutable Cache cache;
+    const Body* round(int css) const {
+        if (round_ttf.empty()) return nullptr;
+        auto& b = rounds[css];
+        if (!b) b = std::make_unique<Body>(), b->open(round_ttf, round_px * float(css));
+        return b->ready() ? b.get() : nullptr;
+    }
 };
 
 Pixel::Pixel() : impl_(new Impl) {}
@@ -113,24 +122,27 @@ bool Pixel::open(const std::filesystem::path& ttf) {
     return impl_->font != nullptr;
 }
 
-void Pixel::fallback(const Body* round) { impl_->round = round; }
+void Pixel::fallback(const std::filesystem::path& ttf, float px) {
+    impl_->rounds.clear();
+    impl_->round_ttf = ttf, impl_->round_px = px;
+}
 
 void Pixel::close() {
     impl_->cache.clear();
     if (impl_->font) TTF_CloseFont(impl_->font), impl_->font = nullptr;
 }
 
-bool Pixel::ready() const { return impl_->font || (impl_->round && impl_->round->ready()); }
+bool Pixel::ready() const { return impl_->font || impl_->round(1); }
 
 Pt Pixel::measure(std::string_view text, int css) const {
-    if (!impl_->font) return impl_->round ? impl_->round->measure(text) : Pt{};
+    if (!impl_->font) { const Body* r = impl_->round(css); return r ? r->measure(text) : Pt{}; }
     const Pt p = size_of(impl_->font, text);
     return {p.x * css, p.y * css};
 }
 
 void Pixel::put(const Ctx& c, std::string_view text, float x, float y, Colour col) const {
     if (!impl_->font) {
-        if (impl_->round) impl_->round->put(c, text, x, y, col);
+        if (const Body* r = impl_->round(c.css)) r->put(c, text, x, y, col);
         return;
     }
     const Words* w = impl_->cache.get(c.canvas->r, impl_->font, text, col, SDL_SCALEMODE_NEAREST);
@@ -170,11 +182,20 @@ float Body::px() const { return impl_->px; }
 Pt Body::measure(std::string_view text) const { return size_of(impl_->font, text); }
 
 std::string Body::cut(std::string_view text, float width) const {
-    std::string s = collapsed(text);
+    const std::string s = collapsed(text);
     if (!impl_->font || measure(s).x <= width) return s;
-    while (!s.empty() && measure(s + "…").x > width) pop_char(s);
-    while (!s.empty() && s.back() == ' ') s.pop_back();
-    return s + "…";
+    // the longest run of whole characters that fits with its ellipsis, found by halving
+    std::vector<size_t> ends{0};
+    for (size_t i = 1; i <= s.size(); ++i) if (i == s.size() || (static_cast<unsigned char>(s[i]) & 0xC0) != 0x80) ends.push_back(i);
+    size_t lo = 0, hi = ends.size() - 1;
+    while (lo < hi) {
+        const size_t mid = (lo + hi + 1) / 2;
+        if (measure(s.substr(0, ends[mid]) + "…").x <= width) lo = mid;
+        else hi = mid - 1;
+    }
+    std::string out = s.substr(0, ends[lo]);
+    while (!out.empty() && out.back() == ' ') out.pop_back();
+    return out + "…";
 }
 
 std::vector<std::string> Body::wrap(std::string_view raw, float width, int max_lines) const {

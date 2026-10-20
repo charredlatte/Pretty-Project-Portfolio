@@ -354,6 +354,7 @@ class NetTest(unittest.TestCase):
         self.assertEqual(docs["code"], "signed_out")
         _, _, headers, _ = self.last("GET", "/api/db")
         self.assertIsNone(headers.get("Cookie"), "the first gateway's cookie never went to the second")
+        self.assertEqual(self.jar.read_text().split(), [self.origin, self.state.token], "and the second's refusal didn't delete it")
 
     def test_a_redirect_is_not_the_cafes_answer(self):
         self.run_check(f"login:{USER}:{PASSWORD}")
@@ -401,6 +402,14 @@ class NetTest(unittest.TestCase):
         cache = Path(self.dir.name) / "home" / "cache"
         self.assertFalse([f for f in cache.rglob("*") if f.is_file()] if cache.exists() else [],
                          "and the art it fetched: the packs' licences are personal, the next person here gets their own")
+
+    def test_a_press_slid_onto_another_item_is_no_press(self):
+        self.serve_art()
+        self.assertEqual(self.app(f"type {USER}; key tab; type {PASSWORD}; key enter").returncode, 0)
+        r = self.app("click 100 40; slide Check now > Sign out")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn(("POST", "/logout"), [(m, p) for m, p, *_ in self.state.seen], "let go on Sign out, but pressed on Check now")
+        self.assertIsNotNone(self.state.token)
 
     def test_a_menu_taller_than_a_landscape_phone_scrolls(self):
         self.serve_art()

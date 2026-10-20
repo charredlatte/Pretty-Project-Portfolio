@@ -109,7 +109,13 @@ if(ANDROID OR IOS)
   set(CATIO_DESK_NET OFF)
   message(STATUS "catio-app: the core only. This platform's net body is still to come (cmake/sources.cmake).")
 else()
-  find_package(CURL REQUIRED)
+  # without libcurl's development files the core, catio_look and catio_tests still build: only the app and its
+  # network test need it
+  find_package(CURL)
+  if(NOT CURL_FOUND)
+    set(CATIO_DESK_NET OFF)
+    message(STATUS "catio-app: no libcurl, so no catio_app or catio_net (install libcurl's development files for them).")
+  endif()
 endif()
 
 # ---- the core ------------------------------------------------------------------------------------

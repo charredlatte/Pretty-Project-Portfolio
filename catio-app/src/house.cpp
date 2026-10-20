@@ -191,7 +191,8 @@ struct House::Impl {
             c.mood = m == "needs" ? Mood::Meow : m == "busy" ? Mood::Idle : Mood::Sleep;
             c.title = str(d, "title");
             if (c.title.empty()) c.title = "A chat";
-            if (c.mood == Mood::Meow) { c.ask = str(d, "note"); if (c.ask.empty()) c.ask = "You marked this as needing you."; }
+            c.doing = str(d, "note");
+            if (c.mood == Mood::Meow) { c.ask = c.doing; if (c.ask.empty()) c.ask = "You marked this as needing you."; }
             c.updated = num(d, "updatedAt") ? num(d, "updatedAt") : num(d, "adoptedAt");
             c.link = str(d, "link");
             c.room = str(d, "room");
@@ -430,14 +431,13 @@ std::vector<const Cat*> House::queue() const {
     return out;
 }
 
-// The other floor's badge counts a cat where it stands: a meowing one stands in the queue, in the hall.
+std::string_view stands_in(const Cat& c) { return c.mood == Mood::Meow ? std::string_view("hall") : std::string_view(c.room); }
+
+// The other floor's badge counts a cat where it stands.
 int House::needing_on(std::string_view floor) const {
     const manor::Level want = floor == "upper" ? manor::Level::Upper : manor::Level::Ground;
     int n = 0;
-    for (const Cat* c : needing()) {
-        const manor::Level at = c->mood == Mood::Meow ? manor::Level::Ground : manor::level_of(c->room);
-        if (at == want) ++n;
-    }
+    for (const Cat* c : needing()) if (manor::level_of(stands_in(*c)) == want) ++n;
     return n;
 }
 

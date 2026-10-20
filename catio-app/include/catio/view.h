@@ -130,9 +130,10 @@ struct Hit {
 };
 
 /// Cats before rooms, as the page tests them: the cats, the queen and the piles, topmost first; then the
-/// stair, the filing cabinets and the litter box; then the rooms. On a coarse pointer every box is
-/// grown to at least ui::kTouch CSS pixels before testing -- her audit measured cats at 6-12px and the
-/// smallest rooms at 38x44.
+/// stair, the filing cabinets and the litter box; then the rooms. On a coarse pointer every box but a
+/// room's is grown to at least ui::kTouch CSS pixels before testing -- her audit measured cats at 6-12px.
+/// The rooms are not: they tile the floor, so a grown room would take its neighbour's taps. A room too
+/// small for a finger is why a phone opens zoomed into one, with a swipe to the next.
 Hit pick(const Scene& s, const Cam& c, Stage stage, float sx, float sy, bool coarse);
 
 /// Cats walk when their place changes: through the doorways to a new room, up the stair to the attic,

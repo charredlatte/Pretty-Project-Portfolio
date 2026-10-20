@@ -46,7 +46,7 @@ bool needs(const Cat* c) { return info(c->mood).needs; }
 bool web(std::string_view link) { return link.rfind("https://", 0) == 0; }
 
 // where a cat is now: a cat waiting on her is in the line at the front door, whatever its room
-std::string where_is(const Cat* c) { return c->mood == Mood::Meow ? "hall" : c->room; }
+std::string where_is(const Cat* c) { return std::string(stands_in(*c)); }
 
 // VIEW.cats: every cat that is drawn somewhere, which is all of them but the ones napping in the attic
 std::vector<const Cat*> shown(const Frame& f) {
@@ -116,6 +116,12 @@ Block cat_rows(const std::vector<const Cat*>& cats, size_t max) {
     for (size_t i = 0; i < cats.size() && i < max; ++i) b.rows.push_back(cat_row(cats[i]));
     b.more = cats.size() > max ? int(cats.size() - max) : 0;
     return b;
+}
+
+// The default is the first item; while that one is not built yet (or is a switch), the first one that is.
+void choose_primary(std::vector<Item>& items) {
+    bool chosen = false;
+    for (Item& it : items) it.primary = !chosen && it.enabled && it.toggle < 0, chosen |= it.primary;
 }
 
 Item mi(std::string label, Action a, std::string arg = {}, std::string aside = {}) {
@@ -238,7 +244,7 @@ Menu menu_for(const Frame& f, Thing kind, std::string_view key, bool adding) {
         Block b;
         b.kind = Block::Kind::List;
         b.items = std::move(items);
-        if (!b.items.empty()) b.items.front().primary = true;
+        choose_primary(b.items);
         return b;
     };
     auto sub = [](std::string text) { Block b; b.kind = Block::Kind::Sub; b.text = std::move(text); return b; };
@@ -494,7 +500,6 @@ struct State {
     int css = 0;
     draw::Pixel pixel;
     std::map<std::pair<int, int>, std::unique_ptr<draw::Body>> bodies;
-    std::unique_ptr<draw::Body> round;   // the pixel font's stand-in until sprout.ttf is here
 
     // the house's things
     view::Hit tip;
@@ -553,12 +558,10 @@ bool Ui::fonts(const std::filesystem::path& assets, const art::Art& art, int css
         I.bodies.clear();
         I.css = std::max(1, css);
         I.assets = assets;
-        I.round = std::make_unique<draw::Body>();
-        I.round->open(assets / "Nunito-Bold.ttf", 18.f * I.css);
-        I.pixel.fallback(I.round.get());
+        I.pixel.fallback(assets / "Nunito-Bold.ttf", 18.f);   // the pixel font's stand-in until sprout.ttf is here
     }
     I.pixel.open(art.path(art::Id::SproutFont));
-    return I.round && I.round->ready();
+    return I.body(700, 15.2f).ready();   // the committed font: the app draws nothing without it
 }
 
 void Ui::tip(const Frame& f, const view::Hit& h, bool moved) {
@@ -1119,10 +1122,7 @@ float menu_pass(Painter& P, const Menu& m, float x0, float y0, float w) {
         const Pt bs = P.badge_size(m.need);
         const float room = cx + cw - tx - (m.need.empty() ? 0 : bs.x + 6 * k);
         std::string title = m.title;
-        while (title.size() > 1 && P.px_w(title) > room) {   // a long name: cut a whole character at a time
-            while (!title.empty() && (static_cast<unsigned char>(title.back()) & 0xC0) == 0x80) title.pop_back();
-            if (!title.empty()) title.pop_back();
-        }
+        while (title.size() > 1 && P.px_w(title) > room) draw::pop_char(title);   // a long name: a whole character at a time
         P.px(title, tx, y, 22, kInk);
         if (!m.need.empty()) P.badge(m.need, cx + cw - bs.x, y + 11 * k);
         y += 22 * k;
@@ -1229,7 +1229,7 @@ float menu_pass(Painter& P, const Menu& m, float x0, float y0, float w) {
                     std::string label = it.label;
                     const float room = bw - 4 * U - 4 * U;
                     if (P.px_w(label) > room) {
-                        while (!label.empty() && P.px_w(label + "…") > room) label.pop_back();
+                        while (!label.empty() && P.px_w(label + "…") > room) draw::pop_char(label);
                         label += "…";
                     }
                     P.btn(r, label, "menu:mood:" + std::to_string(i), it.action, it.arg, it.toggle == 1, it.enabled, true);
@@ -1249,9 +1249,6 @@ float menu_pass(Painter& P, const Menu& m, float x0, float y0, float w) {
                 const float lx = cx - U, lw = cw + 2 * U;
                 bool any_lit = false;
                 for (size_t i = 0; i < b.items.size(); ++i) any_lit |= b.items[i].enabled && P.lit("menu:item:" + std::to_string(bi) + ":" + std::to_string(i));
-                // the default is the first item; while it is not built yet, the first one that is
-                size_t primary = b.items.size();
-                for (size_t i = 0; i < b.items.size() && primary == b.items.size(); ++i) if (b.items[i].enabled && b.items[i].toggle < 0) primary = i;
                 for (size_t i = 0; i < b.items.size(); ++i) {
                     const Item& it = b.items[i];
                     const std::string id = "menu:item:" + std::to_string(bi) + ":" + std::to_string(i);
@@ -1266,7 +1263,7 @@ float menu_pass(Painter& P, const Menu& m, float x0, float y0, float w) {
                     if (it.toggle >= 0) {   // .sound .switch: the pack's toggle, off or on
                         P.cell(art::Id::UiToggle, Rect{it.toggle ? 28.f : 0.f, 0, 28, 18}, Rect{tx, r.y + (h - 18 * k) / 2, 28 * k, 18 * k});
                         tx += 28 * k + 6 * k;
-                    } else if (enabled && (hot || (i == primary && !any_lit)))
+                    } else if (enabled && (hot || (it.primary && !any_lit)))
                         P.cell(art::Id::UiPointer, Rect{0, 0, 7, 12}, Rect{r.x + 5 * k, r.y + h / 2 - 6 * k, 7 * k, 12 * k});
                     P.px(it.label, tx, r.y + (h - 22 * k) / 2, 22, ink);
                     const std::string aside = enabled ? it.aside : it.action == Action::OpenRoom ? "gateway only" : "not yet";
@@ -1369,6 +1366,7 @@ bool Ui::press(const Frame& f, float x, float y, Action* what, std::string* arg)
             break;
         case Action::FoldMap:
             I.map_open = !I.map_open, I.map_decided = true;
+            forget(I.regions, "map:"), forget(I.regions, "floor:");   // two presses can land in one batch
             *arg = I.map_open ? "open" : "folded";
             break;
         case Action::AddACat: I.adding = true; break;
@@ -1620,6 +1618,9 @@ void Ui::draw(const draw::Ctx& c, const Frame& f) {
     if (!f.house || !f.cam) return;
     if (!I.map_decided) I.map_open = !f.stage.narrow(), I.map_decided = true;   // folded at first on a phone
     Painter P(c, I, f);
+    P.paint = false;   // where the brand and the sign are this frame, for the House menu to open under them
+    draw_hud(P, f);
+    P.paint = true;
 
     draw_credits(P, f);
 
@@ -1628,6 +1629,7 @@ void Ui::draw(const draw::Ctx& c, const Frame& f) {
         Menu m = menu_for(f, I.menu, I.menu_key, I.adding);
         for (auto& b : m.blocks) {   // what this build cannot do yet is drawn, disabled, and says so
             for (auto& it : b.items) it.enabled = it.enabled && can(it.action);
+            if (b.kind == Block::Kind::List) choose_primary(b.items);
             if (!can(b.action)) b.action = Action::None;   // the queen's note opens her card, once there is one
         }
         if (m.title.empty() && m.kind != Thing::House) close_menu();

@@ -276,9 +276,9 @@ struct Gateway::Impl {
                 r.err.message = words_of(r.body);
             }
             if (r.err.message.empty()) r.err.message = "The gateway answered " + std::to_string(r.status) + ".";
-            // run out or revoked: it would only be refused again. Not /login's 401, a wrong password, which says
-            // nothing of the cookie kept (perhaps another gateway's)
-            if (r.err.code == "signed_out" && path != "/login") forget();
+            // run out or revoked: it would only be refused again. Not /login's 401, a wrong password, nor a 401 to a
+            // gateway this jar's cookie isn't for: neither says anything of the cookie kept (perhaps another gateway's)
+            if (r.err.code == "signed_out" && path != "/login" && !token.empty()) forget();
         }
         return r;
     }

@@ -280,7 +280,9 @@ void the_interface(const std::string& dir) {
     h.agents(slurp(dir + "/agents.json"));
     v::Stage stage{1280, 800, 1};
     v::Cam cam = v::fit(catio::manor::world(), stage);
-    const v::Scene scene = v::build(h, catio::manor::Level::Ground);
+    v::Scene scene = v::build(h, catio::manor::Level::Ground);
+    // the scene points into the house's cats: built again whenever a document changes them, as the app does
+    auto change = [&](std::string_view path, std::string_view body) { h.doc(path, body); scene = v::build(h, catio::manor::Level::Ground); };
     ui::Frame f;
     f.house = &h, f.scene = &scene, f.cam = &cam, f.stage = stage;
     f.clock_ms = 1791000400000 + 5 * 60000;
@@ -351,11 +353,11 @@ void the_interface(const std::string& dir) {
     f.cam = &cam;
 
     // what the page lists and the app hasn't built is there all the same, drawn disabled: never hidden
-    h.doc("graphs/pretty-project-portfolio", R"({"nodes": 3})");
+    change("graphs/pretty-project-portfolio", R"({"nodes": 3})");
     f.gateway = true;
     const ui::Menu more = ui::menu_for(f, v::Thing::House, "house");
     check(has(more, "Project maps") && has(more, "Keys"), "Project maps once a map exists, and Keys on her gateway, as the page lists them");
-    h.doc("graphs/pretty-project-portfolio", "");
+    change("graphs/pretty-project-portfolio", "");
     f.gateway = false;
     check(!has(ui::menu_for(f, v::Thing::House, "house"), "Project maps"), "and no Project maps with no map at all");
     const ui::Menu chat = ui::menu_for(f, v::Thing::Cat, "adopted:caf\u00e9");
@@ -363,6 +365,11 @@ void the_interface(const std::string& dir) {
     check(moods != chat.blocks.end() && moods->items.size() == 3 && moods->items[0].label == "Needs me" && moods->items[0].toggle == 1 &&
           moods->items[2].label == "Done" && moods->items[2].toggle == 0 && moods->items[0].action == Action::SetMood,
           "an adopted chat's menu has its three moods, the one it is in pressed");
+    change("cats/lease", R"({"title": "A chat", "mood": "busy", "note": "Drafting the letter", "updatedAt": 1791000000000})");
+    const ui::Menu busy = ui::menu_for(f, v::Thing::Cat, "adopted:lease");
+    check(!busy.blocks.empty() && busy.blocks[0].kind == Block::Kind::Sub && busy.blocks[0].text == "Drafting the letter",
+          "a chat at work says its note, as catFromAdopted's doing does, not its title");
+    change("cats/lease", "");
 
     // the House menu: how the cats reach her, the actions, the credits at its foot word for word
     const ui::Menu house = ui::menu_for(f, v::Thing::House, "house");
@@ -475,6 +482,25 @@ void the_interface(const std::string& dir) {
     check(lines.size() == 1 && lines[0] == "Approve the copy? It's in docs/", "a newline, a tab or a run of spaces is one space");
     check(body.cut("Approve\nthe copy?", 1000) == "Approve the copy?", "and the same where a line is cut short");
     check(body.cut(" \u00b7 Waiting for you.", 1000) == " \u00b7 Waiting for you.", "a space after a cat's name stays: one, as the page keeps it");
+    const std::string short_ = body.cut("Caf\u00e9 \u00e9t\u00e9 au lait, tr\u00e8s chaud", 70);
+    auto whole_utf8 = [](const std::string& t) {
+        for (size_t i = 0; i < t.size();) {
+            const unsigned char b = static_cast<unsigned char>(t[i]);
+            const size_t n = b < 0x80 ? 1 : (b >> 5) == 6 ? 2 : (b >> 4) == 14 ? 3 : (b >> 3) == 30 ? 4 : 0;
+            if (!n || i + n > t.size()) return false;
+            for (size_t j = 1; j < n; ++j) if ((static_cast<unsigned char>(t[i + j]) & 0xC0) != 0x80) return false;
+            i += n;
+        }
+        return true;
+    };
+    const bool whole = whole_utf8(short_);
+    check(short_.size() > 3 && short_.compare(short_.size() - 3, 3, "\u2026") == 0 && body.measure(short_).x <= 70 && whole &&
+          body.measure(body.cut("Caf\u00e9 \u00e9t\u00e9 au lait, tr\u00e8s chaud", 90)).x > body.measure(short_).x,
+          "a line cut short ends in an ellipsis, fits, keeps whole characters, and keeps as much as fits");
+    catio::draw::Pixel stand_in;
+    stand_in.fallback(std::filesystem::path(CATIO_SOURCE_DIR) / "assets" / "Nunito-Bold.ttf", 18);
+    const float one = stand_in.measure("REGLISSE", 1).x, two = stand_in.measure("REGLISSE", 2).x;
+    check(one > 0 && two > 1.8f * one && two < 2.2f * one, "before the pack's font comes, a name drawn twice as big is twice as big");
 }
 
 int main(int argc, char** argv) {

@@ -66,6 +66,11 @@ struct Cat {
     std::int64_t said_at = 0;
 };
 
+/// The room a cat stands in: a meowing one in the line at the front door, in the hall; the rest in their
+/// own rooms. Every count of where cats are -- the minimap's pips, the floors' badges, a phone's first room --
+/// asks this one rule.
+std::string_view stands_in(const Cat& c);
+
 /// One of the queen's kept notes. A pinned one is the line she says out loud.
 struct Note {
     std::string text;

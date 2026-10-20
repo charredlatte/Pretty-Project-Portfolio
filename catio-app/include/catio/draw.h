@@ -113,6 +113,9 @@ void round(const Ctx& c, Rect dst, float radius, Colour col);
 
 class Body;
 
+/// One UTF-8 character off the end of `s`: never half of one.
+void pop_char(std::string& s);
+
 /// The pack's pixel font (sprout.ttf), rasterised once at 18px and blitted at x css: one font pixel a
 /// CSS pixel, as `--px-size: 18px` keeps it. Capitals only -- small letters draw as capitals -- so
 /// prose belongs in Body. build-art.py adds the accents French names need.
@@ -126,8 +129,9 @@ public:
     bool open(const std::filesystem::path& ttf);
     /// Close it: signed out, the next account may not be served the pack's font.
     void close();
-    /// Draw with this round font instead while sprout.ttf is missing. It must outlive the Pixel.
-    void fallback(const Body* round);
+    /// Draw with this round font instead while sprout.ttf is missing, at `px` a CSS pixel: opened at each
+    /// size it is drawn at, so a name drawn twice as big is as crisp.
+    void fallback(const std::filesystem::path& ttf, float px);
     bool ready() const;
     /// In device pixels, at `css` device pixels a CSS pixel.
     Pt measure(std::string_view text, int css) const;

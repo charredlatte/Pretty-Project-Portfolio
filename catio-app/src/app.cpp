@@ -76,12 +76,6 @@ std::string clock_of(std::int64_t ms) {
     return buf;
 }
 
-// One UTF-8 character off the end of what she has typed.
-void pop_char(std::string& s) {
-    while (!s.empty() && (static_cast<unsigned char>(s.back()) & 0xC0) == 0x80) s.pop_back();
-    if (!s.empty()) s.pop_back();
-}
-
 // What each ticket was for.
 enum class Ask { Login, Docs, Agents, Quizzes, Art, Write };
 struct Asked {
@@ -120,6 +114,7 @@ struct App::Impl {
     view::Scene scene;
     double now = 0, start = 0;
     bool still = false, coarse = false, quit = false;
+    bool away = false;             // in the background: a phone ends an app that draws there
     std::string live = "On this computer", status;
 
     // the gateway
@@ -148,6 +143,7 @@ struct App::Impl {
     double last_click_t = -1;
     std::string last_click_room;
     bool scrolling = false;            // a finger dragging a menu or a card: its lift is not a press
+    std::string press_on;              // what of the interface it went down on: let go elsewhere, it is no press
     bool pinching = false;             // two fingers: the first finger's mouse is not a drag, a swipe or a click
     float pinch = 1;
     std::map<SDL_FingerID, draw::Pt> fingers;   // where each finger is, for the point a pinch zooms about
@@ -418,11 +414,10 @@ struct App::Impl {
         rescene();
     }
     // the room that needs her most, for a phone's first view (her fix to "the house is tiny")
+    // -- the upset cat first, upstairs or down (go() changes floor)
     std::string urgent_room() const {
         const auto need = house.needing();
-        for (const Cat* c : need) if (manor::level_of(c->mood == Mood::Meow ? "hall" : c->room) == manor::Level::Ground)
-            return c->mood == Mood::Meow ? "hall" : c->room;
-        return need.empty() ? "" : need.front()->room;
+        return need.empty() ? "" : std::string(stands_in(*need.front()));
     }
 
     // ---- the frame ----
@@ -509,13 +504,16 @@ struct App::Impl {
         SDL_RenderTexture(r, world, nullptr, &dst);
 
         // the lit room: the pack's brackets, one size on screen at any zoom; the stair's at one pixel a pixel
+        auto brackets = [&](const draw::Rect& box, float s) {
+            const draw::Panel& b = draw::kBrackets;
+            draw::nine(c, b.tex, {}, {b.l, b.r, b.t, b.b}, {b.l * s, b.r * s, b.t * s, b.b * s}, box, false);
+        };
         auto lit_room = [&](const std::string& key) {
             const manor::Geom* g = manor::of(key);
             if (!g || g->level != cam.floor || key == cam.focus) return;
             const draw::Rect box{g->box.x * float(cam.u) + cam.tx, g->box.y * float(cam.u) + cam.ty, g->box.w * float(cam.u), g->box.h * float(cam.u)};
             if (house.open(key)) draw::fill(c, box, {0xFF, 0xFA, 0xE1, 31});   // a closed room keeps its shade, lightened
-            const float U = float(u_ui());
-            draw::nine(c, art::Id::UiCorners, {}, {8, 8, 9, 9}, {8 * U, 8 * U, 9 * U, 9 * U}, box, false);
+            brackets(box, float(u_ui()));
         };
         if (ui.tipped().what == Thing::Room) lit_room(ui.tipped().key);
         if (ui.menu_kind() == Thing::Room && !(ui.tipped().what == Thing::Room && ui.tipped().key == ui.menu_key())) lit_room(ui.menu_key());
@@ -523,7 +521,7 @@ struct App::Impl {
             const manor::Box s = manor::stairs();
             const draw::Rect box{s.x * float(cam.u) + cam.tx, s.y * float(cam.u) + cam.ty, s.w * float(cam.u), s.h * float(cam.u)};
             draw::fill(c, box, {0xFF, 0xFA, 0xE1, 36});
-            draw::nine(c, art::Id::UiCorners, {}, {8, 8, 9, 9}, {8 * k(), 8 * k(), 9 * k(), 9 * k()}, box, false);
+            brackets(box, k());
         }
 
         ui.draw(c, frame());
@@ -791,6 +789,8 @@ void App::events() {
         in.at = clock_s();
         switch (e.type) {
             case SDL_EVENT_QUIT: in.kind = In::Quit; break;
+            case SDL_EVENT_WILL_ENTER_BACKGROUND: I.away = true; continue;
+            case SDL_EVENT_DID_ENTER_FOREGROUND: I.away = false; refresh(true); continue;
             case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
             case SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED: in.kind = In::Resize; break;
             case SDL_EVENT_MOUSE_MOTION: in.kind = In::Move, in.x = e.motion.x, in.y = e.motion.y, in.touch = e.motion.which == SDL_TOUCH_MOUSEID; break;
@@ -863,9 +863,11 @@ void App::Impl::handle(App& app, const In& in) {
         std::string* field = form.field == 0 ? &form.origin : form.field == 1 ? &form.user : &form.password;
         switch (in.kind) {
             case In::Move: ui.hover(f, in.x, in.y); cursor(!ui.under(f, in.x, in.y).empty()); return;
+            case In::Down: press_on = std::string(ui.under(f, in.x, in.y)); return;
             case In::Up: {
                 ui::Action a;
                 std::string arg;
+                if (ui.under(f, in.x, in.y) != press_on) return;   // slid off what it went down on
                 if (ui.press(f, in.x, in.y, &a, &arg) && a != Action::None) app.act(a, arg);
                 return;
             }
@@ -875,7 +877,7 @@ void App::Impl::handle(App& app, const In& in) {
             case In::Key:
                 if (form.busy) return;
                 if (in.key == "enter") sign_in();
-                else if (in.key == "backspace") pop_char(*field);
+                else if (in.key == "backspace") draw::pop_char(*field);
                 else if (in.key == "tab") {
                     const int first = form.ask_origin ? 0 : 1;
                     form.field = in.shift ? (form.field <= first ? 2 : form.field - 1) : (form.field >= 2 ? first : form.field + 1);
@@ -929,6 +931,7 @@ void App::Impl::handle(App& app, const In& in) {
             press_t = in.at;
             on_ui = ui.over(f, in.x, in.y);
             on_map = false;
+            press_on = std::string(ui.under(f, in.x, in.y));
             if (on_ui) {
                 ui.hold(f, in.x, in.y, true);
                 on_map = ui.under(f, in.x, in.y) == "map:mm";   // a drag on the minimap pans the view with it
@@ -955,7 +958,8 @@ void App::Impl::handle(App& app, const In& in) {
             if (on_ui || ui.over(f, in.x, in.y)) {
                 ui::Action a;
                 std::string arg;
-                if (ui.press(f, in.x, in.y, &a, &arg) && a != Action::None) app.act(a, arg);
+                // as a browser's click: on what it went down on, never on another button it slid onto
+                if (ui.under(f, in.x, in.y) == press_on && ui.press(f, in.x, in.y, &a, &arg) && a != Action::None) app.act(a, arg);
                 on_ui = false;
                 return;
             }
@@ -1118,6 +1122,22 @@ int App::run() {
                 In d = m; d.kind = In::Down; I.handle(*this, d);
                 In u = m; u.kind = In::Up; I.handle(*this, u);
             }
+            else if (verb == "slide") {   // down on what says one thing, up on what says another: "slide Check now > Sign out"
+                std::string rest;
+                std::getline(w, rest);
+                const auto cut = rest.find(" > ");
+                auto trim = [](std::string t) { while (!t.empty() && t.front() == ' ') t.erase(0, 1); return t; };
+                const std::string from = trim(rest.substr(0, cut)), to = cut == std::string::npos ? "" : trim(rest.substr(cut + 3));
+                const auto a = I.ui.find(from), b = I.ui.find(to);
+                if (!a || !b) { std::fprintf(stderr, "catio_app: nothing says \"%s\" or \"%s\"\n", from.c_str(), to.c_str()); return 2; }
+                In d = in; d.kind = In::Down, d.x = a->x, d.y = a->y; I.handle(*this, d);
+                for (int s = 1; s <= 4; ++s) {
+                    In m = in;
+                    m.kind = In::Move, m.x = a->x + (b->x - a->x) * s / 4, m.y = a->y + (b->y - a->y) * s / 4;
+                    I.handle(*this, m);
+                }
+                In u = in; u.kind = In::Up, u.x = b->x, u.y = b->y; I.handle(*this, u);
+            }
             else if (verb == "type") {
                 std::string text;
                 std::getline(w, text);
@@ -1148,6 +1168,7 @@ int App::run() {
         const double began = clock_s();
         events();
         pump_net();
+        if (I.away) { SDL_WaitEventTimeout(nullptr, 500); continue; }   // nothing drawn until she is back
         I.now = clock_s() - I.start;
         refresh(false);
         I.draw();
