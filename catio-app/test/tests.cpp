@@ -368,6 +368,17 @@ void the_interface(const std::string& dir) {
         if (b.kind == Block::Kind::List) open_first = b.items[0].label == "Open" && b.items[0].arg == "https://claude.ai/code/session_abc123" && b.items[1].label == "Talk";
     check(open_first, "Open goes to its session; Talk after it");
     check(ui::menu_for(f, v::Thing::Cat, "agent:nobody").title.empty(), "a cat that has gone has no menu");
+    {
+        // an agent reports its own link, with the key a leak would be: only a web address is offered to open
+        catio::House odd;
+        odd.docs(slurp(dir + "/db.json"));
+        odd.agents(R"({"agents": [{"id": "x1", "title": "Odd", "mood": "needs", "room": "kitchen", "link": "file:///Applications/x.app"},
+                                  {"id": "x2", "title": "Fine", "mood": "needs", "room": "kitchen", "link": "https://example.com/c"}]})");
+        ui::Frame g = f;
+        g.house = &odd;
+        check(!has(ui::menu_for(g, v::Thing::Cat, "agent:x1"), "Open") && has(ui::menu_for(g, v::Thing::Cat, "agent:x2"), "Open"),
+              "a cat's link that isn't https:// gets no Open");
+    }
 
     // the hover line
     const ui::Tip t1 = ui::tip_for(f, v::Hit{v::Thing::Cat, "agent:a1", {}});

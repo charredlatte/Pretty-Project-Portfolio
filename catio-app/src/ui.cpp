@@ -41,6 +41,10 @@ constexpr int kHeartEyes = 5;
 
 bool needs(const Cat* c) { return info(c->mood).needs; }
 
+// A link the app will hand to the system: a web address, never a file or an app's own scheme (app.cpp's act() refuses
+// the rest too; an agent reports its own link, with the key a leak would be).
+bool web(std::string_view link) { return link.rfind("https://", 0) == 0; }
+
 // where a cat is now: a cat waiting on her is in the line at the front door, whatever its room
 std::string where_is(const Cat* c) { return c->mood == Mood::Meow ? "hall" : c->room; }
 
@@ -300,6 +304,7 @@ Menu menu_for(const Frame& f, Thing kind, std::string_view key, bool adding) {
         items.push_back(mi("Set up again…", Action::OpenSetup));
         if (attic) items.push_back(mi("Bring them down", Action::BringDown));
         items.push_back(mi("Check now", Action::CheckNow));
+        if (f.gateway) items.push_back(mi("Sign out", Action::SignOut));   // the app's own: the page signs in through claude.ai
         Item sound = mi("Sound off", Action::Sound);   // the meow when a cat starts needing her: not in the app yet
         sound.toggle = 0;
         items.push_back(sound);
@@ -377,7 +382,7 @@ Menu menu_for(const Frame& f, Thing kind, std::string_view key, bool adding) {
         if (c->waiting) m.blocks.push_back(sub(plural(c->waiting, "file", "files") + " from the brain"));
         m.blocks.push_back(rule());
         std::vector<Item> items;
-        if (!c->link.empty()) items.push_back(mi(c->adopted ? "Open chat" : "Open", Action::OpenLink, c->link));
+        if (web(c->link)) items.push_back(mi(c->adopted ? "Open chat" : "Open", Action::OpenLink, c->link));
         items.push_back(mi(c->adopted ? "Details" : "Talk", Action::OpenCat, c->id));
         items.push_back(mi("Add files", Action::AddFiles, "cat:" + c->id));
         if (f.cam->focus != c->room) items.push_back(mi("Look in", Action::LookIn, c->room));
@@ -614,7 +619,7 @@ bool Ui::can(Action a) const {
         case Action::None: case Action::LookIn: case Action::WholeHouse: case Action::ZoomIn: case Action::ZoomOut:
         case Action::ToFloor: case Action::FoldMap: case Action::MapAt: case Action::StillCats: case Action::AddACat:
         case Action::Back: case Action::OpenHouse: case Action::OpenCat: case Action::OpenLink: case Action::CheckNow:
-        case Action::CloseCard: case Action::Manage:
+        case Action::CloseCard: case Action::Manage: case Action::SignOut:
             return true;
         default:
             return false;
@@ -960,6 +965,23 @@ void draw_hud(Painter& P, const Frame& f) {
     for (size_t i = 0; i < lines.size(); ++i) P.text(b, lines[i], ix + 20 * k, iy + i * lh * k, lh, kInk);
 }
 
+// The toast: news and progress at the foot of the screen, on the pack's panel, with no cross (.toast: bottom 16px,
+// .9rem bold, padding 0 6px). The sign above is for what is wrong.
+void draw_toast(Painter& P, const Frame& f) {
+    if (f.toast.empty() || !P.paint) return;
+    const float k = P.k, U = P.U;
+    const draw::Body& b = P.body(700, 14.4f);
+    const float lh = 14.4f * 1.5f, max_w = f.stage.w - 32 * k;
+    const auto lines = b.wrap(f.toast, max_w - 12 * U - 12 * k);
+    float tw = 0;
+    for (const auto& l : lines) tw = std::max(tw, b.measure(l).x);
+    const float w = tw + 12 * U + 12 * k, h = lines.size() * lh * k + 12 * U;
+    const Rect r{std::round((f.stage.w - w) / 2), std::round(f.stage.h - 16 * k - h), w, h};
+    P.fill(Rect{r.x + 6 * U, r.y + 6 * U, r.w - 12 * U, r.h - 12 * U}, kTan);
+    P.panel(draw::kPanel, r);
+    for (size_t i = 0; i < lines.size(); ++i) P.text(b, lines[i], r.x + 6 * U + 6 * k, r.y + 6 * U + i * lh * k, lh, kInk);
+}
+
 // The credits, at the foot of the screen on a desk (a phone has no room: the House menu has them).
 void draw_credits(Painter& P, const Frame& f) {
     if (f.stage.narrow() || !P.paint) return;
@@ -1045,9 +1067,9 @@ float menu_pass(Painter& P, const Menu& m, float x0, float y0, float w) {
         const Pt bs = P.badge_size(m.need);
         const float room = cx + cw - tx - (m.need.empty() ? 0 : bs.x + 6 * k);
         std::string title = m.title;
-        while (title.size() > 1 && P.px_w(title) > room) {   // a long name: cut, as the line has no more room
-            title.pop_back();
+        while (title.size() > 1 && P.px_w(title) > room) {   // a long name: cut a whole character at a time
             while (!title.empty() && (static_cast<unsigned char>(title.back()) & 0xC0) == 0x80) title.pop_back();
+            if (!title.empty()) title.pop_back();
         }
         P.px(title, tx, y, 22, kInk);
         if (!m.need.empty()) P.badge(m.need, cx + cw - bs.x, y + 11 * k);
@@ -1414,7 +1436,7 @@ void draw_cat_card(Painter& P, const Frame& f, const Cat& c) {
         // the actions: Close on the left, the way out to its session on the right
         const float bh = P.btn_h();
         P.btn(Rect{x, y, P.btn_w("Close"), bh}, "Close", "card:close", Action::CloseCard, "");
-        if (!c.link.empty()) {
+        if (web(c.link)) {
             const std::string label = c.adopted ? "Open chat" : "Open";
             const float w = P.btn_w(label);
             P.btn(Rect{x + cw - w, y, w, bh}, label, "card:open", Action::OpenLink, c.link, true);
@@ -1518,8 +1540,10 @@ void Ui::draw(const draw::Ctx& c, const Frame& f) {
     // the menu, beside what it belongs to (z 20, under the screen's frame and the controls)
     if (I.menu != Thing::None) {
         Menu m = menu_for(f, I.menu, I.menu_key, I.adding);
-        for (auto& b : m.blocks)   // what this build cannot do yet is drawn, disabled, and says so
+        for (auto& b : m.blocks) {   // what this build cannot do yet is drawn, disabled, and says so
             for (auto& it : b.items) it.enabled = it.enabled && can(it.action);
+            if (!can(b.action)) b.action = Action::None;   // the queen's note opens her card, once there is one
+        }
         if (m.title.empty() && m.kind != Thing::House) close_menu();
         else {
             const float w = std::min(248 * P.k, f.stage.w - 24 * P.k);
@@ -1545,6 +1569,7 @@ void Ui::draw(const draw::Ctx& c, const Frame& f) {
 
     draw_hud(P, f);
     draw_map_panel(P, f);
+    draw_toast(P, f);
 
     if (I.card == Card::Cat) {
         if (const Cat* cat = f.house->cat(I.card_key)) draw_cat_card(P, f, *cat);

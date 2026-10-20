@@ -151,6 +151,8 @@ struct Frame {
     bool still = false;         ///< Still cats
     std::string live;           ///< liveLine(): how the cats are reaching her, in a few words
     std::string status;         ///< the sign under the brand: empty unless something is wrong
+    std::string toast;          ///< news and progress, at the foot of the screen with no cross: "Ensuite is open."
+    bool gateway = false;       ///< on her gateway (not a folder of documents): the House menu can sign out
 };
 
 /// The sign-in screen's state. Its fields are the gateway's own sign-in form (harness/gateway/src/cafe.js):

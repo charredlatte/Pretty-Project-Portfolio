@@ -25,8 +25,12 @@ include("${CATIO_APP_DIR}/cmake/sources.cmake")
 list(TRANSFORM CATIO_CORE_SOURCES PREPEND "${CATIO_APP_DIR}/")
 list(TRANSFORM CATIO_APP_SOURCES PREPEND "${CATIO_APP_DIR}/")
 
-# The core, the interface and the loop exist; net_apple.cpp does not yet (cmake/sources.cmake lists
-# what is to come). The plan rides in the bundle beside the fonts: SDL_GetBasePath() finds both.
+# The core, the interface and the loop exist; net_apple.cpp, the NSURLSession body net.h needs, does not
+# yet (cmake/sources.cmake lists what is to come), and without it the app cannot link. Say so here rather
+# than at the linker. The plan rides in the bundle beside the fonts: SDL_GetBasePath() finds both.
+if(NOT EXISTS "${CATIO_APP_DIR}/src/net_apple.cpp")
+  message(FATAL_ERROR "catio-app on iOS needs src/net_apple.cpp, the network body for iOS, which is still to come.")
+endif()
 add_executable(catio_app MACOSX_BUNDLE ${CATIO_CORE_SOURCES} ${CATIO_APP_SOURCES})
 target_compile_definitions(catio_app PRIVATE CATIO_SOURCE_DIR="${CATIO_APP_DIR}")
 target_sources(catio_app PRIVATE "${CATIO_APP_DIR}/generated/manor.json")

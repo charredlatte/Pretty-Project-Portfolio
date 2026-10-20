@@ -102,7 +102,15 @@ endif()
 if(NOT TARGET nlohmann_json::nlohmann_json)
   find_package(nlohmann_json CONFIG REQUIRED)
 endif()
-find_package(CURL REQUIRED)   # a desk's: the phones' net bodies use the platform's own HTTPS
+# The network is a desk's libcurl. The NDK and iOS have none: their net bodies (net_android.cpp, net_apple.cpp) are
+# still to come, so a phone build gets the core, and the app once its own net body exists.
+set(CATIO_DESK_NET ON)
+if(ANDROID OR IOS)
+  set(CATIO_DESK_NET OFF)
+  message(STATUS "catio-app: the core only. This platform's net body is still to come (cmake/sources.cmake).")
+else()
+  find_package(CURL REQUIRED)
+endif()
 
 # ---- the core ------------------------------------------------------------------------------------
 include(cmake/sources.cmake)   # CATIO_CORE_SOURCES, shared with ios/
@@ -116,12 +124,14 @@ target_compile_definitions(catio_core PUBLIC
 
 # catio_app: the window, the loop and the interface. With no windowing system it draws frames to PNGs:
 #   catio_app --shot out.png [--size 1280x800] [--css 1] [--do "<steps>"]
+if(CATIO_DESK_NET)
 add_library(catio_net STATIC ${CATIO_NET_DESKTOP_SOURCES})
 target_link_libraries(catio_net PUBLIC catio_headers PRIVATE CURL::libcurl nlohmann_json::nlohmann_json)
 
 add_executable(catio_app ${CATIO_APP_SOURCES})
 target_include_directories(catio_app PRIVATE src)
 target_link_libraries(catio_app PRIVATE catio_core catio_net)
+endif()
 
 # catio_look: render a floor to a PNG, with no window and no GPU. What CLAUDE.md's "look first" is for:
 #   catio_look <catio dir> <manor.json> <fixtures dir> <out.png> [ground|upper|<room>]
@@ -139,10 +149,12 @@ add_test(NAME catio_tests
 
 # catio_net_check: every route of net.h against a gateway, for test/test_net.py, which runs a stand-in on the
 # loopback and checks both sides: what the app sent, and what it made of the answers. Never her gateway.
+if(CATIO_DESK_NET)
 add_executable(catio_net_check test/net_check.cpp)
 target_link_libraries(catio_net_check PRIVATE catio_net nlohmann_json::nlohmann_json)
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_FOUND)
   add_test(NAME catio_net
            COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/test/test_net.py" "${CMAKE_CURRENT_BINARY_DIR}")
+endif()
 endif()

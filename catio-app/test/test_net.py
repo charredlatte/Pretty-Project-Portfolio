@@ -53,6 +53,7 @@ class State:
         self.lock = threading.Lock()
         self.token = None
         self.account = True   # False: the gateway's secrets made no account yet, and it shows its warning lights
+        self.homework = True  # False: an older gateway, with no quizzes tool
         self.seen = []        # (method, path, headers, body)
         self.docs = json.loads((APP / "test" / "fixtures" / "db.json").read_text())["docs"]
         self.agents = json.loads((APP / "test" / "fixtures" / "agents.json").read_text())
@@ -154,7 +155,7 @@ class Standin(BaseHTTPRequestHandler):
             name = unquote(path[len("/api/tools/"):])
             if name == "list_agents":
                 return self.answer(200, s.agents)
-            if name == "quizzes":
+            if name == "quizzes" and s.homework:
                 return self.answer(200, {"quizzes": []})
             if name == "manage":
                 return self.refuse(400, "tool_error", "No cat called nobody.")
@@ -311,13 +312,40 @@ class NetTest(unittest.TestCase):
         self.assertEqual(r["step"], "net:docs", "the reply came back with its own ticket")
         self.assertTrue(r["ok"])
 
-    def test_the_app_signs_in_reads_fetches_the_art_and_opens_a_room(self):
+    def serve_art(self):
+        """Every file the app asks for, as one plain colour: no pack art in a test, ever."""
         if not CAFE.exists():
             self.skipTest(f"{CAFE} is not built")
-        # every file the app asks for, as one plain colour: no pack art in a test, ever
         from_list = [line.split('"')[1] for line in (APP / "src" / "art.cpp").read_text().splitlines() if line.strip().startswith("{Id::")]
         for path in from_list:
             self.state.art[path] = (APP / "assets" / "Nunito-Bold.ttf").read_bytes() if path.endswith(".ttf") else png(143, 191, 79)
+        return from_list
+
+    def app(self, steps, name="shot.png"):
+        return subprocess.run([str(CAFE), "--gateway", self.origin, "--home", str(Path(self.dir.name) / "home"), "--shot",
+                               str(Path(self.dir.name) / name), "--size", "1280x800", "--do", steps], capture_output=True, text=True, timeout=120)
+
+    def test_an_older_gateway_without_homework_still_lets_her_in(self):
+        from_list = self.serve_art()
+        self.state.homework = False
+        r = self.app(f"type {USER}; key tab; type {PASSWORD}; key enter")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        art = [p for m, p, *_ in self.state.seen if p.startswith("/art/")]
+        self.assertEqual(len(art), len(from_list), "past waking the cats: the house is hers and its art fetched")
+
+    def test_signing_out_from_the_house_menu(self):
+        self.serve_art()
+        self.assertEqual(self.app(f"type {USER}; key tab; type {PASSWORD}; key enter").returncode, 0)
+        token = self.state.token
+        r = self.app("click 100 40; choose Sign out")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        _, _, headers, _ = self.last("POST", "/logout")
+        self.assertEqual(headers.get("Cookie"), f"__Host-catio={token}")
+        self.assertIsNone(self.state.token, "the gateway ended it")
+        self.assertFalse((Path(self.dir.name) / "home" / "cookie").exists(), "and the app forgot it")
+
+    def test_the_app_signs_in_reads_fetches_the_art_and_opens_a_room(self):
+        from_list = self.serve_art()
         home = Path(self.dir.name) / "home"
         shot = Path(self.dir.name) / "signed-in.png"
         run = lambda steps, out: subprocess.run([str(CAFE), "--gateway", self.origin, "--home", str(home), "--shot", str(out),

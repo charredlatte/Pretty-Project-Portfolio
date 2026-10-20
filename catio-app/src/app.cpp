@@ -131,8 +131,12 @@ struct App::Impl {
     double last_read = -1e9;       // when the 30-second clock last struck
     int reads_out = 0;             // documents, cats and homework still on their way
     bool read_once = false;
-    std::string net_trouble, art_trouble, said;
+    std::string net_trouble, art_trouble, said, toast;
     double said_until = 0;
+    bool said_bad = false;         // what was said is an error (the sign), not news (the toast)
+    bool read_failed = false;      // a read in this batch failed: its trouble stands until a whole batch is clean
+    bool got_docs = false, got_agents = false;   // the house needs both before it is drawn as hers
+    float wheel = 0;               // a trackpad's fractions of a notch, added up
     std::int64_t live_at = 0;
     std::set<art::Id> fetching;
 
@@ -160,6 +164,8 @@ struct App::Impl {
         f.still = still;
         f.live = !origin.empty() ? (live_at && net_trouble.empty() ? "Live through your gateway \u00b7 " + clock_of(live_at) : "Not live") : live;
         f.status = status;
+        f.toast = toast;
+        f.gateway = net != nullptr;
         return f;
     }
 
@@ -174,22 +180,27 @@ struct App::Impl {
         return true;
     }
 
+    // The sign under the brand says only what is wrong (with the pack's cross); progress and what went right are
+    // the toast at the foot of the screen, as the page's toast and stage message are.
     void say_status() {
-        std::vector<std::string> wrong;
-        if (now < said_until && !said.empty()) wrong.push_back(said);
+        std::vector<std::string> wrong, told;
+        if (now < said_until && !said.empty()) (said_bad ? wrong : told).push_back(said);
         if (!net_trouble.empty()) wrong.push_back(net_trouble);
-        if (phase == Phase::FirstRead) wrong.push_back("Waking the cats\u2026");
+        else if (phase == Phase::FirstRead) told.push_back("Waking the cats\u2026");
         if (phase == Phase::Setup) wrong.push_back("This caf\u00e9 has no rooms yet: set it up in a browser for now, at your gateway's address.");
         if (!art_trouble.empty()) wrong.push_back(art_trouble);
-        else if (art && art->have() < art->total())
-            wrong.push_back(!fetching.empty()
-                ? "Fetching the caf\u00e9's art\u2026 (" + std::to_string(art->have()) + " of " + std::to_string(art->total()) + ")"
-                : "The caf\u00e9's art isn't all here (" + std::to_string(art->have()) + " of " + std::to_string(art->total()) + "): it comes from your gateway once you sign in.");
+        else if (art && art->have() < art->total()) {
+            const std::string n = std::to_string(art->have()) + " of " + std::to_string(art->total());
+            if (!fetching.empty()) told.push_back("Fetching the caf\u00e9's art\u2026 (" + n + ")");
+            else wrong.push_back("The caf\u00e9's art isn't all here (" + n + "): it comes from your gateway once you sign in.");
+        }
         if (origin.empty() && data == std::filesystem::path(CATIO_SOURCE_DIR) / "test" / "fixtures")
             wrong.push_back("Example cats, not yours: give the app your gateway (--gateway) to see your caf\u00e9.");
-        status.clear();
+        status.clear(), toast.clear();
         for (const auto& w : wrong) status += (status.empty() ? "" : " ") + w;
+        for (const auto& t : told) toast += (toast.empty() ? "" : " ") + t;
     }
+    void say(std::string what, bool bad, double secs) { said = std::move(what), said_bad = bad, said_until = now + secs; }
 
     // ---- the gateway ----
 
@@ -201,6 +212,7 @@ struct App::Impl {
     void read_all() {
         if (!net || reads_out) return;
         last_read = now;
+        read_failed = false;
         ask(Ask::Docs, [](net::Gateway& g) { return g.docs(); });
         ask(Ask::Agents, [](net::Gateway& g) { return g.tool("list_agents", "{}"); });
         ask(Ask::Quizzes, [](net::Gateway& g) { return g.tool("quizzes", "{}"); });
@@ -238,15 +250,22 @@ struct App::Impl {
         ui.close_card();
         ui.online(false);
         reads_out = 0;
-        asked.clear();   // what comes back for them now has nowhere to go
+        asked.clear();     // what comes back for them now has nowhere to go
+        fetching.clear();  // so the art they were fetching is asked for again after the next sign-in
     }
     void heard(const Asked& a, net::Reply& r) {
+        const bool read = a.what == Ask::Docs || a.what == Ask::Agents || a.what == Ask::Quizzes;
         if (net::signed_out(r) && a.what != Ask::Login) { signed_out("Signed out: sign in again."); return; }
+        if (read) --reads_out;
         if (r.err.code == "unreachable") {
-            net_trouble = "Can't reach your gateway (" + r.err.message + "). Trying again in half a minute.";
-            if (a.what == Ask::Login) form.busy = false, form.problem = "Can't reach " + origin + ": " + r.err.message;
-            if (a.what == Ask::Art) fetching.erase(a.art);
-            if (a.what == Ask::Docs || a.what == Ask::Agents || a.what == Ask::Quizzes) --reads_out;
+            switch (a.what) {
+                case Ask::Login: form.busy = false, form.problem = "Can't reach " + origin + ": " + r.err.message; return;
+                case Ask::Write: say("Your gateway couldn't be reached, so that wasn't done: try again.", true, 6); return;
+                case Ask::Art: fetching.erase(a.art); break;   // asked for again with the next read
+                default: read_failed = true; break;
+            }
+            net_trouble = "Can't reach your gateway (" + r.err.message + "). Trying again in half a minute.";   // the clock reads again
+            if (read) settle_reads();
             return;
         }
         switch (a.what) {
@@ -267,18 +286,13 @@ struct App::Impl {
             case Ask::Docs:
             case Ask::Agents:
             case Ask::Quizzes:
-                --reads_out;
-                if (!r.ok()) { net_trouble = "Your gateway didn't answer (" + r.err.code + "): " + r.err.message; return; }
-                net_trouble.clear();
-                if (a.what == Ask::Docs) house.docs(r.body);
-                else if (a.what == Ask::Agents) house.agents(r.body), live_at = wall_ms();
+                if (!r.ok()) {
+                    read_failed = true;
+                    net_trouble = "Your gateway didn't answer (" + r.err.code + "): " + r.err.message;
+                } else if (a.what == Ask::Docs) house.docs(r.body), got_docs = true;
+                else if (a.what == Ask::Agents) house.agents(r.body), got_agents = true, live_at = wall_ms();
                 else house.quizzes(r.body);
-                if (!reads_out && phase == Phase::FirstRead) {
-                    phase = house.never_set_up() ? Phase::Setup : Phase::Running;
-                    read_once = true;
-                    ui.online(true);
-                    fetch_art();
-                }
+                settle_reads();
                 return;
             case Ask::Art:
                 fetching.erase(a.art);
@@ -293,10 +307,26 @@ struct App::Impl {
                 if (a.art == art::Id::SproutFont) ui.fonts(assets, *art, stage.css);
                 return;
             case Ask::Write:
-                if (!r.ok()) { said = "Your gateway didn't take it (" + r.err.code + "): " + r.err.message, said_until = now + 6; return; }
-                if (!a.label.empty()) said = a.label, said_until = now + 4;
+                if (!r.ok()) { say("Your gateway didn't take it (" + r.err.code + "): " + r.err.message, true, 6); return; }
+                if (!a.label.empty()) say(a.label, false, 4);
                 last_read = -1e9;   // see the change at once
                 return;
+        }
+    }
+
+    // Once the whole batch is back: its trouble stands if any of it failed, and the house is hers once its documents
+    // and its cats have come (the homework can fail without keeping her out: an older gateway has no `quizzes`).
+    // Whether it is still waiting to be set up is asked again every time, so setting it up in a browser shows here.
+    void settle_reads() {
+        if (reads_out) return;
+        if (!read_failed) net_trouble.clear();
+        if (!got_docs || !got_agents || phase == Phase::SignIn) return;
+        const bool first = phase == Phase::FirstRead;
+        phase = house.never_set_up() ? Phase::Setup : Phase::Running;
+        if (first) {
+            read_once = true;
+            ui.online(true);
+            fetch_art();
         }
     }
 
@@ -320,11 +350,13 @@ struct App::Impl {
 
     // ---- the camera ----
 
+    // Every camera move goes through here. What slides under a still pointer isn't named until she moves.
     void place(view::Cam c) {
         c = view::clamp(c, stage);
         c.floor = cam.floor;
         c.focus = cam.focus;
         cam = c;
+        ui.tip(frame(), {}, false);
     }
     void fit_to(manor::Box b) { place(view::fit(b, stage)); }
     // go(): into a room or back out to the whole house, changing floor first when the room is on the other
@@ -498,6 +530,9 @@ bool App::start(int argc, char** argv) {
 #ifdef CATIO_GATEWAY_ORIGIN
     if (!gateway_given && I.data.empty()) gateway = CATIO_GATEWAY_ORIGIN, gateway_given = true;   // her build
 #endif
+#if defined(SDL_PLATFORM_ANDROID) || defined(SDL_PLATFORM_IOS)
+    gateway_given = true;   // a phone has no folder of documents: its gateway, or the sign-in asks for the address
+#endif
     if (!manor::load(I.manor_json)) { std::fprintf(stderr, "catio_app: no floor plan at %s\n", I.manor_json.string().c_str()); return false; }
 
     // where her cookie, the prefs and the art's cache live: the app's own private folder, or the one she names
@@ -584,7 +619,7 @@ void App::act(ui::Action what, std::string_view arg_v) {
         case Action::ZoomIn:
         case Action::ZoomOut:
             I.ui.close_menu();
-            I.cam = view::zoom_by(I.cam, what == Action::ZoomIn ? 1 : -1, I.stage.w / 2.f, I.stage.h / 2.f, I.stage);
+            I.place(view::zoom_by(I.cam, what == Action::ZoomIn ? 1 : -1, I.stage.w / 2.f, I.stage.h / 2.f, I.stage));
             I.settle();
             break;
         case Action::ToFloor: I.set_floor(arg == "upper" ? manor::Level::Upper : manor::Level::Ground); break;
@@ -592,6 +627,7 @@ void App::act(ui::Action what, std::string_view arg_v) {
         case Action::MapAt: {
             int x = 0, y = 0;
             if (std::sscanf(arg.c_str(), "%d %d", &x, &y) == 2) {
+                I.ui.close_menu();     // the minimap's pointerdown hides it, as every camera move does
                 view::Cam c = I.cam;   // centreOn
                 c.tx = std::round(I.stage.w / 2.f - x * float(c.u));
                 c.ty = std::round(I.stage.h / 2.f - y * float(c.u));
@@ -603,8 +639,17 @@ void App::act(ui::Action what, std::string_view arg_v) {
         case Action::StillCats: I.still = !I.still; I.save_prefs(); break;
         case Action::OpenCat: I.ui.open(ui::Card::Cat, arg); break;
         case Action::OpenLink:
+            // A cat's link is what its agent reported, and an agents' key is the one a leak would be: only a web address
+            // is handed to the system, never a file:, smb: or an app's own scheme.
+            if (arg.rfind("https://", 0) != 0) { I.say("That link isn't a web address, so the app won't open it.", true, 6); break; }
             if (I.window) SDL_OpenURL(arg.c_str());
             else std::printf("open %s\n", arg.c_str());
+            break;
+        case Action::SignOut:
+            // the gateway ends the cookie and the file goes, on the net's own thread; the sign-in comes back here at once
+            if (!I.net) break;
+            I.net->send([](net::Gateway& g) { g.sign_out(); return net::Reply{}; });
+            I.signed_out("");
             break;
         case Action::CheckNow:
             I.art_trouble.clear();
@@ -830,9 +875,14 @@ void App::Impl::handle(App& app, const In& in) {
             }
         }
         case In::Wheel: {
-            if (ui.over(f, in.x, in.y) && ui.card() != ui::Card::None) return;
+            // over a card or a menu the wheel is theirs, not the house's
+            if (ui.card() != ui::Card::None || ui.under(f, in.x, in.y).rfind("menu:", 0) == 0) return;
+            wheel += in.dy;   // a trackpad sends fractions of a notch, and a sideways scroll nothing
+            if (std::fabs(wheel) < 1) return;
+            const int step = wheel > 0 ? 1 : -1;
+            wheel = 0;
             ui.close_menu();
-            cam = view::zoom_by(cam, in.dy > 0 ? 1 : -1, in.x, in.y, stage);
+            place(view::zoom_by(cam, step, in.x, in.y, stage));
             settle();
             return;
         }
@@ -841,7 +891,7 @@ void App::Impl::handle(App& app, const In& in) {
             if (pinch > 1.25f || pinch < 0.8f) {
                 ui.close_menu();
                 const draw::Pt at = pointer.value_or(draw::Pt{stage.w / 2.f, stage.h / 2.f});
-                cam = view::zoom_by(cam, pinch > 1 ? 1 : -1, at.x, at.y, stage);
+                place(view::zoom_by(cam, pinch > 1 ? 1 : -1, at.x, at.y, stage));
                 pinch = 1;
                 settle();
             }
