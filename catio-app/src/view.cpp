@@ -144,6 +144,13 @@ Cam pan_by(Cam c, float dx, float dy, Stage stage) {
 }
 
 draw::Pt to_screen(const Cam& c, manor::Point p) { return {p.x * float(c.u) + c.tx, p.y * float(c.u) + c.ty}; }
+std::string room_at(manor::Level floor, float ax, float ay) {
+    const auto& rooms = manor::geom();
+    for (auto g = rooms.rbegin(); g != rooms.rend(); ++g)   // the later room in ORDER is on top
+        if (g->level == floor && ax >= g->box.x && ax < g->box.x + g->box.w && ay >= g->box.y && ay < g->box.y + g->box.h) return g->key;
+    return {};
+}
+
 draw::Rect visible(const Cam& c, Stage stage) {
     const float u = float(c.u);
     return {-c.tx / u, -c.ty / u, float(stage.w) / u, float(stage.h) / u};
@@ -402,13 +409,8 @@ Hit pick(const Scene& s, const Cam& c, Stage stage, float sx, float sy, bool coa
         if (g.litter) if (const draw::Rect r = screen(art_box(*g.litter)); inside(r)) return Hit{Thing::Litter, g.key, r};
         if (g.cabinet) if (const draw::Rect r = screen(art_box(*g.cabinet)); inside(r)) return Hit{Thing::Cabinet, g.key, r};
     }
-    // the page's .roomhit buttons, appended in ORDER: on a wall two rooms share, the later one is on top
-    const auto& rooms = manor::geom();
-    for (auto g = rooms.rbegin(); g != rooms.rend(); ++g) {
-        if (g->level != c.floor) continue;
-        const draw::Rect r{g->box.x * 2 * k + c.tx, g->box.y * 2 * k + c.ty, g->box.w * 2 * k, g->box.h * 2 * k};
-        if (inside(r)) return Hit{Thing::Room, g->key, r};
-    }
+    const std::string room = room_at(c.floor, (sx - c.tx) / float(c.u), (sy - c.ty) / float(c.u));
+    if (const manor::Geom* g = room.empty() ? nullptr : manor::of(room)) return Hit{Thing::Room, room, screen_box(c, g->box)};
     return Hit{};
 }
 

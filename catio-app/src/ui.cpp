@@ -46,10 +46,7 @@ bool needs(const Cat* c) { return info(c->mood).needs; }
 
 // A link the app will hand to the system: a web address, never a file or an app's own scheme (app.cpp's act() refuses
 // the rest too; an agent reports its own link, with the key a leak would be).
-bool web(std::string_view link) { return web_link(link); }
 
-// where a cat is now: a cat waiting on her is in the line at the front door, whatever its room
-std::string_view where_is(const Cat* c) { return stands_in(*c); }
 
 // VIEW.cats: every cat that is drawn somewhere, which is all of them but the ones napping in the attic
 std::vector<const Cat*> shown(const Frame& f) {
@@ -69,7 +66,7 @@ std::vector<const Cat*> in_room(const std::vector<const Cat*>& cats, std::string
 
 std::vector<const Cat*> need_on(const std::vector<const Cat*>& cats, manor::Level f) {
     std::vector<const Cat*> out;
-    for (const Cat* c : cats) if (needs(c) && manor::level_of(where_is(c)) == f) out.push_back(c);
+    for (const Cat* c : cats) if (needs(c) && manor::level_of(stands_in(*c)) == f) out.push_back(c);
     return out;
 }
 
@@ -161,11 +158,13 @@ std::string ago(std::int64_t t, std::int64_t now) {
     return d == 1 ? "yesterday" : std::to_string(d) + " days ago";
 }
 
-std::string queen_line(const House& h) {
+std::string queen_line(const House& h, bool local) {
     const QueenState st = h.queen_state();
     const auto pin = pinned(h.queen());
     if (!pin.empty() && st != QueenState::Busy) return pin[0]->text;
-    if (st == QueenState::Away) return "Away: start her runner on your PC to talk to her.";
+    if (st == QueenState::Away)
+        return local ? "Away: she only wakes in a caf\u00e9 with a front desk (a gateway). On this computer she stays asleep."
+                     : "Away: start her runner on your PC to talk to her.";
     if (st == QueenState::Busy) return "Answering…";
     // a cat waiting on her answer comes first, then what the cats brought her, then the notes and decisions
     const bool unblock = !h.homework("unblock").empty();
@@ -207,7 +206,7 @@ Tip tip_for(const Frame& f, const view::Hit& h) {
         case Thing::Queen:
             t.name = H.queen().name;
             t.small = "queen";
-            t.says = queen_line(H);
+            t.says = queen_line(H, !f.gateway);
             break;
         case Thing::Pile: {
             if (!f.scene) break;
@@ -216,9 +215,10 @@ Tip tip_for(const Frame& f, const view::Hit& h) {
             break;
         }
         case Thing::Litter: {
-            const int n = int(H.homework("litterbox").size());
+            const int n = int(H.homework("litterbox").size()), tray = H.tray();
             t.name = "The litter box";
-            t.says = n ? plural(n, "note", "notes") + " to sort" : "Nothing to sort.";
+            t.says = join({n ? plural(n, "note", "notes") + " to sort" : "", tray ? std::to_string(tray) + " on the brain's tray" : ""}, " \u00b7 ");
+            if (t.says.empty()) t.says = "Nothing to sort.";
             break;
         }
         case Thing::Cat: {
@@ -283,7 +283,7 @@ Menu menu_for(const Frame& f, Thing kind, std::string_view key, bool adding) {
         else {
             std::vector<Item> items{look(m.key)};
             const manor::Geom* g = manor::of(key);
-            if (key == "brain") items.push_back(mi("The brain", Action::OpenBrain));
+            if (key == "brain") items.push_back(mi("The brain", Action::OpenBrain, "", H.tray() ? std::to_string(H.tray()) + " on the tray" : ""));
             if (g && g->cabinet) items.push_back(mi("Files", Action::OpenCabinet, m.key));
             items.push_back(mi(key == "brain" ? "Choose files" : "Add files", Action::AddFiles, key == "brain" ? "" : "room:" + m.key));
             items.push_back(mi("Add a cat", Action::AddACat, m.key));
@@ -305,7 +305,7 @@ Menu menu_for(const Frame& f, Thing kind, std::string_view key, bool adding) {
         m.blocks.push_back(sub(line));
         std::vector<Item> items;
         if (const int hw = int(H.homework().size())) items.push_back(mi("Homework", Action::OpenHomework, "", std::to_string(hw) + " waiting"));
-        items.push_back(mi("The brain", Action::OpenBrain));
+        items.push_back(mi("The brain", Action::OpenBrain, "", H.tray() ? std::to_string(H.tray()) + " on the tray" : ""));
         items.push_back(mi("House rules", Action::OpenRules));
         if (H.has_maps()) items.push_back(mi("Project maps", Action::OpenMaps));   // any map at all, hidden ones too
         items.push_back(mi("Edit rooms", Action::OpenEditRooms, f.cam->focus));
@@ -350,7 +350,7 @@ Menu menu_for(const Frame& f, Thing kind, std::string_view key, bool adding) {
         m.crown = true;
         m.sub = "Queen of the house · " + std::string(state_word(st));
         Block line;
-        line.text = queen_line(H);
+        line.text = queen_line(H, !f.gateway);
         if (!H.handoffs().empty() || (!pin.empty() && st != QueenState::Busy)) line.kind = Block::Kind::Ask, line.need = true;
         else line.kind = Block::Kind::Sub;
         m.blocks.push_back(line);
@@ -402,7 +402,7 @@ Menu menu_for(const Frame& f, Thing kind, std::string_view key, bool adding) {
         }
         m.blocks.push_back(rule());
         std::vector<Item> items;
-        if (web(c->link)) items.push_back(mi(c->adopted ? "Open chat" : "Open", Action::OpenLink, c->link));
+        if (web_link(c->link)) items.push_back(mi(c->adopted ? "Open chat" : "Open", Action::OpenLink, c->link));
         items.push_back(mi(c->adopted ? "Details" : "Talk", Action::OpenCat, c->id));
         items.push_back(mi("Add files", Action::AddFiles, "cat:" + c->id));
         if (f.cam->focus != c->room) items.push_back(mi("Look in", Action::LookIn, c->room));
@@ -599,14 +599,6 @@ float mm_scale(const Frame& f) { return kMmW / kMmBox[2] * float(std::max(1, f.s
 Pt mm_point(const Frame& f, Rect mm, float x, float y) {
     const float s = mm_scale(f);
     return {kMmBox[0] + (x - mm.x) / s, kMmBox[1] + (y - mm.y) / s};
-}
-
-// The room of this floor at a point of the plan (art pixels), or none.
-std::string room_at(manor::Level floor, float ax, float ay) {
-    std::string room;
-    for (const auto& g : manor::geom())
-        if (g.level == floor && ax >= g.box.x && ax < g.box.x + g.box.w && ay >= g.box.y && ay < g.box.y + g.box.h) room = g.key;
-    return room;
 }
 
 // Why an action isn't here: the word a menu puts on its right, and the sentence a test or a hover reads. One table.
@@ -913,7 +905,7 @@ void draw_minimap(Painter& P, const Frame& f, Rect mm) {
             P.fill(Rect{r.x, r.y, r.w, k}, edge), P.fill(Rect{r.x, r.y + r.h - k, r.w, k}, edge);
             P.fill(Rect{r.x, r.y + k, k, r.h - 2 * k}, edge), P.fill(Rect{r.x + r.w - k, r.y + k, k, r.h - 2 * k}, edge);
             std::vector<const Cat*> need;
-            for (const Cat* c : cats) if (needs(c) && where_is(c) == g.key) need.push_back(c);
+            for (const Cat* c : cats) if (needs(c) && stands_in(*c) == g.key) need.push_back(c);
             if (!need.empty()) {
                 const bool fail = std::any_of(need.begin(), need.end(), [](const Cat* c) { return c->mood == Mood::Cry; });
                 P.round(Rect{r.x + r.w - 10 * k, r.y + 2 * k, 8 * k, 8 * k}, 4 * k, fail ? kPipFail : kPip);
@@ -1357,7 +1349,7 @@ void Ui::hover(const Frame& f, float x, float y) {
         I.hot = it->id;
         if (it->id == "map:mm" && f.cam) {
             const Pt a = mm_point(f, it->r, x, y);
-            I.mm_hot = room_at(f.cam->floor, a.x, a.y);
+            I.mm_hot = view::room_at(f.cam->floor, a.x, a.y);
         }
         break;
     }
@@ -1416,7 +1408,7 @@ bool Ui::press(const Frame& f, float x, float y, Action* what, std::string* arg)
             const float ax = a.x, ay = a.y;
             *arg = std::to_string(int(ax)) + " " + std::to_string(int(ay));
             // a second press on the same room soon after looks in (the minimap's double-click)
-            const std::string room = f.cam ? room_at(f.cam->floor, ax, ay) : std::string();
+            const std::string room = f.cam ? view::room_at(f.cam->floor, ax, ay) : std::string();
             if (!room.empty() && room == I.mm_pressed_room && f.now - I.mm_pressed_at < 0.4) *what = Action::LookIn, *arg = room, I.mm_pressed_at = -1;
             else I.mm_pressed_room = room, I.mm_pressed_at = f.now;
             break;
@@ -1572,7 +1564,7 @@ void draw_cat_card(Painter& P, const Frame& f, const Cat& c) {
         // the actions: Close on the left, the way out to its session on the right
         const float bh = P.btn_h();
         P.btn(Rect{x, y, P.btn_w("Close"), bh}, "Close", "card:close", Action::CloseCard, "");
-        if (web(c.link)) {
+        if (web_link(c.link)) {
             const std::string label = c.adopted ? "Open chat" : "Open";
             const float w = P.btn_w(label);
             P.btn(Rect{x + cw - w, y, w, bh}, label, "card:open", Action::OpenLink, c.link, true);

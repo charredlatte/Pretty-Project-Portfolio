@@ -15,6 +15,7 @@
 #ifndef CATIO_NET_H
 #define CATIO_NET_H
 
+#include <cctype>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -40,11 +41,19 @@ struct Reply {
 /// 401 {code:"signed_out"} — the cookie has run out (30 days) or been revoked. Sign in again.
 bool signed_out(const Reply&);
 
-/// An origin as the jar, the requests and the sign-in screen all write it: no spaces round it, no slash after it.
+/// An origin as the jar, the requests and the sign-in screen all write it: its scheme and host in lower case (as
+/// a browser reads them, "HTTPS://" or an auto-capitalised "Https://" included), no spaces round it, and nothing
+/// after the host: a pasted "https://host/invite" is the gateway at https://host.
 inline std::string bare(std::string origin) {
-    while (!origin.empty() && (origin.back() == '/' || origin.back() == ' ')) origin.pop_back();
     const size_t start = origin.find_first_not_of(' ');
-    return start == std::string::npos ? std::string{} : origin.substr(start);
+    origin = start == std::string::npos ? std::string{} : origin.substr(start);
+    while (!origin.empty() && origin.back() == ' ') origin.pop_back();
+    const size_t scheme = origin.find("://");
+    const size_t end = scheme == std::string::npos ? origin.size() : origin.find_first_of("/?#", scheme + 3);
+    if (end != std::string::npos) origin.resize(end);
+    while (!origin.empty() && origin.back() == '/') origin.pop_back();   // and a scheme-less "/" is nothing
+    for (char& ch : origin) ch = char(std::tolower(static_cast<unsigned char>(ch)));
+    return origin;
 }
 
 /// Plain http only to this machine (the tests' stand-in): anywhere else her password and cookie would cross

@@ -52,6 +52,10 @@ Cam zoom_by(Cam c, int du, float at_x, float at_y, Stage stage);
 Cam pan_by(Cam c, float dx, float dy, Stage stage);
 
 draw::Pt to_screen(const Cam& c, manor::Point p);
+/// The room of this floor at a point of the plan (art pixels), or none. On a wall two rooms share, the later in
+/// ORDER: the page's .roomhit buttons stack in that order. A click on the house and the minimap both ask this.
+std::string room_at(manor::Level floor, float ax, float ay);
+
 /// A box of the plan (a room, the stair, a piece of furniture), on screen.
 draw::Rect screen_box(const Cam& c, manor::Box b);
 /// The other way: what of the plan the camera shows, in art pixels (the minimap's frame, roomInView).

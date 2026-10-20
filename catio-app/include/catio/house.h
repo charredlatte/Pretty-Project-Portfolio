@@ -13,7 +13,8 @@
 //
 // What this app never reads or writes: snapshot/sessions, sessions/<id>, notes/<id>, brain/<id> and
 // outbox/<id>. Those are claude.ai's path, keyed off list_sessions ids a native client never sees. On
-// the gateway the same things are the notes and files tables, reached through the tools.
+// the gateway the same things are the notes and files tables, reached through the tools. (Of brain/<id> it
+// reads one thing: how many wait unsorted on the tray, which the page's hover and House menu count.)
 //
 // Implemented in src/house.cpp, and tested in test/tests.cpp.
 
@@ -129,6 +130,7 @@ public:
     // ---- the house ------------------------------------------------------------------------------
     std::string name() const;                              ///< house/main.name, else "KittyChat Café"
     bool has_maps() const;                                 ///< any graphs/<repo> at all, hidden ones too
+    int tray() const;                                      ///< files on the brain's tray: brain/<id> still unsorted
     const Room& room(std::string_view key) const;
     bool open(std::string_view key) const;
     std::string catch_all_room() const;

@@ -124,6 +124,7 @@ struct App::Impl {
     SDL_Cursor* paw = nullptr;
     SDL_Cursor* point = nullptr;
     bool pointing = false;
+    int input_field = -1;          // the sign-in field the keyboard was started for
 
     House house;
     std::unique_ptr<art::Art> art;
@@ -142,6 +143,7 @@ struct App::Impl {
 
     // the gateway
     std::unique_ptr<net::Net> net;
+    std::vector<std::unique_ptr<net::Net>> retired;   // gateways she typed before this one, let go when the app closes
     std::map<std::uint32_t, Asked> asked;
     Phase phase = Phase::Running;
     ui::SignIn form;
@@ -149,7 +151,8 @@ struct App::Impl {
     int reads_out = 0;             // documents, cats and homework still on their way
     bool read_once = false;
     bool read_again = false;       // a read was asked for while one was out
-    std::string net_trouble, art_trouble, said, toast;
+    std::string net_trouble, said, toast;
+    std::map<art::Id, std::string> art_troubles;   // what went wrong with each piece, until it comes
     double said_until = 0;
     bool said_bad = false;         // what was said is an error (the sign), not news (the toast)
     bool read_failed = false;      // a read in this batch failed: its trouble stands until a whole batch is clean
@@ -161,6 +164,7 @@ struct App::Impl {
     std::set<art::Id> fetching;
     std::set<art::Id> unkept;      // fetched but not written to the cache (full or read-only): not asked for again
     std::set<art::Id> failed;      // refused or broken: not asked for again until Check now, while the rest come
+    std::set<art::Id> later;       // refused for a moment (busy, a 5xx): asked for again when the clock next strikes
     std::string cache_trouble;
 
     // the pointer
@@ -211,7 +215,10 @@ struct App::Impl {
     bool read_house() {
         const std::string db = slurp(data / "db.json"), agents = slurp(data / "agents.json");
         if (db.empty()) { std::fprintf(stderr, "catio_app: no db.json in %s\n", to_utf8(data).c_str()); return false; }
-        house.docs(db);
+        if (!house.docs(db)) {
+            std::fprintf(stderr, "catio_app: %s isn't the caf\u00e9's documents: {\"docs\": {path: data}}, as GET /api/db gives\n", to_utf8(data / "db.json").c_str());
+            return false;
+        }
         house.agents(agents.empty() ? R"({"agents": []})" : agents);
         if (const std::string q = slurp(data / "quizzes.json"); !q.empty()) house.quizzes(q);
         rescene();
@@ -226,7 +233,7 @@ struct App::Impl {
         if (!net_trouble.empty()) wrong.push_back(net_trouble);
         else if (phase == Phase::FirstRead) told.push_back("Waking the cats\u2026");
         if (phase == Phase::Setup) wrong.push_back("This caf\u00e9 has no rooms yet: set it up in a browser for now, at your gateway's address.");
-        if (!art_trouble.empty()) wrong.push_back(art_trouble);
+        if (!art_troubles.empty()) wrong.push_back(art_troubles.begin()->second);
         else if (art && art->have() < art->total()) {
             const std::string n = std::to_string(art->have()) + " of " + std::to_string(art->total());
             if (!fetching.empty()) told.push_back("Fetching the caf\u00e9's art\u2026 (" + n + ")");
@@ -270,7 +277,7 @@ struct App::Impl {
         if (!net || !art) return;
         for (const art::File* file : art->missing()) {
             if (fetching.size() >= 4) break;
-            if (fetching.count(file->id) || unkept.count(file->id) || failed.count(file->id)) continue;
+            if (fetching.count(file->id) || unkept.count(file->id) || failed.count(file->id) || later.count(file->id)) continue;
             fetching.insert(file->id);
             const std::string path(file->path);
             const art::Id id = file->id;
@@ -294,7 +301,11 @@ struct App::Impl {
         if (form.ask_origin) {
             const std::string o = net::bare(form.origin);
             if (!net::safe_origin(o)) { form.problem = "Your gateway's address starts with https://."; return; }
-            if (o != origin || !net) origin = o, net = std::make_unique<net::Net>(origin, home / "cookie");
+            if (o != origin || !net) {
+                // the last one may still owe its gateway a /logout, for up to three seconds: never on the window's time
+                if (net) retired.push_back(std::move(net));
+                origin = o, net = std::make_unique<net::Net>(origin, home / "cookie");
+            }
         }
         form.busy = true;
         form.problem.clear();
@@ -310,7 +321,7 @@ struct App::Impl {
         draw::forget_tints();
         forget_cursors();
         art->forget_all();
-        fetching.clear(), unkept.clear(), failed.clear(), cache_trouble.clear();
+        fetching.clear(), unkept.clear(), failed.clear(), later.clear(), cache_trouble.clear();
     }
     // whose art the cache holds: the gateway and the handle that fetched it
     std::filesystem::path owner_file() const { return home / "art-owner"; }
@@ -329,8 +340,10 @@ struct App::Impl {
         rescene();
         got_docs = got_agents = read_once = false;
         live_at = 0;
-        net_trouble.clear(), art_trouble.clear();
-        failed.clear();   // what failed is asked for again after the next sign-in, as the sign will say
+        net_trouble.clear(), art_troubles.clear();
+        failed.clear(), later.clear();   // what failed is asked for again after the next sign-in, as the sign will say
+        pending.clear();                 // and nothing she did before it is played on the sign-in screen
+        read_again = false, wheel = 0, last_click_room.clear();
         if (leaving) {
             forget_art();
             std::error_code ec;
@@ -405,19 +418,23 @@ struct App::Impl {
             case Ask::Art:
                 fetching.erase(a.art);
                 if (!r.ok()) {
-                    // a moment's trouble (busy, a 5xx) is asked again with the next read; a piece that isn't there waits
-                    // for Check now: the packs' art is served to the café's first owner alone, once move-in.py has run
-                    if (r.err.code != "busy" && r.err.code != "unavailable") failed.insert(a.art);
-                    art_trouble = r.err.code == "not_found"
+                    // a moment's trouble (busy, a 5xx) waits for the next read, never asked again at once; a piece that
+                    // isn't there waits for Check now: the packs' art is served to the café's first owner alone, once
+                    // move-in.py has uploaded it
+                    const bool moment = r.err.code == "busy" || r.err.code == "unavailable";
+                    (moment ? later : failed).insert(a.art);
+                    art_troubles[a.art] = r.err.code == "not_found"
                         ? "Your gateway has no " + a.label + ": it serves the packs' art to the caf\u00e9's first owner alone, once move-in.py has uploaded it. Check now tries again."
-                        : "The caf\u00e9's art couldn't all come (" + r.err.code + "). Check now tries again.";
+                        : moment ? "The caf\u00e9's art couldn't all come (" + r.err.code + "): the rest is asked for again in half a minute."
+                                 : "The caf\u00e9's art couldn't all come (" + r.err.code + "). Check now tries again.";
                     fetch_art();   // the rest still comes
                     return;
                 }
+                art_troubles.erase(a.art);   // it came: whatever went wrong with it before is over
                 if (!art->adopt(a.art, a.ready ? *a.ready : nullptr)) {
                     if (art->trouble() != "cache_unwritable") {
                         failed.insert(a.art);
-                        art_trouble = "A piece of the art came back broken (" + a.label + ", " + std::string(art->trouble()) + "). Check now tries again.";
+                        art_troubles[a.art] = "A piece of the art came back broken (" + a.label + ", " + std::string(art->trouble()) + "). Check now tries again.";
                     } else {   // drawn now if it could be decoded, but not kept
                         unkept.insert(a.art);
                         cache_trouble = "The app can't keep its art in " + to_utf8(art_dir) + " (full, or not writable): it is fetched again next time.";
@@ -839,7 +856,7 @@ void App::act(ui::Action what, std::string_view arg_v) {
             I.net->send([](net::Gateway& g) { g.sign_out(); return net::Reply{}; }, true);   // then /logout, first in line
             break;
         case Action::CheckNow:
-            I.art_trouble.clear();
+            I.art_troubles.clear();
             I.failed.clear(), I.unkept.clear(), I.cache_trouble.clear();
             refresh(true);
             break;
@@ -860,12 +877,13 @@ void App::act(ui::Action what, std::string_view arg_v) {
 void App::refresh(bool now) {
     Impl& I = *impl_;
     if (!I.net) {   // a folder of documents: read it again when asked (and on a phone's sign-in screen, nothing)
-        if (now && !I.data.empty()) I.read_house();
+        if (now && !I.data.empty() && !I.read_house()) I.say("That folder's db.json isn't the caf\u00e9's documents, so the house is as it was.", true, 8);
         return;
     }
     if (I.phase == Phase::SignIn) return;
     if (now || I.now - I.last_read >= 30) {
         I.read_all();
+        I.later.clear();   // what was refused for a moment is asked for again now, once
         if (I.read_once && I.fetching.empty()) I.fetch_art();   // what failed waits for Check now
     }
 }
@@ -1345,8 +1363,20 @@ int App::run() {
     }
     while (!I.quit) {
         // the sign-in form takes typing; the house does not
-        if (I.phase == Phase::SignIn && !SDL_TextInputActive(I.window)) SDL_StartTextInput(I.window);
-        else if (I.phase != Phase::SignIn && SDL_TextInputActive(I.window)) SDL_StopTextInput(I.window);
+        // the sign-in's keyboard, field by field: no capitals and no autocorrect anywhere (an address, a handle), and
+        // the password hidden from the keyboard's suggestions; started again as she moves between the fields
+        if (I.phase == Phase::SignIn && (!SDL_TextInputActive(I.window) || I.input_field != I.form.field)) {
+            SDL_StopTextInput(I.window);
+            const SDL_PropertiesID p = SDL_CreateProperties();
+            SDL_SetNumberProperty(p, SDL_PROP_TEXTINPUT_TYPE_NUMBER, I.form.field == 2 ? SDL_TEXTINPUT_TYPE_TEXT_PASSWORD_HIDDEN
+                                                                  : I.form.field == 1 ? SDL_TEXTINPUT_TYPE_TEXT_USERNAME
+                                                                                      : SDL_TEXTINPUT_TYPE_TEXT);
+            SDL_SetNumberProperty(p, SDL_PROP_TEXTINPUT_CAPITALIZATION_NUMBER, SDL_CAPITALIZE_NONE);
+            SDL_SetBooleanProperty(p, SDL_PROP_TEXTINPUT_AUTOCORRECT_BOOLEAN, false);
+            SDL_StartTextInputWithProperties(I.window, p);
+            SDL_DestroyProperties(p);
+            I.input_field = I.form.field;
+        } else if (I.phase != Phase::SignIn && SDL_TextInputActive(I.window)) SDL_StopTextInput(I.window), I.input_field = -1;
         // with the cats stilled nothing moves on its own: wait for something to happen (or the net, or the clock)
         if (I.still && I.phase != Phase::SignIn && !(I.net && I.net->outstanding())) SDL_WaitEventTimeout(nullptr, 250);
         const double began = clock_s();

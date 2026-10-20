@@ -61,7 +61,7 @@ class State:
         self.redirect = False # True: something in front of the gateway sends /api/db elsewhere
         self.outage = False   # True: Cloudflare's own 503 page in front of /api/db
         self.proxy = False    # True: something in front of the gateway answers /api/db with its own HTML 401
-        self.flaky = set()    # art paths that answer Cloudflare's 503 once, then come
+        self.flaky = {}       # art path: how many more times it answers Cloudflare's 503 before it comes
         self.seen = []        # (method, path, headers, body)
         self.docs = json.loads((APP / "test" / "fixtures" / "db.json").read_text())["docs"]
         self.agents = json.loads((APP / "test" / "fixtures" / "agents.json").read_text())
@@ -129,8 +129,8 @@ class Standin(BaseHTTPRequestHandler):
         if not self.signed_in():
             return self.refuse(401, "signed_out", "Sign in to the café first.")
         if path.startswith("/art/") and method == "GET":
-            if path[1:] in s.flaky:
-                s.flaky.discard(path[1:])
+            if s.flaky.get(path[1:], 0) > 0:
+                s.flaky[path[1:]] -= 1
                 return self.answer(503, b"<html><h1>Error 503</h1></html>", "text/html")
             data = s.art.get(path[1:])
             return self.answer(200, data, "image/png") if data is not None else self.answer(404, b"Not found\n", "text/plain")
@@ -498,12 +498,18 @@ class NetTest(unittest.TestCase):
 
     def test_a_moments_refusal_of_a_piece_of_art_is_asked_again(self):
         self.serve_art()
-        self.state.flaky = {"art/licensed/house.png"}
-        r = self.app(f"type {USER}; key tab; type {PASSWORD}; key enter; wait 31")
+        asked = lambda: len([p for m, p, *_ in self.state.seen if p == "/art/licensed/house.png"])
+        self.state.flaky = {"art/licensed/house.png": 1000}   # an outage
+        r = self.app(f"type {USER}; key tab; type {PASSWORD}; key enter")
         self.assertEqual(r.returncode, 0, r.stderr)
-        asked = [p for m, p, *_ in self.state.seen if p == "/art/licensed/house.png"]
-        self.assertEqual(len(asked), 2, "a 503 once, then asked again with the next read")
+        self.assertEqual(asked(), 1, "asked once, not again and again as fast as the gateway answers")
+        self.state.flaky = {"art/licensed/house.png": 1}
+        self.state.seen.clear()
+        r = self.app("wait 31; wait 31")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(asked(), 2, "then once a read: a 503, and on the next read it comes")
         self.assertTrue((Path(self.dir.name) / "home" / "cache" / "art" / "licensed" / "house.png").exists())
+        self.assertNotIn("couldn't all come", r.stdout, "and once it came, the sign says nothing of it")
 
     def test_a_press_slid_onto_another_item_is_no_press(self):
         self.serve_art()

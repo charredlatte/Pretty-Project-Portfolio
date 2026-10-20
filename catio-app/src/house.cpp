@@ -349,6 +349,12 @@ bool House::never_set_up() const {
                         [](const auto& d) { return d.first.rfind("rooms/", 0) == 0; });
 }
 
+int House::tray() const {
+    return int(std::count_if(impl_->docs.begin(), impl_->docs.end(), [](const auto& d) {
+        return d.first.rfind("brain/", 0) == 0 && str(d.second, "status") == "unsorted";
+    }));
+}
+
 bool House::has_maps() const {
     return std::any_of(impl_->docs.begin(), impl_->docs.end(), [](const auto& d) { return d.first.rfind("graphs/", 0) == 0; });
 }

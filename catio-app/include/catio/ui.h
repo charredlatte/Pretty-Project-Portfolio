@@ -177,7 +177,8 @@ std::string summary(const std::vector<const Cat*>& cats);
 /// "just now", "5 min ago", "3 h ago", "yesterday", "4 days ago"; empty for no time at all.
 std::string ago(std::int64_t then_ms, std::int64_t now_ms);
 /// The one line she gives without anything being opened (queenLine).
-std::string queen_line(const House& h);
+/// `local`: a folder of documents, where she has no front desk to wake at (S.live.state === "local").
+std::string queen_line(const House& h, bool local = false);
 /// The ones that need her, most urgent first (urgentFirst).
 std::vector<const Cat*> urgent_first(const std::vector<const Cat*>& cats);
 /// What showTip() puts in the line for this thing. Empty name: nothing to say.

@@ -21,6 +21,7 @@
 #include "catio/draw.h"
 #include "catio/house.h"
 #include "catio/manor.h"
+#include "catio/net.h"
 #include "catio/ui.h"
 #include "catio/view.h"
 #include "internal.h"
@@ -297,6 +298,10 @@ void the_interface(const std::string& dir) {
             }
         check(found && later, "a click on a shared wall is the later room's, as on the page");
     }
+    // an address as a browser reads it: the scheme and host in any case, nothing after the host
+    check(catio::net::bare(" HTTPS://Catio-Gateway.Example.workers.dev/invite?x=1 ") == "https://catio-gateway.example.workers.dev" &&
+          catio::net::bare("/") .empty() && catio::net::safe_origin(catio::net::bare("Https://x.example")),
+          "an address typed with capitals or a path is the gateway it names");
     // the page zooms to 8 CSS pixels an art pixel at the most (4 on its doubled world): on a 2x screen, 16 device pixels
     const v::Stage retina{2560, 1600, 2};
     check(v::clamp(v::Cam{1000, 0, 0, {}, catio::manor::Level::Ground}, retina).u == 16, "the zoom's ceiling is in CSS pixels, as the page's");
@@ -391,6 +396,14 @@ void the_interface(const std::string& dir) {
           "a chat at work says its note, as catFromAdopted's doing does, not its title");
     change("cats/lease", "");
 
+    change("brain/one", R"({"name": "a.txt", "status": "unsorted"})");
+    {
+        const ui::Menu tray = ui::menu_for(f, v::Thing::House, "house");
+        bool counted = false;
+        for (const Block& b : tray.blocks) for (const auto& it : b.items) counted |= it.label == "The brain" && it.aside == "1 on the tray";
+        check(h.tray() == 1 && counted, "the brain's tray counts what waits unsorted, beside The brain");
+    }
+    change("brain/one", "");
     // the House menu: how the cats reach her, the actions, the credits at its foot word for word
     const ui::Menu house = ui::menu_for(f, v::Thing::House, "house");
     check(!house.blocks.empty() && house.blocks[0].kind == Block::Kind::Sub && house.blocks[0].text.rfind("On this computer. ", 0) == 0,

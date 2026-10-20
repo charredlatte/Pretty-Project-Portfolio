@@ -61,8 +61,13 @@ bool plausible(std::string_view token) {
     return true;
 }
 
+// No answer bigger than the gateway ever gives (a 20 MB file is its largest): a portal's endless page is cut off,
+// not held in a phone's memory.
+constexpr size_t kMaxBody = 32u << 20;
 size_t on_body(char* data, size_t size, size_t n, void* out) {
-    static_cast<std::string*>(out)->append(data, size * n);
+    auto* body = static_cast<std::string*>(out);
+    if (body->size() + size * n > kMaxBody) return 0;   // libcurl ends the transfer
+    body->append(data, size * n);
     return size * n;
 }
 
@@ -230,6 +235,7 @@ struct Gateway::Impl {
         curl_easy_setopt(curl, CURLOPT_HEADERDATA, &cookie);
         const CURLcode rc = curl_easy_perform(curl);
         curl_slist_free_all(h);
+        if (rc == CURLE_WRITE_ERROR) { r.err = {"too_big", "The answer was bigger than your gateway ever sends."}; return r; }
         if (rc != CURLE_OK) {
             r.err = {"unreachable", curl_easy_strerror(rc)};
             return r;
