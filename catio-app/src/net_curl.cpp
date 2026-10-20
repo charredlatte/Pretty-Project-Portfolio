@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <condition_variable>
 #include <deque>
 #include <fstream>
@@ -72,16 +73,47 @@ size_t on_header(char* data, size_t size, size_t n, void* out) {
     return size * n;
 }
 
-// The words between <p class="bad" role="alert"> and </p>, the sign-in page's own refusal.
-std::string words_of(const std::string& html) {
-    constexpr std::string_view open = "<p class=\"bad\" role=\"alert\">";
-    const size_t a = html.find(open);
-    if (a == std::string::npos) return {};
-    const size_t b = html.find("</p>", a);
-    std::string s = html.substr(a + open.size(), b == std::string::npos ? std::string::npos : b - a - open.size());
-    for (auto [from, to] : {std::pair<std::string_view, std::string_view>{"&#39;", "'"}, {"&quot;", "\""}, {"&lt;", "<"}, {"&gt;", ">"}, {"&amp;", "&"}}) {
-        for (size_t at = s.find(from); at != std::string::npos; at = s.find(from, at + to.size())) s.replace(at, from.size(), to);
+// esc() in harness/gateway/src/signin.js writes &#NN; for & < > " ', so every entity is decoded, named or numbered.
+std::string unescape(std::string s) {
+    std::string out;
+    for (size_t i = 0; i < s.size(); ++i) {
+        const size_t semi = s[i] == '&' ? s.find(';', i) : std::string::npos;
+        if (semi == std::string::npos || semi - i > 8) { out += s[i]; continue; }
+        const std::string ent = s.substr(i + 1, semi - i - 1);
+        long code = -1;
+        if (ent.size() > 1 && ent[0] == '#') code = std::strtol(ent.c_str() + 1 + (ent[1] == 'x'), nullptr, ent[1] == 'x' ? 16 : 10);
+        else if (ent == "amp") code = '&';
+        else if (ent == "lt") code = '<';
+        else if (ent == "gt") code = '>';
+        else if (ent == "quot") code = '"';
+        else if (ent == "apos") code = '\'';
+        if (code < 0x20 || code > 0x7E) { out += s[i]; continue; }   // only ASCII is ever escaped there
+        out += char(code);
+        i = semi;
     }
+    return out;
+}
+
+// The text of every element opening with `open`, in order.
+std::vector<std::string> all_of(const std::string& html, std::string_view open, std::string_view close) {
+    std::vector<std::string> out;
+    for (size_t a = html.find(open); a != std::string::npos; a = html.find(open, a + open.size())) {
+        const size_t b = html.find(close, a + open.size());
+        if (b == std::string::npos) break;
+        out.push_back(unescape(html.substr(a + open.size(), b - a - open.size())));
+    }
+    return out;
+}
+
+// The sign-in page's own refusal: its alert, and when the gateway has no account yet, each warning light that is
+// a cross (noAccount() in harness/gateway/src/signin.js: the lights that are fine say nothing she has to do) or,
+// with no cross, why the first account still couldn't be made.
+std::string words_of(const std::string& html) {
+    const auto alert = all_of(html, "<p class=\"bad\" role=\"alert\">", "</p>");
+    if (alert.empty()) return {};
+    std::string s = alert.front();
+    for (const auto& light : all_of(html, "<li class=\"bad\">", "</li>")) s += " " + light;
+    for (const auto& why : all_of(html, "<p class=\"bad\">", "</p>")) s += " " + why;
     return s;
 }
 
@@ -228,7 +260,12 @@ Reply Gateway::login(std::string_view user, std::string_view password) {
 }
 
 bool Gateway::signed_in() const { return !impl_->token.empty(); }
-void Gateway::sign_out() { impl_->forget(); }
+// POST /logout first, so the cookie stops working at the gateway now, not in a month; then the file goes, whatever
+// the gateway said.
+void Gateway::sign_out() {
+    if (!impl_->token.empty()) impl_->call("POST", "/logout", {}, {}, false);
+    impl_->forget();
+}
 
 Reply Gateway::docs() { return impl_->call("GET", "/api/db", {}, {}, false); }
 // the document's data, sent as the gateway wants it: {"data": {...}}

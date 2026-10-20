@@ -55,10 +55,12 @@ public:
     ~Gateway();
 
     /// POST /login, form-encoded `user` and `password`. 303 and the cookie on success; 401 wrong,
-    /// 429 locked out (five wrong tries in fifteen minutes), 503 no account yet.
+    /// 429 locked out, 503 no account yet -- its message then carries each of the gateway's warning
+    /// lights that is a cross, which say which Cloudflare secret to fix.
     Reply login(std::string_view user, std::string_view password);
     bool signed_in() const;
-    /// Forget the cookie. The file is deleted, not merely emptied. A reply of 401 signed_out does this
+    /// Sign out: POST /logout, so the gateway stops honouring the cookie at once, then forget it. The file
+    /// is deleted, not merely emptied, whatever the gateway answered. A reply of 401 signed_out forgets it
     /// too: the cookie has run out, and keeping it would only be refused again.
     void sign_out();
 

@@ -30,6 +30,13 @@ CHECK = BUILD / "catio_net_check"
 CAFE = BUILD / "catio_app"
 
 USER = "owner"
+# harness/gateway/src/registry.js's words, as signin.js's esc() writes them: every & < > " ' as &#NN;
+WRONG = ("That handle and password aren't right. The first account's handle is CATIO_HANDLE as it was when the "
+         "gateway first ran (charlotte if it wasn't set), and its password is CATIO_PASSWORD.")
+
+
+def esc(text):
+    return "".join(f"&#{ord(c)};" if c in "&<>\"'" else c for c in text)
 PASSWORD = "an invented password, with spaces & signs=+"   # a test's, nobody's
 
 
@@ -45,6 +52,7 @@ class State:
     def __init__(self):
         self.lock = threading.Lock()
         self.token = None
+        self.account = True   # False: the gateway's secrets made no account yet, and it shows its warning lights
         self.seen = []        # (method, path, headers, body)
         self.docs = json.loads((APP / "test" / "fixtures" / "db.json").read_text())["docs"]
         self.agents = json.loads((APP / "test" / "fixtures" / "agents.json").read_text())
@@ -87,14 +95,27 @@ class Standin(BaseHTTPRequestHandler):
         s = self.state
         with s.lock:
             s.seen.append((method, path, dict(self.headers), body))
+        if path == "/login" and method == "POST" and not s.account:
+            # cafe.js's signInPage(NOT_YET, 503, noAccount(env, request)): a cross for the secret to fix, the rest fine
+            lights = [("bad", "CATIO_PASSWORD is under 16 characters: set a longer one."),
+                      ("ok", "CATIO_HANDLE is set: your handle will be owner."),
+                      ("off", "CATIO_TOKEN isn't set, which is fine: it is the key your cats check in with, and you can make keys in the caf\u00e9 later.")]
+            page = ('<h1>The KittyChat Caf\u00e9</h1><p class="bad" role="alert">The gateway has no account yet. Its warning lights:</p>'
+                    '<ul class="lights">' + "".join(f'<li class="{k}">{esc(t)}</li>' for k, t in lights) + "</ul>\n\n"
+                    '<p class="soft">This is what the Worker at 127.0.0.1 sees. Save and deploy each change.</p>')
+            return self.answer(503, page.encode(), "text/html; charset=utf-8")
+        if path == "/logout" and method == "POST":
+            if self.signed_in():
+                s.token = None   # this cookie stops working now, not in a month
+            return self.answer(303, b"", "text/plain", [("Location", "/"), ("Set-Cookie", "__Host-catio=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0")])
         if path == "/login" and method == "POST":
             form = parse_qs(body.decode(), keep_blank_values=True)
             if form.get("user") == [USER] and form.get("password") == [PASSWORD]:
                 s.token = secrets.token_hex(32)
                 return self.answer(303, b"", "text/plain", [("Location", "/"), ("Set-Cookie",
                     f"__Host-catio={s.token}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=2592000")])
-            page = b'<h1>The KittyChat Caf\xc3\xa9</h1><p class="bad" role="alert">That handle and password aren&#39;t right.</p>'
-            return self.answer(401, page, "text/html; charset=utf-8")
+            page = f'<h1>The KittyChat Caf\u00e9</h1><p class="bad" role="alert">{esc(WRONG)}</p>'
+            return self.answer(401, page.encode(), "text/html; charset=utf-8")
         if not self.signed_in():
             return self.refuse(401, "signed_out", "Sign in to the café first.")
         if path.startswith("/art/") and method == "GET":
@@ -187,7 +208,7 @@ class NetTest(unittest.TestCase):
         (r,) = self.run_check(f"login:{USER}:not it")
         self.assertFalse(r["ok"])
         self.assertEqual((r["status"], r["code"]), (401, "wrong"))
-        self.assertEqual(r["message"], "That handle and password aren't right.")
+        self.assertEqual(r["message"], WRONG, "every entity decoded, the apostrophes included")
         self.assertFalse(self.jar.exists(), "no cookie kept for a refusal")
 
     def test_signing_in_keeps_the_cookie_for_its_owner_alone(self):
@@ -262,8 +283,21 @@ class NetTest(unittest.TestCase):
         self.assertFalse(inside["value"])
         self.assertFalse(self.jar.exists(), "the cookie file is deleted, not kept to be refused again")
 
-    def test_signing_out_deletes_the_cookie(self):
-        self.run_check(f"login:{USER}:{PASSWORD}", "sign_out")
+    def test_signing_out_ends_the_cookie_at_the_gateway_too(self):
+        self.run_check(f"login:{USER}:{PASSWORD}")
+        token = self.state.token
+        self.run_check("sign_out")
+        self.assertFalse(self.jar.exists())
+        _, _, headers, _ = self.last("POST", "/logout")
+        self.assertEqual(headers.get("Cookie"), f"__Host-catio={token}", "the gateway is told which cookie to end")
+        self.assertIsNone(self.state.token, "so it stops working now, not in a month")
+
+    def test_a_gateway_with_no_account_says_which_secret_to_fix(self):
+        self.state.account = False
+        (r,) = self.run_check(f"login:{USER}:{PASSWORD}")
+        self.assertEqual((r["status"], r["code"]), (503, "no_account"))
+        self.assertEqual(r["message"], "The gateway has no account yet. Its warning lights: CATIO_PASSWORD is under 16 characters: set a longer one.",
+                         "the alert and the one cross; the lights that are fine ask nothing of her")
         self.assertFalse(self.jar.exists())
 
     def test_a_gateway_that_isnt_there(self):
