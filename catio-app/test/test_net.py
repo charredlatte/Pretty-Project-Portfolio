@@ -55,6 +55,7 @@ class State:
         self.account = True   # False: the gateway's secrets made no account yet, and it shows its warning lights
         self.homework = True  # False: an older gateway, with no quizzes tool
         self.redirect = False # True: something in front of the gateway sends /api/db elsewhere
+        self.outage = False   # True: Cloudflare's own 503 page in front of /api/db
         self.seen = []        # (method, path, headers, body)
         self.docs = json.loads((APP / "test" / "fixtures" / "db.json").read_text())["docs"]
         self.agents = json.loads((APP / "test" / "fixtures" / "agents.json").read_text())
@@ -123,6 +124,8 @@ class Standin(BaseHTTPRequestHandler):
         if path.startswith("/art/") and method == "GET":
             data = s.art.get(path[1:])
             return self.answer(200, data, "image/png") if data is not None else self.answer(404, b"Not found\n", "text/plain")
+        if path == "/api/db" and method == "GET" and s.outage:
+            return self.answer(503, b"<html><title>503 Service Unavailable</title><h1>Error 503</h1></html>", "text/html")
         if path == "/api/db" and method == "GET" and s.redirect:
             return self.answer(302, b"", "text/plain", [("Location", "https://sign-in.example/")])
         if path == "/api/db" and method == "GET":
@@ -356,7 +359,23 @@ class NetTest(unittest.TestCase):
     def test_plain_http_only_on_this_machine(self):
         (r,) = self.run_check(f"login:{USER}:{PASSWORD}", origin="http://catio-gateway.example.workers.dev")
         self.assertEqual(r["code"], "insecure", "her password never crosses the network in the clear")
+        # the loopback's name before an @ is a user name, and the host is after it
+        port = self.server.server_address[1]
+        (r,) = self.run_check(f"login:{USER}:{PASSWORD}", origin=f"http://127.0.0.1:{port}@localhost:{port}")
+        self.assertEqual(r["code"], "insecure", "an address that only starts like this machine's is not this machine")
         self.assertFalse(self.state.seen)
+
+    def test_a_saved_cookie_is_found_whatever_the_address_ends_with(self):
+        self.run_check(f"login:{USER}:{PASSWORD}")
+        (r,) = self.run_check("has_cookie", origin=self.origin + "/")
+        self.assertTrue(r["value"], "the next start opens on the house, not the sign-in")
+
+    def test_an_outage_is_not_a_missing_account(self):
+        self.run_check(f"login:{USER}:{PASSWORD}")
+        self.state.outage = True
+        (r,) = self.run_check("docs")
+        self.assertEqual((r["status"], r["code"]), (503, "unavailable"), "no_account is the sign-in's answer alone")
+        self.assertEqual(r["message"], "The gateway answered 503.")
 
     def test_an_empty_segment_stays_empty(self):
         self.run_check(f"login:{USER}:{PASSWORD}")
@@ -376,6 +395,18 @@ class NetTest(unittest.TestCase):
         cache = Path(self.dir.name) / "home" / "cache"
         self.assertFalse([f for f in cache.rglob("*") if f.is_file()] if cache.exists() else [],
                          "and the art it fetched: the packs' licences are personal, the next person here gets their own")
+
+    def test_a_menu_taller_than_a_landscape_phone_scrolls(self):
+        self.serve_art()
+        self.assertEqual(self.app(f"type {USER}; key tab; type {PASSWORD}; key enter").returncode, 0)
+        home = Path(self.dir.name) / "home"
+        token = self.state.token
+        # 844 x 390 with touch: the House menu's items are 44 px each, and Sign out is the last but two
+        r = subprocess.run([str(CAFE), "--gateway", self.origin, "--home", str(home), "--shot", str(Path(self.dir.name) / "phone.png"),
+                            "--size", "844x390", "--touch", "--do", "click 60 30; drag 150 300 150 60; choose Sign out"],
+                           capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIsNone(self.state.token, "the item below the screen's foot was reached and pressed")
 
     def test_the_app_signs_in_reads_fetches_the_art_and_opens_a_room(self):
         from_list = self.serve_art()

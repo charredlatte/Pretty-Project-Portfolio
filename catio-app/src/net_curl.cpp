@@ -14,7 +14,9 @@
 #include <cctype>
 #include <cstdlib>
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
+#include <iterator>
 #include <deque>
 #include <fstream>
 #include <mutex>
@@ -47,13 +49,25 @@ std::string read_jar(const std::filesystem::path& jar, const std::string& origin
     return from == origin ? token : std::string{};
 }
 
+// An origin as the jar and the requests both write it: no trailing slash.
+std::string bare(std::string origin) {
+    while (!origin.empty() && origin.back() == '/') origin.pop_back();
+    return origin;
+}
+
 // Plain http only to this machine (the tests' stand-in): anywhere else her password and cookie would cross the
-// network in the clear.
+// network in the clear. The host is read as a URL reads it -- after any user@, up to the port or the path -- so
+// "http://localhost:x@far.example" is far.example, and refused.
 bool safe_origin(const std::string& origin) {
     if (origin.rfind("https://", 0) == 0) return true;
-    for (const char* local : {"http://127.0.0.1:", "http://127.0.0.1/", "http://localhost:", "http://localhost/", "http://[::1]:"})
-        if (origin.rfind(local, 0) == 0) return true;
-    return origin == "http://127.0.0.1" || origin == "http://localhost";
+    if (origin.rfind("http://", 0) != 0) return false;
+    const std::string rest = origin.substr(7);
+    const std::string authority = rest.substr(0, rest.find_first_of("/?#"));
+    if (authority.find('@') != std::string::npos) return false;
+    std::string host = authority;
+    if (host.rfind("[::1]", 0) == 0) host = "[::1]";
+    else host = host.substr(0, host.find(':'));
+    return host == "127.0.0.1" || host == "localhost" || host == "[::1]";
 }
 
 // Asked between the bytes of a transfer: a non-zero answer abandons it, so closing the app never waits out a timeout.
@@ -142,8 +156,8 @@ std::string code_for(long status) {
         case 403: return "forbidden";
         case 404: return "not_found";
         case 413: return "too_big";
-        case 429: return "locked";
-        case 503: return "no_account";
+        case 429: return "busy";
+        case 503: return "unavailable";
         default: return "unavailable";
     }
 }
@@ -266,8 +280,7 @@ struct Gateway::Impl {
 
 Gateway::Gateway(std::string origin, std::filesystem::path cookie_jar) : impl_(new Impl) {
     global_init();
-    while (!origin.empty() && origin.back() == '/') origin.pop_back();
-    impl_->origin = std::move(origin);
+    impl_->origin = bare(std::move(origin));
     impl_->jar = std::move(cookie_jar);
     impl_->safe = safe_origin(impl_->origin);
     if (const std::string t = read_jar(impl_->jar, impl_->origin); plausible(t)) impl_->token = t;
@@ -287,7 +300,11 @@ Reply Gateway::login(std::string_view user, std::string_view password) {
         if (!plausible(cookie)) r.err = {"no_cookie", "The gateway let you in but gave no cookie to keep."};
         else impl_->keep(cookie);
     } else if (r.status == 401)
-        r.err.code = "wrong";   // the handle and password, not a cookie run out
+        r.err.code = "wrong";        // the handle and password, not a cookie run out
+    else if (r.status == 429)
+        r.err.code = "locked";       // too many wrong tries
+    else if (r.status == 503)
+        r.err.code = "no_account";   // the gateway's secrets made no account yet: its message carries the lights
     else if (r.ok())
         r.err = {"unexpected", "The gateway answered " + std::to_string(r.status) + " to signing in."};
     return r;
@@ -332,44 +349,60 @@ struct Net::Impl {
     Gateway gateway;
     std::filesystem::path jar;
     std::string origin;
-    std::atomic<bool> closing{false};
+    std::atomic<bool> closing{false};   // abandon the transfer in flight
+    std::condition_variable idle;       // a job has finished
+    bool working = false, working_first = false;
     std::mutex m;
     std::condition_variable cv;
-    std::deque<std::pair<std::uint32_t, Job>> in;
+    struct Waiting { std::uint32_t ticket; Job job; bool first; };
+    std::deque<Waiting> in;
     std::deque<std::pair<std::uint32_t, Reply>> out;
     std::uint32_t next = 1;
     int busy = 0;
     bool stop = false;
     std::thread worker;
 
-    Impl(std::string o, std::filesystem::path j) : gateway(o, j), jar(std::move(j)), origin(std::move(o)) {
+    Impl(std::string o, std::filesystem::path j) : gateway(o, j), jar(std::move(j)), origin(bare(std::move(o))) {
         gateway.impl_->stop = &closing;
         worker = std::thread([this] { run(); });
     }
     void run() {
         for (;;) {
-            std::pair<std::uint32_t, Job> job;
+            Waiting job;
             {
                 std::unique_lock<std::mutex> lock(m);
                 cv.wait(lock, [this] { return stop || !in.empty(); });
                 if (stop) return;
                 job = std::move(in.front());
                 in.pop_front();
+                working = true, working_first = job.first;
+                if (job.first) closing = false;   // a /logout is let through even while the app closes
             }
-            Reply r = job.second(gateway);
+            Reply r = job.job(gateway);
             std::lock_guard<std::mutex> lock(m);
-            out.emplace_back(job.first, std::move(r));
+            working = false;
+            out.emplace_back(job.ticket, std::move(r));
+            idle.notify_all();
         }
     }
 };
 
 Net::Net(std::string origin, std::filesystem::path cookie_jar) : impl_(new Impl(std::move(origin), std::move(cookie_jar))) {}
 
+// Closing: what jumped the queue (a sign-out's /logout) is still finished, for up to three seconds; the rest is
+// dropped, and a transfer in flight that isn't one of those is abandoned rather than waited out.
 Net::~Net() {
     {
-        std::lock_guard<std::mutex> lock(impl_->m);
+        std::unique_lock<std::mutex> lock(impl_->m);
+        for (auto it = impl_->in.begin(); it != impl_->in.end();) it = it->first ? std::next(it) : impl_->in.erase(it);
+        if (impl_->working && !impl_->working_first) impl_->closing = true;
+        impl_->idle.wait_for(lock, std::chrono::seconds(3), [this] {
+            if (impl_->working && !impl_->working_first) impl_->closing = true;
+            else if (!impl_->in.empty()) impl_->closing = false;   // a /logout of its own: let it through
+            return impl_->in.empty() && !impl_->working;
+        });
         impl_->stop = true;
-        impl_->closing = true;   // and the request in flight, if any, is abandoned rather than waited out
+        impl_->closing = true;
     }
     impl_->cv.notify_all();
     impl_->worker.join();
@@ -381,8 +414,8 @@ std::uint32_t Net::send(Job job, bool first) {
     {
         std::lock_guard<std::mutex> lock(impl_->m);
         t = impl_->next++;
-        if (first) impl_->in.emplace_front(t, std::move(job));
-        else impl_->in.emplace_back(t, std::move(job));
+        if (first) impl_->in.push_front({t, std::move(job), true});
+        else impl_->in.push_back({t, std::move(job), false});
         ++impl_->busy;
     }
     impl_->cv.notify_one();

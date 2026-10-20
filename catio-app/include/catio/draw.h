@@ -103,6 +103,8 @@ void panel(const Ctx& c, const Panel& p, Rect dst);
 /// drop-shadow outline around a cat under the pointer ("it outlines the object boundaries").
 inline constexpr int kOutline = -1;
 void cell(const Ctx& c, art::Id id, Rect src, Rect dst, int coat = 0);
+/// Forget every coat's tinted copy: the art they were made from is being forgotten.
+void forget_tints();
 /// One frame of a sprite strip, chosen from the clock. Cats animate; with reduced motion they do not.
 void strip(const Ctx& c, art::Id id, Rect frame0, int frames, double now, double seconds, Rect dst);
 void fill(const Ctx& c, Rect dst, Colour col);
@@ -122,6 +124,8 @@ public:
     Pixel();
     ~Pixel();
     bool open(const std::filesystem::path& ttf);
+    /// Close it: signed out, the next account may not be served the pack's font.
+    void close();
     /// Draw with this round font instead while sprout.ttf is missing. It must outlive the Pixel.
     void fallback(const Body* round);
     bool ready() const;
@@ -148,7 +152,8 @@ public:
     bool ready() const;
     float px() const;
     Pt measure(std::string_view text) const;
-    /// Break into lines no wider than `width`, at spaces where it can and anywhere where it must
+    /// Break into lines no wider than `width`, at spaces where it can and anywhere where it must. Newlines
+    /// and tabs are spaces here, as white-space: normal makes them on the page.
     /// (overflow-wrap: anywhere). More than `max_lines` and the last one ends in an ellipsis, as
     /// -webkit-line-clamp does. 0 means no limit.
     std::vector<std::string> wrap(std::string_view text, float width, int max_lines = 0) const;

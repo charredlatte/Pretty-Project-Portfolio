@@ -243,6 +243,11 @@ public:
     void draw_sign_in(const draw::Ctx& c, const Frame& f, const SignIn& s);
     /// Signed in to a gateway: its writes are possible. With a folder of documents they are not.
     void online(bool on);
+    /// Signed out: close the pack's font, which the next account may not be served.
+    void forget_art();
+    /// A wheel or a finger over a card or a menu taller than the stage: scroll it by `dy` device pixels
+    /// (positive shows what is further down). False when there is nothing there to scroll.
+    bool scroll(const Frame& f, float x, float y, float dy);
 
     /// Why an action is not here. This app is always in the page's gateway mode (VIA_GATEWAY): no list
     /// of her claude.ai sessions, no posting into one that does not report to the gateway, no starting

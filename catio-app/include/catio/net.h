@@ -66,7 +66,7 @@ public:
     /// lights that is a cross, which say which Cloudflare secret to fix.
     Reply login(std::string_view user, std::string_view password);
     bool signed_in() const;
-    /// Sign out: POST /logout, so the gateway stops honouring the cookie at once, then forget it. The file
+    /// Sign out: POST /logout, asking the gateway to stop honouring the cookie now, then forget it. The file
     /// is deleted, not merely emptied, whatever the gateway answered. A reply of 401 signed_out forgets it
     /// too: the cookie has run out, and keeping it would only be refused again.
     void sign_out();
@@ -114,7 +114,8 @@ public:
     Net(std::string origin, std::filesystem::path cookie_jar);
     ~Net();
 
-    /// `first` jumps the queue: signing out goes before the art still waiting to be fetched.
+    /// `first` jumps the queue -- signing out goes before the art still waiting to be fetched -- and is
+    /// still finished when the app closes, for up to three seconds; everything else is dropped then.
     std::uint32_t send(Job job, bool first = false);
     /// Drop every job not yet started (signing out: the art and reads queued for the account that left).
     void drop_waiting();

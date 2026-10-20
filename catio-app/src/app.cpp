@@ -58,7 +58,7 @@ std::int64_t wall_ms() {
 
 // One thing that happened, from the window or from a --do step: the same path for both.
 struct In {
-    enum Kind { Move, Down, Up, Wheel, Key, Text, Pinch, Resize, Quit } kind = Move;
+    enum Kind { Move, Down, Up, Wheel, Key, Text, PinchBegin, Pinch, PinchEnd, Resize, Quit } kind = Move;
     float x = 0, y = 0, dy = 0, scale = 1;
     bool touch = false, shift = false;
     std::string key;
@@ -147,7 +147,10 @@ struct App::Impl {
     double press_t = 0;
     double last_click_t = -1;
     std::string last_click_room;
+    bool scrolling = false;            // a finger dragging a menu or a card: its lift is not a press
+    bool pinching = false;             // two fingers: the first finger's mouse is not a drag, a swipe or a click
     float pinch = 1;
+    std::map<SDL_FingerID, draw::Pt> fingers;   // where each finger is, for the point a pinch zooms about
 
     float k() const { return float(std::max(1, stage.css)); }
     int u_ui() const { return stage.css * (stage.narrow() ? 1 : 2); }
@@ -171,12 +174,17 @@ struct App::Impl {
 
     // ---- the house, from a folder until the network code lands ----
 
+    // The scene points into the house's cats: whatever changes the house builds it again at once, before another
+    // event in the same batch picks a cat out of it.
+    void rescene() { scene = view::build(house, cam.floor); }
+
     bool read_house() {
         const std::string db = slurp(data / "db.json"), agents = slurp(data / "agents.json");
         if (db.empty()) { std::fprintf(stderr, "catio_app: no db.json in %s\n", data.string().c_str()); return false; }
         house.docs(db);
         house.agents(agents.empty() ? R"({"agents": []})" : agents);
         if (const std::string q = slurp(data / "quizzes.json"); !q.empty()) house.quizzes(q);
+        rescene();
         return true;
     }
 
@@ -192,7 +200,7 @@ struct App::Impl {
         else if (art && art->have() < art->total()) {
             const std::string n = std::to_string(art->have()) + " of " + std::to_string(art->total());
             if (!fetching.empty()) told.push_back("Fetching the caf\u00e9's art\u2026 (" + n + ")");
-            else wrong.push_back("The caf\u00e9's art isn't all here (" + n + "): it comes from your gateway once you sign in.");
+            else if (origin.empty() || read_once) wrong.push_back("The caf\u00e9's art isn't all here (" + n + "): it comes from your gateway once you sign in.");
         }
         if (origin.empty() && data == std::filesystem::path(CATIO_SOURCE_DIR) / "test" / "fixtures")
             wrong.push_back("Example cats, not yours: give the app your gateway (--gateway) to see your caf\u00e9.");
@@ -247,10 +255,16 @@ struct App::Impl {
     void signed_out(std::string why) {
         if (net) net->drop_waiting(), net->forget_cookie();
         house.clear();
-        got_docs = got_agents = false;
+        rescene();
+        got_docs = got_agents = read_once = false;
         live_at = 0;
         net_trouble.clear(), art_trouble.clear();
-        if (own_cache && art) art->forget_all();
+        if (own_cache && art) {   // and what was drawn from it: the pack's font, the tinted sheets, the paw
+            art->forget_all();
+            ui.forget_art();
+            draw::forget_tints();
+            forget_cursors();
+        }
         phase = Phase::SignIn;
         form.busy = false;
         form.password.clear();
@@ -302,6 +316,7 @@ struct App::Impl {
                     read_failed = true;
                     net_trouble = "Your gateway didn't answer (" + r.err.code + "): " + r.err.message;
                 } else if (a.what == Ask::Docs ? house.docs(r.body) : a.what == Ask::Agents ? house.agents(r.body) : house.quizzes(r.body)) {
+                    rescene();
                     if (a.what == Ask::Docs) got_docs = true;
                     if (a.what == Ask::Agents) got_agents = true, live_at = wall_ms();
                 } else {   // a 200 that isn't the café's answer (a portal's page): the house keeps what it had
@@ -321,6 +336,7 @@ struct App::Impl {
                 }
                 if (!art->store(a.art, r.body)) { art_trouble = "A piece of the art came back broken (" + std::string(art->trouble()) + ")."; return; }
                 if (a.art == art::Id::SproutFont) ui.fonts(assets, *art, stage.css);
+                if (a.art == art::Id::UiCursor || a.art == art::Id::UiCursorPoint) make_cursors();
                 return;
             case Ask::Write:
                 if (!r.ok()) { say("Your gateway didn't take it (" + r.err.code + "): " + r.err.message, true, 6); return; }
@@ -390,6 +406,7 @@ struct App::Impl {
         ui.tip(frame(), {}, false);
         cam.floor = f;
         if (!cam.focus.empty() && manor::level_of(cam.focus) != f) cam.focus.clear();
+        rescene();
     }
     // the room that needs her most, for a phone's first view (her fix to "the house is tiny")
     std::string urgent_room() const {
@@ -416,12 +433,12 @@ struct App::Impl {
             ui.draw_sign_in(c, frame(), form);
             return;
         }
-        scene = view::build(house, cam.floor);
+        rescene();
         const double t = still ? 0 : now;
         auto blits = view::world(scene, cam.floor, t);
 
-        // what the pointer is on, or whose menu is open, is outlined round its own shape
-        std::optional<view::Blit> outlined;
+        // what the pointer is on, and whose menu is open, are outlined round their own shapes (.hot and .lit)
+        std::vector<view::Blit> outlined;
         auto spot_of = [&](Thing what, const std::string& key) -> std::optional<view::Spot> {
             if (what == Thing::Cat) for (const auto& s : scene.cats) if (s.cat && s.cat->id == key) return s;
             if (what == Thing::Queen && scene.queen) return *scene.queen;
@@ -430,17 +447,22 @@ struct App::Impl {
                     if (p.room == key) return view::Spot{p.cats[0], p.cats[0]->mood, p.cats[0]->coat, p.at, p.room};
             return std::nullopt;
         };
-        if (auto s = spot_of(ui.tipped().what, ui.tipped().key)) outlined = view::blit_of(*s, t);
-        else if (auto m = spot_of(ui.menu_kind(), ui.menu_key())) outlined = view::blit_of(*m, t);
-        else if (ui.tipped().what == Thing::Cabinet || ui.tipped().what == Thing::Litter) {
+        if (auto s = spot_of(ui.tipped().what, ui.tipped().key)) outlined.push_back(view::blit_of(*s, t));
+        if (auto m = spot_of(ui.menu_kind(), ui.menu_key())) outlined.push_back(view::blit_of(*m, t));
+        if (ui.tipped().what == Thing::Cabinet || ui.tipped().what == Thing::Litter) {
             // a filing cabinet or the litter box: the piece of furniture it stands over (outline()'s node.piece)
             const manor::Geom* g = manor::of(ui.tipped().key);
             const std::optional<manor::Box> box = !g ? std::nullopt : ui.tipped().what == Thing::Cabinet ? g->cabinet : g->litter;
             if (box)
                 for (const auto& b : blits)
                     if (!b.fill && (b.sheet == art::Id::Furniture || b.sheet == art::Id::FurnitureLicensed) &&
-                        b.dst.x == box->x * 2.f && b.dst.y == box->y * 2.f) outlined = b;
+                        b.dst.x == box->x * 2.f && b.dst.y == box->y * 2.f) outlined.push_back(b);
         }
+        auto is_outlined = [&](const view::Blit& b) {
+            for (const auto& o : outlined)
+                if (b.z == o.z && b.sheet == o.sheet && b.dst.x == o.dst.x && b.dst.y == o.dst.y) return true;
+            return false;
+        };
 
         draw::Ctx wc{&canvas, art.get(), 2, 1};
         SDL_SetRenderTarget(r, world);
@@ -456,7 +478,7 @@ struct App::Impl {
                 draw::fill(wc, b.dst, col);
                 continue;
             }
-            if (outlined && b.z == outlined->z && b.sheet == outlined->sheet && b.dst.x == outlined->dst.x && b.dst.y == outlined->dst.y)
+            if (is_outlined(b))
                 for (auto [dx, dy] : {std::pair{2.f, 0.f}, {-2.f, 0.f}, {0.f, 2.f}, {0.f, -2.f}})
                     draw::cell(wc, b.sheet, b.src, draw::Rect{b.dst.x + dx, b.dst.y + dy, b.dst.w, b.dst.h}, draw::kOutline);
             draw::cell(wc, b.sheet, b.src, b.dst, b.coat);
@@ -509,6 +531,25 @@ struct App::Impl {
         if (!window || on_something == pointing) return;
         pointing = on_something;
         if (point && paw) SDL_SetCursor(on_something ? point : paw);
+    }
+    // the paw, and the paw that points (32 x 32 at one CSS pixel each), once both are in the cache
+    void make_cursors() {
+        if (!window || paw) return;
+        const art::Texture* t = art->texture(art::Id::UiCursor);
+        const art::Texture* p = art->texture(art::Id::UiCursorPoint);
+        if (!t || !t->surface || !p || !p->surface) return;
+        const int s = stage.css;
+        SDL_Surface* a = SDL_ScaleSurface(t->surface, 32 * s, 32 * s, SDL_SCALEMODE_NEAREST);
+        SDL_Surface* b = SDL_ScaleSurface(p->surface, 32 * s, 32 * s, SDL_SCALEMODE_NEAREST);
+        if (a) paw = SDL_CreateColorCursor(a, 9 * s, 5 * s), SDL_DestroySurface(a);
+        if (b) point = SDL_CreateColorCursor(b, 9 * s, 3 * s), SDL_DestroySurface(b);
+        if (paw) SDL_SetCursor(pointing && point ? point : paw);
+    }
+    void forget_cursors() {
+        if (!window) return;
+        SDL_SetCursor(SDL_GetDefaultCursor());
+        if (paw) SDL_DestroyCursor(paw), paw = nullptr;
+        if (point) SDL_DestroyCursor(point), point = nullptr;
     }
 };
 
@@ -601,7 +642,8 @@ bool App::start(int argc, char** argv) {
         I.vsync = SDL_SetRenderVSync(I.r, 1);
     }
     I.canvas.r = I.r;
-    I.world = SDL_CreateTexture(I.r, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, 1920, 1152);
+    const draw::Rect wr = view::world_rect();   // the plan's world, doubled: never a number copied out of it
+    I.world = SDL_CreateTexture(I.r, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, int(wr.w), int(wr.h));
     if (!I.world) { std::fprintf(stderr, "catio_app: no world target: %s\n", SDL_GetError()); return false; }
     SDL_SetTextureScaleMode(I.world, SDL_SCALEMODE_NEAREST);
 
@@ -611,17 +653,7 @@ bool App::start(int argc, char** argv) {
     I.resize(w, h, scale);
     if (!I.ui.fonts(I.assets, *I.art, I.stage.css)) { std::fprintf(stderr, "catio_app: no fonts in %s\n", I.assets.string().c_str()); return false; }
 
-    // the paw, and the paw that points (32 x 32 at one CSS pixel each)
-    if (I.window)
-        if (const art::Texture* t = I.art->texture(art::Id::UiCursor); t && t->surface) {
-            const art::Texture* p = I.art->texture(art::Id::UiCursorPoint);
-            const int s = I.stage.css;
-            SDL_Surface* a = SDL_ScaleSurface(t->surface, 32 * s, 32 * s, SDL_SCALEMODE_NEAREST);
-            SDL_Surface* b = p && p->surface ? SDL_ScaleSurface(p->surface, 32 * s, 32 * s, SDL_SCALEMODE_NEAREST) : nullptr;
-            if (a) I.paw = SDL_CreateColorCursor(a, 9 * s, 5 * s), SDL_DestroySurface(a);
-            if (b) I.point = SDL_CreateColorCursor(b, 9 * s, 3 * s), SDL_DestroySurface(b);
-            if (I.paw) SDL_SetCursor(I.paw);
-        }
+    I.make_cursors();
 
     // the first view: the whole manor; on a phone, the room that needs her most
     I.cam.floor = manor::Level::Ground;
@@ -713,11 +745,14 @@ void App::pump_net() {
     const Phase was = I.phase;
     std::uint32_t t = 0;
     net::Reply r;
-    while (I.net && I.net->take(&t, &r)) {
+    // each piece of art is decoded and written here, so a few a frame: the first sign-in brings them all at once
+    int art = 0;
+    while (art < 4 && I.net && I.net->take(&t, &r)) {
         auto it = I.asked.find(t);
         if (it == I.asked.end()) continue;   // asked before she was signed out: nowhere to go now
         const Asked a = it->second;
         I.asked.erase(it);
+        if (a.what == Ask::Art) ++art;
         I.heard(a, r);
     }
     // the house has arrived: on a phone, open on the room that needs her most
@@ -744,7 +779,26 @@ void App::events() {
             case SDL_EVENT_MOUSE_BUTTON_UP: in.kind = In::Up, in.x = e.button.x, in.y = e.button.y, in.touch = e.button.which == SDL_TOUCH_MOUSEID; break;
             case SDL_EVENT_MOUSE_WHEEL: in.kind = In::Wheel, in.x = e.wheel.mouse_x, in.y = e.wheel.mouse_y, in.dy = e.wheel.y; break;
             case SDL_EVENT_TEXT_INPUT: in.kind = In::Text, in.key = e.text.text ? e.text.text : ""; break;
-            case SDL_EVENT_PINCH_UPDATE: in.kind = In::Pinch, in.scale = e.pinch.scale, in.touch = true; break;
+            case SDL_EVENT_FINGER_DOWN:
+            case SDL_EVENT_FINGER_MOTION:   // fingers on the screen itself: a trackpad's are not where the pointer is
+                if (SDL_GetTouchDeviceType(e.tfinger.touchID) == SDL_TOUCH_DEVICE_DIRECT) I.fingers[e.tfinger.fingerID] = {e.tfinger.x, e.tfinger.y};
+                continue;
+            case SDL_EVENT_FINGER_UP:
+            case SDL_EVENT_FINGER_CANCELED: I.fingers.erase(e.tfinger.fingerID); continue;
+            case SDL_EVENT_PINCH_BEGIN: in.kind = In::PinchBegin, in.touch = true; break;
+            case SDL_EVENT_PINCH_END: in.kind = In::PinchEnd, in.touch = true; break;
+            case SDL_EVENT_PINCH_UPDATE: {
+                // it zooms about the point between the fingers
+                in.kind = In::Pinch, in.scale = e.pinch.scale, in.touch = true;
+                const draw::Pt at = I.pointer.value_or(draw::Pt{I.stage.w / 2.f, I.stage.h / 2.f});
+                in.x = at.x, in.y = at.y;
+                if (!I.fingers.empty()) {
+                    in.x = in.y = 0;
+                    for (const auto& [id, p] : I.fingers) in.x += p.x, in.y += p.y;
+                    in.x /= float(I.fingers.size()), in.y /= float(I.fingers.size());
+                }
+                break;
+            }
             case SDL_EVENT_KEY_DOWN: {
                 in.kind = In::Key;
                 in.shift = (e.key.mod & SDL_KMOD_SHIFT) != 0;
@@ -811,12 +865,19 @@ void App::Impl::handle(App& app, const In& in) {
             default: return;
         }
     }
+    // while two fingers pinch, the first one's mouse is theirs: no drag, no swipe and no click when they lift
+    if (pinching && in.touch && (in.kind == In::Move || in.kind == In::Down || in.kind == In::Up)) return;
     switch (in.kind) {
         case In::Move: {
             coarse = in.touch;
             if (pressed) {
                 const float dx = in.x - last_at.x, dy = in.y - last_at.y;
-                if (on_map) {   // dragging on the minimap pans the view with it
+                if (in.touch && on_ui && !on_map && (scrolling || std::hypot(in.x - press_at.x, in.y - press_at.y) > 4 * k()) &&
+                    ui.scroll(f, press_at.x, press_at.y, -dy)) {
+                    // a finger dragging a menu taller than the screen, or a card, scrolls it
+                    if (!scrolling) ui.hold(f, in.x, in.y, false);
+                    scrolling = true;
+                } else if (on_map) {   // dragging on the minimap pans the view with it
                     std::string arg;
                     if (ui.map_drag(f, in.x, in.y, &arg)) app.act(Action::MapAt, arg), dragging = true;
                 } else if (!on_ui && (dragging || std::hypot(in.x - press_at.x, in.y - press_at.y) > 4 * k())) {
@@ -843,7 +904,7 @@ void App::Impl::handle(App& app, const In& in) {
         case In::Down: {
             coarse = in.touch;
             pressed = true;
-            dragging = false;
+            dragging = scrolling = false;
             press_at = last_at = {in.x, in.y};
             press_t = in.at;
             on_ui = ui.over(f, in.x, in.y);
@@ -858,6 +919,7 @@ void App::Impl::handle(App& app, const In& in) {
             if (!pressed) return;
             pressed = false;
             ui.hold(f, in.x, in.y, false);
+            if (scrolling) { scrolling = on_ui = false; return; }                     // it scrolled; it wasn't a press
             if (dragging && on_map) { dragging = on_map = on_ui = false; return; }   // the minimap drag is done
             if (dragging) {
                 dragging = false;
@@ -900,8 +962,8 @@ void App::Impl::handle(App& app, const In& in) {
             }
         }
         case In::Wheel: {
-            // over a card or a menu the wheel is theirs, not the house's
-            if (ui.card() != ui::Card::None || ui.under(f, in.x, in.y).rfind("menu:", 0) == 0) return;
+            // over a card or a menu the wheel is theirs: it scrolls one taller than the screen
+            if (ui.scroll(f, in.x, in.y, -in.dy * 48 * k()) || ui.card() != ui::Card::None || ui.under(f, in.x, in.y).rfind("menu:", 0) == 0) return;
             wheel += in.dy;   // a trackpad sends fractions of a notch, and a sideways scroll nothing
             if (std::fabs(wheel) < 1) return;
             const int step = wheel > 0 ? 1 : -1;
@@ -911,12 +973,22 @@ void App::Impl::handle(App& app, const In& in) {
             settle();
             return;
         }
+        case In::PinchBegin:
+            // what the first finger started is dropped: a pinch is neither a drag nor a press
+            pinching = true;
+            pinch = 1;
+            if (pressed) ui.hold(f, press_at.x, press_at.y, false);
+            pressed = dragging = scrolling = on_ui = on_map = false;
+            ui.close_menu();
+            return;
+        case In::PinchEnd:
+            pinching = false;
+            pinch = 1;
+            return;
         case In::Pinch: {
             pinch *= in.scale;
             if (pinch > 1.25f || pinch < 0.8f) {
-                ui.close_menu();
-                const draw::Pt at = pointer.value_or(draw::Pt{stage.w / 2.f, stage.h / 2.f});
-                place(view::zoom_by(cam, pinch > 1 ? 1 : -1, at.x, at.y, stage));
+                place(view::zoom_by(cam, pinch > 1 ? 1 : -1, in.x, in.y, stage));
                 pinch = 1;
                 settle();
             }

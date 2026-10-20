@@ -61,6 +61,7 @@ int main(int argc, char** argv) {
         else if (verb == "art") say(step, g.art(field(step, 1)));
         else if (verb == "signed_in") std::printf("{\"step\": \"signed_in\", \"value\": %s}\n", g.signed_in() ? "true" : "false");
         else if (verb == "sign_out") { g.sign_out(); std::printf("{\"step\": \"sign_out\"}\n"); }
+        else if (verb == "has_cookie") std::printf("{\"step\": \"has_cookie\", \"value\": %s}\n", Net(argv[1], argv[2]).has_cookie() ? "true" : "false");
         else if (verb == "net") {
             Net n(argv[1], argv[2]);
             const auto ticket = n.send([](Gateway& w) { return w.docs(); });

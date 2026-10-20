@@ -70,6 +70,18 @@ Pt size_of(TTF_Font* font, std::string_view text) {
     return {float(w), float(h)};
 }
 
+// white-space: normal -- a newline, a tab or a run of spaces is one space, as the page shows an ask
+std::string collapsed(std::string_view text) {
+    std::string out;
+    bool space = false;
+    for (char c : text) {
+        if (c == ' ' || c == '\n' || c == '\r' || c == '\t') { space = !out.empty(); continue; }
+        if (space) out += ' ', space = false;
+        out += c;
+    }
+    return out;
+}
+
 // One UTF-8 character off the end.
 void pop_char(std::string& s) {
     while (!s.empty() && (static_cast<unsigned char>(s.back()) & 0xC0) == 0x80) s.pop_back();
@@ -101,6 +113,11 @@ bool Pixel::open(const std::filesystem::path& ttf) {
 }
 
 void Pixel::fallback(const Body* round) { impl_->round = round; }
+
+void Pixel::close() {
+    impl_->cache.clear();
+    if (impl_->font) TTF_CloseFont(impl_->font), impl_->font = nullptr;
+}
 
 bool Pixel::ready() const { return impl_->font || (impl_->round && impl_->round->ready()); }
 
@@ -152,15 +169,16 @@ float Body::px() const { return impl_->px; }
 Pt Body::measure(std::string_view text) const { return size_of(impl_->font, text); }
 
 std::string Body::cut(std::string_view text, float width) const {
-    std::string s(text);
+    std::string s = collapsed(text);
     if (!impl_->font || measure(s).x <= width) return s;
     while (!s.empty() && measure(s + "…").x > width) pop_char(s);
     while (!s.empty() && s.back() == ' ') s.pop_back();
     return s + "…";
 }
 
-std::vector<std::string> Body::wrap(std::string_view text, float width, int max_lines) const {
+std::vector<std::string> Body::wrap(std::string_view raw, float width, int max_lines) const {
     std::vector<std::string> lines;
+    const std::string text = collapsed(raw);
     if (!impl_->font || text.empty()) return lines;
     std::string line;
     auto fits = [&](const std::string& s) { return measure(s).x <= width; };

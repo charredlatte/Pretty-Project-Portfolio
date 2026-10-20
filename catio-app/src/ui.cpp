@@ -499,6 +499,11 @@ struct State {
 
     bool online = false;   // signed in to a gateway: the writes are possible
 
+    // a menu or a card taller than the stage scrolls (overflow: auto on the page)
+    float menu_scroll = 0, card_scroll = 0;
+    bool menu_tall = false, card_tall = false;   // taller than the screen lets them be: there is something to scroll
+    Rect menu_view, card_view;   // what of each shows, inside its panel
+
     // the map panel
     bool map_open = true;
     bool map_decided = false;
@@ -560,6 +565,7 @@ void Ui::toggle(const Frame& f, const view::Hit& h) {
     Impl& I = *impl_;
     I.tip = {};
     if (I.menu == h.what && I.menu_key == h.key) { close_menu(); return; }
+    close_menu();   // the menu it replaces is gone at once, its buttons with it: two presses can land in one batch
     I.menu = h.what;
     I.menu_key = h.key;
     I.anchor = h.box;
@@ -579,6 +585,7 @@ void Ui::close_menu() {
     impl_->adding = false;
     impl_->menu_at.reset();
     impl_->menu_box = {};
+    impl_->menu_scroll = 0;
     forget(impl_->regions, "menu:");
 }
 view::Thing Ui::menu_kind() const { return impl_->menu; }
@@ -590,6 +597,7 @@ void Ui::open(Card c, std::string key) {
     impl_->card = c;
     impl_->card_key = std::move(key);
     impl_->manage = false;
+    impl_->card_scroll = 0;
 }
 void Ui::close_card() {
     impl_->card = Card::None, impl_->card_key.clear();
@@ -609,6 +617,19 @@ bool Ui::escape() {
 }
 
 void Ui::online(bool on) { impl_->online = on; }
+
+void Ui::forget_art() { impl_->pixel.close(); }
+
+bool Ui::scroll(const Frame&, float x, float y, float dy) {
+    Impl& I = *impl_;
+    if (I.card != Card::None) {   // the card is modal: the wheel and a finger are its
+        if (!I.card_tall) return false;
+        I.card_scroll += dy;
+        return true;
+    }
+    if (I.menu_tall && I.menu_box.w > 0 && inside(I.menu_box, x, y)) { I.menu_scroll += dy; return true; }
+    return false;
+}
 
 bool Ui::can(Action a) const {
     switch (a) {
@@ -648,8 +669,24 @@ struct Painter {
 
     Painter(const draw::Ctx& ctx, State& impl, const Frame& fr) : c(ctx), I(impl), f(fr), k(float(ctx.css)), U(float(ctx.u)) {}
 
+    std::optional<Rect> clip;   // inside a scrolled panel: only what shows can be pressed
+
     void region(Rect r, std::string id, Action a = Action::None, std::string arg = {}, bool enabled = true, std::string label = {}) {
-        if (paint) I.regions.push_back({r, std::move(id), a, std::move(arg), enabled, std::move(label)});
+        if (!paint) return;
+        if (clip) {
+            const float x0 = std::max(r.x, clip->x), y0 = std::max(r.y, clip->y);
+            const float x1 = std::min(r.x + r.w, clip->x + clip->w), y1 = std::min(r.y + r.h, clip->y + clip->h);
+            if (x1 <= x0 || y1 <= y0) return;
+            r = Rect{x0, y0, x1 - x0, y1 - y0};
+        }
+        I.regions.push_back({r, std::move(id), a, std::move(arg), enabled, std::move(label)});
+    }
+    void clip_to(std::optional<Rect> r) {
+        clip = r;
+        if (!paint) return;
+        if (!r) { SDL_SetRenderClipRect(c.canvas->r, nullptr); return; }
+        const SDL_Rect sr{int(std::floor(r->x)), int(std::floor(r->y)), int(std::ceil(r->w)), int(std::ceil(r->h))};
+        SDL_SetRenderClipRect(c.canvas->r, &sr);
     }
     bool lit(const std::string& id) const { return I.hot == id; }
     bool held(const std::string& id) const { return I.held == id && I.hot == id; }
@@ -1287,7 +1324,7 @@ bool Ui::press(const Frame& f, float x, float y, Action* what, std::string* arg)
     switch (hit->a) {
         case Action::OpenHouse:
             if (I.menu == Thing::House) close_menu();
-            else I.menu = Thing::House, I.menu_key = "house", I.anchor = I.brand, I.adding = false, I.menu_at.reset(), I.tip = {};
+            else close_menu(), I.menu = Thing::House, I.menu_key = "house", I.anchor = I.brand, I.tip = {};
             break;
         case Action::FoldMap:
             I.map_open = !I.map_open, I.map_decided = true;
@@ -1449,14 +1486,20 @@ void draw_cat_card(Painter& P, const Frame& f, const Cat& c) {
 
     const bool was = P.paint;
     P.paint = false;
-    const float h = layout(0, 0) + 2 * pad_y;
+    const float full = layout(0, 0) + 2 * pad_y;
     P.paint = was;
+    const float h = std::min(full, f.stage.h - 40 * k);   // max-height: calc(100dvh - 40px), then it scrolls
+    P.I.card_scroll = std::max(0.f, std::min(P.I.card_scroll, full - h));
+    P.I.card_tall = full > h;
     const Rect box{std::round((f.stage.w - W) / 2), std::round(std::max(20 * k, (f.stage.h - h) / 2)), W, h};
     P.I.card_box = box;
     P.fill(Rect{0, 0, float(f.stage.w), float(f.stage.h)}, kShade);   // dialog::backdrop
     P.fill(Rect{box.x + 6 * U, box.y + 6 * U, box.w - 12 * U, box.h - 12 * U}, kTan);
     P.panel(draw::kPanel, box);
-    layout(box.x + pad_x, box.y + pad_y);
+    P.I.card_view = Rect{box.x, box.y + 6 * U, box.w, box.h - 12 * U};
+    P.clip_to(full > h ? std::optional<Rect>(P.I.card_view) : std::nullopt);
+    layout(box.x + pad_x, box.y + pad_y - P.I.card_scroll);
+    P.clip_to(std::nullopt);
 }
 
 }  // namespace
@@ -1550,8 +1593,11 @@ void Ui::draw(const draw::Ctx& c, const Frame& f) {
         else {
             const float w = std::min(248 * P.k, f.stage.w - 24 * P.k);
             P.paint = false;
-            const float h = std::min(menu_pass(P, m, 0, 0, w), f.stage.h - 24 * P.k);
+            const float full = menu_pass(P, m, 0, 0, w);
+            const float h = std::min(full, f.stage.h - 24 * P.k);
             P.paint = true;
+            I.menu_scroll = std::max(0.f, std::min(I.menu_scroll, full - h));
+            I.menu_tall = full > h;
             const float hud_bottom = std::max(I.brand.y + I.brand.h, I.status.y + I.status.h);   // the whole #hud, sign and all
             Pt at = I.menu_at && I.menu != Thing::House ? *I.menu_at : place_menu(f.stage, I.menu, I.anchor, Pt{w, h}, panel(f), hud_bottom);
             // kept where it was opened (a redraw never slides it from under the pointer), but never past the stage's
@@ -1565,7 +1611,10 @@ void Ui::draw(const draw::Ctx& c, const Frame& f) {
             P.region(box, "menu:box");
             P.fill(Rect{box.x + 6 * P.U, box.y + 6 * P.U, box.w - 12 * P.U, box.h - 12 * P.U}, kTan);
             P.panel(draw::kPanel, box);
-            menu_pass(P, m, box.x, box.y, w);
+            I.menu_view = Rect{box.x, box.y + 6 * P.U, box.w, box.h - 12 * P.U};
+            P.clip_to(full > h ? std::optional<Rect>(I.menu_view) : std::nullopt);
+            menu_pass(P, m, box.x, box.y - I.menu_scroll, w);
+            P.clip_to(std::nullopt);
         }
     }
 

@@ -451,6 +451,13 @@ void the_interface(const std::string& dir) {
           "what is not built yet does nothing, and says why");
     reopen();
     check(face.escape() && face.menu_kind() == v::Thing::None && !face.escape(), "Escape closes the menu, and then there is nothing to close");
+
+    // an ask an agent wrote over two lines is shown as the page shows it, white-space: normal
+    catio::draw::Body body;
+    check(body.open(std::filesystem::path(CATIO_SOURCE_DIR) / "assets" / "Nunito-Bold.ttf", 15), "the body font opens on its own");
+    const auto lines = body.wrap("Approve the copy?\nIt's\tin   docs/", 1000, 3);
+    check(lines.size() == 1 && lines[0] == "Approve the copy? It's in docs/", "a newline, a tab or a run of spaces is one space");
+    check(body.cut("Approve\nthe copy?", 1000) == "Approve the copy?", "and the same where a line is cut short");
     SDL_DestroyRenderer(r);
     SDL_DestroySurface(s);
 }

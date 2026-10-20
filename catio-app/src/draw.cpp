@@ -121,6 +121,14 @@ art::Texture* tinted(art::Texture* sheet, int coat) {
 
 }  // namespace
 
+void forget_tints() {
+    for (auto& [key, t] : tints()) {
+        if (t.gpu) SDL_DestroyTexture(t.gpu);
+        if (t.surface) SDL_DestroySurface(t.surface);
+    }
+    tints().clear();
+}
+
 int css_for(float content_scale) {
     const int k = static_cast<int>(std::floor((content_scale > 0 ? content_scale : 1.f) + 1e-4f));
     return k < 1 ? 1 : k;
