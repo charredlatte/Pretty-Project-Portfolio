@@ -163,7 +163,11 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
     (`pointer.png`) beside the one under the pointer or focus.
 
   Keep to that: a new action is a list item, and only if it earns its place. A card (dialog) puts what she
-  came for first and folds the rest (a cat's facts, management, name and title under Manage).
+  came for first and folds the rest (a cat's facts, management, name and title under Manage). **A session's or
+  agent's card is a scene** (`openCatScene()`, her ask of 20 October: the Dota 2 style chat "with the cats" over the
+  blurred café): the talk with it first, as the queen's (`talkStage()`: its ask or what it is on as the first line,
+  then every line said, one at a time, in `#thread`), your words under it, and the rest (the brain's files, Manage,
+  Open session) on a see-through sheet below. An adopted chat keeps the plain card with its adopt form.
 - Hover means the pointer really moved onto the thing (`moved()`). When the camera moves or a dialog
   closes, the room that slides under a still pointer isn't named until she moves.
 - **Cats walk** when their place changes: through the doorways to a new room, up the stair to nap in the
@@ -358,18 +362,24 @@ that inflates "3 need you" makes the sign a liar.
   `steps`, the page names them with `stepWords()`); a wait over 45 s gets a loading tip; Stop turns the lit tile pink.
   Her live bubble ends in the pack's triangle turned down, and she bobs only once she has words. Away, with your words
   waiting, it is one line saying why. In claude.ai, with no push, it is "Thinking" until her answer turns up.
-- **Her card is a pause menu** (`openQueen(section)`, her asks of 20 October: "a Legend of Zelda Breath of the Wild
-  style menu interface", then "retro looking, think Zelda Minish Cap, keeping with the pixel art theme"): a row of
-  tabs along the top, each a square button with a pixel icon, the chosen one pressed in with the pack's pointer
-  bobbing over it; its name on a cream banner between two rules; its page; the keys along the foot (← → tabs, Esc;
-  Page Up and Page Down turn the tabs from anywhere that isn't typing). The tabs are Talk, Quest log (with a count),
+- **Her card is a scene over the café** (`openQueen(section)`, her asks of 20 October: "a Legend of Zelda Breath of the
+  Wild style menu interface", then "retro looking, think Zelda Minish Cap, keeping with the pixel art theme", then, that
+  evening, "Get rid of all of the menus … no menu wrapping. You should be able to see the cafe but blurred in the
+  background"): `dialog.scene` is the whole window with no panel, the café showing through blurred behind it
+  (`::backdrop`), and nothing drawn around the talk or the log. Along the top her name, with the note she is saying
+  under it, a row of tabs, each a square button with a pixel icon, the chosen one pressed in with the pack's pointer
+  bobbing over it, and Close; the chosen tab's name in plain pixel type under them; then its page (← → turn the tabs
+  from the tab row, Page Up and Page Down from anywhere that isn't typing). The tabs are Talk, Quest log (with a count),
   What she keeps, Her character, Routines (on the gateway) and You: the last four are what the Settings overlay held
-  (`#queenKeeps`, `#queenCharacter`, `#queenRoutines`, `#queenYou`; her voice switch is on Her character). The icons
+  (`#queenKeeps`, `#queenCharacter`, `#queenRoutines`, `#queenYou`; her voice switch is on Her character), each on a
+  see-through sheet (`.sk-page`, the line box's look), since a form on the blurred café can't be read. The icons
   are cat-themed 90s Barbie tech, drawn in code from the tokens (`SK_ICONS`, `skIcon()`, each letter a token), as her
   own figure is, so a skin recolours them; the menus' actions carry icons the same way (`MI_ICONS`).
-  **Talk is a game dialogue** (her screens: Breath of the Wild's talk with a trader, Dota 2's Crownfall): the owner
+  **Talk is a game dialogue** (her screens: Breath of the Wild's talk with a trader, Dota 2's Crownfall; one stage
+  for every talk, `talkStage()`, which a cat's card uses too): the owner
   of the house on the left, seen from behind (`ownerSVG()`, pixel art drawn in code since no pack has people,
-  dressed from `house/main.owner`), the queen on the right, a name plate under each, whoever isn't speaking dimmed
+  dressed from `house/main.owner`), the queen on the right, both standing on the blurred café itself (no frame, no
+  floor of its own), a name plate under each, whoever isn't speaking dimmed
   (`data-speaker` on `.qstage`), her sprite `talking` once she has words. Between them the line being said, in a
   see-through box (her ask: "opaque, almost transparent": the pack's bubble with no fill over the hall, `color-mix`
   of `--well`), in the speaker's name. **Every line is in the thread** (`#queenThread`, the last twenty: yours

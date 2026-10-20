@@ -578,8 +578,12 @@ ul.thread li.handoff.new .who::after { content: " · new"; color: var(--ink); }
    chosen one open beside it. What she keeps, Her character, Routines and You are the tabs that were the Settings
    overlay. The card fills the window it is given (the height is on the dialog, which draws the panel); under the floor
    the dialog scrolls. */
-dialog.scene { width: min(980px, calc(100vw - 24px)); height: 792px; padding: 0 calc(4 * var(--u)); }   /* under the floor the card is taller than the window and the dialog scrolls */   /* dialog's own max-height brings it down to the window */
-.dlg.queen { position: relative; height: 100%; display: grid; grid-template-rows: auto auto minmax(300px, 1fr) auto auto; gap: 8px; padding: calc(8 * var(--u)) 2px 2px; }
+/* A scene is no panel (her ask, 20 October, evening: "no menu wrapping"): the whole window, the café showing through
+   blurred behind it, nothing drawn around the talk or the log. */
+dialog.scene { width: 100vw; max-width: none; height: 100dvh; max-height: none; margin: 0; padding: 0; border: 0; border-image: none; background: none; image-rendering: auto; }
+dialog.scene::backdrop { background: color-mix(in srgb, var(--shade) 28%, transparent); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.dlg.queen { position: relative; box-sizing: border-box; min-height: 100%; display: grid; grid-template-rows: auto auto minmax(300px, 1fr); gap: 8px; padding: calc(6 * var(--u)) calc(6 * var(--u)) calc(4 * var(--u)); }
+.dlg.queen.cat { grid-template-rows: auto minmax(300px, 1fr) auto; }
 .sk-top { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; }
 .sk-id { display: grid; min-width: 0; }
 .sk-id h2 { margin: 0; font: var(--px-size)/var(--px-line) var(--pixel); display: flex; align-items: center; gap: 6px; overflow-wrap: anywhere; }
@@ -595,28 +599,23 @@ dialog.scene { width: min(980px, calc(100vw - 24px)); height: 792px; padding: 0 
 .sk-count { position: absolute; top: -8px; right: -8px; z-index: 1; }
 .sk-close { justify-self: end; }
 /* the chosen tab's name: a cream banner between two of the pack's rules, a star each side */
-.sk-section { display: flex; align-items: center; gap: 10px; }
-.sk-section > .rule { flex: 1; }
-.sk-section h3 { margin: 0; display: flex; align-items: center; gap: 10px; font: calc(2 * var(--px-size))/calc(2 * var(--px-line)) var(--pixel); color: var(--ink); background: var(--cream) padding-box; padding: 0 calc(3 * var(--u)); text-align: center;
-  border: solid transparent; border-width: var(--btn-w); border-image: var(--art-button) var(--btn-s) fill / var(--btn-w) stretch; }
+.sk-section { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.sk-section > .rule { display: none; }
+.sk-section h3 { margin: 0; display: flex; align-items: center; gap: 10px; font: calc(2 * var(--px-size))/calc(2 * var(--px-line)) var(--pixel); color: var(--ink); padding: 0 calc(3 * var(--u)); text-align: center; }
 .sk-section h3::before, .sk-section h3::after { content: ""; flex: none; width: 20px; height: 16px; background: var(--art-stars) 0 0 / 40px 16px no-repeat; image-rendering: pixelated; }
 .sk-body { min-height: 0; }
 .sk-panel[hidden], .sk-count[hidden], .sk-back .btn[hidden], .sk-next[hidden] { display: none; }
 .sk-panel { height: 100%; min-height: 0; overflow: auto; display: grid; gap: 10px; align-content: start; overscroll-behavior: contain; padding: 2px; }
-.sk-page > * { width: min(720px, 100%); margin-inline: auto; }
 .sk-hints { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 20px; font-size: .8rem; color: var(--ink-soft); }
 .sk-keys { margin: 0; display: flex; gap: 14px; align-items: center; }
 .sk-keys kbd { font: 800 .7rem/1 var(--body); color: var(--ink); padding: 0 1px; margin-right: 5px; border: solid transparent; border-width: var(--btn-thin); border-image: var(--art-button-hover) var(--btn-s) fill / var(--btn-thin) stretch; }
-.sk-line { margin: 0; min-width: 0; overflow-wrap: anywhere; font-weight: 700; color: var(--ink); }
+.sk-line { margin: 2px 0 0; min-width: 0; overflow-wrap: anywhere; font-size: .85rem; font-weight: 700; color: var(--ink); }
+.sk-line:empty { display: none; }
 @media (pointer: coarse) { .sk-keys { display: none; } }
 /* Talk: the two of them on the hall's floor in the pack's picture frame, a name plate under each, the line being said
    between them. Whoever isn't speaking is dimmed; she bobs only once she has words (talking). */
 .sk-talk { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(200px, 1fr) auto; gap: 8px; overflow: hidden; align-content: stretch; }   /* the stage keeps a floor the two of them fit in */
-.qstage { position: relative; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr) auto; column-gap: 6px; padding: 6px 8px 8px; overflow: hidden;
-  image-rendering: pixelated; background: var(--scene-face) var(--art-house) no-repeat; background-size: 3840px 2304px; background-position: -1108px -1000px;
-  border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
-.qstage::before { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--scene-shade) 30%, transparent); pointer-events: none; }
-.qstage::after { content: ""; position: absolute; inset: 0; pointer-events: none; filter: var(--scene); }
+.qstage { position: relative; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr) auto; column-gap: 6px; padding: 6px 8px 8px; overflow: hidden; }
 .qstage > * { position: relative; min-width: 0; min-height: 0; }
 /* zoom, not a transform: it scales the figure's own pixel offsets too, so the crown stays on her head. A step
    narrower than this only changes --fz; the crown's own scale is derived from it, so it is always drawn on two
@@ -636,7 +635,9 @@ dialog.scene { width: min(980px, calc(100vw - 24px)); height: 792px; padding: 0 
 .qchar[data-mood="sleep"] .crown { top: 104px; left: 34%; }
 .qchar.talking, .owner.talking { animation: talk .5s steps(2) infinite; }
 @keyframes talk { 50% { translate: 0 -3px; } }
-.qstage[data-speaker="owner"] .qchar, .qstage[data-speaker="queen"] .owner { filter: brightness(.72) saturate(.8); }
+.qstage[data-speaker="owner"] .qchar, .qstage[data-speaker="queen"] .owner, .qstage[data-speaker="them"] .owner { filter: brightness(.72) saturate(.8); }
+.qchar.plain .spr { transform: translateX(-50%) scale(calc(2.6 * var(--fs, 1))) scaleX(-1); }   /* a cat faces her: the sheets look left, so it is mirrored */
+.qchar.plain .spr.s-idle, .qchar.plain .spr.s-box { transform: translateX(-50%) scale(calc(5 * var(--fs, 1))) scaleX(-1); }
 .sk-plate { grid-row: 2; justify-self: center; margin-top: 6px; padding: 0 2px; font: var(--px-size)/var(--px-size) var(--pixel); color: var(--ink); white-space: nowrap; background: var(--cream) padding-box;
   border: solid transparent; border-width: var(--btn-px); border-image: var(--art-button) var(--btn-s) fill / var(--btn-px) stretch; }
 .sk-plate.you { grid-column: 1; }
@@ -645,15 +646,15 @@ dialog.scene { width: min(980px, calc(100vw - 24px)); height: 792px; padding: 0 
    in the pack's bubble with no fill. Every line is in the thread; one is current and shown, the rest wait for Earlier
    and Click to continue. */
 .sk-lines.end { cursor: default; }
-.sk-lines { grid-area: 1 / 2 / 3 / 3; align-self: end; justify-self: center; width: min(100%, 720px); max-height: 100%; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 4px; padding: 4px 8px 8px; cursor: var(--point);
+.sk-lines { grid-area: 1 / 2 / 3 / 3; align-self: end; justify-self: center; width: min(100%, 1200px); max-height: 100%; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 4px; padding: 4px 8px 8px; cursor: var(--point);
   border: solid transparent; border-width: var(--bubble-px); border-image: var(--art-bubble) var(--bubble-s) / var(--bubble-px) stretch;
   background: color-mix(in srgb, var(--well) 42%, transparent) padding-box; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
-#queenThread { list-style: none; margin: 0; padding: 0; min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; }
-#queenThread li { display: none; }
-#queenThread li[aria-current="true"] { display: block; max-width: none; margin: 0; padding: 0; background: none; border: 0; border-image: none; font: 700 clamp(1.05rem, 2.2vw, 1.4rem)/1.45 var(--body); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
-#queenThread li .who { display: block; margin-bottom: 2px; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); }
-#queenThread li .lead { display: block; font-size: .8rem; font-weight: 800; color: var(--ink); }
-#queenThread li .open { display: inline-block; margin-top: 6px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }   /* .btn is nowrap: without this a cat with a long name runs off the side */
+.sk-lines .thread { list-style: none; margin: 0; padding: 0; min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.sk-lines .thread li { display: none; }
+.sk-lines .thread li[aria-current="true"] { display: block; max-width: none; margin: 0; padding: 0; background: none; border: 0; border-image: none; font: 700 clamp(1.05rem, 2.2vw, 1.4rem)/1.45 var(--body); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.sk-lines .thread li .who { display: block; margin-bottom: 2px; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); }
+.sk-lines .thread li .lead { display: block; font-size: .8rem; font-weight: 800; color: var(--ink); }
+.sk-lines .thread li .open { display: inline-block; margin-top: 6px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }   /* .btn is nowrap: without this a cat with a long name runs off the side */
 .sk-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 26px; }
 .sk-back { display: flex; align-items: center; gap: 8px; }
 .sk-of { font-size: .78rem; font-weight: 800; color: var(--ink); }
@@ -671,8 +672,7 @@ dialog.scene { width: min(980px, calc(100vw - 24px)); height: 792px; padding: 0 
    Decisions (a gold star is homework a cat is waiting on, a brown one a note to sort, a blue one a decision); the chosen
    one open beside it, a card at a time. */
 .sk-quests { grid-template-columns: minmax(230px, 310px) minmax(0, 1fr); gap: 10px; overflow: hidden; align-content: stretch; }
-.sk-qlist { min-height: 0; overflow: auto; display: grid; align-content: start; gap: 2px; padding: 0 2px 4px; overscroll-behavior: contain; background: var(--pressed) padding-box;
-  border: solid transparent; border-width: var(--down-w); border-image: var(--art-button-down) var(--down-s) fill / var(--down-w) stretch; }
+.sk-qlist { display: grid; gap: 2px; }
 .sk-qlist h4 { margin: 4px 0 0; display: flex; justify-content: space-between; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink-soft); }
 .sk-none { margin: 0; padding: 4px; color: var(--ink-soft); }
 .sk-q { position: relative; display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 6px; align-items: start; width: 100%; min-height: 44px; padding: 4px 6px 4px 18px; text-align: left; background: none; border: 0; color: var(--ink); font: inherit; }
@@ -686,7 +686,10 @@ dialog.scene { width: min(980px, calc(100vw - 24px)); height: 792px; padding: 0 
 .sk-q.decision .star { filter: hue-rotate(170deg) saturate(1.6); }
 .sk-q .t { display: block; font: var(--px-size)/var(--px-line) var(--pixel); overflow-wrap: anywhere; }
 .sk-q .s { display: block; font-size: .78rem; font-weight: 700; color: var(--ink-soft); overflow-wrap: anywhere; }
-.sk-quests .homework { min-height: 0; overflow: auto; align-content: start; overscroll-behavior: contain; }
+.sk-quests .homework, .sk-qlist, .sk-page { min-height: 0; max-height: 100%; height: auto; align-self: start; overflow: auto; align-content: start; overscroll-behavior: contain; padding: 8px 10px; border: solid transparent; border-width: var(--bubble-px); border-image: var(--art-bubble) var(--bubble-s) / var(--bubble-px) stretch;
+  background: color-mix(in srgb, var(--well) 42%, transparent) padding-box; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.sk-page { width: min(760px, 100%); margin-inline: auto; }   /* a see-through sheet, like the line box: what isn't the talk or the log sits on it */
+.sk-page > * { width: auto; margin-inline: 0; }
 .sk-quests .homework .quiz[hidden] { display: none; }
 .ownerprev { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: end; }
 .ownerprev .pic { padding: 6px 8px 0; background: var(--scene-face) padding-box; border: solid transparent; border-width: var(--frame-w); border-image: var(--art-frame) var(--frame-s) / var(--frame-w) stretch; }
@@ -700,14 +703,14 @@ dialog.scene { width: min(980px, calc(100vw - 24px)); height: 792px; padding: 0 
 @media (max-width: 560px) {
   /* a phone is tall and narrow: the line box takes the whole width of the scene and the two of them stand under it;
      the tabs go on their own row; the quest list sits above the open quest; the quick replies scroll sideways */
-  dialog.scene { width: min(980px, calc(100vw - 12px)); }
   .sk-top { grid-template-columns: minmax(0, 1fr) auto; }
   .sk-tabs { grid-column: 1 / -1; grid-row: 2; }
   .btn.sq.sk-tab { width: 44px; height: 44px; }
   .sk-section h3 { font: var(--px-size)/calc(var(--px-size) + 6px) var(--pixel); }
   /* the stage keeps a floor and the words under it stay on screen: the quick replies scroll sideways, and Speak, the box
      and Send share one row, so Send is never pushed under the fold */
-  .dlg.queen { grid-template-rows: auto auto minmax(300px, auto) auto auto; }   /* the body row grows with the talk: taller than the screen, the card scrolls as a whole */
+  .dlg.queen { grid-template-rows: auto auto 1fr; padding: calc(5 * var(--u)) calc(4 * var(--u)) calc(3 * var(--u)); }   /* the body row takes the screen and grows with the talk: taller than it, the card scrolls as a whole */
+  .dlg.queen.cat { grid-template-rows: auto 1fr auto; }
   .sk-talk { height: auto; min-height: 100%; overflow: visible; grid-template-rows: minmax(240px, 1fr) auto; }   /* so Send is never clipped */
   .sk-quick { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
   .sk-quick .btn { flex: none; }
@@ -2424,7 +2427,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     node.addEventListener("pointerenter", (e) => { if (e.pointerType !== "mouse" || pan) return; if (moved(e)) showTip(kind, key, node); else waiting = true; });
     node.addEventListener("pointermove", (e) => { if (waiting && e.pointerType === "mouse" && moved(e) && !pan) { waiting = false; showTip(kind, key, node); } });
     node.addEventListener("pointerleave", () => { waiting = false; hideTip(node); });
-    node.addEventListener("focus", () => { if (node.matches(":focus-visible") && kind !== "stairs" && kind !== "litter") { showMenu(kind, key, node); MENU.src = "focus"; } });   // keyboard only
+    node.addEventListener("focus", () => { if (Date.now() < QUIET_FOCUS) return; if (node.matches(":focus-visible") && kind !== "stairs" && kind !== "litter") { showMenu(kind, key, node); MENU.src = "focus"; } });   // keyboard only, not back from a card
   }
   let tipFor = null;
   function showTip(kind, key, node) {
@@ -2918,15 +2921,83 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   }
   function closeBtn(dlg, label) { const b = el("button", "btn", label || "Close"); b.type = "button"; b.addEventListener("click", () => dlg.close()); return b; }
   // a dialog redrawn while a note shows in it (Send redraws the card) keeps the note
-  function show(dlg) { if (!dlg.open) dlg.showModal(); if (!TOAST.hidden && !TOAST.isConnected) dlg.appendChild(TOAST); }
+  // Escape on a card gives the focus back to where it was, and a room with keyboard focus opens its menu: not on the
+  // way back from a card (QUIET_FOCUS), or the card closes onto a menu she didn't ask for.
+  let QUIET_FOCUS = 0;
+  function show(dlg) { if (!dlg.open) { dlg.showModal(); dlg.addEventListener("cancel", () => { QUIET_FOCUS = Date.now() + 200; }, { once: true }); } if (!TOAST.hidden && !TOAST.isConnected) dlg.appendChild(TOAST); }
 
   // A cat's card: who it is and what it needs, then the conversation with it. Everything else (the facts,
   // pausing, archiving, its name, room and title) is folded under Manage until she wants it.
+  // A game dialogue (her Breath of the Wild and Dota 2 Crownfall screens, 20 October): the owner of the house on the
+  // left, seen from behind, whoever she talks to on the right, a name plate under each, the line being said in a
+  // see-through box between them, one at a time. Every line is in the thread (the ul); one is current. Click to
+  // continue steps on, Earlier back; a new line jumps to the newest unless she has stepped back. The queen's card and
+  // a cat's card both talk through it: o.items() gives the lines ({key, kind: owner|them, cls, id, who, lead, text,
+  // at, extra(), live, handoff}), o.after() runs after each draw, o.themKey names the speaker when it isn't her.
+  function talkStage(o) {
+    const stage = el("section", "qstage"); stage.setAttribute("aria-label", "Talking with " + o.name);
+    const owner = el("div", "owner"); owner.appendChild(ownerSVG(ownerOf()));
+    const plateYou = el("span", "sk-plate you", "You"), plateThem = el("span", "sk-plate her", o.name);
+    plateYou.setAttribute("aria-hidden", "true"); plateThem.setAttribute("aria-hidden", "true");
+    const lines = el("div", "sk-lines"); lines.setAttribute("role", "group"); lines.setAttribute("aria-label", "What is being said");
+    const ul = el("ul", "thread"); ul.id = o.ulId; ul.setAttribute("aria-live", "polite");
+    const nav = el("div", "sk-nav"), counter = el("span", "sk-of");
+    let pos = 0, follow = true, last = 0, curKey = null;   // curKey: the line she is on, so a new line never shifts it
+    const earlier = plainBtn("Earlier", "tiny", () => { if (pos > 0) { pos--; follow = false; curKey = null; draw(); } });   // curKey null: pos is the line she chose
+    const onward = el("button", "sk-next", "Click to continue"); onward.type = "button";
+    const step = () => { if (pos < last) { pos++; follow = pos === last; curKey = null; draw(); } };
+    onward.addEventListener("click", (e) => { e.stopPropagation(); step(); });
+    const back = el("span", "sk-back"); back.append(earlier, counter);
+    nav.append(back, onward);
+    lines.append(ul, nav);
+    lines.addEventListener("click", (e) => { if (!e.target.closest("button, a") && !(getSelection() || "").toString().trim()) step(); });   // a click, not a selection
+    stage.append(owner, o.figure, lines, plateYou, plateThem);
+    const draw = () => {
+      const items = o.items();
+      last = items.length - 1;
+      const found = follow ? -1 : items.findIndex((it) => it.key === curKey);
+      pos = follow ? last : found >= 0 ? found : Math.min(pos, last);
+      const same = items[pos] && items[pos].key === curKey, keep = ul.scrollTop;   // the same line, grown: she stays where she read
+      curKey = items[pos] ? items[pos].key : null;
+      ul.replaceChildren();
+      items.forEach((it, i) => {
+        const li = el("li", (it.kind === "owner" ? "me" : "them") + (it.cls ? " " + it.cls : ""));
+        if (it.id) li.id = it.id;
+        li.append(el("span", "who", (it.kind === "owner" ? "You" : o.name) + (it.at ? " · " + ago(it.at) : "")));
+        if (it.lead) li.appendChild(el("span", "lead", it.lead));
+        li.appendChild(document.createTextNode(it.text));
+        if (it.extra) li.appendChild(it.extra());
+        if (i === pos) li.setAttribute("aria-current", "true");
+        ul.appendChild(li);
+      });
+      stage.dataset.speaker = items[pos] && items[pos].kind === "owner" ? "owner" : o.themKey || "them";
+      owner.classList.toggle("talking", stage.dataset.speaker === "owner");
+      counter.textContent = (pos + 1) + " / " + (last + 1);
+      const fe = document.activeElement;
+      earlier.hidden = pos === 0; onward.hidden = pos === last; lines.classList.toggle("end", pos === last);
+      if (earlier.hidden && fe === earlier) onward.focus(); else if (onward.hidden && fe === onward) earlier.focus();   // a key's focus stays on the nav
+      ul.scrollTop = items[pos] && items[pos].live ? ul.scrollHeight : same ? keep : 0;   // words as they come; a line she is reading stays put
+      if (o.after) o.after();
+    };
+    const newest = () => { follow = true; draw(); };
+    return { stage, owner, ul, draw, newest };
+  }
+  // the top of a scene: a name and a line under it, Close in the corner (a cat's card has no tabs)
+  function sceneTop(dlg, h, line) {
+    const top = el("header", "sk-top"), who = el("div", "sk-id");
+    who.append(h, line);
+    const close = el("button", "btn sq sk-close"); close.type = "button"; close.title = "Close (Esc)"; close.setAttribute("aria-label", "Close");
+    close.appendChild(skIcon("close")); close.addEventListener("click", () => dlg.close());
+    return { top, who, close };
+  }
+
   function openCat(id) {
     const c = VIEW.cats.find((x) => x.id === id);
     if (!c) return;
     const dlg = $("catDlg"); dlg.replaceChildren();
     const m = MOODS[c.mood];
+    dlg.classList.toggle("scene", c.kind !== "chat");
+    if (c.kind !== "chat") { openCatScene(c, dlg, m); return; }
     const box = el("div", "dlg");
     const head = el("div", "head");
     const por = el("div", "portrait"); por.append(sprite(c.mood, c.coat));
@@ -2937,19 +3008,61 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     head.append(por, hd);
     box.appendChild(head);
     if (c.ask) { const a = el("div", "ask-box " + m.kind); a.append(el("span", "face-ico"), el("span", null, c.ask)); box.appendChild(a); }
-    else if (c.kind !== "chat") box.appendChild(el("p", "blurb", c.doing || c.title));
-
-    // what the brain has given it, and the conversation with it
     const files = filesFor(c.id);
     if (files.length) { box.appendChild(el("p", "kicker", "From the brain")); const ul = el("ul", "files"); files.slice(0, 6).forEach((d) => ul.appendChild(fileRow(d))); box.appendChild(ul); }
-    if (c.kind !== "chat" && S.db) { box.appendChild(conversation(c)); loadThread(c); }
+    box.appendChild(adoptForm(c));
+    dlg.appendChild(box);
+    show(dlg);
+  }
 
-    if (c.kind === "chat") {
-      box.appendChild(adoptForm(c));
-      dlg.appendChild(box);
-      show(dlg);
-      return;
+  // A cat's card, as a scene over the blurred café: the talk with it as a game dialogue (its ask, then every line said,
+  // one at a time), your words under it, and what else there is to it (the brain's files, Manage, Open session) on a
+  // see-through sheet below.
+  function openCatScene(c, dlg, m) {
+    const box = el("div", "dlg queen cat");
+    const h = el("h2", null, c.name); h.id = "catName"; h.prepend(el("span", "face-ico"));
+    const mood = el("span", "mood " + m.kind, m.label + " · " + [c.project.name, roomInfo(c.roomKey).name].join(" · "));
+    const { top, who, close } = sceneTop(dlg, h, mood);
+    top.append(who, close);
+    const fig = el("div", "qchar plain"); fig.id = "catFig"; fig.setAttribute("aria-hidden", "true"); fig.appendChild(sprite(c.mood, c.coat));
+    const T = talkStage({ name: c.name, figure: fig, ulId: "thread", items: () => {
+      const items = notesFor(c).slice(-20).map((n) => ({ key: "n:" + (n.id || n.at), kind: fromOwner(n) ? "owner" : "them", text: n.text, at: n.at || 0,
+        lead: n.via === "queued" ? "queued" : n.via === "unreachable" ? "not delivered" : "" }));
+      if (c.ask) items.unshift({ key: "ask", kind: "them", cls: "ask " + m.kind, lead: m.label, text: c.ask, at: 0 });   // what it is waiting on you for
+      else if (!items.length) items.unshift({ key: "greet", kind: "them", cls: "greet", text: c.doing || c.title, at: 0 });   // nothing said yet: what it is on
+      return items;
+    } });
+    T.ul.dataset.cat = c.id;
+    const talk = el("section", "sk-panel sk-talk"); talk.id = "catTalk";
+    const reply = el("div", "sk-reply");
+    if (S.db) {
+      const say = el("textarea"); say.id = "sayTo"; say.rows = 2; say.maxLength = 4000; say.placeholder = "Write to " + c.name + (c.agentId && c.kind === "session" ? ": it arrives when the session's turn ends" : ": it goes straight into the session");
+      say.setAttribute("aria-label", "Message to " + c.name);
+      const send = plainBtn("Send", "green", async () => {
+        const text = say.value.trim();
+        if (!text) { say.focus(); return; }
+        send.disabled = true;
+        const id = gid();
+        const ok = await save(async (db) => {
+          await db.doc("notes/" + id).set({ cat: c.id, text, author: "owner", at: Date.now() });
+          const via = await tell(c, "[Catio] Charlotte says: " + text, { kind: "message", note: id, say: text });
+          await db.doc("notes/" + id).update({ via });
+          toast(saidAs[via]);
+        });
+        send.disabled = false;
+        if (ok) { say.value = ""; T.newest(); }
+      });
+      send.id = "saySend";
+      say.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send.click(); } });
+      const row = el("div", "row saybar"); row.append(el("label", "field").appendChild(say).parentNode, send);
+      reply.appendChild(row);
     }
+    talk.append(T.stage, reply);
+    const body = el("main", "sk-body"); body.appendChild(talk);
+    // the rest of it, on a sheet under the talk
+    const sheet = el("section", "sk-page sheet");
+    const files = filesFor(c.id);
+    if (files.length) { sheet.appendChild(el("p", "kicker", "From the brain")); const ul = el("ul", "files"); files.slice(0, 6).forEach((d) => ul.appendChild(fileRow(d))); sheet.appendChild(ul); }
     const more = el("details", "more"); more.id = "catMore";
     more.appendChild(el("summary", null, "Manage"));
     const dl = el("dl", "facts");
@@ -2989,14 +3102,19 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (ok) dlg.close();
     });
     const sa = el("div", "actions"); sa.append(el("span", "spacer"), sv); more.appendChild(sa);
-    box.appendChild(more);
-
+    sheet.appendChild(more);
     const acts = el("div", "actions");
     acts.append(closeBtn(dlg), el("span", "spacer"));
     if (c.link) { const open = el("a", "btn green", c.kind === "agent" ? "Open" : "Open session"); open.href = c.link; open.target = "_blank"; open.rel = "noopener"; acts.appendChild(open); }
-    box.appendChild(acts);
+    sheet.appendChild(acts);
+    box.append(top, body, sheet);
     dlg.appendChild(box);
+    CAT_UI = { id: c.id, draw: T.draw };
+    dlg.addEventListener("close", () => { CAT_UI = null; }, { once: true });
+    T.draw();
+    if (S.db) loadThread(c);
     show(dlg);
+    const say = $("sayTo"); if (say) say.focus();
   }
 
   // Her card: what she is keeping, what to give her, and what she should say out loud.
@@ -3153,7 +3271,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // Her card, like an NPC's dialogue: her greeting, the thread (what she said, what the cats brought her, what you
   // said), her answer as she speaks it, Speak / Send / Stop and her voice; then, folded, what she keeps, her
   // character (name, coat, manner, greeting, voice) and her routines. Opening it counts the handoffs as read.
-  let QUEEN_UI = null, QUEEN_POLL = null;
+  let QUEEN_UI = null, QUEEN_POLL = null, CAT_UI = null;   // the open cards' redraws
   // Her homework answers in progress, by quiz, so they survive every redraw (a cat reporting, a quiz arriving)
   // and closing her card; and the quizzes on their way in, so no second Hand it in posts while one is.
   const DRAFTS = new Map();   // quiz id -> one {pick, idx, text} per question
@@ -3246,11 +3364,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     top.append(who, tabs, close);
     const sect = el("div", "sk-section"), secTitle = el("h3"); secTitle.id = "queenSection"; sect.append(el("div", "rule"), secTitle, el("div", "rule"));
     const body = el("main", "sk-body");
-    const foot = el("footer", "sk-hints");
-    const kb = el("p", "sk-keys");
-    for (const [k, w] of [["PgUp PgDn", "tabs"], ["Esc", "close"]]) { const s = el("span"); s.append(el("kbd", null, k), w); kb.appendChild(s); }
-    const ln = el("p", "sk-line", queenLine(q)); ln.id = "queenLineNote";
-    foot.append(kb, ln);
+    const ln = el("p", "sk-line", queenLine(q)); ln.id = "queenLineNote"; who.appendChild(ln);   // the note she is saying, under her name
 
     const TABS = [["talk", "Talk", "chat", "queenTalk", "sk-talk"], ["quests", "Quest log", "quest", "queenQuests", "sk-quests"], ["keeps", "What she keeps", "star", "queenKeeps", "sk-page"],
       ["character", "Her character", "crown", "queenCharacter", "sk-page"]]
@@ -3287,71 +3401,28 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     });
 
     // ---- Talk: the owner of the house on the left, from behind; the queen on the right; the line being said between ----
-    const stage = el("section", "qstage"); stage.setAttribute("aria-label", "Talking with " + q.name);
-    const owner = el("div", "owner"); owner.id = "queenOwnerFig"; owner.appendChild(ownerSVG(ownerOf()));
     const her = el("div", "qchar"); her.id = "queenFig"; her.setAttribute("aria-hidden", "true");
-    const plateYou = el("span", "sk-plate you", "You"), plateHer = el("span", "sk-plate her", q.name);
-    plateYou.setAttribute("aria-hidden", "true"); plateHer.setAttribute("aria-hidden", "true");
+    const T = talkStage({ name: q.name, figure: her, ulId: "queenThread", themKey: "queen", after: () => { dress(); drawWork(); }, items: () => {
+      const cats = allCats(true).cats;
+      const items = (S.queenNotes || []).filter((n) => fromOwner(n) || n.author === QUEEN_ID).map((n) => ({ key: "n:" + (n.id || n.at), kind: fromOwner(n) ? "owner" : "them", text: n.text, at: n.at || 0, lead: n.routine && n.routine.name ? n.routine.name : "" }))
+        .concat(cats.filter((c) => c.said && c.said.text).map((c) => ({ key: "h:" + c.id, kind: "them", handoff: true, cls: "handoff" + ((c.said.at || 0) > q.readAt ? " new" : ""), lead: c.name + " brought you", text: c.said.text, at: c.said.at || 0,
+          extra: VIEW.cats.some((x) => x.id === c.id) ? () => plainBtn("Open " + c.name, "tiny open", () => { dlg.close(); openCat(c.id); }) : null })))
+        .sort((a, b) => a.at - b.at).slice(-20);
+      if (!items.some((it) => !it.handoff)) items.unshift({ key: "greet", kind: "them", cls: "greet", text: q.greeting, at: 0 });   // nothing said yet: her greeting
+      const live = (S.queenTurn && S.queenTurn.text) || S.queenSaid;   // her words as they come, and once done, until her note has arrived
+      if (live) items.push({ key: "live", kind: "them", cls: "live", id: "queenLive", lead: S.queenTurn ? "speaking" : "", text: live, at: 0, live: true });
+      while (items.length > 20) items.shift();   // the last twenty, her live line and greeting counted
+      return items;
+    } });
+    const stage = T.stage, owner = T.owner, drawThreadQ = T.draw; owner.id = "queenOwnerFig";
     const dress = () => {
       const talking = !!(S.queenTurn && S.queenTurn.text);   // words, not thinking: she sits still while she thinks, and bobs once she speaks
       const mood = talking ? "meow" : queenMood(q);
       her.replaceChildren(sprite(mood, q.coat), el("span", "crown"));
       her.classList.toggle("talking", talking);
-      owner.classList.toggle("talking", stage.dataset.speaker === "owner");
       her.dataset.mood = mood;
     };
     dress();
-    // every line is in the thread; one is current and shown, in the speaker's name. Click to continue steps on; the
-    // latest shows by default, and a new line jumps to it unless she has stepped back.
-    const lines = el("div", "sk-lines"); lines.setAttribute("role", "group"); lines.setAttribute("aria-label", "What is being said");
-    const ul = el("ul", "thread"); ul.id = "queenThread"; ul.setAttribute("aria-live", "polite");
-    const nav = el("div", "sk-nav"), counter = el("span", "sk-of");
-    let pos = 0, follow = true, last = 0, curKey = null;   // curKey: the line she is on, so a new line never shifts it
-    const earlier = plainBtn("Earlier", "tiny", () => { if (pos > 0) { pos--; follow = false; curKey = null; drawThreadQ(); } });   // curKey null: pos is the line she chose
-    const onward = el("button", "sk-next", "Click to continue"); onward.type = "button";
-    const step = () => { if (pos < last) { pos++; follow = pos === last; curKey = null; drawThreadQ(); } };
-    onward.addEventListener("click", (e) => { e.stopPropagation(); step(); });
-    const back = el("span", "sk-back"); back.append(earlier, counter);
-    nav.append(back, onward);
-    lines.append(ul, nav);
-    lines.addEventListener("click", (e) => { if (!e.target.closest("button, a") && !(getSelection() || "").toString().trim()) step(); });   // a click, not a selection
-    stage.append(owner, her, lines, plateYou, plateHer);
-    const drawThreadQ = () => {
-      const cats = allCats(true).cats;
-      const items = (S.queenNotes || []).filter((n) => fromOwner(n) || n.author === QUEEN_ID).map((n) => ({ key: "n:" + (n.id || n.at), kind: fromOwner(n) ? "owner" : n.author, text: n.text, at: n.at || 0, routine: n.routine }))
-        .concat(cats.filter((c) => c.said && c.said.text).map((c) => ({ key: "h:" + c.id, kind: "handoff", cat: c, text: c.said.text, at: c.said.at || 0 })))
-        .sort((a, b) => a.at - b.at).slice(-20);
-      if (!items.some((it) => it.kind !== "handoff")) items.unshift({ key: "greet", kind: "greet", text: q.greeting, at: 0 });   // nothing said yet: her greeting
-      const live = (S.queenTurn && S.queenTurn.text) || S.queenSaid;   // her words as they come, and once done, until her note has arrived
-      if (live) items.push({ key: "live", kind: "live", text: live, at: 0 });
-      while (items.length > 20) items.shift();   // the last twenty, her live line and greeting counted
-      last = items.length - 1;
-      const found = follow ? -1 : items.findIndex((it) => it.key === curKey);
-      pos = follow ? last : found >= 0 ? found : Math.min(pos, last);
-      const same = items[pos] && items[pos].key === curKey, keep = ul.scrollTop;   // the same line, grown: she stays where she read
-      curKey = items[pos] ? items[pos].key : null;
-      ul.replaceChildren();
-      items.forEach((it, i) => {
-        const li = el("li", it.kind === "owner" ? "me" : it.kind === "greet" ? "them greet" : it.kind === "live" ? "them live" : it.kind === "handoff" ? "them handoff" + (it.at > q.readAt ? " new" : "") : "them");
-        if (it.kind === "live") li.id = "queenLive";
-        const who = it.kind === "owner" ? "You" : q.name;
-        const lead = it.kind === "handoff" ? it.cat.name + " brought you" : it.kind === "live" ? (S.queenTurn ? "speaking" : "") : it.routine && it.routine.name ? it.routine.name : "";
-        li.append(el("span", "who", who + (it.at ? " · " + ago(it.at) : "")));
-        if (lead) li.appendChild(el("span", "lead", lead));
-        li.appendChild(document.createTextNode(it.text));
-        if (it.kind === "handoff" && VIEW.cats.some((x) => x.id === it.cat.id)) { const o = plainBtn("Open " + it.cat.name, "tiny open", () => { dlg.close(); openCat(it.cat.id); }); li.appendChild(o); }
-        if (i === pos) li.setAttribute("aria-current", "true");
-        ul.appendChild(li);
-      });
-      stage.dataset.speaker = items[pos] && items[pos].kind === "owner" ? "owner" : "queen";
-      counter.textContent = (pos + 1) + " / " + (last + 1);
-      const fe = document.activeElement;
-      earlier.hidden = pos === 0; onward.hidden = pos === last; lines.classList.toggle("end", pos === last);
-      if (earlier.hidden && fe === earlier) onward.focus(); else if (onward.hidden && fe === onward) earlier.focus();   // a key's focus stays on the nav
-      ul.scrollTop = curKey === "live" ? ul.scrollHeight : same ? keep : 0;   // her words as they come; a line she is reading stays put
-      dress();
-      drawWork();
-    };
     // ---- under the stage: her turn as it goes (her ask, 4 October, from the games of the early 2000s), the quick
     // replies, then your own words ----
     // Waking: Animal Crossing's pause, her name on a tab over the dots. At work: The Sims' action queue, each step
@@ -3434,7 +3505,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         await hostCall("comment", { cat: QUEEN_ID, text, author: "owner" });
         S.queenNotes = (S.queenNotes || []).concat([{ id: "me" + Date.now(), cat: QUEEN_ID, author: "owner", text, at: Date.now() }]);
         if (queenState() !== "away" && !S.queenTurn) S.queenTurn = { turn: "", local: true, text: "", steps: [], stepAt: [], since: Date.now(), awakeAt: 0, textAt: 0 };   // Thinking, from your Send
-        follow = true; drawThreadQ();
+        T.newest();
         if (queenState() === "away") toast("Kept for her: she answers once her runner is on.");
         return true;
       } catch (e) { toast(gatewayProblem(e), "alert"); return false; }
@@ -3763,7 +3834,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     panels.you.append(el("p", "note", skinOf("owner") ? "Your own picture is in the hall (The look, in the House menu). These choices draw you again once you put it back."
       : "How you sit in the hall when you talk to her, seen from behind."), pv, oa);
 
-    box.append(top, sect, body, el("div", "rule"), foot);
+    box.append(top, sect, body);
     dlg.appendChild(box);
 
     // what she is, as one document; saving it moves what the room queens kept into it
@@ -4868,41 +4939,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const ul = $("thread");
     if (ul && ul.dataset.cat === c.id) drawThread(ul, c);
   }
-  function conversation(c) {
-    const wrap = el("section", "dlg talk"); wrap.style.padding = "0";
-    const ul = el("ul", "thread"); ul.id = "thread"; ul.dataset.cat = c.id;
-    drawThread(ul, c);
-    const say = el("textarea"); say.id = "sayTo"; say.rows = 2; say.maxLength = 4000; say.placeholder = "Write to " + c.name + (c.agentId && c.kind === "session" ? ": it arrives when the session's turn ends" : ": it goes straight into the session");
-    const send = plainBtn("Send", "green", async () => {
-      const text = say.value.trim();
-      if (!text) { say.focus(); return; }
-      send.disabled = true;
-      const id = gid();
-      const ok = await save(async (db) => {
-        await db.doc("notes/" + id).set({ cat: c.id, text, author: "owner", at: Date.now() });
-        const via = await tell(c, "[Catio] Charlotte says: " + text, { kind: "message", note: id, say: text });
-        await db.doc("notes/" + id).update({ via });
-        toast(saidAs[via]);
-      });
-      send.disabled = false;
-      if (ok) { say.value = ""; openCat(c.id); }
-    });
-    send.id = "saySend";
-    say.setAttribute("aria-label", "Message to " + c.name);
-    const row = el("div", "row"); row.append(el("label", "field").appendChild(say).parentNode, send);
-    wrap.append(ul, row);
-    return wrap;
-  }
-  function drawThread(ul, c) {
-    ul.replaceChildren();
-    const notes = notesFor(c).slice(-12);
-    ul.hidden = !notes.length;
-    for (const n of notes) {
-      const li = el("li", fromOwner(n) ? "me" : "them");
-      li.append(el("span", "who", (fromOwner(n) ? "You" : c.name) + " · " + ago(n.at) + (n.via === "queued" ? " · queued" : n.via === "unreachable" ? " · not delivered" : "")), document.createTextNode(n.text));
-      ul.appendChild(li);
-    }
-  }
+  // a cat's thread is drawn by its open scene (CAT_UI), as the queen's is by hers
+  function drawThread(ul, c) { if (CAT_UI && CAT_UI.id === c.id) CAT_UI.draw(); }
   function managing(c, dlg) {
     const bar = el("div", "manage");
     const act = (label, cls, run, sure, icon) => {
