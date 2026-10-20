@@ -7,8 +7,9 @@ try:   # a brief that cannot be built must say so: exit 1 loses all of it and le
     from common import enforced, holds, hook_input, local, merges, repos, rules
 except Exception as _e:
     import sys
-    print("# KittyChat house rules\n\nThe house rules couldn't be loaded (%s: %s), so this session has not been "
-          "told them. Tell Charlotte before changing anything." % (type(_e).__name__, _e))
+    print("# KittyChat house rules\n\nThe house rules couldn't be loaded (%s: %s), so this session has not "
+          "been told them. Run the ponytail-audit skill before changing anything, and tell Charlotte."
+          % (type(_e).__name__, _e))
     sys.exit(0)
 
 
@@ -39,18 +40,20 @@ def main():
             continue
         lines.append(f"- **{rule['title']}**{' (enforced)' if rule['enforced'] else ''}: {rule['text']}")
         if rule["id"] == "merge":
+            _, house_odd = holds(r.get("merging", {}))   # the same for every checkout: read it once
             for repo in repos(cwd):
-                # both lists, the same two the merge gate reads: the house's and this repo's. Reading only
-                # one of them is how the brief came to claim merge rights the gate was refusing.
-                house, house_odd = holds(r.get("merging", {}))
+                # Both lists are checked, the same two the merge gate reads, because the gate holds on
+                # either: a brief that looked at only one claimed merge rights the gate was refusing. Only
+                # the repo's own paths are named, as before - whether the house's .claude/ should be named
+                # here too is a change to what the brief says, so it is Charlotte's to ask for.
                 mine, mine_odd = holds(local(repo))
-                name, held = Path(repo).name, ", ".join(house + mine)
+                name, held = Path(repo).name, ", ".join(mine)
+                broken = [w for w, odd in (("the house rules'", house_odd), (f"{name}'s", mine_odd)) if odd]
                 if not merges(repo):
                     lines.append(f"  {name}'s pull requests are hers to merge.")
-                elif house_odd or mine_odd:   # the gate holds every merge there: don't say it may merge
-                    whose = "the house rules'" if house_odd else f"{name}'s"
-                    lines.append(f"  {whose} hold list is in a shape the harness can't read, so every pull "
-                                 f"request in {name} waits for her until she fixes it.")
+                elif broken:   # the gate holds every merge there: don't say it may merge
+                    lines.append(f"  {' and '.join(broken)} hold list is in a shape the harness can't read, "
+                                 f"so every pull request in {name} waits for her until she fixes it.")
                 else:
                     lines.append(f"  {name} merges its own pull requests" +
                                  (f"; changes to {held} always wait for her." if held else "."))

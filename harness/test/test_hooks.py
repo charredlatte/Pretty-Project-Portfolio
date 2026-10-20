@@ -43,6 +43,29 @@ def run(script, data, cwd=None, cloud=False, env=None):
                           cwd=cwd, env=env)
 
 
+def without_comments(text):
+    """JSONC with its comments blanked, skipping string literals: a // carrying a quote, or a /* */ block, is
+    legal in wrangler.jsonc, and a regex that mangled one made the sweep call a file wrangler accepts broken."""
+    out, i, n = [], 0, len(text)
+    while i < n:
+        c = text[i]
+        if c == '"':                                     # a string: copy it whole, escapes included
+            j = i + 1
+            while j < n and text[j] != '"':
+                j += 2 if text[j] == "\\" else 1
+            out.append(text[i:j + 1]); i = j + 1
+        elif text[i:i + 2] == "//":
+            j = text.find("\n", i)
+            i = n if j < 0 else j
+        elif text[i:i + 2] == "/*":
+            j = text.find("*/", i + 2)
+            out.append(" ")                              # keep the tokens either side apart
+            i = n if j < 0 else j + 2
+        else:
+            out.append(c); i += 1
+    return "".join(out)
+
+
 def transcript(tmp, skills=()):
     p = Path(tmp) / "t.jsonl"
     with p.open("w") as f:
@@ -385,6 +408,26 @@ class Merging(unittest.TestCase):
             self.assertEqual(r.returncode, 2, (hold, r.stderr))
             self.assertIn("which always waits for her", r.stderr, hold)
             self.assertNotIn("shape I can't read", r.stderr, hold)
+
+    def test_a_held_path_with_an_accent_in_it_still_holds(self):
+        """git C-quotes a non-ASCII path in --name-only ("catio/art/caf\\303\\251/x.png"), so a hold she spelt
+        properly never matched it and the change merged unheld. The names are read with -z and quotepath off."""
+        name = "accent"
+        repo = Path(self.tmp, name)
+        subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+        g = lambda *a: subprocess.run(["git", *a], cwd=repo, check=True, capture_output=True)
+        g("config", "user.email", "t@t"); g("config", "user.name", "t")
+        g("remote", "add", "origin", f"https://github.com/charredlatte/{name}.git")
+        Path(repo, ".claude").mkdir(); Path(repo, ".claude", "catio-rules.json").write_text(
+            json.dumps({"merge": True, "hold": ["caf\u00e9/"]}))
+        Path(repo, "a").write_text("1")
+        g("add", "-A"); g("commit", "-qm", "one"); g("update-ref", "refs/remotes/origin/main", "HEAD")
+        g("checkout", "-qb", "feature")
+        Path(repo, "caf\u00e9").mkdir(); Path(repo, "caf\u00e9", "x.png").write_text("2")
+        g("add", "-A"); g("commit", "-qm", "two")
+        r = self.merge(repo=name, head=self.head(repo))
+        self.assertEqual(r.returncode, 2, r.stderr)
+        self.assertIn("which always waits for her", r.stderr)
 
     def test_a_hold_she_wrote_properly_still_holds_and_still_lets_the_rest_through(self):
         held = self.checkout("held", {"merge": True, "hold": ["a"]})   # "a" is what the feature commit changes
@@ -1118,7 +1161,7 @@ class SessionStart(unittest.TestCase):
         Path(tmp, ".claude").mkdir()
         Path(tmp, ".claude", "catio-rules.json").write_text('{"merge": true, "hold": ["harness/"]}')
         out = run("session_start.py", {"cwd": str(tmp)}).stdout
-        self.assertIn("  cafe merges its own pull requests; changes to .claude/, harness/ always wait for her.", out)
+        self.assertIn("  cafe merges its own pull requests; changes to harness/ always wait for her.", out)
         self.assertIn("**Semi-automatic merging** (enforced)", out)
 
     def test_the_brief_never_claims_a_hold_the_merge_gate_will_not_keep(self):
@@ -1141,7 +1184,7 @@ class SessionStart(unittest.TestCase):
         subprocess.run(["git", "init", "-q", str(padded)], check=True)
         Path(padded, ".claude").mkdir(parents=True)
         Path(padded, ".claude", "catio-rules.json").write_text('{"merge": true, "hold": ["  harness/  "]}')
-        self.assertIn("  cafe merges its own pull requests; changes to .claude/, harness/ always wait for her.",
+        self.assertIn("  cafe merges its own pull requests; changes to harness/ always wait for her.",
                       run("session_start.py", {"cwd": str(padded)}).stdout)
 
     def test_the_brief_reads_the_house_hold_list_too_not_only_the_repos(self):
@@ -1162,13 +1205,35 @@ class SessionStart(unittest.TestCase):
                                   capture_output=True, text=True,
                                   env=dict({k: v for k, v in os.environ.items() if k not in ENV_KEYS},
                                            XDG_CACHE_HOME=CACHE))
-        out = brief([".claude/"], ["docs/"]).stdout        # the shipped house list: it must be named
-        self.assertIn(".claude/", out)
-        self.assertIn("docs/", out)
+        out = brief([".claude/"], ["docs/"]).stdout        # a readable house list: the brief is as before
+        self.assertIn("  cafe merges its own pull requests; changes to docs/ always wait for her.", out)
         broken = brief("harness/", ["docs/"])               # the house's is unreadable: the gate holds all
         self.assertEqual(broken.returncode, 0, broken.stderr)
         self.assertIn("the house rules' hold list is in a shape the harness can't read", broken.stdout)
         self.assertNotIn("cafe merges its own pull requests;", broken.stdout)
+        both = brief("harness/", "docs/").stdout            # both broken: name both, or she fixes one
+        self.assertIn("the house rules' and cafe's hold list is in a shape", both)
+
+    def test_a_merging_block_a_merge_fused_is_unreadable_not_silent(self):
+        """holds() is handed the block, not the value, so a "merging" that a fused manifest left as a list
+        must read as unreadable. Read as silence it says nothing and the brief claims merge rights."""
+        for fused in ([{"hold": [".claude/"]}], "hold", 5):
+            plugin = Path(tempfile.mkdtemp())
+            shutil.copytree(HOOKS, plugin / "hooks")
+            r = json.loads((HOOKS.parent / "rules.json").read_text(encoding="utf-8"))
+            r["merging"] = fused
+            (plugin / "rules.json").write_text(json.dumps(r))
+            tmp = Path(tempfile.mkdtemp(), "cafe")
+            subprocess.run(["git", "init", "-q", str(tmp)], check=True)
+            Path(tmp, ".claude").mkdir(parents=True)
+            Path(tmp, ".claude", "catio-rules.json").write_text('{"merge": true, "hold": ["docs/"]}')
+            out = subprocess.run([sys.executable, str(plugin / "hooks" / "session_start.py")],
+                                 input=json.dumps({"cwd": str(tmp), "source": "startup"}),
+                                 capture_output=True, text=True,
+                                 env=dict({k: v for k, v in os.environ.items() if k not in ENV_KEYS},
+                                          XDG_CACHE_HOME=CACHE)).stdout
+            self.assertIn("hold list is in a shape the harness can't read", out, fused)
+            self.assertNotIn("cafe merges its own pull requests;", out, fused)
 
     def test_the_brief_says_so_rather_than_printing_nothing_when_it_cannot_be_built(self):
         """session_start had no guard at all: any exception exited 1, SessionStart reads that as a warning,
@@ -1240,8 +1305,8 @@ class Plugin(unittest.TestCase):
                 text = (root / name).read_text(encoding="utf-8")
             except OSError:
                 continue
-            if name.endswith(".jsonc"):   # // comments are part of the format, trailing ones included
-                text = re.sub(r'(^|\s)//[^"\n]*$', r"\1", text, flags=re.M)
+            if name.endswith(".jsonc"):
+                text = without_comments(text)   # // and /* */ are part of the format, inside strings they aren't
             try:
                 parsed = json.loads(text)
             except ValueError as e:

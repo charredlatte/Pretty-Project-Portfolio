@@ -74,14 +74,18 @@ def holds(mapping, key="hold"):
     reading the setting itself: .get("hold") cannot tell an absent key from one she wrote as null, so a null
     read as silence and the pull request merged. With the lookup in here no caller can write that.
 
-    Only the key being absent is silence. Everything she did write that cannot be matched against git's own
+    Only the key being absent from a mapping this can read is silence. A mapping that isn't one (a merging
+    block a merge fused into a list, say) is unreadable, not silent. Everything she did write that cannot be
+    matched against git's own
     --name-only output comes back unreadable, for the caller to hold on rather than drop: a shape that isn't
     a list, an entry that isn't a string, a glob or brace (nothing here expands one), a backslash, an
     absolute or dot-relative path, a "." or ".." segment anywhere, and a ~ or $ the shell would have grown.
     A path is returned trimmed but otherwise as she spelt it, so the brief quotes her and the caller
     normalises where it compares.
     """
-    if not isinstance(mapping, dict) or key not in mapping:
+    if not isinstance(mapping, dict):
+        return [], True        # a block this can't read is not her saying nothing
+    if key not in mapping:
         return [], False
     value = mapping[key]
     if not isinstance(value, list):
