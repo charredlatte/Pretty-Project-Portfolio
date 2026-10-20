@@ -585,6 +585,7 @@ dialog.scene::backdrop { background: color-mix(in srgb, var(--shade) 28%, transp
 .dlg.queen { position: relative; box-sizing: border-box; min-height: 100%; display: grid; grid-template-rows: auto auto minmax(300px, 1fr); gap: 8px; padding: calc(6 * var(--u)) calc(6 * var(--u)) calc(4 * var(--u)); }
 .dlg.queen.cat { grid-template-rows: auto minmax(300px, 1fr) auto; }
 .sk-top { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; }
+.sk-top.two { grid-template-columns: minmax(0, 1fr) auto; }   /* no tabs: the name, then Close in the corner */
 .sk-id { display: grid; min-width: 0; }
 .sk-id h2 { margin: 0; font: var(--px-size)/var(--px-line) var(--pixel); display: flex; align-items: center; gap: 6px; overflow-wrap: anywhere; }
 .sk-id h2 .crown { position: static; flex: none; }
@@ -3020,10 +3021,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // see-through sheet below.
   function openCatScene(c, dlg, m) {
     const box = el("div", "dlg queen cat");
-    const h = el("h2", null, c.name); h.id = "catName"; h.prepend(el("span", "face-ico"));
-    const mood = el("span", "mood " + m.kind, m.label + " · " + [c.project.name, roomInfo(c.roomKey).name].join(" · "));
+    const h = el("h2", null, c.name); h.id = "catName";
+    const mood = el("span", "mood " + m.kind); mood.append(el("span", "face-ico"), document.createTextNode(m.label + " · " + [c.project.name, roomInfo(c.roomKey).name].join(" · ")));
     const { top, who, close } = sceneTop(dlg, h, mood);
-    top.append(who, close);
+    top.classList.add("two"); top.append(who, close);
     const fig = el("div", "qchar plain"); fig.id = "catFig"; fig.setAttribute("aria-hidden", "true"); fig.appendChild(sprite(c.mood, c.coat));
     const T = talkStage({ name: c.name, figure: fig, ulId: "thread", items: () => {
       const items = notesFor(c).slice(-20).map((n) => ({ key: "n:" + (n.id || n.at), kind: fromOwner(n) ? "owner" : "them", text: n.text, at: n.at || 0,
@@ -3404,10 +3405,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
         .concat(cats.filter((c) => c.said && c.said.text).map((c) => ({ key: "h:" + c.id, kind: "them", handoff: true, cls: "handoff" + ((c.said.at || 0) > q.readAt ? " new" : ""), lead: c.name + " brought you", text: c.said.text, at: c.said.at || 0,
           extra: VIEW.cats.some((x) => x.id === c.id) ? () => plainBtn("Open " + c.name, "tiny open", () => { dlg.close(); openCat(c.id); }) : null })))
         .sort((a, b) => a.at - b.at).slice(-20);
+      // her last words, once her turn is done, until her note is in the thread: at their own time among the lines
+      const said = !S.queenTurn && S.queenSaid && !(S.queenNotes || []).some((n) => n.author === QUEEN_ID && n.text === S.queenSaid) ? S.queenSaid : "";
+      if (said) { items.push({ key: "live", kind: "them", cls: "live", id: "queenLive", text: said, at: S.queenSaidAt || 0, live: true }); items.sort((a, b) => a.at - b.at); }
       if (!items.some((it) => !it.handoff)) items.unshift({ key: "greet", kind: "them", cls: "greet", text: q.greeting, at: 0 });   // nothing said yet: her greeting
-      const said = S.queenSaid && !(S.queenNotes || []).some((n) => n.author === QUEEN_ID && n.text === S.queenSaid) ? S.queenSaid : "";   // once her note is in, the copy goes
-      const live = (S.queenTurn && S.queenTurn.text) || said;   // her words as they come, and once done, until her note has arrived
-      if (live) items.push({ key: "live", kind: "them", cls: "live", id: "queenLive", lead: S.queenTurn ? "speaking" : "", text: live, at: 0, live: true });
+      const live = S.queenTurn && S.queenTurn.text;   // her words as they come
+      if (live) items.push({ key: "live", kind: "them", cls: "live", id: "queenLive", lead: "speaking", text: live, at: 0, live: true });
       while (items.length > 20) items.shift();   // the last twenty, her live line and greeting counted
       return items;
     } });
@@ -5570,7 +5573,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       turn: m.turn, text: m.text || "", routine: m.routine, steps, since: same ? was.since : now, awakeAt: (same && was.awakeAt) || now,
       stepAt: steps.map((s, i) => (same && was.stepAt[i]) || now), textAt: (same && was.textAt) || (m.text ? now : 0), stopping: !!(same && was.stopping),
     };
-    if (m.done) { S.queenSaid = m.text || (was && was.text) || ""; loadQueenThread(); }   // her last words stay up until her note is in the thread (the items builder drops them then)
+    if (m.done) { S.queenSaid = m.text || (was && was.text) || ""; S.queenSaidAt = Date.now(); loadQueenThread(); }   // her last words stay up until her note is in the thread (the items builder drops them then)
     else if (m.text) S.queenSaid = "";
     if (QUEEN_UI) QUEEN_UI.draw();
     speakTurn(m);
