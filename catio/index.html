@@ -2892,8 +2892,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     list("brain", (v) => { S.brain = v; });
     list("notes", (v) => {
       S.notes = v;
-      const t = $("thread"), c = t && $("catDlg").open && VIEW.cats.find((x) => x.id === t.dataset.cat);
-      if (c) drawThread(t, c);   // an answer arriving while her card is open shows at once
+      if (CAT_UI) redrawCat(CAT_UI.id);   // an answer arriving while a cat's card is open shows at once
     });
     list("outbox", (v) => { S.outbox = v; });
     list("rules", (v) => { S.rules = Object.fromEntries(v.map((r) => [r.id, r])); });
@@ -2921,10 +2920,11 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   }
   function closeBtn(dlg, label) { const b = el("button", "btn", label || "Close"); b.type = "button"; b.addEventListener("click", () => dlg.close()); return b; }
   // a dialog redrawn while a note shows in it (Send redraws the card) keeps the note
-  // Escape on a card gives the focus back to where it was, and a room with keyboard focus opens its menu: not on the
-  // way back from a card (QUIET_FOCUS), or the card closes onto a menu she didn't ask for.
+  // A card that closes hands the focus to the room (the dialogs' close handler, at the end), and a room with keyboard
+  // focus opens its menu: not on the way back from a card (QUIET_FOCUS), or the card closes onto a menu she didn't
+  // ask for.
   let QUIET_FOCUS = 0;
-  function show(dlg) { if (!dlg.open) { dlg.showModal(); dlg.addEventListener("cancel", () => { QUIET_FOCUS = Date.now() + 200; }, { once: true }); } if (!TOAST.hidden && !TOAST.isConnected) dlg.appendChild(TOAST); }
+  function show(dlg) { if (!dlg.open) dlg.showModal(); if (!TOAST.hidden && !TOAST.isConnected) dlg.appendChild(TOAST); }
 
   // A cat's card: who it is and what it needs, then the conversation with it. Everything else (the facts,
   // pausing, archiving, its name, room and title) is folded under Manage until she wants it.
@@ -3353,14 +3353,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     else if (section === "homework") { const u = openQuizzes().find((z) => kindOf(z) === "unblock"); QSEL = u ? "q:" + u.id : null; SELIDX = 0; }   // none: the first waiting
 
     // ---- the top: her name and how she is, the tabs, Close ----
-    const top = el("header", "sk-top");
-    const who = el("div", "sk-id");
     const h = el("h2", null, q.name); h.id = "queenName"; h.prepend(el("span", "crown"));
     const st = el("span", "mood " + (q.state === "away" ? "sleep" : "work"), "Queen of the house · " + stateWord(q.state)); st.id = "queenState";
-    who.append(h, st);
+    const { top, who, close } = sceneTop(dlg, h, st);
     const tabs = el("div", "sk-tabs"); tabs.setAttribute("role", "tablist"); tabs.setAttribute("aria-label", "Her card");
-    const close = el("button", "btn sq sk-close"); close.type = "button"; close.title = "Close (Esc)"; close.setAttribute("aria-label", "Close");
-    close.appendChild(skIcon("close")); close.addEventListener("click", () => dlg.close());
     top.append(who, tabs, close);
     const sect = el("div", "sk-section"), secTitle = el("h3"); secTitle.id = "queenSection"; sect.append(el("div", "rule"), secTitle, el("div", "rule"));
     const body = el("main", "sk-body");
@@ -3409,7 +3405,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
           extra: VIEW.cats.some((x) => x.id === c.id) ? () => plainBtn("Open " + c.name, "tiny open", () => { dlg.close(); openCat(c.id); }) : null })))
         .sort((a, b) => a.at - b.at).slice(-20);
       if (!items.some((it) => !it.handoff)) items.unshift({ key: "greet", kind: "them", cls: "greet", text: q.greeting, at: 0 });   // nothing said yet: her greeting
-      const live = (S.queenTurn && S.queenTurn.text) || S.queenSaid;   // her words as they come, and once done, until her note has arrived
+      const said = S.queenSaid && !(S.queenNotes || []).some((n) => n.author === QUEEN_ID && n.text === S.queenSaid) ? S.queenSaid : "";   // once her note is in, the copy goes
+      const live = (S.queenTurn && S.queenTurn.text) || said;   // her words as they come, and once done, until her note has arrived
       if (live) items.push({ key: "live", kind: "them", cls: "live", id: "queenLive", lead: S.queenTurn ? "speaking" : "", text: live, at: 0, live: true });
       while (items.length > 20) items.shift();   // the last twenty, her live line and greeting counted
       return items;
@@ -4936,11 +4933,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (!c.agentId || !S.host) return;
     try { const p = await hostCall("comments", { cat: c.agentId, limit: 12 }); S.agentNotes[c.agentId] = (p && p.notes) || []; }
     catch (e) { return; }
-    const ul = $("thread");
-    if (ul && ul.dataset.cat === c.id) drawThread(ul, c);
+    redrawCat(c.id);
   }
   // a cat's thread is drawn by its open scene (CAT_UI), as the queen's is by hers
-  function drawThread(ul, c) { if (CAT_UI && CAT_UI.id === c.id) CAT_UI.draw(); }
+  function redrawCat(id) { if (CAT_UI && CAT_UI.id === id) CAT_UI.draw(); }
   function managing(c, dlg) {
     const bar = el("div", "manage");
     const act = (label, cls, run, sure, icon) => {
@@ -5574,7 +5570,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       turn: m.turn, text: m.text || "", routine: m.routine, steps, since: same ? was.since : now, awakeAt: (same && was.awakeAt) || now,
       stepAt: steps.map((s, i) => (same && was.stepAt[i]) || now), textAt: (same && was.textAt) || (m.text ? now : 0), stopping: !!(same && was.stopping),
     };
-    if (m.done) { S.queenSaid = m.text || (was && was.text) || ""; loadQueenThread().finally(() => { S.queenSaid = ""; if (QUEEN_UI) QUEEN_UI.draw(); }); }   // her last words stay up until her note is in
+    if (m.done) { S.queenSaid = m.text || (was && was.text) || ""; loadQueenThread(); }   // her last words stay up until her note is in the thread (the items builder drops them then)
+    else if (m.text) S.queenSaid = "";
     if (QUEEN_UI) QUEEN_UI.draw();
     speakTurn(m);
   });
@@ -5794,7 +5791,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   for (const d of document.querySelectorAll("dialog")) d.addEventListener("close", () => {
     if (d.contains(TOAST)) document.body.appendChild(TOAST);   // a note still waiting outlives its dialog
     const a = document.activeElement;
-    if (!a || a === document.body || d.contains(a)) $("room-" + (S.focus || curRoom())).focus({ preventScroll: true });
+    if (!a || a === document.body || d.contains(a)) { QUIET_FOCUS = Date.now() + 200; $("room-" + (S.focus || curRoom())).focus({ preventScroll: true }); }   // the room, but not its menu
   });
 
   // In claude.ai the artifact runtime serves db and mcp. Opened from a folder on localhost there is
