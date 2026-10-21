@@ -59,41 +59,20 @@ def words(text):
 
 
 def lone_deletion(command):
-    """Is the command nothing but cds and one plain `git [-C dir] push <remote> --delete <branches>` (or
-    `push <remote> :<branch>...`)? Her OK on the prompt approves the whole command, so that is all it may hold: no
-    other command or push, pipe, redirect, comment, git -c or push option, and no `cd -`, each of which can run,
-    push or overwrite something the prompt doesn't name, or leave the gate checking a different repo. No quote or
-    backslash either: where() reads a cd or -C target as written, so `cd a""b` would send git to ab while the gate
-    checked the folder it started in."""
-    if re.search(r"[\"'\\]", command):
-        return False
-    parts = [[]]
+    """Is the command exactly `git push <remote> --delete <branches>` (or `git push <remote> :<branch>...`), run
+    where the session is? Her OK on the prompt approves the whole command, so that is all it may be: no other
+    command or push, pipe, redirect, comment, git -c, -C or push option, and no cd, each of which can run, push or
+    overwrite something the prompt doesn't name, or (a cd that fails, say) leave the gate checking one repo while
+    git deletes in another."""
     try:
-        for w in tokens(command, ";&|()<>\n", comments=False):
-            if w in ("&&", ";", "\n"):
-                parts.append([])
-            elif set(w) & set(";&|()<>\n"):
-                return False
-            else:
-                parts[-1].append(w)
+        w = list(tokens(command.strip(), ";&|()<>\n", comments=False))
     except ValueError:  # an unclosed quote
         return False
-    parts = [p for p in parts if p]
-    if sum(p[0] == "git" for p in parts) != 1:
-        return False
     plain = lambda a: PLAIN.fullmatch(a) and not a.startswith("-")
-    for p in parts:
-        if p[0] == "cd":
-            ok = len(p) == 2 and plain(p[1])
-        else:
-            rest = p[3:] if p[1:2] == ["-C"] and len(p) > 2 and plain(p[2]) else p[1:]
-            flags = [a for a in rest[1:] if a in ("-d", "--delete")]
-            refs = [a for a in rest[1:] if a not in flags]
-            ok = p[0] == "git" and rest[:1] == ["push"] and len(refs) > 1 and all(plain(a) for a in refs) \
-                and (flags or all(a.startswith(":") for a in refs[1:]))
-        if not ok:
-            return False
-    return True
+    flags = [a for a in w[2:] if a in ("-d", "--delete")]
+    refs = [a for a in w[2:] if a not in flags]
+    return w[:2] == ["git", "push"] and len(refs) > 1 and all(plain(a) for a in refs) \
+        and bool(flags or all(len(a) > 1 and a.startswith(":") for a in refs[1:]))
 
 
 def where(command, at, cwd, given=None):
@@ -143,8 +122,9 @@ def check_push(args, repo, command=""):
             block(SAY + f"never push to the default branch ({default}). Push this work to the session's branch "
                   "and open a pull request; merging is the merging rule's.")
         if deleting or spec.startswith(":"):
-            if src == "HEAD" or name == "HEAD":  # git deletes the remote's ref named HEAD, not this branch
-                block(SAY + "name the branch to delete; HEAD isn't one.")
+            # git deletes the remote's ref named HEAD, not this branch, and a bare ":" pushes every matching branch
+            if not name or src == "HEAD" or name == "HEAD":
+                block(SAY + "name the branch to delete; HEAD, or nothing after the colon, isn't one.")
             if name not in gone:
                 gone.append(name)
     if not gone:
@@ -154,17 +134,19 @@ def check_push(args, repo, command=""):
               "checked. Leave that branch for Charlotte.")
     ask_her = not merges(repo)
     if ask_her and not lone_deletion(command):  # before any fetch: the refusal costs nothing, and fetches add up
-        block(SAY + "her OK covers the whole command, so a branch deletion goes on its own: one plain "
-              "`git push <remote> --delete <branches>` (a cd before it is fine, to a path with forward slashes and no "
-              "quotes), nothing else in the command.")
+        block(SAY + "her OK covers the whole command, so a branch deletion goes on its own: exactly "
+              "`git push <remote> --delete <branches>`, run from inside the repo, with nothing else in the command "
+              "(no cd or -C either).")
     check_delete(repo, remote, gone, default)
     return [f"{name} on {remote} ({Path(repo).name})" for name in gone] if ask_her else []
 
 
 def check_delete(repo, remote, names, default):
     # one fetch for them all, bounded: a hook that times out lets the call through, so a stalled fetch counts
-    # as nothing merged
-    if not git_ok("fetch", "-q", remote, default, *names, cwd=repo, timeout=20):
+    # as nothing merged. Each into its tracking ref by name: a clone whose fetch refspec covers only main (a
+    # shallow one, say) leaves a bare `fetch origin x` in FETCH_HEAD, and a stale origin/x would pass as merged
+    track = [f"+refs/heads/{n}:refs/remotes/{remote}/{n}" for n in [default, *names]]
+    if not git_ok("fetch", "-q", remote, *track, cwd=repo, timeout=20):
         block(SAY + f"couldn't fetch {', '.join(names)} to check against {default} (a branch may be gone already, or "
               "the fetch failed or timed out), so they stay. Only a merged branch is deleted.")
     for name in names:

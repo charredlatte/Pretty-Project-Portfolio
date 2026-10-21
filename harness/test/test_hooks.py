@@ -579,6 +579,14 @@ class Pushing(unittest.TestCase):
         self.assertEqual(r.returncode, 0, command)
         return json.loads(r.stdout)["hookSpecificOutput"]
 
+    def test_a_stale_tracking_ref_never_passes_as_merged(self):
+        # a clone that fetches only main: a bare `fetch origin done` would leave origin/done where it was
+        self.g("checkout", "-qb", "done"); self.g("push", "-q", "origin", "done")
+        self.g("config", "remote.origin.fetch", "+refs/heads/main:refs/remotes/origin/main")
+        self.g("commit", "-q", "--allow-empty", "-m", "more"); self.g("push", "-q", "origin", "done:refs/heads/done")
+        self.g("update-ref", "refs/remotes/origin/done", "main")  # the stale copy, merged
+        self.assertIn("done isn't merged into main", self.push("git push origin --delete done").stderr)
+
     def test_only_a_merged_branch_is_deleted_and_only_with_her_ok_where_she_merges(self):
         self.g("checkout", "-qb", "done"); self.g("push", "-q", "origin", "done")
         self.g("push", "-q", "origin", "done:also")
@@ -590,9 +598,6 @@ class Pushing(unittest.TestCase):
                       out["permissionDecisionReason"])
         self.assertIn("only with her OK", out["permissionDecisionReason"])
         self.assertEqual(self.asks("git push origin :done")["permissionDecision"], "ask")
-        # forward slashes: a backslash reads one way to the shell and another to the gate, so it is refused
-        self.assertEqual(self.asks(f"cd {self.work.as_posix()} && git push origin --delete done")["permissionDecision"],
-                         "ask")
         self.assertIn(f"delete done on origin ({self.work.name})?",
                       self.asks("git push origin -d done done")["permissionDecisionReason"])
         # her OK is never asked for what the gate refuses, in the same push or another one in the command
@@ -607,14 +612,16 @@ class Pushing(unittest.TestCase):
                         "git push --receive-pack=/tmp/x origin --delete done", "git push origin --delete done\nrm x",
                         "git push origin --delete done # tidy\nrm x", "cd - && git push origin --delete done",
                         "git push origin open :done", 'cd a""b && git push origin --delete done',
-                        "git -C a\\b push origin --delete done"):
+                        "git -C a\\b push origin --delete done", f"cd {self.work.as_posix()} && git push origin -d done",
+                        f"git -C {self.work.as_posix()} push origin --delete done"):
             r = self.push(command)
             self.assertEqual(r.returncode, 2, command)
             self.assertIn("a branch deletion goes on its own", r.stderr)
         self.assertEqual(self.push("git push origin --delete done $(rm -rf x)").returncode, 2)
         self.assertIn("a # inside a word", self.push("git push origin --delete done#x").stderr)
-        self.assertIn("HEAD isn't one", self.push("git push origin --delete HEAD").stderr)
-        self.assertIn("HEAD isn't one", self.push("git push origin :HEAD").stderr)
+        self.assertIn("name the branch to delete", self.push("git push origin --delete HEAD").stderr)
+        self.assertIn("name the branch to delete", self.push("git push origin :HEAD").stderr)
+        self.assertIn("nothing after the colon", self.push("git push origin :").stderr)
         # an ordinary push keeps its comment: the shell never sees "main" there
         self.assertEqual(self.push("git push origin open  # then merge to main").returncode, 0)
         # a branch that is gone already fails the one fetch, and the refusal names them all, not just the first

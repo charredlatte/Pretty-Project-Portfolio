@@ -158,10 +158,13 @@ ticks it once she has merged or closed the pull request.
 After a merge the session deletes the merged branch. The gate lets a branch be deleted only once it is merged.
 Where sessions merge, a merged branch goes without asking; anywhere else the gate puts the deletion to her as a
 permission prompt naming the branches, after every other check on the command has passed, so her OK never carries
-anything it would refuse. Her OK covers the whole command, so the deletion must come on its own (a `cd` aside). A
-session with no one to show the prompt to gets a denial. The merge check runs when the prompt opens, not when she
-answers: if someone pushes to the branch while it waits, her OK deletes that too. Pinning the push with
-`--force-with-lease` would close it, but that is the force-push the rule forbids. A cloud session's git access hasn't been able to delete branches, so turn on GitHub's
+anything it would refuse. Her OK covers the whole command, so the command must be exactly
+`git push <remote> --delete <branches>`, run from inside the repo (no cd or -C, which can leave the gate checking
+one repo while git deletes in another). Who answers the prompt is up to the session's permission mode: the hook
+asks, but a mode that settles prompts by itself settles this one too. The merge check runs when the prompt opens,
+not when she answers: if someone pushes to the branch while it waits, her OK deletes that too. Pinning the push
+with `--force-with-lease` would close it, but that is the force-push the rule forbids. A cloud session's git
+access hasn't been able to delete branches, so turn on GitHub's
 *Automatically delete head branches* (each repo's Settings → General → Pull Requests): then the merge deletes
 it. Pushing to the default branch and force-pushing stay forbidden everywhere. The gate reads the ordinary ways
 of running `git push` and `gh pr merge`; it is a guard rail for a session that means well, not a sandbox.
