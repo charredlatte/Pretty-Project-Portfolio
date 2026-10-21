@@ -1169,6 +1169,23 @@ class Common(unittest.TestCase):
         import common
         cls.c = common
 
+    def test_the_hook_answers_once_with_its_nudge_and_its_ask(self):
+        # two JSON answers on stdout are read as neither, which would void her prompt
+        import contextlib, io
+        out = io.StringIO()
+        self.c.CONTEXT[:] = ["a nudge"]
+        try:
+            with contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as done:
+                self.c.ask("delete done?")
+        finally:
+            self.c.CONTEXT.clear()
+        self.assertEqual(done.exception.code, 0)
+        lines = out.getvalue().splitlines()
+        self.assertEqual(len(lines), 1)
+        said = json.loads(lines[0])["hookSpecificOutput"]
+        self.assertEqual((said["permissionDecision"], said["permissionDecisionReason"], said["additionalContext"]),
+                         ("ask", "delete done?", "a nudge"))
+
     def test_one_transcript_reader_and_who_counts(self):
         tmp = Path(tempfile.mkdtemp())
         rows = [{"type": "assistant", "message": {"model": "claude-opus-5-5"}},

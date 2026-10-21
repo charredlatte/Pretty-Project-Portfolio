@@ -25,10 +25,11 @@ REMOTE = re.compile(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?/?$")
 # before it. The ordinary ways of running git; a hook is a guard rail, not a sandbox.
 START = (r"(?:^|[;&|({!\"'`]|\b(?:if|then|else|do|while|until|env|exec|command|time|nohup|sudo|timeout\s+\S+)\s)"
          r"\s*(?:\w+=\S*\s+)*")
-PUSH = re.compile(START + r"git\s+(?:(?:-C\s+(\S+)|-c\s+\S+|--[\w-]+(?:=\S+)?)\s+)*push\b", re.M)
+GAP = r"(?:\s|\\\n)+"  # between words, a line continuation counts as a space: `git \<newline>push` is a push as typed
+PUSH = re.compile(START + rf"git{GAP}(?:(?:-C{GAP}(\S+)|-c{GAP}\S+|--[\w-]+(?:=\S+)?){GAP})*push\b", re.M)
 # The one command a deletion she is asked about may be, matched on the raw text: no shell reading to get wrong
 LONE = re.compile(r"git push origin(?: (?:-d|--delete)(?: (?!-)[\w./-]+)+|(?: :(?!-)[\w./-]+)+)")
-GH_MERGE = re.compile(START + r"gh\s+pr\s+merge\b", re.M)
+GH_MERGE = re.compile(START + rf"gh{GAP}pr{GAP}merge\b", re.M)
 MERGE = re.compile(r"__merge_pull_request$")
 API_WRITES = re.compile(r"__(push_files|create_or_update_file|delete_file)$")
 SAY = "House rule (KittyChat): "
@@ -327,16 +328,20 @@ def check(data, tool, args, cwd, command):
     hers, texts, seen = [], dict.fromkeys([command, uncommented(command)]), set()
     for text in texts:
         for m in PUSH.finditer(text):
-            place = where(text, m.start(), cwd, m.group(1))
+            place, args = where(text, m.start(), cwd, m.group(1)), words(text[m.end():])
+            if ("push", place, *args) in seen:  # a push both readings find: checked once
+                continue
+            seen.add(("push", place, *args))
             repo = git("rev-parse", "--show-toplevel", cwd=place)
-            args = words(text[m.end():])
-            if repo and enforced("ship", repo) and (repo, *args) not in seen:  # a push both readings find: once
-                seen.add((repo, *args))
+            if repo and enforced("ship", repo):
                 hers += check_push(args, repo, command)
     for text in texts:
         for m in GH_MERGE.finditer(text):
-            place = where(text, m.start(), cwd)
-            got = gh_merge(words(text[m.end():]))
+            place, args = where(text, m.start(), cwd), words(text[m.end():])
+            if ("merge", place, *args) in seen:
+                continue
+            seen.add(("merge", place, *args))
+            got = gh_merge(args)
             if got["auto"]:
                 block(SAY + "auto-merge can't be pinned to the commit that was reviewed: merge without --auto.")
             if not str(got.get("number", "")).isdigit():

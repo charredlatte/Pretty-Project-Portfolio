@@ -133,8 +133,10 @@ def git_ok(*args, cwd=None, timeout):
     """Did git succeed within `timeout` seconds? Run with no pipes: on Windows a helper git starts (ssh,
     git-remote-https) holds a captured pipe open after git itself is killed, and the wait outlives the timeout.
     And never asking for a password, on her terminal over Claude Code's, while the hook waits: git's own prompts are
-    off, and a session of its own (POSIX) leaves ssh no terminal to ask a passphrase or a host key on."""
+    off, a session of its own (POSIX) leaves ssh no terminal to ask a passphrase or a host key on, and ssh runs in
+    batch mode (Windows too) unless she has named an ssh command of her own."""
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="never")
+    env.setdefault("GIT_SSH_COMMAND", "ssh -o BatchMode=yes")
     try:
         return subprocess.run(["git", *args], cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                               stderr=subprocess.DEVNULL, timeout=timeout, env=env,
