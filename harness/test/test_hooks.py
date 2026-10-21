@@ -594,13 +594,14 @@ class Pushing(unittest.TestCase):
         self.g("push", "-q", "origin", "open")
         out = self.asks("git push origin --delete done also")
         self.assertEqual(out["permissionDecision"], "ask")
-        self.assertIn(f"delete done on origin ({self.work.name}), also on origin ({self.work.name})?",
-                      out["permissionDecisionReason"])
+        held = f"({self.work.name}, every commit on it already in main)"
+        self.assertIn(f"delete done on origin {held}; also on origin {held}?", out["permissionDecisionReason"])
         self.assertIn("only with her OK", out["permissionDecisionReason"])
         self.assertEqual(self.asks("git push origin :done")["permissionDecision"], "ask")
         self.assertEqual(self.asks("git push origin --delete done\t\n")["permissionDecision"], "ask")
-        self.assertIn(f"delete done on origin ({self.work.name})?",
-                      self.asks("git push origin -d done done")["permissionDecisionReason"])
+        # a carriage return keeps nothing out of sight: main\r is still main
+        self.assertIn("never push to the default branch", self.push("git push origin main\r\n").stderr)
+        self.assertIn(f"delete done on origin {held}?", self.asks("git push origin -d done done")["permissionDecisionReason"])
         # her OK is never asked for what the gate refuses, in the same push or another one in the command
         self.assertIn("open isn't merged into main, so it stays", self.push("git push origin --delete done open").stderr)
         self.assertEqual(self.push("git push origin --delete done; git push origin main").returncode, 2)

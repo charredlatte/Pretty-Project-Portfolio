@@ -67,7 +67,8 @@ def tokens(text, punct):
     """The words the shell would see in `text`, with the characters in `punct` as tokens of their own, comments
     left out the shell's way (uncommented). An unclosed quote raises ValueError."""
     lex = shlex.shlex(uncommented(text), posix=True, punctuation_chars=punct)
-    lex.whitespace, lex.whitespace_split, lex.commenters = " \t", True, ""  # not \r, which bash keeps in a word
+    # \r splits words here, though bash keeps it in one, so `main\r` still reads as main and is refused
+    lex.whitespace, lex.whitespace_split, lex.commenters = " \t\r", True, ""
     return lex
 
 
@@ -158,7 +159,9 @@ def check_push(args, repo, command):
         block(SAY + "a deletion she is asked about goes to origin, and only where origin pushes to the repo it "
               "fetches from, which is what the merged check reads. Leave this one for Charlotte.")
     check_delete(repo, remote, gone, default)
-    return [f"{name} on {remote} ({Path(repo).name})" for name in gone] if ask_her else []
+    # "already in": what the check knows. A branch just started from the default's tip passes it too
+    return [f"{name} on {remote} ({Path(repo).name}, every commit on it already in {default})"
+            for name in gone] if ask_her else []
 
 
 def check_delete(repo, remote, names, default):
@@ -321,13 +324,15 @@ def check(data, tool, args, cwd, command):
     # Pushes and merges are looked for in the command as typed and again as the shell reads it (lines continued and
     # comments out, uncommented()), and each one either reading finds is checked: `git \<newline>push` is a push only
     # to the second, a line after a comment ending in a backslash only to the first. lone_deletion reads it as typed.
-    hers, texts = [], dict.fromkeys([command, uncommented(command)])
+    hers, texts, seen = [], dict.fromkeys([command, uncommented(command)]), set()
     for text in texts:
         for m in PUSH.finditer(text):
             place = where(text, m.start(), cwd, m.group(1))
             repo = git("rev-parse", "--show-toplevel", cwd=place)
-            if repo and enforced("ship", repo):
-                hers += check_push(words(text[m.end():]), repo, command)
+            args = words(text[m.end():])
+            if repo and enforced("ship", repo) and (repo, *args) not in seen:  # a push both readings find: once
+                seen.add((repo, *args))
+                hers += check_push(args, repo, command)
     for text in texts:
         for m in GH_MERGE.finditer(text):
             place = where(text, m.start(), cwd)
@@ -339,5 +344,5 @@ def check(data, tool, args, cwd, command):
             name = got.get("repo") or slug(git("rev-parse", "--show-toplevel", cwd=place) or place)
             check_merge(data, place, name, got["number"], got.get("body"), got.get("head"), got.get("method"))
     if hers:  # asked last, so her OK never carries anything the checks above would refuse
-        ask(SAY + f"delete {', '.join(dict.fromkeys(hers))}? Merged, but where Charlotte merges by hand a branch is "
-            "deleted only with her OK.")
+        ask(SAY + f"delete {'; '.join(dict.fromkeys(hers))}? Where Charlotte merges by hand, a branch is deleted only "
+            "with her OK.")
