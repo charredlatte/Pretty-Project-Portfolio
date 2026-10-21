@@ -19,7 +19,7 @@ They live in [`rules.json`](rules.json). The KittyChat Café page shows them all
 |---|---|
 | Preflight before any browser | Enforced. `hooks/gates.py` refuses browser tools (Playwright, Chrome, computer use) and shell commands that drive a browser until the `browser-agent-preflight` skill has run in the session. The plugin doesn't ship that skill: install it, or switch the rule off (below) |
 | Open with a read-only audit | Enforced. `hooks/gates.py` refuses edits, commits, pushes and scripts run with `--write` or `--commit` (such as `litterbox/sort.py --write`) inside the repo until the `ponytail-audit` skill has run. The summary is saved to the Catio (`audits/<repo>`) and shown in the project's filing cabinet. The plugin doesn't ship that skill either: without it, every edit is refused, so install it or switch the rule off (below) |
-| Semi-automatic shipping | Enforced. `hooks/ship_gate.py` refuses a push to the default branch (by git or the GitHub tools), a force-push, and deleting a branch that isn't merged. `hooks/ship_check.py` holds the end of a turn once when a feature branch has work that isn't pushed, and asks Claude to commit, push and open a PR if the work is done and checked, or to say why not. In a cloud session it checks every repo checked out beside this one too, since the container goes with them. `litterbox/sort.py --write` follows the rule itself: it commits and pushes the notes it files |
+| Semi-automatic shipping | Enforced. `hooks/ship_gate.py` refuses a push to the default branch (by git or the GitHub tools), a force-push, and deleting a branch that isn't merged, and asks her before a merged branch is deleted in a repo where she merges. `hooks/ship_check.py` holds the end of a turn once when a feature branch has work that isn't pushed, and asks Claude to commit, push and open a PR if the work is done and checked, or to say why not. In a cloud session it checks every repo checked out beside this one too, since the container goes with them. `litterbox/sort.py --write` follows the rule itself: it commits and pushes the notes it files |
 | Semi-automatic merging | Enforced. In a repo that opts in (`{"merge": true}`), `hooks/ship_gate.py` lets a merge through only when a strong model did the work, the audits and a review of the last commit ran, and nothing is a guess. Guesswork is held for her, with a note in the litter box. Below |
 | No Claude attribution on public repos | Enforced, in a repo on `rules.json`'s `public` list (the café, the grocery app, Snail-Mail-Trail and LibreSprite). `hooks/gates.py` refuses a commit whose message, or the file its `-F` names, has `Co-Authored-By: Claude` or `Claude-Session:` lines, and a GitHub call (a pull request, issue or comment, a commit or merge message) with a "Generated with Claude Code" or session-link line. GitHub's Claude integration adds its own footer to a new pull request, issue or comment, so after one the session is told to edit it off. Private repos may keep them. Add a repo to the list when it goes public |
 | Map before you dig (graphify) | Enforced as a nudge. `hooks/graph_first.py` runs graphify's own `hook-guard` before searches and reads, pointing Claude at `graphify query` when the repo has a map. `session_start.py` says to build or refresh one. `graphify-out/` never counts as unpushed work |
@@ -155,8 +155,18 @@ rest is guesswork, and is **held**: the pull request stays open, and the hook wr
 for your review: …". The sifter files the note into that project's own `docs/from-the-litterbox.md`, where she
 ticks it once she has merged or closed the pull request.
 
-After a merge the session deletes the merged branch. The gate lets a branch be deleted only once it is merged,
-and only where sessions merge. A cloud session's git access hasn't been able to delete branches, so turn on GitHub's
+After a merge the session deletes the merged branch. The gate lets a branch be deleted only once it is merged.
+Where sessions merge, a merged branch goes without asking; anywhere else the gate puts the deletion to her as a
+permission prompt naming the branches, after every other check on the command has passed, so her OK never carries
+anything it would refuse. Her OK covers the whole command, so the command must be exactly
+`git push origin --delete <branches>` (or `-d <branches>`, or `:<branch> ...`), as typed, with single spaces and
+plain names, run from inside the repo (no cd or -C, which can leave the gate checking
+one repo while git deletes in another), and origin must push to the repo it fetches from, which is the one the
+merged check reads. Who answers the prompt is up to the session's permission mode: the hook
+asks, but a mode that settles prompts by itself settles this one too. The merge check runs when the prompt opens,
+not when she answers: if someone pushes to the branch while it waits, her OK deletes that too. Pinning the push
+with `--force-with-lease` would close it, but that is the force-push the rule forbids. A cloud session's git
+access hasn't been able to delete branches, so turn on GitHub's
 *Automatically delete head branches* (each repo's Settings → General → Pull Requests): then the merge deletes
 it. Pushing to the default branch and force-pushing stay forbidden everywhere. The gate reads the ordinary ways
 of running `git push` and `gh pr merge`; it is a guard rail for a session that means well, not a sandbox.

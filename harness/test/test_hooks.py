@@ -574,12 +574,92 @@ class Pushing(unittest.TestCase):
                         "git push -uf origin feature", "git push --all origin", "git push origin 'refs/heads/*:refs/heads/*'"):
             self.assertEqual(self.push(command).returncode, 2, command)
 
-    def test_only_a_merged_branch_is_deleted_and_only_where_sessions_merge(self):
+    def asks(self, command):
+        r = self.push(command)
+        self.assertEqual(r.returncode, 0, command)
+        return json.loads(r.stdout)["hookSpecificOutput"]
+
+    def test_a_stale_tracking_ref_never_passes_as_merged(self):
+        # a clone that fetches only main: a bare `fetch origin done` would leave origin/done where it was
         self.g("checkout", "-qb", "done"); self.g("push", "-q", "origin", "done")
+        self.g("config", "remote.origin.fetch", "+refs/heads/main:refs/remotes/origin/main")
+        self.g("commit", "-q", "--allow-empty", "-m", "more"); self.g("push", "-q", "origin", "done:refs/heads/done")
+        self.g("update-ref", "refs/remotes/origin/done", "main")  # the stale copy, merged
+        self.assertIn("done isn't merged into main", self.push("git push origin --delete done").stderr)
+
+    def test_only_a_merged_branch_is_deleted_and_only_with_her_ok_where_she_merges(self):
+        self.g("checkout", "-qb", "done"); self.g("push", "-q", "origin", "done")
+        self.g("push", "-q", "origin", "done:also")
         self.g("checkout", "-qb", "open"); Path(self.work, "b").write_text("x"); self.g("add", "b"); self.g("commit", "-qm", "b")
         self.g("push", "-q", "origin", "open")
-        self.assertIn("Charlotte's to delete", self.push("git push origin --delete done").stderr)
+        out = self.asks("git push origin --delete done also")
+        self.assertEqual(out["permissionDecision"], "ask")
+        held = f"({self.work.name}, every commit on it already in main)"
+        self.assertIn(f"delete done on origin {held}; also on origin {held}?", out["permissionDecisionReason"])
+        self.assertIn("only with her OK", out["permissionDecisionReason"])
+        self.assertEqual(self.asks("git push origin :done")["permissionDecision"], "ask")
+        self.assertEqual(self.asks("git push origin --delete done\t\n")["permissionDecision"], "ask")
+        # a carriage return keeps nothing out of sight: main\r is still main
+        self.assertIn("never push to the default branch", self.push("git push origin main\r\n").stderr)
+        self.assertIn(f"delete done on origin {held}?", self.asks("git push origin -d done done")["permissionDecisionReason"])
+        # her OK is never asked for what the gate refuses, in the same push or another one in the command
+        self.assertIn("open isn't merged into main, so it stays", self.push("git push origin --delete done open").stderr)
+        self.assertEqual(self.push("git push origin --delete done; git push origin main").returncode, 2)
+        self.assertEqual(self.push("git push origin --delete done && git push --force origin open").returncode, 2)
+        # and her OK covers the whole command, so nothing the gate doesn't read may come with it
+        for command in ("git push origin --delete done && gh api -X DELETE repos/o/r/git/refs/heads/open",
+                        "git push origin --delete done | tail -1", "git push origin --delete done & rm x",
+                        "git push origin --delete done; git push origin open", "git push origin --delete done > out",
+                        "git push origin --delete done 2>&1", "git -c core.hooksPath=/tmp/x push origin --delete done",
+                        "git push --receive-pack=/tmp/x origin --delete done", "git push origin --delete done\nrm x",
+                        "git push origin --delete done # tidy\nrm x", "cd - && git push origin --delete done",
+                        "git push origin open :done", 'cd a""b && git push origin --delete done',
+                        "git -C a\\b push origin --delete done",
+                        # a comment ends at the newline even after a backslash, and an escaped backslash joins nothing
+                        "git push origin --delete done # tidy \\\nrm -rf x", "git push origin --delete a\\\\\nreboot",
+                        "git push origin --delete done \\\r\nreboot", f"cd {self.work.as_posix()} && git push origin -d done",
+                        f"git -C {self.work.as_posix()} push origin --delete done"):
+            r = self.push(command)
+            self.assertEqual(r.returncode, 2, command)
+            self.assertIn("a branch deletion goes on its own", r.stderr)
+        self.assertEqual(self.push("git push origin --delete done $(rm -rf x)").returncode, 2)
+        # a # starts a comment only at the start of a word, as in the shell: inside one it hides nothing
+        for command in ("git push origin --delete done#x", "git push origin HEAD:tmp#z :open",
+                        'git push origin --delete "#x"', "git push origin --delete \\#x"):
+            self.assertIn("a branch deletion goes on its own", self.push(command).stderr, command)
+        self.assertIn("never push to the default branch", self.push("git push origin HEAD:tmp#z main").stderr)
+        # a backslash-newline joins the lines, and git reads heads/main as main
+        for command in ("git push origin \\\n  :main", "git push origin HEAD:heads/main"):
+            self.assertIn("never push to the default branch", self.push(command).stderr, command)
+        self.assertIn("no force-push", self.push("git push origin \\\n  --force open").stderr)
+        # and a continuation before push still makes it a push
+        self.assertIn("never push to the default branch", self.push("git \\\npush origin :main").stderr)
+        # bash doesn't continue a comment or an escaped backslash, so the next line is still a command of its own
+        for command in ("# push it \\\ngit push origin main", "git push origin open\\\\\ngit push origin main"):
+            self.assertIn("never push to the default branch", self.push(command).stderr, command)
+        self.assertIn("auto-merge", self.push("# merge when green \\\ngh pr merge 12 --auto").stderr)
+        # an escaped space or ; starts no word, and bash keeps a carriage return in its word: no comment after either
+        for command in ("git push -o a\\ #z origin :main", "git push --receive-pack=a\\;#z origin :main",
+                        "git push --receive-pack=a\r#z origin :main"):
+            self.assertIn("never push to the default branch", self.push(command).stderr, command)
+        self.assertIn("exactly `git push origin --delete", self.push("git push upstream --delete done").stderr)
+        self.g("remote", "set-url", "--push", "origin", str(self.work))
+        self.assertIn("goes to origin", self.push("git push origin --delete done").stderr)
+        self.g("config", "--unset", "remote.origin.pushurl")
+        # every push URL counts, not just the first: git deletes on each
+        self.g("remote", "set-url", "--add", "--push", "origin", str(self.work))
+        self.g("remote", "set-url", "--add", "--push", "origin", str(self.work))
+        self.assertIn("goes to origin", self.push("git push origin --delete done").stderr)
+        self.g("config", "--unset-all", "remote.origin.pushurl")
+        self.assertIn("name the branch to delete", self.push("git push origin --delete HEAD").stderr)
+        self.assertIn("name the branch to delete", self.push("git push origin :HEAD").stderr)
+        self.assertIn("nothing after the colon", self.push("git push origin :").stderr)
+        # an ordinary push keeps its comment: the shell never sees "main" there
+        self.assertEqual(self.push("git push origin open  # then merge to main").returncode, 0)
+        # a branch that is gone already fails the one fetch, and the refusal names them all, not just the first
+        self.assertIn("couldn't fetch done, gone", self.push("git push origin --delete done gone").stderr)
         Path(self.work, ".claude").mkdir(); Path(self.work, ".claude", "catio-rules.json").write_text('{"merge": true}')
+        self.assertEqual(self.push("git push origin --delete done").stdout, "")
         self.assertEqual(self.push("git push origin --delete done").returncode, 0)
         self.assertEqual(self.push("git push origin :done").returncode, 0)
         self.assertIn("open isn't merged into main, so it stays", self.push("git push origin -d open").stderr)
@@ -1088,6 +1168,23 @@ class Common(unittest.TestCase):
         sys.path.insert(0, str(HOOKS))
         import common
         cls.c = common
+
+    def test_the_hook_answers_once_with_its_nudge_and_its_ask(self):
+        # two JSON answers on stdout are read as neither, which would void her prompt
+        import contextlib, io
+        out = io.StringIO()
+        self.c.CONTEXT[:] = ["a nudge"]
+        try:
+            with contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as done:
+                self.c.ask("delete done?")
+        finally:
+            self.c.CONTEXT.clear()
+        self.assertEqual(done.exception.code, 0)
+        lines = out.getvalue().splitlines()
+        self.assertEqual(len(lines), 1)
+        said = json.loads(lines[0])["hookSpecificOutput"]
+        self.assertEqual((said["permissionDecision"], said["permissionDecisionReason"], said["additionalContext"]),
+                         ("ask", "delete done?", "a nudge"))
 
     def test_one_transcript_reader_and_who_counts(self):
         tmp = Path(tempfile.mkdtemp())

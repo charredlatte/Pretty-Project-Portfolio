@@ -17,14 +17,13 @@ right_sized     delegate first: an Agent spawn, every agent() in a Workflow scri
 
 The gates fail closed: one that can't read the house rules refuses the call rather than waving it through.
 """
-import json
 import os
 import re
 import subprocess
 from pathlib import Path
 
 try:   # before any guard below can run: an ImportError here exits 1, which waves the call through
-    from common import answered, block, enforced, git, hook_input, merges, ran, rules
+    from common import CONTEXT, answer, answered, block, enforced, git, hook_input, merges, ran, rules
 except Exception as _e:
     import sys
     print("House rule (KittyChat): the house rules couldn't be loaded (%s: %s). Tell Charlotte; don't work "
@@ -187,8 +186,8 @@ def main():
                                 "Name the model on the call anyway, and tell Charlotte." % (type(e).__name__, e))
     if refusal:
         block(refusal)
-    if nudge:
-        print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": nudge}}))
+    if nudge:  # said at the end, in the one answer the hook gives (a second JSON on stdout would void both)
+        CONTEXT.append(nudge)
 
     if enforced("preflight", cwd):
         if BROWSER_TOOL.search(tool) or (command and browser_patterns(cwd).search(command)):
@@ -233,6 +232,7 @@ def main():
     except Exception as e:  # a hook that crashes lets the call through, so this one fails closed
         block(f"House rule (KittyChat): the shipping gate couldn't be run ({type(e).__name__}: {e}). It is a "
               "hook of this plugin, not her rules file. Tell Charlotte, and leave the push or merge for her.")
+    answer()
 
 
 if __name__ == "__main__":
