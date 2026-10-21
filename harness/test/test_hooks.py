@@ -600,11 +600,15 @@ class Pushing(unittest.TestCase):
                         "git push origin --delete done | tail -1", "git push origin --delete done & rm x",
                         "git push origin --delete done; git push origin open", "git push origin --delete done > out",
                         "git push origin --delete done 2>&1", "git -c core.hooksPath=/tmp/x push origin --delete done",
-                        "git push --receive-pack=/tmp/x origin --delete done", "git push origin --delete done\nrm x"):
+                        "git push --receive-pack=/tmp/x origin --delete done", "git push origin --delete done\nrm x",
+                        "git push origin --delete done#x", "git push origin --delete done # tidy\nrm x",
+                        "cd - && git push origin --delete done", "git push origin open :done"):
             r = self.push(command)
             self.assertEqual(r.returncode, 2, command)
             self.assertIn("a branch deletion goes on its own", r.stderr)
         self.assertEqual(self.push("git push origin --delete done $(rm -rf x)").returncode, 2)
+        # a branch that is gone already fails the one fetch, and the refusal names them all, not just the first
+        self.assertIn("couldn't fetch done, gone", self.push("git push origin --delete done gone").stderr)
         Path(self.work, ".claude").mkdir(); Path(self.work, ".claude", "catio-rules.json").write_text('{"merge": true}')
         self.assertEqual(self.push("git push origin --delete done").stdout, "")
         self.assertEqual(self.push("git push origin --delete done").returncode, 0)

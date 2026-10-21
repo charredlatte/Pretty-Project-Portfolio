@@ -17,8 +17,8 @@ import shlex
 from datetime import date
 from pathlib import Path
 
-from common import ask, block, checkouts, default_branch, enforced, git, holds, local, merges, models, rules, \
-    skill_calls
+from common import ask, block, checkouts, default_branch, enforced, git, git_ok, holds, local, merges, models, \
+    rules, skill_calls
 
 REMOTE = re.compile(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?/?$")
 # Where a command starts (after ; & | ( { ! or a quote, or a word like if, then, env, timeout 30), with any VAR=x
@@ -33,12 +33,20 @@ API_WRITES = re.compile(r"__(push_files|create_or_update_file|delete_file)$")
 SAY = "House rule (KittyChat): "
 
 
+def tokens(text, punct):
+    """The words the shell would see in `text`, with the characters in `punct` as tokens of their own. No comments:
+    shlex's own commenter cut `done#x` to `done` and ran the next line into this one, so a # stays in its word,
+    which fails closed (a branch named "#" isn't merged). An unclosed quote raises ValueError."""
+    lex = shlex.shlex(text, posix=True, punctuation_chars=punct)
+    lex.whitespace, lex.whitespace_split, lex.commenters = " \t\r", True, ""
+    return lex
+
+
 def words(text):
     """The arguments the shell would give the command that starts at `text`, up to the next ; & | ( ) or line end."""
-    lex = shlex.shlex(text, posix=True, punctuation_chars=";&|()\n")
-    lex.whitespace, lex.whitespace_split, out = " \t\r", True, []
+    out = []
     try:
-        for w in lex:
+        for w in tokens(text, ";&|()\n"):
             if w and set(w) <= set(";&|()\n") or re.search(r"[<>]", w):  # the next command, or a redirect
                 break
             out.append(w)
@@ -48,13 +56,15 @@ def words(text):
 
 
 def lone_deletion(command):
-    """Is the command nothing but cds and one plain `git [-C dir] push <remote> --delete <branches>`? Her OK on
-    the prompt approves the whole command, so that is all it may hold: no other command, pipe, redirect, git -c
-    or push option (each can run or overwrite something the prompt doesn't name)."""
-    lex = shlex.shlex(command, posix=True, punctuation_chars=";&|()<>\n")
-    lex.whitespace, lex.whitespace_split, parts = " \t\r", True, [[]]
+    """Is the command nothing but cds and one plain `git [-C dir] push <remote> --delete <branches>` (or
+    `push <remote> :<branch>...`)? Her OK on the prompt approves the whole command, so that is all it may hold: no
+    other command or push, pipe, redirect, comment, git -c or push option, and no `cd -`, each of which can run,
+    push or overwrite something the prompt doesn't name, or leave the gate checking a different repo."""
+    if "#" in command:
+        return False
+    parts = [[]]
     try:
-        for w in lex:
+        for w in tokens(command, ";&|()<>\n"):
             if w in ("&&", ";", "\n"):
                 parts.append([])
             elif set(w) & set(";&|()<>\n"):
@@ -66,13 +76,16 @@ def lone_deletion(command):
     parts = [p for p in parts if p]
     if sum(p[0] == "git" for p in parts) != 1:
         return False
+    plain = lambda a: PLAIN.fullmatch(a) and not a.startswith("-")
     for p in parts:
         if p[0] == "cd":
-            ok = len(p) == 2 and PLAIN.fullmatch(p[1])
+            ok = len(p) == 2 and plain(p[1])
         else:
-            rest = p[3:] if p[1:2] == ["-C"] and len(p) > 2 and PLAIN.fullmatch(p[2]) else p[1:]
-            ok = p[0] == "git" and rest[:1] == ["push"] and len(rest) > 2 and all(
-                a in ("-d", "--delete") or (PLAIN.fullmatch(a) and not a.startswith("-")) for a in rest[1:])
+            rest = p[3:] if p[1:2] == ["-C"] and len(p) > 2 and plain(p[2]) else p[1:]
+            flags = [a for a in rest[1:] if a in ("-d", "--delete")]
+            refs = [a for a in rest[1:] if a not in flags]
+            ok = p[0] == "git" and rest[:1] == ["push"] and len(refs) > 1 and all(plain(a) for a in refs) \
+                and (flags or all(a.startswith(":") for a in refs[1:]))
         if not ok:
             return False
     return True
@@ -101,7 +114,7 @@ def checkout_of(name, cwd):
 
 # --- pushes ---------------------------------------------------------------------------------------------------
 
-def check_push(args, repo):
+def check_push(args, repo, alone=False):
     flags = [a for a in args if a.startswith("-")]
     pos = [a for a in args if not a.startswith("-")]
     if any(f in ("--mirror", "--all") for f in flags):
@@ -126,19 +139,25 @@ def check_push(args, repo):
                   "and open a pull request; merging is the merging rule's.")
         if (deleting or spec.startswith(":")) and name not in gone:
             gone.append(name)
-    if gone:
-        check_delete(repo, remote, gone, default)
-    return [] if merges(repo) else [f"{name} ({Path(repo).name})" for name in gone]
+    if not gone:
+        return []
+    ask_her = not merges(repo)
+    if ask_her and not alone:  # before any fetch: the refusal costs nothing, and the fetches add up
+        block(SAY + "her OK covers the whole command, so a branch deletion goes on its own: one plain "
+              "`git push <remote> --delete <branches>` (a cd before it is fine), nothing else in the command.")
+    check_delete(repo, remote, gone, default)
+    return [f"{name} ({Path(repo).name})" for name in gone] if ask_her else []
 
 
 def check_delete(repo, remote, names, default):
     # one fetch for them all, bounded: a hook that times out lets the call through, so a stalled fetch counts
     # as nothing merged
-    fetched = git("fetch", "-q", remote, default, *names, cwd=repo, timeout=20) is not None
+    if not git_ok("fetch", "-q", remote, default, *names, cwd=repo, timeout=20):
+        block(SAY + f"couldn't fetch {', '.join(names)} to check against {default} (a branch may be gone already, or "
+              "the fetch failed or timed out), so they stay. Only a merged branch is deleted.")
     for name in names:
-        merged = fetched and git("merge-base", "--is-ancestor", f"refs/remotes/{remote}/{name}",
-                                 f"refs/remotes/{remote}/{default}", cwd=repo) is not None
-        if not merged:
+        if git("merge-base", "--is-ancestor", f"refs/remotes/{remote}/{name}", f"refs/remotes/{remote}/{default}",
+               cwd=repo) is None:
             block(SAY + f"{name} isn't merged into {default}, so it stays. Only a merged branch is deleted.")
 
 
@@ -285,12 +304,12 @@ def check(data, tool, args, cwd, command):
         if args.get("branch") in (default, "main", "master") and enforced("ship", repo or cwd):
             block(SAY + f"never write to the default branch ({args.get('branch')}). Write to the session's branch.")
         return
-    hers = []
+    hers, alone = [], lone_deletion(command)
     for m in PUSH.finditer(command):
         place = where(command, m.start(), cwd, m.group(1))
         repo = git("rev-parse", "--show-toplevel", cwd=place)
         if repo and enforced("ship", repo):
-            hers += check_push(words(command[m.end():]), repo)
+            hers += check_push(words(command[m.end():]), repo, alone)
     for m in GH_MERGE.finditer(command):
         place = where(command, m.start(), cwd)
         got = gh_merge(words(command[m.end():]))
@@ -301,8 +320,5 @@ def check(data, tool, args, cwd, command):
         name = got.get("repo") or slug(git("rev-parse", "--show-toplevel", cwd=place) or place)
         check_merge(data, place, name, got["number"], got.get("body"), got.get("head"), got.get("method"))
     if hers:  # asked last, so her OK never carries anything the checks above would refuse
-        if not lone_deletion(command):
-            block(SAY + "her OK covers the whole command, so a branch deletion goes on its own: one plain "
-                  "`git push <remote> --delete <branches>` (a cd before it is fine), nothing else in the command.")
         ask(SAY + f"delete {', '.join(hers)}? Merged, but where Charlotte merges by hand a branch is deleted only "
             "with her OK.")

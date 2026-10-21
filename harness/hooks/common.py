@@ -117,19 +117,26 @@ def merges(cwd=None):
     return rule.get("on", False) is not False and local(cwd).get("merge") is True
 
 
-def git(*args, cwd=None, timeout=None):
+def git(*args, cwd=None):
     """git's answer, or None. Decoded as UTF-8, which is what git writes: text=True would decode with the
     locale's encoding, cp1252 on Windows, and a path with an accent in it came back mangled - so it matched
-    no held path she had spelt properly, and the change merged unheld on Windows alone.
-
-    With a timeout, git runs with no pipes and answers "" or None: on Windows a helper git starts (ssh,
-    git-remote-https) holds a captured pipe open after git itself is killed, and the wait outlives the timeout."""
-    out = {"capture_output": True} if timeout is None else {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+    no held path she had spelt properly, and the change merged unheld on Windows alone."""
     try:
-        r = subprocess.run(["git", *args], cwd=cwd, encoding="utf-8", errors="surrogateescape", timeout=timeout, **out)
-    except (OSError, subprocess.TimeoutExpired):  # cwd isn't there, or git took too long
+        r = subprocess.run(["git", *args], cwd=cwd, capture_output=True,
+                           encoding="utf-8", errors="surrogateescape")
+    except OSError:  # cwd isn't there
         return None
-    return (r.stdout or "").strip() if r.returncode == 0 else None
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+def git_ok(*args, cwd=None, timeout):
+    """Did git succeed within `timeout` seconds? Run with no pipes: on Windows a helper git starts (ssh,
+    git-remote-https) holds a captured pipe open after git itself is killed, and the wait outlives the timeout."""
+    try:
+        return subprocess.run(["git", *args], cwd=cwd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                              timeout=timeout).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):  # cwd isn't there, or git took too long
+        return False
 
 
 def default_branch(cwd):
@@ -237,8 +244,15 @@ def block(message):
     sys.exit(2)
 
 
+# What a gate has to say without refusing (additionalContext). The hook answers once, at its end or in ask():
+# two JSON answers on stdout are read as neither.
+CONTEXT = []
+
+
 def ask(message):
     """Put the tool call to her: Claude Code shows her a permission prompt with the message."""
-    print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask",
-                                             "permissionDecisionReason": message}}))
+    out = {"hookEventName": "PreToolUse", "permissionDecision": "ask", "permissionDecisionReason": message}
+    if CONTEXT:
+        out["additionalContext"] = "\n\n".join(CONTEXT)
+    print(json.dumps({"hookSpecificOutput": out}))
     sys.exit(0)
