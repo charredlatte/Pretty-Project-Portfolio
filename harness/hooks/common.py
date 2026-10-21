@@ -66,6 +66,42 @@ def say(session, kind, prefix, where=None):
         pass           # can't remember it was said; say it anyway rather than lose it
 
 
+def holds(mapping, key="hold"):
+    """(paths, unreadable): the hold paths in mapping[key], and whether it said something this can't read.
+
+    It does its own lookup on purpose. The hold list is what makes a change under harness/ wait for her, so
+    losing one quietly is the one failure this must not have - and the way it was lost before was a caller
+    reading the setting itself: .get("hold") cannot tell an absent key from one she wrote as null, so a null
+    read as silence and the pull request merged. With the lookup in here no caller can write that.
+
+    Only the key being absent from a mapping this can read is silence. A mapping that isn't one (a merging
+    block a merge fused into a list, say) is unreadable, not silent. Everything she did write that cannot be
+    matched against git's own
+    --name-only output comes back unreadable, for the caller to hold on rather than drop: a shape that isn't
+    a list, an entry that isn't a string, a glob or brace (nothing here expands one), a backslash, an
+    absolute or dot-relative path, a "." or ".." segment anywhere, and a ~ or $ the shell would have grown.
+    A path is returned trimmed but otherwise as she spelt it, so the brief quotes her and the caller
+    normalises where it compares.
+    """
+    if not isinstance(mapping, dict):
+        return [], True        # a block this can't read is not her saying nothing
+    if key not in mapping:
+        return [], False
+    value = mapping[key]
+    if not isinstance(value, list):
+        return [], True        # a string, a number, an object - and an explicit null
+    paths = [q for q in (p.strip() for p in value if isinstance(p, str)) if q and path_like(q)]
+    return paths, len(paths) != len(value)
+
+
+def path_like(p):
+    """Is this a repo-relative path git's own --name-only output could equal or sit under?"""
+    if set("*?[]{}\\~$") & set(p) or p.startswith("/"):
+        return False
+    parts = p.strip("/").split("/")
+    return bool(parts) and all(parts) and not ({".", ".."} & set(parts))
+
+
 def enforced(rule_id, cwd=None):
     """Is this enforced rule on, here? rules.json says so, unless the repo's .claude/catio-rules.json switches it off."""
     rule = next((r for r in rules()["rules"] if r["id"] == rule_id), None)
@@ -82,8 +118,12 @@ def merges(cwd=None):
 
 
 def git(*args, cwd=None):
+    """git's answer, or None. Decoded as UTF-8, which is what git writes: text=True would decode with the
+    locale's encoding, cp1252 on Windows, and a path with an accent in it came back mangled - so it matched
+    no held path she had spelt properly, and the change merged unheld on Windows alone."""
     try:
-        r = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
+        r = subprocess.run(["git", *args], cwd=cwd, capture_output=True,
+                           encoding="utf-8", errors="surrogateescape")
     except OSError:  # cwd isn't there
         return None
     return r.stdout.strip() if r.returncode == 0 else None

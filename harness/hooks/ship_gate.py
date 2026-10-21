@@ -17,7 +17,8 @@ import subprocess
 from datetime import date
 from pathlib import Path
 
-from common import block, checkouts, default_branch, enforced, git, local, merges, models, rules, skill_calls
+from common import block, checkouts, default_branch, enforced, git, holds, local, merges, models, rules, \
+    skill_calls
 
 REMOTE = re.compile(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?/?$")
 # Where a command starts (after ; & | ( { ! or a quote, or a word like if, then, env, timeout 30), with any VAR=x
@@ -146,12 +147,26 @@ def check_merge(data, cwd, name, number, message, head, method=None):
         fix.append("commit or drop the uncommitted changes")
 
     base = git("merge-base", f"refs/remotes/origin/{default_branch(repo)}", "HEAD", cwd=repo)
-    changed = (git("diff", "--name-only", "--no-renames", base, "HEAD", cwd=repo) or "").splitlines() if base else None
-    holds = [h.rstrip("/") for h in cfg.get("hold", []) + local(repo).get("hold", [])]
+    # -z and quotepath off: git C-quotes a path with an accent in it ("catio/art/caf\303\251/x.png"), which
+    # would never equal or sit under a held path she spelt properly, so the change would merge unheld
+    names = git("-c", "core.quotepath=false", "diff", "--name-only", "--no-renames", "-z", base, "HEAD",
+                cwd=repo) if base else None
+    changed = [n for n in (names or "").split("\0") if n] if names is not None else None
+    mine_cfg = local(repo)                               # read once: the message must quote what was parsed
+    house, house_odd = holds(cfg)
+    mine, mine_odd = holds(mine_cfg)
+    held_paths = [p.rstrip("/") for p in house + mine]   # compared against git's paths, which carry no slash
+    # a hold it can't read holds the pull request: dropping it is how a change under harness/ merges itself.
+    # Name the file each broken list is in, and both when both are, or she edits the wrong one.
+    for odd, in_file, raw in ((mine_odd, "its .claude/catio-rules.json", mine_cfg.get("hold")),
+                              (house_odd, "the house rules' own merging.hold", cfg.get("hold"))):
+        if odd:   # in_file, not where: where() is this module's own function, and a for-target would shadow it
+            held.append("the hold list in %s is in a shape I can't read (%r), so I can't tell what it protects"
+                        % (in_file, raw))
     if changed is None:
         held.append("there's no way to tell what it changes")
     else:
-        touched = sorted({h for p in changed for h in holds if p == h or p.startswith(h + "/")})
+        touched = sorted({h for p in changed for h in held_paths if p == h or p.startswith(h + "/")})
         if touched:
             held.append(f"it changes {', '.join(touched)}, which always waits for her")
 

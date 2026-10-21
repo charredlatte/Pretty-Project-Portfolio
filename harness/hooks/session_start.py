@@ -3,7 +3,14 @@
 import os
 from pathlib import Path
 
-from common import enforced, hook_input, local, merges, repos, rules
+try:   # a brief that cannot be built must say so: exit 1 loses all of it and leaves only a traceback
+    from common import enforced, holds, hook_input, local, merges, repos, rules
+except Exception as _e:
+    import sys
+    print("# KittyChat house rules\n\nThe house rules couldn't be loaded (%s: %s), so this session has not "
+          "been told them. Run the ponytail-audit skill before changing anything, and tell Charlotte."
+          % (type(_e).__name__, _e))
+    sys.exit(0)
 
 
 def main():
@@ -33,10 +40,20 @@ def main():
             continue
         lines.append(f"- **{rule['title']}**{' (enforced)' if rule['enforced'] else ''}: {rule['text']}")
         if rule["id"] == "merge":
+            _, house_odd = holds(r.get("merging", {}))   # the same for every checkout: read it once
             for repo in repos(cwd):
-                name, held = Path(repo).name, ", ".join(local(repo).get("hold", []))
+                # Both lists are checked, the same two the merge gate reads, because the gate holds on
+                # either: a brief that looked at only one claimed merge rights the gate was refusing. Only
+                # the repo's own paths are named, as before - whether the house's .claude/ should be named
+                # here too is a change to what the brief says, so it is Charlotte's to ask for.
+                mine, mine_odd = holds(local(repo))
+                name, held = Path(repo).name, ", ".join(mine)
+                broken = [w for w, odd in (("the house rules'", house_odd), (f"{name}'s", mine_odd)) if odd]
                 if not merges(repo):
                     lines.append(f"  {name}'s pull requests are hers to merge.")
+                elif broken:   # the gate holds every merge there: don't say it may merge
+                    lines.append(f"  {' and '.join(broken)} hold list is in a shape the harness can't read, "
+                                 f"so every pull request in {name} waits for her until she fixes it.")
                 else:
                     lines.append(f"  {name} merges its own pull requests" +
                                  (f"; changes to {held} always wait for her." if held else "."))
@@ -62,4 +79,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:   # the same class gates.py fails closed on: say it, rather than print nothing
+        print("# KittyChat house rules\n\nThe house rules couldn't be read (%s: %s), so this session has not "
+              "been told them. Run the ponytail-audit skill before changing anything, and tell Charlotte."
+              % (type(e).__name__, e))

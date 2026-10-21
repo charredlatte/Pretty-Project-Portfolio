@@ -138,6 +138,15 @@ It merges only when all of these hold:
 - **Nothing on the hold list changed.** `.claude/` always waits for her: it holds the switches, permissions
   and skills that steer every later session. A repo adds its own in `"hold"`. This repo holds `harness/`: the
   house rules shouldn't merge changes to themselves, and the gateway deploys on every merge to `main`.
+- **The hold list can be read at all.** It is the one setting whose loss is silent, so a `"hold"` the rule
+  cannot match against git's own paths holds *every* pull request in that repo, with the file it is in named,
+  rather than protecting nothing quietly. A list of plain repo-relative paths is read (spacing is trimmed, and
+  a trailing `/` is optional); each of these is refused instead: anything that isn't a list, including `null`;
+  an entry that isn't a string; a glob or brace (`harness/*`, `a{b,c}` — nothing here expands one); a
+  backslash; an absolute or dot-relative path (`/harness`, `./harness`); a `.` or `..` segment anywhere; and a
+  `~` or `$` the shell would have grown. The session brief reads the same two lists, so it can never announce
+  a hold the gate will not keep. `common.holds()` is the one reader, and `ODD_HOLDS` in `harness/test` is the
+  list of shapes it has had to refuse.
 
 What a session can fix (a missing review, the card, the pinned commit), it is told to fix and try again. The
 rest is guesswork, and is **held**: the pull request stays open, and the hook writes

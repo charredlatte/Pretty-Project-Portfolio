@@ -23,9 +23,13 @@ import re
 import subprocess
 from pathlib import Path
 
-import right_sized
-import ship_gate
-from common import answered, block, enforced, git, hook_input, merges, ran, rules
+try:   # before any guard below can run: an ImportError here exits 1, which waves the call through
+    from common import answered, block, enforced, git, hook_input, merges, ran, rules
+except Exception as _e:
+    import sys
+    print("House rule (KittyChat): the house rules couldn't be loaded (%s: %s). Tell Charlotte; don't work "
+          "round it." % (type(_e).__name__, _e), file=sys.stderr)
+    sys.exit(2)
 
 BROWSER_TOOL = re.compile(r"^mcp__.*(playwright|browser|chrome|puppeteer|computer)", re.I)
 BROWSER_CMD = r"playwright|chromium|google-chrome|headless|puppeteer|selenium|webdriver|catio/test/run\.sh"
@@ -89,7 +93,8 @@ def listed(repo):
 def public(command, cwd):
     """Does this command commit in a repo on rules.json's "public" list: its own, or one it cds or -Cs into?"""
     for place in places(command, cwd):
-        out = subprocess.run(["git", "-C", place, "remote", "get-url", "origin"], capture_output=True, text=True).stdout.strip()
+        out = subprocess.run(["git", "-C", place, "remote", "get-url", "origin"], capture_output=True,
+                             encoding="utf-8", errors="surrogateescape").stdout.strip()
         m = re.search(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?/?$", out)
         if m and listed(m.group(1)):
             return True
@@ -164,6 +169,16 @@ def main():
     if data.get("hook_event_name") == "PostToolUse":
         return after(tool, args, cwd)
 
+    # A gate that cannot LOAD refuses; a gate that cannot RUN speaks and steps aside. They are different
+    # failures: a module that will not import is a broken plugin (what took main down on 5 October, and at
+    # module level it exits 1 before any handler), while an exception inside check() leaves the gates below
+    # working, and main's design chooses not to take them down with it.
+    try:
+        import right_sized
+    except Exception as e:
+        block("House rule (KittyChat): the gate right_sized.py couldn't be loaded (%s: %s), so delegate first "
+              "is not being kept. It is a hook of this plugin, not her rules file. Tell Charlotte; don't work "
+              "round it." % (type(e).__name__, e))
     try:
         refusal, nudge = right_sized.check(data, tool, args, cwd)
     except Exception as e:   # the gates below matter more, so this one speaks and steps aside rather than crashing
@@ -206,12 +221,18 @@ def main():
               "then try again.")
 
     try:
+        import ship_gate
+    except Exception as e:
+        block("House rule (KittyChat): the gate ship_gate.py couldn't be loaded (%s: %s), so shipping and "
+              "merging are not being kept. It is a hook of this plugin, not her rules file. Tell Charlotte; "
+              "don't work round it." % (type(e).__name__, e))
+    try:
         ship_gate.check(data, tool, args, cwd, command)
     except SystemExit:
         raise
     except Exception as e:  # a hook that crashes lets the call through, so this one fails closed
-        block(f"House rule (KittyChat): the shipping gate couldn't check this ({type(e).__name__}: {e}). "
-              "Tell Charlotte, and leave the push or merge for her.")
+        block(f"House rule (KittyChat): the shipping gate couldn't be run ({type(e).__name__}: {e}). It is a "
+              "hook of this plugin, not her rules file. Tell Charlotte, and leave the push or merge for her.")
 
 
 if __name__ == "__main__":
