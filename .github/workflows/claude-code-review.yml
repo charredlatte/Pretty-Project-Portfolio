@@ -10,6 +10,12 @@ on:
     #   - "src/**/*.js"
     #   - "src/**/*.jsx"
 
+concurrency:
+  # It posts comments now, so two pushes in quick succession would both pass the command's
+  # "has Claude already commented" check and both comment.
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   claude-review:
     # Optional: Filter by PR author
@@ -19,9 +25,10 @@ jobs:
     #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
 
     runs-on: ubuntu-latest
+    timeout-minutes: 20   # it was a 22-second no-op; it is now several agents over a whole diff
     permissions:
       contents: read
-      pull-requests: write   # it posts the review; read cannot, and the job would still go green
+      pull-requests: read
       issues: read
       id-token: write
 
@@ -38,17 +45,23 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          prompt: '/code-review:code-review --comment ${{ github.event.pull_request.html_url }}'
           # The reviewer needs a way to GET the diff. With the inline-comment tool alone every Bash call was
           # denied, so /code-review's first step found nothing to review and the job went green having read
-          # nothing (a real run: permission_denials_count 2, "No buffered inline comments"). This list is the
-          # one the command above declares for itself, in its own allowed-tools frontmatter - it is the
-          # authoritative set, and wider than claude-code-action's generic example, which is tuned to a
-          # different prompt. The checkout is shallow (fetch-depth 1), so there is no base commit for a local
-          # `git diff`; `gh pr diff` is how the command reads the change. Keep this in step with the command's
-          # frontmatter if the plugin changes what it asks for.
+          # nothing (a real run: permission_denials_count 2, "No buffered inline comments").
+          #
+          # These are the gh commands the command's own steps run - the diff, --comments to see whether Claude
+          # already replied, and the summary comment - not everything its frontmatter declares. The frontmatter
+          # also asks for gh search, gh issue view/list and gh pr list, which no step uses; this job runs a
+          # model over whoever-opened-the-PR's content under a token that can write, so the reach it does not
+          # need it does not get. If the plugin starts using one, the denial will show as a permission denial
+          # in the run, which is the signal to add it (the plugin is installed from a marketplace branch on
+          # every run, so it can change under us).
+          #
+          # The checkout is shallow (fetch-depth 1), so there is no base commit for a local `git diff` and no
+          # history for blame: `gh pr diff` is how the change is read, and history-based review is off.
           claude_args: >-
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*),Bash(gh pr list:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh search:*)"
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*)"
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 
