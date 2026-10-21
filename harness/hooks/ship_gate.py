@@ -155,7 +155,8 @@ def check_push(args, repo, command=""):
     ask_her = not merges(repo)
     if ask_her and not lone_deletion(command):  # before any fetch: the refusal costs nothing, and fetches add up
         block(SAY + "her OK covers the whole command, so a branch deletion goes on its own: one plain "
-              "`git push <remote> --delete <branches>` (a cd before it is fine), nothing else in the command.")
+              "`git push <remote> --delete <branches>` (a cd before it is fine, to a path with forward slashes and no "
+              "quotes), nothing else in the command.")
     check_delete(repo, remote, gone, default)
     return [f"{name} on {remote} ({Path(repo).name})" for name in gone] if ask_her else []
 

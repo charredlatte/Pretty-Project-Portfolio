@@ -590,7 +590,9 @@ class Pushing(unittest.TestCase):
                       out["permissionDecisionReason"])
         self.assertIn("only with her OK", out["permissionDecisionReason"])
         self.assertEqual(self.asks("git push origin :done")["permissionDecision"], "ask")
-        self.assertEqual(self.asks(f"cd {self.work} && git push origin --delete done")["permissionDecision"], "ask")
+        # forward slashes: a backslash reads one way to the shell and another to the gate, so it is refused
+        self.assertEqual(self.asks(f"cd {self.work.as_posix()} && git push origin --delete done")["permissionDecision"],
+                         "ask")
         self.assertIn(f"delete done on origin ({self.work.name})?",
                       self.asks("git push origin -d done done")["permissionDecisionReason"])
         # her OK is never asked for what the gate refuses, in the same push or another one in the command
