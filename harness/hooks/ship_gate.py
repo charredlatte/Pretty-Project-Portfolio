@@ -325,7 +325,8 @@ def check(data, tool, args, cwd, command):
     # Pushes and merges are looked for in the command as typed and again as the shell reads it (lines continued and
     # comments out, uncommented()), and each one either reading finds is checked: `git \<newline>push` is a push only
     # to the second, a line after a comment ending in a backslash only to the first. lone_deletion reads it as typed.
-    hers, texts, seen = [], dict.fromkeys([command, uncommented(command)]), set()
+    hers, seen = [], set()
+    texts = dict.fromkeys([command, uncommented(command)] if re.search(r"push|merge", command) else [command])
     for text in texts:
         for m in PUSH.finditer(text):
             place, args = where(text, m.start(), cwd, m.group(1)), words(text[m.end():])
