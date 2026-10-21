@@ -138,6 +138,14 @@ from. Edit them freely: the sorter only adds, and never files a note that is alr
 
 - **The link page's "bientôt" strips wait on the real pages.** Buy Me a Coffee and Ulule show as coming soon until their addresses exist; other profiles (Instagram, LinkedIn) can be added the same way once she sends them. *— litterbox/ round of 5 October 2026, compiled from the café's sessions of 3 to 5 October*
 
+### Held for review: charredlatte/Pretty-Project-Portfolio#126
+
+- [ ] [charredlatte/Pretty-Project-Portfolio#126](https://github.com/charredlatte/Pretty-Project-Portfolio/pull/126) merged on 21 October; it was held for her review (it changes harness/, which always waits for her), and the code review hadn't run since its last commit. A review of that commit is still owed: tick this once one has run. *— litterbox/held-pretty-project-portfolio-126.md, 2026-10-20*
+
+### Held for review: charredlatte/Pretty-Project-Portfolio#130
+
+- [ ] [charredlatte/Pretty-Project-Portfolio#130](https://github.com/charredlatte/Pretty-Project-Portfolio/pull/130) merged on 21 October; it was held for her review (claude-sonnet-5-5 worked on it, and only opus or fable may merge), and the code review hadn't run since its last commit. A review of that commit is still owed: tick this once one has run. *— litterbox/held-pretty-project-portfolio-130.md, 2026-10-21*
+
 ## Ideas not built
 
 ### What's missing: art and sound for the Catio
