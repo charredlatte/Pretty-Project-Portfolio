@@ -159,7 +159,8 @@ After a merge the session deletes the merged branch. The gate lets a branch be d
 Where sessions merge, a merged branch goes without asking; anywhere else the gate puts the deletion to her as a
 permission prompt naming the branches, after every other check on the command has passed, so her OK never carries
 anything it would refuse. Her OK covers the whole command, so the command must be exactly
-`git push origin --delete <branches>`, run from inside the repo (no cd or -C, which can leave the gate checking
+`git push origin --delete <branches>` (or `-d <branches>`, or `:<branch> ...`), as typed, with single spaces and
+plain names, run from inside the repo (no cd or -C, which can leave the gate checking
 one repo while git deletes in another), and origin must push to the repo it fetches from, which is the one the
 merged check reads. Who answers the prompt is up to the session's permission mode: the hook
 asks, but a mode that settles prompts by itself settles this one too. The merge check runs when the prompt opens,

@@ -132,11 +132,13 @@ def git(*args, cwd=None):
 def git_ok(*args, cwd=None, timeout):
     """Did git succeed within `timeout` seconds? Run with no pipes: on Windows a helper git starts (ssh,
     git-remote-https) holds a captured pipe open after git itself is killed, and the wait outlives the timeout.
-    And never asking for a password, on her terminal over Claude Code's, while the hook waits."""
+    And never asking for a password, on her terminal over Claude Code's, while the hook waits: git's own prompts are
+    off, and a session of its own (POSIX) leaves ssh no terminal to ask a passphrase or a host key on."""
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="never")
     try:
         return subprocess.run(["git", *args], cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                              stderr=subprocess.DEVNULL, timeout=timeout, env=env).returncode == 0
+                              stderr=subprocess.DEVNULL, timeout=timeout, env=env,
+                              start_new_session=True).returncode == 0
     except (OSError, subprocess.TimeoutExpired):  # cwd isn't there, or git took too long
         return False
 

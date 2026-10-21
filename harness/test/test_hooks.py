@@ -598,6 +598,7 @@ class Pushing(unittest.TestCase):
                       out["permissionDecisionReason"])
         self.assertIn("only with her OK", out["permissionDecisionReason"])
         self.assertEqual(self.asks("git push origin :done")["permissionDecision"], "ask")
+        self.assertEqual(self.asks("git push origin --delete done\t\n")["permissionDecision"], "ask")
         self.assertIn(f"delete done on origin ({self.work.name})?",
                       self.asks("git push origin -d done done")["permissionDecisionReason"])
         # her OK is never asked for what the gate refuses, in the same push or another one in the command
@@ -632,6 +633,10 @@ class Pushing(unittest.TestCase):
         self.assertIn("no force-push", self.push("git push origin \\\n  --force open").stderr)
         # and a continuation before push still makes it a push
         self.assertIn("never push to the default branch", self.push("git \\\npush origin :main").stderr)
+        # bash doesn't continue a comment or an escaped backslash, so the next line is still a command of its own
+        for command in ("# push it \\\ngit push origin main", "git push origin open\\\\\ngit push origin main"):
+            self.assertIn("never push to the default branch", self.push(command).stderr, command)
+        self.assertIn("auto-merge", self.push("# merge when green \\\ngh pr merge 12 --auto").stderr)
         # an escaped space or ; starts no word, and bash keeps a carriage return in its word: no comment after either
         for command in ("git push -o a\\ #z origin :main", "git push --receive-pack=a\\;#z origin :main",
                         "git push --receive-pack=a\r#z origin :main"):

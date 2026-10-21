@@ -90,7 +90,7 @@ def lone_deletion(command):
     redirect, comment, quote, backslash, git -c, -C, push option or cd, each of which can run, push or overwrite
     something the prompt doesn't name, or leave the gate checking one repo while git deletes in another. It is
     matched on the raw text, single spaces and all, so no reading of the shell's rules can disagree with bash."""
-    return bool(LONE.fullmatch(command.strip(" ")))
+    return bool(LONE.fullmatch(command.strip(" \t\n")))  # the blanks around a command, which bash ignores
 
 
 def where(command, at, cwd, given=None):
@@ -150,8 +150,8 @@ def check_push(args, repo, command):
     ask_her = not merges(repo)
     if ask_her and not lone_deletion(command):  # before any fetch: the refusal costs nothing, and fetches add up
         block(SAY + "her OK covers the whole command, so a branch deletion goes on its own: exactly "
-              "`git push origin --delete <branches>`, run from inside the repo, with nothing else in the command "
-              "(no cd or -C either).")
+              "`git push origin --delete <branches>` (or `-d <branches>`, or `:<branch> ...`), single spaces, run "
+              "from inside the repo, with nothing else in the command (no cd or -C either).")
     # the check reads origin's default branch through its fetch URL; the deletion goes to every push URL
     urls = git("remote", "get-url", "--all", remote, cwd=repo) if ask_her else None  # remote is origin by then
     if ask_her and (not urls or "\n" in urls or git("remote", "get-url", "--all", "--push", remote, cwd=repo) != urls):
@@ -318,23 +318,26 @@ def check(data, tool, args, cwd, command):
         if args.get("branch") in (default, "main", "master") and enforced("ship", repo or cwd):
             block(SAY + f"never write to the default branch ({args.get('branch')}). Write to the session's branch.")
         return
-    # found with continued lines joined, so `git \<newline>push` is a push; joining where bash wouldn't only finds
-    # more of them. lone_deletion still reads the command as typed
-    hers, text = [], command.replace("\\\n", "")
-    for m in PUSH.finditer(text):
-        place = where(text, m.start(), cwd, m.group(1))
-        repo = git("rev-parse", "--show-toplevel", cwd=place)
-        if repo and enforced("ship", repo):
-            hers += check_push(words(text[m.end():]), repo, command)
-    for m in GH_MERGE.finditer(text):
-        place = where(text, m.start(), cwd)
-        got = gh_merge(words(text[m.end():]))
-        if got["auto"]:
-            block(SAY + "auto-merge can't be pinned to the commit that was reviewed: merge without --auto.")
-        if not str(got.get("number", "")).isdigit():
-            block(SAY + "name the pull request's number, so the house rules can check the merge.")
-        name = got.get("repo") or slug(git("rev-parse", "--show-toplevel", cwd=place) or place)
-        check_merge(data, place, name, got["number"], got.get("body"), got.get("head"), got.get("method"))
+    # Pushes and merges are looked for in the command as typed and again as the shell reads it (lines continued and
+    # comments out, uncommented()), and each one either reading finds is checked: `git \<newline>push` is a push only
+    # to the second, a line after a comment ending in a backslash only to the first. lone_deletion reads it as typed.
+    hers, texts = [], dict.fromkeys([command, uncommented(command)])
+    for text in texts:
+        for m in PUSH.finditer(text):
+            place = where(text, m.start(), cwd, m.group(1))
+            repo = git("rev-parse", "--show-toplevel", cwd=place)
+            if repo and enforced("ship", repo):
+                hers += check_push(words(text[m.end():]), repo, command)
+    for text in texts:
+        for m in GH_MERGE.finditer(text):
+            place = where(text, m.start(), cwd)
+            got = gh_merge(words(text[m.end():]))
+            if got["auto"]:
+                block(SAY + "auto-merge can't be pinned to the commit that was reviewed: merge without --auto.")
+            if not str(got.get("number", "")).isdigit():
+                block(SAY + "name the pull request's number, so the house rules can check the merge.")
+            name = got.get("repo") or slug(git("rev-parse", "--show-toplevel", cwd=place) or place)
+            check_merge(data, place, name, got["number"], got.get("body"), got.get("head"), got.get("method"))
     if hers:  # asked last, so her OK never carries anything the checks above would refuse
-        ask(SAY + f"delete {', '.join(hers)}? Merged, but where Charlotte merges by hand a branch is deleted only "
-            "with her OK.")
+        ask(SAY + f"delete {', '.join(dict.fromkeys(hers))}? Merged, but where Charlotte merges by hand a branch is "
+            "deleted only with her OK.")
