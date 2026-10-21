@@ -475,7 +475,6 @@ struct App::Impl {
         if (prefs.empty()) return;
         try {
             const auto j = nlohmann::json::parse(slurp(prefs));
-            if (j.contains("minimap")) ui.set_map_open(j["minimap"] == "open");
             still = still || j.value("still", false);   // --still stays still
             if (form.ask_origin && j.contains("gateway") && j["gateway"].is_string()) form.origin = j["gateway"].get<std::string>();
         } catch (...) {}
@@ -485,7 +484,7 @@ struct App::Impl {
         // what this run doesn't set stays: a run with --gateway <url> keeps the address the sign-in screen saved
         nlohmann::json j = nlohmann::json::parse(slurp(prefs), nullptr, false);
         if (!j.is_object()) j = nlohmann::json::object();
-        if (ui.map_known()) j["minimap"] = ui.map_open() ? "open" : "folded";   // not a phone's default before its first frame
+        j.erase("minimap");   // the fold isn't remembered any more (the page's rule, 21 October): a key from before goes
         if (!still_given) j["still"] = still;
         if (form.ask_origin && !origin.empty()) j["gateway"] = origin;
         std::ofstream(prefs) << j.dump();
@@ -827,7 +826,7 @@ void App::act(ui::Action what, std::string_view arg_v) {
             I.settle();
             break;
         case Action::ToFloor: I.set_floor(arg == "upper" ? manor::Level::Upper : manor::Level::Ground); break;
-        case Action::FoldMap: I.save_prefs(); break;
+        case Action::FoldMap: break;   // the fold isn't kept: nothing to save
         case Action::MapAt: {
             int x = 0, y = 0;
             if (std::sscanf(arg.c_str(), "%d %d", &x, &y) == 2) {
@@ -1217,7 +1216,7 @@ void App::Impl::handle(App& app, const In& in) {
             if (key == "plus") { app.act(Action::ZoomIn, ""); return; }
             if (key == "minus") { app.act(Action::ZoomOut, ""); return; }
             if (key == "0") { go(""); return; }
-            if (key == "m") { ui.set_map_open(!ui.map_open()); save_prefs(); return; }
+            if (key == "m") { ui.set_map_open(!ui.map_open()); return; }
             const char* names[] = {"left", "right", "up", "down"};
             for (int i = 0; i < 4; ++i) {
                 if (key != names[i]) continue;

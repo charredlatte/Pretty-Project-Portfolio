@@ -525,8 +525,7 @@ struct State {
     Rect menu_view, card_view;   // what of each shows, inside its panel
 
     // the map panel
-    bool map_open = true;
-    bool map_decided = false;
+    bool map_open = false;   // the map is an icon that unfolds (the page's S.mapOpen): folded at first, on every screen
 
     // pointing
     std::string hot, held;
@@ -650,8 +649,7 @@ Card Ui::card() const { return impl_->card; }
 const std::string& Ui::card_key() const { return impl_->card_key; }
 
 bool Ui::map_open() const { return impl_->map_open; }
-void Ui::set_map_open(bool open) { impl_->map_open = open, impl_->map_decided = true; }
-bool Ui::map_known() const { return impl_->map_decided; }
+void Ui::set_map_open(bool open) { impl_->map_open = open; }
 
 bool Ui::escape() {
     if (impl_->card != Card::None) { close_card(); return true; }
@@ -1396,7 +1394,7 @@ bool Ui::press(const Frame& f, float x, float y, Action* what, std::string* arg)
             else close_menu(), I.menu = Thing::House, I.menu_key = "house", I.anchor = I.brand, I.tip = {};
             break;
         case Action::FoldMap:
-            I.map_open = !I.map_open, I.map_decided = true;
+            I.map_open = !I.map_open;
             forget(I.regions, "map:"), forget(I.regions, "floor:");   // two presses can land in one batch
             *arg = I.map_open ? "open" : "folded";
             break;
@@ -1668,7 +1666,6 @@ void Ui::draw(const draw::Ctx& c, const Frame& f) {
     I.menu_box = {};
     I.card_box = {};
     if (!f.house || !f.cam) return;
-    if (!I.map_decided) I.map_open = !f.stage.narrow(), I.map_decided = true;   // folded at first on a phone
     I.on_gateway = f.gateway;
     Painter P(c, I, f);
     P.paint = false;   // where the brand and the sign are this frame, for the House menu to open under them

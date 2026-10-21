@@ -218,7 +218,7 @@ public:
     Card card() const;
     const std::string& card_key() const;
 
-    /// The map panel, open or folded to its one button. A phone starts folded.
+    /// The map panel, open or folded to its one button. It starts folded on every screen, and nothing is remembered.
     bool map_open() const;
     void set_map_open(bool open);
     /// Where the map panel is this frame, in device pixels: menus keep clear of it.
@@ -265,9 +265,6 @@ public:
     std::string_view cannot(Action a) const;
     /// Whether this build can do it at all.
     bool can(Action a) const;
-    /// Whether the map panel's open or folded is known yet (a phone's first frame folds it): until then the
-    /// prefs have nothing to keep.
-    bool map_known() const;
 
     /// SC_siosio's licence requires his credit, word for word, and says it must not be intentionally
     /// hidden. The page keeps it at the foot of the screen and the foot of the House menu, because a

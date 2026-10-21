@@ -143,8 +143,9 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
     rules) shows every `graphs/<repo>` map as a card, pinned first, then in her order, then the newest; she pins,
     moves, widens and hides each, and `dashboard/maps` keeps it;
   - the map panel (`#controls`, top right; bottom right on a phone), in Game UI Pastel, drawn smooth:
-    zoom out, zoom in, whole house and the fold (`#mapFold`, or M, remembered in `localStorage` as
-    `catio.minimap`, folded at first on a phone). Folding minimises the whole panel, not just the plan (her ask, 5
+    zoom out, zoom in, whole house and the fold (`#mapFold`, or M). **It starts folded, on every screen and every
+    load** (her ask, 21 October: "What happened to making the mini map into an icon that unfolds?"; nothing is
+    remembered, opening it lasts the visit). Folding minimises the whole panel, not just the plan (her ask, 5
     October: "allow the mini-map to be minimizable"): the fold button alone stays, in the panel's corner, drawn as a
     folded map, with a pip for every cat that needs her out of view (off screen, or on the other floor); open, it is
     an arrow into that corner, never an up or down arrow beside the floor tabs. On a phone the buttons sit at the
