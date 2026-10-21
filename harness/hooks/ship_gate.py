@@ -1,7 +1,8 @@
 """PreToolUse gate for the shipping and merging house rules (gates.py calls it).
 
-ship    no push to the default branch, no force-push, and no deleting a branch that isn't merged yet (and only in
-        a repo that merges its own pull requests).
+ship    no push to the default branch, no force-push, and no deleting a branch that isn't merged yet. A merged
+        branch goes freely in a repo that merges its own pull requests; anywhere else, only with her OK (a
+        permission prompt).
 merge   semi-automatic merging. A pull request merges only in a repo that opts in ({"merge": true} in its
         .claude/catio-rules.json), and only when every model that worked in the session is on rules.json's strong
         list, the audits ran and the review ran after the last commit, the merge is pinned to the commit that was
@@ -17,7 +18,7 @@ import subprocess
 from datetime import date
 from pathlib import Path
 
-from common import block, checkouts, default_branch, enforced, git, holds, local, merges, models, rules, \
+from common import ask, block, checkouts, default_branch, enforced, git, holds, local, merges, models, rules, \
     skill_calls
 
 REMOTE = re.compile(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?/?$")
@@ -85,6 +86,7 @@ def check_push(args, repo):
     if not specs and not deleting and "--tags" not in flags:
         specs = [branch]
     default = default_branch(repo)
+    hers = []
     for spec in specs:
         gone = deleting or spec.startswith(":")
         src, _, dst = spec.lstrip(":").partition(":")
@@ -94,11 +96,11 @@ def check_push(args, repo):
                   "and open a pull request; merging is the merging rule's.")
         if gone:
             check_delete(repo, remote, name, default)
+            hers += [] if merges(repo) else [name]
+    return hers
 
 
 def check_delete(repo, remote, name, default):
-    if not merges(repo):
-        block(SAY + f"this repo's branches are Charlotte's to delete. Leave {name} for her.")
     fetched = git("fetch", "-q", remote, default, name, cwd=repo) is not None
     merged = fetched and subprocess.run(["git", "merge-base", "--is-ancestor", f"refs/remotes/{remote}/{name}",
                                          f"refs/remotes/{remote}/{default}"], cwd=repo, capture_output=True).returncode == 0
@@ -249,11 +251,12 @@ def check(data, tool, args, cwd, command):
         if args.get("branch") in (default, "main", "master") and enforced("ship", repo or cwd):
             block(SAY + f"never write to the default branch ({args.get('branch')}). Write to the session's branch.")
         return
+    hers = []
     for m in PUSH.finditer(command):
         place = where(command, m.start(), cwd, m.group(1))
         repo = git("rev-parse", "--show-toplevel", cwd=place)
         if repo and enforced("ship", repo):
-            check_push(words(command[m.end():]), repo)
+            hers += check_push(words(command[m.end():]), repo)
     for m in GH_MERGE.finditer(command):
         place = where(command, m.start(), cwd)
         got = gh_merge(words(command[m.end():]))
@@ -263,3 +266,5 @@ def check(data, tool, args, cwd, command):
             block(SAY + "name the pull request's number, so the house rules can check the merge.")
         name = got.get("repo") or slug(git("rev-parse", "--show-toplevel", cwd=place) or place)
         check_merge(data, place, name, got["number"], got.get("body"), got.get("head"), got.get("method"))
+    if hers:  # asked last, so her OK never carries anything the checks above would refuse
+        ask(SAY + f"delete {', '.join(hers)}? Merged, but in this repo a branch is deleted only with Charlotte's OK.")

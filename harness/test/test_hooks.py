@@ -574,12 +574,27 @@ class Pushing(unittest.TestCase):
                         "git push -uf origin feature", "git push --all origin", "git push origin 'refs/heads/*:refs/heads/*'"):
             self.assertEqual(self.push(command).returncode, 2, command)
 
-    def test_only_a_merged_branch_is_deleted_and_only_where_sessions_merge(self):
+    def asks(self, command):
+        r = self.push(command)
+        self.assertEqual(r.returncode, 0, command)
+        return json.loads(r.stdout)["hookSpecificOutput"]
+
+    def test_only_a_merged_branch_is_deleted_and_only_with_her_ok_where_she_merges(self):
         self.g("checkout", "-qb", "done"); self.g("push", "-q", "origin", "done")
+        self.g("push", "-q", "origin", "done:also")
         self.g("checkout", "-qb", "open"); Path(self.work, "b").write_text("x"); self.g("add", "b"); self.g("commit", "-qm", "b")
         self.g("push", "-q", "origin", "open")
-        self.assertIn("Charlotte's to delete", self.push("git push origin --delete done").stderr)
+        out = self.asks("git push origin --delete done also")
+        self.assertEqual(out["permissionDecision"], "ask")
+        self.assertIn("delete done, also?", out["permissionDecisionReason"])
+        self.assertIn("Charlotte's OK", out["permissionDecisionReason"])
+        self.assertEqual(self.asks("git push origin :done")["permissionDecision"], "ask")
+        # her OK is never asked for what the gate refuses, in the same push or another one in the command
+        self.assertIn("open isn't merged into main, so it stays", self.push("git push origin --delete done open").stderr)
+        self.assertEqual(self.push("git push origin --delete done; git push origin main").returncode, 2)
+        self.assertEqual(self.push("git push origin --delete done && git push --force origin open").returncode, 2)
         Path(self.work, ".claude").mkdir(); Path(self.work, ".claude", "catio-rules.json").write_text('{"merge": true}')
+        self.assertEqual(self.push("git push origin --delete done").stdout, "")
         self.assertEqual(self.push("git push origin --delete done").returncode, 0)
         self.assertEqual(self.push("git push origin :done").returncode, 0)
         self.assertIn("open isn't merged into main, so it stays", self.push("git push origin -d open").stderr)

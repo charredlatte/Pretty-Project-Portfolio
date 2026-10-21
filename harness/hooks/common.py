@@ -232,3 +232,10 @@ def block(message):
     """Refuse the tool call; Claude sees the message."""
     print(message, file=sys.stderr)
     sys.exit(2)
+
+
+def ask(message):
+    """Put the tool call to her: Claude Code shows her a permission prompt with the message."""
+    print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask",
+                                             "permissionDecisionReason": message}}))
+    sys.exit(0)
