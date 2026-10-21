@@ -153,9 +153,8 @@ def check_push(args, repo, command):
               "`git push origin --delete <branches>`, run from inside the repo, with nothing else in the command "
               "(no cd or -C either).")
     # the check reads origin's default branch through its fetch URL; the deletion goes to every push URL
-    urls = git("remote", "get-url", "--all", remote, cwd=repo)
-    if ask_her and (remote != "origin" or not urls or "\n" in urls
-                    or git("remote", "get-url", "--all", "--push", remote, cwd=repo) != urls):
+    urls = git("remote", "get-url", "--all", remote, cwd=repo) if ask_her else None  # remote is origin by then
+    if ask_her and (not urls or "\n" in urls or git("remote", "get-url", "--all", "--push", remote, cwd=repo) != urls):
         block(SAY + "a deletion she is asked about goes to origin, and only where origin pushes to the repo it "
               "fetches from, which is what the merged check reads. Leave this one for Charlotte.")
     check_delete(repo, remote, gone, default)
@@ -319,15 +318,17 @@ def check(data, tool, args, cwd, command):
         if args.get("branch") in (default, "main", "master") and enforced("ship", repo or cwd):
             block(SAY + f"never write to the default branch ({args.get('branch')}). Write to the session's branch.")
         return
-    hers = []
-    for m in PUSH.finditer(command):
-        place = where(command, m.start(), cwd, m.group(1))
+    # found with continued lines joined, so `git \<newline>push` is a push; joining where bash wouldn't only finds
+    # more of them. lone_deletion still reads the command as typed
+    hers, text = [], command.replace("\\\n", "")
+    for m in PUSH.finditer(text):
+        place = where(text, m.start(), cwd, m.group(1))
         repo = git("rev-parse", "--show-toplevel", cwd=place)
         if repo and enforced("ship", repo):
-            hers += check_push(words(command[m.end():]), repo, command)
-    for m in GH_MERGE.finditer(command):
-        place = where(command, m.start(), cwd)
-        got = gh_merge(words(command[m.end():]))
+            hers += check_push(words(text[m.end():]), repo, command)
+    for m in GH_MERGE.finditer(text):
+        place = where(text, m.start(), cwd)
+        got = gh_merge(words(text[m.end():]))
         if got["auto"]:
             block(SAY + "auto-merge can't be pinned to the commit that was reviewed: merge without --auto.")
         if not str(got.get("number", "")).isdigit():

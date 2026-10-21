@@ -630,6 +630,8 @@ class Pushing(unittest.TestCase):
         for command in ("git push origin \\\n  :main", "git push origin HEAD:heads/main"):
             self.assertIn("never push to the default branch", self.push(command).stderr, command)
         self.assertIn("no force-push", self.push("git push origin \\\n  --force open").stderr)
+        # and a continuation before push still makes it a push
+        self.assertIn("never push to the default branch", self.push("git \\\npush origin :main").stderr)
         # an escaped space or ; starts no word, and bash keeps a carriage return in its word: no comment after either
         for command in ("git push -o a\\ #z origin :main", "git push --receive-pack=a\\;#z origin :main",
                         "git push --receive-pack=a\r#z origin :main"):
