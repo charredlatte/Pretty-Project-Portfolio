@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Move the café into the gateway: upload the art from this checkout (catio/art, the licensed packs included, never
-committed), and import the café's data once.
+"""Move the café into the gateway: upload the art from this checkout (catio/art: the licensed packs, never committed,
+and her own skin's pieces in art/skin/), and import the café's data once.
 
     CATIO_URL=https://catio-gateway.<name>.workers.dev CATIO_TOKEN=... python3 harness/gateway/cafe/move-in.py [docs.json]
 
@@ -31,6 +31,7 @@ def send(method, path, body, content_type):
 
 def main():
     art = [CATIO / "art" / "furniture.png"] + sorted(p for p in (CATIO / "art" / "licensed").rglob("*") if p.suffix in (".png", ".ttf"))
+    art += sorted((CATIO / "art" / "skin").glob("*.png"))   # her skin's pieces; art/skin.json itself is bundled with the page
     if len(art) < 2:
         sys.exit("No licensed art in catio/art/licensed: read it back from the artifact first (CLAUDE.md, Republishing).")
     bad = []

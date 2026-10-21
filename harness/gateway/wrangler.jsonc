@@ -18,8 +18,9 @@
 	//   DECIDE_MODEL  another Workers AI model id, e.g. typesafe/jev (paid from AI Gateway credits) or @cf/cloudflare/clef
 	//   DECIDE_URL    a System One server instead of Workers AI, e.g. a laya-serve she exposes; DECIDE_KEY its bearer key
 	"ai": { "binding": "AI" },
-	// The café (catio/index.html) and its runtime (cafe/runtime.js) go into the Worker as text.
-	"rules": [{ "type": "Text", "globs": ["**/*.html", "**/cafe/*.js"], "fallthrough": true }],
+	// The café (catio/index.html), its runtime (cafe/runtime.js) and her skin's list (catio/art/skin.json) go into the
+	// Worker as text; the skin's pieces are uploaded with the rest of the art (cafe/move-in.py).
+	"rules": [{ "type": "Text", "globs": ["**/*.html", "**/cafe/*.js", "**/art/skin.json"], "fallthrough": true }],
 	"observability": { "enabled": true }
 	// Secrets, set in the dashboard (Settings > Variables and Secrets), never here. They make the first account
 	// (src/registry.js, bootstrap) when the registry is empty, and may be deleted once she has her own key:

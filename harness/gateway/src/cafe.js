@@ -6,6 +6,7 @@
 // admin invites make their own account at /signup. An open café keeps a WebSocket to its house and hears every change.
 import PAGE from "../../../catio/index.html";
 import RUNTIME from "../cafe/runtime.js";
+import SKIN from "../../../catio/art/skin.json";   // her skin's list, as text: the page reads art/skin.json beside itself
 import { clientIp, esc, formOf, noAccount, page } from "./signin.js";
 import { plain } from "./plain.js";
 import { MIN_SECRET, randomToken, sha256 } from "./secret.js";
@@ -17,7 +18,8 @@ const STAY = 30 * 24 * 3600 * 1000;   // a signed-in browser stays signed in a m
 const MAX_FILE = 20 * 1024 * 1024;    // the brain's cap, as in claude.ai
 const MAX_DOC = 1024 * 1024;
 const DOC_PATH = /^[A-Za-z0-9_.~:@+-]{1,200}(\/[A-Za-z0-9_.~:@+-]{1,200}){1,7}$/;
-const ART = /^art\/(furniture\.png|licensed\/[a-z0-9-]+(\/[a-z0-9-]+)?\.(png|ttf))$/;
+// the packs' art, the cabin's committed sheet, and her own skin's pieces (catio/art/skin/, drawn from no pack)
+const ART = /^art\/(furniture\.png|skin\/[a-z0-9-]+\.png|licensed\/[a-z0-9-]+(\/[a-z0-9-]+)?\.(png|ttf))$/;
 const ART_TYPES = { png: "image/png", ttf: "font/ttf" };
 
 const json = (body, status = 200) => Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
@@ -297,6 +299,8 @@ export async function cafe(request, env) {
 		if (request.headers.get("Origin") !== url.origin) return refuse(403, "forbidden", "Only the café opens this.");
 		return houseOf(env, user).fetch(request);
 	}
+	// her skin's list, bundled with the page: what skin.json beside the page says (none: the packs' pieces)
+	if (path === "/art/skin.json" && method === "GET") return new Response(SKIN, { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
 	if (path.startsWith("/art/") && method === "GET") {
 		// the packs' licences are personal: their art is hers, never her guests'
 		if (path.startsWith("/art/licensed/") && user.house !== FIRST_HOUSE) return new Response("Not found\n", { status: 404 });
