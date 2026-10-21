@@ -2,7 +2,18 @@
 
 `README.md` says what the page is. This file is how to work on it.
 
-## Republishing
+## Where the café lives, and the one link to give her
+
+**The café is the Cloudflare link, https://catio-gateway.charlotte-badot.workers.dev, and nothing else** (her call,
+20 October 2026: "Please stop updating the artifact. Only use the Cloudflare link", then, 21 October: "The artifact
+is absolutely useless. Can you please make it so that I have only the Cloudflare link every time you share with me
+things that you've done to the Kitty Chat Cafe?"). So: **never publish the artifact again, and never give her its
+link.** Whenever a session tells her what it did to the café, the link is the Cloudflare one, and only that one. A
+change reaches it by a merge to `main` (Workers Builds deploys the gateway, which serves `catio/index.html`), so
+"done" for her means merged, and until then say so: "it shows at the Cloudflare link once #N merges". The artifact
+and its database still exist and the section below says how it was published, kept only for the record.
+
+## Republishing (retired: the artifact is no longer updated, see above)
 
 The page is **one** private artifact. Its URL is the `kittychat-cafe` entry in `artifacts.json`. Always republish to that
 URL (`Artifact` publish with `url`, after reading it back), never a new one: the database with
