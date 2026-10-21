@@ -144,7 +144,7 @@ from. Edit them freely: the sorter only adds, and never files a note that is alr
 
 ### Held for review: charredlatte/Pretty-Project-Portfolio#130
 
-- [ ] [charredlatte/Pretty-Project-Portfolio#130](https://github.com/charredlatte/Pretty-Project-Portfolio/pull/130) merged on 21 October; it was held for her review (claude-sonnet-5-5 worked on it, and only opus or fable may merge), and the code review hadn't run since its last commit. A review of that commit is still owed: tick this once one has run. *— litterbox/held-pretty-project-portfolio-130.md, 2026-10-21*
+- [ ] [charredlatte/Pretty-Project-Portfolio#130](https://github.com/charredlatte/Pretty-Project-Portfolio/pull/130) merged on 21 October; it was held for her review (claude-sonnet-5-5 worked on it, and only opus or fable may merge; and the gate's short-SHA bug, a finding of this round), and the code review hadn't run since its last commit. A review of that commit is still owed: tick this once one has run. *— litterbox/held-pretty-project-portfolio-130.md, 2026-10-21*
 
 ## Ideas not built
 
