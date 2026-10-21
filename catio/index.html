@@ -873,12 +873,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     <h1><button class="brand" id="houseBtn" type="button" aria-haspopup="true" aria-expanded="false"><span class="logo" aria-hidden="true"></span><span class="nm">KittyChat Café</span><span id="tally"></span></button></h1>
     <div class="status" id="status" role="status"><span class="dot"></span><span class="words">Waking the cats…</span></div>
   </header>
-  <nav class="mappanel" id="controls" aria-label="Map">
+  <nav class="mappanel folded" id="controls" aria-label="Map">   <!-- folded from the first paint: the icon is what she arrives to -->
     <div class="mp-row">
       <button class="pbtn sq" id="zoomOut" type="button" aria-label="Zoom out" title="Zoom out (−)"><span class="ico" style="--i: 1" aria-hidden="true"></span></button>
       <button class="pbtn sq" id="zoomIn" type="button" aria-label="Zoom in" title="Zoom in (+)"><span class="ico" style="--i: 0" aria-hidden="true"></span></button>
       <button class="pbtn sq" id="zoomAll" type="button" aria-label="Whole house" title="Whole house (0)"><svg viewBox="0 0 9 8" aria-hidden="true"><path d="M4 0h1v1h1v1h1v1h1v1H7v4H5V5H4v3H2V4H1V3h1V2h1V1h1z"/></svg></button>
-      <button class="pbtn sq fold" id="mapFold" type="button" aria-controls="minimap floors zoomIn zoomOut zoomAll" aria-expanded="true" aria-label="Minimise the map" title="Minimise the map (M)"><svg class="tuck" viewBox="0 0 8 8" aria-hidden="true"><path d="M3 0h5v1H3zM6 1h2v1H6zM5 2h3v1H5zM4 3h2v1H4zM7 3h1v2H7zM3 4h2v1H3zM2 5h2v1H2zM1 6h2v1H1zM0 7h2v1H0z"/></svg><svg class="unfold" viewBox="0 0 10 8" aria-hidden="true"><path d="M3 0h4v1H3zM0 1h4v1H0zM6 1h4v1H6zM0 1h1v7H0zM9 1h1v7H9zM3 0h1v7H3zM6 0h1v7H6zM3 6h4v1H3zM0 7h4v1H0zM6 7h4v1H6z"/></svg><span class="glyph" aria-hidden="true"></span></button>
+      <button class="pbtn sq fold" id="mapFold" type="button" aria-controls="minimap floors zoomIn zoomOut zoomAll" aria-expanded="false" aria-label="Open the map" title="Open the map (M)"><svg class="tuck" viewBox="0 0 8 8" aria-hidden="true"><path d="M3 0h5v1H3zM6 1h2v1H6zM5 2h3v1H5zM4 3h2v1H4zM7 3h1v2H7zM3 4h2v1H3zM2 5h2v1H2zM1 6h2v1H1zM0 7h2v1H0z"/></svg><svg class="unfold" viewBox="0 0 10 8" aria-hidden="true"><path d="M3 0h4v1H3zM0 1h4v1H0zM6 1h4v1H6zM0 1h1v7H0zM9 1h1v7H9zM3 0h1v7H3zM6 0h1v7H6zM3 6h4v1H3zM0 7h4v1H0zM6 7h4v1H6z"/></svg><span class="glyph" aria-hidden="true"></span></button>
     </div>
     <div class="minimap" id="minimap" aria-hidden="true"><div id="mmRooms"></div><div class="mm-view" id="mmView"></div></div>
     <div class="floors" id="floors" role="radiogroup" aria-label="Floor">

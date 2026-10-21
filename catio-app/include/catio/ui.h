@@ -267,7 +267,6 @@ public:
     bool can(Action a) const;
     /// Whether the map panel's open or folded is known yet (a phone's first frame folds it): until then the
     /// prefs have nothing to keep.
-    bool map_known() const;
 
     /// SC_siosio's licence requires his credit, word for word, and says it must not be intentionally
     /// hidden. The page keeps it at the foot of the screen and the foot of the House menu, because a
