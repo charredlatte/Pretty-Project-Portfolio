@@ -475,7 +475,6 @@ struct App::Impl {
         if (prefs.empty()) return;
         try {
             const auto j = nlohmann::json::parse(slurp(prefs));
-            if (j.contains("minimap")) ui.set_map_open(j["minimap"] == "open");
             still = still || j.value("still", false);   // --still stays still
             if (form.ask_origin && j.contains("gateway") && j["gateway"].is_string()) form.origin = j["gateway"].get<std::string>();
         } catch (...) {}
@@ -485,7 +484,7 @@ struct App::Impl {
         // what this run doesn't set stays: a run with --gateway <url> keeps the address the sign-in screen saved
         nlohmann::json j = nlohmann::json::parse(slurp(prefs), nullptr, false);
         if (!j.is_object()) j = nlohmann::json::object();
-        if (ui.map_known()) j["minimap"] = ui.map_open() ? "open" : "folded";   // not a phone's default before its first frame
+        j.erase("minimap");   // the fold isn't remembered any more (the page's rule, 21 October): a key from before goes
         if (!still_given) j["still"] = still;
         if (form.ask_origin && !origin.empty()) j["gateway"] = origin;
         std::ofstream(prefs) << j.dump();

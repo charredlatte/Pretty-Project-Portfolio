@@ -13,6 +13,14 @@ mkdirSync(out, { recursive: true });
 const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 const page = await browser.newPage({ viewport: process.env.LOOK_PHONE ? { width: 390, height: 844 } : { width: 1440, height: 900 }, reducedMotion: "reduce" });   // LOOK_PHONE=1: a phone
 const names = process.argv.length > 2 ? process.argv.slice(2) : ["ground", "upper"];
+// the floor tabs are inside the map, which starts folded: unfold it for the click, and fold it again if it was folded
+async function toFloor(floor) {
+  if ((await page.locator("#world").getAttribute("data-floor")) === floor) return;
+  const folded = !(await page.locator("#minimap").isVisible());
+  if (folded) await page.click("#mapFold");
+  await page.click("#floor-" + floor);
+  if (folded) await page.click("#mapFold");
+}
 // "setup": the first run's wizard, which opens over a café with no rooms (the stub's ?mode=empty)
 const query = process.env.LOOK_QUERY || (names.includes("setup") ? "?mode=empty" : "");
 if (names.includes("queen-work")) await page.clock.install();   // so a long wait can be skipped to, not waited for
@@ -33,7 +41,7 @@ for (const name of names) {
   }
   // "queen": her card, the talk; "queen-settings": its You tab
   if (name === "queen" || name === "queen-settings") {
-    if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") { await page.click("#mapFold"); await page.click("#floor-ground"); await page.click("#mapFold"); }   // the floor tabs are inside the folded map
+    await toFloor("ground");
     if (!(await page.locator("#queenDlg").evaluate((d) => d.open))) {
       await page.keyboard.press("0");
       await page.waitForTimeout(300);
@@ -50,7 +58,7 @@ for (const name of names) {
   }
   // "cat": a session cat's card, the talk with it as a scene over the blurred café; "quests": her log
   if (name === "cat" || name === "quests") {
-    if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") { await page.click("#mapFold"); await page.click("#floor-ground"); await page.click("#mapFold"); }   // the floor tabs are inside the folded map
+    await toFloor("ground");
     await page.keyboard.press("0");
     await page.waitForTimeout(300);
     await page.keyboard.press("Escape");   // whatever the look before left open
@@ -69,7 +77,7 @@ for (const name of names) {
   // every step unfolded, answering, a long wait and stopping, one screenshot each
   if (name === "queen-work") {
     if (!(await page.locator("#queenDlg").evaluate((d) => d.open))) {
-      if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") { await page.click("#mapFold"); await page.click("#floor-ground"); await page.click("#mapFold"); }   // the floor tabs are inside the folded map
+      await toFloor("ground");
       await page.keyboard.press("0");
       await page.waitForTimeout(300);
       await page.locator("#cats .cat.queen").dispatchEvent("dblclick");
@@ -166,7 +174,7 @@ for (const name of names) {
     continue;
   }
   const floor = UPPER.has(name) ? "upper" : "ground";
-  if ((await page.locator("#world").getAttribute("data-floor")) !== floor) { await page.click("#mapFold"); await page.click("#floor-" + floor); await page.click("#mapFold"); }   // the floor tabs are inside the folded map
+  await toFloor(floor);
   await page.keyboard.press("0");   // the whole house, then into the room named
   if (name !== floor) await page.locator('.roomhit[data-room="' + name + '"]').dispatchEvent("dblclick");
   await page.waitForTimeout(800);

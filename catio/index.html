@@ -2296,8 +2296,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   /* ---------- the minimap ---------- */
   // The floor you're on as a plan of rooms, the other floor faint underneath, a pip where a cat needs you,
   // and the camera's view framed. Click to go there, drag to pan, double-click a room to look in, wheel to
-  // zoom. Minimised (the whole panel down to its fold button) or open is remembered in this browser; it
-  // starts minimised on a phone.
+  // zoom. Minimised, the whole panel is down to its fold button; it starts minimised on every screen and every
+  // load, and nothing is remembered.
   // It shows the manor and the catio (MM.box, native px), not the whole grounds, so the rooms read larger.
   const MM = { box: [80, 32, 848, 448], hot: null, drag: null };
   MM.k = 250 / MM.box[2];

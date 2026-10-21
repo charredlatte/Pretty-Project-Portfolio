@@ -95,9 +95,9 @@ thing the minimap is for.
 **Cost.** The rooms are redrawn in `render()`, which already runs on every data change. The view rectangle is
 one element moved by `transform` from inside `setCam()`, so dragging the house stays smooth.
 
-**Remembered.** Folded or open is kept in `localStorage` as `catio.minimap`, wrapped in `try`. It's a
-per-viewer convenience, like `catio.sound`. It starts open on a laptop and folded on a phone (560 px wide or
-less), where the house is small enough already.
+**Not remembered.** The map starts folded on every screen and every load, and opening it lasts the visit (her
+ask, 21 October 2026: "What happened to making the mini map into an icon that unfolds?"). It used to start open on
+a laptop and keep folded or open in `localStorage` as `catio.minimap`; nothing reads that key now.
 
 **Menus keep clear of it.** `showMenu()` and the hover tip must treat the panel's box as off limits, the same
 way they already keep inside the stage. Otherwise a room menu on the right-hand side opens underneath it.

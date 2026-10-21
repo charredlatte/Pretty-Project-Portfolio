@@ -525,7 +525,7 @@ struct State {
     Rect menu_view, card_view;   // what of each shows, inside its panel
 
     // the map panel
-    bool map_open = true;
+    bool map_open = false;   // the map is an icon that unfolds (the page's S.mapOpen)
     bool map_decided = false;
 
     // pointing
@@ -1668,7 +1668,7 @@ void Ui::draw(const draw::Ctx& c, const Frame& f) {
     I.menu_box = {};
     I.card_box = {};
     if (!f.house || !f.cam) return;
-    if (!I.map_decided) I.map_open = !f.stage.narrow(), I.map_decided = true;   // folded at first on a phone
+    if (!I.map_decided) I.map_open = false, I.map_decided = true;   // folded at first, on every screen (the page's S.mapOpen = false)
     I.on_gateway = f.gateway;
     Painter P(c, I, f);
     P.paint = false;   // where the brand and the sign are this frame, for the House menu to open under them
