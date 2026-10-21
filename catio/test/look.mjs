@@ -33,7 +33,7 @@ for (const name of names) {
   }
   // "queen": her card, the talk; "queen-settings": its You tab
   if (name === "queen" || name === "queen-settings") {
-    if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") await page.click("#floor-ground");
+    if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") { await page.click("#mapFold"); await page.click("#floor-ground"); await page.click("#mapFold"); }   // the floor tabs are inside the folded map
     if (!(await page.locator("#queenDlg").evaluate((d) => d.open))) {
       await page.keyboard.press("0");
       await page.waitForTimeout(300);
@@ -50,7 +50,7 @@ for (const name of names) {
   }
   // "cat": a session cat's card, the talk with it as a scene over the blurred café; "quests": her log
   if (name === "cat" || name === "quests") {
-    if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") await page.click("#floor-ground");
+    if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") { await page.click("#mapFold"); await page.click("#floor-ground"); await page.click("#mapFold"); }   // the floor tabs are inside the folded map
     await page.keyboard.press("0");
     await page.waitForTimeout(300);
     await page.keyboard.press("Escape");   // whatever the look before left open
@@ -69,7 +69,7 @@ for (const name of names) {
   // every step unfolded, answering, a long wait and stopping, one screenshot each
   if (name === "queen-work") {
     if (!(await page.locator("#queenDlg").evaluate((d) => d.open))) {
-      if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") await page.click("#floor-ground");
+      if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") { await page.click("#mapFold"); await page.click("#floor-ground"); await page.click("#mapFold"); }   // the floor tabs are inside the folded map
       await page.keyboard.press("0");
       await page.waitForTimeout(300);
       await page.locator("#cats .cat.queen").dispatchEvent("dblclick");
@@ -166,7 +166,7 @@ for (const name of names) {
     continue;
   }
   const floor = UPPER.has(name) ? "upper" : "ground";
-  if ((await page.locator("#world").getAttribute("data-floor")) !== floor) await page.click("#floor-" + floor);
+  if ((await page.locator("#world").getAttribute("data-floor")) !== floor) { await page.click("#mapFold"); await page.click("#floor-" + floor); await page.click("#mapFold"); }   // the floor tabs are inside the folded map
   await page.keyboard.press("0");   // the whole house, then into the room named
   if (name !== floor) await page.locator('.roomhit[data-room="' + name + '"]').dispatchEvent("dblclick");
   await page.waitForTimeout(800);

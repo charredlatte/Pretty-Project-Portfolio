@@ -69,8 +69,11 @@ async function atSizes(page, body, to) {
 // the manor's upstairs rooms; every other room is on the ground floor
 const UPPER = new Set(["brain", "bath", "bedroom"]);
 // go to the floor a room is on, with the floor switch, as a person would
+// the map starts as its icon (her ask, 21 October): the floor tabs are inside it, so it is unfolded before they are clicked
+async function unfold(page) { if (!(await page.locator("#minimap").isVisible())) { await page.click("#mapFold"); await settle(page); } }
 async function toFloor(page, f) {
   if ((await page.locator("#world").getAttribute("data-floor")) === f) return;
+  await unfold(page);
   await page.click("#floor-" + f);
   await settle(page);
 }
@@ -1120,7 +1123,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   await page.keyboard.press("Escape");
   await settle(page);
-  await page.click("#floor-upper");
+  await unfold(page); await page.click("#floor-upper");
   await page.keyboard.press("0");
   await settle(page);
   const litter = page.locator(".cabinet.litter");
@@ -1407,7 +1410,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     await settle(page);
     expect((await floor()) === "upper", "up: " + (await floor()));
   });
-  await page.click("#floor-ground");
+  await unfold(page); await page.click("#floor-ground");
   await settle(page);
   await openCat(page, "Mimi");
   await menuButton(page, "Look in").click();
@@ -1417,7 +1420,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   await page.click("#zoomAll");
   await page.waitForTimeout(700);
-  await page.click("#floor-ground");
+  await unfold(page); await page.click("#floor-ground");
   await settle(page);
 
   // moving around
@@ -1628,12 +1631,16 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   // a point of the grounds (native px) on the minimap, on screen
   const onMap = async (x, y) => { const m = await rect("#minimap"); return { x: m.x + (x - BOX[0]) * K, y: m.y + (y - BOX[1]) * K }; };
 
-  await check("one panel in the top right holds zoom, the fold, the minimap and the floors", async () => {
+  // her ask, 21 October: "an icon that unfolds": the map starts as the fold icon alone, on a laptop too
+  await check("the map starts as its icon in the top right, and unfolds to zoom, the minimap and the floors", async () => {
+    expect(!(await page.locator("#minimap").isVisible()), "the map is open before she asked for it");
+    for (const id of ["zoomIn", "zoomOut", "zoomAll", "floor-ground", "floor-upper"]) expect(!(await page.locator("#" + id).isVisible()), id + " shows while folded");
+    await page.click("#mapFold");
     for (const id of ["zoomIn", "zoomOut", "zoomAll", "mapFold", "minimap", "floor-ground", "floor-upper"])
       expect(await page.locator("#controls #" + id).count() === 1, id + " is not in the panel");
     const p = await rect("#controls");
     expect(p.x + p.w > 1400 && p.y < 40, "not top right: " + JSON.stringify(p));
-    expect(await page.locator("#minimap").isVisible(), "the minimap is folded on a laptop");
+    expect(await page.locator("#minimap").isVisible(), "the tap didn't unfold it");
   });
   await check("the footer credits the map panel's pack", async () =>
     expect((await page.locator(".credits").textContent()).includes("Game UI Pack created by SC_siosio"), "no credit"));
@@ -1692,13 +1699,13 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await openHouse(page);
   await check("the House menu (the brand) opens clear of the panel", async () => expect(await clear(), "the House menu is over the panel"));
   await closeMenu(page);
-  await page.click("#floor-upper");
+  await unfold(page); await page.click("#floor-upper");
   await settle(page);
   await check("upstairs, the minimap shows the upstairs rooms and the landing", async () => {
     expect(await page.locator('#mmRooms .mm-room[data-room="brain"]:not(.faint)').count() === 1, "no library");
     expect(await page.locator("#mmRooms .mm-room.landing:not(.faint)").count() === 1, "no landing");
   });
-  await page.click("#floor-ground");
+  await unfold(page); await page.click("#floor-ground");
   const whole = await rect("#controls");
   await page.click("#mapFold");
   await check("the fold button folds the map away and says so", async () => {
@@ -1753,13 +1760,13 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
   await page.click("#mapFold");
   await page.reload(); await page.waitForTimeout(600);
-  await check("folded stays folded after a reload", async () => expect(!(await page.locator("#minimap").isVisible()), "open again"));
+  await check("after a reload it is the icon again", async () => expect(!(await page.locator("#minimap").isVisible()), "open again"));
   await page.locator("#stage").click({ position: { x: 60, y: 800 } });
   await page.keyboard.press("m");
-  await check("M unfolds it, and that is remembered too", async () => {
+  await check("M unfolds it for the visit, and a reload folds it again: nothing is remembered", async () => {
     expect(await page.locator("#minimap").isVisible(), "M did nothing");
     await page.reload(); await page.waitForTimeout(600);
-    expect(await page.locator("#minimap").isVisible(), "folded again after a reload");
+    expect(!(await page.locator("#minimap").isVisible()), "open after a reload: the icon is what she arrives to");
   });
   await check("no page errors with the map panel", async () => expect(errors.length === 0, errors.join("; ")));
   await ctx.close();
@@ -2684,6 +2691,7 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
     expect(await sel.locator("option[value=bath]").count() === 0, "another closed room offered");
   });
   await page.keyboard.press("Escape"); await settle(page);
+  await unfold(page);   // the minimap is drawn only once the map is open
   await check("a closed room is dimmed, faint on the minimap, has no queen, and hovering it says closed", async () => {
     expect(await page.locator('.roomhit[data-room="study"][data-closed]').count() === 1, "not marked closed");
     expect(await page.locator('.roomhit[data-room="study"] .tag, #overlay .tag').count() === 0, "a sign");

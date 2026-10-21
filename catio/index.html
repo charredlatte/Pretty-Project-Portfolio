@@ -2301,8 +2301,9 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // It shows the manor and the catio (MM.box, native px), not the whole grounds, so the rooms read larger.
   const MM = { box: [80, 32, 848, 448], hot: null, drag: null };
   MM.k = 250 / MM.box[2];
-  S.mapOpen = innerWidth > 560;
-  try { const v = localStorage.getItem("catio.minimap"); if (v) S.mapOpen = v === "open"; } catch (e) {}
+  // The map is an icon that unfolds (her ask, 21 October: "What happened to making the mini map into an icon that
+  // unfolds?"): it starts folded on every screen and every load, and opening it lasts the visit; nothing is remembered.
+  S.mapOpen = false;
   function drawMap() {
     const box = $("mmRooms"), k = MM.k;
     box.replaceChildren();
@@ -2352,9 +2353,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     if (away.length) b.appendChild(pip(away));
     b.setAttribute("aria-label", said);
   }
-  function setMapOpen(open, remember) {
+  function setMapOpen(open) {
     S.mapOpen = open;
-    if (remember) { try { localStorage.setItem("catio.minimap", open ? "open" : "folded"); } catch (e) {} }
     $("controls").classList.toggle("folded", !open);
     const f = $("mapFold");
     f.setAttribute("aria-expanded", String(open));
@@ -5697,7 +5697,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   $("zoomAll").addEventListener("click", zoomOut);
   for (const b of document.querySelectorAll("#controls .fl")) b.addEventListener("click", () => setFloor(b.dataset.floor));
   $("houseBtn").addEventListener("click", (e) => { e.stopPropagation(); hideTip(); toggleMenu("house", "house", $("houseBtn")); });
-  $("mapFold").addEventListener("click", () => setMapOpen(!S.mapOpen, true));
+  $("mapFold").addEventListener("click", () => setMapOpen(!S.mapOpen));
   // The panel changes size (opened, minimised, a pip on its button): a menu it now covers moves clear of it, just
   // placed again, not redrawn, so the item she is on keeps the keyboard. A menu it doesn't cover stays put.
   new ResizeObserver(() => {
@@ -5751,7 +5751,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
 
   /* ---------- start ---------- */
   drawProps();
-  setMapOpen(S.mapOpen, false);
+  setMapOpen(S.mapOpen);
   layout(true);
   render();
   checkArt();
@@ -5781,7 +5781,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     else if (e.key === "+" || e.key === "=") { e.preventDefault(); zoomStep(1.5); }
     else if (e.key === "-" || e.key === "_") { e.preventDefault(); zoomStep(1 / 1.5); }
     else if (e.key === "0") { e.preventDefault(); zoomOut(); }
-    else if (e.key === "m" || e.key === "M") { e.preventDefault(); setMapOpen(!S.mapOpen, true); }
+    else if (e.key === "m" || e.key === "M") { e.preventDefault(); setMapOpen(!S.mapOpen); }
   });
   setInterval(render, 60000); // keep "3 min ago" honest
   $("stage").addEventListener("keydown", arrows);
