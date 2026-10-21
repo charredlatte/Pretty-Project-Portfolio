@@ -11,7 +11,7 @@ const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT || "p
 const out = join(here, ".look");
 mkdirSync(out, { recursive: true });
 const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+const page = await browser.newPage({ viewport: process.env.LOOK_PHONE ? { width: 390, height: 844 } : { width: 1440, height: 900 }, reducedMotion: "reduce" });   // LOOK_PHONE=1: a phone
 const names = process.argv.length > 2 ? process.argv.slice(2) : ["ground", "upper"];
 // "setup": the first run's wizard, which opens over a café with no rooms (the stub's ?mode=empty)
 const query = process.env.LOOK_QUERY || (names.includes("setup") ? "?mode=empty" : "");
@@ -31,7 +31,7 @@ for (const name of names) {
     await page.waitForTimeout(500);
     continue;
   }
-  // "queen": her card, the scene she talks in; "queen-settings": its Settings overlay, open at You
+  // "queen": her card, the talk; "queen-settings": its You tab
   if (name === "queen" || name === "queen-settings") {
     if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") await page.click("#floor-ground");
     if (!(await page.locator("#queenDlg").evaluate((d) => d.open))) {
@@ -41,10 +41,26 @@ for (const name of names) {
       await page.waitForTimeout(600);
     }
     if (name === "queen-settings") {
-      await page.click("#queenSettingsBtn");
-      await page.click("#queenYou summary");
+      await page.click("#queenTab-you");
       await page.waitForTimeout(300);
     }
+    await page.screenshot({ path: join(out, name + ".png") });
+    console.log(join(out, name + ".png"));
+    continue;
+  }
+  // "cat": a session cat's card, the talk with it as a scene over the blurred café; "quests": her log
+  if (name === "cat" || name === "quests") {
+    if ((await page.locator("#world").getAttribute("data-floor")) !== "ground") await page.click("#floor-ground");
+    await page.keyboard.press("0");
+    await page.waitForTimeout(300);
+    await page.keyboard.press("Escape");   // whatever the look before left open
+    if (name === "cat") { await page.locator("#cats .cat:not(.queen)").first().dispatchEvent("dblclick"); }
+    else {
+      await page.evaluate(() => { const T = window.__catio; if (T && T.setQuiz) { T.setQuiz({ for: "cse_blocked1", title: "Unblock Caramel", questions: [{ q: "Which project is this one for?", options: ["montfortoise-shopify", "Pretty-Project-Portfolio"] }] }); T.setQuiz({ for: "", kind: "litterbox", title: "A note to sort", note: "The French text is in, ready for you.", from: "Caramel", questions: [{ q: "Which project is it for?", options: ["montfortoise-shopify", "Settled: drop it"] }] }); T.setQuiz({ for: "", kind: "decision", title: "Merge the menu fix?", note: "The pull request is green.", hint: "Merge it", questions: [{ q: "Merge it?", options: ["Yes, merge it", "Not yet"] }] }); } });
+      await page.waitForTimeout(400);
+      await page.locator("#cats .cat.queen").dispatchEvent("dblclick"); await page.waitForTimeout(400); await page.click("#queenTab-quests");
+    }
+    await page.waitForTimeout(600);
     await page.screenshot({ path: join(out, name + ".png") });
     console.log(join(out, name + ".png"));
     continue;

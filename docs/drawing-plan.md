@@ -286,6 +286,7 @@ CSS has to change with it. Top, right, bottom, left.
 | ☐ | File | Size | Slice | What it is |
 |---|---|---|---|---|
 | ☐ | `panel.png` | about 106 × 122 | 6 | Every menu, dialog and the sign. Tan |
+| ☑ | `pattern.png` | 24 × 24 (any square) | | The wallpaper behind every panel, tiled over its face colour. The Barbie kit's sparkles are in `art/skin/` |
 | ☐ | `button.png` | 26 × 26 | 4 4 6 4 | The cream button. The 6 at the bottom is its raised edge |
 | ☐ | `button-hover.png` | 26 × 26 | 4 4 6 4 | Lit (white) |
 | ☐ | `button-down.png` | 26 × 26 | 4 | Pressed in: no raised edge |

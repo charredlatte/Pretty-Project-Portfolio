@@ -557,7 +557,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(await page.locator("#queenThread li.greet").count() === 0, "the greeting stays once she has spoken");
   });
   await check("Speak is there: the browser can hear her", async () => expect(await page.locator("#queenSpeak").count() === 1, "no Speak button"));
-  await page.click("#queenSettingsBtn");   // her settings sit in an overlay over the scene (her ask, 3 October)
+  await page.click("#queenTab-character");   // her voice switch is on Her character: her card is a pause menu of tabs (20 October)
   await page.click("#queenVoice");
   await settle(page);
   await T(page, () => window.__catio.queenSays("Anon, my lady. All is well.", true, "t2"));
@@ -571,7 +571,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(/en-GB/i.test(last.lang) && /Hazel/.test(last.voice || ""), JSON.stringify(last));
   });
   // her character: name, coat, how she speaks, what she listens for; saving moves what the room queen kept into her
-  await page.click("#queenCharacter summary");
+  await page.click("#queenTab-character");
   await page.fill("#queenRename", "Mémé");
   await page.selectOption("#queenCoat", "1");
   await check("she speaks Elizabethan English unless told otherwise", async () => expect((await page.inputValue("#queenManner")).includes("Elizabethan"), await page.inputValue("#queenManner")));
@@ -590,8 +590,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   // routines, for her runner to run
   await queen().dblclick();
   await settle(page);
-  await page.click("#queenSettingsBtn");
-  await page.click("#queenRoutines summary");
+  await page.click("#queenTab-routines");
   await page.fill("#routineName", "Morning round");
   await page.fill("#routineTime", "08:30");
   await page.fill("#routinePrompt", "Who needs me today, and what first?");
@@ -639,8 +638,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   await queen().dblclick();
   await settle(page);
-  await page.click("#queenSettingsBtn");
-  await page.click("#queenKeeps summary");
+  await page.click("#queenTab-keeps");
   await page.locator('#queenDlg button:has-text("Saying it")').click();
   await settle(page);
   await page.keyboard.press("Escape");
@@ -655,8 +653,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   await queen().dblclick();
   await settle(page);
-  await page.click("#queenSettingsBtn");
-  await page.click("#queenKeeps summary");
+  await page.click("#queenTab-keeps");
   await page.locator('#queenDlg button:has-text("Forget")').first().click();
   await settle(page);
   await page.keyboard.press("Escape");
@@ -678,7 +675,10 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   await queen().dblclick();
   await settle(page);
-  await check("her card puts the homework first: the questions, with the options to tap", async () => {
+  await check("her card opens on Talk; the Quest log tab counts the homework, and opens on the quiz with its options to tap", async () => {
+    expect(await page.locator("#queenTalk").isVisible() && await page.locator("#queenQuests").isHidden(), "her card didn't open on Talk");
+    expect((await page.locator("#queenTab-quests .badge .n").innerText()).trim() === "1", "the Quest log tab doesn't count the homework: " + await page.locator("#queenTab-quests").getAttribute("aria-label"));
+    await page.click("#queenTab-quests");
     expect(await page.locator("#queenHomework").isVisible(), "no homework in her card");
     const t = await page.locator("#queenHomework").innerText();
     expect(t.includes("The menu fix") && t.includes("Merge it?") && t.includes("A word for the cat?"), t);
@@ -704,6 +704,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await settle(page);
   await queen().dblclick();
   await settle(page);
+  await page.click("#queenTab-quests");   // the quest log is its own tab
   await check("closing her card and opening it again finds her answers so far where she left them", async () => {
     expect(await page.locator('#queenHomework form[data-quiz="z1"] button[aria-pressed="true"]:has-text("Yes, merge it")').count() === 1, "her pick was lost");
     expect((await page.inputValue('#queenHomework form[data-quiz="z1"] input[aria-label^="Your answer"]')) === "Well done, thou good cat", "her typing was lost");
@@ -725,6 +726,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await settle(page);
   await queen().dblclick();
   await settle(page);
+  await page.click("#queenTab-quests");
   await check("a reopened card shows a hand-in on its way as greyed, so it isn't sent twice", async () => {
     expect(await page.locator('#queenHomework form[data-quiz="z2"] .hand:disabled').count() === 1, "no greyed Hand it in");
   });
@@ -867,22 +869,29 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   await T(page, () => window.__catio.queenSays("Good morrow, my lady. Two cats need thee.", true, "t9"));
   await page.waitForTimeout(300);
-  await check("what you say sits by you, what she says by her, as bubbles", async () => {
-    const html = await page.locator("#queenThread").innerHTML();
+  await check("her answer is said in the box, one line at a time, in her name; Earlier steps back to your line and Click to continue on again", async () => {
     const n = (sel) => page.locator(sel).count();
-    expect(await n("#queenThread li.me") > 0 && await n("#queenThread li.them:not(.handoff)") > 0, "a bubble is missing: " + html.slice(0, 600));
-    const me = await page.locator("#queenThread li.me").last().boundingBox(), them = await page.locator("#queenThread li.them:not(.handoff)").last().boundingBox();
-    expect(me && them, "a bubble is missing");
-    expect(me.x < them.x && me.x + me.width < them.x + them.width, JSON.stringify({ me, them }));
+    expect(await n("#queenThread li.me") > 0 && await n("#queenThread li.them:not(.handoff)") > 0, "a line is missing: " + (await page.locator("#queenThread").innerHTML()).slice(0, 600));
+    const cur = () => page.locator('#queenThread li[aria-current="true"]');
+    expect(await cur().count() === 1 && (await cur().getAttribute("class")).includes("them"), "the newest line isn't the one shown");
+    expect((await cur().innerText()).includes("Two cats need thee"), await cur().innerText());
+    expect((await page.locator(".qstage").getAttribute("data-speaker")) === "queen", "she isn't the speaker");
+    await page.locator('#queenDlg button:has-text("Earlier")').click();
+    expect((await cur().getAttribute("class")).includes("me"), "Earlier didn't step back to your line: " + await cur().getAttribute("class"));
+    expect((await page.locator(".qstage").getAttribute("data-speaker")) === "owner", "you aren't the speaker of your own line");
+    await page.locator('#queenDlg button:has-text("Click to continue")').click();
+    expect((await cur().getAttribute("class")).includes("them"), "Click to continue didn't step on");
     expect(!(await page.locator("#queenFig").getAttribute("class")).includes("talking"), "still talking when done");
     expect(!(await page.locator("#queenWork").isVisible()), "the strip outlived her answer");
   });
   await T(page, () => { for (let i = 0; i < 14; i++) window.__catio.queenSays("Line " + i + " of a long answer, my lady, for the scroll.", true, "t" + (20 + i)); });
   await page.waitForTimeout(400);
-  await check("a long conversation scrolls inside the scene, the newest at the bottom", async () => {
-    const s = await page.locator("#queenThread").evaluate((u) => ({ h: u.scrollHeight, c: u.clientHeight, t: u.scrollTop }));
-    expect(s.h > s.c, "it doesn't overflow: " + JSON.stringify(s));
-    expect(s.t + s.c >= s.h - 4, "not at the newest: " + JSON.stringify(s));
+  await check("a long conversation is still one line at a time: the newest shows, the count says where you are, and the card never grows", async () => {
+    const cur = page.locator('#queenThread li[aria-current="true"]');
+    expect((await cur.innerText()).includes("Line 13"), "not at the newest: " + await cur.innerText());
+    const of = (await page.locator("#queenDlg .sk-of").innerText()).trim();
+    expect(/^(\d+) \/ \1$/.test(of), "the count doesn't say it is the last: " + of);
+    expect(await page.locator("#queenThread li").count() <= 20, "more than the last twenty lines are kept");
     const card = await box("#queenDlg");
     expect(card.height <= 900, "the card grew instead of scrolling: " + card.height);
   });
@@ -940,27 +949,29 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
         expect(m.talkOut <= 1, "at " + at + "the talk is " + m.talkOut + " px outside the frame, with nowhere to scroll");
         expect(m.overTalk === 0, "at " + at + "one of them stands over the words, by " + m.overTalk + " square px");
         expect(m.talk >= 20, "at " + at + "the talk is " + m.talk + " px: the two of them squeezed it out");
-        expect(m.homework >= 20, "at " + at + "her homework is " + m.homework + " px: the talk's floor squeezed it out");
+        await page.click("#queenTab-quests");   // the quest log is a tab of its own: measured on it
+        const hq = await page.evaluate(() => document.getElementById("queenHomework").clientHeight);
+        await page.click("#queenTab-talk");
+        expect(hq >= 20, "at " + at + "her quest log is " + hq + " px: squeezed out");
         // where the window has the room, not squeezed out isn't enough: a whole bubble, and a question with its
         // options, have to be readable without scrolling for the card to be worth opening. Below this the card is
         // shorter than the two of them plus both of those, so each pane scrolls and the floors above are what hold.
         if (h >= 600) {
           expect(m.talk >= 46, "at " + at + "the talk is " + m.talk + " px, under one bubble");
-          expect(m.homework >= 92, "at " + at + "her homework is " + m.homework + " px, under a question and its options");
+          expect(hq >= 92, "at " + at + "her quest log is " + hq + " px, under a question and its options");
         }
       }
     });
   });
-  await check("every other setting is in an overlay, out of the scene until Settings", async () => {
-    for (const sel of ["#queenVoice", "#queenKeeps", "#queenCharacter", "#queenYou"]) expect(await page.locator(sel).isHidden(), sel + " shows in the scene");
-    await page.click("#queenSettingsBtn");
-    for (const sel of ["#queenVoice", "#queenKeeps", "#queenCharacter", "#queenYou", "#queenRoutines"]) expect(await page.locator(sel).isVisible(), sel + " not in Settings");
-    await page.click("#queenSettingsClose");
-    expect(await page.locator("#queenSettings").isHidden(), "Settings stayed open");
+  await check("What she keeps, Her character, Routines and You are tabs of their own, and Talk brings the scene back", async () => {
+    for (const sel of ["#queenVoice", "#queenKeeps", "#queenCharacter", "#queenYou"]) expect(await page.locator(sel).isHidden(), sel + " shows on Talk");
+    for (const [tab, sel] of [["keeps", "#queenKeeps"], ["character", "#queenCharacter"], ["routines", "#queenRoutines"], ["you", "#queenYou"]]) { await page.click("#queenTab-" + tab); expect(await page.locator(sel).isVisible(), sel + " isn't on its tab"); }
+    await page.click("#queenTab-character");
+    expect(await page.locator("#queenVoice").isVisible(), "her voice switch isn't on Her character");
+    await page.click("#queenTab-talk");
     expect(await page.locator("#queenThread").isVisible(), "the scene didn't come back");
   });
-  await page.click("#queenSettingsBtn");
-  await page.click("#queenYou summary");
+  await page.click("#queenTab-you");
   await page.selectOption("#own-hair", "bun");
   await page.selectOption("#own-top", "2");
   await page.selectOption("#own-extra", "ears");
@@ -1064,13 +1075,13 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(t.includes("Homework: 2 notes to sort, 1 decision"), t);
   });
   await openHouse(page);
-  await check("the House menu leads with Homework, saying how many wait", async () => {
+  await check("the House menu leads with Quest log, saying how many wait", async () => {
     const first = page.locator("#menu .list .mi").first();
-    expect((await first.innerText()).startsWith("Homework") && (await first.innerText()).includes("3 waiting"), await first.innerText());
+    expect((await first.innerText()).startsWith("Quest log") && (await first.innerText()).includes("3 waiting"), await first.innerText());
   });
-  await page.locator('#menu .mi:has-text("Homework")').click();
+  await page.locator('#menu .mi:has-text("Quest log")').click();
   await settle(page);
-  await check("Homework opens her card on the cards, a deck at a time, the note's words with no markdown marks", async () => {
+  await check("Quest log opens her card on the cards, a deck at a time, the note's words with no markdown marks", async () => {
     expect(await page.locator("#queenDlg").isVisible(), "her card didn't open");
     expect(await page.locator('#queenHomework [data-deck="litterbox"]').count() === 1 && await page.locator('#queenHomework [data-deck="decision"]').count() === 1, "not one card per deck");
     const t = await page.locator('#queenHomework [data-deck="litterbox"]').innerText();
@@ -1079,14 +1090,18 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   // "make this window useable": homework used to take the whole talk, leaving the conversation under it no height
   // at all, and an option as long as a repository name pushed the card off the side.
-  await check("homework leaves the talk room under it, and a long option wraps instead of running off the card", async () => {
+  await page.locator('#questList .sk-q[data-deck="decision"]').click();   // the long option is on the decision: choosing it in the list opens it
+  await settle(page);
+  await check("the quest log is a tab of its own: choosing a quest in the list opens it, and a long option wraps instead of running off the card", async () => {
     const t = await page.locator("#queenHomework").innerText();
     expect(t.includes("never-break-anywhere"), "the long option isn't drawn, so this proves nothing: " + t.slice(0, 200));
     const o = await page.locator("#queenHomework").evaluate((u) => u.scrollWidth - u.clientWidth);
     expect(o <= 0, "her homework scrolls sideways: " + o);
-    const h = await page.locator("#queenThread").evaluate((u) => u.clientHeight);
-    expect(h > 80, "her homework left the talk no height: " + h);
+    expect(await page.locator("#queenQuests").isVisible() && await page.locator("#queenTalk").isHidden(), "the quest log isn't on a tab of its own");
+    expect(await page.locator('#queenHomework [data-deck="decision"]').isVisible() && await page.locator('#queenHomework [data-deck="litterbox"]').isHidden(), "choosing the decision didn't open it alone");
   });
+  await page.locator('#questList .sk-q[data-deck="litterbox"]').first().click();   // back to the litter box's first note
+  await settle(page);
   await page.locator('#queenHomework [data-deck="litterbox"] button:has-text("Skip")').click();
   await settle(page);
   await check("Skip puts the next note on top, without answering", async () => {
@@ -1838,10 +1853,9 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await page.waitForTimeout(500);
   // a quiz taller than a phone's scene has to scroll; what must hold is that the talk keeps a bubble's worth of
   // room under it, and that what doesn't fit can be reached rather than being cut off
-  await check("on a phone her homework leaves the talk room under it, and what doesn't fit can be scrolled to", async () => {
+  await page.click("#queenTab-quests");
+  await check("on a phone the quest log is a tab of its own, and what doesn't fit can be scrolled to", async () => {
     expect(await page.locator("#queenHomework .quiz").count() > 0, "no homework drawn");
-    const h = await page.locator("#queenThread").evaluate((u) => u.clientHeight);
-    expect(h > 80, "her homework left the talk no height: " + h);
     // scroll it, rather than trusting the stylesheet: what was below the fold has to come into view
     const hw = await page.locator("#queenHomework").evaluate((e) => {
       const over = e.scrollHeight - e.clientHeight;
@@ -2403,8 +2417,7 @@ if (LOCAL) {
   await toFloor(page, "ground");
   await page.locator("#cats .cat.queen").dblclick();
   await settle(page);
-  await page.click("#queenSettingsBtn");
-  await page.click("#queenKeeps summary");
+  await page.click("#queenTab-keeps");
   await page.fill("#queenAdd", "Off a USB stick, she still remembers.");
   await page.locator('#queenDlg button:has-text("Give it to her")').click();
   await page.locator('#queenDlg button:has-text("Say it")').first().click();
