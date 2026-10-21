@@ -244,15 +244,19 @@ def block(message):
     sys.exit(2)
 
 
-# What a gate has to say without refusing (additionalContext). The hook answers once, at its end or in ask():
-# two JSON answers on stdout are read as neither.
+# What a gate has to say without refusing (additionalContext). The hook answers once, through answer(): two
+# JSON answers on stdout are read as neither.
 CONTEXT = []
+
+
+def answer(**decision):
+    """The hook's one JSON answer: what CONTEXT holds, plus any permission decision. Nothing when both are empty."""
+    out = dict(decision, **({"additionalContext": "\n\n".join(CONTEXT)} if CONTEXT else {}))
+    if out:
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", **out}}))
 
 
 def ask(message):
     """Put the tool call to her: Claude Code shows her a permission prompt with the message."""
-    out = {"hookEventName": "PreToolUse", "permissionDecision": "ask", "permissionDecisionReason": message}
-    if CONTEXT:
-        out["additionalContext"] = "\n\n".join(CONTEXT)
-    print(json.dumps({"hookSpecificOutput": out}))
+    answer(permissionDecision="ask", permissionDecisionReason=message)
     sys.exit(0)

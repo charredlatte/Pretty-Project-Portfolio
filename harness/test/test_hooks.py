@@ -586,11 +586,13 @@ class Pushing(unittest.TestCase):
         self.g("push", "-q", "origin", "open")
         out = self.asks("git push origin --delete done also")
         self.assertEqual(out["permissionDecision"], "ask")
-        self.assertIn(f"delete done ({self.work.name}), also ({self.work.name})?", out["permissionDecisionReason"])
+        self.assertIn(f"delete done on origin ({self.work.name}), also on origin ({self.work.name})?",
+                      out["permissionDecisionReason"])
         self.assertIn("only with her OK", out["permissionDecisionReason"])
         self.assertEqual(self.asks("git push origin :done")["permissionDecision"], "ask")
         self.assertEqual(self.asks(f"cd {self.work} && git push origin --delete done")["permissionDecision"], "ask")
-        self.assertIn(f"delete done ({self.work.name})?", self.asks("git push origin -d done done")["permissionDecisionReason"])
+        self.assertIn(f"delete done on origin ({self.work.name})?",
+                      self.asks("git push origin -d done done")["permissionDecisionReason"])
         # her OK is never asked for what the gate refuses, in the same push or another one in the command
         self.assertIn("open isn't merged into main, so it stays", self.push("git push origin --delete done open").stderr)
         self.assertEqual(self.push("git push origin --delete done; git push origin main").returncode, 2)
@@ -601,12 +603,18 @@ class Pushing(unittest.TestCase):
                         "git push origin --delete done; git push origin open", "git push origin --delete done > out",
                         "git push origin --delete done 2>&1", "git -c core.hooksPath=/tmp/x push origin --delete done",
                         "git push --receive-pack=/tmp/x origin --delete done", "git push origin --delete done\nrm x",
-                        "git push origin --delete done#x", "git push origin --delete done # tidy\nrm x",
-                        "cd - && git push origin --delete done", "git push origin open :done"):
+                        "git push origin --delete done # tidy\nrm x", "cd - && git push origin --delete done",
+                        "git push origin open :done", 'cd a""b && git push origin --delete done',
+                        "git -C a\\b push origin --delete done"):
             r = self.push(command)
             self.assertEqual(r.returncode, 2, command)
             self.assertIn("a branch deletion goes on its own", r.stderr)
         self.assertEqual(self.push("git push origin --delete done $(rm -rf x)").returncode, 2)
+        self.assertIn("a # inside a word", self.push("git push origin --delete done#x").stderr)
+        self.assertIn("HEAD isn't one", self.push("git push origin --delete HEAD").stderr)
+        self.assertIn("HEAD isn't one", self.push("git push origin :HEAD").stderr)
+        # an ordinary push keeps its comment: the shell never sees "main" there
+        self.assertEqual(self.push("git push origin open  # then merge to main").returncode, 0)
         # a branch that is gone already fails the one fetch, and the refusal names them all, not just the first
         self.assertIn("couldn't fetch done, gone", self.push("git push origin --delete done gone").stderr)
         Path(self.work, ".claude").mkdir(); Path(self.work, ".claude", "catio-rules.json").write_text('{"merge": true}')
