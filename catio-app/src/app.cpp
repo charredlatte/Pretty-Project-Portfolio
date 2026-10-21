@@ -826,7 +826,7 @@ void App::act(ui::Action what, std::string_view arg_v) {
             I.settle();
             break;
         case Action::ToFloor: I.set_floor(arg == "upper" ? manor::Level::Upper : manor::Level::Ground); break;
-        case Action::FoldMap: I.save_prefs(); break;
+        case Action::FoldMap: break;   // the fold isn't kept: nothing to save
         case Action::MapAt: {
             int x = 0, y = 0;
             if (std::sscanf(arg.c_str(), "%d %d", &x, &y) == 2) {
@@ -1216,7 +1216,7 @@ void App::Impl::handle(App& app, const In& in) {
             if (key == "plus") { app.act(Action::ZoomIn, ""); return; }
             if (key == "minus") { app.act(Action::ZoomOut, ""); return; }
             if (key == "0") { go(""); return; }
-            if (key == "m") { ui.set_map_open(!ui.map_open()); save_prefs(); return; }
+            if (key == "m") { ui.set_map_open(!ui.map_open()); return; }
             const char* names[] = {"left", "right", "up", "down"};
             for (int i = 0; i < 4; ++i) {
                 if (key != names[i]) continue;
