@@ -27,6 +27,9 @@ REMOTE = re.compile(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?/?$")
 START = (r"(?:^|[;&|({!\"'`]|\b(?:if|then|else|do|while|until|env|exec|command|time|nohup|sudo|timeout\s+\S+)\s)"
          r"\s*(?:\w+=\S*\s+)*")
 PUSH = re.compile(START + r"git\s+(?:(?:-C\s+(\S+)|-c\s+\S+|--[\w-]+(?:=\S+)?)\s+)*push\b", re.M)
+# A command's parts, and the only parts a branch deletion she is asked about may come with
+SEGMENTS = re.compile(r"&&|\|\||[;|\n]|(?<![>&])&(?![>&])")
+ALONE = re.compile(r"(?:cd\s+\S+|git\s+(?:(?:-C\s+\S+|-c\s+\S+)\s+)*push\s[^`$()]*)$")
 GH_MERGE = re.compile(START + r"gh\s+pr\s+merge\b", re.M)
 MERGE = re.compile(r"__merge_pull_request$")
 API_WRITES = re.compile(r"__(push_files|create_or_update_file|delete_file)$")
@@ -86,7 +89,7 @@ def check_push(args, repo):
     if not specs and not deleting and "--tags" not in flags:
         specs = [branch]
     default = default_branch(repo)
-    hers = []
+    ask_her, hers = not merges(repo), []
     for spec in specs:
         gone = deleting or spec.startswith(":")
         src, _, dst = spec.lstrip(":").partition(":")
@@ -96,12 +99,17 @@ def check_push(args, repo):
                   "and open a pull request; merging is the merging rule's.")
         if gone:
             check_delete(repo, remote, name, default)
-            hers += [] if merges(repo) else [name]
+            if ask_her:
+                hers.append(f"{name} ({Path(repo).name})")
     return hers
 
 
 def check_delete(repo, remote, name, default):
-    fetched = git("fetch", "-q", remote, default, name, cwd=repo) is not None
+    try:  # a hook that times out lets the call through, so a stalled fetch counts as not merged
+        fetched = subprocess.run(["git", "fetch", "-q", remote, default, name], cwd=repo, capture_output=True,
+                                 timeout=20).returncode == 0
+    except subprocess.TimeoutExpired:
+        fetched = False
     merged = fetched and subprocess.run(["git", "merge-base", "--is-ancestor", f"refs/remotes/{remote}/{name}",
                                          f"refs/remotes/{remote}/{default}"], cwd=repo, capture_output=True).returncode == 0
     if not merged:
@@ -267,4 +275,8 @@ def check(data, tool, args, cwd, command):
         name = got.get("repo") or slug(git("rev-parse", "--show-toplevel", cwd=place) or place)
         check_merge(data, place, name, got["number"], got.get("body"), got.get("head"), got.get("method"))
     if hers:  # asked last, so her OK never carries anything the checks above would refuse
-        ask(SAY + f"delete {', '.join(hers)}? Merged, but in this repo a branch is deleted only with Charlotte's OK.")
+        if any(s.strip() and not ALONE.match(s.strip()) for s in SEGMENTS.split(command)):
+            block(SAY + "her OK covers the whole command, so a branch deletion goes on its own: just the "
+                  "`git push --delete` (and a cd), nothing else in the same command.")
+        ask(SAY + f"delete {', '.join(hers)}? Merged, but where Charlotte merges by hand a branch is deleted only "
+            "with her OK.")
