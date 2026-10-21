@@ -623,6 +623,10 @@ class Pushing(unittest.TestCase):
                         'git push origin --delete "#x"', "git push origin --delete \\#x"):
             self.assertIn("a branch deletion goes on its own", self.push(command).stderr, command)
         self.assertIn("never push to the default branch", self.push("git push origin HEAD:tmp#z main").stderr)
+        # an escaped space or ; starts no word, and bash keeps a carriage return in its word: no comment after either
+        for command in ("git push -o a\\ #z origin :main", "git push --receive-pack=a\\;#z origin :main",
+                        "git push --receive-pack=a\r#z origin :main"):
+            self.assertIn("never push to the default branch", self.push(command).stderr, command)
         self.assertIn("goes to origin", self.push("git push upstream --delete done").stderr)
         self.g("remote", "set-url", "--push", "origin", str(self.work))
         self.assertIn("goes to origin", self.push("git push origin --delete done").stderr)

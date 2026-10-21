@@ -37,23 +37,24 @@ def uncommented(text):
     """`text` with its shell comments taken out, read as the shell reads them: a # starts one only outside quotes
     and at the start of a word, and it runs to the end of the line. shlex's own commenter starts one at any
     unquoted #, so `git push origin HEAD:tmp#z :open` read as a push of HEAD:tmp, and the deletion went unseen."""
-    out, quote, i = [], None, 0
+    out, quote, i, starts = [], None, 0, True  # starts: the next character would start a word
     while i < len(text):
-        c = text[i]
+        c, escaped = text[i], False
         if quote:
             if c == quote:
                 quote = None
             elif c == "\\" and quote == '"':
                 out.append(c); i += 1; c = text[i] if i < len(text) else ""
-        elif c == "\\":
-            out.append(c); i += 1; c = text[i] if i < len(text) else ""
+        elif c == "\\":  # `a\ #z` is one word to bash: an escaped space or ; separates nothing
+            out.append(c); i += 1; c, escaped = (text[i] if i < len(text) else ""), True
         elif c in "'\"":
             quote = c
-        elif c == "#" and (not out or out[-1] in " \t\r\n;&|()<>"):
+        elif c == "#" and starts:
             while i < len(text) and text[i] != "\n":
                 i += 1
             continue
         out.append(c)
+        starts = not quote and not escaped and c in " \t\n;&|()<>"  # not \r: bash keeps it in the word
         i += 1
     return "".join(out)
 
@@ -62,7 +63,7 @@ def tokens(text, punct):
     """The words the shell would see in `text`, with the characters in `punct` as tokens of their own, comments
     left out the shell's way (uncommented). An unclosed quote raises ValueError."""
     lex = shlex.shlex(uncommented(text), posix=True, punctuation_chars=punct)
-    lex.whitespace, lex.whitespace_split, lex.commenters = " \t\r", True, ""
+    lex.whitespace, lex.whitespace_split, lex.commenters = " \t", True, ""  # not \r, which bash keeps in a word
     return lex
 
 
@@ -74,8 +75,8 @@ def words(text):
             if w and set(w) <= set(";&|()\n") or re.search(r"[<>]", w):  # the next command, or a redirect
                 break
             out.append(w)
-    except ValueError:  # an unclosed quote further on: keep what came before it
-        pass
+    except ValueError:  # an unclosed quote further on (often a "git push" inside a quoted message): keep what came
+        pass            # before it
     return out
 
 
