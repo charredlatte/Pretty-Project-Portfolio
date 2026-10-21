@@ -618,7 +618,15 @@ class Pushing(unittest.TestCase):
             self.assertEqual(r.returncode, 2, command)
             self.assertIn("a branch deletion goes on its own", r.stderr)
         self.assertEqual(self.push("git push origin --delete done $(rm -rf x)").returncode, 2)
-        self.assertIn("a # inside a word", self.push("git push origin --delete done#x").stderr)
+        # a # starts a comment only at the start of a word, as in the shell: inside one it hides nothing
+        for command in ("git push origin --delete done#x", "git push origin HEAD:tmp#z :open",
+                        'git push origin --delete "#x"', "git push origin --delete \\#x"):
+            self.assertIn("a branch deletion goes on its own", self.push(command).stderr, command)
+        self.assertIn("never push to the default branch", self.push("git push origin HEAD:tmp#z main").stderr)
+        self.assertIn("goes to origin", self.push("git push upstream --delete done").stderr)
+        self.g("remote", "set-url", "--push", "origin", str(self.work))
+        self.assertIn("goes to origin", self.push("git push origin --delete done").stderr)
+        self.g("config", "--unset", "remote.origin.pushurl")
         self.assertIn("name the branch to delete", self.push("git push origin --delete HEAD").stderr)
         self.assertIn("name the branch to delete", self.push("git push origin :HEAD").stderr)
         self.assertIn("nothing after the colon", self.push("git push origin :").stderr)

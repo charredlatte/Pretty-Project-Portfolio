@@ -33,15 +33,36 @@ API_WRITES = re.compile(r"__(push_files|create_or_update_file|delete_file)$")
 SAY = "House rule (KittyChat): "
 
 
-def tokens(text, punct, comments=True):
-    """The words the shell would see in `text`, with the characters in `punct` as tokens of their own. An unclosed
-    quote raises ValueError. shlex starts a comment at any unquoted #, the shell only at one that starts a word, so
-    `done#x` reads as `done`: check_push refuses a deletion with a # inside a word, and lone_deletion reads no
-    comments at all (comments=False), leaving any # in a word PLAIN refuses."""
-    lex = shlex.shlex(text, posix=True, punctuation_chars=punct)
-    lex.whitespace, lex.whitespace_split = " \t\r", True
-    if not comments:
-        lex.commenters = ""
+def uncommented(text):
+    """`text` with its shell comments taken out, read as the shell reads them: a # starts one only outside quotes
+    and at the start of a word, and it runs to the end of the line. shlex's own commenter starts one at any
+    unquoted #, so `git push origin HEAD:tmp#z :open` read as a push of HEAD:tmp, and the deletion went unseen."""
+    out, quote, i = [], None, 0
+    while i < len(text):
+        c = text[i]
+        if quote:
+            if c == quote:
+                quote = None
+            elif c == "\\" and quote == '"':
+                out.append(c); i += 1; c = text[i] if i < len(text) else ""
+        elif c == "\\":
+            out.append(c); i += 1; c = text[i] if i < len(text) else ""
+        elif c in "'\"":
+            quote = c
+        elif c == "#" and (not out or out[-1] in " \t\r\n;&|()<>"):
+            while i < len(text) and text[i] != "\n":
+                i += 1
+            continue
+        out.append(c)
+        i += 1
+    return "".join(out)
+
+
+def tokens(text, punct):
+    """The words the shell would see in `text`, with the characters in `punct` as tokens of their own, comments
+    left out the shell's way (uncommented). An unclosed quote raises ValueError."""
+    lex = shlex.shlex(uncommented(text), posix=True, punctuation_chars=punct)
+    lex.whitespace, lex.whitespace_split, lex.commenters = " \t\r", True, ""
     return lex
 
 
@@ -65,7 +86,7 @@ def lone_deletion(command):
     overwrite something the prompt doesn't name, or (a cd that fails, say) leave the gate checking one repo while
     git deletes in another."""
     try:
-        w = list(tokens(command.strip(), ";&|()<>\n", comments=False))
+        w = list(tokens(command.strip(), ";&|()<>\n"))
     except ValueError:  # an unclosed quote
         return False
     plain = lambda a: PLAIN.fullmatch(a) and not a.startswith("-")
@@ -129,14 +150,16 @@ def check_push(args, repo, command=""):
                 gone.append(name)
     if not gone:
         return []
-    if re.search(r"[^\s#]#", command):  # the shell keeps it in the word, shlex reads a comment
-        block(SAY + "a # inside a word reads differently to the shell and to the gate, so this deletion can't be "
-              "checked. Leave that branch for Charlotte.")
     ask_her = not merges(repo)
     if ask_her and not lone_deletion(command):  # before any fetch: the refusal costs nothing, and fetches add up
         block(SAY + "her OK covers the whole command, so a branch deletion goes on its own: exactly "
-              "`git push <remote> --delete <branches>`, run from inside the repo, with nothing else in the command "
+              "`git push origin --delete <branches>`, run from inside the repo, with nothing else in the command "
               "(no cd or -C either).")
+    # the check reads origin's default branch through its fetch URL; the deletion goes to the push URL
+    if ask_her and (remote != "origin" or git("remote", "get-url", "--push", remote, cwd=repo)
+                    != git("remote", "get-url", remote, cwd=repo)):
+        block(SAY + "a deletion she is asked about goes to origin, and only where origin pushes to the repo it "
+              "fetches from, which is what the merged check reads. Leave this one for Charlotte.")
     check_delete(repo, remote, gone, default)
     return [f"{name} on {remote} ({Path(repo).name})" for name in gone] if ask_her else []
 
