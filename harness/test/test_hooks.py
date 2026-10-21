@@ -612,7 +612,10 @@ class Pushing(unittest.TestCase):
                         "git push --receive-pack=/tmp/x origin --delete done", "git push origin --delete done\nrm x",
                         "git push origin --delete done # tidy\nrm x", "cd - && git push origin --delete done",
                         "git push origin open :done", 'cd a""b && git push origin --delete done',
-                        "git -C a\\b push origin --delete done", f"cd {self.work.as_posix()} && git push origin -d done",
+                        "git -C a\\b push origin --delete done",
+                        # a comment ends at the newline even after a backslash, and an escaped backslash joins nothing
+                        "git push origin --delete done # tidy \\\nrm -rf x", "git push origin --delete a\\\\\nreboot",
+                        "git push origin --delete done \\\r\nreboot", f"cd {self.work.as_posix()} && git push origin -d done",
                         f"git -C {self.work.as_posix()} push origin --delete done"):
             r = self.push(command)
             self.assertEqual(r.returncode, 2, command)
@@ -631,7 +634,7 @@ class Pushing(unittest.TestCase):
         for command in ("git push -o a\\ #z origin :main", "git push --receive-pack=a\\;#z origin :main",
                         "git push --receive-pack=a\r#z origin :main"):
             self.assertIn("never push to the default branch", self.push(command).stderr, command)
-        self.assertIn("goes to origin", self.push("git push upstream --delete done").stderr)
+        self.assertIn("exactly `git push origin --delete", self.push("git push upstream --delete done").stderr)
         self.g("remote", "set-url", "--push", "origin", str(self.work))
         self.assertIn("goes to origin", self.push("git push origin --delete done").stderr)
         self.g("config", "--unset", "remote.origin.pushurl")

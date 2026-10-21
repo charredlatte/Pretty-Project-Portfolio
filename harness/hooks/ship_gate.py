@@ -26,7 +26,8 @@ REMOTE = re.compile(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?/?$")
 START = (r"(?:^|[;&|({!\"'`]|\b(?:if|then|else|do|while|until|env|exec|command|time|nohup|sudo|timeout\s+\S+)\s)"
          r"\s*(?:\w+=\S*\s+)*")
 PUSH = re.compile(START + r"git\s+(?:(?:-C\s+(\S+)|-c\s+\S+|--[\w-]+(?:=\S+)?)\s+)*push\b", re.M)
-PLAIN = re.compile(r"[\w./~@:-]+")  # a path, remote or branch with nothing the shell would run or expand
+# The one command a deletion she is asked about may be, matched on the raw text: no shell reading to get wrong
+LONE = re.compile(r"git push origin(?: (?:-d|--delete)(?: (?!-)[\w./-]+)+|(?: :(?!-)[\w./-]+)+)")
 GH_MERGE = re.compile(START + r"gh\s+pr\s+merge\b", re.M)
 MERGE = re.compile(r"__merge_pull_request$")
 API_WRITES = re.compile(r"__(push_files|create_or_update_file|delete_file)$")
@@ -37,10 +38,12 @@ def uncommented(text):
     """`text` with its shell comments taken out, read as the shell reads them: a # starts one only outside quotes
     and at the start of a word, and it runs to the end of the line. shlex's own commenter starts one at any
     unquoted #, so `git push origin HEAD:tmp#z :open` read as a push of HEAD:tmp, and the deletion went unseen."""
-    text = re.sub(r"\\\r?\n", "", text)  # a backslash-newline joins the two lines, as bash does
     out, quote, i, starts = [], None, 0, True  # starts: the next character would start a word
     while i < len(text):
         c, escaped = text[i], False
+        if c == "\\" and quote != "'" and text[i + 1:i + 2] == "\n":  # a line continuation: bash joins the lines
+            i += 2
+            continue
         if quote:
             if c == quote:
                 quote = None
@@ -82,20 +85,12 @@ def words(text):
 
 
 def lone_deletion(command):
-    """Is the command exactly `git push <remote> --delete <branches>` (or `git push <remote> :<branch>...`), run
-    where the session is? Her OK on the prompt approves the whole command, so that is all it may be: no other
-    command or push, pipe, redirect, comment, git -c, -C or push option, and no cd, each of which can run, push or
-    overwrite something the prompt doesn't name, or (a cd that fails, say) leave the gate checking one repo while
-    git deletes in another."""
-    try:
-        w = list(tokens(command.strip(), ";&|()<>\n"))
-    except ValueError:  # an unclosed quote
-        return False
-    plain = lambda a: PLAIN.fullmatch(a) and not a.startswith("-")
-    flags = [a for a in w[2:] if a in ("-d", "--delete")]
-    refs = [a for a in w[2:] if a not in flags]
-    return w[:2] == ["git", "push"] and len(refs) > 1 and all(plain(a) for a in refs) \
-        and bool(flags or all(len(a) > 1 and a.startswith(":") for a in refs[1:]))
+    """Is the command, as typed, exactly `git push origin --delete <branches>` (or `git push origin :<branch>...`)?
+    Her OK on the prompt approves the whole command, so that is all it may be: no other command or push, pipe,
+    redirect, comment, quote, backslash, git -c, -C, push option or cd, each of which can run, push or overwrite
+    something the prompt doesn't name, or leave the gate checking one repo while git deletes in another. It is
+    matched on the raw text, single spaces and all, so no reading of the shell's rules can disagree with bash."""
+    return bool(LONE.fullmatch(command.strip(" ")))
 
 
 def where(command, at, cwd, given=None):
