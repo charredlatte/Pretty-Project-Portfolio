@@ -37,6 +37,7 @@ def uncommented(text):
     """`text` with its shell comments taken out, read as the shell reads them: a # starts one only outside quotes
     and at the start of a word, and it runs to the end of the line. shlex's own commenter starts one at any
     unquoted #, so `git push origin HEAD:tmp#z :open` read as a push of HEAD:tmp, and the deletion went unseen."""
+    text = re.sub(r"\\\r?\n", "", text)  # a backslash-newline joins the two lines, as bash does
     out, quote, i, starts = [], None, 0, True  # starts: the next character would start a word
     while i < len(text):
         c, escaped = text[i], False
@@ -120,7 +121,7 @@ def checkout_of(name, cwd):
 
 # --- pushes ---------------------------------------------------------------------------------------------------
 
-def check_push(args, repo, command=""):
+def check_push(args, repo, command):
     flags = [a for a in args if a.startswith("-")]
     pos = [a for a in args if not a.startswith("-")]
     if any(f in ("--mirror", "--all") for f in flags):
@@ -139,7 +140,7 @@ def check_push(args, repo, command=""):
     gone = []
     for spec in specs:
         src, _, dst = spec.lstrip(":").partition(":")
-        name = re.sub(r"^refs/heads/", "", dst or (branch if src == "HEAD" else src))
+        name = re.sub(r"^(?:refs/)?heads/", "", dst or (branch if src == "HEAD" else src))  # git reads heads/x as x
         if name == default:
             block(SAY + f"never push to the default branch ({default}). Push this work to the session's branch "
                   "and open a pull request; merging is the merging rule's.")
@@ -156,9 +157,10 @@ def check_push(args, repo, command=""):
         block(SAY + "her OK covers the whole command, so a branch deletion goes on its own: exactly "
               "`git push origin --delete <branches>`, run from inside the repo, with nothing else in the command "
               "(no cd or -C either).")
-    # the check reads origin's default branch through its fetch URL; the deletion goes to the push URL
-    if ask_her and (remote != "origin" or git("remote", "get-url", "--push", remote, cwd=repo)
-                    != git("remote", "get-url", remote, cwd=repo)):
+    # the check reads origin's default branch through its fetch URL; the deletion goes to every push URL
+    urls = git("remote", "get-url", "--all", remote, cwd=repo)
+    if ask_her and (remote != "origin" or not urls or "\n" in urls
+                    or git("remote", "get-url", "--all", "--push", remote, cwd=repo) != urls):
         block(SAY + "a deletion she is asked about goes to origin, and only where origin pushes to the repo it "
               "fetches from, which is what the merged check reads. Leave this one for Charlotte.")
     check_delete(repo, remote, gone, default)

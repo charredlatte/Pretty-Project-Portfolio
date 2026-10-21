@@ -623,6 +623,10 @@ class Pushing(unittest.TestCase):
                         'git push origin --delete "#x"', "git push origin --delete \\#x"):
             self.assertIn("a branch deletion goes on its own", self.push(command).stderr, command)
         self.assertIn("never push to the default branch", self.push("git push origin HEAD:tmp#z main").stderr)
+        # a backslash-newline joins the lines, and git reads heads/main as main
+        for command in ("git push origin \\\n  :main", "git push origin HEAD:heads/main"):
+            self.assertIn("never push to the default branch", self.push(command).stderr, command)
+        self.assertIn("no force-push", self.push("git push origin \\\n  --force open").stderr)
         # an escaped space or ; starts no word, and bash keeps a carriage return in its word: no comment after either
         for command in ("git push -o a\\ #z origin :main", "git push --receive-pack=a\\;#z origin :main",
                         "git push --receive-pack=a\r#z origin :main"):
@@ -631,6 +635,11 @@ class Pushing(unittest.TestCase):
         self.g("remote", "set-url", "--push", "origin", str(self.work))
         self.assertIn("goes to origin", self.push("git push origin --delete done").stderr)
         self.g("config", "--unset", "remote.origin.pushurl")
+        # every push URL counts, not just the first: git deletes on each
+        self.g("remote", "set-url", "--add", "--push", "origin", str(self.work))
+        self.g("remote", "set-url", "--add", "--push", "origin", str(self.work))
+        self.assertIn("goes to origin", self.push("git push origin --delete done").stderr)
+        self.g("config", "--unset-all", "remote.origin.pushurl")
         self.assertIn("name the branch to delete", self.push("git push origin --delete HEAD").stderr)
         self.assertIn("name the branch to delete", self.push("git push origin :HEAD").stderr)
         self.assertIn("nothing after the colon", self.push("git push origin :").stderr)
