@@ -1,20 +1,36 @@
 # The translation units, in one list so the desktop build and ios/ share it.
 
-# What exists: the floor plan, the house, the art, drawing and the view.
+# The core: the floor plan, the house, the art, drawing, the fonts, the view and the interface.
 set(CATIO_CORE_SOURCES
     src/manor.cpp
     src/house.cpp
     src/art.cpp
     src/draw.cpp
+    src/text.cpp
     src/view.cpp
+    src/ui.cpp
 )
 
-# Still to come: the app proper. It is not a target yet because its sources do not exist, and a target
-# naming files that are not there would only fail the build.
+# The app around it: the window, the loop and the one place a press becomes a write.
+set(CATIO_APP_SOURCES
+    src/app.cpp
+    src/main.cpp
+)
+
+# The gateway, one body per platform -- the header names no curl type precisely so this choice is possible.
+# A desktop's is libcurl:
+set(CATIO_NET_DESKTOP_SOURCES
+    src/net_curl.cpp
+)
+
+# iOS's, NSURLSession, once it is written (ios/CMakeLists.txt stops at configure until then):
+set(CATIO_NET_APPLE_SOURCES
+    src/net_apple.cpp
+)
+
+# Still to come:
 #
-#   src/main.cpp  src/app.cpp  src/ui.cpp
-#   one net body per platform -- the header names no curl type precisely so this choice is possible:
-#     src/net_curl.cpp     desktop
+#   the phones' net bodies:
 #     src/net_android.cpp  HttpsURLConnection over JNI (no system libcurl on the NDK)
 #     src/net_apple.cpp    NSURLSession (no system libcurl on iOS)
 #   the queen's voice, behind -DCATIO_TTS=ON (include/catio/voice.h says why it is not in v1):

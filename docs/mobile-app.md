@@ -338,7 +338,7 @@ every frame was looked at against the page's own.
 | `src/draw.cpp` | `SDL_RenderTexture9Grid` panels, blits, and the eight coats |
 | `src/view.cpp` | the camera in whole art pixels, `render()`'s placement, and the draw list in the page's one z-order |
 | `src/look.cpp` | `catio_look` |
-| `test/tests.cpp` | `catio_tests`: 58 checks of the plan, the house and the draw list, with no window |
+| `test/tests.cpp` | `catio_tests`: checks of the plan, the house and the draw list, with no window |
 
 How it was checked, against things the C++ did not produce:
 
@@ -372,12 +372,93 @@ build/catio_look catio catio-app/generated/manor.json catio-app/test/fixtures gr
 The default build is still the header check, which needs nothing installed. The frames `catio_look`
 writes contain the licensed art, so `catio-app/.look/` is gitignored with the build.
 
+### Built: the window loop and the interface
+
+Asked for on 5 October ("draft the window loop and interface"). `catio_app` opens a window, and with no
+display it draws its frames to PNGs instead (`--shot`, with `--do` to play clicks, keys and drags first), so
+it was checked the same way: every frame below was set beside the page's own, rendered by Chromium from the
+same skeleton the e2e test uses, at 1280×800 and at her audit's 390×844.
+
+| | |
+|---|---|
+| `src/ui.cpp` | the page's `showTip()`, `roomMenu`, `houseMenu`, `pileMenu`, `queenMenu`, `catMenu`, `summary`, `queenLine`, `placeMenu`, as plain data first, then laid out in the page's CSS lengths and drawn from the packs: the brand and its badge, the sign, the screen's frame, the hover line, the menus, the map panel with its minimap and floor tabs, the credits, and the Cat card |
+| `src/text.cpp` | the two fonts over SDL_ttf: `sprout.ttf` once at 18px, blitted at whole multiples; Nunito at the size it is drawn |
+| `src/app.cpp` | the loop: drag (any button), wheel, pinch (about the point between the fingers, and never also a drag, a swipe or a click), + / − / 0, Shift+arrows, arrows between rooms, Page Up / Down, M, Escape; hover only on a real move; a click opens the menu, a double click looks in; a menu taller than the screen, or a card, scrolls under the wheel or a finger, as the page's `overflow: auto` does; and `act()`, the one place a press becomes anything |
+| `src/main.cpp` | the entry, through `SDL_main.h` so the same `main` runs on a phone |
+| `assets/` | Nunito at the page's three body weights (500, 700, 800), Latin-1 and the punctuation she uses, 30 KB each, with its OFL; `tools/fonts.py` makes them from one pinned commit of Google Fonts |
+| `test/tests.cpp` | and now of the menus' words and shapes, the hover lines, `placeMenu`, and the House menu drawn and pressed with no window and no pack art |
+
+What looking showed, and what was done about it:
+
+- **The menus are the page's.** Name and badge, one line, the cats that need her (three at most), the
+  queen's said note under her crown, the divider, the list with the pack's triangle on the default; the
+  House menu below the whole header with the credits at its foot, word for word. The cat under the pointer
+  gets the page's outline, traced round its own shape in the pack's white.
+- **On a phone the app opens zoomed into the room that needs her most** -- the upset cat first -- where the
+  page shows the whole house at an eighth of the screen. That is her audit's first fix, now real; the second,
+  a quick sideways swipe inside a room to the room next door, is in too. The map folds to one button at the
+  bottom right, its pip counting only the cats out of view, as the page's does.
+- **One difference is deliberate: the camera zooms in whole art pixels.** At 1280×800 the house draws at 1×
+  where the page draws it at about 1.3×, so it is smaller, and crisp. Pinch and the wheel step one whole
+  pixel at a time.
+- **What is not built yet says so.** Every card but the Cat card -- the queen's, the brain, the filing
+  cabinet, House rules, Edit rooms, The look, Set up again, adopting a chat -- and the Sound switch are drawn,
+  disabled, with "not yet" beside them; `ui::Ui::cannot()` says why. Nothing is hidden and nothing pretends.
+  A click on a filing cabinet or the litter box opens its room's menu, which lists them.
+- **Two bugs found by looking**, fixed: the House menu opened under the status sign (the page places it
+  under the whole header), and SDL's software renderer drops a scaled blit that crosses the clip rectangle,
+  so the portrait in the Cat card clips its sprite by hand.
+
+```sh
+cmake -S catio-app -B catio-app/build -DCATIO_HEADERS_ONLY=OFF -DCATIO_HEADLESS=ON && cmake --build catio-app/build
+catio-app/build/catio_app --art catio --shot catio-app/.look/desk.png --size 1280x800 --do "click 554 272"
+catio-app/build/catio_app --art catio --shot catio-app/.look/phone.png --size 390x844 --touch
+```
+
+Given a folder instead of a gateway (`--data`; the test's invented cats by default), it draws that and
+writes nothing, and the status sign says these are example cats, not hers.
+
+### Built: the network, for a desk
+
+Asked for the same day ("and then the network code"). The app speaks to her gateway exactly as the café
+page on the gateway's own address does (`harness/gateway/src/cafe.js`, read again on 5 October, after the
+accounts arrived), as its owner, with her password and the cookie -- there is no other way in for a native
+client.
+
+| | |
+|---|---|
+| `src/net_curl.cpp` | `net.h` over libcurl: `/login`'s form, the `__Host-catio` cookie kept by hand in a file only its owner can read, `/api/db` and its writes (`X-Catio: 1`, no Origin, each path segment encoded, the data sent as `{"data": …}`), the tools, the brain's files, `/art/*`; every refusal as the gateway's own `{code, error}`, and `/login`'s as the words on the page it would have shown -- with, when the gateway has no account yet, each of its warning lights that is a cross, which name the Cloudflare secret to fix. Signing out ends the cookie at the gateway too (`/logout`). One worker thread, so no frame waits |
+| `src/app.cpp` | the sign-in screen (the gateway's own sign-in page, ported: it comes before any art, so it is drawn in the committed Nunito); the first read -- documents, `list_agents` and `quizzes` together, as the page reads them; then every piece of art the cache lacks, the house and the meadow first, each drawn as it lands; a read every 30 seconds and at once after a write; a cookie run out or revoked back to the sign-in, the cookie deleted; Sign out, or another account signing in on the device, forgets the art too, and everything drawn from it (the pack's font, the tinted sheets, the paw), since the packs' licences are personal |
+| the first write | **Open this room**, a closed room's PATCH `rooms/<k>` `{closed: false}`, on her press, through `act()` |
+| `test/test_net.py` | a stand-in gateway on the loopback that answers as `cafe.js` does and records what it was sent; its tests check both sides, one of them the app itself: it signs in by typing, reads, fetches every file once, keeps them, and on its next start goes straight in and opens the closed ensuite. `ctest` runs it. It never touches her gateway, and the only password in it is invented |
+
+What looking showed: the sign-in screen is the gateway's page, and a refusal shows in its own red words
+("That handle and password aren't right."), the password field emptied as the page does. Served by the
+stand-in, the app fetched the whole café's art over the network and drew it with no sign at all. A closed
+room is now dimmed under its furniture as the page's is, lighter while lit.
+
+```sh
+catio-app/build/catio_app --gateway https://catio-gateway.<her subdomain>.workers.dev
+catio-app/build/catio_app --gateway ask          # the sign-in screen asks for the address, and remembers it
+python3 catio-app/test/test_net.py catio-app/build
+```
+
 ### Not built yet
 
-- **The app**: `main`, the loop, input, the interface (`ui.h`), and `app.h`'s one function that writes.
-- **The net layer**: `net_curl.cpp` for a desktop, then a body per phone. It is to be tested against a
-  stand-in gateway, the way `harness/test/test_queen.py` tests the queen's runner -- never against hers.
-- **Walking** (`way_to`, `Walks`), **the fonts** (`Pixel`, `Body`, with SDL_ttf), **the voice**.
+- **The phones' net bodies**: `net_android.cpp` (HttpsURLConnection over JNI) and `net_apple.cpp`
+  (NSURLSession). Neither platform has a system libcurl.
+- **The other writes the menus draw**: a chat's mood, renaming and moving a cat, Talk; and the WebSocket
+  (`/ws` checks the Origin, so a native client polls every 30 seconds instead).
+- **Laying the interface out only when it changed.** The world target is drawn again only when something
+  in it changed, and each font keeps what it measured and how it broke each text, but the menus, the header and
+  the map panel are still laid out every frame, at the display's rate (still cats wait for an event instead).
+- **The other cards**, the queen's first; **walking** (`way_to`, `Walks`); the keyboard's focus ring (Tab);
+  the meow; **the voice**.
+- **The window itself has never been opened**: there is no display in the cloud session. The window's
+  code -- the cursor, the events, typing, pinch -- is compiled here with everything else but has never run;
+  every pixel above went through the same drawing code in the software renderer. The first desk build with
+  a windowing system (`-DCATIO_HEADLESS=OFF`, the default) is its first run. **Nor has it met her real
+  gateway**: only the stand-in, by design.
 - **The look.** The app knows nothing of the skin: no tokens, no slots, nothing that edits her colours. If it
   ever grows them, the gap to know about is that SDL3 gives file, save and folder dialogs but **no colour
   picker**, and a colour token needs one. On a desktop that is one call to tinyfiledialogs'
@@ -390,14 +471,15 @@ writes contain the licensed art, so `catio-app/.look/` is gitignored with the bu
 
 ```
 catio-app/
-  CMakeLists.txt         the header check by default; the core, catio_look and catio_tests with -DCATIO_HEADERS_ONLY=OFF
-  cmake/sources.cmake    the core's sources, and the app's still to come
+  CMakeLists.txt         the header check by default; catio_app, catio_look and catio_tests with -DCATIO_HEADERS_ONLY=OFF
+  cmake/sources.cmake    the core's and the app's sources, and what is still to come
   include/catio/*.h      the nine headers; each says what of it is implemented
-  src/                   the core, and catio_look
+  src/                   the core, the interface, the loop, and catio_look
   test/                  catio_tests, and invented fixtures
   generated/manor.json   written by catio/tools/furniture.py
-  assets/  third_party/  the one font to commit, and why nothing is vendored
+  assets/                the one font the app ships: Nunito, OFL
+  third_party/           why nothing is vendored
   android/  ios/         never configured
-  tools/                 fetch SDL's Android archives
+  tools/                 fetch SDL's Android archives; make the fonts
 docs/mobile-app.md       this
 ```

@@ -2,7 +2,18 @@
 
 `README.md` says what the page is. This file is how to work on it.
 
-## Republishing
+## Where the café lives, and the one link to give her
+
+**The café is the Cloudflare link, https://catio-gateway.charlotte-badot.workers.dev, and nothing else** (her call,
+20 October 2026: "Please stop updating the artifact. Only use the Cloudflare link", then, 21 October: "The artifact
+is absolutely useless. Can you please make it so that I have only the Cloudflare link every time you share with me
+things that you've done to the Kitty Chat Cafe?"). So: **never publish the artifact again, and never give her its
+link.** Whenever a session tells her what it did to the café, the link is the Cloudflare one, and only that one. A
+change reaches it by a merge to `main` (Workers Builds deploys the gateway, which serves `catio/index.html`), so
+"done" for her means merged, and until then say so: "it shows at the Cloudflare link once #N merges". The artifact
+and its database still exist and the section below says how it was published, kept only for the record.
+
+## Republishing (retired: the artifact is no longer updated, see above)
 
 The page is **one** private artifact. Its URL is the `kittychat-cafe` entry in `artifacts.json`. Always republish to that
 URL (`Artifact` publish with `url`, after reading it back), never a new one: the database with
@@ -163,7 +174,11 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
     (`pointer.png`) beside the one under the pointer or focus.
 
   Keep to that: a new action is a list item, and only if it earns its place. A card (dialog) puts what she
-  came for first and folds the rest (a cat's facts, management, name and title under Manage).
+  came for first and folds the rest (a cat's facts, management, name and title under Manage). **A session's or
+  agent's card is a scene** (`openCatScene()`, her ask of 20 October: the Dota 2 style chat "with the cats" over the
+  blurred café): the talk with it first, as the queen's (`talkStage()`: its ask or what it is on as the first line,
+  then every line said, one at a time, in `#thread`), your words under it, and the rest (the brain's files, Manage,
+  Open session) on a see-through sheet below. An adopted chat keeps the plain card with its adopt form.
 - Hover means the pointer really moved onto the thing (`moved()`). When the camera moves or a dialog
   closes, the room that slides under a still pointer isn't named until she moves.
 - **Cats walk** when their place changes: through the doorways to a new room, up the stair to nap in the
@@ -241,7 +256,7 @@ with `tok()`. Keep it that way: **a new colour, pixel-font size or art-pixel siz
 rule or a `"#…"` in the script (only `OWNER`'s choices, which are her look, not the café's). A check walks the page for
 one. The text's smaller sizes stay `rem` steps from the browser's own size, as they always were.
 
-**Every piece of art is a slot** (`ART` in the page, 46 of them, named as `docs/drawing-plan.md` names her files:
+**Every piece of art is a slot** (`ART` in the page, one per piece, named as `docs/drawing-plan.md` names her files:
 `panel`, `button`, `cat-meow`, `house`, `owner`, `font`, `font-body`…).
 The CSS and the code name the slot, never the file: a 9-slice is `var(--art-panel) var(--panel-s) fill /
 var(--panel-w)`, a sheet `var(--art-faces)`, the house `<img data-art="house">`, the furniture
@@ -358,18 +373,24 @@ that inflates "3 need you" makes the sign a liar.
   `steps`, the page names them with `stepWords()`); a wait over 45 s gets a loading tip; Stop turns the lit tile pink.
   Her live bubble ends in the pack's triangle turned down, and she bobs only once she has words. Away, with your words
   waiting, it is one line saying why. In claude.ai, with no push, it is "Thinking" until her answer turns up.
-- **Her card is a pause menu** (`openQueen(section)`, her asks of 20 October: "a Legend of Zelda Breath of the Wild
-  style menu interface", then "retro looking, think Zelda Minish Cap, keeping with the pixel art theme"): a row of
-  tabs along the top, each a square button with a pixel icon, the chosen one pressed in with the pack's pointer
-  bobbing over it; its name on a cream banner between two rules; its page; the keys along the foot (← → tabs, Esc;
-  Page Up and Page Down turn the tabs from anywhere that isn't typing). The tabs are Talk, Quest log (with a count),
+- **Her card is a scene over the café** (`openQueen(section)`, her asks of 20 October: "a Legend of Zelda Breath of the
+  Wild style menu interface", then "retro looking, think Zelda Minish Cap, keeping with the pixel art theme", then, that
+  evening, "Get rid of all of the menus … no menu wrapping. You should be able to see the cafe but blurred in the
+  background"): `dialog.scene` is the whole window with no panel, the café showing through blurred behind it
+  (`::backdrop`), and nothing drawn around the talk or the log. Along the top her name, with the note she is saying
+  under it, a row of tabs, each a square button with a pixel icon, the chosen one pressed in with the pack's pointer
+  bobbing over it, and Close; the chosen tab's name in plain pixel type under them; then its page (← → turn the tabs
+  from the tab row, Page Up and Page Down from anywhere that isn't typing). The tabs are Talk, Quest log (with a count),
   What she keeps, Her character, Routines (on the gateway) and You: the last four are what the Settings overlay held
-  (`#queenKeeps`, `#queenCharacter`, `#queenRoutines`, `#queenYou`; her voice switch is on Her character). The icons
+  (`#queenKeeps`, `#queenCharacter`, `#queenRoutines`, `#queenYou`; her voice switch is on Her character), each on a
+  see-through sheet (`.sk-page`, the line box's look), since a form on the blurred café can't be read. The icons
   are cat-themed 90s Barbie tech, drawn in code from the tokens (`SK_ICONS`, `skIcon()`, each letter a token), as her
   own figure is, so a skin recolours them; the menus' actions carry icons the same way (`MI_ICONS`).
-  **Talk is a game dialogue** (her screens: Breath of the Wild's talk with a trader, Dota 2's Crownfall): the owner
+  **Talk is a game dialogue** (her screens: Breath of the Wild's talk with a trader, Dota 2's Crownfall; one stage
+  for every talk, `talkStage()`, which a cat's card uses too): the owner
   of the house on the left, seen from behind (`ownerSVG()`, pixel art drawn in code since no pack has people,
-  dressed from `house/main.owner`), the queen on the right, a name plate under each, whoever isn't speaking dimmed
+  dressed from `house/main.owner`), the queen on the right, both standing on the blurred café itself (no frame, no
+  floor of its own), a name plate under each, whoever isn't speaking dimmed
   (`data-speaker` on `.qstage`), her sprite `talking` once she has words. Between them the line being said, in a
   see-through box (her ask: "opaque, almost transparent": the pack's bubble with no fill over the hall, `color-mix`
   of `--well`), in the speaker's name. **Every line is in the thread** (`#queenThread`, the last twenty: yours
@@ -591,16 +612,26 @@ are the saved copy.
 ## The app draft
 
 `catio-app/` is the café as a native C++ app for a phone (`docs/mobile-app.md`, which says exactly where it
-stands). Its core is built -- the plan, the house, the art, drawing and the view -- and it draws the manor; the
-window loop, the interface and the network are not. Nothing has run on a phone, and `android/` and `ios/` have
-never been configured.
+stands). Its core is built -- the plan, the house, the art, drawing and the view -- and so are the window loop,
+the interface (the brand, the hover line, the menus, the map panel, the Cat card) and, on a desk, the network
+(sign-in, the first read, the art fetched as missing, a 30-second refresh, Open this room). Nothing has run on a
+phone, the window has never been opened (no display in the cloud), it has only ever met a stand-in gateway, and
+`android/` and `ios/` have never been configured.
 
 - **Build:** the default, `cmake -S catio-app -B build && cmake --build build`, is the header check and needs
-  nothing installed. `-DCATIO_HEADERS_ONLY=OFF -DCATIO_HEADLESS=ON` fetches SDL3 and nlohmann/json, builds the
-  core, `catio_look` and `catio_tests` (`ctest`). No SDL_image: SDL 3.4's core loads PNG.
-- **Look first, here too.** `catio_look catio catio-app/generated/manor.json catio-app/test/fixtures out.png
-  ground` (or `upper`, or a room key) renders with no window. Open it and hold it against the page. Its frames
-  contain the licensed art: `catio-app/.look/` is gitignored, never commit one.
+  nothing installed. `-DCATIO_HEADERS_ONLY=OFF -DCATIO_HEADLESS=ON` fetches SDL3, SDL3_ttf and nlohmann/json, needs
+  libcurl installed, builds `catio_app`, `catio_look` and the tests (`ctest`: `catio_tests`, and `catio_net`, which
+  is `test/test_net.py`). No SDL_image: SDL 3.4's core loads PNG.
+- **The network is tested against a stand-in, never her gateway.** `test/test_net.py` runs one on the loopback
+  that answers as `harness/gateway/src/cafe.js` does; keep it in step when the gateway's routes change, as
+  `catio_mcp.py` is kept in step with the gateway's tools. No real password, cookie or key in it, ever.
+- **Look first, here too.** `catio_app --art catio --shot out.png --size 390x844 --touch --do "click 200 300"`
+  draws the whole screen after playing clicks, keys and drags, with no window; `catio_look` draws a floor or a
+  room alone. Open each and hold it against the page's own at the same size. Their frames contain the licensed
+  art: `catio-app/.look/` is gitignored, never commit one.
+- **The interface keeps the page's rules** (`include/catio/ui.h` lists them): no signs on the map, nothing on the
+  cats, two things on screen, every menu one shape. What the app cannot do yet is drawn disabled with "not yet",
+  never hidden. The one font it commits is Nunito (`assets/`, OFL); `sprout.ttf` comes with the art.
 - **The port is line for line.** Each rule in `src/` names the page's original (`GEOM`, `roomFor`, `render()`'s
   placement, `drawFurniture`'s z formula, `COATS`). Change the page's rule and the app's together; the manor
   matches the page's own `#world` pixel for pixel, the coats match Chromium byte for byte, and a change that
