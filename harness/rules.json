@@ -19,7 +19,7 @@
     {
       "id": "ship",
       "title": "Semi-automatic shipping",
-      "text": "Once a change passes the repo's own checks, commit it and push it to the session's branch without asking, and open a pull request when the work is a complete unit and none is open. Never push to the default branch or force-push, delete a branch only once it is merged (in a repo where Charlotte merges the pull requests, only with her OK: the harness asks her), and ask first before anything else that leaves the machine (publishing, posting, sending, paying). The harness refuses pushes to the default branch, force-pushes and deleting an unmerged branch, and reminds you when a turn ends with work left unpushed.",
+      "text": "Once a change passes the repo's own checks, commit it and push it to the session's branch without asking, and open a pull request when the work is a complete unit and none is open. Never push to the default branch or force-push, delete a branch only once it is merged (in a repo where Charlotte merges the pull requests, only with her OK: the harness asks her), and ask first before anything else that leaves the machine (publishing, posting, sending, paying). The harness refuses pushes to the default branch, force-pushes and deleting an unmerged branch with git push, and reminds you when a turn ends with work left unpushed.",
       "enforced": true,
       "on": true
     },

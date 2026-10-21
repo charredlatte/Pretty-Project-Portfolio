@@ -589,14 +589,18 @@ class Pushing(unittest.TestCase):
         self.assertIn(f"delete done ({self.work.name}), also ({self.work.name})?", out["permissionDecisionReason"])
         self.assertIn("only with her OK", out["permissionDecisionReason"])
         self.assertEqual(self.asks("git push origin :done")["permissionDecision"], "ask")
-        self.assertEqual(self.asks(f"cd {self.work} && git push origin --delete done 2>&1")["permissionDecision"], "ask")
+        self.assertEqual(self.asks(f"cd {self.work} && git push origin --delete done")["permissionDecision"], "ask")
+        self.assertIn(f"delete done ({self.work.name})?", self.asks("git push origin -d done done")["permissionDecisionReason"])
         # her OK is never asked for what the gate refuses, in the same push or another one in the command
         self.assertIn("open isn't merged into main, so it stays", self.push("git push origin --delete done open").stderr)
         self.assertEqual(self.push("git push origin --delete done; git push origin main").returncode, 2)
         self.assertEqual(self.push("git push origin --delete done && git push --force origin open").returncode, 2)
         # and her OK covers the whole command, so nothing the gate doesn't read may come with it
         for command in ("git push origin --delete done && gh api -X DELETE repos/o/r/git/refs/heads/open",
-                        "git push origin --delete done | tail -1", "git push origin --delete done & rm x"):
+                        "git push origin --delete done | tail -1", "git push origin --delete done & rm x",
+                        "git push origin --delete done; git push origin open", "git push origin --delete done > out",
+                        "git push origin --delete done 2>&1", "git -c core.hooksPath=/tmp/x push origin --delete done",
+                        "git push --receive-pack=/tmp/x origin --delete done", "git push origin --delete done\nrm x"):
             r = self.push(command)
             self.assertEqual(r.returncode, 2, command)
             self.assertIn("a branch deletion goes on its own", r.stderr)

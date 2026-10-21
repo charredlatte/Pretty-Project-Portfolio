@@ -117,16 +117,19 @@ def merges(cwd=None):
     return rule.get("on", False) is not False and local(cwd).get("merge") is True
 
 
-def git(*args, cwd=None):
+def git(*args, cwd=None, timeout=None):
     """git's answer, or None. Decoded as UTF-8, which is what git writes: text=True would decode with the
     locale's encoding, cp1252 on Windows, and a path with an accent in it came back mangled - so it matched
-    no held path she had spelt properly, and the change merged unheld on Windows alone."""
+    no held path she had spelt properly, and the change merged unheld on Windows alone.
+
+    With a timeout, git runs with no pipes and answers "" or None: on Windows a helper git starts (ssh,
+    git-remote-https) holds a captured pipe open after git itself is killed, and the wait outlives the timeout."""
+    out = {"capture_output": True} if timeout is None else {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
     try:
-        r = subprocess.run(["git", *args], cwd=cwd, capture_output=True,
-                           encoding="utf-8", errors="surrogateescape")
-    except OSError:  # cwd isn't there
+        r = subprocess.run(["git", *args], cwd=cwd, encoding="utf-8", errors="surrogateescape", timeout=timeout, **out)
+    except (OSError, subprocess.TimeoutExpired):  # cwd isn't there, or git took too long
         return None
-    return r.stdout.strip() if r.returncode == 0 else None
+    return (r.stdout or "").strip() if r.returncode == 0 else None
 
 
 def default_branch(cwd):
