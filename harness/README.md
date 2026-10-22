@@ -176,12 +176,14 @@ with `--force-with-lease` would close it, but that is the force-push the rule fo
 access hasn't been able to delete branches, so turn on GitHub's
 *Automatically delete head branches* (each repo's Settings → General → Pull Requests): then the merge deletes
 it. Pushing to the default branch and force-pushing stay forbidden everywhere. The gate reads the ordinary ways
-of running `git push`, `gh pr merge` and `gh api`; it is a guard rail for a session that means well, not a sandbox.
-A merge through `gh api` (`-X PUT repos/<owner>/<repo>/pulls/<n>/merge`, its `sha`, `commit_message` and
-`merge_method` from `-f`, `-F`, an `-F key=@file` or `--input file`) is checked exactly as `merge_pull_request` is.
-The ones that name no pull request to check are refused: GraphQL's `mergePullRequest`, `enablePullRequestAutoMerge`
-and `mergeBranch`, and `POST repos/<owner>/<repo>/merges`, which merges a branch with no pull request at all. A
-body the hook can't read (stdin, a file it can't open) is refused too. A raw `curl` to the API is not read.
+of running `git push`, `gh pr merge`, `gh api` and `curl`; it is a guard rail for a session that means well, not a
+sandbox. A merge through `gh api` (`-X PUT repos/<owner>/<repo>/pulls/<n>/merge`, its `sha`, `commit_message` and
+`merge_method` from `-f`, `-F`, an `-F key=@file` or `--input file`) or `curl` (`-X PUT` to the same path on the
+API, the fields as one JSON object from `-d`, `--data-raw`, `--json`, `-d @file` or `-T file`) is checked exactly as
+`merge_pull_request` is. The ones that name no pull request to check are refused: GraphQL's `mergePullRequest`,
+`enablePullRequestAutoMerge` and `mergeBranch`, and `POST repos/<owner>/<repo>/merges`, which merges a branch with
+no pull request at all. A body the hook can't read (stdin, a file it can't open, not one JSON object) is refused
+too. Other HTTP clients (`wget`, a script) and a curl `--config` file are not read.
 
 In a repo that doesn't opt in, a finished pull request is hers to merge, and the session says so in those
 words: "PR #N is ready for you to merge."

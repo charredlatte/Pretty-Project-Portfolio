@@ -9,9 +9,9 @@ merge   semi-automatic merging. A pull request merges only in a repo that opts i
         reviewed (expectedHeadSha = HEAD, nothing uncommitted), nothing on the hold list changed, and the commit
         message ends with "Checks: <what passed>" and "Guesses: none". What the session can fix, it is told to fix.
         Guesswork (a guess it names, a model not on the list, a held path) is held for Charlotte: the pull request
-        stays open, and a note for her review goes in the litter box. A merge through `gh api` is checked the same
-        way (the REST merge), or refused when it names no pull request to check (GraphQL's merge mutations, and
-        POST .../merges, which merges one branch into another with no pull request at all).
+        stays open, and a note for her review goes in the litter box. A merge through `gh api` or `curl` is checked
+        the same way (the REST merge), or refused when it names no pull request to check (GraphQL's merge
+        mutations, and POST .../merges, which merges one branch into another with no pull request at all).
 """
 import json
 import os
@@ -41,6 +41,19 @@ GQL_MERGE = re.compile(r"\b(?:mergePullRequest|enablePullRequestAutoMerge|mergeB
 API_SHORT = {"X": "method", "f": "raw", "F": "typed", "H": None, "q": None, "t": None, "p": None}
 API_LONG = {"--method": "method", "--raw-field": "raw", "--field": "typed", "--input": "input", "--header": None,
             "--jq": None, "--template": None, "--hostname": None, "--preview": None, "--cache": None}
+CURL = re.compile(START + rf"curl\b", re.M)
+# curl's options, by what they mean to a merge: the method, the body (data reads @file, raw doesn't), the URL, and
+# the switches that change the method. Other options that take a value are None; any other letter is a switch.
+CURL_SHORT = {"X": "method", "d": "data", "T": "upload", "G": "get", "I": "head",
+              **dict.fromkeys("HoAebcwxFEKmrYyzCUPQtuD")}
+CURL_LONG = {"--request": "method", "--data": "data", "--data-binary": "data", "--data-ascii": "data", "--json": "json",
+             "--data-raw": "raw", "--data-urlencode": "raw", "--upload-file": "upload", "--url": "url", "--get": "get",
+             "--head": "head",
+             **dict.fromkeys(("--header", "--output", "--user", "--user-agent", "--referer", "--cookie",
+             "--cookie-jar", "--write-out", "--proxy", "--form", "--form-string", "--cert", "--config", "--max-time",
+             "--range", "--connect-timeout", "--retry", "--oauth2-bearer", "--resolve", "--connect-to", "--cacert",
+             "--key", "--dump-header", "--continue-at", "--proxy-user", "--quote", "--time-cond", "--speed-limit",
+             "--speed-time", "--trace", "--trace-ascii", "--stderr", "--interface", "--limit-rate", "--max-filesize"))}
 MERGE = re.compile(r"__merge_pull_request$")
 API_WRITES = re.compile(r"__(push_files|create_or_update_file|delete_file)$")
 SAY = "House rule (KittyChat): "
@@ -375,14 +388,73 @@ def api_fields(got, place):
         return None
 
 
+def curl(args, place):
+    """The URLs, the method and the body (by name, or None when the hook can't read it) of `curl` args, read as
+    curl reads them: -XPUT, -X PUT, -sSX PUT and --request=PUT alike; -d @file read from the file."""
+    urls, method, body, switch, i = [], "", [], "", 0
+    while i < len(args):
+        a, i = args[i], i + 1
+        if a.startswith("--"):
+            key, eq, value = a.partition("=")
+            if key not in CURL_LONG:
+                continue                      # a switch: --silent, --location...
+            kind, value = CURL_LONG[key], (value if eq else None)
+        elif a.startswith("-") and len(a) > 1:
+            at = next((j for j in range(1, len(a)) if a[j] in CURL_SHORT), None)
+            if at is None:
+                continue                      # switches only: -sS, -L, -k
+            kind, value = CURL_SHORT[a[at]], (a[at + 1:] or None)
+        else:
+            urls.append(a)
+            continue
+        if kind in ("get", "head"):
+            switch = kind.upper()
+            continue
+        if value is None:
+            value, i = (args[i] if i < len(args) else ""), i + 1
+        if kind == "method":
+            method = value
+        elif kind == "url":
+            urls.append(value)
+        elif kind in ("data", "json", "raw", "upload"):
+            body.append((kind, value))
+    implied = "PUT" if any(k == "upload" for k, _ in body) else "POST" if body else "GET"
+    method = (method or switch or implied).upper()
+    def read(kind, value):                    # what curl sends for one of them
+        if kind == "raw":
+            return value
+        if value in ("@-", "-"):
+            raise ValueError("stdin")
+        if kind == "upload" or value.startswith("@"):
+            return Path(place, value if kind == "upload" else value[1:]).read_text(encoding="utf-8")
+        return value
+    try:                                      # curl joins its data with &: more than one isn't a JSON object
+        fields = json.loads("&".join(read(k, v) for k, v in body)) if body else {}
+        fields = {k: str(v) for k, v in fields.items()} if isinstance(fields, dict) else None
+    except (OSError, ValueError):             # stdin, a file it can't open, not JSON
+        fields = None
+    return urls, method, fields
+
+
 def check_api(data, place, args, text, prefix):
-    """A merge done with `gh api`: the REST merge is checked as merge_pull_request is; the endpoints that name no
-    pull request to check are refused. Reads (GET, and gh's default with no fields) go through."""
+    """A merge done with `gh api`: read its call, then check it as check_endpoint does."""
     got = gh_api(args)
     method = (got["method"] or ("POST" if got["fields"] or got["input"] is not None else "GET")).upper()
+    check_endpoint(data, place, got["endpoint"], method, api_fields(got, place), text, prefix)
+
+
+def check_curl(data, place, args, text):
+    """A merge done with `curl` to GitHub's API: read its call, then check each URL as check_endpoint does."""
+    urls, method, fields = curl(args, place)
+    for url in urls:
+        check_endpoint(data, place, url.split("?")[0].split("#")[0], method, fields, text, "")
+
+
+def check_endpoint(data, place, end, method, fields, text, prefix):
+    """A merge through GitHub's API: the REST merge is checked as merge_pull_request is; the endpoints that name no
+    pull request to check are refused. Reads (GET, HEAD) go through."""
     if method in ("GET", "HEAD"):
         return                                # GET .../merge only asks whether it merged
-    end, fields = got["endpoint"], api_fields(got, place)
     if end.rstrip("/").endswith("graphql"):   # what it sends, as far as the hook can see it: the command and the body
         if GQL_MERGE.search(text) or GQL_MERGE.search(" ".join((fields or {}).values())):
             block(SAY + "a GraphQL merge names no pull request number the house rules can check. Merge with "
@@ -397,8 +469,8 @@ def check_api(data, place, args, text, prefix):
     if not m.group(3).isdigit():
         block(SAY + "name the pull request's number, so the house rules can check the merge.")
     if fields is None:
-        block(SAY + "the house rules can't read this merge's fields (from stdin, or a file they can't open). Pass "
-              "commit_message and sha with -f, or merge with merge_pull_request.")
+        block(SAY + "the house rules can't read this merge's fields (from stdin, a file they can't open, or not one "
+              "JSON object). Spell commit_message and sha out in the command, or merge with merge_pull_request.")
     here = (gh_repo(prefix) or slug(git("rev-parse", "--show-toplevel", cwd=place) or place) or "/").split("/", 1)
     owner, repo = (h if g.startswith(("{", ":")) else g for g, h in zip(m.group(1, 2), here + [""]))
     check_merge(data, place, f"{owner}/{repo}", m.group(3), fields.get("commit_message"), fields.get("sha"),
@@ -444,7 +516,8 @@ def check(data, tool, args, cwd, command):
                 block(SAY + "auto-merge can't be pinned to the commit that was reviewed: merge without --auto.")
             if not str(got.get("number", "")).isdigit():
                 block(SAY + "name the pull request's number, so the house rules can check the merge.")
-            name = got.get("repo") or gh_repo(m.group(0)) or slug(git("rev-parse", "--show-toplevel", cwd=place) or place)
+            name = got.get("repo") or gh_repo(m.group(0)) \
+                or slug(git("rev-parse", "--show-toplevel", cwd=place) or place)
             check_merge(data, place, name, got["number"], got.get("body"), got.get("head"), got.get("method"))
     for text in texts:
         for m in GH_API.finditer(text):
@@ -453,6 +526,13 @@ def check(data, tool, args, cwd, command):
                 continue
             seen.add(("api", place, *args))
             check_api(data, place, args, text, m.group(0))
+    for text in texts:
+        for m in CURL.finditer(text):
+            place, args = where(text, m.start(), cwd), words(text[m.end():])
+            if ("curl", place, *args) in seen:
+                continue
+            seen.add(("curl", place, *args))
+            check_curl(data, place, args, text)
     if hers:  # asked last, so her OK never carries anything the checks above would refuse
         ask(SAY + f"delete {'; '.join(dict.fromkeys(hers))}? Where Charlotte merges by hand, a branch is deleted only "
             "with her OK.")
