@@ -445,6 +445,13 @@ class Merging(unittest.TestCase):
             r = self.merge(repo=name, head=self.head(repo))
             self.assertEqual(r.returncode, 0, (hold, r.stderr))
             self.assertIsNone(self.note(name), hold)
+        # A dot-folder holds like any other: a workflow change in this repo's own shape waits for her
+        wf = self.checkout("wf", {"merge": True, "hold": ["harness/", ".github/"]})
+        Path(wf, ".github", "workflows").mkdir(parents=True); Path(wf, ".github", "workflows", "x.yml").write_text("on: push")
+        self.g("add", "-A"); self.g("commit", "-qm", "workflow")
+        r = self.merge(repo="wf", head=self.head(wf))
+        self.assertEqual(r.returncode, 2, r.stderr)
+        self.assertIn("it changes .github, which always waits for her", r.stderr)
         # And saying nothing is not saying it wrong: with no "hold" key at all the gate must not accuse her of
         # a list she never wrote. Reading it without the UNSET sentinel holds every merge in such a repo.
         quiet = self.checkout("quiet", {"merge": True})
@@ -1190,7 +1197,7 @@ class Common(unittest.TestCase):
         rules = json.loads((HOOKS.parent.parent / ".claude" / "catio-rules.json").read_text(encoding="utf-8"))
         paths, unreadable = self.c.holds(rules)
         self.assertFalse(unreadable)
-        self.assertEqual({"harness/", ".github/"} - set(paths), set())
+        self.assertEqual({"harness", ".github"} - {p.rstrip("/") for p in paths}, set())
 
     def test_one_transcript_reader_and_who_counts(self):
         tmp = Path(tempfile.mkdtemp())
