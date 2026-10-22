@@ -1186,6 +1186,12 @@ class Common(unittest.TestCase):
         self.assertEqual((said["permissionDecision"], said["permissionDecisionReason"], said["additionalContext"]),
                          ("ask", "delete done?", "a nudge"))
 
+    def test_this_repos_own_hold_list_keeps_the_rules_and_the_workflows_for_her(self):
+        rules = json.loads((HOOKS.parent.parent / ".claude" / "catio-rules.json").read_text(encoding="utf-8"))
+        paths, unreadable = self.c.holds(rules)
+        self.assertFalse(unreadable)
+        self.assertEqual({"harness/", ".github/"} - set(paths), set())
+
     def test_one_transcript_reader_and_who_counts(self):
         tmp = Path(tempfile.mkdtemp())
         rows = [{"type": "assistant", "message": {"model": "claude-opus-5-5"}},

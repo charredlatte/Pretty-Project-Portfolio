@@ -446,8 +446,10 @@ Sessions here commit, push and open pull requests without asking, and **merge th
 semi-automatically** (Charlotte's call, 2 October 2026): the house rules' merging rule (`harness/README.md`,
 "Semi-automatic merging") merges only when a strong model did the work, the audits and a review of the last
 commit ran and nothing is a guess, and holds the rest for her with a note in the litter box. A change under
-`harness/`, `.claude/` or `.github/workflows/` always waits for her: those are the rules themselves, the gateway
-deploys on merge, and a workflow runs with the repo's write token (Prune merged branches deletes branches).
+`harness/`, `.claude/` or `.github/` always waits for her: those are the rules themselves, the gateway deploys on
+merge, and `main`'s workflows run with the repo's token (Prune merged branches deletes branches). The hold keeps
+`main`'s copy of a workflow hers; it can't stop a branch running its own edited copy, which only GitHub's branch
+protection could.
 
 **Nothing here credits Claude, nor in her other public repos** (her rule, 1 and 2 October): no `Co-Authored-By:
 Claude` or `Claude-Session:` lines in commits, and no "Generated with Claude Code" lines or session links in pull

@@ -327,7 +327,8 @@ to apply it.
 ## What never delegates
 
 - Merging, pushing to a default branch, anything under `hold`: the gates refuse these whoever the model is.
-- Changes under `harness/` or `.claude/`: the rules themselves.
+- Changes under `harness/`, `.claude/` or `.github/`: the rules themselves, and the workflows that run with the
+  repo's token.
 - Anything needing a browser, or a key.
 - Her private matters.
 - The queen herself: she stays on the runner's default model. A cheaper queen would be a cheaper assistant.
