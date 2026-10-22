@@ -597,6 +597,52 @@ class Merging(unittest.TestCase):
             r = api(fine)
             self.assertEqual(r.returncode, 0, (fine, r.stderr))
 
+    def test_a_merge_through_curl_is_checked_like_any_other(self):
+        """curl to GitHub's API merged with no check at all, after gh api was gated on 22 October."""
+        api = lambda cmd: self.gate("Bash", {"command": cmd}, cwd=self.repo)
+        url = "https://api.github.com/repos/charredlatte/cafe/pulls/7/merge"
+        auth = '-H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json"'
+        body = lambda **f: shlex.quote(json.dumps(f))
+        ok = body(sha=self.head(), commit_message=self.CARD)
+        for same in (f"curl -sS -X PUT {auth} {url} -d {ok}", f"curl -sSXPUT {url} --data-raw {ok}",
+                     f"curl --request=PUT --url {url} --json {ok}", f"cd cafe && curl -X PUT '{url}?x=1' -d {ok}"):
+            r = self.gate("Bash", {"command": same}, cwd=self.tmp if same.startswith("cd") else self.repo)
+            self.assertEqual(r.returncode, 0, (same, r.stderr))
+        Path(self.repo, "body.json").write_text(json.dumps({"sha": self.head(), "commit_message": self.CARD}))
+        self.assertEqual(api(f"curl -X PUT {url} -d @body.json").returncode, 0)
+        self.assertEqual(api(f"curl -T body.json {url}").returncode, 0)        # -T is a PUT of the file
+        # what the session can fix is sent back, guesswork held, as with merge_pull_request
+        self.assertIn("not ready to merge PR #7", api(f"curl -X PUT {url}").stderr)
+        self.assertIn("pass expectedHeadSha", api(f"curl -X PUT {url} -d {body(commit_message=self.CARD)}").stderr)
+        self.assertIn("not squash", api(f"curl -X PUT {url} -d {body(sha=self.head(), commit_message=self.CARD, merge_method='squash')}").stderr)
+        self.assertIn("not ready to merge PR #7", api(f"curl {url} -d {body(merge_method='merge')}").stderr)   # data: a POST
+        Path(self.repo, "harness").mkdir(); Path(self.repo, "harness", "x").write_text("1")
+        self.g("add", "-A"); self.g("commit", "-qm", "rules")
+        r = api(f"curl -X PUT {url} -d {body(sha=self.head(), commit_message=self.CARD)}")
+        self.assertIn("it changes harness, which always waits for her", r.stderr)
+        self.assertIsNotNone(self.note())
+        # a repo that doesn't merge its own: hers, however it is asked for
+        self.checkout("hers")
+        self.assertIn("doesn't merge its own pull requests", api(f"curl -X PUT {url.replace('cafe', 'hers')}").stderr)
+        # what can't be checked is refused
+        self.assertIn("name the pull request's number", api(f"curl -X PUT {url.replace('/7/', '/$PR/')}").stderr)
+        for unread in (f"curl -X PUT {url} -d @-", f"curl -X PUT {url} -d @gone.json", f"curl -X PUT {url} -d sha=abc",
+                       f"curl -X PUT {url} -d {ok} -d {ok}"):
+            self.assertIn("can't read this merge's fields", api(unread).stderr, unread)
+        self.assertIn("with no pull request",
+                      api(f"curl -X POST https://api.github.com/repos/charredlatte/cafe/merges -d {body(base='main', head='feature')}").stderr)
+        q = body(query='mutation { mergePullRequest(input: {pullRequestId: "PR_x"}) { clientMutationId } }')
+        self.assertIn("GraphQL merge", api(f"curl -X POST https://api.github.com/graphql {auth} -d {q}").stderr)
+        Path(self.repo, "q.json").write_text(json.dumps({"query": "mutation { enablePullRequestAutoMerge(input: {pullRequestId: \"PR_x\"}) { clientMutationId } }"}))
+        self.assertIn("GraphQL merge", api("curl https://api.github.com/graphql -d @q.json").stderr)
+        # reading goes through: asking whether it merged, and every other call
+        for fine in (f"curl -sS {auth} {url}", f"curl -I {url}", f"curl -G {url} -d per_page=1",
+                     f"curl -X POST https://api.github.com/graphql -d {body(query='{ viewer { login } }')}",
+                     f"curl -X POST https://api.github.com/repos/charredlatte/cafe/issues/7/comments -d {body(body='merge')}",
+                     "curl -fsSL https://example.com/install.sh -o install.sh"):
+            r = api(fine)
+            self.assertEqual(r.returncode, 0, (fine, r.stderr))
+
 
 class Pushing(unittest.TestCase):
     def setUp(self):
