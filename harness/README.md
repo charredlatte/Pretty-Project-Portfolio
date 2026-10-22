@@ -137,7 +137,8 @@ It merges only when all of these hold:
 - **Nothing is a guess.** The commit message says `Guesses: none`.
 - **Nothing on the hold list changed.** `.claude/` always waits for her: it holds the switches, permissions
   and skills that steer every later session. A repo adds its own in `"hold"`. This repo holds `harness/`: the
-  house rules shouldn't merge changes to themselves, and the gateway deploys on every merge to `main`.
+  house rules shouldn't merge changes to themselves, and the gateway deploys on every merge to `main`. It also
+  holds `.github/workflows/`: a workflow runs with the repo's write token, and one of them deletes branches.
 - **The hold list can be read at all.** It is the one setting whose loss is silent, so a `"hold"` the rule
   cannot match against git's own paths holds *every* pull request in that repo, with the file it is in named,
   rather than protecting nothing quietly. A list of plain repo-relative paths is read (spacing is trimmed, and

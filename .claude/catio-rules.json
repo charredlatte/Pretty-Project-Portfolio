@@ -1,6 +1,7 @@
 {
   "merge": true,
   "hold": [
-    "harness/"
+    "harness/",
+    ".github/workflows/"
   ]
 }
