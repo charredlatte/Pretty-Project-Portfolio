@@ -9,8 +9,11 @@ merge   semi-automatic merging. A pull request merges only in a repo that opts i
         reviewed (expectedHeadSha = HEAD, nothing uncommitted), nothing on the hold list changed, and the commit
         message ends with "Checks: <what passed>" and "Guesses: none". What the session can fix, it is told to fix.
         Guesswork (a guess it names, a model not on the list, a held path) is held for Charlotte: the pull request
-        stays open, and a note for her review goes in the litter box.
+        stays open, and a note for her review goes in the litter box. A merge through `gh api` is checked the same
+        way (the REST merge), or refused when it names no pull request to check (GraphQL's merge mutations, and
+        POST .../merges, which merges one branch into another with no pull request at all).
 """
+import json
 import os
 import re
 import shlex
@@ -30,6 +33,14 @@ PUSH = re.compile(START + rf"git{GAP}(?:(?:-C{GAP}(\S+)|-c{GAP}\S+|--[\w-]+(?:=\
 # The one command a deletion she is asked about may be, matched on the raw text: no shell reading to get wrong
 LONE = re.compile(r"git push origin(?: (?:-d|--delete)(?: (?!-)[\w./-]+)+|(?: :(?!-)[\w./-]+)+)")
 GH_MERGE = re.compile(START + rf"gh{GAP}pr{GAP}merge\b", re.M)
+GH_API = re.compile(START + rf"gh{GAP}api\b", re.M)
+API_PR_MERGE = re.compile(r"(?:^|/)repos/([^/]+)/([^/]+)/pulls/([^/?#]*)/merge/?(?:[?#]|$)")  # PUT: the REST merge
+API_BRANCH_MERGE = re.compile(r"(?:^|/)repos/[^/]+/[^/]+/merges/?(?:[?#]|$)")      # POST: a branch, no pull request
+GQL_MERGE = re.compile(r"\b(?:mergePullRequest|enablePullRequestAutoMerge|mergeBranch)\b")
+# gh api's options that take a value, by what they mean here (None: a value that doesn't matter to a merge)
+API_SHORT = {"X": "method", "f": "raw", "F": "typed", "H": None, "q": None, "t": None, "p": None}
+API_LONG = {"--method": "method", "--raw-field": "raw", "--field": "typed", "--input": "input", "--header": None,
+            "--jq": None, "--template": None, "--hostname": None, "--preview": None, "--cache": None}
 MERGE = re.compile(r"__merge_pull_request$")
 API_WRITES = re.compile(r"__(push_files|create_or_update_file|delete_file)$")
 SAY = "House rule (KittyChat): "
@@ -308,6 +319,92 @@ def gh_merge(args):
     return out
 
 
+def gh_repo(prefix):
+    """The owner/repo GH_REPO gives gh, set before the command (`GH_REPO=a/b gh ...`) or in the session."""
+    m = re.search(r"\bGH_REPO=(\S+)", prefix)
+    return (m.group(1).strip("'\"") if m else os.environ.get("GH_REPO", "")).split("github.com/")[-1]
+
+
+def gh_api(args):
+    """The endpoint, method, fields ((typed, "key=value") pairs) and --input file of `gh api` args, read as gh's
+    flag parser reads them: -XPUT, -X=PUT, --method=PUT and -X PUT alike."""
+    out, i = {"endpoint": "", "method": "", "fields": [], "input": None}, 0
+    while i < len(args):
+        a, i = args[i], i + 1
+        if a.startswith("--"):
+            key, eq, value = a.partition("=")
+            if key not in API_LONG:
+                continue                      # a switch: --paginate, --silent, --verbose...
+            kind, value = API_LONG[key], (value if eq else None)
+        elif a.startswith("-") and len(a) > 1:
+            at = next((j for j in range(1, len(a)) if a[j] in API_SHORT), None)  # past switches like -i
+            if at is None:
+                continue
+            kind, rest = API_SHORT[a[at]], a[at + 1:]
+            value = rest[1:] if rest.startswith("=") else (rest or None)
+        else:
+            out["endpoint"] = out["endpoint"] or a
+            continue
+        if value is None:
+            value, i = (args[i] if i < len(args) else ""), i + 1
+        if kind in ("raw", "typed"):
+            out["fields"].append((kind == "typed", value))
+        elif kind:
+            out[kind] = value
+    return out
+
+
+def api_fields(got, place):
+    """The body a `gh api` call sends, by name, or None when the hook can't read it (stdin, a file it can't open,
+    not a JSON object). With --input the file is the body (the fields go in the query string); without it, the
+    -f and -F fields are, an -F @file read as gh reads it."""
+    try:
+        if got["input"] is not None:
+            body = json.loads(Path(place, got["input"]).read_text(encoding="utf-8")) if got["input"] != "-" else None
+            return {k: str(v) for k, v in body.items()} if isinstance(body, dict) else None
+        fields = {}
+        for typed, pair in got["fields"]:
+            key, _, value = pair.partition("=")
+            if typed and value.startswith("@"):
+                if value == "@-":
+                    return None
+                value = Path(place, value[1:]).read_text(encoding="utf-8")
+            fields[key] = value
+        return fields
+    except (OSError, ValueError):
+        return None
+
+
+def check_api(data, place, args, text, prefix):
+    """A merge done with `gh api`: the REST merge is checked as merge_pull_request is; the endpoints that name no
+    pull request to check are refused. Reads (GET, and gh's default with no fields) go through."""
+    got = gh_api(args)
+    method = (got["method"] or ("POST" if got["fields"] or got["input"] is not None else "GET")).upper()
+    if method in ("GET", "HEAD"):
+        return                                # GET .../merge only asks whether it merged
+    end, fields = got["endpoint"], api_fields(got, place)
+    if end.rstrip("/").endswith("graphql"):   # what it sends, as far as the hook can see it: the command and the body
+        if GQL_MERGE.search(text) or GQL_MERGE.search(" ".join((fields or {}).values())):
+            block(SAY + "a GraphQL merge names no pull request number the house rules can check. Merge with "
+                  "merge_pull_request, as the merging rule says.")
+        return
+    if API_BRANCH_MERGE.search(end):
+        block(SAY + "POST .../merges merges one branch into another with no pull request, so nothing checks it. "
+              "Open a pull request and merge it with merge_pull_request.")
+    m = API_PR_MERGE.search(end)
+    if not m:
+        return
+    if not m.group(3).isdigit():
+        block(SAY + "name the pull request's number, so the house rules can check the merge.")
+    if fields is None:
+        block(SAY + "the house rules can't read this merge's fields (from stdin, or a file they can't open). Pass "
+              "commit_message and sha with -f, or merge with merge_pull_request.")
+    here = (gh_repo(prefix) or slug(git("rev-parse", "--show-toplevel", cwd=place) or place) or "/").split("/", 1)
+    owner, repo = (h if g.startswith(("{", ":")) else g for g, h in zip(m.group(1, 2), here + [""]))
+    check_merge(data, place, f"{owner}/{repo}", m.group(3), fields.get("commit_message"), fields.get("sha"),
+                fields.get("merge_method"))
+
+
 def check(data, tool, args, cwd, command):
     if re.search(r"enable_pr_auto_merge$", tool):
         block(SAY + "auto-merge can't be pinned to the commit that was reviewed. Merge with merge_pull_request, "
@@ -347,8 +444,15 @@ def check(data, tool, args, cwd, command):
                 block(SAY + "auto-merge can't be pinned to the commit that was reviewed: merge without --auto.")
             if not str(got.get("number", "")).isdigit():
                 block(SAY + "name the pull request's number, so the house rules can check the merge.")
-            name = got.get("repo") or slug(git("rev-parse", "--show-toplevel", cwd=place) or place)
+            name = got.get("repo") or gh_repo(m.group(0)) or slug(git("rev-parse", "--show-toplevel", cwd=place) or place)
             check_merge(data, place, name, got["number"], got.get("body"), got.get("head"), got.get("method"))
+    for text in texts:
+        for m in GH_API.finditer(text):
+            place, args = where(text, m.start(), cwd), words(text[m.end():])
+            if ("api", place, *args) in seen:
+                continue
+            seen.add(("api", place, *args))
+            check_api(data, place, args, text, m.group(0))
     if hers:  # asked last, so her OK never carries anything the checks above would refuse
         ask(SAY + f"delete {'; '.join(dict.fromkeys(hers))}? Where Charlotte merges by hand, a branch is deleted only "
             "with her OK.")

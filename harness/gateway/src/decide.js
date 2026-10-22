@@ -19,7 +19,7 @@ export const PRESETS = {
 		spelled_out: { type: "noul", instructions: "Does the task name exactly what to produce or change (a file, a test, an output), with no design judgement left open?" },
 		checkable: { type: "noul", instructions: "Would a test, a build or a diff show whether the task is done?" },
 		small: { type: "noul", instructions: "Is the task confined to one file, or read-only across several?" },
-		held_path: { type: "noul", instructions: "Does the task touch harness/, .claude/, the house rules, merging, pushing, or a default branch?" },
+		held_path: { type: "noul", instructions: "Does the task touch harness/, .claude/, .github/ (the workflows), the house rules, merging, pushing, or a default branch?" },
 		private: { type: "noul", instructions: "Does the task involve legal, money, health or other private personal matters?" },
 		browser: { type: "noul", instructions: "Does the task need a web browser, a login, or a key?" },
 	},
