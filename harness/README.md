@@ -139,9 +139,11 @@ It merges only when all of these hold:
   and skills that steer every later session. A repo adds its own in `"hold"`. This repo holds `harness/`: the
   house rules shouldn't merge changes to themselves, and the gateway deploys on every merge to `main`. It also
   holds `.github/`: the workflows run with the repo's token, and one of them deletes branches. That keeps
-  `main`'s copy of a workflow hers, and no more: GitHub runs a branch's own edited copy on a push or a pull
-  request before anything merges. Only a GitHub setting closes that (a ruleset restricting pushes to
-  `.github/**`, or requiring approval before workflows run); branch protection on `main` does not.
+  `main`'s copy of a workflow hers, and no more: GitHub runs a branch's own edited copy before anything merges,
+  on a push, a pull request, or a run started by hand on that branch (the way Prune merged branches runs). Nothing
+  in the house rules can stop that, and neither can branch protection on `main` or GitHub's approval for
+  workflow runs, which covers forks only. Restricting pushes to `.github/**` with a ruleset would, where her plan
+  offers one for this repo.
 - **The hold list can be read at all.** It is the one setting whose loss is silent, so a `"hold"` the rule
   cannot match against git's own paths holds *every* pull request in that repo, with the file it is in named,
   rather than protecting nothing quietly. A list of plain repo-relative paths is read (spacing is trimmed, and

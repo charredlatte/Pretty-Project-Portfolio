@@ -448,10 +448,11 @@ class Merging(unittest.TestCase):
         # A dot-folder holds like any other: a workflow change in this repo's own shape waits for her
         wf = self.checkout("wf", {"merge": True, "hold": ["harness/", ".github/"]})
         Path(wf, ".github", "workflows").mkdir(parents=True); Path(wf, ".github", "workflows", "x.yml").write_text("on: push")
-        self.g("add", "-A"); self.g("commit", "-qm", "workflow")
+        subprocess.run(["git", "add", "-A"], cwd=wf, check=True); subprocess.run(["git", "commit", "-qm", "workflow"], cwd=wf, check=True)
         r = self.merge(repo="wf", head=self.head(wf))
         self.assertEqual(r.returncode, 2, r.stderr)
         self.assertIn("it changes .github, which always waits for her", r.stderr)
+        self.assertIsNotNone(self.note("wf"))   # held for her, with its note, not sent back to fix
         # And saying nothing is not saying it wrong: with no "hold" key at all the gate must not accuse her of
         # a list she never wrote. Reading it without the UNSET sentinel holds every merge in such a repo.
         quiet = self.checkout("quiet", {"merge": True})
