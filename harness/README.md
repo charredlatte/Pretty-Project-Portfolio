@@ -135,10 +135,11 @@ It merges only when all of these hold:
   GitHub refuses the merge if the pull request's head has moved since. It is a merge commit, not a squash or
   rebase, so that very commit lands in `main` and the branch counts as merged.
 - **Nothing is a guess.** The commit message says `Guesses: none`.
-- **Nothing on the hold list changed.** `.claude/` always waits for her: it holds the switches, permissions
-  and skills that steer every later session. A repo adds its own in `"hold"`. This repo holds `harness/`: the
-  house rules shouldn't merge changes to themselves, and the gateway deploys on every merge to `main`. It also
-  holds `.github/`: the workflows run with the repo's token, and one of them deletes branches. That keeps
+- **Nothing on the hold list changed.** In every repo that merges its own pull requests, `.claude/` and
+  `.github/` always wait for her (`rules.json`'s `merging.hold`): `.claude/` holds the switches, permissions
+  and skills that steer every later session, and `.github/`'s workflows run with the repo's token (here one of
+  them deletes branches). A repo adds its own in `"hold"`. This repo holds `harness/`: the house rules
+  shouldn't merge changes to themselves, and the gateway deploys on every merge to `main`. Holding `.github/` keeps
   `main`'s copy of a workflow hers, and no more: GitHub runs a branch's own edited copy before anything merges,
   on a push, a pull request, or a run started by hand on that branch (the way Prune merged branches runs). Nothing
   in the house rules can stop that, and neither can branch protection on `main` or GitHub's approval for
@@ -175,7 +176,12 @@ with `--force-with-lease` would close it, but that is the force-push the rule fo
 access hasn't been able to delete branches, so turn on GitHub's
 *Automatically delete head branches* (each repo's Settings → General → Pull Requests): then the merge deletes
 it. Pushing to the default branch and force-pushing stay forbidden everywhere. The gate reads the ordinary ways
-of running `git push` and `gh pr merge`; it is a guard rail for a session that means well, not a sandbox.
+of running `git push`, `gh pr merge` and `gh api`; it is a guard rail for a session that means well, not a sandbox.
+A merge through `gh api` (`-X PUT repos/<owner>/<repo>/pulls/<n>/merge`, its `sha`, `commit_message` and
+`merge_method` from `-f`, `-F`, an `-F key=@file` or `--input file`) is checked exactly as `merge_pull_request` is.
+The ones that name no pull request to check are refused: GraphQL's `mergePullRequest`, `enablePullRequestAutoMerge`
+and `mergeBranch`, and `POST repos/<owner>/<repo>/merges`, which merges a branch with no pull request at all. A
+body the hook can't read (stdin, a file it can't open) is refused too. A raw `curl` to the API is not read.
 
 In a repo that doesn't opt in, a finished pull request is hers to merge, and the session says so in those
 words: "PR #N is ready for you to merge."

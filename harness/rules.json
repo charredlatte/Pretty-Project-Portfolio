@@ -121,11 +121,11 @@
     "ladder": ["haiku", "sonnet", "opus", "fable"]
   },
   "merging": {
-    "_comment": "Semi-automatic merging (the merge rule). strong: the models that may merge (any part of the model id); audits: skills that must have run in the session; review: the skill that must have run since the last commit; hold: paths whose change always waits for Charlotte, in every repo. A repo adds its own in .claude/catio-rules.json, e.g. {\"merge\": true, \"hold\": [\"harness/\"]}.",
+    "_comment": "Semi-automatic merging (the merge rule). strong: the models that may merge (any part of the model id); audits: skills that must have run in the session; review: the skill that must have run since the last commit; hold: paths whose change always waits for Charlotte, in every repo that merges its own pull requests (.claude/ steers every later session; .github/'s workflows run with the repo's token). A repo adds its own in .claude/catio-rules.json, e.g. {\"merge\": true, \"hold\": [\"harness/\"]}.",
     "strong": ["opus", "fable"],
     "audits": ["ponytail-audit"],
     "review": "code-review",
-    "hold": [".claude/"]
+    "hold": [".claude/", ".github/"]
   },
   "public": [
     "charredlatte/Pretty-Project-Portfolio",

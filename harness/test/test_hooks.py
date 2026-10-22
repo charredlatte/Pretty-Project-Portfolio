@@ -6,6 +6,7 @@ import ast
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -453,6 +454,13 @@ class Merging(unittest.TestCase):
         self.assertEqual(r.returncode, 2, r.stderr)
         self.assertIn("it changes .github, which always waits for her", r.stderr)
         self.assertIsNotNone(self.note("wf"))   # held for her, with its note, not sent back to fix
+        # and in every repo that merges its own, whether or not its own list names .github/: the house holds it
+        bare = self.checkout("bare", {"merge": True})
+        Path(bare, ".github", "workflows").mkdir(parents=True); Path(bare, ".github", "workflows", "x.yml").write_text("on: push")
+        subprocess.run(["git", "add", "-A"], cwd=bare, check=True); subprocess.run(["git", "commit", "-qm", "workflow"], cwd=bare, check=True)
+        r = self.merge(repo="bare", head=self.head(bare))
+        self.assertEqual(r.returncode, 2, r.stderr)
+        self.assertIn("it changes .github, which always waits for her", r.stderr)
         # And saying nothing is not saying it wrong: with no "hold" key at all the gate must not accuse her of
         # a list she never wrote. Reading it without the UNSET sentinel holds every merge in such a repo.
         quiet = self.checkout("quiet", {"merge": True})
@@ -543,6 +551,51 @@ class Merging(unittest.TestCase):
         self.assertIn("not squash", self.gate("Bash", {"command": body + " --squash"}, cwd=self.repo).stderr)
         self.assertIn("not ready to merge PR #7", self.gate("Bash", {"command": "gh pr merge 7"}, cwd=self.repo).stderr)
         self.assertIn("name the pull request's number", self.gate("Bash", {"command": "gh pr merge feature"}, cwd=self.repo).stderr)
+
+    def test_a_merge_through_gh_api_is_checked_like_any_other(self):
+        """`gh api -X PUT repos/o/r/pulls/7/merge` merged with no check at all before 22 October."""
+        api = lambda cmd, cwd=None: self.gate("Bash", {"command": cmd}, cwd=cwd or self.repo)
+        sha, card = self.head(), shlex.quote("commit_message=" + self.CARD)
+        ok = f"gh api -X PUT repos/charredlatte/cafe/pulls/7/merge -f sha={sha} -f {card}"
+        r = api(ok)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        for same in (f"gh api --method=PUT /repos/{{owner}}/{{repo}}/pulls/7/merge -F sha={sha} -f {card}",
+                     f"cd cafe && gh api -XPUT https://api.github.com/repos/:owner/:repo/pulls/7/merge -fsha={sha} -f {card}"):
+            r = api(same, cwd=self.tmp if same.startswith("cd") else None)
+            self.assertEqual(r.returncode, 0, (same, r.stderr))
+        Path(self.repo, "msg").write_text(self.CARD)
+        self.assertEqual(api(f"gh api -X PUT repos/charredlatte/cafe/pulls/7/merge -f sha={sha} -F commit_message=@msg").returncode, 0)
+        Path(self.repo, "body.json").write_text(json.dumps({"sha": sha, "commit_message": self.CARD}))
+        self.assertEqual(api("gh api -X PUT repos/charredlatte/cafe/pulls/7/merge --input body.json").returncode, 0)
+        # what the session can fix is sent back, guesswork held, as with merge_pull_request
+        self.assertIn("not ready to merge PR #7", api("gh api -X PUT repos/charredlatte/cafe/pulls/7/merge").stderr)
+        self.assertIn("pass expectedHeadSha", api(f"gh api -X PUT repos/charredlatte/cafe/pulls/7/merge -f {card}").stderr)
+        self.assertIn("not squash", api(ok + " -f merge_method=squash").stderr)
+        self.assertIn("not ready to merge PR #7", api("echo hi; gh api -X PUT repos/charredlatte/cafe/pulls/7/merge").stderr)
+        self.assertIn("not ready to merge PR #7", api("gh api -f merge_method=merge repos/charredlatte/cafe/pulls/7/merge").stderr)
+        Path(self.repo, "harness").mkdir(); Path(self.repo, "harness", "x").write_text("1")
+        self.g("add", "-A"); self.g("commit", "-qm", "rules")
+        r = api(f"gh api -X PUT repos/charredlatte/cafe/pulls/7/merge -f sha={self.head()} -f {card}")
+        self.assertIn("it changes harness, which always waits for her", r.stderr)
+        self.assertIsNotNone(self.note())
+        # a repo that doesn't merge its own: hers, however it is asked for
+        self.checkout("hers")
+        self.assertIn("doesn't merge its own pull requests", api("gh api -X PUT repos/charredlatte/hers/pulls/7/merge").stderr)
+        # what can't be checked is refused
+        self.assertIn("name the pull request's number", api("gh api -X PUT repos/charredlatte/cafe/pulls/$PR/merge").stderr)
+        self.assertIn("can't read this merge's fields", api("gh api -X PUT repos/charredlatte/cafe/pulls/7/merge --input -").stderr)
+        self.assertIn("can't read this merge's fields", api("gh api -X PUT repos/charredlatte/cafe/pulls/7/merge -F commit_message=@gone").stderr)
+        self.assertIn("with no pull request", api("gh api repos/charredlatte/cafe/merges -f base=main -f head=feature").stderr)
+        for gql in ("gh api graphql -f query='mutation { mergePullRequest(input: {pullRequestId: \"PR_x\"}) { clientMutationId } }'",
+                    "gh api graphql -f query='mutation { enablePullRequestAutoMerge(input: {pullRequestId: \"PR_x\"}) { clientMutationId } }'"):
+            self.assertIn("GraphQL merge", api(gql).stderr, gql)
+        Path(self.repo, "q.graphql").write_text("mutation { mergeBranch(input: {repositoryId: \"R\", base: \"main\", head: \"x\"}) { clientMutationId } }")
+        self.assertIn("GraphQL merge", api("gh api graphql -F query=@q.graphql").stderr)
+        # reading goes through: asking whether it merged, and every other call
+        for fine in ("gh api repos/charredlatte/cafe/pulls/7/merge", "gh api -X GET repos/charredlatte/cafe/pulls/7/merge",
+                     "gh api graphql -f query='{ viewer { login } }'", "gh api -X POST repos/charredlatte/cafe/issues/7/comments -f body=merge"):
+            r = api(fine)
+            self.assertEqual(r.returncode, 0, (fine, r.stderr))
 
 
 class Pushing(unittest.TestCase):

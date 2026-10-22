@@ -445,6 +445,11 @@ class Decider(unittest.TestCase):
         easy = self.tool("decide", state="Add a test for parse_time in utils.py", preset="easy")
         self.assertEqual(set(easy["answers"]), {"spelled_out", "checkable", "small", "held_path", "private", "browser"})
         self.assertEqual(self.seen[1][2]["questions"]["held_path"]["type"], "noul")
+        # .github/ is held in every repo that merges its own, so a task touching it is never easy; the gateway's
+        # decide.js asks the same question, word for word
+        held = self.seen[1][2]["questions"]["held_path"]["instructions"]
+        self.assertIn(".github/", held)
+        self.assertIn(json.dumps(held), (Path(__file__).resolve().parent.parent / "gateway" / "src" / "decide.js").read_text(encoding="utf-8"))
         log = json.loads(Path(self.home, "state.json").read_text())["decisions"]
         self.assertEqual(len(log), 1)   # the easy call had no kind: not logged
         self.assertEqual((log[0]["kind"], log[0]["old"], log[0]["agree"]), ("sort", "catio", False))
