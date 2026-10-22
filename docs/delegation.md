@@ -57,7 +57,7 @@ A task goes to a smaller model when all of these hold. The queen's brief and the
 | **Spelled out** | the ask names the file, the test or the output; no design judgment, no "make it better" |
 | **Checkable** | a test, a build or a diff shows whether it is done |
 | **Small** | one file, or read-only across many |
-| **Not held** | nothing under `harness/`, `.claude/`, the merging rule's `hold` paths, or a public repo's rules |
+| **Not held** | nothing under `harness/`, `.claude/`, the merging rule's `hold` paths (here `.github/` too), or a public repo's rules |
 | **Not private** | none of her legal, money or health matters (the `private` rule) |
 | **No browser** | no preflight needed |
 
@@ -327,7 +327,8 @@ to apply it.
 ## What never delegates
 
 - Merging, pushing to a default branch, anything under `hold`: the gates refuse these whoever the model is.
-- Changes under `harness/` or `.claude/`: the rules themselves.
+- Changes under `harness/`, `.claude/` or, in this repo, `.github/`: the rules themselves, and the workflows that
+  run with the repo's token (`harness/README.md`, "Semi-automatic merging").
 - Anything needing a browser, or a key.
 - Her private matters.
 - The queen herself: she stays on the runner's default model. A cheaper queen would be a cheaper assistant.

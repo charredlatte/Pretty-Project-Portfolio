@@ -39,8 +39,8 @@ here.
    `claude plugin disable kittychat-house-rules@kittychat --scope local`. Don't switch a rule off in
    `.claude/catio-rules.json` on your branch: a change there waits for Charlotte, like the next step says.
 6. **Open the pull request** against `charredlatte/Pretty-Project-Portfolio` `main`, saying what was wrong and how
-   you checked the fix. Changes under `harness/` and `.claude/` are the house rules themselves: they always wait for
-   Charlotte.
+   you checked the fix. Changes under `harness/` and `.claude/` are the house rules themselves, and `.github/` holds the
+   workflows that run with the repo's token: they always wait for Charlotte.
 
 ## Something isn't working?
 
