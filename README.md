@@ -467,8 +467,8 @@ It is a different kind of model, and the difference is the point. You hand it a 
 questions — yes/no, a choice between options, a score on a scale — and it hands back a probability for every allowed
 answer and nothing else: no prose, no tool calls, no turn to take. Up to sixty-four questions about one state, in a
 single call with an eight-second budget. That is also why the decider can never be the thing that *drives* a cat: it
-cannot write a sentence or call a tool. Driving is Claude Code's job today, and other CLIs' in time
-([`docs/engine.md`](docs/engine.md)); deciding is the decider's.
+cannot write a sentence or call a tool. Driving a cat with her runner is Claude Code's job today, and other CLIs'
+in time ([`docs/engine.md`](docs/engine.md)); deciding is the decider's.
 
 - **It needs no setting up.** With nothing set it is Clef on Cloudflare's Workers AI — Cloudflare's own model, open
   weights, inside the free plan. `DECIDE_MODEL` swaps in another Workers AI model, Jev among them; `DECIDE_URL`
