@@ -1,6 +1,6 @@
 # KittyChat Café
 
-Every Claude project you have on the go, as a cat in a little pixel-art café. Each Claude Code session is a cat that
+Every Claude project you have on the go, as a cat in a little pixel-art café. Each AI session is a cat that
 plays while it works, sleeps when it's done, and **meows** when it's waiting on you: point at it and it says what it
 needs. Chats on claude.ai that no connector can read, like a business plan or a legal question, you adopt as cats by
 hand. One queen cat, Ninine, runs the place for you.
