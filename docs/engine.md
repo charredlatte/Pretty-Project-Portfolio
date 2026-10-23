@@ -21,14 +21,23 @@ design (rules, kits, which model drives what), deploys the gateway, and installs
 
 - **Any model.** Claude through Claude Code today. Anthropic, OpenAI or an OpenAI-compatible provider such as
   OpenRouter once the hosted runner is in (below), each on the buyer's own API key, paid to that provider directly:
-  the café never resells tokens. A small model makes typed decisions (yes/no, a choice, a score); it is the one
-  model the café runs itself, and it can be inside the price only once its model is locked (today any caller can
-  pick a paid one).
+  the café never resells tokens. Codex, Gemini CLI and the rest join as cats today and become drivers once the
+  runner can build their command: `Runner.args()` in `harness/runner/queen.py` is the one function that does it,
+  so another CLI means writing that function for it once.
 - **Any environment.** Claude Code, Codex, Gemini CLI, Cursor, Claude Desktop, claude.ai, and the café on its own
   address in any browser. The owner's tools (handing in homework, dropping files, managing cats) need the owner's
   sign-in on the hosted gateway: claude.ai, Claude Desktop, or the café. The local stdio twin has no roles.
 - **Any face.** The KittyChat Café is the face buyers get: a pixel-art manor where every task is a cat. A plain
   dashboard for teams can come from the same gateway (not built yet).
+
+**The decider is not on that list.** It is the one model the café runs for itself, and it drives nothing: it answers
+typed questions — yes/no, a choice, a score — with a probability for each and no prose, and that is all it does.
+Clef on Cloudflare's Workers AI by default, or Jev, or a local Laya, behind `DECIDE_MODEL` and `DECIDE_URL`. It is a
+different slot from "any model" above rather than another entry in it, in both directions: the decider holds no
+tools and no session, so it can never drive a cat, and a driver cannot hand back a calibrated probability, so it
+cannot do the decider's job either. Its model is inside the price only once it is locked (today any caller can pick
+a paid one). Which model does a given piece of work is a third thing again, neither of these two:
+[`delegation.md`](delegation.md) has it.
 
 ## What is already built
 
