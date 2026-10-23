@@ -227,7 +227,10 @@ of fit for the café:
      call, Clef-flash 13× faster than Jev at the median on Cloudflare's runs. These are Workers AI models, so they
      run on the **free plan's 10,000 neurons a day** and cost $0.09 per million input tokens past that.
 
-   The integration is an `ai` binding in `wrangler.jsonc` and one `env.AI.run(model, { state, questions })`.
+   The integration is an `ai` binding in `wrangler.jsonc` and one `env.AI.run(model, { state, questions })`,
+   where a Clef model wants its own short name repeated in the body (`model: "clef-flash"`) and every question
+   carries `instructions`, the question in words. Clef refuses a body missing either, and says only that the root
+   is wrong (`required properties at '/' are 'model,state,questions'`), never which question was short.
    Jev's reply, as the page shows it: `answers.<q>.noul` (a probability), `answers.<q>.choice` with `confidence`
    and `probabilities` per option, `answers.<q>.score` with a `legend` and `probabilities` per level, plus
    `usage.input_tokens`. Not her PC, but her own account, no new vendor account, no key in the repo, no process to

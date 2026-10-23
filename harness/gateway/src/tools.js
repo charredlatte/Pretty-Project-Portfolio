@@ -58,9 +58,12 @@ export const TOOLS = [
 	tool("decide",
 		"A typed decision from a System One model (Clef on Workers AI, Jev, or laya-serve): a state and named questions of type noul " +
 		"(yes/no: a probability), choice (criteria: {option: meaning}; the option, a probability each and a confidence) or score " +
-		"(criteria: ordered levels; a weighted score). No prose, milliseconds, a fraction of a cent. preset easy asks the six " +
+		"(criteria: ordered levels; a weighted score). Every question carries instructions, the question in words, and is " +
+		"refused without them. No prose, milliseconds, a fraction of a cent. preset easy asks the six " +
 		"questions of the easy-task rubric about state. With kind, the decision is logged beside old (what you would have chosen).",
-		{ state: { description: "The text or JSON the questions are about" }, questions: { type: "object" }, preset: { type: "string", enum: ["easy"] },
+		{ state: { description: "The text or JSON the questions are about" },
+			questions: { type: "object", description: "Named questions: {<name>: {type, instructions, criteria}}. instructions is the question in words, and every question needs it; criteria belongs to a choice ({option: what it means}) or a score ([ordered levels])." },
+			preset: { type: "string", enum: ["easy"] },
 			model: said("@cf/cloudflare/clef-flash (default), @cf/cloudflare/clef, typesafe/jev"), kind: said("A label for the log, e.g. sort"), old: said("What the old path chose, for the log"),
 			floor: { type: "number", description: "For the log: the confidence under which you would not act on the answer (it then neither agrees nor disagrees with old)" },
 			ref: said("For the log: what was decided about (the page's brain id), to check the decision against what happened") },

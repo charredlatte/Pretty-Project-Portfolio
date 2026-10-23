@@ -919,12 +919,13 @@ describe("the gateway", () => {
 		// bad questions are refused before anything is asked
 		const n = asked.length;
 		assert.match((await tool(TOKEN, "decide", { state: "x", questions: { q: { type: "guess" } } })).refused, /noul, choice or score/);
+		assert.match((await tool(TOKEN, "decide", { state: "x", questions: { q: { type: "noul" } } })).refused, /q: instructions is the question in words/);
 		assert.match((await tool(TOKEN, "decide", { state: "", preset: "easy" })).refused, /state is empty/);
 		assert.match((await tool(TOKEN, "decide", { state: "x", preset: "hard" })).refused, /preset is one of easy/);
 		assert.equal(asked.length, n);
 		// under the caller's floor the decider hasn't decided: it neither agrees nor disagrees, and ref names the file
 		await tool(TOKEN, "decide", { state: { file: "notes.md" }, kind: "sort", old: "shop", floor: 0.9, ref: "b-1",
-			questions: { cat: { type: "choice", criteria: { shop: "the shop", catio: "the café" } } } });
+			questions: { cat: { type: "choice", instructions: "Which cat?", criteria: { shop: "the shop", catio: "the café" } } } });
 		// the log: only the call with a kind, with old and whether the two agreed; the café's database shows it
 		const docs = (await (await fetch(base + "/api/db", { headers: { Cookie: herCookie } })).json()).docs;
 		const log = Object.entries(docs).filter(([p]) => p.startsWith("decisions/"));

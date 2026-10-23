@@ -40,7 +40,11 @@ export function shape(args) {
 		const q = questions[name];
 		if (!q || typeof q !== "object" || !TYPES.includes(q.type)) throw new BadQuestion(name + ": type is noul, choice or score");
 		const clean = { type: q.type };
-		if (q.instructions != null) clean.instructions = String(q.instructions).slice(0, 1000);
+		// Every question needs its words. Clef answers one without them by refusing the whole body -- "required
+		// properties at '/' are 'model,state,questions'", which names the root and never the question that is short
+		// -- so a mis-keyed question read as a decider outage for two days (21 October 2026). Name it here instead.
+		if (q.instructions == null || !String(q.instructions).trim()) throw new BadQuestion(name + ": instructions is the question in words");
+		clean.instructions = String(q.instructions).slice(0, 1000);
 		if (q.type === "choice") {
 			const c = q.criteria && typeof q.criteria === "object" && !Array.isArray(q.criteria) ? q.criteria : null;
 			if (!c || Object.keys(c).length < 2 || Object.keys(c).length > MAX_OPTIONS) throw new BadQuestion(name + ": a choice needs criteria, 2 to " + MAX_OPTIONS + " named options");
