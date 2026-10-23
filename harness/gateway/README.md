@@ -39,7 +39,8 @@ it is the admin, which uploads the café's art, creates the other accounts and i
    - Deploy. The first deploy creates the KV namespace and the Durable Object. Its address is on the Worker's page:
      `https://catio-gateway.<subdomain>.workers.dev`. If Cloudflare asks for a workers.dev subdomain, pick one.
    - From then on every merge to `main` redeploys it.
-2. **Three secrets.** On the Worker, go to Settings → Variables and Secrets → Add, type *Secret*, under
+2. **Three secrets, and the handle** — four entries, each added as a Secret, because every deploy from GitHub
+   wipes the Text ones. On the Worker, go to Settings → Variables and Secrets → Add, type *Secret*, under
    *Production*, then Deploy:
    - `CATIO_TOKEN`: the agents' key, 32 random characters or more.
    - `CATIO_PASSWORD`: a different one, the password she signs in with (16 characters or more). It goes into her
@@ -96,8 +97,9 @@ variables and the plugin, it is in `list_agents`.
   "<16+ characters>"}`: from the browser's console, `fetch("/api/users", {method: "POST", headers: {"X-Catio": "1",
   "Content-Type": "application/json"}, body: JSON.stringify({id: "…", password: "…"})}).then(r => r.json()).then(console.log)`.
   Never with a key: a key sits in every session's environment, and what a key can do, a leaked key can do. A
-  handle is 2 to 31 lower-case letters, digits or dashes. The account gets a house named after it, and signs in
-  to the café and the connector with that handle and password. An invite (above) lets them choose both themselves.
+  handle is 2 to 31 lower-case letters, digits or dashes, and never starts with a dash. The account gets a house
+  named after it, and signs in to the café and the connector with that handle and password. An invite (above) lets
+  them choose both themselves.
 - **A key:** in a signed-in café, **Keys** in the House menu (the brand, top left): name it after where it goes
   (`laptop`, `antigravity`) and press Make a key. The card shows the key once, beside the two settings a session
   needs, `CATIO_URL` (this café's address) and `CATIO_TOKEN` (the key), each with Copy; closing the card takes it off

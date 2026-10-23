@@ -119,7 +119,7 @@ session runs the `code-review` skill on it and calls `merge_pull_request` as a m
 `expectedHeadSha` (the commit it reviewed) and a commit message that ends with two lines:
 
 ```
-Checks: npm run test:page passed; CI green
+Checks: sh catio/test/run.sh passed; CI green
 Guesses: none
 ```
 

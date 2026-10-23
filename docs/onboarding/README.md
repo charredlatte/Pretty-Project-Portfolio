@@ -51,7 +51,10 @@ artifact) are the reference; the onboarding follows them.
   hooks or LLM in a sentence whose job is to explain. A step that tells someone what to *do* still names the real
   thing, because they have to type or find it: Claude Code Remote, `list_repos`, `data/sessions.json`,
   `litterbox/sort.py`, the two install lines.
-- **The Welcome step opens with the tagline:** "All your Claude chats, in one cozy café."
+- **The Welcome step opens with the tagline:** "All your Claude chats, in one cozy café." That is still what
+  `openSetup()`, `frames.js` and the landing page say, word for word. The README's own line became "All your AI
+  chats" on 23 October, when it stopped being tied to one AI company, so the reference and the three copies no
+  longer agree. Saying the same in all four is a change to the copy, and hers to make.
 - **How it works says the connection start to finish** in the five lines of frame 7 (since 4 October, the five parts
   of the car: Ninine drives, the windshield and the dashboard, seatbelts and brakes, the intercom, the glovebox). `frames.js`
   and `openSetup()` hold the same five, word for word: change both, and quote neither here beyond its title.
