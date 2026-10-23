@@ -204,9 +204,10 @@ Her ask (3 October): save tokens by running Jev locally, "even if that means giv
 probability outcomes". Researched the same day; the sources are at the end.
 
 **What Jev is.** TypeSafe AI's System One model (early access 15 September 2026). It writes no text: it takes a
-*state* (any text or JSON) and a schema of typed *questions*, and returns a probability for every allowed answer, in
+*state* (any text or JSON) and a schema of typed *questions*, and answers each in numbers rather than prose, in
 one parallel pass, in 70 to 500 ms. Three question types: `noul` (yes/no, the probability of yes), `choice` (one of
-up to 255 options, a probability each and a confidence), `score` (an ordered rubric, a probability-weighted score).
+up to 255 options, a probability each and a confidence), `score` (an ordered rubric; one probability-weighted
+number on that rubric's scale, with a confidence beside it, not a probability per level).
 Price: $0.042 per million input tokens, output free, because there is no output to speak of. It is not the "stage
 one" of Claude Code's own permission classifier (a fast yes/no filter tuned to err toward blocking, with a reasoning
 pass behind it): that is Anthropic's, inside auto mode, and not something the café can call. Same shape of idea,

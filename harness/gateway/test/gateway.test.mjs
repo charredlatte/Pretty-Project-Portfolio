@@ -28,11 +28,31 @@ const freePort = () => new Promise((done) => {
 
 let base, wrangler, state, log = "", herCookie = "";
 
-// A stand-in System One server (the shape laya-serve, Clef and Jev share), in place of the Worker's AI binding,
-// which wrangler dev can only reach signed in to Cloudflare. It keeps every request it was asked.
+// A stand-in decider, in place of the Worker's AI binding, which wrangler dev can only reach signed in to
+// Cloudflare. It answers in both shapes decide.js speaks, so either path can be walked end to end: a System One
+// server at /v1/systemone (what laya-serve, Clef and Jev share) and an OpenAI-compatible chat endpoint at
+// /v1/chat/completions, for a model that doesn't take questions itself. A state saying no-systemone or no-chat
+// makes that endpoint 404, so the fall back from one shape to the other can be tested. Every request is kept.
 const CONFIG = join(HERE, ".wrangler.test.jsonc");
 const asked = [];
 let decider;
+
+// The chat endpoint answers by reading the prompt decide.js built, which is also a check that the prompt really
+// says what may answer each question: nothing here is told the questions any other way.
+function fromPrompt(prompt) {
+	const out = {};
+	for (const line of prompt.split("\n")) {
+		const m = /^- ([A-Za-z_0-9]+): (.*)$/.exec(line);
+		if (!m) continue;
+		const [, name, rest] = m;
+		const option = /Answer with one of ([^ (]+) \(/.exec(rest);
+		if (/Answer yes or no\./.test(rest)) out[name] = { answer: name === "held_path" ? "no" : "yes", confidence: 0.9 };
+		else if (option) out[name] = { answer: option[1], confidence: 0.8 };
+		else if (/whole number from 0 to \d+/.test(rest)) out[name] = { answer: 1, confidence: 0.7 };
+	}
+	return JSON.stringify(out);
+}
+
 function startDecider() {
 	return new Promise((done) => {
 		decider = createHttpServer((req, res) => {
@@ -41,6 +61,24 @@ function startDecider() {
 			req.on("end", () => {
 				const body = JSON.parse(data);
 				asked.push({ path: req.url, auth: req.headers.authorization || null, body });
+				res.setHeader("Content-Type", "application/json");
+				const said = JSON.stringify(body);
+				if (req.url === "/v1/chat/completions") {
+					if (said.includes("no-chat")) { res.statusCode = 404; res.end("{}"); return; }
+					res.end(JSON.stringify({ model: body.model,
+						choices: [{ message: { role: "assistant", content: fromPrompt(body.messages[0].content) } }],
+						usage: { prompt_tokens: 11 } }));
+					return;
+				}
+				if (said.includes("no-systemone")) { res.statusCode = 404; res.end("{}"); return; }
+				// Refuse what Clef refuses, in Clef's own words. Every decide test reaches the decider through
+				// DECIDE_URL, and a stand-in that accepted a wordless question is how the 21 October bug stayed
+				// green for three weeks: shape() guards it now, so this only fires if that guard is ever removed.
+				if (Object.values(body.questions).some((q) => !String(q.instructions ?? "").trim())) {
+					res.statusCode = 400;
+					res.end(JSON.stringify({ error: "5006: Error: required properties at '/' are 'model,state,questions'" }));
+					return;
+				}
 				const answers = {};
 				for (const [name, q] of Object.entries(body.questions)) {
 					if (q.type === "noul") answers[name] = { type: "noul", noul: name === "held_path" ? 0.1 : 0.9 };
@@ -49,7 +87,6 @@ function startDecider() {
 						answers[name] = { type: "choice", choice: first, confidence: 0.8, probabilities: Object.fromEntries(keys.map((k) => [k, k === first ? 0.8 : 0.2 / Math.max(1, keys.length - 1)])) };
 					} else answers[name] = { type: "score", score: 1, confidence: 0.7, probabilities: { 0: 0.1, 1: 0.9 } };
 				}
-				res.setHeader("Content-Type", "application/json");
 				res.end(JSON.stringify({ model: "stand-in", answers, usage: { input_tokens: 42 } }));
 			});
 		}).listen(0, "127.0.0.1", () => done(decider.address().port));
@@ -940,6 +977,63 @@ describe("the gateway", () => {
 		assert.equal(log[1][1].sure, false);
 		assert.equal(log[1][1].agree, null);
 		assert.equal(log[1][1].ref, "b-1");
+		// the System One shape answered, and the log says so: a decision read out of a chat model's JSON is not
+		// as strong evidence, and this log is what says whether to trust the decider at all
+		assert.equal(log[0][1].via, "systemone");
+	});
+
+	test("a model that doesn't take questions itself is prompted for them, and answers the same way", async () => {
+		const n = asked.length;
+		const out = await tool(TOKEN, "decide", { state: { file: "notes.md", cats: ["shop", "catio"] }, kind: "sort", old: "shop",
+			model: "@cf/meta/llama-3.1-8b-instruct",
+			questions: { cat: { type: "choice", instructions: "Which cat?", criteria: { shop: "the shop", catio: "the café" } } } });
+		// the chat endpoint was asked, not the System One one, and the prompt carried the state and the question
+		const last = asked.at(-1);
+		assert.equal(last.path, "/v1/chat/completions");
+		assert.equal(last.auth, "Bearer k1");
+		assert.equal(last.body.model, "@cf/meta/llama-3.1-8b-instruct");
+		assert.match(last.body.messages[0].content, /notes\.md/);
+		assert.match(last.body.messages[0].content, /- cat: Which cat\?/);
+		assert.equal(asked.length, n + 1, "one call, not a fall back as well");
+		// and the answer is the shape every caller already reads, from the same fields
+		assert.equal(out.via, "chat");
+		assert.equal(out.answers.cat.choice, "shop");
+		assert.equal(out.answers.cat.confidence, 0.8);
+		assert.equal(out.answers.cat.probabilities.catio, 0.2);
+		const docs = (await (await fetch(base + "/api/db", { headers: { Cookie: herCookie } })).json()).docs;
+		const mine = Object.entries(docs).filter(([p]) => p.startsWith("decisions/")).sort((x, y) => x[1].at - y[1].at).at(-1)[1];
+		assert.equal(mine.via, "chat", "the log says which shape answered");
+		assert.equal(mine.verdict, "shop");
+		assert.equal(mine.agree, true);
+	});
+
+	test("the other shape is tried when the first is refused, so an unlisted model still decides", async () => {
+		// a System One model whose server has no /v1/systemone: the questions go round again as a prompt
+		const back = await tool(TOKEN, "decide", { state: "no-systemone, so only the chat endpoint answers",
+			questions: { held_path: { type: "noul", instructions: "Does it touch harness/?" } } });
+		assert.equal(back.via, "chat");
+		assert.deepEqual(asked.slice(-2).map((a) => a.path), ["/v1/systemone", "/v1/chat/completions"]);
+		assert.ok(back.answers.held_path.noul < 0.5, "the stand-in says no to held_path");
+		// and the other way about: a chat model whose endpoint isn't there falls back to the System One one
+		const fwd = await tool(TOKEN, "decide", { state: "no-chat, so only the System One endpoint answers",
+			model: "@cf/meta/llama-3.1-8b-instruct",
+			questions: { held_path: { type: "noul", instructions: "Does it touch harness/?" } } });
+		assert.equal(fwd.via, "systemone");
+		assert.deepEqual(asked.slice(-2).map((a) => a.path), ["/v1/chat/completions", "/v1/systemone"]);
+		assert.ok(fwd.answers.held_path.noul < 0.5);
+	});
+
+	test("a wordless question is refused by name, and the refusal names the key it was written under", async () => {
+		// the 21 October failure: `question:` in place of `instructions:` left the question with no text, and the
+		// model refused the whole body naming nothing the caller had done wrong. It is refused here now, and the
+		// refusal says which key to move the words out of, so a caller fixes its call once rather than guessing twice
+		const n = asked.length;
+		assert.match((await tool(TOKEN, "decide", { state: "a task",
+			questions: { held_path: { type: "noul", question: "Does the task touch harness/?" } } })).refused,
+		/held_path: instructions is the question in words, not "question"/);
+		assert.match((await tool(TOKEN, "decide", { state: "a task", questions: { held_path: { type: "noul" } } })).refused,
+			/held_path: instructions is the question in words$/, "and says only the field when there is no near miss");
+		assert.equal(asked.length, n, "neither reached a model");
 	});
 
 	test("takes a session's reports from its hook, and hands her messages in at its Stop", async () => {

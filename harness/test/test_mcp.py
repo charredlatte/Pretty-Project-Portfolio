@@ -5,6 +5,7 @@
 import base64
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -398,19 +399,60 @@ if __name__ == "__main__":
 
 
 class Decider(unittest.TestCase):
-    """decide against a stand-in System One server (the shape laya-serve, Clef and Jev share): the request it gets,
-    the answers it returns, and the log of decisions beside what the old path chose."""
+    """decide against a stand-in server answering in both shapes decide() speaks: a System One server at
+    /v1/systemone (what laya-serve, Clef and Jev share) and an OpenAI-compatible /v1/chat/completions for a model
+    that doesn't take questions itself. A state saying no-systemone or no-chat makes that endpoint 404, so the fall
+    back from one shape to the other can be walked. Checks the request it gets, the answers it returns, and the log
+    of decisions beside what the old path chose."""
 
     def setUp(self):
         from http.server import BaseHTTPRequestHandler, HTTPServer
         import threading
         seen = self.seen = []
 
+        # The chat endpoint answers by reading the prompt decide() built, which is also a check that the prompt says
+        # what may answer each question: nothing here is told the questions any other way.
+        def from_prompt(prompt):
+            out = {}
+            for line in prompt.split("\n"):
+                m = re.match(r"^- ([A-Za-z_0-9]+): (.*)$", line)
+                if not m:
+                    continue
+                name, rest = m.group(1), m.group(2)
+                option = re.search(r"Answer with one of ([^ (]+) \(", rest)
+                if "Answer yes or no." in rest:
+                    out[name] = {"answer": "no" if name == "held_path" else "yes", "confidence": 0.9}
+                elif option:
+                    out[name] = {"answer": option.group(1), "confidence": 0.8}
+                elif re.search(r"whole number from 0 to \d+", rest):
+                    out[name] = {"answer": 1, "confidence": 0.7}
+            return json.dumps(out)
+
         class One(BaseHTTPRequestHandler):
             def log_message(self, *a): pass
+
+            def reply(self, obj, code=200):
+                data = json.dumps(obj).encode()
+                self.send_response(code); self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(data))); self.end_headers(); self.wfile.write(data)
+
             def do_POST(self):
                 body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
                 seen.append((self.path, self.headers.get("Authorization"), body))
+                said = json.dumps(body)
+                if self.path == "/v1/chat/completions":
+                    if "no-chat" in said:
+                        return self.reply({}, 404)
+                    return self.reply({"model": body.get("model", "stand-in-chat"),
+                                       "choices": [{"message": {"role": "assistant", "content": from_prompt(body["messages"][0]["content"])}}],
+                                       "usage": {"prompt_tokens": 11}})
+                if "no-systemone" in said:
+                    return self.reply({}, 404)
+                # Refuse what Clef refuses, in Clef's own words: a stand-in that accepted a wordless question is how
+                # the 21 October bug stayed green for three weeks. _shape() guards it now, so this only fires if
+                # that guard is ever removed.
+                if any(not str(q.get("instructions") or "").strip() for q in body["questions"].values()):
+                    return self.reply({"error": "5006: Error: required properties at '/' are 'model,state,questions'"}, 400)
                 answers = {}
                 for name, q in body["questions"].items():
                     if q["type"] == "noul": answers[name] = {"type": "noul", "noul": 0.9 if name != "held_path" else 0.1}
@@ -418,8 +460,7 @@ class Decider(unittest.TestCase):
                         first = next(iter(q["criteria"]))
                         answers[name] = {"type": "choice", "choice": first, "confidence": 0.8, "probabilities": {k: (0.8 if k == first else 0.2 / max(1, len(q["criteria"]) - 1)) for k in q["criteria"]}}
                     else: answers[name] = {"type": "score", "score": 1.0, "confidence": 0.7, "probabilities": {"0": 0.1, "1": 0.9}}
-                data = json.dumps({"model": "stand-in", "answers": answers, "usage": {"input_tokens": 42}}).encode()
-                self.send_response(200); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(data))); self.end_headers(); self.wfile.write(data)
+                return self.reply({"model": "stand-in", "answers": answers, "usage": {"input_tokens": 42}})
 
         self.srv = HTTPServer(("127.0.0.1", 0), One)
         threading.Thread(target=self.srv.serve_forever, daemon=True).start()
@@ -460,3 +501,59 @@ class Decider(unittest.TestCase):
                   questions={"cat": {"type": "choice", "instructions": "Which cat?", "criteria": {"shop": "the shop", "catio": "the café"}}})
         last = json.loads(Path(self.home, "state.json").read_text())["decisions"][-1]
         self.assertEqual((last["verdict"], last["sure"], last["agree"], last["ref"]), ("shop", False, None, "b-1"))
+        # the System One shape answered, and the log says so: a decision read out of a chat model's JSON is not as
+        # strong evidence, and this log is what says whether to trust the decider at all
+        self.assertEqual(log[0]["via"], "systemone")
+
+    def test_a_model_that_does_not_take_questions_is_prompted_for_them(self):
+        out = self.tool("decide", state={"file": "notes.md"}, kind="sort", old="shop", model="llama3.1:8b",
+                        questions={"cat": {"type": "choice", "instructions": "Which cat?", "criteria": {"shop": "the shop", "catio": "the café"}}})
+        path, auth, body = self.seen[0]
+        self.assertEqual(path, "/v1/chat/completions")
+        self.assertEqual(auth, "Bearer k1")
+        self.assertEqual(body["model"], "llama3.1:8b")
+        self.assertIn("notes.md", body["messages"][0]["content"])
+        self.assertIn("- cat: Which cat?", body["messages"][0]["content"])
+        self.assertEqual(len(self.seen), 1, "one call, not a fall back as well")
+        # the answer is the shape every caller already reads, from the same fields the System One path fills
+        self.assertEqual(out["via"], "chat")
+        self.assertEqual(out["answers"]["cat"], {"type": "choice", "choice": "shop", "confidence": 0.8,
+                                                 "probabilities": {"shop": 0.8, "catio": 0.2}})
+        log = json.loads(Path(self.home, "state.json").read_text())["decisions"]
+        self.assertEqual((log[-1]["via"], log[-1]["verdict"], log[-1]["agree"]), ("chat", "shop", True))
+
+    def test_the_other_shape_is_tried_when_the_first_is_refused(self):
+        # a System One model whose server has no /v1/systemone: the questions go round again as a prompt
+        back = self.tool("decide", state="no-systemone, so only the chat endpoint answers",
+                         questions={"held_path": {"type": "noul", "instructions": "Does it touch harness/?"}})
+        self.assertEqual(back["via"], "chat")
+        self.assertEqual([p for p, _, _ in self.seen], ["/v1/systemone", "/v1/chat/completions"])
+        self.assertLess(back["answers"]["held_path"]["noul"], 0.5)
+        # and the other way about: a chat model whose endpoint isn't there falls back to the System One one
+        fwd = self.tool("decide", state="no-chat, so only the System One endpoint answers", model="llama3.1:8b",
+                        questions={"held_path": {"type": "noul", "instructions": "Does it touch harness/?"}})
+        self.assertEqual(fwd["via"], "systemone")
+        self.assertEqual([p for p, _, _ in self.seen][-2:], ["/v1/chat/completions", "/v1/systemone"])
+        self.assertLess(fwd["answers"]["held_path"]["noul"], 0.5)
+
+    def test_a_wordless_question_is_refused_and_the_refusal_names_the_key(self):
+        # the 21 October failure: `question:` in place of `instructions:` left the question with no text, and the
+        # model refused the whole body for a reason naming nothing the caller had done wrong. It is refused here
+        # now, and the refusal says which key to move the words out of.
+        r = self.tool("decide", state="a task", questions={"held_path": {"type": "noul", "question": "Does the task touch harness/?"}})
+        self.assertEqual(r, 'held_path: instructions is the question in words, not "question"')
+        r = self.tool("decide", state="a task", questions={"held_path": {"type": "noul"}})
+        self.assertEqual(r, "held_path: instructions is the question in words")
+        self.assertEqual(self.seen, [], "neither reached a model")
+
+    def test_the_prompt_and_the_reading_match_the_gateway(self):
+        """ask() and read() are ported line for line from the gateway's src/decide.js: the wording a model is given
+        has to be the same, or the two cafés would get different answers from the same model."""
+        js = (Path(__file__).resolve().parent.parent / "gateway" / "src" / "decide.js").read_text(encoding="utf-8")
+        for line in ("Answer every question about the state below. Reply with one JSON object and nothing else: no prose, no",
+                     "explanation, no code fence.",
+                     "Give each answer a confidence, from 0 (a coin toss) to 1 (certain): how sure you are of that answer. An",
+                     "answer with no confidence is read as barely better than a coin toss, so say one."):
+            self.assertIn(line, js, "the prompt's wording has drifted from the gateway's")
+        for bit in (" Answer yes or no.", " Answer with one of ", " Answer with a whole number from 0 to "):
+            self.assertIn(bit, js)

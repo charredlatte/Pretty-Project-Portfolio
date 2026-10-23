@@ -9,6 +9,19 @@ const said = (description) => ({ type: "string", description });
 const tool = (name, description, properties = {}, required = []) =>
 	({ name, description, inputSchema: { type: "object", properties, required } });
 
+// One question for the decide tool. It is spelled out here because a caller that guesses the key (question, prompt,
+// ask) used to reach the model with no text at all, which the model then refused for a reason naming nothing the
+// caller did wrong. decide.js accepts those spellings too, but the schema is what stops the guess.
+const QUESTION = {
+	type: "object",
+	properties: {
+		type: { type: "string", enum: ["noul", "choice", "score"], description: "noul is yes/no, choice is one of named options, score is a level on a scale" },
+		instructions: said("The question to ask about the state"),
+		criteria: { description: "A choice: {option: what it means}, 2 to 64 of them. A score: an ordered list of 2 or more levels, lowest first. A noul: nothing, or {true: what yes means, false: what no means}" },
+	},
+	required: ["type", "instructions"],
+};
+
 export const TOOLS = [
 	tool("house_rules", "The KittyChat house rules every agent in the Catio follows. Read them when you start."),
 	tool("report_status",
@@ -56,16 +69,21 @@ export const TOOLS = [
 	tool("forget", "Clear homework from the house (the queen or the owner): the cards already filed, or litter box notes and decisions no longer waiting, by id. An open unblock quiz stays.",
 		{ quizzes: { type: "array", items: S } }, ["quizzes"]),
 	tool("decide",
-		"A typed decision from a System One model (Clef on Workers AI, Jev, or laya-serve): a state and named questions of type noul " +
-		"(yes/no: a probability), choice (criteria: {option: meaning}; the option, a probability each and a confidence) or score " +
-		"(criteria: ordered levels; a weighted score). Every question carries instructions, the question in words, and is " +
-		"refused without them. No prose, milliseconds, a fraction of a cent. preset easy asks the six " +
-		"questions of the easy-task rubric about state. With kind, the decision is logged beside old (what you would have chosen).",
+		"A typed decision about a state: named typed questions in, one typed answer each out, no prose, in milliseconds for a " +
+		"fraction of a cent. A noul answers yes/no as noul, the probability of yes. A choice answers with the option picked, a " +
+		"probability for each option, and a confidence. A score answers with score, the probability-weighted level on the " +
+		"criteria's own scale (0 to the last level), and a confidence: one number, not a probability per level. Every question " +
+		"carries instructions, the question in words, and is refused without them. Any model can answer: Clef and Jev take the " +
+		"questions themselves, any other model is prompted for the same answers instead. preset easy asks the six questions of " +
+		"the easy-task rubric about state. With kind, the decision is logged beside old (what you would have chosen), with which " +
+		"model answered and how.",
 		{ state: { description: "The text or JSON the questions are about" },
-			questions: { type: "object", description: "Named questions: {<name>: {type, instructions, criteria}}. instructions is the question in words, and every question needs it; criteria belongs to a choice ({option: what it means}) or a score ([ordered levels])." },
+			questions: { type: "object", additionalProperties: QUESTION,
+				description: "Named questions: {<name>: {type, instructions, criteria}}. instructions is the question in words, and every question needs it; criteria belongs to a choice ({option: what it means}) or a score ([ordered levels])." },
 			preset: { type: "string", enum: ["easy"] },
-			model: said("@cf/cloudflare/clef-flash (default), @cf/cloudflare/clef, typesafe/jev"), kind: said("A label for the log, e.g. sort"), old: said("What the old path chose, for the log"),
-			floor: { type: "number", description: "For the log: the confidence under which you would not act on the answer (it then neither agrees nor disagrees with old)" },
+			model: said("Any model. @cf/cloudflare/clef-flash (default), @cf/cloudflare/clef and typesafe/jev take the questions themselves; any other is prompted for the same answers"),
+			kind: said("A label for the log, e.g. sort"), old: said("What the old path chose, for the log"),
+			floor: { type: "number", description: "For the log: the confidence under which you would not act on the answer (it then neither agrees nor disagrees with old). Compared against the answer's confidence, not a choice's winning probability: on a choice the two differ, and the confidence is the lower" },
 			ref: said("For the log: what was decided about (the page's brain id), to check the decision against what happened") },
 		["state"]),
 	tool("tokens", "The café's colours and sizes as a design tokens file (the W3C format Figma's variables import as a mode), " +

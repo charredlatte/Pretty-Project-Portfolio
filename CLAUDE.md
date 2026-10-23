@@ -541,10 +541,19 @@ its Stop hook hands in what she sent. Workers Builds deploys it on every merge t
   connector. Only she and the queen write it. The token table is read from the page the gateway bundles, never
   copied; `harness/test/fixtures/tokens-figma.json` holds the page, `skin.py`, the gateway and `catio_mcp.py` to one
   answer.
-- **The decider** (`src/decide.js`, the tool `decide`): a typed decision from a System One model, a state and named
-  questions (`noul` yes/no, `choice`, `score`) answered with probabilities, no prose. Workers AI through the Worker's
+- **The decider** (`src/decide.js`, the tool `decide`): a typed decision, a state and named questions in, no prose
+  out. A `noul` answers with the probability of yes; a `choice` with the option picked, a probability per option and a
+  confidence; a `score` with **one** probability-weighted number on the criteria's own scale and a confidence beside
+  it, never a probability per level. Every question's text goes in `instructions`, and a question without it is
+  refused by name before any model is asked, saying which key it was written under when that is the mistake
+  (`question`, `prompt`, `ask` are the near misses; none of them is the field). **Any model answers**, in whichever
+  of two shapes it speaks, the other tried if the first is refused: a
+  System One model takes the questions itself, any other is prompted for the same answers and read back into the same
+  shape (`ask()` and `read()`), and the answer carries `via` (`systemone` or `chat`), which the log keeps because the
+  two are not equally strong evidence. Workers AI through the Worker's
   `AI` binding, Clef (`@cf/cloudflare/clef-flash`, free plan) by default or `DECIDE_MODEL` (`typesafe/jev` is Jev
-  itself, paid from AI Gateway credits); or `DECIDE_URL`, any System One server such as `laya-serve`. `preset: easy`
+  itself, paid from AI Gateway credits); or `DECIDE_URL`, a server of her own, asked at `/v1/systemone` or, when it is
+  OpenAI-compatible, `/v1/chat/completions`. `preset: easy`
   is the easy-task rubric of `docs/delegation.md`. With `kind`, the decision is logged as `decisions/<id>` beside
   `old`, what the old path chose, and `agree`; with `floor`, a pick less sure than it is `sure: false` and
   `agree: null` (the decider didn't decide), and `ref` names what was decided (the page's `brain/<id>`, so a pick can

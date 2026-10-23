@@ -403,8 +403,12 @@ def answer(args):
     comment({"cat": "queen", "text": text + (("\n(for %s, %s)" % (q["for"], "told" if told else "not a cat here")) if q["for"] else ""), "author": "owner"})
     return {"ok": True, "told": told}
 
-# ---------- decisions: the one-bit questions, answered by a System One model (same as the gateway's src/decide.js) ----------
+# ---------- decisions: the one-bit questions, answered by whatever model is there (same as the gateway's src/decide.js) ----------
+# Two shapes, and decide() uses whichever the answerer speaks: a model that takes {state, questions} itself
+# (POST /v1/systemone: laya-serve, Jev) or any other model, prompted for the same answers and read back out of its
+# reply (POST /v1/chat/completions: Ollama, llama.cpp, a hosted API). src/decide.js carries the contract in full.
 TYPES = ("noul", "choice", "score")
+SYSTEM_ONE = re.compile(r"^(?:@cf/cloudflare/clef|typesafe/jev)")   # the ids known to take questions themselves
 PRESETS = {
     "easy": {   # the rubric of docs/delegation.md as six yes/no questions about a task's text
         "spelled_out": {"type": "noul", "instructions": "Does the task name exactly what to produce or change (a file, a test, an output), with no design judgement left open?"},
@@ -415,6 +419,13 @@ PRESETS = {
         "browser": {"type": "noul", "instructions": "Does the task need a web browser, a login, or a key?"},
     },
 }
+
+
+# What a caller is likely to have called the question's text instead. The field is `instructions` and only that, and a
+# question carrying anything else is refused rather than guessed at; these are only so the refusal can name the
+# mistake. Same list as the gateway's src/decide.js.
+NEARLY = ("instruction", "question", "prompt", "ask", "description", "text", "q")
+UNSAID = 0.55   # an answer a model stated with no confidence of its own: under every floor the café uses (0.6)
 
 
 def _shape(args):
@@ -429,9 +440,11 @@ def _shape(args):
             raise ValueError("%s: type is noul, choice or score" % name)
         clean = {"type": q["type"]}
         # Every question needs its words: Clef refuses one without them by calling the whole body malformed, and
-        # never says which question was short. Name it here, as src/decide.js does.
+        # never says which question was short. Name it here, as src/decide.js does, and name the key it was written
+        # under when that is what went wrong.
         if q.get("instructions") is None or not str(q["instructions"]).strip():
-            raise ValueError("%s: instructions is the question in words" % name)
+            near = next((k for k in NEARLY if q.get(k) is not None and str(q[k]).strip()), None)
+            raise ValueError("%s: instructions is the question in words%s" % (name, ', not "%s"' % near if near else ""))
         clean["instructions"] = str(q["instructions"])[:1000]
         c = q.get("criteria")
         if q["type"] == "choice":
@@ -478,24 +491,231 @@ def _confidence(a):
     return 0
 
 
-def decide(args):
-    """A typed decision from a System One model at CATIO_DECIDE_URL. With kind, logged beside old (what the old path chose);
-    under floor it is the decider not deciding (sure False, agree None); ref names what was decided about."""
-    body = _shape(args)
-    if not DECIDE_URL:
-        raise ValueError("no decider: set CATIO_DECIDE_URL to a System One server (laya-serve on this computer, or Jev)")
-    if args.get("model"):
-        body["model"] = str(args["model"])
-    req = urllib.request.Request(DECIDE_URL + "/v1/systemone", data=json.dumps(body).encode(), method="POST",
+def _ask(body):
+    """The same questions as one prompt, for a model that doesn't take them itself (the gateway's ask())."""
+    asked, wanted = [], []
+    for name, q in body["questions"].items():
+        if q["type"] == "noul":
+            asked.append("- %s: %s Answer yes or no." % (name, q["instructions"]))
+            wanted.append('%s: {"answer": "yes" or "no", "confidence": 0 to 1}' % json.dumps(name))
+        elif q["type"] == "choice":
+            asked.append("- %s: %s Answer with one of %s." % (name, q["instructions"],
+                         ", ".join("%s (%s)" % (k, v) for k, v in q["criteria"].items())))
+            wanted.append('%s: {"answer": one of %s, "confidence": 0 to 1}'
+                          % (json.dumps(name), " | ".join(json.dumps(k) for k in q["criteria"])))
+        else:
+            top = len(q["criteria"]) - 1
+            asked.append("- %s: %s Answer with a whole number from 0 to %d, where %s."
+                         % (name, q["instructions"], top, ", ".join("%d is %s" % (i, v) for i, v in enumerate(q["criteria"]))))
+            wanted.append('%s: {"answer": 0 to %d, "confidence": 0 to 1}' % (json.dumps(name), top))
+    state = body["state"]
+    return "\n".join([
+        "Answer every question about the state below. Reply with one JSON object and nothing else: no prose, no",
+        "explanation, no code fence.",
+        "Give each answer a confidence, from 0 (a coin toss) to 1 (certain): how sure you are of that answer. An",
+        "answer with no confidence is read as barely better than a coin toss, so say one.",
+        "",
+        "STATE:",
+        state if isinstance(state, str) else json.dumps(state),
+        "",
+        "QUESTIONS:",
+        *asked,
+        "",
+        "Reply with exactly:",
+        "{" + ", ".join(wanted) + "}",
+    ])
+
+
+def _first_json(text):
+    """The first balanced JSON object in a reply, whatever prose or code fence surrounds it."""
+    i = text.find("{")
+    while i >= 0:
+        depth, in_str, esc = 0, False, False
+        for j in range(i, len(text)):
+            ch = text[j]
+            if esc:
+                esc = False
+                continue
+            if in_str:
+                if ch == "\\":
+                    esc = True
+                elif ch == '"':
+                    in_str = False
+                continue
+            if ch == '"':
+                in_str = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    try:
+                        v = json.loads(text[i:j + 1])
+                        if isinstance(v, dict):
+                            return v
+                    except ValueError:
+                        pass            # prose that merely looks like an object: try the next {
+                    break
+        i = text.find("{", i + 1)
+    return None
+
+
+def _num(v):
+    if isinstance(v, bool):             # a boolean is a yes or no, never a probability
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    if not isinstance(v, str):
+        return None
+    s = v.strip()
+    if not s:           # a blank string is no number: float("") raises, but "" must not read as a confident no
+        return None
+    pct = s.endswith("%")
+    try:
+        n = float(s[:-1] if pct else s)
+    except ValueError:
+        return None
+    return n / 100 if pct else n
+
+
+def _truth(v):
+    """yes or no as a model writes it; a number is left to be read as a probability instead."""
+    if isinstance(v, bool):
+        return v
+    if not isinstance(v, str):
+        return None
+    s = v.strip().lower()
+    return True if s in ("y", "yes", "true", "t") else False if s in ("n", "no", "false", "f") else None
+
+
+def _clamp(n):
+    return min(1.0, max(0.0, n))
+
+
+def _r4(n):
+    """To four decimals, as a System One model's own probabilities come back. Everything here is 0 or more. A whole
+    number comes back as one, so a score reads 2 in the JSON rather than 2.0, as the gateway's own answer does."""
+    r = int(n * 1e4 + 0.5) / 1e4
+    return int(r) if r == int(r) else r
+
+
+def _prob(yes, c):
+    # A confidence below a coin toss would flip the answer it was given for, so it is held at the toss: the answer
+    # the model stated survives and _confidence reads about 0.5, under every floor the café uses.
+    return _r4(max(0.5, _clamp(c)) if yes else min(0.49, 1 - _clamp(c)))
+
+
+def _answer(v, q):
+    """One answer, from whatever the model put under the question's name."""
+    if v is None:
+        return None
+    said = v if isinstance(v, dict) else {"answer": v}
+    got = next((said[k] for k in ("answer", "value", "choice", "score", "noul", "level") if said.get(k) is not None), None)
+    if got is None:
+        return None
+    c = _num(said.get("confidence"))
+    sure = UNSAID if c is None else _clamp(c)
+    if q["type"] == "noul":
+        yes = _truth(got)
+        if yes is not None:
+            return {"type": "noul", "noul": _prob(yes, sure)}
+        n = _num(got)                   # a bare probability in place of a yes or no
+        return None if n is None or n < 0 or n > 1 else {"type": "noul", "noul": _r4(n)}
+    if q["type"] == "choice":
+        keys = list(q["criteria"])
+        pick = next((k for k in keys if k.lower() == str(got).strip().lower()), None)
+        if pick is None:
+            return None                 # not one of the options: unanswered, not guessed
+        each = (1 - sure) / max(1, len(keys) - 1)
+        return {"type": "choice", "choice": pick, "confidence": _r4(sure),
+                "probabilities": {k: _r4(sure if k == pick else each) for k in keys}}
+    top = len(q["criteria"]) - 1
+    n = _num(got)
+    if n is None:                       # a level by name rather than by number
+        i = next((i for i, lv in enumerate(q["criteria"]) if lv.lower() == str(got).strip().lower()), None)
+        if i is None:
+            return None
+        n = i
+    return {"type": "score", "score": _r4(min(top, max(0, n))), "confidence": _r4(sure)}
+
+
+def _read(text, questions):
+    """The answers read back out of a model's reply, in the same shape a System One model returns."""
+    said = _first_json("" if text is None else str(text))
+    out = {}
+    if not said:
+        return out
+    for name, q in questions.items():
+        a = _answer(said.get(name), q)
+        if a:
+            out[name] = a
+    return out
+
+
+def _post(path, body, timeout):
+    req = urllib.request.Request(DECIDE_URL + path, data=json.dumps(body).encode(), method="POST",
                                  headers=dict({"Content-Type": "application/json"}, **({"Authorization": "Bearer " + DECIDE_KEY} if DECIDE_KEY else {})))
     try:
-        with urllib.request.urlopen(req, timeout=DECIDE_TIMEOUT) as r:
-            reply = json.loads(r.read().decode("utf-8"))
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8"))
     except (OSError, ValueError) as e:
         raise ValueError("the decider failed: %s" % e)
+
+
+def _system_one(body, model, timeout):
+    """A model that takes the questions itself and answers them."""
+    reply = _post("/v1/systemone", dict(body, model=model) if model else body, timeout)
     if not isinstance(reply, dict) or not isinstance(reply.get("answers"), dict):
         raise ValueError("the decider answered without answers")
-    out = {"model": str(reply.get("model") or args.get("model") or "system-one"), "answers": reply["answers"], "usage": reply.get("usage")}
+    return {"model": str(reply.get("model") or model or "system-one"), "answers": reply["answers"], "usage": reply.get("usage")}
+
+
+def _chat(body, model, timeout):
+    """Any other model: the questions as one prompt, the answers read back out of its reply."""
+    sent = {"messages": [{"role": "user", "content": _ask(body)}], "temperature": 0}
+    reply = _post("/v1/chat/completions", dict(sent, model=model) if model else sent, timeout)
+    if not isinstance(reply, dict):
+        raise ValueError("the decider answered no text")
+    text = reply.get("response")        # Workers AI says response, an OpenAI-compatible API choices
+    if text is None:
+        ch = reply.get("choices")
+        if isinstance(ch, list) and ch and isinstance(ch[0], dict) and isinstance(ch[0].get("message"), dict):
+            text = ch[0]["message"].get("content")
+    if text is None:
+        raise ValueError("the decider answered no text")
+    return {"model": str(model or reply.get("model") or "chat"), "answers": _read(text, body["questions"]), "usage": reply.get("usage")}
+
+
+def decide(args):
+    """A typed decision about a state, from whatever model at CATIO_DECIDE_URL answers: one that takes the questions
+    itself (/v1/systemone) or any other, prompted for the same answers (/v1/chat/completions). With kind, logged beside
+    old (what the old path chose); under floor it is the decider not deciding (sure False, agree None); ref names what
+    was decided about."""
+    body = _shape(args)
+    if not DECIDE_URL:
+        raise ValueError("no decider: set CATIO_DECIDE_URL to a model's server, either speaking the System One API "
+                         "(laya-serve on this computer, or Jev) or with an OpenAI-compatible /v1/chat/completions")
+    model = str(args["model"]) if args.get("model") else ""
+    # the shape this model is known to speak first, then the other, so a model nobody listed here still answers
+    ways = ["chat", "systemone"] if model and not SYSTEM_ONE.match(model) else ["systemone", "chat"]
+    until = time.monotonic() + DECIDE_TIMEOUT
+    out, last = None, None
+    for way in ways:
+        left = until - time.monotonic()
+        if left < 0.5:                  # not enough of the budget left to be worth a round trip
+            break
+        try:
+            got = _system_one(body, model, left) if way == "systemone" else _chat(body, model, left)
+        except ValueError as e:
+            last = e
+            continue
+        if got["answers"]:
+            got["via"] = way
+            out = got
+            break
+        last = ValueError("the decider answered nothing readable")
+    if out is None:
+        raise last if last else ValueError("the decider didn't answer")
     if args.get("kind"):
         first = next(iter(out["answers"]), None)
         old = None if args.get("old") is None else str(args["old"])[:200]
@@ -505,8 +725,9 @@ def decide(args):
         with LOCK:
             s = load()
             log = s.setdefault("decisions", [])
-            entry = {"id": new_id(), "at": now(), "kind": str(args["kind"])[:40], "model": out["model"], "questions": list(out["answers"]),
-                     "answers": out["answers"], "verdict": got, "sure": sure, "old": old, "agree": None if old is None or not sure else got == old}
+            entry = {"id": new_id(), "at": now(), "kind": str(args["kind"])[:40], "model": out["model"], "via": out.get("via"),
+                     "questions": list(out["answers"]), "answers": out["answers"], "verdict": got, "sure": sure, "old": old,
+                     "agree": None if old is None or not sure else got == old}
             if floor is not None:
                 entry["floor"] = floor
             if args.get("ref") is not None:
@@ -519,6 +740,18 @@ def decide(args):
 
 S = {"type": "string"}
 KIND = {"type": "string", "enum": list(QUIZ_KINDS)}
+# One question for the decide tool. It is spelled out because a caller that guesses the key (question, prompt, ask)
+# used to reach the model with no text at all, which the model then refused for a reason naming nothing the caller
+# did wrong. decide() accepts those spellings too, but the schema is what stops the guess.
+QUESTION = {
+    "type": "object",
+    "properties": {
+        "type": {"type": "string", "enum": list(TYPES), "description": "noul is yes/no, choice is one of named options, score is a level on a scale"},
+        "instructions": dict(S, description="The question to ask about the state"),
+        "criteria": {"description": "A choice: {option: what it means}, 2 to 64 of them. A score: an ordered list of 2 or more levels, lowest first. A noul: nothing, or {true: what yes means, false: what no means}"},
+    },
+    "required": ["type", "instructions"],
+}
 # ---------- the café's look as a design tokens file (design_tokens.py; the gateway's src/tokens.js) ----------
 def _cafe():
     folder = Path(CAFE) if CAFE else Path(__file__).resolve().parent.parent.parent / "catio"
@@ -609,16 +842,21 @@ TOOLS = {
     "quizzes": (quizzes, "The homework set for the owner: the open quizzes, oldest first (done: true lists the handed-in ones too; kind lists one kind).",
                 {"done": {"type": "boolean"}, "kind": KIND}, []),
     "forget": (forget, "Clear homework from the house (the queen or the owner): the cards already filed, or litter box notes and decisions no longer waiting, by id. An open unblock quiz stays.", {"quizzes": {"type": "array", "items": S}}, ["quizzes"]),
-    "decide": (decide, "A typed decision from a System One model (laya-serve on this computer, or Jev): a state and named questions of type noul "
-               "(yes/no: a probability), choice (criteria: {option: meaning}; the option, a probability each and a confidence) or score "
-               "(criteria: ordered levels; a weighted score). Every question carries instructions, the question in words, and is refused "
-               "without them. No prose, milliseconds. preset easy asks the six questions of the easy-task "
-               "rubric about state. With kind, the decision is logged beside old (what you would have chosen).",
+    "decide": (decide, "A typed decision about a state: named typed questions in, one typed answer each out, no prose, in milliseconds. "
+               "A noul answers yes/no as noul, the probability of yes. A choice answers with the option picked, a probability for each "
+               "option, and a confidence. A score answers with score, the probability-weighted level on the criteria's own scale (0 to the "
+               "last level), and a confidence: one number, not a probability per level. Every question carries instructions, the question "
+               "in words, and is refused without them. Any model can answer: one speaking the System One API takes the questions "
+               "themselves, any other is prompted for the same answers instead. preset easy asks the six questions of the easy-task "
+               "rubric about state. With kind, the decision is logged beside old (what you would have chosen), with which model answered "
+               "and how.",
                {"state": {"description": "The text or JSON the questions are about"},
-                "questions": {"type": "object", "description": "Named questions: {<name>: {type, instructions, criteria}}. instructions is the question in words, and every question needs it; criteria belongs to a choice ({option: what it means}) or a score ([ordered levels])."},
+                "questions": {"type": "object", "additionalProperties": QUESTION,
+                              "description": "Named questions: {<name>: {type, instructions, criteria}}. instructions is the question in words, and every question needs it; criteria belongs to a choice ({option: what it means}) or a score ([ordered levels])."},
                 "preset": {"type": "string", "enum": ["easy"]},
-                "model": S, "kind": dict(S, description="A label for the log, e.g. sort"), "old": dict(S, description="What the old path chose, for the log"),
-                "floor": {"type": "number", "description": "For the log: the confidence under which you would not act on the answer (it then neither agrees nor disagrees with old)"},
+                "model": dict(S, description="Any model the server at CATIO_DECIDE_URL serves; @cf/cloudflare/clef* and typesafe/jev take the questions themselves"),
+                "kind": dict(S, description="A label for the log, e.g. sort"), "old": dict(S, description="What the old path chose, for the log"),
+                "floor": {"type": "number", "description": "For the log: the confidence under which you would not act on the answer (it then neither agrees nor disagrees with old). Compared against the answer's confidence, not a choice's winning probability: on a choice the two differ, and the confidence is the lower"},
                 "ref": dict(S, description="For the log: what was decided about (the page's brain id), to check the decision against what happened")},
                ["state"]),
     "tokens": (tokens, "The café's colours and sizes as a design tokens file (the W3C format Figma's variables import as a mode), "
