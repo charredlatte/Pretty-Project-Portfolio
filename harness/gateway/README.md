@@ -239,6 +239,17 @@ answer in milliseconds, with no prose to parse:
 - `choice`: `criteria: {option: what it means}`, the chosen option, a probability each and a confidence;
 - `score`: `criteria: [ordered levels]`, a probability-weighted score.
 
+Every question carries `instructions`, **the question in words**, whatever its type:
+
+```json
+{ "state": "A cat is asleep in the library.",
+  "questions": { "asleep": { "type": "noul", "instructions": "Is the cat asleep?" } } }
+```
+
+A question without them is refused here, with its name, because the model refuses the whole body instead:
+`5006: required properties at '/' are 'model,state,questions'` names the root and never the question that is
+short. That error read as a decider outage for two days (21 October 2026); it was a mis-keyed question.
+
 Where it is answered is one switch, none of it required:
 
 | | |

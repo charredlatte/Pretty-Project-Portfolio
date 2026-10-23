@@ -428,8 +428,11 @@ def _shape(args):
         if not isinstance(q, dict) or q.get("type") not in TYPES:
             raise ValueError("%s: type is noul, choice or score" % name)
         clean = {"type": q["type"]}
-        if q.get("instructions") is not None:
-            clean["instructions"] = str(q["instructions"])[:1000]
+        # Every question needs its words: Clef refuses one without them by calling the whole body malformed, and
+        # never says which question was short. Name it here, as src/decide.js does.
+        if q.get("instructions") is None or not str(q["instructions"]).strip():
+            raise ValueError("%s: instructions is the question in words" % name)
+        clean["instructions"] = str(q["instructions"])[:1000]
         c = q.get("criteria")
         if q["type"] == "choice":
             if not isinstance(c, dict) or not 2 <= len(c) <= 64:
@@ -608,9 +611,12 @@ TOOLS = {
     "forget": (forget, "Clear homework from the house (the queen or the owner): the cards already filed, or litter box notes and decisions no longer waiting, by id. An open unblock quiz stays.", {"quizzes": {"type": "array", "items": S}}, ["quizzes"]),
     "decide": (decide, "A typed decision from a System One model (laya-serve on this computer, or Jev): a state and named questions of type noul "
                "(yes/no: a probability), choice (criteria: {option: meaning}; the option, a probability each and a confidence) or score "
-               "(criteria: ordered levels; a weighted score). No prose, milliseconds. preset easy asks the six questions of the easy-task "
+               "(criteria: ordered levels; a weighted score). Every question carries instructions, the question in words, and is refused "
+               "without them. No prose, milliseconds. preset easy asks the six questions of the easy-task "
                "rubric about state. With kind, the decision is logged beside old (what you would have chosen).",
-               {"state": {"description": "The text or JSON the questions are about"}, "questions": {"type": "object"}, "preset": {"type": "string", "enum": ["easy"]},
+               {"state": {"description": "The text or JSON the questions are about"},
+                "questions": {"type": "object", "description": "Named questions: {<name>: {type, instructions, criteria}}. instructions is the question in words, and every question needs it; criteria belongs to a choice ({option: what it means}) or a score ([ordered levels])."},
+                "preset": {"type": "string", "enum": ["easy"]},
                 "model": S, "kind": dict(S, description="A label for the log, e.g. sort"), "old": dict(S, description="What the old path chose, for the log"),
                 "floor": {"type": "number", "description": "For the log: the confidence under which you would not act on the answer (it then neither agrees nor disagrees with old)"},
                 "ref": dict(S, description="For the log: what was decided about (the page's brain id), to check the decision against what happened")},

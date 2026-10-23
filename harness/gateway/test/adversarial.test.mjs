@@ -216,7 +216,7 @@ describe("a normal gateway under hostile input", () => {
 	});
 
 	test("a decider that answers with no answers, asked to log, isn't a crash", async () => {
-		const r = await api("/api/tools/decide", { method: "POST", body: JSON.stringify({ state: "x", questions: { a: { type: "noul" } }, kind: "sort", old: "a" }) });
+		const r = await api("/api/tools/decide", { method: "POST", body: JSON.stringify({ state: "x", questions: { a: { type: "noul", instructions: "Is it so?" } }, kind: "sort", old: "a" }) });
 		assert.ok(r.status < 500, "→ " + r.status + " " + await r.text());
 	});
 
@@ -305,7 +305,7 @@ describe("a normal gateway under hostile input", () => {
 	test("a value with a toString of its own is ignored, never a 500", async () => {
 		const hostile = { toString: 1, valueOf: 2 };
 		for (const [name, args] of [["comments", { cat: hostile }], ["report_status", { agent: hostile }], ["comment", { cat: "x", text: hostile }], ["inbox", { agent: hostile }],
-			["manage", { cat: hostile, action: "archive" }], ["decide", { state: hostile, questions: { a: { type: "noul" } } }]]) {
+			["manage", { cat: hostile, action: "archive" }], ["decide", { state: hostile, questions: { a: { type: "noul", instructions: "Is it so?" } } }]]) {
 			const r = await rpcRaw(g.base, TOKEN, { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } });
 			assert.ok(r.status < 500, `${name} → ${r.status}`);
 		}
@@ -326,7 +326,7 @@ describe("a normal gateway under hostile input", () => {
 	});
 
 	test("a decider that answers `answers: null` is a refusal, not a 500", async () => {
-		const r = await api("/api/tools/decide", { method: "POST", body: JSON.stringify({ state: "null-answers", questions: { a: { type: "noul" } }, kind: "sort", old: "a" }) });
+		const r = await api("/api/tools/decide", { method: "POST", body: JSON.stringify({ state: "null-answers", questions: { a: { type: "noul", instructions: "Is it so?" } }, kind: "sort", old: "a" }) });
 		assert.equal(r.status, 400, await r.text());
 	});
 

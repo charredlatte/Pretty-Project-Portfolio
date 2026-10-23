@@ -144,6 +144,8 @@ class Stdio(unittest.TestCase):
         self.assertTrue(r.get("isError")); self.assertIn("CATIO_DECIDE_URL", r["content"][0]["text"])
         r = self.rpc("tools/call", {"name": "decide", "arguments": {"state": "x", "questions": {"q": {"type": "guess"}}}})["result"]
         self.assertTrue(r.get("isError")); self.assertIn("noul, choice or score", r["content"][0]["text"])
+        r = self.rpc("tools/call", {"name": "decide", "arguments": {"state": "x", "questions": {"q": {"type": "noul"}}}})["result"]
+        self.assertTrue(r.get("isError")); self.assertIn("q: instructions is the question in words", r["content"][0]["text"])
 
     def test_errors_are_tool_errors(self):
         self.rpc("initialize", {})
@@ -455,6 +457,6 @@ class Decider(unittest.TestCase):
         self.assertEqual((log[0]["kind"], log[0]["old"], log[0]["agree"]), ("sort", "catio", False))
         # under the caller's floor the decider hasn't decided: it neither agrees nor disagrees, and ref names the file
         self.tool("decide", state={"file": "notes.md"}, kind="sort", old="shop", floor=0.9, ref="b-1",
-                  questions={"cat": {"type": "choice", "criteria": {"shop": "the shop", "catio": "the café"}}})
+                  questions={"cat": {"type": "choice", "instructions": "Which cat?", "criteria": {"shop": "the shop", "catio": "the café"}}})
         last = json.loads(Path(self.home, "state.json").read_text())["decisions"][-1]
         self.assertEqual((last["verdict"], last["sure"], last["agree"], last["ref"]), ("shop", False, None, "b-1"))
