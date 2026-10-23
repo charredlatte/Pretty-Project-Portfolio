@@ -480,6 +480,26 @@ in time ([`docs/engine.md`](docs/engine.md)); deciding is the decider's.
   and how sure it was, so you can read a week of the log before letting it decide anything for real. The rubric and
   the rollout: [`docs/delegation.md`](docs/delegation.md).
 
+### The litter box, and the one thing it will not do
+
+Not everything a session finds is work it can finish. A loose end, a question only you can answer, a fact learned the
+hard way, a pull request the rules held back: each lands in `litterbox/` as a note, and the sifter
+(`python3 litterbox/sort.py`, a dry run until you add `--write`) does the sorting. It compresses what is finished,
+drops what repeats another note, and piles the rest on its project's pile, `litterbox/<project>.md`.
+
+The pile is where it stops, because **working out which project a note belongs to is a guess, and the sifter says so
+in the pile's own header.** A pile marked that way is never filed, however many runs go by; new notes for that
+project simply join it. It waits until you open it and delete that one comment, which is you saying the project is
+right. Only then does the next run empty it into that project's own repository, under *Waiting on Charlotte*,
+*Ideas not built*, *Facts learned* or *Findings*, and commit what it wrote. The sifter's own words for the rule:
+*nothing filed is guessed.*
+
+So the box is a one-way valve and you are the valve. It is also the reason a note that needs your decision is written
+with no project at all: that is what sends it to a pile to wait, rather than out of the box. In the café the same
+notes reach you as cards in the queen's quest log, one note a card, from the library's chest or the House menu — the
+other way to check a pile, a tap an answer. Which header does what, dealing the cards, and how held pull requests get
+here: [`litterbox/README.md`](litterbox/README.md).
+
 ## On your own computer
 
 The café also runs from a folder, with no account anywhere. `python3 catio/tools/bundle.py` makes
