@@ -279,7 +279,7 @@ empties itself.
 ## The gateway: live cats without asking claude.ai
 
 [`gateway/`](gateway/README.md) is the Catio's always-on hub, a Cloudflare Worker on the free plan with the
-same tools as the Catio MCP server below. It changes two things:
+same tools as the Catio MCP server below. It changes three things:
 
 - **Cats are live without `list_sessions`.** `hooks/report.py` reports every session to it from Claude Code's
   own hooks: busy when a prompt comes in, needs her at a question, review when a turn ends, done at the end.
@@ -289,12 +289,14 @@ same tools as the Catio MCP server below. It changes two things:
 - **A running session gets her message when its turn ends,** not at its next start. The Stop hook hands in her
   notes, requests and files once each, and what the queen of the house says to it (`[Catio] The queen says: …`),
   as hers. An idle session still waits for its next turn: nothing can wake it.
-
-- **The one-bit questions go to a decision model, not to Opus.** The `decide` tool (`gateway/src/decide.js`, and
-  the same in `mcp/catio_mcp.py` behind `CATIO_DECIDE_URL`) answers typed questions about a state with
-  probabilities: yes/no, a choice, a score. Clef on Workers AI inside the free plan, Jev itself, or a local Laya,
-  the model id being the switch. The page asks it where a dropped file goes and logs the answer beside the old
-  sorter's (`decisions/`); `preset: easy` is the easy-task rubric. `docs/delegation.md`, phase D.
+- **The one-bit questions go to a decision model, which is not a cheaper Opus.** The `decide` tool
+  (`gateway/src/decide.js`, and the same in `mcp/catio_mcp.py` behind `CATIO_DECIDE_URL`) answers typed questions
+  about a state with probabilities: yes/no, a choice, a score. Clef on Workers AI inside the free plan, Jev itself,
+  or a local Laya, the model id being the switch. It is cheaper, but cost is not what picks it: it returns a
+  calibrated probability for every allowed answer and no prose, which no chat model gives you, and it holds no
+  tools and no session, so it can never *drive* a cat the way `runner/queen.py` drives Claude Code. A different
+  instrument, not a lower price for the same one. The page asks it where a dropped file goes and logs the answer
+  beside the old sorter's (`decisions/`); `preset: easy` is the easy-task rubric. `docs/delegation.md`, phase D.
 
 Agents anywhere can join it too, over MCP with the agents' key. Setting it up is five steps, in
 `gateway/README.md`.
