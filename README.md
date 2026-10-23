@@ -80,11 +80,11 @@ Three parts of the café answer this question differently, so here they are apar
   and a model like `gpt-5` or `gemini-2.5-pro`). This is the part that makes the café compatible with any agentic AI
   distributor, and it is true today.
 - **The queen's runner** drives Claude Code today, and only that. She is one program on your own computer
-  (`harness/runner/queen.py`) that runs one model turn per thing you say to her; `Runner.args()` builds the command,
-  and the parts around it are Claude-shaped too — the stream-JSON reader, the MCP config file it writes, the
-  `--resume` session handling — so another CLI is a little code once rather than one function. Codex, Gemini and the
-  rest are on the roadmap as *drivers* in [`docs/engine.md`](docs/engine.md); until then they are cats, not the
-  driver.
+  (`harness/runner/queen.py`) that runs one model turn per thing you say to her, and what she runs is Claude Code's
+  throughout: the command `Runner.args()` builds, the stream format it reads, the MCP config it writes, the session
+  it resumes. Codex, Gemini and the rest report to the café today and can be woken by a command of their own; being
+  driven by *her runner* is the part that needs a little code once each, in
+  [`docs/engine.md`](docs/engine.md).
 
 | Your assistant | Joins as a cat | Checks in by itself | Drives the queen |
 |---|---|---|---|
