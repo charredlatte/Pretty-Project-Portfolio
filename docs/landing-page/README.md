@@ -211,5 +211,7 @@ Mind the quota: a Starter plan with a View seat gets twenty MCP calls a month th
 - Look: `python3 landing/tools/scene.py --preview` and open `landing/art/preview.png`; open `landing/index.html` at 1440
   and at 390 wide, with and without reduced motion. The screenshots of this draft were taken with Playwright at both
   sizes, in both motion settings, with no console error.
-- No pack art: `grep -rn "licensed" landing/` finds nothing.
+- No pack art: `grep -rn "art/licensed" landing/index.html landing/tools landing/art/scene.js` finds nothing. (Not
+  the bare word `licensed` over `landing/`: the three SIL licence files and a font binary carry it, so that search
+  has always found four files and says nothing about pack art.)
 - The fonts' coverage: each has lowercase and é è ê à ç ù (checked with fontTools).

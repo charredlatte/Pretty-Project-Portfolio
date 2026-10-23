@@ -47,11 +47,12 @@ On a Mac or Linux the same, with `export` in place of `setx` and `python3`.
   connected). It comes back the moment she writes to the queen, a routine comes due, or she clicks Stop. Each wait carries
   `ack`, the newest note she has been given: the gateway offers a note until then, so one lost when a connection
   dropped is offered again. A 503 is waited out like any other error; only a refused key (401) stops her.
-- For each note or routine, one turn: `claude -p --resume <her session> --output-format stream-json
+- For each note or routine, one turn: `claude -p --output-format stream-json --verbose
   --include-partial-messages --append-system-prompt-file <queen.md + her character> --mcp-config <the gateway's
   /mcp, with the queen's key> --strict-mcp-config --restricted --allowedTools mcp__catio --permission-prompts
-  none --max-turns 30`. The queen keeps one conversation across turns (`state.json` in `CATIO_QUEEN_DIR`,
-  default `~/.catio/queen`); a session that is gone is started afresh. Restricted mode and `--strict-mcp-config`
+  none --max-turns 30`, with `--resume <her session>` on the end once she has one (`Runner.args()`). The queen
+  keeps one conversation across turns (`state.json` in `CATIO_QUEEN_DIR`, default `~/.catio/queen`); a session
+  that is gone is started afresh. Restricted mode and `--strict-mcp-config`
   leave her the Catio's tools and nothing that runs commands or edits files; `CATIO_*` is kept out of the turn's
   environment, so the house-rules hook doesn't report her as a cat.
 - Streams the text as it arrives to `POST /api/runner/say` (at most every 0.4 s), then the whole answer with
