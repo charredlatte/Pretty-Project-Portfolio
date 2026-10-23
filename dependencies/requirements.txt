@@ -1,0 +1,13 @@
+# The Python packages the café's own tools need. Nothing else here is third-party:
+# the harness (the hooks, the queen's runner, the MCP server and the bridge), the
+# litter box, and catio/tools/bundle.py, skin.py, digest.py and save-sessions.py
+# are standard library only, on purpose, so a café runs with a bare Python 3.
+#
+#   pip install -r dependencies/requirements.txt
+#
+# No version is pinned, because nothing here calls anything that has moved in
+# years: Image.open, paste, crop and resize, and fontTools' subsetter and pens.
+# Pin a version here if a release ever breaks the art build.
+
+pillow      # the art build and the landing scene: catio/tools/{build-art,manor,furniture}.py, landing/tools/scene.py
+fonttools   # the pixel font's accents (catio/tools/build-art.py) and the app's Nunito cuts (catio-app/tools/fonts.py)

@@ -71,10 +71,10 @@ pull request is always hers to merge.** That is the safety net, and it is alread
 Three things touch that list, and only one of them is "the decider" — whose name suggests a chooser although it
 chooses nothing:
 
-- **The decider (Clef) answers.** `decide` with `preset: easy` puts the six rows above to a System One model and
-  returns a probability for each. It is given a task's text and knows nothing of tiers, ladders or caps, so it
-  cannot name a model and never does. It is also only ever *asked*: nothing consults it automatically.
-  (`harness/gateway/src/decide.js`)
+- **The decider answers.** `decide` with `preset: easy` puts the six rows above to the decider — Clef by default,
+  though any model can answer — and returns a probability for each. It is given a task's text and knows nothing of
+  tiers, ladders or caps, so it cannot name a model and never does. It is also only ever *asked*: nothing consults
+  it automatically. (`harness/gateway/src/decide.js`)
 - **The session picks.** It names the model on the call — from the decider's answer when it asked and that answer
   cleared the 0.6 floor, from the table above when it didn't ask or the answer fell under the floor — and says
   which of the two it used.
@@ -225,9 +225,10 @@ Her ask (3 October): save tokens by running Jev locally, "even if that means giv
 probability outcomes". Researched the same day; the sources are at the end.
 
 **What Jev is.** TypeSafe AI's System One model (early access 15 September 2026). It writes no text: it takes a
-*state* (any text or JSON) and a schema of typed *questions*, and returns a probability for every allowed answer, in
+*state* (any text or JSON) and a schema of typed *questions*, and answers each in numbers rather than prose, in
 one parallel pass, in 70 to 500 ms. Three question types: `noul` (yes/no, the probability of yes), `choice` (one of
-up to 255 options, a probability each and a confidence), `score` (an ordered rubric, a probability-weighted score).
+up to 255 options, a probability each and a confidence), `score` (an ordered rubric; one probability-weighted
+number on that rubric's scale, with a confidence beside it, not a probability per level).
 Price: $0.042 per million input tokens, output free, because there is no output to speak of. It is not the "stage
 one" of Claude Code's own permission classifier (a fast yes/no filter tuned to err toward blocking, with a reasoning
 pass behind it): that is Anthropic's, inside auto mode, and not something the café can call. Same shape of idea,
@@ -248,7 +249,10 @@ of fit for the café:
      call, Clef-flash 13× faster than Jev at the median on Cloudflare's runs. These are Workers AI models, so they
      run on the **free plan's 10,000 neurons a day** and cost $0.09 per million input tokens past that.
 
-   The integration is an `ai` binding in `wrangler.jsonc` and one `env.AI.run(model, { state, questions })`.
+   The integration is an `ai` binding in `wrangler.jsonc` and one `env.AI.run(model, { state, questions })`,
+   where a Clef model wants its own short name repeated in the body (`model: "clef-flash"`) and every question
+   carries `instructions`, the question in words. Clef refuses a body missing either, and says only that the root
+   is wrong (`required properties at '/' are 'model,state,questions'`), never which question was short.
    Jev's reply, as the page shows it: `answers.<q>.noul` (a probability), `answers.<q>.choice` with `confidence`
    and `probabilities` per option, `answers.<q>.score` with a `legend` and `probabilities` per level, plus
    `usage.input_tokens`. Not her PC, but her own account, no new vendor account, no key in the repo, no process to

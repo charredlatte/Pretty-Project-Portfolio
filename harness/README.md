@@ -119,7 +119,7 @@ session runs the `code-review` skill on it and calls `merge_pull_request` as a m
 `expectedHeadSha` (the commit it reviewed) and a commit message that ends with two lines:
 
 ```
-Checks: npm run test:page passed; CI green
+Checks: sh catio/test/run.sh passed; CI green
 Guesses: none
 ```
 
@@ -291,13 +291,15 @@ same tools as the Catio MCP server below. It changes three things:
   as hers. An idle session still waits for its next turn: nothing can wake it.
 - **The one-bit questions go to a decision model, which is not a cheaper Opus.** The `decide` tool
   (`gateway/src/decide.js`, and the same in `mcp/catio_mcp.py` behind `CATIO_DECIDE_URL`) answers typed questions
-  about a state with probabilities: yes/no, a choice, a score. Clef on Workers AI inside the free plan, or Jev
-  itself, the model id being the only difference between those two; or, instead of Workers AI, a local Laya through
-  `DECIDE_URL`. It is cheaper, but cost is not what picks it: it answers in calibrated numbers rather than prose,
-  which no chat model gives you, and it holds no tools and no session, so it can never *drive*
-  a cat the way `runner/queen.py` drives Claude Code. A different instrument, not a lower price for the same one.
-  The page asks it where a dropped file goes and logs the answer beside the old sorter's (`decisions/`);
-  `preset: easy` is the easy-task rubric. `docs/delegation.md`, phase D.
+  about a state: a `noul` with the probability of yes, a `choice` with the option picked and a probability each, a
+  `score` with one weighted number and a confidence beside it. Clef on Workers AI inside the free plan, or Jev
+  itself, by model id; a server of her own in `DECIDE_URL`. **Any model can answer:** one speaking the System One
+  API takes the questions itself, and any other is prompted for the same answers and read back into the same shape,
+  so the rule holds wherever it is asked. The result says which answered (`via`). It is cheaper than Opus, but cost
+  is not what picks it: what comes back is numbers to hold against a floor rather than prose to parse, and it holds
+  no tools and no session, so it can never *drive* a cat the way `runner/queen.py` drives Claude Code. A different
+  instrument, not a lower price for the same one. The page asks it where a dropped file goes and logs the answer
+  beside the old sorter's (`decisions/`); `preset: easy` is the easy-task rubric. `docs/delegation.md`, phase D.
 
 Agents anywhere can join it too, over MCP with the agents' key. Setting it up is five steps, in
 `gateway/README.md`.

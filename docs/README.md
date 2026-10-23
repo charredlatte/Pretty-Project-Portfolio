@@ -11,6 +11,7 @@ What each file here is for. The README says what the café is; `CLAUDE.md` says 
 | [`onboarding/README.md`](onboarding/README.md) | The first run's wireframes and the wizard built from them, in plain words |
 | [`self-hosting.md`](self-hosting.md) | Running your own: every value still set for Charlotte's café, and what a fork sets it to |
 | [`engine.md`](engine.md) | The engine under the café, for the people who build on it or set cafés up for others: what is built and what a product still needs |
+| [`landing-page/README.md`](landing-page/README.md) | The landing page's draft and every decision on it, each with a box for her to tick: the fireside scene, the game screens it opens with, the motion. The page itself is `landing/` |
 
 ## Building it
 
@@ -25,6 +26,8 @@ What each file here is for. The README says what the café is; `CLAUDE.md` says 
 | [`mobile-app.md`](mobile-app.md) | The café as a native C++ app for a phone: the case for it and the design |
 | [`live-sessions.md`](live-sessions.md) | The live read of the sessions, every way claude.ai can refuse it, and the saved copy the café falls back on |
 | [`gateway-parity.md`](gateway-parity.md) | The plan to give the gateway café what only the claude.ai artifact could do: new sessions, retitles, mid-turn messages, every session, the file guess |
+| [`delivery.md`](delivery.md) | How what she sends reaches a session, hop by hop, and how that design holds up on scale, speed, extensibility, security, debugging and tests |
+| [`queen-loading/wireframes.html`](queen-loading/wireframes.html) | The queen's turn as it goes, drawn the way the games of the early 2000s drew a wait, for her to pick from. She picked; the strip is built |
 
 ## The record
 

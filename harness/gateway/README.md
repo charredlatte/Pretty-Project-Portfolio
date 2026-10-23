@@ -39,7 +39,8 @@ it is the admin, which uploads the café's art, creates the other accounts and i
    - Deploy. The first deploy creates the KV namespace and the Durable Object. Its address is on the Worker's page:
      `https://catio-gateway.<subdomain>.workers.dev`. If Cloudflare asks for a workers.dev subdomain, pick one.
    - From then on every merge to `main` redeploys it.
-2. **Three secrets.** On the Worker, go to Settings → Variables and Secrets → Add, type *Secret*, under
+2. **Three secrets, and the handle** — four entries, each added as a Secret, because every deploy from GitHub
+   wipes the Text ones. On the Worker, go to Settings → Variables and Secrets → Add, type *Secret*, under
    *Production*, then Deploy:
    - `CATIO_TOKEN`: the agents' key, 32 random characters or more.
    - `CATIO_PASSWORD`: a different one, the password she signs in with (16 characters or more). It goes into her
@@ -96,8 +97,9 @@ variables and the plugin, it is in `list_agents`.
   "<16+ characters>"}`: from the browser's console, `fetch("/api/users", {method: "POST", headers: {"X-Catio": "1",
   "Content-Type": "application/json"}, body: JSON.stringify({id: "…", password: "…"})}).then(r => r.json()).then(console.log)`.
   Never with a key: a key sits in every session's environment, and what a key can do, a leaked key can do. A
-  handle is 2 to 31 lower-case letters, digits or dashes. The account gets a house named after it, and signs in
-  to the café and the connector with that handle and password. An invite (above) lets them choose both themselves.
+  handle is 2 to 31 lower-case letters, digits or dashes, and never starts with a dash. The account gets a house
+  named after it, and signs in to the café and the connector with that handle and password. An invite (above) lets
+  them choose both themselves.
 - **A key:** in a signed-in café, **Keys** in the House menu (the brand, top left): name it after where it goes
   (`laptop`, `antigravity`) and press Make a key. The card shows the key once, beside the two settings a session
   needs, `CATIO_URL` (this café's address) and `CATIO_TOKEN` (the key), each with Copy; closing the card takes it off
@@ -229,36 +231,84 @@ It costs nothing on the Workers free plan: 100,000 requests a day, against a few
 ## Decisions: the `decide` tool
 
 The café has questions whose answer was always one bit or one label: which cat a dropped file belongs to, whether a
-task is easy enough for a small cat, who needs her first. `decide` (`src/decide.js`) hands them to a System One
-model, which takes a *state* (text or JSON) and named typed questions, and returns a probability for every allowed
-answer in milliseconds, with no prose to parse:
+task is easy enough for a small cat, who needs her first. `decide` (`src/decide.js`) takes a *state* (text or JSON)
+and named typed questions, and answers each in milliseconds with no prose to parse. **Exactly what comes back, per
+type,** which is the whole contract a caller reads:
 
-- `noul`: yes/no, the probability of yes;
-- `choice`: `criteria: {option: what it means}`, the chosen option, a probability each and a confidence;
-- `score`: `criteria: [ordered levels]`, a probability-weighted score.
+| type | the question takes | the answer carries |
+|---|---|---|
+| `noul` | nothing more | `noul`: the probability of yes, 0 to 1 |
+| `choice` | `criteria: {option: what it means}` | `choice`: the option picked; `probabilities`: one per option; `confidence` |
+| `score` | `criteria: [ordered levels]` | `score`: the probability-weighted level, a number on the criteria's own scale (0 to the last); `confidence` |
 
-That shape is the whole of it, and the limit is the point. A probability for every allowed answer is what a chat
-model cannot give you: prose that says "probably the shop" is not a number, and cannot be held against a floor. In
-return the decider holds no tools and no session, so it can never *drive* a cat the way `../runner/queen.py` drives
-Claude Code; it answers one question and stops. A different instrument, not a cheaper one — so "why not run the
-queen on Clef?" has no answer in a price list.
+So "a probability for every allowed answer" is true of `noul` and `choice`. A **`score` is one number and a
+confidence**, not a probability per level: `verdict()` rounds it to the nearest level, `confidence()` reads the
+confidence beside it.
+
+**A floor is compared against the confidence, never against the winning probability.** That is what
+`confidence()` returns: a `choice`'s or a `score`'s own `confidence` field, and for a `noul` its distance from a
+coin toss (`max(noul, 1 - noul)`). On a `choice` the two are different numbers and Clef's confidence runs well
+below the probability it gave the option it picked — two live calls on 23 October 2026:
+
+| the option it picked | its probability | `confidence` | against a 0.6 floor |
+|---|---|---|---|
+| `settled` | 0.7276 | 0.2072 | under it: the decider did not decide |
+| `settled` | 0.9086 | 0.6678 | over it: it decided |
+
+So reading `probabilities` to judge whether an answer cleared a floor will say it did when it did not. Read
+`confidence`, which is what the code does.
+
+**Any model can answer,** in one of two shapes, and `decide` uses whichever the answerer speaks:
+
+- **a System One model** takes `{state, questions}` itself and returns the answers above;
+- **any other model** is prompted for the same answers instead: `ask()` turns the questions into one prompt, `read()`
+  reads them back out of whatever JSON it replies with, into the same shape. Tolerant on purpose (a code fence, prose
+  around the JSON, a bare `"yes"`, a level by name); a question it can't read is left out rather than guessed, and an
+  answer the model put no confidence on never clears the café's 0.6 floor by itself. No `response_format` is sent,
+  because which models accept one is per-model knowledge and the point is to need none.
+
+The shape is picked from the model's id and **the other is tried if the first is refused**, so a model nobody has
+listed here still answers. The result says which answered, as `via` (`systemone` or `chat`), and the `decisions/`
+log keeps it: a decision read out of a chat model's JSON is weaker evidence than a System One model's own
+probabilities, and that log is what says whether to trust the decider at all.
+
+Every question carries `instructions`, **the question in words**, whatever its type:
+
+```json
+{ "state": "A cat is asleep in the library.",
+  "questions": { "asleep": { "type": "noul", "instructions": "Is the cat asleep?" } } }
+```
+
+A question without them is refused here, with its name — and with the key the words were written under, when that is
+the mistake (`not "question"`) — because the model refuses the whole body instead:
+`5006: required properties at '/' are 'model,state,questions'` names the root and never the question that is
+short. That error read as a decider outage for two days (21 October 2026); it was a mis-keyed question.
+
+The limit is the point. The decider holds no tools and no session, so it can never *drive* a cat the way
+`../runner/queen.py` drives Claude Code; it answers its questions and stops. A different instrument, not a cheaper
+one — so "why not run the queen on Clef?" has no answer in a price list.
 
 Where it is answered is one switch, none of it required:
 
 | | |
 |---|---|
 | nothing set | `@cf/cloudflare/clef-flash` through the Worker's `AI` binding: Cloudflare's own System One model, open weights, inside the free plan's 10,000 neurons a day |
-| `DECIDE_MODEL` | another Workers AI model id: `@cf/cloudflare/clef` (27B), or `typesafe/jev`, Jev itself, paid from prepaid AI Gateway credits |
-| `DECIDE_URL` (+ `DECIDE_KEY`) | any server speaking the System One API (`POST /v1/systemone`): `laya-serve` on a machine of hers, or Jev's own endpoint |
+| `DECIDE_MODEL` | any other Workers AI model id. `@cf/cloudflare/clef` (27B) and `typesafe/jev` (Jev itself, paid from prepaid AI Gateway credits) take the questions themselves; anything else on Workers AI is prompted instead |
+| `DECIDE_URL` (+ `DECIDE_KEY`) | a server of her own instead of Workers AI, asked at `POST /v1/systemone` if it speaks the System One API (`laya-serve`, or Jev's own endpoint) and at `POST /v1/chat/completions` if it is OpenAI-compatible (Ollama, llama.cpp, a hosted API) |
 
 Anyone in the house may ask. `preset: "easy"` asks the six yes/no questions of the easy-task rubric
 (`docs/delegation.md`) about a task's text. With `kind` (a label) and `old` (what the caller would have chosen
 without it), the decision is kept as `decisions/<id>` in the house's documents with `agree`, the latest 500: the
 observe log, read with `/api/db`, that says after a week whether to trust it. A refused question costs nothing; a
-decider that doesn't answer in 8 s is a tool error, and the caller does what it did before.
+decider that doesn't answer in 8 s is a tool error, and the caller does what it did before. The 8 s is one budget
+for both tries, so a fall back from one shape to the other does not double what a caller waits.
 
 The tests don't reach Workers AI (wrangler dev would need a Cloudflare sign-in for it): they run the Worker from a
-copy of `wrangler.jsonc` without the binding, with `DECIDE_URL` pointing at a stand-in System One server in the test.
+copy of `wrangler.jsonc` without the binding, with `DECIDE_URL` pointing at a stand-in in the test that answers in
+both shapes, so either path is walked end to end and so is the fall back between them. The prompt and the reading
+are pure (`ask()` and `read()`), and `test/decide.test.mjs` feeds them what models really reply with, outside
+workerd. `harness/mcp/catio_mcp.py` carries the same two shapes, and a test there holds its prompt to this one's
+word for word.
 
 ## Working on it
 

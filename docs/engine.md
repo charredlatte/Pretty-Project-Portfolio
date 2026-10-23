@@ -21,14 +21,21 @@ design (rules, kits, which model drives what), deploys the gateway, and installs
 
 - **Any model.** Claude through Claude Code today. Anthropic, OpenAI or an OpenAI-compatible provider such as
   OpenRouter once the hosted runner is in (below), each on the buyer's own API key, paid to that provider directly:
-  the café never resells tokens. A small model makes typed decisions (yes/no, a choice, a score); it is the one
-  model the café runs itself, and it can be inside the price only once its model is locked (today any caller can
-  pick a paid one).
+  the café never resells tokens. Which clients are driven, and by which runner, is the driver table under "Your way,
+  concretely".
 - **Any environment.** Claude Code, Codex, Gemini CLI, Cursor, Claude Desktop, claude.ai, and the café on its own
   address in any browser. The owner's tools (handing in homework, dropping files, managing cats) need the owner's
   sign-in on the hosted gateway: claude.ai, Claude Desktop, or the café. The local stdio twin has no roles.
 - **Any face.** The KittyChat Café is the face buyers get: a pixel-art manor where every task is a cat. A plain
   dashboard for teams can come from the same gateway (not built yet).
+
+**The decider is not a driver.** It answers typed questions — yes/no, a choice, a score — in numbers rather than
+prose: Clef on Cloudflare's Workers AI by default, or Jev, or any System One server of the operator's own through
+`DECIDE_URL` (`harness/gateway/README.md` has the switch between the three). That is a different slot from "any
+model" above, in both directions: the decider holds no tools and no session, so it cannot drive a cat, and nothing in
+the driver table speaks the System One API, so none of it can do the decider's job. Which model does a given piece of
+work is a third question again, and the decider's `preset: easy` is one of the two ways it is answered
+(`docs/delegation.md`).
 
 ## What is already built
 
@@ -107,7 +114,9 @@ strangers. The C++ app in `catio-app/` stays a draft.
 ## Your way, concretely
 
 Any client that speaks MCP can report to the gateway today. A driver is what lets a runner start the work itself;
-each needs a little code once, and after that choosing one is configuration.
+each needs a little code once, and after that choosing one is configuration. For the self-hosted runner that code is
+Claude Code's throughout, from the command `Runner.args()` builds to the stream `Runner.turn()` reads
+(`harness/runner/queen.py`).
 
 | Driver | How it is driven | Status |
 | --- | --- | --- |
@@ -115,7 +124,8 @@ each needs a little code once, and after that choosing one is configuration.
 | Claude (Claude Code) | `claude -p` turns from the self-hosted runner, held in by restricted mode and `--strict-mcp-config`, which leave it only the Catio's tools, not by the hooks; every driver needs the same containment | Built, for the queen; other agents report but aren't run by it |
 | OpenAI (Codex CLI) | `codex exec`, registered as the agent's `wake` command through `report_status`: the local stdio twin runs it; the hosted gateway ignores it, so there the agent checks its inbox | Joins today |
 | Gemini (Gemini CLI) | `gemini -p`, the same way | Joins today |
-| Typed decisions (yes/no, a choice, a score) | Workers AI on the gateway, or any server in `DECIDE_URL` | Built |
+
+The decider is not in that table: it answers questions and drives nothing (above).
 
 | Environment | What runs there |
 | --- | --- |

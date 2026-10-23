@@ -51,6 +51,10 @@ python3 -m unittest discover harness/test               # the hooks, the runner,
 python3 -m unittest litterbox/test_sort.py litterbox/test_quiz.py
 ```
 
+What every part needs installed, and where each version is pinned, is
+[`dependencies/README.md`](dependencies/README.md). The suites themselves need no Python package: they are
+standard library only.
+
 The page's suite and its screenshots (`sh catio/test/run.sh look kitchen study`, which writes
 `catio/test/.look/`) drive a headless Chromium through Playwright. `run.sh` is set up for the copies
 preinstalled in Charlotte's cloud sessions. Elsewhere it needs `sh`, `python3` and Node, plus:

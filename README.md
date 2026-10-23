@@ -80,9 +80,11 @@ Three parts of the café answer this question differently, so here they are apar
   and a model like `gpt-5` or `gemini-2.5-pro`). This is the part that makes the café compatible with any agentic AI
   distributor, and it is true today.
 - **The queen's runner** drives Claude Code today, and only that. She is one program on your own computer
-  (`harness/runner/queen.py`) that runs one model turn per thing you say to her; the command it builds is one
-  function, `Turn.args()`, and another CLI means writing that function for it once. Codex, Gemini and the rest are on
-  the roadmap as *drivers* in [`docs/engine.md`](docs/engine.md); until then they are cats, not the driver.
+  (`harness/runner/queen.py`) that runs one model turn per thing you say to her, and what it runs is Claude Code's
+  throughout, from the command `Runner.args()` builds to the stream `Runner.turn()` reads. Codex, Gemini and the
+  rest report to the café today, and a command of their own can wake them where the local server runs it, never on
+  the hosted gateway; being driven by *her runner* is the part that needs a little code once each, in
+  [`docs/engine.md`](docs/engine.md).
 
 | Your assistant | Joins as a cat | Checks in by itself | Drives the queen |
 |---|---|---|---|
@@ -151,7 +153,8 @@ step 5 brings Ninine.
 - **Git** (git-scm.com; on Windows, Git for Windows), for step 2's `git clone`;
 - a computer with **Python 3** (python.org, or the Microsoft Store on Windows) and, for the Claude Code plugin,
   **Node.js** (nodejs.org). On Windows, type `python` wherever this README says `python3` (the plugin's own hooks pick
-  `py` or `python` there by themselves);
+  `py` or `python` there by themselves). The art build in step 2 wants two Python packages on top;
+  [`dependencies/README.md`](dependencies/README.md) says what every part of the café needs installed;
 - a free **Cloudflare** account (cloudflare.com) for the front desk;
 - the **cat art**: the packs are not in this repository and cannot be (their licences forbid sharing). Most have a
   free tier; the list is in [`catio/art/CREDITS.md`](catio/art/CREDITS.md). Without them the café draws no house and
@@ -182,9 +185,10 @@ git clone https://github.com/<your GitHub name>/Pretty-Project-Portfolio
 cd Pretty-Project-Portfolio
 ```
 
-The art packs' zips go in one folder, and `python3 catio/tools/build-art.py <that folder>` draws the house and the
-cats from them, naming each zip by what is inside it. **It worked when** you have the repository and, if you have the
-packs, `catio/art/licensed/` is full.
+The art packs' zips go in one folder. The build draws with Pillow and fontTools, so install those first
+(`pip install -r dependencies/requirements.txt`), and then `python3 catio/tools/build-art.py <that folder>` draws the
+house and the cats from them, naming each zip by what is inside it. **It worked when** you have the repository and,
+if you have the packs, `catio/art/licensed/` is full.
 
 ### Step 3: the front desk, on Cloudflare
 
@@ -200,7 +204,8 @@ detail are in [`harness/gateway/README.md`](harness/gateway/README.md). In short
 2. On the Worker, **Settings → Variables and Secrets** (not Settings → Build, whose variables never reach the running
    Worker), add four **Secrets** in one go, then deploy again. Add each as a Secret, not a Text variable: every
    deploy from GitHub wipes the Text ones.
-   - `CATIO_HANDLE` — the name you sign in with, 2 to 31 lower-case letters, digits or dashes;
+   - `CATIO_HANDLE` — the name you sign in with, 2 to 31 lower-case letters, digits or dashes, not starting
+     with a dash;
    - `CATIO_TOKEN` — a long random string: the key your cats check in with;
    - `CATIO_PASSWORD` — your own sign-in, 16 characters or more;
    - `CATIO_QUEEN` — another long random string: the driver's key.
@@ -472,7 +477,7 @@ in time ([`docs/engine.md`](docs/engine.md)); deciding is the decider's.
 
 - **It needs no setting up.** With nothing set it is Clef on Cloudflare's Workers AI — Cloudflare's own model, open
   weights, inside the free plan. `DECIDE_MODEL` swaps in another Workers AI model, Jev among them; `DECIDE_URL`
-  points at any server speaking the same API, such as a Laya on a machine of your own. The switches are in
+  points at a server of your own instead, speaking either the same API or the OpenAI one. The switches are in
   [`harness/gateway/README.md`](harness/gateway/README.md#decisions-the-decide-tool).
 - **It is the one model the café runs for itself.** Everything else runs on your own key, paid to your own provider:
   the café never resells tokens.
@@ -582,6 +587,11 @@ The uncommitted art (`catio/art/licensed/`) ships only to a café's owner, signe
   pixel, signs in to your front desk on a desk, and has not run on a phone. It ships with no pack art: the app
   fetches that from the front desk, behind your sign-in, on first run.
   [`docs/mobile-app.md`](docs/mobile-app.md) says exactly where it stands.
+- `landing/`: the landing page's draft — one static page with its own pixel-art scene, drawn in code by
+  `landing/tools/scene.py` with nothing from the packs. Every decision on it, each waiting for a tick, is
+  [`docs/landing-page/README.md`](docs/landing-page/README.md).
+- `dependencies/`: what each part of the café needs installed, and where each version is pinned. See
+  [its README](dependencies/README.md).
 - `docs/`: the plan, the specs, the shop and the record, each listed by what it is for in
   [`docs/README.md`](docs/README.md). [`docs/engine.md`](docs/engine.md) is the one on models and drivers.
 - `CLAUDE.md`: how to work on the page. `CONTRIBUTING.md`: how to send a change back, and how to run the tests.
