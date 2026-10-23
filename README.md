@@ -122,11 +122,10 @@ café". If an agent registers a `wake` command — `["codex", "exec", "resume", 
 (`harness/rules.json`), and any cat reads them with the `house_rules` tool. Claude Code is the one client where they
 are *enforced* rather than read, because hooks exist there to enforce them.
 
-**Two models in the café that are nobody's assistant.** The café makes its own small judgement calls — where a
-dropped file belongs, whether a task is easy enough for a cheap model — with a decision model that answers typed
-questions (yes/no, a choice, a score) rather than prose. That is Clef on Cloudflare's Workers AI by default, or Jev,
-or any server you point `DECIDE_URL` at. And the brain's file sorter, on your own computer, takes any
-OpenAI-compatible endpoint: Ollama, LM Studio, OpenAI, Gemini's. Neither is Claude.
+**Two models in the café that are nobody's assistant.** The café makes its own small judgement calls with a
+decision model that answers typed questions rather than prose — Clef by default, and
+[the decider](#the-judgement-calls-it-makes-itself) below says what it is. And the brain's file sorter, on your own
+computer, takes any OpenAI-compatible endpoint: Ollama, LM Studio, OpenAI, Gemini's. Neither is Claude.
 
 **What is Claude-shaped, honestly.** The queen's runner, as above. The house rules' enforcement, as above. And one of
 the three places the café page can run: a private claude.ai artifact, which was Charlotte's original and is still
@@ -453,6 +452,29 @@ claude.ai doesn't let a web page do it; why is in
 no such limit, which is what a `wake` command is for. Each hop, program by program, and how the design holds up on
 scale, speed, extensibility, security, debugging and tests: [`docs/delivery.md`](docs/delivery.md).
 
+### The judgement calls it makes itself
+
+Some of what the café does is a decision rather than a task: which project a dropped file belongs to, whether a note
+is settled or still waiting on you, which cat needs you first, whether a task is easy enough for a cheap model. Those
+go to **the decider** (`harness/gateway/src/decide.js`), never to one of your assistants.
+
+It is a different kind of model, and the difference is the point. You hand it a state and a set of named, typed
+questions — yes/no, a choice between options, a score on a scale — and it hands back a probability for every allowed
+answer and nothing else: no prose, no tool calls, no turn to take. Up to sixty-four questions about one state, in a
+single call with an eight-second budget. That is also why the decider can never be the thing that *drives* a cat: it
+cannot write a sentence or call a tool. Driving is Claude Code's job today, and other CLIs' in time
+([`docs/engine.md`](docs/engine.md)); deciding is the decider's.
+
+- **It needs no setting up.** With nothing set it is Clef on Cloudflare's Workers AI — Cloudflare's own model, open
+  weights, inside the free plan. `DECIDE_MODEL` swaps in another Workers AI model, Jev among them; `DECIDE_URL`
+  points at any server speaking the same API, such as a Laya on a machine of your own. The switches are in
+  [`harness/gateway/README.md`](harness/gateway/README.md#decisions-the-decide-tool).
+- **It is the one model the café runs for itself.** Everything else runs on your own key, paid to your own provider:
+  the café never resells tokens.
+- **It is watched before it is trusted.** Each answer can be logged beside what the old code path would have chosen,
+  and how sure it was, so you can read a week of the log before letting it decide anything for real. The rubric and
+  the rollout: [`docs/delegation.md`](docs/delegation.md).
+
 ## On your own computer
 
 The café also runs from a folder, with no account anywhere. `python3 catio/tools/bundle.py` makes
@@ -524,9 +546,9 @@ The uncommitted art (`catio/art/licensed/`) ships only to a café's owner, signe
 - `catio/tools/`: the two floor plans and the furniture that write the manor (`manor.py`, `furniture.py`), the art
   build (`build-art.py`, `pip install pillow fonttools`), the localhost folder (`bundle.py`) and the skin
   (`skin.py`).
-- `harness/`: the harness behind the page — the front desk (`gateway/`), the queen's runner (`runner/`), the Catio
-  MCP server and bridge for every other agent (`mcp/`), and the `kittychat-house-rules` plugin. See
-  [its README](harness/README.md).
+- `harness/`: the harness behind the page — the front desk (`gateway/`, with the decider in `gateway/src/decide.js`),
+  the queen's runner (`runner/`), the Catio MCP server and bridge for every other agent (`mcp/`), and the
+  `kittychat-house-rules` plugin. See [its README](harness/README.md).
 - `catio-plugin/`: the plugin that sets up your own café; `.claude-plugin/marketplace.json` lists it and the harness
   plugin as the `kittychat` marketplace.
 - `litterbox/`: the back burner, where loose notes land, piled by project and filed once checked. See
