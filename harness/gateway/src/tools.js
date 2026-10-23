@@ -83,7 +83,7 @@ export const TOOLS = [
 			preset: { type: "string", enum: ["easy"] },
 			model: said("Any model. @cf/cloudflare/clef-flash (default), @cf/cloudflare/clef and typesafe/jev take the questions themselves; any other is prompted for the same answers"),
 			kind: said("A label for the log, e.g. sort"), old: said("What the old path chose, for the log"),
-			floor: { type: "number", description: "For the log: the confidence under which you would not act on the answer (it then neither agrees nor disagrees with old)" },
+			floor: { type: "number", description: "For the log: the confidence under which you would not act on the answer (it then neither agrees nor disagrees with old). Compared against the answer's confidence, not a choice's winning probability: on a choice the two differ, and the confidence is the lower" },
 			ref: said("For the log: what was decided about (the page's brain id), to check the decision against what happened") },
 		["state"]),
 	tool("tokens", "The café's colours and sizes as a design tokens file (the W3C format Figma's variables import as a mode), " +

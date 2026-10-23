@@ -5,7 +5,11 @@
 //   - score:  {type, score, confidence}              score is the probability-weighted level, a number on the
 //             criteria's own scale (0 to criteria.length - 1). There is no probability per level.
 // So "a probability for every allowed answer" holds for noul and choice only; a score is a number and a confidence.
-// verdict() reads the one-word answer and confidence() how sure it is, whichever type it was.
+// verdict() reads the one-word answer and confidence() how sure it is, whichever type it was. A caller's floor goes
+// against what confidence() returns -- a choice's or score's own confidence field, a noul's distance from a coin toss
+// -- and never against the winning probability: on a choice those are two numbers, and Clef's confidence runs well
+// below the probability it gave the option it picked (0.2072 against 0.7276, and 0.6678 against 0.9086, on two live
+// calls). Reading probabilities to decide whether an answer cleared a floor says it did when it did not.
 // Every question carries its words in `instructions`, and is refused by name without them (see shape()).
 //
 // Any model can answer, in one of two shapes, and decide() uses whichever the answerer speaks:

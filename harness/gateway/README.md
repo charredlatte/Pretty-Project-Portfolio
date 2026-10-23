@@ -243,6 +243,19 @@ So "a probability for every allowed answer" is true of `noul` and `choice`. A **
 confidence**, not a probability per level: `verdict()` rounds it to the nearest level, `confidence()` reads the
 confidence beside it.
 
+**A floor is compared against the confidence, never against the winning probability.** That is what
+`confidence()` returns: a `choice`'s or a `score`'s own `confidence` field, and for a `noul` its distance from a
+coin toss (`max(noul, 1 - noul)`). On a `choice` the two are different numbers and Clef's confidence runs well
+below the probability it gave the option it picked — two live calls on 23 October 2026:
+
+| the option it picked | its probability | `confidence` | against a 0.6 floor |
+|---|---|---|---|
+| `settled` | 0.7276 | 0.2072 | under it: the decider did not decide |
+| `settled` | 0.9086 | 0.6678 | over it: it decided |
+
+So reading `probabilities` to judge whether an answer cleared a floor will say it did when it did not. Read
+`confidence`, which is what the code does.
+
 **Any model can answer,** in one of two shapes, and `decide` uses whichever the answerer speaks:
 
 - **a System One model** takes `{state, questions}` itself and returns the answers above;
