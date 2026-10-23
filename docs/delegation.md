@@ -79,8 +79,9 @@ chooses nothing:
   cleared the 0.6 floor, from the table above when it didn't ask or the answer fell under the floor — and says
   which of the two it used.
 - **`right_sized` enforces.** It refuses an assignment that names no model, one off the ladder, or one above a
-  repo's `tiers.ceiling`. It judges the model named and nothing else, and never reads a task to work out whether it
-  is easy: every attempt at that drifted into a bypass one way or a false refusal the other.
+  repo's `tiers.ceiling`. It judges the model named and nothing else: it never reads a task to work out whether it
+  is easy, which is the decider's job above, and it never works out what an unnamed spawn would resolve to, because
+  every reimplementation of that drifted into a bypass one way or a false refusal the other.
   (`harness/hooks/right_sized.py`)
 
 So "the decider picks the model" is wrong twice over: its answer is advice, and it is advice only when asked. What
