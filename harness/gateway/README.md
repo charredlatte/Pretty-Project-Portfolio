@@ -237,6 +237,12 @@ answer in milliseconds, with no prose to parse:
 - `choice`: `criteria: {option: what it means}`, the chosen option, a probability each and a confidence;
 - `score`: `criteria: [ordered levels]`, a probability-weighted score.
 
+That shape is the whole of it, and the limit is the point. A probability for every allowed answer is what a chat
+model cannot give you: prose that says "probably the shop" is not a number, and cannot be held against a floor. In
+return the decider holds no tools and no session, so it can never *drive* a cat the way `../runner/queen.py` drives
+Claude Code; it answers one question and stops. A different instrument, not a cheaper one — so "why not run the
+queen on Clef?" has no answer in a price list.
+
 Where it is answered is one switch, none of it required:
 
 | | |
