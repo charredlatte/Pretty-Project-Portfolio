@@ -21,23 +21,24 @@ design (rules, kits, which model drives what), deploys the gateway, and installs
 
 - **Any model.** Claude through Claude Code today. Anthropic, OpenAI or an OpenAI-compatible provider such as
   OpenRouter once the hosted runner is in (below), each on the buyer's own API key, paid to that provider directly:
-  the café never resells tokens. Codex, Gemini CLI and the rest join as cats today and become drivers once the
-  runner can build their command: `Runner.args()` in `harness/runner/queen.py` is the one function that does it,
-  so another CLI means writing that function for it once.
+  the café never resells tokens. Which clients report today, which the runner actually drives, and what each still
+  needs is the driver table under "Your way, concretely".
 - **Any environment.** Claude Code, Codex, Gemini CLI, Cursor, Claude Desktop, claude.ai, and the café on its own
   address in any browser. The owner's tools (handing in homework, dropping files, managing cats) need the owner's
   sign-in on the hosted gateway: claude.ai, Claude Desktop, or the café. The local stdio twin has no roles.
 - **Any face.** The KittyChat Café is the face buyers get: a pixel-art manor where every task is a cat. A plain
   dashboard for teams can come from the same gateway (not built yet).
 
-**The decider is not on that list.** It is the one model the café runs for itself, and it drives nothing: it answers
-typed questions — yes/no, a choice, a score — with a probability for each and no prose, and that is all it does.
-Clef on Cloudflare's Workers AI by default, or Jev, or a local Laya, behind `DECIDE_MODEL` and `DECIDE_URL`. It is a
-different slot from "any model" above rather than another entry in it, in both directions: the decider holds no
-tools and no session, so it can never drive a cat, and a driver cannot hand back a calibrated probability, so it
-cannot do the decider's job either. Its model is inside the price only once it is locked (today any caller can pick
-a paid one). Which model does a given piece of work is a third thing again, neither of these two:
-[`delegation.md`](delegation.md) has it.
+**The decider is not a driver, and is deliberately not in that table.** It answers typed questions — yes/no, a
+choice, a score — with a probability for each and no prose; the only other thing it does is write the decision log.
+Clef on Cloudflare's Workers AI by default (the Worker needs its `AI` binding), or another Workers AI model such as
+Jev through `DECIDE_MODEL`, or, instead of either, any System One server through `DECIDE_URL`, which wins outright
+when it is set. It is a different slot from "any model" above, in both directions: the decider holds no tools and no
+session, so it can never drive a cat, and a driver cannot hand back a calibrated probability, so it cannot do the
+decider's job either. It is the model the café spends its own Workers AI account on, which is why its model has to
+be locked before it can sit inside a price (today any caller can pick a paid one); the brain's sorter is the other
+model here that is nobody's assistant (`harness/README.md`). Which model does a given piece of work is a third
+question again, and the decider's `preset: easy` is one of the two ways it is answered: `docs/delegation.md`.
 
 ## What is already built
 
@@ -116,7 +117,10 @@ strangers. The C++ app in `catio-app/` stays a draft.
 ## Your way, concretely
 
 Any client that speaks MCP can report to the gateway today. A driver is what lets a runner start the work itself;
-each needs a little code once, and after that choosing one is configuration.
+each needs a little code once, and after that choosing one is configuration. For the self-hosted runner that code is
+`Runner.args()` in `harness/runner/queen.py` to build the command, plus the parts around it that are Claude-shaped
+too: the stream-JSON reader in `Runner.turn()`, the `mcpServers` file `mcp_file()` writes, the `--resume` session
+handling, and `main()`'s search for `claude` itself.
 
 | Driver | How it is driven | Status |
 | --- | --- | --- |
@@ -124,7 +128,6 @@ each needs a little code once, and after that choosing one is configuration.
 | Claude (Claude Code) | `claude -p` turns from the self-hosted runner, held in by restricted mode and `--strict-mcp-config`, which leave it only the Catio's tools, not by the hooks; every driver needs the same containment | Built, for the queen; other agents report but aren't run by it |
 | OpenAI (Codex CLI) | `codex exec`, registered as the agent's `wake` command through `report_status`: the local stdio twin runs it; the hosted gateway ignores it, so there the agent checks its inbox | Joins today |
 | Gemini (Gemini CLI) | `gemini -p`, the same way | Joins today |
-| Typed decisions (yes/no, a choice, a score) | Workers AI on the gateway, or any server in `DECIDE_URL` | Built |
 
 | Environment | What runs there |
 | --- | --- |
