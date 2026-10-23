@@ -295,9 +295,9 @@ same tools as the Catio MCP server below. It changes three things:
   itself, the model id being the only difference between those two; or, instead of Workers AI, a local Laya through
   `DECIDE_URL`. It is cheaper, but cost is not what picks it: it returns a calibrated probability for every allowed
   answer and no prose, which no chat model gives you, and it holds no tools and no session, so it can never *drive*
-  a cat the way `runner/queen.py` drives Claude Code. A different
-  instrument, not a lower price for the same one. The page asks it where a dropped file goes and logs the answer
-  beside the old sorter's (`decisions/`); `preset: easy` is the easy-task rubric. `docs/delegation.md`, phase D.
+  a cat the way `runner/queen.py` drives Claude Code. A different instrument, not a lower price for the same one.
+  The page asks it where a dropped file goes and logs the answer beside the old sorter's (`decisions/`);
+  `preset: easy` is the easy-task rubric. `docs/delegation.md`, phase D.
 
 Agents anywhere can join it too, over MCP with the agents' key. Setting it up is five steps, in
 `gateway/README.md`.
