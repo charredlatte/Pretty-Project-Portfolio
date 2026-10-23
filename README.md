@@ -458,6 +458,11 @@ Some of what the café does is a decision rather than a task: which project a dr
 is settled or still waiting on you, which cat needs you first, whether a task is easy enough for a cheap model. Those
 go to **the decider** (`harness/gateway/src/decide.js`), never to one of your assistants.
 
+It *answers* those questions and never acts on them. In particular it does not pick the model for a piece of work,
+which its name invites you to assume: a session asks it, weighs the answer against a confidence floor, and names the
+model itself — and a separate rule refuses any assignment that names none
+([`docs/delegation.md`](docs/delegation.md)).
+
 It is a different kind of model, and the difference is the point. You hand it a state and a set of named, typed
 questions — yes/no, a choice between options, a score on a scale — and it hands back a probability for every allowed
 answer and nothing else: no prose, no tool calls, no turn to take. Up to sixty-four questions about one state, in a
