@@ -10,7 +10,7 @@ Made in the open by Charlotte Badot. [Run your own](#running-your-own) ·
 
 ## In plain words
 
-**All your Claude chats, in one cozy café.** Using AI means a dozen chats open at once, and you forget which one is
+**All your AI chats, in one cozy café.** Using AI means a dozen chats open at once, and you forget which one is
 waiting for you. KittyChat Café turns each chat into a cat in a little café. You see who is busy, who is done and who
 needs you, and one friendly queen cat helps you run the place. You never need to know what's under the hood.
 
