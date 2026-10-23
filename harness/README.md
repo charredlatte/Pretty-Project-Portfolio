@@ -293,8 +293,8 @@ same tools as the Catio MCP server below. It changes three things:
   (`gateway/src/decide.js`, and the same in `mcp/catio_mcp.py` behind `CATIO_DECIDE_URL`) answers typed questions
   about a state with probabilities: yes/no, a choice, a score. Clef on Workers AI inside the free plan, or Jev
   itself, the model id being the only difference between those two; or, instead of Workers AI, a local Laya through
-  `DECIDE_URL`. It is cheaper, but cost is not what picks it: it returns a calibrated probability for every allowed
-  answer and no prose, which no chat model gives you, and it holds no tools and no session, so it can never *drive*
+  `DECIDE_URL`. It is cheaper, but cost is not what picks it: it answers in calibrated numbers rather than prose,
+  which no chat model gives you, and it holds no tools and no session, so it can never *drive*
   a cat the way `runner/queen.py` drives Claude Code. A different instrument, not a lower price for the same one.
   The page asks it where a dropped file goes and logs the answer beside the old sorter's (`decisions/`);
   `preset: easy` is the easy-task rubric. `docs/delegation.md`, phase D.
