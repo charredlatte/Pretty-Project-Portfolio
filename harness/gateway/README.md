@@ -284,6 +284,10 @@ the mistake (`not "question"`) — because the model refuses the whole body inst
 `5006: required properties at '/' are 'model,state,questions'` names the root and never the question that is
 short. That error read as a decider outage for two days (21 October 2026); it was a mis-keyed question.
 
+The limit is the point. The decider holds no tools and no session, so it can never *drive* a cat the way
+`../runner/queen.py` drives Claude Code; it answers its questions and stops. A different instrument, not a cheaper
+one — so "why not run the queen on Clef?" has no answer in a price list.
+
 Where it is answered is one switch, none of it required:
 
 | | |

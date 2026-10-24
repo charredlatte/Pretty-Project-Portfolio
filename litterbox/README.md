@@ -45,7 +45,22 @@ Open `litterbox/<project>.md` and read it. If the project is right, delete the `
 header. If it's wrong, change the project and delete the comment. Move a note to another pile, or out to a
 file of its own, if it belongs elsewhere. The next run files every checked pile.
 
-To give a file its project yourself, so it skips the pile, start it with (a file saved by Notepad works too):
+### Which header to put on a note
+
+The `project:` line decides whether a note waits for you or leaves the box on the next run, so choose it on
+purpose. The gate is the `# a guess` comment, not the project itself (`GUESS` in `sort.py`):
+
+| A note's file starts with | What the next `--write` does with its notes |
+|---|---|
+| nothing | piles them on `litterbox/<project>.md`, which the sifter gives a guessed header, so they then **wait** |
+| `project: x  # a guess …` | **waits.** Never filed, however many runs go by; new notes for `x` join it |
+| `project: x`, no comment | **files** them into `x`'s own repo, and deletes the file here |
+
+So leave the header off a note that needs your decision, and it waits on a pile. Give a note its project only when
+the project is certain and the note is ready to leave the box, which is what the held pull requests below do. A
+note whose project has no checkout beside this repo stays put either way (`--checkout repo=path`).
+
+The front matter looks like this, and a file saved by Notepad works too:
 
 ```
 ---

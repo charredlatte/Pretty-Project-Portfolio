@@ -66,6 +66,27 @@ extraction; alt text from a filename list). Sonnet: a one-file fix with a test t
 rename across a package. Everything else stays Opus or Fable, and the merge gate stays as it is: **a small model's
 pull request is always hers to merge.** That is the safety net, and it is already built.
 
+### Who answers, who picks, who enforces
+
+Three things touch that list, and only one of them is "the decider" — whose name suggests a chooser although it
+chooses nothing:
+
+- **The decider answers.** `decide` with `preset: easy` puts the six rows above to the decider — Clef by default,
+  though any model can answer — and returns a probability for each. It is given a task's text and knows nothing of
+  tiers, ladders or caps, so it cannot name a model and never does. It is also only ever *asked*: nothing consults
+  it automatically. (`harness/gateway/src/decide.js`)
+- **The session picks.** It names the model on the call — from the decider's answer when it asked and that answer
+  cleared the 0.6 floor, from the table above when it didn't ask or the answer fell under the floor — and says
+  which of the two it used.
+- **`right_sized` enforces.** It refuses an assignment that names no model, one off the ladder, or one above a
+  repo's `tiers.ceiling`. It judges the model named and nothing else: it never reads a task to work out whether it
+  is easy, which is the decider's job above, and it never works out what an unnamed spawn would resolve to, because
+  every reimplementation of that drifted into a bypass one way or a false refusal the other.
+  (`harness/hooks/right_sized.py`)
+
+So "the decider picks the model" is wrong twice over: its answer is advice, and it is advice only when asked. What
+*is* automatic is the refusal of an assignment that names no model at all.
+
 ## Phase A: inside a session (no new infrastructure)
 
 A strong session hands its mechanical steps to a small sub agent. Half a day. Reviewed on 3 October against the
