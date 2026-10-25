@@ -4846,9 +4846,20 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     // inbox, their hook says "[Catio] Delivery for you" and fetches it with pick_up. Only a session that reports
     // nowhere is told about the file instead (below), since nothing here can reach its inbox.
     if (cat.kind === "agent" || (cat.kind === "session" && cat.agentId)) {
-      const b64 = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = no; r.readAsDataURL(file); });
-      try { await hostCall("drop_file", { name: doc.name, type: doc.type, base64: b64, for: cat.agentId, note: doc.note }); res = cat.kind === "agent" ? "pushed" : "gateway"; }
-      catch (e) { res = "kept"; why = (e && e.message) || "the gateway didn't take it"; }   // it caps what it hands over (1 MiB): the file is in the brain already, and the toast says why it went no further
+      try {
+        // the file as dropped or, filed from the tray later, the stored copy read back: the page's own credentials
+        // reach it (assets.href where the runtime has one, else the asset's url, /_blob/… or the gateway's /files/…)
+        let blob = file;
+        if (!blob) {
+          const at = (S.assets && S.assets.href && await S.assets.href(doc.asset)) || doc.url;
+          const r = await fetch(at);
+          if (!r.ok) throw new Error("the stored file couldn't be read back (" + r.status + ")");
+          blob = await r.blob();
+        }
+        const b64 = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = no; r.readAsDataURL(blob); });
+        await hostCall("drop_file", { name: doc.name, type: doc.type, base64: b64, for: cat.agentId, note: doc.note });
+        res = cat.kind === "agent" ? "pushed" : "gateway";
+      } catch (e) { res = "kept"; why = (e && e.message) || "the gateway didn't take it"; }   // it caps what it hands over (1 MiB), or the copy couldn't be read: the file is in the brain already, and the toast says why it went no further
     } else if (cat.kind === "session") {
       const inline = file && isText(file) && file.size <= INLINE ? await file.text().catch(() => "") : "";
       res = await tell(cat, deliveryText(doc, id, inline), { kind: "delivery", brain: id });
