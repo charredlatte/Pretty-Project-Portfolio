@@ -76,10 +76,15 @@ instead when it's configured: `inbox`, `pick_up`, `comments`, `comment`.
 
 ## The opening audit
 
-The house rules open every session with the `ponytail-audit` skill, read-only. When it's done, save a
-summary: `ArtifactData` `set` `audits/<repo name, lowercase, a-z 0-9 and ->` with
-`{repo: "<owner/repo>", at: <ms>, by: "<your session id>", summary: "<the top findings, one line each, under 2000 characters>"}`
-(read it first and pass `if_version` if it exists). The page shows it in that project's filing cabinet.
+The house rules open every session with the `ponytail-audit` skill, read-only. When it's done, save a summary
+with the Catio server's **`audit`** tool: `{repo: "<owner/repo>", summary: "<the top findings, one line each,
+under 2000 characters>", by: "<your session id>"}`. It keys the audit by the project exactly as the page does, so
+the café shows it in that project's filing cabinet. Writing it again replaces the one before, so the newest
+session's audit is the one she reads.
+
+**Not `ArtifactData`.** That writes to the artifact's database, and the café is the Cloudflare link: the two
+copies share nothing, so an audit written there lands somewhere she never opens. `ArtifactData` is right only for
+a café that *is* the artifact.
 
 ## The project map
 

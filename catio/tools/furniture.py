@@ -114,7 +114,7 @@ CATALOGUE = {
     "fern": piece("plants", (181, 86, 22, 26)),
     "monstera": piece("plants", (19, 86, 24, 25)),
     "trailing_ivy": piece("plants", (211, 94, 23, 17)),
-    # the studio (the craft room: the Montfortoise shop's workroom)
+    # the studio (the craft room: the shop's workroom)
     "shelves_supplies": piece("cc", (657, 486, 46, 36), foot=(0, 16, 46, 20)),
     "worktable": piece("wg:Table/Table-1.png", (0, 0, 58, 50), "connected", foot=(0, 8, 58, 42), stations=[("work", 29, 58)]),
     "yarn_red": piece("pochi", (168, 407, 22, 20), layer="top", scale=0.5),

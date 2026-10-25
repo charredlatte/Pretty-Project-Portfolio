@@ -1,0 +1,13 @@
+{
+ "_comment": "Invented, like every fixture here. What run.sh seeds the localhost bundle with, so local mode does not depend on whether whoever runs it keeps a catio/data/rooms.json of their own. Keep it in step with SEED in runtime-stub.js.",
+ "garden":  {"name": "Catio",         "blurb": "This page and the portfolio",          "repos": ["Pretty-Project-Portfolio"]},
+ "kitchen": {"name": "Kitchen",       "blurb": "Weekly meals and the shopping basket", "repos": ["grocery-list"]},
+ "dining":  {"name": "Café",          "blurb": "Business plans, round the table",      "repos": []},
+ "living":  {"name": "Cat lounge",    "blurb": "New cats come in here",                "repos": [], "catchAll": true},
+ "sunroom": {"name": "Terrace",       "blurb": "Video saves, in the light",            "repos": ["video-saves"]},
+ "study":   {"name": "Craft room",    "blurb": "The corner shop",                      "repos": ["corner-shop"]},
+ "bedroom": {"name": "Bedroom",       "blurb": "Legal questions, kept quiet",          "repos": []},
+ "bath":    {"name": "Ensuite",       "blurb": "Spare",                                "repos": []},
+ "hall":    {"name": "Entrance hall", "blurb": "Postcards, by the front door",         "repos": ["postcard-trail"]},
+ "brain":   {"name": "Library",       "blurb": "The brain",                            "repos": []}
+}

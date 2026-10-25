@@ -185,7 +185,7 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
   motion, and for four seconds after the page opens, cats are simply in their places.
 - **Onboarding** (`openSetup()`, `#setupDlg`): a café whose database has no `rooms/*` at all opens the wizard
   on its first snapshot that isn't from cache (Charlotte's has rooms, so she never sees it; the localhost copy
-  seeds rooms from `data/rooms.json`). Seven steps, nothing written until Done: the café's name (`house/main`),
+  seeds rooms from `data/rooms.json` when there is one). Seven steps, nothing written until Done: the café's name (`house/main`),
   how many rooms (the first N of `OPENING`, public to private: lounge, café, kitchen, craft room, terrace, catio,
   library, bedroom, ensuite, hall; a name each; the first is where new cats come in), the repositories
   (`list_repos`, each with a select of the open rooms), what the live read found, the litter box (the brain's
@@ -482,7 +482,9 @@ The page now **writes** through Claude Code Remote, always on an explicit action
   claude.ai session (`fromGateway()`: the ids match after their prefix, `cse_…` there, `session_…` in the list),
   wearing the gateway's mood when it is newer; what she writes or drops on it goes through the gateway, not the
   outbox, and its replies there show in its conversation. Breeds: the model, in the cat's card.
-- `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet.
+- `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet. A session writes its own with the
+  gateway's `audit` tool, never with `ArtifactData`: the café is the Cloudflare link, and an audit written to the
+  artifact's database lands where she never looks.
 
 The artifact's stored capabilities are frozen at what its last publish passed, which is why the claude.ai copy
 never got the decider, the quest log or Export tokens: those tools joined the set on 3 and 4 October, after it.
@@ -594,8 +596,8 @@ the whole fallback: `docs/live-sessions.md`.
 ## Running on localhost
 
 `python3 catio/tools/bundle.py` builds `catio/dist/catio-local/` and `catio-local.zip`: the page
-wrapped in a complete HTML document, all the art (licensed included), `data/rooms.json` and
-`data/sessions.json`, with a `HOW-TO-RUN.txt`. Any static server runs it (VS Code Live Server,
+wrapped in a complete HTML document, all the art (licensed included), and `data/rooms.json` and
+`data/sessions.json` when they exist, with a `HOW-TO-RUN.txt`. Any static server runs it (VS Code Live Server,
 `python -m http.server`, `php -S localhost:8000`); there is no PHP and no server code. Send her
 the zip with `SendUserFile`; Claude can't reach her USB stick.
 
@@ -604,9 +606,10 @@ With no `window.claude` the page uses `localRuntime()`: a database in `localStor
 `snapshot/sessions` from `data/sessions.json` on every load. There is no mcp there, so the cats
 are the saved copy.
 
-- `catio/data/rooms.json` mirrors the café's `rooms`; keep it in step when rooms change.
-- `catio/data/sessions.json` and `catio/dist/` are gitignored. Her session titles and the
-  licensed art are in them: **never commit either**.
+- `catio/data/rooms.json` mirrors the café's `rooms`; keep it in step when rooms change. It is
+  gitignored, like `sessions.json`: it names her repos, so a clone has no rooms at all and opens the wizard.
+- `catio/data/sessions.json`, `catio/data/projects.json` and `catio/dist/` are gitignored too. Her repos, her
+  session titles and the licensed art are in them: **never commit any of them**.
 
 ## The app draft
 

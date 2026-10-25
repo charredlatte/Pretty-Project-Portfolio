@@ -5,7 +5,7 @@
     "rooms/dining": {"name": "Café"},
     "rooms/kitchen": {"name": "Kitchen"},
     "rooms/living": {"name": "Cat lounge"},
-    "rooms/study": {"name": "Craft room", "repos": ["Montfortoise-shop"]},
+    "rooms/study": {"name": "Craft room", "repos": ["corner-shop"]},
     "rooms/hall": {"name": "Entrance hall"},
     "rooms/sunroom": {"name": "Terrace"},
     "rooms/garden": {"name": "Catio"},

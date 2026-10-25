@@ -28,13 +28,19 @@ export const TOOLS = [
 		"Join the Catio as a cat, or update your cat: what you're working on and whether you need the owner. " +
 		"Call it when you start, when you need them, and when you finish. Returns what's waiting for you.",
 		{
-			agent: said("Your stable id, e.g. codex-montfortoise"), name: S, model: said("e.g. gpt-5, gemini-2.5-pro"),
+			agent: said("Your stable id, e.g. codex-shop"), name: S, model: said("e.g. gpt-5, gemini-2.5-pro"),
 			provider: said("openai, google, anthropic, local..."), title: S, project: S, repo: said("owner/repo"),
 			branch: S, mood: { type: "string", enum: MOODS }, ask: said("What you need from the owner, when mood is needs"),
 			link: S, session: said("Your own session id"), via: said("What you run in, e.g. claude-code"), cwd: S,
 			wake: { type: ["array", "null"], items: S, description: "Ignored here: the gateway can't run commands. Check inbox instead." },
 		},
 		["agent"]),
+	tool("audit", "Save a repository's opening audit, the read-only pass the house rules ask for at the start of a " +
+		"session. The café shows it in that project's filing cabinet, so it reaches the owner where she already looks. " +
+		"Writing it again replaces the one before, so a later session's audit is the one she sees.",
+		{ repo: said("owner/repo, or the repository's name"), summary: said("The top findings, one line each"),
+			by: said("Who audited, when it is not you: your session or agent id") },
+		["repo", "summary"]),
 	tool("list_agents", "Every agent cat in the Catio: who works where, what each needs, and what it last said (said). " +
 		"The queen of the house is the cat \"queen\": her runner is present when it is there.", { archived: { type: "boolean" } }),
 	tool("inbox",

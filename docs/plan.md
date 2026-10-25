@@ -305,7 +305,7 @@ decisions quiz page is retired). The small facts (who made `plants.zip`) stay he
    merge deletes its branch.
 8. **Opt the other repos in to semi-automatic merging**: she said yes for all of them (3 October). A session's
    attempt was refused by Claude Code's own permission check, as a session widening its own merge rights, so the
-   change is hers to make: `{"merge": true}` in each repo's `.claude/catio-rules.json`. For montfortoise-shopify the
+   change is hers to make: `{"merge": true}` in each repo's `.claude/catio-rules.json`. For the shop's repo the
    suggestion is `{"merge": true, "hold": ["components/"]}`, since `components/` is what gets installed on the live
    theme.
 9. **Branches she may delete:**
@@ -350,7 +350,7 @@ decisions quiz page is retired). The small facts (who made `plants.zip`) stay he
 ## Rules worth repeating
 
 - **No Claude attribution lines** (`Co-Authored-By: Claude`, `Claude-Session:`) in commits on her public
-  repos or forks: this one, the grocery app, Snail-Mail-Trail and the LibreSprite fork. She asked on
+  repos or forks. She asked on
   1 October; the gate hook enforces it (`harness/rules.json`).
 - The gateway's three secrets live only in Cloudflare and one other place each: `CATIO_TOKEN` in her Claude
   environments, `CATIO_PASSWORD` nowhere but her password manager, `CATIO_QUEEN` on the queen's runner. Never in the repo,

@@ -26,7 +26,8 @@ Making these one setting, read from one place, is the step that turns "run your 
 | `harness/README.md`, `.claude/settings.json` | The `kittychat` marketplace | Where the house rules are installed from | Your fork |
 | The gateway | `CATIO_HANDLE` (a Worker secret: a plain variable is wiped by each deploy from GitHub) | Names the first account, made by the first request; `charlotte` when unset (`src/registry.js`) | Your handle, set with `CATIO_PASSWORD` |
 | `harness/gateway/wrangler.jsonc` | `name`: `catio-gateway` | The Worker Workers Builds deploys; it refuses a build when this differs from the Worker's name in Cloudflare | Your Worker's name, on your fork only |
-| `catio/data/rooms.json` | Her rooms | Seeds a fresh browser's localhost café once; after that, Edit rooms | Your rooms, or `{}` to get the wizard |
+| `catio/data/rooms.json` | Not committed | Seeds a fresh browser's localhost café once, if you put one there; with no file the setup wizard opens instead | Your rooms, or nothing at all |
+| `catio/data/projects.json` | Not committed | The words that point a note or a cat at one of your repos, and where each repo's filed notes go (`read_projects` in `catio/tools/digest.py`) | Your projects, or nothing at all |
 | `artifacts.json` | Her published pages | Where republishing goes | Yours, once published |
 | `README.md`, `catio-plugin/skills/catio/SKILL.md`, `harness/gateway/README.md` | `charredlatte/Pretty-Project-Portfolio` | The clone in Running your own and in the setup skill, and the repository the gateway's Worker is imported from (and redeployed from on every merge) | Your fork |
 | The publish's `capabilities` | The setup skill's first-publish set | Lacks `send_message` (which claude.ai refuses from a page today, so posts wait in the outbox either way), `downloads` and the `CATIO` server, so the page can't export tokens or reach a gateway | The whole set in `catio-plugin/skills/catio/SKILL.md`, once your gateway is set up |

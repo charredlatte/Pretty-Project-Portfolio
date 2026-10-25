@@ -60,6 +60,9 @@ python3 "$P/tools/bundle.py" >/dev/null
 L=$(mktemp -d)
 cp -R "$P/dist/catio-local/." "$L/"
 cp "$T/sessions.json" "$L/data/sessions.json"
+# and its rooms, so local mode reads the same house whether or not this checkout has a rooms.json of
+# its own (it is gitignored: a clone has none, and the wizard opens instead -- checked below)
+cp "$T/rooms.json" "$L/data/rooms.json"
 PORT=${PORT:-8791}
 python3 -m http.server "$PORT" --bind 127.0.0.1 --directory "$L" >/dev/null 2>&1 &
 SERVER=$!

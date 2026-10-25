@@ -18,14 +18,14 @@
   // the same rooms the published page is seeded with
   const SEED = {
   "garden":  { "name": "Catio",       "blurb": "This page and the portfolio",        "repos": ["Pretty-Project-Portfolio"] },
-  "kitchen": { "name": "Kitchen",     "blurb": "Weekly meals and the Méré basket",   "repos": ["Intermarche-grocery-shopping-app"] },
+  "kitchen": { "name": "Kitchen",     "blurb": "Weekly meals and the shopping basket",   "repos": ["grocery-list"] },
   "dining":  { "name": "Café",        "blurb": "Business plans, round the table",    "repos": [] },
   "living":  { "name": "Cat lounge",  "blurb": "New cats come in here",              "repos": [], "catchAll": true },
-  "sunroom": { "name": "Terrace",     "blurb": "TikTok saves, in the light",         "repos": ["tiktok-saves"] },
-  "study":   { "name": "Craft room",  "blurb": "The Montfortoise shop",              "repos": ["montfortoise-shopify"] },
+  "sunroom": { "name": "Terrace",     "blurb": "Video saves, in the light",         "repos": ["video-saves"] },
+  "study":   { "name": "Craft room",  "blurb": "The corner shop",              "repos": ["corner-shop"] },
   "bedroom": { "name": "Bedroom",     "blurb": "Legal questions, kept quiet",        "repos": [] },
   "bath":    { "name": "Ensuite",     "blurb": "Spare",                              "repos": [] },
-  "hall":    { "name": "Entrance hall", "blurb": "Snail mail, by the front door",      "repos": ["Snail-Mail-Trail"] },
+  "hall":    { "name": "Entrance hall", "blurb": "Postcards, by the front door",      "repos": ["postcard-trail"] },
   "brain":   { "name": "Library",     "blurb": "The brain",                          "repos": [] }
 };
   if (params.get("mode") !== "empty") for (const [k, v] of Object.entries(SEED)) T.store["rooms/" + k] = v;
@@ -71,14 +71,14 @@
   T.drop = (path) => { delete T.store[path]; notify(path); };   // someone else deleted it
 
   T.sessions = [
-    session("blocked1", "Shop about page", "montfortoise-shopify", "BLOCKED", "IDLE", 2 * H, { status_category: "need_input", needs_action: "review the French text" }),
-    session("work1", "Week tab editing", "Intermarche-grocery-shopping-app", "WORKING", "RUNNING", 60e3, {}),
-    session("old1", "Old parser", "Intermarche-grocery-shopping-app", "COMPLETED", "IDLE", 20 * 24 * H, { status_category: "completed" }),
+    session("blocked1", "Shop about page", "corner-shop", "BLOCKED", "IDLE", 2 * H, { status_category: "need_input", needs_action: "review the French text" }),
+    session("work1", "Week tab editing", "grocery-list", "WORKING", "RUNNING", 60e3, {}),
+    session("old1", "Old parser", "grocery-list", "COMPLETED", "IDLE", 20 * 24 * H, { status_category: "completed" }),
   ];
   // ?waiting=N: N more sessions waiting on her, from several rooms and both floors, each waiting a little less long than
   // the one before, for the line at the front door
-  const WAITERS = [["Grocery list", "Intermarche-grocery-shopping-app"], ["Snail mail labels", "Snail-Mail-Trail"], ["Café pitch", ""],
-    ["TikTok tags", "tiktok-saves"], ["Theme colours", "montfortoise-shopify"], ["Portfolio header", "Pretty-Project-Portfolio"]];
+  const WAITERS = [["Grocery list", "grocery-list"], ["Postcard labels", "postcard-trail"], ["Café pitch", ""],
+    ["Video tags", "video-saves"], ["Theme colours", "corner-shop"], ["Portfolio header", "Pretty-Project-Portfolio"]];
   for (let i = 0; i < Math.min(+params.get("waiting") || 0, 12); i++) {
     const [title, repo] = WAITERS[i % WAITERS.length];
     T.sessions.push(session("wait" + i, title + (i >= WAITERS.length ? " (2)" : ""), repo || "no-such-repo", "BLOCKED", "IDLE", (10 - i) * H, { status_category: "need_input", needs_action: "Which one should I keep?" }));
@@ -103,14 +103,14 @@
   // Write tools: every call is recorded in T.tools. ?writes=refused refuses them all the way claude.ai
   // does when a page may not use them; ?host=none has no Catio server on this device.
   T.tools = []; T.triggers = 0; T.goneTriggers = new Set();
-  T.agents = params.get("agents") !== "1" ? [] : [{ id: "codex-shop", name: "Codex", provider: "openai", model: "gpt-5", mood: "needs", ask: "Which colour for the buttons?", title: "Shop theme", repo: "charredlatte/montfortoise-shopify", updated: now - 60e3, wakes: true }];
+  T.agents = params.get("agents") !== "1" ? [] : [{ id: "codex-shop", name: "Codex", provider: "openai", model: "gpt-5", mood: "needs", ask: "Which colour for the buttons?", title: "Shop theme", repo: "charredlatte/corner-shop", updated: now - 60e3, wakes: true }];
   // ?gateway=1 (or ?via=gateway): the Catio's gateway answers through her CATIO connector, with a session that reports to it (blocked1,
   // known there by its container id, and fresher there than in claude.ai's list) and one the list doesn't have yet.
   // ?gateway=ask asks before every call. Without it, she has no CATIO connector.
   T.gw = [
-    { id: "cse_blocked1", session: "cse_blocked1", via: "claude-code", provider: "anthropic", mood: "review", title: "Shop about page", repo: "charredlatte/montfortoise-shopify", branch: "claude/about", updated: now - 60e3,
+    { id: "cse_blocked1", session: "cse_blocked1", via: "claude-code", provider: "anthropic", mood: "review", title: "Shop about page", repo: "charredlatte/corner-shop", branch: "claude/about", updated: now - 60e3,
       said: { text: "The French text is in, ready for you.", at: now - 50e3 } },
-    { id: "cse_fresh9", session: "cse_fresh9", via: "claude-code", provider: "anthropic", mood: "needs", ask: "Merge the menu fix?", title: "Menu fix", repo: "charredlatte/Intermarche-grocery-shopping-app", updated: now - 30e3 },
+    { id: "cse_fresh9", session: "cse_fresh9", via: "claude-code", provider: "anthropic", mood: "needs", ask: "Merge the menu fix?", title: "Menu fix", repo: "charredlatte/grocery-list", updated: now - 30e3 },
   ];
   // the queen's runner is on (her cat "queen" is present), unless ?queen=away
   if (params.get("queen") !== "away") T.gw.push({ id: "queen", name: "The queen", via: "runner", provider: "anthropic", mood: "done", updated: now - 5e3 });

@@ -3,7 +3,7 @@
 
     python3 litterbox/sort.py                 a dry run: what would be dropped, piled and filed
     python3 litterbox/sort.py --write         do it, then commit and push what it filed
-    python3 litterbox/sort.py --checkout montfortoise-shopify=../shop --write
+    python3 litterbox/sort.py --checkout corner-shop=../shop --write
 
 Every litterbox/*.md but README.md is split into notes: a top-level bullet with everything indented under it,
 a paragraph, or a table. Then:
@@ -14,16 +14,17 @@ a paragraph, or a table. Then:
   punctuation don't count; a note whose words all appear, in order, in another is a repeat, and the longer is kept;
 - pile: a note belongs to its file's frontmatter `project:`. A note in a file without one is moved to its
   project's pile, litterbox/<project>.md, whose header is a guess, marked as one: the repo its words point at
-  (digest.py's BELONGS, or the repo's own name), else the repo most of its file points at. A note keeps the file
+  (your projects file's words, or the repo's own name), else the repo most of its file points at. A note keeps the file
   (and date) it came from. A pile waits, and new notes for that project join it, until someone checks the
   header and deletes its "# a guess" comment. Nothing filed is guessed;
-- compile: a project's notes go to its checkout, in HOME[repo] (default docs/from-the-litterbox.md), under
+- compile: a project's notes go to its checkout, in its home (default docs/from-the-litterbox.md), under
   Waiting on Charlotte, Ideas not built, Facts learned or Findings (from the headings they sat under), and
   inside that under their own heading.
 
 Filed and dropped notes leave the litter box, and a file left empty is deleted (git keeps it). A note with no
 project, or whose project has no checkout beside this repo (or given with --checkout), stays where it is.
-The projects are the repos in catio/data/rooms.json, plus those BELONGS names. With --write it then ships what it
+The projects are the repos in catio/data/rooms.json, plus the ones catio/data/projects.json names; both are
+gitignored, so with neither, a note is filed only when its own header names it. With --write it then ships what it
 filed, as the house rule for semi-automatic shipping says (harness/rules.json): it commits only the files it wrote,
 in each repo, and pushes them to the branch that repo is on. Never the default branch, never a force-push, and not
 where the rule is switched off. Piling isn't shipped: a pile is still a guess.
@@ -42,9 +43,8 @@ BOX = Path(__file__).resolve().parent
 sys.path.insert(0, str(BOX.parent / "catio" / "tools"))
 sys.path.insert(0, str(BOX.parent / "harness" / "hooks"))
 from common import default_branch, enforced, git  # noqa: E402
-from digest import BELONGS, home_of  # noqa: E402
+from digest import belongs, home_of, homes_of, read_projects  # noqa: E402
 
-HOME = {"montfortoise-shopify": "admin/from-the-litterbox.md"}
 GUESSED = "# a guess by litterbox/sort.py: check it, then delete this comment to file these notes"
 GUESS = re.compile(r"^project:.*#.*\bguess", re.M | re.I)  # a header still waiting to be checked
 DEFAULT_HOME = "docs/from-the-litterbox.md"
@@ -195,11 +195,16 @@ def within(a, b):
 
 
 def projects(root):
-    rooms = json.loads((root / "catio" / "data" / "rooms.json").read_text(encoding="utf-8"))
+    """Every project the sorter knows, with the patterns that point at it: the repos in the rooms file, plus the
+    ones the projects file names. Neither file is committed, and with neither there are no patterns to guess by."""
+    data = root / "catio" / "data"
+    rooms = data / "rooms.json"
+    rooms = json.loads(rooms.read_text(encoding="utf-8")) if rooms.is_file() else {}
+    table = belongs(read_projects(data))
     repos = [r for room in rooms.values() for r in room.get("repos", [])]
-    repos += [home for _, home in BELONGS if not any(home_of(r, home) for r in repos)]
+    repos += [home for _, home in table if not any(home_of(r, home) for r in repos)]
     pats = {r: [re.escape(r).replace(r"\-", r"[-\s]")] for r in dict.fromkeys(repos)}
-    for pat, home in BELONGS:
+    for pat, home in table:
         pats[next(r for r in pats if home_of(r, home))].append(pat)
     return pats
 
@@ -337,11 +342,12 @@ def ship(repo, paths, message, say):
 
 def root_of(box):
     """The repo a box belongs to: its own parent when that is a checkout, else this one (a --box kept elsewhere)."""
-    return box.parent if (box.parent / "catio" / "data" / "rooms.json").exists() else BOX.parent
+    return box.parent if (box.parent / "catio").is_dir() else BOX.parent
 
 
 def run(box=BOX, write=False, given=None, say=print):
     root, given = root_of(box), given or {}
+    filing = homes_of(read_projects(root / "catio" / "data"))
     files = read_box(box, projects(root))
     by_repo, homes, cos, stay, piles = {}, {}, {}, {}, {}
     for path, (_, notes, _, _, waiting) in files.items():
@@ -356,7 +362,7 @@ def run(box=BOX, write=False, given=None, say=print):
                 why = ", no checkout here (use --checkout)" if n.project else ""
                 stay.setdefault((n.project or "no project", why), []).append(n)
                 continue
-            cos[n.project], homes[n.project] = co, co / HOME.get(n.project, DEFAULT_HOME)
+            cos[n.project], homes[n.project] = co, co / filing.get(n.project, DEFAULT_HOME)
             by_repo.setdefault(n.project, []).append(n)
 
     filed, shipping, count = set(), {}, Counter()  # {checkout: [files written]}, {checkout: notes filed}

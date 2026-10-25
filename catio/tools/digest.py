@@ -22,19 +22,36 @@ from pathlib import Path
 
 DATA = Path(__file__).resolve().parent.parent / "data"
 STALE_DAYS = 7
-# A title that names another project's subject: (pattern, the repo it belongs to). litterbox/sort.py files notes by
-# these too, so no word another project uses as well: not "course" (of course), "basket" (the shop has one),
-# "shopping" (the shop is shop, shops or Shopify) or "pixel art" (the café is pixel art).
-BELONGS = [
-    (r"\b(courses\b|grocer|meal|recipe|intermarch|méré|drive basket|shopping list)", "Intermarche-grocery-shopping"),
-    (r"\b(catio|kittychat|manor|harness|cats?\b)", "Pretty-Project-Portfolio"),
-    (r"\b(shop(s|ify)?\b|montfortoise|packshot|product page|business plan|about page)", "montfortoise-shopify"),
-    (r"\btiktok", "tiktok-saves"),
-    # LibreSprite-on-iPad and her LibreSprite fork both start "LibreSprite"; older sessions name
-    # LibreSprite-on-iPad by its first name, pixel-art-app (renamed 1 October 2026).
-    (r"\b(pixel[-\s]art[-\s]app|libresprite)", "LibreSprite"),
-    (r"\b(pixel[-\s]art[-\s]app|libresprite)", "pixel-art-app"),
-]
+
+
+def read_projects(data=DATA):
+    r"""Your own projects, from <data>/projects.json: {repo: {"words": regex, "home": path}}, and {} when there
+    is no file -- which is how a clone starts, so nobody else's project list travels with the café.
+
+        {"corner-shop": {"words": "\\b(shop(s|ify)?\\b|packshot|product page)",
+                         "home":  "admin/from-the-litterbox.md"}}
+
+    "words" spots a cat filed under the wrong repo, and tells litterbox/sort.py which project a note belongs
+    to; "home" is where that repo's notes are filed (default docs/from-the-litterbox.md). Both are optional.
+    The file is gitignored: it names your repos.
+    """
+    f = Path(data) / "projects.json"
+    return json.loads(f.read_text(encoding="utf-8")) if f.is_file() else {}
+
+
+def belongs(cfg):
+    """(words, repo) in the file's own order: the first match wins, so the narrow patterns go first. Choose no
+    word another project uses as well: not "course" (of course), "basket" (a shop has one), "shopping" (a shop
+    is shop, shops or Shopify) or "pixel art" (the café itself is pixel art)."""
+    return [(p["words"], repo) for repo, p in cfg.items() if p.get("words")]
+
+
+def homes_of(cfg):
+    """{repo: the file its notes are filed into}, for the projects that name one."""
+    return {repo: p["home"] for repo, p in cfg.items() if p.get("home")}
+
+
+BELONGS = belongs(read_projects())
 ROUTINE = re.compile(r"refresh the catio", re.I)
 UNTITLED = re.compile(r"^[a-z]+-[a-z]+-[a-z]+$")   # an auto-generated name like charpc-serene-kurzweil
 

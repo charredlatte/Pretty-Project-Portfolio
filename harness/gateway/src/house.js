@@ -11,6 +11,10 @@ import { BadQuestion, NoAnswer, confidence, decide, verdict } from "./decide.js"
 import { importInto, toDTCG } from "./tokens.js";
 
 const FIELDS = ["name", "model", "provider", "title", "project", "repo", "branch", "ask", "link", "session", "via", "cwd", "room"];
+const MAX_AUDIT = 4000;        // an audit is a summary, not the report: the skill asks for under 2000
+// The project's key, as catio/index.html's own slug() makes it from a repo name: underscores survive, and
+// anything else becomes a dash. Kept identical on purpose, so a written audit is a read audit.
+const auditSlug = (v) => String(v).split("/").pop().toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "none";
 const MAX_FILE = 1024 * 1024;   // a free Worker gets 10 ms of CPU a request: bigger files go through the brain
 const KEEP_PICKED = 7 * 24 * 3600 * 1000;   // a picked-up file keeps its bytes a week, then only its record
 const ACTIONS = ["rename", "move", "archive", "unarchive", "pause", "resume", "wrap_up", "message", "done"];
@@ -124,6 +128,23 @@ const TOOLS = {
 		a.updated = Date.now();
 		h.save(a);
 		return { ok: true, waiting: TOOLS.inbox(h, { agent: id }) };
+	},
+
+	// The opening audit the house rules start a session with. It is the session's own report about a repo, like
+	// report_status, so any cat writes it; there is nobody else to. The key is the project's slug exactly as the
+	// page makes it (`slug()` in catio/index.html, from the repo's own name without its owner), because the page
+	// reads audits/<slug> straight into that project's filing cabinet: get the slug wrong and it writes a document
+	// nothing ever shows.
+	audit(h, args, who) {
+		need(args, "repo", "summary");
+		const key = auditSlug(args.repo);
+		h.putDoc("audits/" + key, {
+			repo: String(args.repo).slice(0, 200),
+			summary: String(args.summary).slice(0, MAX_AUDIT),
+			by: String(args.by || who).slice(0, 200),
+			at: Date.now(),
+		});
+		return { ok: true, doc: "audits/" + key };
 	},
 
 	// Every cat, with what it last said (its latest note by its session or agent): the page shows a cat handing
