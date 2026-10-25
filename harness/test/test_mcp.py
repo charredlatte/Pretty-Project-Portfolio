@@ -54,7 +54,7 @@ class Stdio(unittest.TestCase):
         woke = Path(self.home, "woke.txt")
         cmd = [sys.executable, "-c", "import sys; open(sys.argv[1], 'a').write(sys.argv[2] + '\\n')", str(woke), "{message}"]
         self.tool("report_status", agent="codex-shop", name="Codex", model="gpt-5", provider="openai", title="Shop theme",
-                  repo="charredlatte/montfortoise-shopify", mood="busy", wake=cmd)
+                  repo="example/corner-shop", mood="busy", wake=cmd)
         agents = self.tool("list_agents")["agents"]
         self.assertEqual(agents[0]["id"], "codex-shop"); self.assertTrue(agents[0]["wakes"]); self.assertNotIn("wake", agents[0])
 

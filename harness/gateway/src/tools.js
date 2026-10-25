@@ -28,7 +28,7 @@ export const TOOLS = [
 		"Join the Catio as a cat, or update your cat: what you're working on and whether you need the owner. " +
 		"Call it when you start, when you need them, and when you finish. Returns what's waiting for you.",
 		{
-			agent: said("Your stable id, e.g. codex-montfortoise"), name: S, model: said("e.g. gpt-5, gemini-2.5-pro"),
+			agent: said("Your stable id, e.g. codex-shop"), name: S, model: said("e.g. gpt-5, gemini-2.5-pro"),
 			provider: said("openai, google, anthropic, local..."), title: S, project: S, repo: said("owner/repo"),
 			branch: S, mood: { type: "string", enum: MOODS }, ask: said("What you need from the owner, when mood is needs"),
 			link: S, session: said("Your own session id"), via: said("What you run in, e.g. claude-code"), cwd: S,
