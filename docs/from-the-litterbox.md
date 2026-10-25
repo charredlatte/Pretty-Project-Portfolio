@@ -85,10 +85,13 @@ from. Edit them freely: the sorter only adds, and never files a note that is alr
   homework. *— litterbox/2026-10-03-owner-on-the-wire-loose-ends.md*
 
 - **"Don't touch the artifact"** (her rule, 3 October: "I don't want you touching the artifact again. Run
-  everything through the cafe's deployed address and the repo"). ~~The artifact stays at version 32.~~: on 4 October she asked for republishes herself (version 33 added `quizzes` and `answer` to the stored capabilities, version 34 the decider-log fix), and later ones followed. Open: whether
-  CLAUDE.md records the rule (its Republishing section and post-publish checks still tell sessions to publish),
-  whether the catio skill, audits and project maps move off the artifact's database onto the gateway, and whether
-  the litter box quiz and decisions quiz count as artifacts too. In her homework. *— litterbox/2026-10-03-owner-on-the-wire-loose-ends.md*
+  everything through the cafe's deployed address and the repo"). ~~The artifact stays at version 32.~~: on 4 October she asked for republishes herself (version 33 added `quizzes` and `answer` to the stored capabilities, version 34 the decider-log fix), and later ones followed. She said it again on 20 and 21 October, and
+  ~~whether CLAUDE.md records the rule (its Republishing section and post-publish checks still tell sessions to
+  publish)~~ is done on 25 October: the Republishing section, the stored capabilities and the post-publish checks
+  are gone, and the quiz pages are marked retired in `artifacts.json` alongside the café's. **Still open:** the
+  catio skill, the opening audit and the project maps, which still write to the artifact's database — the audit
+  has a gateway tool in PR #152, the project map has none yet, and the skill still reads the artifact first and
+  the gateway only as a fallback. In her homework. *— litterbox/2026-10-03-owner-on-the-wire-loose-ends.md*
 
 - **No line from her has reached the café on its own address since the rename deployed.** The gateway's tests
   cover a note written as `owner`; one real line to the queen from the café would show it end to end. In her

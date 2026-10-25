@@ -4,7 +4,8 @@ and her own skin's pieces in art/skin/), and import the café's data once.
 
     CATIO_URL=https://catio-gateway.<name>.workers.dev CATIO_TOKEN=... python3 harness/gateway/cafe/move-in.py [docs.json]
 
-docs.json is {"<collection>/<id>": {...}}: the claude.ai artifact's database, as Claude exports it with ArtifactData.
+docs.json is {"<collection>/<id>": {...}}, a database to move in once. The claude.ai artifact's was imported this
+way in October 2026; it is read-only now (CLAUDE.md, "Where the café lives"), so in practice this runs for the art.
 The gateway takes an import only while the café's database is empty. Run it again after rebuilding the art.
 """
 import json
@@ -33,7 +34,7 @@ def main():
     art = [CATIO / "art" / "furniture.png"] + sorted(p for p in (CATIO / "art" / "licensed").rglob("*") if p.suffix in (".png", ".ttf"))
     art += sorted((CATIO / "art" / "skin").glob("*.png"))   # her skin's pieces; art/skin.json itself is bundled with the page
     if len(art) < 2:
-        sys.exit("No licensed art in catio/art/licensed: read it back from the artifact first (CLAUDE.md, Republishing).")
+        sys.exit("No licensed art in catio/art/licensed: get it back first (CLAUDE.md, \"The licensed art\").")
     bad = []
     for p in art:
         rel = p.relative_to(CATIO).as_posix()

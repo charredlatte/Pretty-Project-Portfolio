@@ -4,9 +4,9 @@
     python3 catio/tools/digest.py [cats/*.json sessions/*.json]   ->  catio/data/digest.md  and  catio/data/digest.json
 
 Reads catio/data/sessions.json (save-sessions.py's copy) and, optionally, adopted chats exported from the
-artifact's `cats` collection and her moves from `sessions` (one JSON file per document, as ArtifactData saves
-them); a session she moved to a room isn't flagged as misfiled. Per project it sorts every
-cat into: needs you (with its ask), working, waiting for review, done, and the attic (archived, or quiet for
+café's `cats` collection and her moves from `sessions` (one JSON file per document); a session she moved to a
+room isn't flagged as misfiled. Per project it sorts every cat into: needs you (with its ask), working,
+waiting for review, done, and the attic (archived, or quiet for
 STALE_DAYS). It flags what to tidy: asks gone stale, empty "ready for review" sessions, untitled sessions,
 reruns after a usage limit, duplicate titles, and sessions that look filed under the wrong repository.
 

@@ -1,5 +1,5 @@
 {
-  "_comment": "The published pages. Republish the café to its URL (Artifact publish with url), so what lives in its database carries over: its rooms, renames, looks and adopted chats. Her two quiz pages, the litter box quiz and the decisions quiz, are retired now that the queen's quest log deals the cards; their URLs stay for the answers in their databases (litterbox/README.md).",
+  "_comment": "Retired, and kept read-only. Nothing in this repo publishes any more: the café is the Cloudflare link (CLAUDE.md, \"Where the café lives\"), and a change reaches it by a merge to main. These three pages and their databases are still there, and two of them are still worth reading: the café's for the licensed art it holds (CLAUDE.md, \"The licensed art\") and for her four project maps, which live nowhere else; the quiz pages for answers filed before the queen's quest log replaced them (litterbox/README.md). Never publish to any of them. Someone setting up a café of their own publishes their own artifact and records its URL in their own copy of this file (catio-plugin/skills/catio/SKILL.md) -- never over one of these.",
   "kittychat-cafe": "https://claude.ai/artifact/KHiWnmr2e3iYHGXiUX8yDe",
   "litter-box-quiz": "https://claude.ai/artifact/NtSRbA6EL9tCrNUgn5gtvg",
   "decisions-quiz": "https://claude.ai/artifact/KAgrKyvQJBxDQ3sETEikLU"

@@ -312,8 +312,9 @@ same tool in `catio_mcp.py` behind `CATIO_DECIDE_URL`, the `AI` binding in `wran
 `decisions/` log with `old` and `agree`, and the page's `decideSort()`: in observe mode (the default) the brain asks the
 decider the same question it asks the sorter and logs both; `house/main.decide = "on"` lets it sort first above a 0.6
 confidence. Tests: the gateway against a stand-in System One server, the MCP server likewise, and the page's e2e for
-observe, on and unsure. Not yet: the switch (after a week of the log), the rubric's caller (phase B's queen), and
-`decide` in the artifact's stored capabilities (the next republish passes the whole set, CLAUDE.md).
+observe, on and unsure. Not yet: the switch (after a week of the log) and the rubric's caller (phase B's queen).
+`decide` never reached the artifact's stored capabilities and now never will — the café on the gateway's address
+has it, and that is the café (CLAUDE.md, "Where the café lives").
 The log was tightened the same evening: the page passes `floor` (agreement counts only the picks "on" would act on),
 `ref` (the file's brain id, to check a pick against where she sent it) and no `old` when the sorter didn't answer.
 

@@ -42,35 +42,39 @@ the stage says "Only adopted chats are showing."
 
 ## The saved copy
 
-`snapshot/sessions` in the artifact's database: `{at, savedBy, sessions[]}`, the 50 most recent sessions as
-`list_sessions` returned them, cut down by `catio/tools/save-sessions.py` to what the page reads (title, state,
-times, origin, repositories and branches, model, environment, tags, and the task and post-turn summaries). Only
-Claude writes it, with `ArtifactData`, because only a Claude Code session can call `list_sessions` without a page
-in the way. The page watches the document, so a new copy shows the moment it is saved.
+The `snapshot/sessions` document: `{at, savedBy, sessions[]}`, the 50 most recent sessions as `list_sessions`
+returned them, cut down by `catio/tools/save-sessions.py` to what the page reads (title, state, times, origin,
+repositories and branches, model, environment, tags, and the task and post-turn summaries). Only Claude can make
+it, because only a Claude Code session can call `list_sessions` without a page in the way. The page watches the
+document, so a new copy shows the moment it is saved.
+
+**Where it lands today.** The localhost café reads it from `catio/data/sessions.json` on every load, and that is
+the copy worth refreshing. The artifact's own copy is frozen with the rest of that page (CLAUDE.md, "Where the
+café lives"). The café on the gateway's address never needed it: its cats come from `list_agents`, which the
+hook keeps live.
 
 The copy is a snapshot: a cat in it keeps the mood it had when Claude saved it, and a session started since isn't
 there. `at` is what the sign shows, so the age is never hidden.
 
 ### Refreshing it
 
-By hand, from any Claude Code session that has Claude Code Remote and `ArtifactData`:
+By hand, from any Claude Code session that has Claude Code Remote:
 
 1. Call `list_sessions` with `limit: 50` and save the result as JSON (as the tool returns it, `ccr` wrapper and
    all).
 2. `python3 catio/tools/save-sessions.py <result>.json` writes `catio/data/sessions.json` (gitignored: it holds
-   her session titles, never commit it).
-3. `ArtifactData` `get` `snapshot/sessions` for its version, then `set` it to that file's object, pinned with
-   `if_version`.
+   her session titles, never commit it). That is the whole refresh now; copy the file into a localhost bundle's
+   `data/` to see it there.
 
 ### Its Routine is paused
 
-The Routine "Refresh the catio" did those three steps every two hours from 07:59 to 19:59
+The Routine "Refresh the catio" did those steps every two hours from 07:59 to 19:59
 Paris time. It was switched off on 30 September 2026 at her request (its last run, that afternoon, failed), and
-it is still off. The copy in the database is from **2 October 2026, 16:42 Paris time**, refreshed by hand.
-So today the copy is only as fresh as the last time she asked a session to refresh it.
+it is still off. The artifact's copy stopped at **2 October 2026, 16:42 Paris time** and stays there.
+So the copy is only as fresh as the last time she asked a session to refresh it.
 
 Turning it back on is `update_trigger` with `enabled: true`, and her call. It must keep firing into the session
-it was made in: a fresh Routine session has neither `list_sessions` nor `ArtifactData` (tried September 2026).
+it was made in: a fresh Routine session has no `list_sessions` at all (tried September 2026).
 
 ## What keeps cats live anyway: the gateway
 

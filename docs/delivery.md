@@ -200,12 +200,12 @@ have to change. "A house" is one account's Durable Object.
   with a paragraph saying what it is and names the file on the other end. The roles (owner, queen, agent) and the
   three roads above are the whole model.
 - **A new tool is written three times:** its schema in `tools.js`, its body in `house.js`'s `TOOLS`, and the same
-  again in `catio_mcp.py` (schema and body), so the page and agents can use either; then the page's stored
-  capabilities list, which needs a republish with the whole set (`CLAUDE.md`, "The stored capabilities"). Three
-  tools joined in two days (`decide`, `quizzes`, `answer`) and each took all four steps. One `tools.json` both
-  servers read would make it two. Nothing checks that the two lists agree: the gateway test asserts the Worker's
-  names against its own list, so a tool added to one server and not the other diverges quietly until someone
-  calls it. A test that reads both would catch it.
+  again in `catio_mcp.py` (schema and body), so the page and agents can use either. Three tools joined in two
+  days (`decide`, `quizzes`, `answer`) and each took those steps, plus a fourth that no longer exists: naming the
+  tool in the artifact's stored capabilities and republishing. One `tools.json` both servers read would leave
+  just the two bodies. Nothing checks that the two lists agree: the gateway test asserts the Worker's names
+  against its own list, so a tool added to one server and not the other diverges quietly until someone calls it.
+  A test that reads both would catch it.
 - **A new message kind** (beside notes, requests and files) touches `inbox` in `house.js`, `handed_in` in
   `report.py`, the `catio` skill's catch-up and the page: four places, each a few lines, no layer to thread it
   through.
