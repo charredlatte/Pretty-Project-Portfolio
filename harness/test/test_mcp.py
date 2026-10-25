@@ -47,7 +47,7 @@ class Stdio(unittest.TestCase):
         self.assertEqual(init["result"]["serverInfo"]["name"], "catio")
         self.rpc("notifications/initialized", notify=True)
         names = {t["name"] for t in self.rpc("tools/list")["result"]["tools"]}
-        self.assertEqual(names, {"house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "answer", "decide", "tokens", "set_tokens"})
+        self.assertEqual(names, {"house_rules", "report_status", "audit", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "answer", "decide", "tokens", "set_tokens"})
         self.assertIn("preflight", [r["id"] for r in self.tool("house_rules")["rules"]])
 
         # an agent joins, with a wake command that records what it was woken with
@@ -147,6 +147,21 @@ class Stdio(unittest.TestCase):
         self.assertTrue(r.get("isError")); self.assertIn("noul, choice or score", r["content"][0]["text"])
         r = self.rpc("tools/call", {"name": "decide", "arguments": {"state": "x", "questions": {"q": {"type": "noul"}}}})["result"]
         self.assertTrue(r.get("isError")); self.assertIn("q: instructions is the question in words", r["content"][0]["text"])
+
+    def test_audit_keys_the_project_as_the_page_does(self):
+        """The opening audit is kept per project, on the key catio/index.html's slug() makes from a repo name."""
+        self.rpc("initialize", {})
+        self.rpc("notifications/initialized", notify=True)
+        out = self.tool("audit", repo="charredlatte/Pretty_Project-Portfolio", summary="One finding.")
+        self.assertEqual(out["doc"], "audits/pretty_project-portfolio")   # the owner goes, the underscore stays
+        kept = json.loads(Path(self.home, "state.json").read_text(encoding="utf-8"))["audits"]
+        self.assertEqual(kept["pretty_project-portfolio"]["summary"], "One finding.")
+        # the bare name keys the same project, and a later audit replaces the one before
+        self.tool("audit", repo="Pretty_Project-Portfolio", summary="A later one.", by="cse_1")
+        kept = json.loads(Path(self.home, "state.json").read_text(encoding="utf-8"))["audits"]
+        self.assertEqual([kept["pretty_project-portfolio"][k] for k in ("summary", "by")], ["A later one.", "cse_1"])
+        r = self.rpc("tools/call", {"name": "audit", "arguments": {"repo": "x"}})["result"]
+        self.assertTrue(r["isError"])   # a summary is required
 
     def test_errors_are_tool_errors(self):
         self.rpc("initialize", {})

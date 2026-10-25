@@ -489,7 +489,9 @@ The page now **writes** through Claude Code Remote, always on an explicit action
   claude.ai session (`fromGateway()`: the ids match after their prefix, `cse_…` there, `session_…` in the list),
   wearing the gateway's mood when it is newer; what she writes or drops on it goes through the gateway, not the
   outbox, and its replies there show in its conversation. Breeds: the model, in the cat's card.
-- `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet.
+- `audits/<repo slug>` `{repo, at, by, summary}` shows in the filing cabinet. A session writes its own with the
+  gateway's `audit` tool, never with `ArtifactData`: the café is the Cloudflare link, and an audit written to the
+  artifact's database lands where she never looks.
 
 The stored capabilities (the full set, to pass whole if a tool is ever added):
 `{ mcp: { servers: [{ server: "Claude Code Remote", tools: ["list_sessions","list_repos","send_message","delete_trigger","create_session","set_session_title","archive_session","unarchive_session","interrupt_session"] }, { server: "CATIO", tools: ["list_agents","comment","comments","drop_file","manage","decide","quizzes","answer"] }] }, db: {}, assets: {}, sample: {}, downloads: true }`

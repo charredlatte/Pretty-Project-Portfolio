@@ -193,6 +193,12 @@ queen runner acts in that account's house:
 does nothing; a call that fails or takes over two seconds is dropped. Its cat's id is the claude.ai session id
 (`CLAUDE_CODE_REMOTE_SESSION_ID`), so the page can match it with the session it lists.
 
+A session also saves its opening audit here, with the `audit` tool (`{repo, summary, by}`): the read-only pass
+the house rules start it with, kept as `audits/<project>` and shown in that project's filing cabinet. The key is
+the project's slug exactly as `catio/index.html` makes it, because that is what the page reads back. Any cat may
+write one, as any cat reports its status: the session that audited is the only one who can, and nobody signs in
+to do it for them.
+
 What she sends reaches a session when its turn ends: the Stop hook hands in her notes, a pause or wrap-up, and
 files, once each, and the session carries on with them (the `catio` skill). It answers with
 `report.py say "…"` and fetches files with `report.py pick <id>`. An idle session can't be woken from outside

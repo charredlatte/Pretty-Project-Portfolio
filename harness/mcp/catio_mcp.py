@@ -158,6 +158,25 @@ def house_rules(args):
     return {"catio": r.get("catio"), "rules": [x for x in r["rules"] if x.get("on", True)]}
 
 
+def _audit_slug(v):
+    """The project's key, as catio/index.html's slug() makes it from a repo name: underscores survive, anything
+    else becomes a dash. Identical to the gateway's, so an audit written anywhere is read everywhere."""
+    return re.sub(r"[^a-z0-9_-]+", "-", str(v).split("/")[-1].lower()).strip("-")[:80] or "none"
+
+
+def audit(args):
+    """The opening audit the house rules start a session with, kept per project as the gateway keeps it."""
+    need(args, "repo", "summary")
+    key = _audit_slug(args["repo"])
+    rec = {"repo": str(args["repo"])[:200], "summary": str(args["summary"])[:4000],
+           "by": str(args.get("by") or "agent")[:200], "at": now()}
+    with LOCK:
+        s = load()
+        s.setdefault("audits", {})[key] = rec
+        store(s)
+    return {"ok": True, "doc": "audits/" + key}
+
+
 def report_status(args):
     need(args, "agent")
     with LOCK:
@@ -817,6 +836,13 @@ TOOLS = {
                        "via": dict(S, description="What you run in, e.g. claude-code"), "cwd": S,
                        "wake": {"type": ["array", "null"], "items": S, "description": "Command that wakes you with a message; placeholders {message} {session} {agent}"}},
                       ["agent"]),
+    "audit": (audit, "Save a repository's opening audit, the read-only pass the house rules ask for at the start of a "
+              "session. The café shows it in that project's filing cabinet, so it reaches the owner where she already "
+              "looks. Writing it again replaces the one before, so a later session's audit is the one she sees.",
+              {"repo": dict(S, description="owner/repo, or the repository's name"),
+               "summary": dict(S, description="The top findings, one line each"),
+               "by": dict(S, description="Who audited, when it is not you: your session or agent id")},
+              ["repo", "summary"]),
     "list_agents": (list_agents, "Every agent cat in the Catio.", {"archived": {"type": "boolean"}}, []),
     "inbox": (inbox, "Files, notes from the owner, and any request (pause, resume, wrap_up) waiting for an agent. With mark, only "
               "what hasn't been handed over yet, and it counts as handed over.", {"agent": S, "mark": {"type": "boolean"}}, ["agent"]),

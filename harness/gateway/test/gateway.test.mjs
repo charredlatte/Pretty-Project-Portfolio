@@ -515,6 +515,21 @@ describe("the queen", () => {
 	const put = (path, data) => api("/api/db/" + path, { method: "PUT", body: JSON.stringify({ data }) });
 	const queen = async () => (await tool(her, "list_agents")).agents.find((a) => a.id === "queen");
 
+	// The opening audit has to land on the key the page reads, or it writes a document nothing ever shows.
+	test("an audit lands where the filing cabinet looks for it", async () => {
+		const docs = async () => (await (await api("/api/db")).json()).docs;
+		// the agents' key writes it: the session that audited is the only one who can, and nobody signs in to do it
+		const r = await tool(TOKEN, "audit", { repo: "charredlatte/Pretty_Project-Portfolio", summary: "One finding." });
+		assert.equal(r.doc, "audits/pretty_project-portfolio", "the owner goes, the underscore stays: slug() keeps it");
+		assert.equal((await docs())["audits/pretty_project-portfolio"].summary, "One finding.");
+		assert.equal((await docs())["audits/pretty_project-portfolio"].by, "agent", "who audited, when the call doesn't say");
+		// the repo's bare name keys the same project, because the page slugs the name without its owner
+		await tool(TOKEN, "audit", { repo: "Pretty_Project-Portfolio", summary: "A later one.", by: "cse_1" });
+		const a = (await docs())["audits/pretty_project-portfolio"];
+		assert.deepEqual([a.summary, a.by], ["A later one.", "cse_1"], "a later session's audit is the one she sees");
+		assert.match((await tool(TOKEN, "audit", { repo: "x" })).refused, /summary is required/);
+	});
+
 	before(async () => {
 		her = (await signIn()).access_token;
 		const r = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "charlotte", password: PASSWORD }), redirect: "manual" });
@@ -772,7 +787,7 @@ describe("the gateway", () => {
 		assert.equal(init.result.serverInfo.name, "catio");
 		const { result } = await rpc(TOKEN, "tools/list", {});
 		assert.deepEqual(result.tools.map((t) => t.name),
-			["house_rules", "report_status", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "decide", "tokens", "set_tokens", "answer"]);
+			["house_rules", "report_status", "audit", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "decide", "tokens", "set_tokens", "answer"]);
 		const rules = await tool(TOKEN, "house_rules");
 		assert.ok(rules.rules.some((r) => r.id === "ship"));
 		assert.equal((await tool(TOKEN, "nope")).rpcError.code, -32602);
