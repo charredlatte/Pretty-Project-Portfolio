@@ -20,8 +20,9 @@ def main():
     gateway = os.environ.get("CATIO_URL", "").strip()
     if gateway:   # the café this session reports to, whoever's it is: the hook can't tell if it is Charlotte's
         whose, they = "their", "They"
-        cafe = (f"This session is a cat in the KittyChat Café of the person you are working for, at {gateway}.\n"
-                f"(Charlotte made the café; her own is at {r['catio']}, which isn't theirs unless they are her.)")
+        cafe = f"This session is a cat in the KittyChat Café of the person you are working for, at {gateway}."
+        if gateway.rstrip("/") != r["catio"].rstrip("/"):   # somebody else's café: say whose it isn't
+            cafe += f"\n(Charlotte made the café; her own is at {r['catio']}, which isn't theirs unless they are her.)"
     else:
         whose, they = "Charlotte's", "She"
         cafe = "This session is a cat in Charlotte's Catio, her harness: " + r["catio"]

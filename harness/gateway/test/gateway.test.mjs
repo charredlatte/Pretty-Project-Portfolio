@@ -530,6 +530,29 @@ describe("the queen", () => {
 		assert.match((await tool(TOKEN, "audit", { repo: "x" })).refused, /summary is required/);
 	});
 
+	// The project map lands on the same project key as the audit, so one filing cabinet shows both.
+	test("a project map lands beside its audit, and is kept as graph_doc.py printed it", async () => {
+		const docs = async () => (await (await api("/api/db")).json()).docs;
+		const map = { nodes: 12, edges: 20, gods: ["house.js"], map: { n: [{ t: "house.js", g: 0, d: 4, x: 1, y: 2 }], l: [0, 0] } };
+		const r = await tool(TOKEN, "graph", { repo: "charredlatte/Pretty_Project-Portfolio", doc: map });
+		assert.equal(r.doc, "graphs/pretty_project-portfolio", "the same slug the audit uses, so both reach one cabinet");
+		const kept = (await docs())["graphs/pretty_project-portfolio"];
+		assert.deepEqual(kept.map, map.map, "the document is kept as given: the page already knows its shape");
+		assert.equal(kept.nodes, 12);
+		assert.equal(kept.by, "agent", "who built it, when the call doesn't say");
+		assert.equal(kept.repo, "charredlatte/Pretty_Project-Portfolio");
+		assert.ok(kept.at > 0, "stamped when it was saved");
+		// a later map replaces the one before, as a later audit does
+		await tool(TOKEN, "graph", { repo: "Pretty_Project-Portfolio", doc: { nodes: 13 }, by: "cse_1" });
+		const again = (await docs())["graphs/pretty_project-portfolio"];
+		assert.deepEqual([again.nodes, again.by], [13, "cse_1"]);
+		assert.equal(again.map, undefined, "replaced, not merged: a stale map must not outlive its document");
+		assert.match((await tool(TOKEN, "graph", { repo: "x" })).refused, /doc is required/);
+		assert.match((await tool(TOKEN, "graph", { repo: "x", doc: "a map" })).refused, /doc is the object/);
+		assert.match((await tool(TOKEN, "graph", { repo: "x", doc: [1, 2] })).refused, /doc is the object/, "an array is not a document");
+		assert.match((await tool(TOKEN, "graph", { repo: "x", doc: { pad: "z".repeat(70 * 1024) } })).refused, /over the 64 KB/);
+	});
+
 	before(async () => {
 		her = (await signIn()).access_token;
 		const r = await fetch(base + "/login", { method: "POST", body: new URLSearchParams({ user: "charlotte", password: PASSWORD }), redirect: "manual" });
@@ -787,7 +810,7 @@ describe("the gateway", () => {
 		assert.equal(init.result.serverInfo.name, "catio");
 		const { result } = await rpc(TOKEN, "tools/list", {});
 		assert.deepEqual(result.tools.map((t) => t.name),
-			["house_rules", "report_status", "audit", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "decide", "tokens", "set_tokens", "answer"]);
+			["house_rules", "report_status", "audit", "graph", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "decide", "tokens", "set_tokens", "answer"]);
 		const rules = await tool(TOKEN, "house_rules");
 		assert.ok(rules.rules.some((r) => r.id === "ship"));
 		assert.equal((await tool(TOKEN, "nope")).rpcError.code, -32602);

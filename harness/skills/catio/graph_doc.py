@@ -5,7 +5,8 @@
 
 Reads graph.json and GRAPH_REPORT.md from graphify's output folder (default ./graphify-out), prints the
 document id on the first line and the document as JSON after it, and saves the JSON beside the graph as
-catio-graph.json for `ArtifactData` (`set`, `file_path`). Standard library only.
+catio-graph.json. Hand that document to the Catio server's `graph` tool, which keys it by the project as the
+page does (the `catio` skill, "The project map"). Standard library only.
 """
 import json
 import math

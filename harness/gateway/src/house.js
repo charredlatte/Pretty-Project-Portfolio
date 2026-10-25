@@ -12,9 +12,11 @@ import { importInto, toDTCG } from "./tokens.js";
 
 const FIELDS = ["name", "model", "provider", "title", "project", "repo", "branch", "ask", "link", "session", "via", "cwd", "room"];
 const MAX_AUDIT = 4000;        // an audit is a summary, not the report: the skill asks for under 2000
+const MAX_GRAPH = 64 * 1024;   // a map is a digest, not the graph: graph_doc.py draws 40 ideas with clipped labels
 // The project's key, as catio/index.html's own slug() makes it from a repo name: underscores survive, and
-// anything else becomes a dash. Kept identical on purpose, so a written audit is a read audit.
-const auditSlug = (v) => String(v).split("/").pop().toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "none";
+// anything else becomes a dash. Kept identical on purpose, so a written audit or map is a read one. Both the
+// audit and the project map hang off it, which is how they land in the same filing cabinet.
+const projectSlug = (v) => String(v).split("/").pop().toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "none";
 const MAX_FILE = 1024 * 1024;   // a free Worker gets 10 ms of CPU a request: bigger files go through the brain
 const KEEP_PICKED = 7 * 24 * 3600 * 1000;   // a picked-up file keeps its bytes a week, then only its record
 const ACTIONS = ["rename", "move", "archive", "unarchive", "pause", "resume", "wrap_up", "message", "done"];
@@ -137,7 +139,7 @@ const TOOLS = {
 	// nothing ever shows.
 	audit(h, args, who) {
 		need(args, "repo", "summary");
-		const key = auditSlug(args.repo);
+		const key = projectSlug(args.repo);
 		h.putDoc("audits/" + key, {
 			repo: String(args.repo).slice(0, 200),
 			summary: String(args.summary).slice(0, MAX_AUDIT),
@@ -145,6 +147,27 @@ const TOOLS = {
 			at: Date.now(),
 		});
 		return { ok: true, doc: "audits/" + key };
+	},
+
+	// The project map the house rules ask a session to build with graphify ("Map before you dig"), on the same
+	// project key as the audit above, because the page reads graphs/<slug> into the same filing cabinet. The
+	// document is graph_doc.py's own output and is kept as given: the page already knows that shape, so the
+	// gateway only stamps which repo it is, who built it and when, and never reaches inside it.
+	graph(h, args, who) {
+		need(args, "repo", "doc");
+		if (typeof args.doc !== "object" || args.doc === null || Array.isArray(args.doc)) {
+			throw new Refusal("doc is the object graph_doc.py prints after the document id, or the catio-graph.json it saves");
+		}
+		const body = JSON.stringify(args.doc);
+		if (body.length > MAX_GRAPH) throw new Refusal("that map is " + Math.round(body.length / 1024) + " KB, over the " + (MAX_GRAPH / 1024) + " KB a map may be");
+		const key = projectSlug(args.repo);
+		h.putDoc("graphs/" + key, {
+			...JSON.parse(body),
+			repo: String(args.repo).slice(0, 200),
+			by: String(args.by || who).slice(0, 200),
+			at: Date.now(),
+		});
+		return { ok: true, doc: "graphs/" + key };
 	},
 
 	// Every cat, with what it last said (its latest note by its session or agent): the page shows a cat handing

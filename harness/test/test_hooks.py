@@ -1379,8 +1379,11 @@ class SessionStart(unittest.TestCase):
     def test_prints_the_rules(self):
         r = run("session_start.py", {"hook_event_name": "SessionStart", "source": "startup", "cwd": tempfile.mkdtemp()})
         self.assertEqual(r.returncode, 0)
-        for words in ("KittyChat house rules", "browser-agent-preflight", "ponytail-audit", "[Catio]", "claude.ai/artifact/"):
+        for words in ("KittyChat house rules", "browser-agent-preflight", "ponytail-audit", "[Catio]"):
             self.assertIn(words, r.stdout)
+        # it names the café, and names the one rules.json carries: a host written into the hook would
+        # outlive the move off the artifact, which is how the old link survived her asking twice.
+        self.assertIn(json.loads((HOOKS.parent / "rules.json").read_text(encoding="utf-8"))["catio"], r.stdout)
 
     def test_says_when_a_repo_merges(self):
         tmp = Path(tempfile.mkdtemp(), "cafe")
@@ -1497,11 +1500,16 @@ class SessionStart(unittest.TestCase):
             return subprocess.run([sys.executable, str(HOOKS / "session_start.py")], capture_output=True, text=True,
                                   input=json.dumps({"source": "startup", "model": "claude-fable-5-1",
                                                     "cwd": tempfile.mkdtemp()}), env=env).stdout
+        hers = json.loads((HOOKS.parent / "rules.json").read_text(encoding="utf-8"))["catio"]
         guest = start("https://catio-gateway.someone.workers.dev")
         self.assertIn("KittyChat Café of the person you are working for, at https://catio-gateway.someone.workers.dev", guest)
         for words in ("Charlotte's Catio", "Charlotte's allowance"):
             self.assertNotIn(words, guest)
-        self.assertIn("Charlotte's Catio, her harness: https://claude.ai/artifact/", start(None))
+        self.assertIn("her own is at " + hers, guest)   # a guest is told whose café theirs isn't
+        self.assertIn("Charlotte's Catio, her harness: " + hers, start(None))
+        # in her own café the two are one link, and "her own is at <this very link>" reads as a warning
+        # about her own café, so it isn't said at all
+        self.assertNotIn("her own is at", start(hers))
         self.assertIn('{"opening_audit": false} in .claude/catio-rules.json', guest)
 
 
