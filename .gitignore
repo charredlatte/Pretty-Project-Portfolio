@@ -8,6 +8,11 @@ catio/test/.page.html
 catio/test/.page-noart.html
 catio/test/.noart/
 catio/test/.look/
+# Your own cafe: the rooms it opens with, your projects and the words that point at each, the saved copy of
+# your sessions, and the digests made from it. Every one of them names your repos, so none is committed. A
+# clone starts with no rooms at all, which is exactly what opens the setup wizard.
+catio/data/rooms.json
+catio/data/projects.json
 catio/data/sessions.json
 catio/data/digest.md
 catio/data/digest.json

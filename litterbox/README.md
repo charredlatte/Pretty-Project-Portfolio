@@ -19,8 +19,8 @@ indented under it, a paragraph, or a table), and:
   means struck through whole (`- ~~An old idea~~`) or a struck label with a colon (`- ~~Lanterns~~: done`). A
   correction (`- ~~Tuesday~~ Wednesday: call the printer`) is still live, so it stays;
 - **piles:** a note in a file without a `project:` goes on its project's pile, `litterbox/<project>.md`. The
-  pile's header is the sifter's guess, and says so: `project: tiktok-saves  # a guess by litterbox/sort.py:
-  check it, …`. The guess is the repo a note's words point at (`BELONGS` in `catio/tools/digest.py`, or the
+  pile's header is the sifter's guess, and says so: `project: video-saves  # a guess by litterbox/sort.py:
+  check it, …`. The guess is the repo a note's words point at (the `words` in `catio/data/projects.json`, or the
   repo's own name), else the repo most of its file points at. Each note keeps its file's title and headings,
   and a tag naming the file (and date) it came from. A note that points nowhere stays in its own file;
 - **waits:** a pile marked as a guess is never filed. New notes for that project join it, and the run ends by
@@ -29,7 +29,7 @@ indented under it, a paragraph, or a table), and:
   punctuation don't count. A repeat says nothing new: all its words appear, in order, in the other note, and
   the longer one stays. "Rename her Mochi" and "Rename her Pochi" are two notes;
 - **files:** a file whose `project:` isn't a guess is emptied into **that project's own repo**, in
-  `docs/from-the-litterbox.md` (montfortoise: `admin/from-the-litterbox.md`; `HOME` in `sort.py`), under
+  `docs/from-the-litterbox.md` (or the `home` a project gives itself in `catio/data/projects.json`), under
   *Waiting on Charlotte*, *Ideas not built*, *Facts learned* or *Findings*. Each note sits under its file's
   title and heading, and ends with the file it came from.
 
@@ -64,7 +64,7 @@ The front matter looks like this, and a file saved by Notepad works too:
 
 ```
 ---
-project: montfortoise-shopify
+project: corner-shop
 date: 2026-10-01
 ---
 ```

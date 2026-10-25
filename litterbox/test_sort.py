@@ -10,8 +10,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import sort  # noqa: E402
 
-ROOMS = {"garden": {"repos": ["Pretty-Project-Portfolio"]}, "study": {"repos": ["montfortoise-shopify"]},
-         "kitchen": {"repos": ["Intermarche-grocery-shopping-app"]}}
+ROOMS = {"garden": {"repos": ["Pretty-Project-Portfolio"]}, "study": {"repos": ["corner-shop"]},
+         "kitchen": {"repos": ["grocery-list"]}}
+# Invented, like every fixture here. What catio/data/projects.json holds: the words that point at each repo,
+# narrow first (the sorter takes the first match), and where a repo's notes are filed when it isn't the default.
+PROJECTS = {"grocery-list": {"words": r"\b(grocer|meal|recipe|basket)"},
+            "Pretty-Project-Portfolio": {"words": r"\b(catio|kittychat|manor|harness|cats?\b)"},
+            "corner-shop": {"words": r"\b(shop(s|ify)?\b|packshot)", "home": "admin/from-the-litterbox.md"}}
+HOMES = {r: p["home"] for r, p in PROJECTS.items() if p.get("home")}
 CAFE = "Pretty-Project-Portfolio"
 
 
@@ -23,12 +29,13 @@ class Box(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         top = Path(self.tmp.name)
-        self.cafe, self.shop = top / CAFE, top / "montfortoise-shopify"
-        self.food = top / "Intermarche-grocery-shopping-app"
+        self.cafe, self.shop = top / CAFE, top / "corner-shop"
+        self.food = top / "grocery-list"
         for repo in (self.cafe, self.shop, self.food):
             (repo / ".git").mkdir(parents=True)   # a checkout to the sorter; real() makes one a git repo
         (self.cafe / "catio" / "data").mkdir(parents=True)
         (self.cafe / "catio" / "data" / "rooms.json").write_text(json.dumps(ROOMS))
+        (self.cafe / "catio" / "data" / "projects.json").write_text(json.dumps(PROJECTS))
         self.box = self.cafe / "litterbox"
         self.box.mkdir()
         self.said = []
@@ -52,7 +59,7 @@ class Box(unittest.TestCase):
         pile.write_text(re.sub(r"  # a guess[^\n]*", "", pile.read_text()))
 
     def notes(self, repo):
-        return (repo / sort.HOME.get(repo.name, sort.DEFAULT_HOME)).read_text()
+        return (repo / HOMES.get(repo.name, sort.DEFAULT_HOME)).read_text()
 
     def real(self, repo, branch="feature"):
         """Make a checkout a git repo on `branch`, everything in it committed, with an origin to push to."""
@@ -81,7 +88,7 @@ class Box(unittest.TestCase):
         self.assertEqual(sort.compress(lines), lines[:1])
 
     def test_notes_without_a_project_wait_in_a_pile_until_it_is_checked(self):
-        self.drop("a.md", "# A\n\n- The catio is not this.\n", project="montfortoise-shopify")
+        self.drop("a.md", "# A\n\n- The catio is not this.\n", project="corner-shop")
         self.drop("b.md", "---\ndate: 2026-10-01\n---\n# B\n\n- The manor's stair moved.\n\n- Plain note with no pointer.\n")
         self.drop("c.md", "# C\n\n- Nothing points anywhere.\n")
         self.run_sort()
@@ -106,7 +113,7 @@ class Box(unittest.TestCase):
         self.drop("b.md", "- The manor's lift is slow.\n")
         self.run_sort()
         self.assertEqual(sorted(p.name for p in self.box.glob("*.md")),
-                         ["Intermarche-grocery-shopping-app.md", f"{CAFE}.md"])
+                         [f"{CAFE}.md", "grocery-list.md"])
         cafe = (self.box / f"{CAFE}.md").read_text()
         self.assertIn("# Leftovers\n\n- The catio stair", cafe)
         self.assertIn("# b\n\n- The manor's lift is slow. *— litterbox/b.md*", cafe)   # no title: its file's name
@@ -115,7 +122,7 @@ class Box(unittest.TestCase):
         self.run_sort()
         self.assertIn("The catio needs a gate.", (self.box / f"{CAFE}.md").read_text())   # joins the waiting pile
         self.check(f"{CAFE}.md")
-        self.check("Intermarche-grocery-shopping-app.md")
+        self.check("grocery-list.md")
         self.run_sort()
         self.assertIn("Plan the meals", self.notes(self.food))
         for note in ("rail", "lamp", "lift", "gate"):
@@ -139,14 +146,14 @@ class Box(unittest.TestCase):
             self.assertIn(note, self.notes(self.cafe))
 
     def test_frontmatter_survives_notepad(self):
-        (self.box / "a.md").write_bytes("﻿---\r\nproject: montfortoise-shopify\r\n---\r\n- The catio is not this.\r\n"
+        (self.box / "a.md").write_bytes("﻿---\r\nproject: corner-shop\r\n---\r\n- The catio is not this.\r\n"
                                         .encode("utf-8"))
         self.run_sort()
         self.assertIn("The catio is not this.", self.notes(self.shop))
         self.assertNotIn("project:", self.notes(self.shop))
 
     def test_ships_what_it_files_and_nothing_else(self):
-        self.drop("a.md", "- A shop note.\n", "montfortoise-shopify")
+        self.drop("a.md", "- A shop note.\n", "corner-shop")
         self.drop("b.md", "- A café note.\n", CAFE)
         self.drop("c.md", "- The catio's sign lies.\n")   # piled as a guess: not shipped
         shop, cafe = self.real(self.shop), self.real(self.cafe)
@@ -154,7 +161,7 @@ class Box(unittest.TestCase):
         self.run_sort(write=False)
         self.assertEqual(git("rev-list", "--count", "feature", cwd=self.shop), "1\n")
         self.run_sort()
-        self.assertIn("montfortoise-shopify: committed and pushed to feature", self.said)
+        self.assertIn("corner-shop: committed and pushed to feature", self.said)
         self.assertIn(f"{CAFE}: committed and pushed to feature", self.said)
         self.assertIn("A shop note.", git("show", "feature:admin/from-the-litterbox.md", cwd=shop))
         self.assertIn("A café note.", git("show", "feature:docs/from-the-litterbox.md", cwd=cafe))
@@ -165,14 +172,14 @@ class Box(unittest.TestCase):
         self.assertEqual(git("status", "--porcelain", cwd=self.cafe), f" D litterbox/c.md\n?? litterbox/{CAFE}.md\n")
 
     def test_never_ships_to_the_default_branch_or_where_shipping_is_off(self):
-        self.drop("a.md", "- A shop note.\n", "montfortoise-shopify")
+        self.drop("a.md", "- A shop note.\n", "corner-shop")
         self.drop("b.md", "- A café note.\n", CAFE)
         self.real(self.shop, branch="main")
         self.real(self.cafe)
         (self.cafe / ".claude").mkdir()
         (self.cafe / ".claude" / "catio-rules.json").write_text('{"ship": false}')
         self.run_sort()
-        self.assertIn("montfortoise-shopify: written, not committed: it is on main, and the sorter never commits to the "
+        self.assertIn("corner-shop: written, not committed: it is on main, and the sorter never commits to the "
                       "default branch", self.said)
         self.assertIn(f"{CAFE}: written, not committed: shipping is switched off here", self.said)
         self.assertEqual(git("rev-list", "--count", "HEAD", cwd=self.shop), "1\n")
@@ -189,11 +196,11 @@ class Box(unittest.TestCase):
 
     def test_a_project_with_no_checkout_stays_in_the_box(self):
         (self.shop / ".git").rmdir()
-        self.drop("a.md", "- A shop note.\n", "montfortoise-shopify")
+        self.drop("a.md", "- A shop note.\n", "corner-shop")
         self.run_sort()
         self.assertTrue((self.box / "a.md").exists())
         self.assertTrue(any("no checkout" in s for s in self.said))
-        self.run_sort(given={"montfortoise-shopify": str(self.shop)})
+        self.run_sort(given={"corner-shop": str(self.shop)})
         self.assertFalse((self.box / "a.md").exists())
 
     def test_a_dry_run_writes_nothing_and_the_box_settles(self):
@@ -215,12 +222,16 @@ class Box(unittest.TestCase):
         self.run_sort()   # already filed: dropped
         self.assertEqual(self.snapshot(), after)
 
-    def test_a_box_kept_outside_any_checkout_uses_this_repos_rooms(self):
+    def test_a_box_kept_outside_any_checkout_falls_back_to_this_repo(self):
         box = Path(self.tmp.name) / "private"
         box.mkdir()
         (box / "a.md").write_text("# A\n\n- The catio needs a gate.\n", encoding="utf-8")
+        self.assertEqual(sort.root_of(box), sort.BOX.parent)   # this checkout, not the box's own parent
         sort.run(box, write=True, say=self.said.append)
-        self.assertTrue((box / "Pretty-Project-Portfolio.md").exists(), self.said)
+        # Neither rooms.json nor projects.json is committed, so a clone has nothing to guess a project by and
+        # the note waits where it is. Guessing itself is covered by the tests that set both files up above.
+        self.assertEqual([p.name for p in box.iterdir()], ["a.md"], self.said)
+        self.assertIn("staying in the box", " ".join(self.said))
 
 
 if __name__ == "__main__":

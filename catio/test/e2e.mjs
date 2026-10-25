@@ -308,14 +308,14 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(await menuButton(page, "Whole house").count() === 1, "no way back");
   });
   // an invented project map, as the catio skill's graph_doc.py saves it
-  await T(page, () => window.__catio.put("graphs/montfortoise-shopify", { repo: "example/montfortoise-shopify", at: Date.now() - 60e3, commit: "abc1234def", nodes: 120, edges: 210, communities: 6,
+  await T(page, () => window.__catio.put("graphs/corner-shop", { repo: "example/corner-shop", at: Date.now() - 60e3, commit: "abc1234def", nodes: 120, edges: 210, communities: 6,
     gods: [{ label: "CartDrawer", degree: 14, file: "src/cart.js" }], groups: [{ name: "Checkout", size: 40 }, { name: "Theme", size: 30 }],
     surprises: [{ a: "Shipping notes", rel: "references", b: "CartDrawer", how: "INFERRED", where: "docs/shipping.md → src/cart.js" }],
     questions: ["Why does CartDrawer connect Checkout to Theme?"],
     map: { n: [{ t: "CartDrawer", g: 0, d: 14, x: 150, y: 80 }, { t: "Theme", g: 1, d: 6, x: 60, y: 40 }, { t: "Loose end", g: -1, d: 1, x: 250, y: 130 }], l: [0, 1, 0, 2] } }));
   await menuButton(page, "Files").click();
   await check("a project with a graphify map shows it in its cabinet, and a cat there can be asked its questions", async () => {
-    const card = page.locator("#roomsDlg .proj", { hasText: "montfortoise-shopify" });
+    const card = page.locator("#roomsDlg .proj", { hasText: "corner-shop" });
     await card.locator("summary", { hasText: "Project map" }).click();
     expect(await card.locator(".gart svg rect").count() === 3 && await card.locator(".gart svg line").count() === 2, "map not drawn");
     const t = await card.locator(".gmap").innerText();
@@ -327,13 +327,13 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   await check("the craft room's cabinet lists its projects and branches, archived sessions included", async () => {
     const t = await page.locator("#roomsDlg").innerText();
-    expect(t.includes("Filing cabinet") && t.includes("montfortoise-shopify") && t.includes("Intermarche-grocery-shopping-app") && t.includes("claude/test"), t.slice(0, 300));
+    expect(t.includes("Filing cabinet") && t.includes("corner-shop") && t.includes("grocery-list") && t.includes("claude/test"), t.slice(0, 300));
   });
   // the project maps (her ask, 3 October: "a customizable dashboard built on Graphify", the graphify in her house rules)
   await page.evaluate(() => { for (const d of document.querySelectorAll("dialog[open]")) d.close(); });
   await closeMenu(page);
   await settle(page);
-  await T(page, () => window.__catio.put("graphs/intermarche-grocery-shopping-app", { repo: "example/Intermarche-grocery-shopping-app", at: Date.now() - 36e5, nodes: 64, edges: 98, communities: 4,
+  await T(page, () => window.__catio.put("graphs/grocery-list", { repo: "example/grocery-list", at: Date.now() - 36e5, nodes: 64, edges: 98, communities: 4,
     gods: [{ label: "Basket", degree: 11, file: "src/basket.js" }], groups: [{ name: "Basket", size: 20 }], surprises: [], questions: ["Where does the basket get its prices?"],
     map: { n: [{ t: "Basket", g: 0, d: 11, x: 150, y: 80 }, { t: "Menus", g: 1, d: 4, x: 60, y: 40 }], l: [0, 1] } }));
   const maps = () => page.locator("#mapsDlg .mapcard").evaluateAll((cs) => cs.map((c) => c.dataset.map));
@@ -343,69 +343,69 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await page.locator("#menu .mi", { hasText: "Project maps" }).click();   // its name carries the count: "Project maps, 2"
   await settle(page);
   await check("the House menu opens every project's map as a card, the newest map first", async () => {
-    expect(JSON.stringify(await maps()) === JSON.stringify(["montfortoise-shopify", "intermarche-grocery-shopping-app"]), JSON.stringify(await maps()));
-    expect(await page.locator('#mapsDlg .mapcard[data-map="montfortoise-shopify"] .gart svg rect').count() === 3, "the map isn't drawn");
+    expect(JSON.stringify(await maps()) === JSON.stringify(["corner-shop", "grocery-list"]), JSON.stringify(await maps()));
+    expect(await page.locator('#mapsDlg .mapcard[data-map="corner-shop"] .gart svg rect').count() === 3, "the map isn't drawn");
     expect((await page.locator("#mapsDlg").innerText()).includes("Where does the basket get its prices?"), "no questions");
   });
   await manageMaps();
-  await mapTool("intermarche-grocery-shopping-app", "Pin").click();
+  await mapTool("grocery-list", "Pin").click();
   await settle(page);
-  await mapTool("montfortoise-shopify", "Wide").click();
+  await mapTool("corner-shop", "Wide").click();
   await settle(page);
   await check("pinning puts a map first and widening spreads it, and the café keeps both", async () => {
-    expect((await maps())[0] === "intermarche-grocery-shopping-app", JSON.stringify(await maps()));
+    expect((await maps())[0] === "grocery-list", JSON.stringify(await maps()));
     const d = await T(page, () => window.__catio.store["dashboard/maps"]);
-    expect(d && d.pinned.includes("intermarche-grocery-shopping-app") && d.wide.includes("montfortoise-shopify"), JSON.stringify(d));
-    expect((await page.locator('#mapsDlg .mapcard[data-map="montfortoise-shopify"]').getAttribute("class")).includes("wide"), "not wide");
+    expect(d && d.pinned.includes("grocery-list") && d.wide.includes("corner-shop"), JSON.stringify(d));
+    expect((await page.locator('#mapsDlg .mapcard[data-map="corner-shop"]').getAttribute("class")).includes("wide"), "not wide");
   });
   await check("a map moves within its group: an unpinned one can't be moved above a pinned one", async () => {
-    expect(await mapTool("montfortoise-shopify", "Earlier").isDisabled(), "Earlier would cross the pinned map");
-    expect(await mapTool("intermarche-grocery-shopping-app", "Later").isDisabled(), "Later would cross into the unpinned ones");
+    expect(await mapTool("corner-shop", "Earlier").isDisabled(), "Earlier would cross the pinned map");
+    expect(await mapTool("grocery-list", "Later").isDisabled(), "Later would cross into the unpinned ones");
   });
-  await mapTool("intermarche-grocery-shopping-app", "Unpin").click();
+  await mapTool("grocery-list", "Unpin").click();
   await settle(page);
-  await mapTool("intermarche-grocery-shopping-app", "Earlier").click();
+  await mapTool("grocery-list", "Earlier").click();
   await settle(page);
   await check("moving a map earlier changes the order, and the order is kept", async () => {
-    expect((await maps())[0] === "intermarche-grocery-shopping-app", JSON.stringify(await maps()));
-    expect(JSON.stringify((await T(page, () => window.__catio.store["dashboard/maps"])).order) === JSON.stringify(["intermarche-grocery-shopping-app", "montfortoise-shopify"]), "order not kept");
+    expect((await maps())[0] === "grocery-list", JSON.stringify(await maps()));
+    expect(JSON.stringify((await T(page, () => window.__catio.store["dashboard/maps"])).order) === JSON.stringify(["grocery-list", "corner-shop"]), "order not kept");
   });
-  await mapTool("montfortoise-shopify", "Hide").click();
+  await mapTool("corner-shop", "Hide").click();
   await settle(page);
   await check("hiding a map takes it off the page and keeps a way back", async () => {
-    expect(JSON.stringify(await maps()) === JSON.stringify(["intermarche-grocery-shopping-app"]), JSON.stringify(await maps()));
-    expect(await page.locator('#mapsHidden button:has-text("Show montfortoise-shopify")').count() === 1, "no way back");
+    expect(JSON.stringify(await maps()) === JSON.stringify(["grocery-list"]), JSON.stringify(await maps()));
+    expect(await page.locator('#mapsHidden button:has-text("Show corner-shop")').count() === 1, "no way back");
   });
-  await page.locator('#mapsHidden button:has-text("Show montfortoise-shopify")').click();
+  await page.locator('#mapsHidden button:has-text("Show corner-shop")').click();
   await settle(page);
-  await check("Show brings it back where it was", async () => expect(JSON.stringify(await maps()) === JSON.stringify(["intermarche-grocery-shopping-app", "montfortoise-shopify"]), JSON.stringify(await maps())));
+  await check("Show brings it back where it was", async () => expect(JSON.stringify(await maps()) === JSON.stringify(["grocery-list", "corner-shop"]), JSON.stringify(await maps())));
   // set elsewhere (another tab, her phone): the open page shows it, and the next change keeps it
-  await T(page, () => { const d = window.__catio.store["dashboard/maps"]; window.__catio.put("dashboard/maps", Object.assign({}, d, { pinned: ["montfortoise-shopify"] })); });
+  await T(page, () => { const d = window.__catio.store["dashboard/maps"]; window.__catio.put("dashboard/maps", Object.assign({}, d, { pinned: ["corner-shop"] })); });
   await page.waitForTimeout(300);
   await check("a layout set on another device shows at once, and a change here keeps it", async () => {
-    expect((await maps())[0] === "montfortoise-shopify", "the other device's pin didn't show: " + JSON.stringify(await maps()));
+    expect((await maps())[0] === "corner-shop", "the other device's pin didn't show: " + JSON.stringify(await maps()));
     await manageMaps();
-    await mapTool("intermarche-grocery-shopping-app", "Wide").click();
+    await mapTool("grocery-list", "Wide").click();
     await settle(page);
     const d = await T(page, () => window.__catio.store["dashboard/maps"]);
-    expect(d.pinned.includes("montfortoise-shopify") && d.wide.includes("intermarche-grocery-shopping-app"), JSON.stringify(d));
+    expect(d.pinned.includes("corner-shop") && d.wide.includes("grocery-list"), JSON.stringify(d));
   });
-  await T(page, () => window.__catio.put("graphs/tiktok-saves", { repo: "example/tiktok-saves", at: Date.now(), nodes: 9, edges: 8, communities: 2, gods: [], groups: [], surprises: [], questions: [],
+  await T(page, () => window.__catio.put("graphs/video-saves", { repo: "example/video-saves", at: Date.now(), nodes: 9, edges: 8, communities: 2, gods: [], groups: [], surprises: [], questions: [],
     map: { n: [{ t: "Saves", g: 0, d: 3, x: 150, y: 80 }], l: [] } }));
   await T(page, () => window.__catio.put("graphs/half-saved", { repo: "example/half-saved", at: Date.now(), map: {} }));
   await page.waitForTimeout(300);
   await check("a map a session saves shows while the page is open; one with nothing to draw doesn't break it", async () => {
     const m = await maps();
-    expect(m.includes("tiktok-saves") && !m.includes("half-saved"), JSON.stringify(m));
+    expect(m.includes("video-saves") && !m.includes("half-saved"), JSON.stringify(m));
     expect(await page.locator("#mapsDlg .mapcard").count() === 3, "the page lost its cards");
   });
   await T(page, () => { window.__catio.readOnly = true; });
   await manageMaps();
-  await mapTool("tiktok-saves", "Pin").click();
+  await mapTool("video-saves", "Pin").click();
   await settle(page);
   await check("a refused save changes nothing on the page", async () => {
-    expect(await page.locator('#mapsDlg .mapcard[data-map="tiktok-saves"] .star').count() === 0, "shown pinned though nothing was saved");
-    expect(!((await T(page, () => window.__catio.store["dashboard/maps"])).pinned || []).includes("tiktok-saves"), "saved anyway");
+    expect(await page.locator('#mapsDlg .mapcard[data-map="video-saves"] .star').count() === 0, "shown pinned though nothing was saved");
+    expect(!((await T(page, () => window.__catio.store["dashboard/maps"])).pinned || []).includes("video-saves"), "saved anyway");
   });
   await T(page, () => { window.__catio.readOnly = false; });
   await page.keyboard.press("Escape");
@@ -413,11 +413,11 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await openRoom(page, "study");
   await menuButton(page, "Files").click();
   await settle(page);
-  await page.selectOption("#coat-montfortoise-shopify", "5");
-  await page.locator("#roomsDlg .proj", { hasText: "montfortoise-shopify" }).locator("button:has-text('Save look')").click();
+  await page.selectOption("#coat-corner-shop", "5");
+  await page.locator("#roomsDlg .proj", { hasText: "corner-shop" }).locator("button:has-text('Save look')").click();
   await settle(page);
   await check("saving a look restyles every cat of that project", async () => {
-    const d = await T(page, () => window.__catio.store["projects/montfortoise-shopify"]);
+    const d = await T(page, () => window.__catio.store["projects/corner-shop"]);
     expect(d && d.coat === 5 && !("emblem" in d), JSON.stringify(d));
     await page.keyboard.press("Escape");
     const t = await page.locator('#cats .cat[aria-label*="Shop about page"] .spr').evaluate((x) => x.style.getPropertyValue("--tint"));
@@ -463,7 +463,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(Object.keys(rooms).length === 10, "rooms saved: " + Object.keys(rooms).length);
     const g = rooms["rooms/garden"];
     expect(g.repos.join("|") === "Pretty-Project-Portfolio|charredlatte/other-site" && g.name === "Catio" && g.blurb === "The portfolio, and this page", JSON.stringify(g));
-    expect(rooms["rooms/kitchen"].repos.join() === "Intermarche-grocery-shopping-app" && rooms["rooms/kitchen"].blurb.startsWith("Weekly meals"), "untouched rooms keep their data: " + JSON.stringify(rooms["rooms/kitchen"]));
+    expect(rooms["rooms/kitchen"].repos.join() === "grocery-list" && rooms["rooms/kitchen"].blurb.startsWith("Weekly meals"), "untouched rooms keep their data: " + JSON.stringify(rooms["rooms/kitchen"]));
     const front = Object.entries(rooms).filter(([, d]) => d.catchAll).map(([k]) => k);
     expect(front.join() === "rooms/kitchen", "catch-all: " + front.join());
     expect((await page.locator("#room-sunroom").getAttribute("aria-label")).startsWith("Conservatory"), "room not renamed");
@@ -787,7 +787,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await check("every cat waiting on her lines up at the entrance-hall door, beside the queen, the longest wait first", async () => {
     const l = await line();
     const order = l.map((c) => c.label.split(": ").pop());
-    expect(JSON.stringify(order) === JSON.stringify(["Grocery list", "Snail mail labels", "Café pitch", "TikTok tags", "Shop about page"]), JSON.stringify(order));
+    expect(JSON.stringify(order) === JSON.stringify(["Grocery list", "Postcard labels", "Café pitch", "Video tags", "Shop about page"]), JSON.stringify(order));
     expect(l.every((c) => c.room === "hall"), "not all in the hall");
     expect(l.every((c, i) => !i || c.x > l[i - 1].x), "not a line: " + JSON.stringify(l.map((c) => c.x)));
     const q = await page.locator("#cats .cat.queen").boundingBox();
@@ -802,7 +802,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect((await b.getAttribute("class")).includes("walking"), "it jumped");
     expect(await b.getAttribute("data-line") === null, "still in the line");
     const order = (await line()).map((c) => c.label.split(": ").pop());
-    expect(order[0] === "Snail mail labels", "the next one didn't move up: " + JSON.stringify(order));
+    expect(order[0] === "Postcard labels", "the next one didn't move up: " + JSON.stringify(order));
   });
   await check("no page errors around the line", async () => expect(errors.length === 0, errors.join("; ")));
   await ctx.close();
@@ -917,7 +917,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   // and at any height: the scene used to take a share of the window (62vh and the like), which fits one window and
   // spills out of a short one, pushing Send off the bottom
-  await T(page, () => window.__catio.setQuiz({ for: "cse_blocked1", title: "Unblock Caramel", questions: [{ q: "Which project is this one for?", options: ["montfortoise-shopify", "Pretty-Project-Portfolio"] }] }));
+  await T(page, () => window.__catio.setQuiz({ for: "cse_blocked1", title: "Unblock Caramel", questions: [{ q: "Which project is this one for?", options: ["corner-shop", "Pretty-Project-Portfolio"] }] }));
   await page.waitForTimeout(500);
   await check("her card fits a short window too, with Send reachable and nothing of hers out of reach", async () => {
     expect(await page.locator("#queenHomework .quiz").count() > 0, "no homework: the short windows below would miss the one case that breaks");
@@ -1055,8 +1055,8 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   const { page, ctx, errors } = await open("?via=gateway&mode=blocked");
   await T(page, () => {
     const T = window.__catio;
-    T.setQuiz({ kind: "litterbox", title: "Loose ends", note: "- **Rename the grey cat** in the craft room.", from: "litterbox/loose-ends.md", hint: "Pretty-Project-Portfolio", questions: [{ q: "Which project is it for?", options: ["Pretty-Project-Portfolio", "tiktok-saves", "Settled: drop it"] }] });
-    T.setQuiz({ kind: "litterbox", title: "Loose ends", note: "The shop's photos need a white background.", hint: "montfortoise-shopify", questions: [{ q: "Which project is it for?", options: ["montfortoise-shopify", "Pretty-Project-Portfolio", "Settled: drop it"] }] });
+    T.setQuiz({ kind: "litterbox", title: "Loose ends", note: "- **Rename the grey cat** in the craft room.", from: "litterbox/loose-ends.md", hint: "Pretty-Project-Portfolio", questions: [{ q: "Which project is it for?", options: ["Pretty-Project-Portfolio", "video-saves", "Settled: drop it"] }] });
+    T.setQuiz({ kind: "litterbox", title: "Loose ends", note: "The shop's photos need a white background.", hint: "corner-shop", questions: [{ q: "Which project is it for?", options: ["corner-shop", "Pretty-Project-Portfolio", "Settled: drop it"] }] });
     // the third option is as long as a repository name, with nothing to break at: it is what used to push her card off the side
     T.setQuiz({ kind: "decision", title: "The roadmap", note: "Which comes first?", hint: "The camera", questions: [{ q: "Which first?", options: ["The camera", "Build mode", "Pretty-Project-Portfolio-with-a-name-that-will-never-break-anywhere"] }] });
   });
@@ -1112,11 +1112,11 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(t.includes("2 of 2") && t.includes("white background"), t);
     expect(!(await T(page, () => window.__catio.tools.some((x) => x[1] === "answer"))), "Skip answered");
   });
-  await page.locator('#queenHomework [data-deck="litterbox"] button:has-text("montfortoise-shopify")').click();
+  await page.locator('#queenHomework [data-deck="litterbox"] button:has-text("corner-shop")').click();
   await settle(page);
   await check("a tap hands the card in, and the deck moves on to the one left", async () => {
     const a = await T(page, () => window.__catio.tools.filter((x) => x[1] === "answer").pop());
-    expect(a && a[2].quiz === "z2" && JSON.stringify(a[2].answers) === JSON.stringify(["montfortoise-shopify"]), JSON.stringify(a));
+    expect(a && a[2].quiz === "z2" && JSON.stringify(a[2].answers) === JSON.stringify(["corner-shop"]), JSON.stringify(a));
     const t = await page.locator('#queenHomework [data-deck="litterbox"]').innerText();
     expect(t.includes("1 of 1") && t.includes("Rename the grey cat"), t);
     expect(!t.includes("Skip"), "Skip with one card left");
@@ -1593,8 +1593,8 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await T(page, () => {
     const C = window.__catio, D = 864e5;
     // a review nobody has opened in ten days, and claude.ai's warm-start placeholder
-    const old = C.session("oldreview", "Old review", "tiktok-saves", "REVIEW_READY", "IDLE", 10 * D);
-    const warm = Object.assign(C.session("warm", "__warming__", "tiktok-saves", "REVIEW_READY", "IDLE", 0), { tags: ["cowork-warm-start"] });
+    const old = C.session("oldreview", "Old review", "video-saves", "REVIEW_READY", "IDLE", 10 * D);
+    const warm = Object.assign(C.session("warm", "__warming__", "video-saves", "REVIEW_READY", "IDLE", 0), { tags: ["cowork-warm-start"] });
     C.sessions.push(old, warm);
     C.push();
   });
@@ -1853,7 +1853,7 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(await page.locator("#queenThread").evaluate((u) => u.scrollWidth - u.clientWidth) <= 0, "her words scroll sideways");
   });
   await T(page, () => window.__catio.setQuiz({ for: "cse_blocked1", title: "Unblock Caramel", questions: [
-    { q: "Which project is this one for?", options: ["montfortoise-shopify", "Pretty-Project-Portfolio"] },
+    { q: "Which project is this one for?", options: ["corner-shop", "Pretty-Project-Portfolio"] },
     { q: "Does the menu fix go in first?", options: ["Yes", "No", "Ask me again on Sunday"] },
     { q: "Anything else I should know?" },
   ] }));   // taller than a phone's scene, so the branch that scrolls is the one this check runs
@@ -1985,13 +1985,13 @@ async function dropFiles(page, sel, files) {
   // dropped on a room: sorted among its cats by what the file's name shares with them
   await closeMenu(page);
   await page.mouse.move(8, 8);
-  await dropFiles(page, '.roomhit[data-room="kitchen"]', [{ name: "intermarche-basket.csv", type: "text/csv", text: "item,qty\nlait,2" }]);
+  await dropFiles(page, '.roomhit[data-room="kitchen"]', [{ name: "grocery-basket.csv", type: "text/csv", text: "item,qty\nlait,2" }]);
   await check("a file dropped on a room is sorted to the cat it matches, and waits in the outbox for it", async () => {
     expect(await page.inputValue("#drop-0") === "session_work1", await page.inputValue("#drop-0"));
     await page.click("#dropSend");
     await page.waitForTimeout(300);
     const q = await outbox(page);
-    expect(q.length === 2 && q[1].cat === "session_work1" && q[1].text.includes("intermarche-basket.csv"), JSON.stringify(q));
+    expect(q.length === 2 && q[1].cat === "session_work1" && q[1].text.includes("grocery-basket.csv"), JSON.stringify(q));
   });
   await openCat(page, "Shop about page");
   await giveFiles(page, { name: "second.txt", mimeType: "text/plain", buffer: Buffer.from("more") });
@@ -2141,7 +2141,7 @@ async function dropFiles(page, sel, files) {
   await page.waitForTimeout(200);
   await check("New cat starts a session on the chosen model, in the room's repository, and files it there", async () => {
     const c = await tools(page, "create_session");
-    expect(c.length === 1 && c[0][2].model === "claude-sonnet-5-5" && c[0][2].source_url === "https://github.com/charredlatte/Intermarche-grocery-shopping-app" && c[0][2].environment_id === "env_test" && c[0][2].prompt === "Plan next week's meals", JSON.stringify(c));
+    expect(c.length === 1 && c[0][2].model === "claude-sonnet-5-5" && c[0][2].source_url === "https://github.com/charredlatte/grocery-list" && c[0][2].environment_id === "env_test" && c[0][2].prompt === "Plan next week's meals", JSON.stringify(c));
     expect((await T(page, () => window.__catio.store["sessions/session_new1"])).room === "kitchen", "not filed");
   });
 
@@ -2415,6 +2415,24 @@ if (LOCAL) {
   await check("and the cat is still there after a reload", async () => expect(await page.locator('#cats .cat[aria-label^="Loco "]').count() === 1, "lost on reload"));
   await page.waitForTimeout(1200);   // past the second the wizard gives the rooms
   await check("on localhost the rooms come from data/rooms.json, so the wizard never shows", async () => expect(await page.locator("#setupDlg[open]").count() === 0, "wizard open on a seeded café"));
+  // Her ask of 25 October: whoever downloads the café gets a blank house, not hers. rooms.json is not
+  // committed, so a clone's bundle has no rooms at all and the wizard opens on the folder as it arrives.
+  await check("and with no data/rooms.json at all, as a fresh clone has, the wizard opens on a blank house", async () => {
+    const fresh = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+    const blank = await fresh.newPage();
+    const oops = [];
+    blank.on("pageerror", (e) => oops.push(e.message));
+    await blank.route("**/data/rooms.json", (r) => r.fulfill({ status: 404, body: "" }));
+    await blank.goto(LOCAL);
+    await blank.waitForSelector("#setupDlg[open]", { timeout: 4000 });
+    expect(await blank.locator("#setupDlg[open]").count() === 1, "no wizard on a café with no rooms");
+    // The cats are the viewer's own saved sessions and belong on screen; what must be blank is the house, so
+    // check that nobody else's rooms were seeded -- they are hers to name in the wizard.
+    const seeded = await blank.evaluate(() => Object.keys(JSON.parse(localStorage.getItem("catio.local.db") || "{}")).filter((k) => k.startsWith("rooms/")));
+    expect(seeded.length === 0, "rooms seeded anyway: " + seeded.join(", "));
+    expect(oops.length === 0, oops.join("; "));
+    await fresh.close();
+  });
   await openCat(page, "Loco");
   await menuButton(page, "Details").click();
   await page.click("#catDlg button:has-text('Let go')");
@@ -2652,7 +2670,7 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
     expect((await page.title()).includes("Mochi's Café"), await page.title());
   });
   // a closed room gets no cats: a repo listed in it, and a chat moved to it, both land at the front door
-  await T(page, () => { window.__catio.put("rooms/study", { name: "Craft room", blurb: "", repos: ["montfortoise-shopify"], catchAll: false, closed: true, model: "claude-opus-5-5" }); });
+  await T(page, () => { window.__catio.put("rooms/study", { name: "Craft room", blurb: "", repos: ["corner-shop"], catchAll: false, closed: true, model: "claude-opus-5-5" }); });
   await T(page, () => { window.__catio.put("cats/willow", { title: "Willow", room: "study", mood: "busy", name: "Willow" }); });
   await page.waitForTimeout(300);
   await check("the adopt form offers open rooms only, starting at the front door", async () => {
@@ -2749,7 +2767,7 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
   await page.click("#houseBtn");
   await menuButton(page, "Set up again…").click();
   await settle(page);
-  await T(page, () => { const st = window.__catio.store; window.__catio.put("rooms/dining", Object.assign({}, st["rooms/dining"], { repos: ["recipes", "Snail-Mail-Trail"] })); window.__catio.put("rooms/study", Object.assign({}, st["rooms/study"], { repos: ["montfortoise-shopify", "Snail-Mail-Trail", "upstream/recipes"] })); });
+  await T(page, () => { const st = window.__catio.store; window.__catio.put("rooms/dining", Object.assign({}, st["rooms/dining"], { repos: ["recipes", "postcard-trail"] })); window.__catio.put("rooms/study", Object.assign({}, st["rooms/study"], { repos: ["corner-shop", "postcard-trail", "upstream/recipes"] })); });
   await page.waitForTimeout(100);
   await check("Set up again is prefilled from the café as it is", async () => {
     expect((await page.locator("#setupName").inputValue()) === "Mochi's Café", "name");
@@ -2782,11 +2800,11 @@ const wizard = (page) => page.waitForSelector("#setupDlg[open]", { timeout: 4000
     const st = await T(page, () => window.__catio.store);
     expect(await page.locator("#setupDlg[open]").count() === 0, "still open");
     expect(st["rooms/kitchen"].closed === false && st["rooms/kitchen"].blurb === "Weekly meals" && st["rooms/kitchen"].model === "claude-opus-5-5", JSON.stringify(st["rooms/kitchen"]));
-    expect(st["rooms/study"].closed === false && st["rooms/study"].repos.includes("montfortoise-shopify"), "the craft room lost its state or its repo: " + JSON.stringify(st["rooms/study"]));
+    expect(st["rooms/study"].closed === false && st["rooms/study"].repos.includes("corner-shop"), "the craft room lost its state or its repo: " + JSON.stringify(st["rooms/study"]));
     expect(st["rooms/bath"].closed === true, "the ensuite opened");
     expect(st["rooms/dining"].catchAll && !st["rooms/living"].catchAll, "the front door moved");
     expect(st["rooms/living"].repos.includes("charredlatte/recipes") && !st["rooms/dining"].repos.includes("recipes") && !st["rooms/kitchen"].repos.includes("charredlatte/recipes"), "recipes in two rooms or two spellings: " + JSON.stringify([st["rooms/living"].repos, st["rooms/dining"].repos, st["rooms/kitchen"].repos]));
-    expect(st["rooms/dining"].repos.includes("Snail-Mail-Trail") && st["rooms/study"].repos.includes("Snail-Mail-Trail"), "a repository GitHub never listed was moved");
+    expect(st["rooms/dining"].repos.includes("postcard-trail") && st["rooms/study"].repos.includes("postcard-trail"), "a repository GitHub never listed was moved");
     expect(st["rooms/study"].repos.includes("upstream/recipes"), "another owner's recipes taken for hers");
     expect(st["house/main"].name === "Mochi's Café", "name lost");
   });

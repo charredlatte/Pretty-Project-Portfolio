@@ -12,7 +12,7 @@ import quiz  # noqa: E402
 from sort import GUESSED  # noqa: E402
 
 PILE = f"""---
-project: LibreSprite  {GUESSED}
+project: sprite-editor  {GUESSED}
 ---
 
 # 2 October 2026: a round
@@ -32,7 +32,7 @@ class Quiz(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.box = Path(self.tmp.name) / "box"
         self.box.mkdir()
-        (self.box / "LibreSprite.md").write_text(PILE, encoding="utf-8")
+        (self.box / "sprite-editor.md").write_text(PILE, encoding="utf-8")
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -47,31 +47,31 @@ class Quiz(unittest.TestCase):
         cards = self.cards()
         self.assertEqual(len(cards), 3)
         first = min(cards.values(), key=lambda c: c["order"])
-        self.assertEqual(first["guess"], "LibreSprite")
+        self.assertEqual(first["guess"], "sprite-editor")
         self.assertEqual(first["section"], "Waiting on Charlotte")
         self.assertEqual(first["from"], "litterbox/round.md")
         self.assertNotIn("*— litterbox", first["text"])
         self.assertEqual(sorted(cards), sorted(self.cards()), "ids are stable")
 
     def test_a_checked_pile_is_not_a_quiz(self):
-        (self.box / "LibreSprite.md").write_text(PILE.replace(GUESSED, ""), encoding="utf-8")
+        (self.box / "sprite-editor.md").write_text(PILE.replace(GUESSED, ""), encoding="utf-8")
         self.assertEqual(self.cards(), {})
 
     def test_answers_file_settle_or_leave_each_note(self):
         ids = sorted(self.cards(), key=lambda i: self.cards()[i]["order"])
         answers = Path(self.tmp.name) / "saved" / "answers"
         answers.mkdir(parents=True)
-        (answers / f"{ids[0]}.json").write_text(json.dumps({"verdict": "file", "project": "charredlatte/LibreSprite-on-iPad"}))
+        (answers / f"{ids[0]}.json").write_text(json.dumps({"verdict": "file", "project": "charredlatte/sprite-editor-mobile"}))
         (answers / f"{ids[1]}.json").write_text(json.dumps({"verdict": "drop", "project": None}))
         with contextlib.redirect_stdout(io.StringIO()):
             quiz.apply(answers.parent, self.box)
-        sorted_ = next(self.box.glob("*-sorted-LibreSprite-on-iPad.md")).read_text(encoding="utf-8")
-        self.assertIn("project: LibreSprite-on-iPad\n", sorted_)
+        sorted_ = next(self.box.glob("*-sorted-sprite-editor-mobile.md")).read_text(encoding="utf-8")
+        self.assertIn("project: sprite-editor-mobile\n", sorted_)
         self.assertNotIn("guess", sorted_)
         self.assertEqual(sorted_.count("The deployment session is waiting"), 1)
         self.assertIn("*— litterbox/round.md*", sorted_)
         self.assertNotIn("Emscripten", sorted_)
-        left = (self.box / "LibreSprite.md").read_text(encoding="utf-8")
+        left = (self.box / "sprite-editor.md").read_text(encoding="utf-8")
         self.assertEqual(left.count("A third note"), 1)
         self.assertNotIn("Emscripten", left)
         self.assertNotIn("deployment session", left)
@@ -85,7 +85,7 @@ class Quiz(unittest.TestCase):
         (answers / f"{ids[2]}.json").write_text(json.dumps({"verdict": "file", "project": ".."}))
         with contextlib.redirect_stdout(io.StringIO()):
             quiz.apply(answers.parent, self.box)
-        self.assertEqual((self.box / "LibreSprite.md").read_text(encoding="utf-8"), PILE, "untouched, byte for byte")
+        self.assertEqual((self.box / "sprite-editor.md").read_text(encoding="utf-8"), PILE, "untouched, byte for byte")
         self.assertEqual(list(self.box.glob("*-sorted-*")), [])
 
     def test_a_new_deal_clears_the_old_cards(self):
@@ -108,10 +108,10 @@ class Quiz(unittest.TestCase):
         dealt, cards = self.deal(), self.cards()
         self.assertEqual(sorted(dealt), sorted(cards), "the same ids as the quiz page's cards")
         cid, first = min(dealt.items(), key=lambda kv: cards[kv[0]]["order"])
-        self.assertEqual((first["kind"], first["ref"], first["hint"], first["from"]), ("litterbox", cid, "LibreSprite", "litterbox/round.md"))
+        self.assertEqual((first["kind"], first["ref"], first["hint"], first["from"]), ("litterbox", cid, "sprite-editor", "litterbox/round.md"))
         self.assertEqual(first["note"], cards[cid]["text"])
         options = first["questions"][0]["options"]
-        self.assertEqual((options[0], options[-1]), ("LibreSprite", quiz.SETTLED), "her guess first, settled last")
+        self.assertEqual((options[0], options[-1]), ("sprite-editor", quiz.SETTLED), "her guess first, settled last")
         self.assertLessEqual(len(options), 12)
         self.assertEqual(len(options), len(set(options)))
 
@@ -127,7 +127,7 @@ class Quiz(unittest.TestCase):
         with contextlib.redirect_stdout(out):
             quiz.apply(saved, self.box)
         self.assertIn("The deployment session is waiting", next(self.box.glob("*-sorted-Pretty-Project-Portfolio.md")).read_text(encoding="utf-8"))
-        left = (self.box / "LibreSprite.md").read_text(encoding="utf-8")
+        left = (self.box / "sprite-editor.md").read_text(encoding="utf-8")
         self.assertNotIn("Emscripten", left)
         self.assertEqual(left.count("A third note"), 1, "an open card leaves its note")
         self.assertIn(f"filed cards: litterbox-{ids[0]} litterbox-{ids[1]}", out.getvalue())

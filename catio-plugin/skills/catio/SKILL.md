@@ -119,7 +119,8 @@ has the URL), one document per room:
 ```
 
 `catio/data/rooms.json` is the localhost mirror of those answers (the same ten objects, keyed by room):
-keep it in step, `closed` included, so the folder in step 6 opens the same café.
+keep it in step, `closed` included, so the folder in step 6 opens the same café. It is gitignored, because
+it names its owner's repos, so a clone has no rooms at all and the wizard opens on a blank house instead.
 
 The room keys are fixed by the picture — they are places in a drawing, not a list you can extend.
 Downstairs: `dining` (the café), `kitchen`, `living` (the cat lounge), `study` (the craft room), `hall`
