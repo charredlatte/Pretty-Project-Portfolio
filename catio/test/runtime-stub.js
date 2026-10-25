@@ -23,7 +23,7 @@
   "living":  { "name": "Cat lounge",  "blurb": "New cats come in here",              "repos": [], "catchAll": true },
   "sunroom": { "name": "Terrace",     "blurb": "Video saves, in the light",         "repos": ["video-saves"] },
   "study":   { "name": "Craft room",  "blurb": "The corner shop",              "repos": ["corner-shop"] },
-  "bedroom": { "name": "Bedroom",     "blurb": "Legal questions, kept quiet",        "repos": [] },
+  "bedroom": { "name": "Bedroom",     "blurb": "The quiet room",                    "repos": [] },
   "bath":    { "name": "Ensuite",     "blurb": "Spare",                              "repos": [] },
   "hall":    { "name": "Entrance hall", "blurb": "Postcards, by the front door",      "repos": ["postcard-trail"] },
   "brain":   { "name": "Library",     "blurb": "The brain",                          "repos": [] }
