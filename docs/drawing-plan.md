@@ -45,9 +45,8 @@ Why:
 ### If not Aseprite: LibreSprite
 
 Aseprite is paid. [LibreSprite](https://libresprite.github.io/) is the free fork of the same program, GPL, and
-she already works on it ([LibreSprite/LibreSprite#674](https://github.com/LibreSprite/LibreSprite/pull/674),
-touch gestures and an on-screen keyboard button for tablets) -- so it is both the cheaper route and the one she
-can fix herself when it gets in the way.
+she contributes to it -- so it is both the cheaper route and the one she can fix herself when it gets in the
+way.
 
 Everything section 1 asks for is in both: indexed colour from one palette, a 16 px grid, a 1:1 pixel ratio, a
 100 % export, Export Sprite Sheet as a horizontal strip, and the tiled mode a floor or wall needs to repeat
@@ -391,7 +390,7 @@ Pieces marked **station** would give cats a new place to show a state: say which
 | ☐ | Copper pan rack | 32 × 12 | Kitchen (wall piece) |
 | ☐ | Carved oak settle (a bench) | 40 × 26 | Hall |
 | ☐ | Coat stand, umbrella stand | 12 × 32, 10 × 16 | Hall |
-| ☐ | Letter tray and a pile of post | 16 × 10 | Hall (it holds snail mail) |
+| ☐ | Letter tray and a pile of post | 16 × 10 | Hall (it holds the post) |
 | ☐ | Laptop, open | 14 × 10 | Desks (top piece): the working station she pictured |
 | ☐ | Desk lamp, a pile of books | 8 × 14, 12 × 10 | Desks |
 | ☐ | Framed pictures, a mirror | 12–24 × 16 | Back walls (wall pieces) |

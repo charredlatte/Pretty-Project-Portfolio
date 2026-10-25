@@ -508,9 +508,10 @@ here: [`litterbox/README.md`](litterbox/README.md).
 ## On your own computer
 
 The café also runs from a folder, with no account anywhere. `python3 catio/tools/bundle.py` makes
-`catio/dist/catio-local/` (and a zip of it): the page as one HTML file, all the art, the rooms in
-`catio/data/rooms.json` (a browser takes them once, then Edit rooms or Set up again… changes them), and
-`catio/data/sessions.json`, the last saved copy of your sessions. Go into the folder
+`catio/dist/catio-local/` (and a zip of it): the page as one HTML file, all the art, and, if you have made
+them, `catio/data/rooms.json` (a browser takes the rooms once, then Edit rooms or Set up again… changes them)
+and `catio/data/sessions.json`, the last saved copy of your sessions. Neither is in the clone, so a fresh one
+opens the setup wizard instead. Go into the folder
 (`cd catio/dist/catio-local`) and serve it with any static server, such as VS Code's Live Server or
 `python3 -m http.server 8000` (`python -m http.server 8000` on Windows), and open <http://localhost:8000>.
 Double-clicking `index.html` won't work: it needs the server.

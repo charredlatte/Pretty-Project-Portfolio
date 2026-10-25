@@ -134,7 +134,7 @@ from. Edit them freely: the sorter only adds, and never files a note that is alr
 
 - **A stray Git repository sits on her whole Windows user folder.** Git Gui turned `C:\Users\Utilisateur` into an empty repository (branch master, no commits) and listed Claude Code's history files as changes. Nothing there should be committed: delete the hidden `.git` folder in that user folder (show hidden items in File Explorer), or tools may take the whole home folder for a repository. *— litterbox/ round of 5 October 2026, compiled from the café's sessions of 3 to 5 October*
 
-- **The link page is merged but not live: GitHub Pages is off.** charredlatte.github.io still answers "Site not found" (checked 5 October). In the repo's Settings, Pages, set Source to "Deploy from a branch", branch main, folder / (root), and save; Claude can't switch it on. *— litterbox/ round of 5 October 2026, compiled from the café's sessions of 3 to 5 October*
+- **The link page is merged but not live: GitHub Pages is off.** the links page still answers "Site not found" (checked 5 October). In the repo's Settings, Pages, set Source to "Deploy from a branch", branch main, folder / (root), and save; Claude can't switch it on. *— litterbox/ round of 5 October 2026, compiled from the café's sessions of 3 to 5 October*
 
 - **The link page's "bientôt" strips wait on the real pages.** Buy Me a Coffee and Ulule show as coming soon until their addresses exist; other profiles (Instagram, LinkedIn) can be added the same way once she sends them. *— litterbox/ round of 5 October 2026, compiled from the café's sessions of 3 to 5 October*
 

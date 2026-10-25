@@ -4,8 +4,9 @@
     python3 catio/tools/bundle.py            ->  catio/dist/catio-local/  and  catio/dist/catio-local.zip
 
 It holds the page as a complete HTML document, all the art (licensed art included: this copy is for
-Charlotte's own use, never for sharing or committing), data/rooms.json, and data/sessions.json if
-Claude has saved one, and the Catio MCP server (harness/mcp/catio_mcp.py with its rules.json) so agents
+Charlotte's own use, never for sharing or committing), data/rooms.json and data/sessions.json when this
+checkout has them (both are gitignored, so a clone has neither and the folder opens the setup wizard
+instead), and the Catio MCP server (harness/mcp/catio_mcp.py with its rules.json) so agents
 that aren't Claude Code sessions can join as cats. Run it with VS Code's Live Server, `python -m http.server`, or `php -S localhost:8000`.
 """
 import shutil
@@ -35,7 +36,8 @@ Agents join it as an MCP server: python3 harness/mcp/catio_mcp.py (over stdio). 
 state in a .catio folder in your home folder, and its house rules in harness/rules.json.
 
 What you'll see: the manor, with a cat for every Claude Code session in data/sessions.json, the
-copy Claude saved. Adopted cats, room names and project looks are saved in this browser.
+copy Claude saved. With no data/rooms.json in the folder, the house starts blank and the setup
+wizard opens to name its rooms. Adopted cats, room names and project looks are saved in this browser.
 To get newer cats, ask Claude to refresh data/sessions.json and copy the new file into data/.
 
 The art belongs to Marie Pepo, ToffeeCraft, Heosphorus, rowdy41, Cainos, Cup Nooble,
