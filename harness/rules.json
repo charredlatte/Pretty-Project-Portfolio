@@ -1,6 +1,6 @@
 {
   "_comment": "The KittyChat house rules. Hooks read the enforced ones from here; the Catio page shows all of them, and its switches turn the soft ones on and off. A repo can switch an enforced rule off for itself in .claude/catio-rules.json, e.g. {\"opening_audit\": false}.",
-  "catio": "https://claude.ai/artifact/KHiWnmr2e3iYHGXiUX8yDe",
+  "catio": "https://catio-gateway.charlotte-badot.workers.dev",
   "rules": [
     {
       "id": "preflight",

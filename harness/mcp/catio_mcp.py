@@ -35,6 +35,7 @@ DECIDE_TIMEOUT = 8
 KEEP_DECISIONS = 500
 RULES = Path(os.environ.get("CATIO_RULES") or Path(__file__).resolve().parent.parent / "rules.json")
 MAX_FILE = 20 * 1024 * 1024
+MAX_GRAPH = 64 * 1024
 MOODS = ("needs", "busy", "review", "failed", "done")
 MAX_NOTES = 500
 KINDS = {"string": str, "boolean": bool, "integer": int, "number": (int, float), "array": list, "object": dict, "null": type(None)}
@@ -158,16 +159,17 @@ def house_rules(args):
     return {"catio": r.get("catio"), "rules": [x for x in r["rules"] if x.get("on", True)]}
 
 
-def _audit_slug(v):
+def _project_slug(v):
     """The project's key, as catio/index.html's slug() makes it from a repo name: underscores survive, anything
-    else becomes a dash. Identical to the gateway's, so an audit written anywhere is read everywhere."""
+    else becomes a dash. Identical to the gateway's, so an audit or a map written anywhere is read everywhere.
+    The audit and the project map share it: that is what puts them in one filing cabinet."""
     return re.sub(r"[^a-z0-9_-]+", "-", str(v).split("/")[-1].lower()).strip("-")[:80] or "none"
 
 
 def audit(args):
     """The opening audit the house rules start a session with, kept per project as the gateway keeps it."""
     need(args, "repo", "summary")
-    key = _audit_slug(args["repo"])
+    key = _project_slug(args["repo"])
     rec = {"repo": str(args["repo"])[:200], "summary": str(args["summary"])[:4000],
            "by": str(args.get("by") or "agent")[:200], "at": now()}
     with LOCK:
@@ -175,6 +177,23 @@ def audit(args):
         s.setdefault("audits", {})[key] = rec
         store(s)
     return {"ok": True, "doc": "audits/" + key}
+
+
+def graph(args):
+    """The project map graphify built, kept per project beside the audit, as the gateway keeps it."""
+    need(args, "repo", "doc")
+    if not isinstance(args["doc"], dict):
+        raise ValueError("doc is the object graph_doc.py prints after the document id, or the catio-graph.json it saves")
+    body = json.dumps(args["doc"], ensure_ascii=False)
+    if len(body) > MAX_GRAPH:
+        raise ValueError(f"that map is {round(len(body) / 1024)} KB, over the {MAX_GRAPH // 1024} KB a map may be")
+    key = _project_slug(args["repo"])
+    rec = dict(json.loads(body), repo=str(args["repo"])[:200], by=str(args.get("by") or "agent")[:200], at=now())
+    with LOCK:
+        s = load()
+        s.setdefault("graphs", {})[key] = rec
+        store(s)
+    return {"ok": True, "doc": "graphs/" + key}
 
 
 def report_status(args):
@@ -843,6 +862,14 @@ TOOLS = {
                "summary": dict(S, description="The top findings, one line each"),
                "by": dict(S, description="Who audited, when it is not you: your session or agent id")},
               ["repo", "summary"]),
+    "graph": (graph, "Save a repository's project map: the graphify digest the house rules ask you to build before you "
+              "dig. The café shows it in that project's filing cabinet -- the map and its neighbourhoods, its hubs, the "
+              "surprising links, and the questions the owner can put to a cat with one click. Writing it again replaces "
+              "the one before.",
+              {"repo": dict(S, description="owner/repo, or the repository's name"),
+               "doc": {"type": "object", "description": "The document graph_doc.py prints after the document id, or the catio-graph.json it saves beside the graph"},
+               "by": dict(S, description="Who built it, when it is not you: your session or agent id")},
+              ["repo", "doc"]),
     "list_agents": (list_agents, "Every agent cat in the Catio.", {"archived": {"type": "boolean"}}, []),
     "inbox": (inbox, "Files, notes from the owner, and any request (pause, resume, wrap_up) waiting for an agent. With mark, only "
               "what hasn't been handed over yet, and it counts as handed over.", {"agent": S, "mark": {"type": "boolean"}}, ["agent"]),

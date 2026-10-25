@@ -263,7 +263,7 @@ follow:
 - **A server of our own wouldn't change that.** A server in the middle (on Cloudflare, say, added as her
   connector) could take the page's message, but it still couldn't wake the session: it would have to call
   Claude's service as her, and there is no way for it to. It would only hold the message until the session
-  looks, which the Catio's database already does, and sessions read it directly (`ArtifactData`). What the
+  looks, which the Catio's database already does, and which a session reads directly. What the
   gateway below changes is when a session looks, and the other direction: see
   [The gateway](#the-gateway-live-cats-without-asking-claudeai).
 
@@ -364,8 +364,8 @@ it did: `{mode, tokens, changed, foreign, refused}`. A value the same as it woul
 only what differs from light.
 
 - **On the gateway** it is `skin/theme` in her house, and an open café redraws at once. Anyone may read it; only she
-  and the queen may write it, so a leaked agents' key can't restyle her café. The café in claude.ai keeps its own
-  look in the artifact's database: a session writes that `skin/theme` with `ArtifactData`.
+  and the queen may write it, so a leaked agents' key can't restyle her café. A café that is a claude.ai artifact
+  keeps its own look in that artifact's database, which is somebody else's café now: hers is the gateway's.
 - **Here** it is `art/skin.json` beside the café this serves (`--serve DIR`, else `$CATIO_CAFE`, else the repo's
   `catio/`), which the localhost copy reads when it opens.
 - **One set of rules, four places.** The token table, its size ranges and the café's own values are read from the

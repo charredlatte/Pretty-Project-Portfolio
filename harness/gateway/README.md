@@ -199,6 +199,11 @@ the project's slug exactly as `catio/index.html` makes it, because that is what 
 write one, as any cat reports its status: the session that audited is the only one who can, and nobody signs in
 to do it for them.
 
+The `graph` tool (`{repo, doc, by}`) is its twin, for the graphify map the house rules ask a session to build
+before it digs: `graphs/<project>`, on the same key, so one filing cabinet shows the audit and the map together.
+`doc` is what `harness/skills/catio/graph_doc.py` prints, kept as given and capped at 64 KB -- the gateway stamps
+the repo, who built it and when, and never reaches inside the document, because the page already knows its shape.
+
 What she sends reaches a session when its turn ends: the Stop hook hands in her notes, a pause or wrap-up, and
 files, once each, and the session carries on with them (the `catio` skill). It answers with
 `report.py say "…"` and fetches files with `report.py pick <id>`. An idle session can't be woken from outside

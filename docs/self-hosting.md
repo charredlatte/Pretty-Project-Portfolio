@@ -19,7 +19,7 @@ Making these one setting, read from one place, is the step that turns "run your 
 | `catio/index.html` | `INSTALL` | The two install lines the wizard's How it works step shows | Your fork's address in the first line |
 | `catio/index.html` | `"charredlatte/" + rp` in `openNewCat()` | Turns a bare repository name in a room into one of her repositories when New cat starts a session | Your GitHub name, or write `owner/repo` in Edit rooms |
 | `catio/index.html` | `GATEWAY = "CATIO"` | The connector the page asks claude.ai for | Name your gateway's connector `CATIO`, as hers is |
-| `harness/rules.json` | `catio` | The café every session is told it lives in, and where the `catio` skill reads and writes | Your café's artifact link |
+| `harness/rules.json` | `catio` | Her own café, named in the session-start preamble and used by the `catio` skill when `CATIO_URL` is unset | Your café's address |
 | `harness/rules.json` | `public` | The repositories where nothing may credit Claude | Your public repositories, or none |
 | `harness/rules.json` | `merging.audits`, `merging.review` | The skills a self-merge needs to have run, `ponytail-audit` and `code-review`; the first even with the opening audit switched off | Skills you have |
 | The rules' skills | `ponytail-audit`, `browser-agent-preflight` | Called by the rules, not in this repository (`code-review` comes with Claude Code) | Install them, or switch their rules off in a repository's `.claude/catio-rules.json` |

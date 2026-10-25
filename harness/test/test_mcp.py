@@ -47,7 +47,7 @@ class Stdio(unittest.TestCase):
         self.assertEqual(init["result"]["serverInfo"]["name"], "catio")
         self.rpc("notifications/initialized", notify=True)
         names = {t["name"] for t in self.rpc("tools/list")["result"]["tools"]}
-        self.assertEqual(names, {"house_rules", "report_status", "audit", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "answer", "decide", "tokens", "set_tokens"})
+        self.assertEqual(names, {"house_rules", "report_status", "audit", "graph", "list_agents", "inbox", "pick_up", "drop_file", "comment", "comments", "manage", "quiz", "quizzes", "forget", "answer", "decide", "tokens", "set_tokens"})
         self.assertIn("preflight", [r["id"] for r in self.tool("house_rules")["rules"]])
 
         # an agent joins, with a wake command that records what it was woken with
@@ -162,6 +162,24 @@ class Stdio(unittest.TestCase):
         self.assertEqual([kept["pretty_project-portfolio"][k] for k in ("summary", "by")], ["A later one.", "cse_1"])
         r = self.rpc("tools/call", {"name": "audit", "arguments": {"repo": "x"}})["result"]
         self.assertTrue(r["isError"])   # a summary is required
+
+    def test_graph_lands_beside_the_audit_and_is_kept_as_given(self):
+        """The project map shares the audit's project key, so one filing cabinet shows both."""
+        self.rpc("initialize", {})
+        self.rpc("notifications/initialized", notify=True)
+        m = {"nodes": 12, "map": {"n": [{"t": "house.js", "g": 0, "d": 4, "x": 1, "y": 2}], "l": [0, 0]}}
+        out = self.tool("graph", repo="charredlatte/Pretty_Project-Portfolio", doc=m)
+        self.assertEqual(out["doc"], "graphs/pretty_project-portfolio")   # the audit's slug, not its own
+        kept = json.loads(Path(self.home, "state.json").read_text(encoding="utf-8"))["graphs"]["pretty_project-portfolio"]
+        self.assertEqual(kept["map"], m["map"])   # kept as given: the page already knows the shape
+        self.assertEqual([kept["nodes"], kept["by"]], [12, "agent"])
+        # a later map replaces the one before, and leaves no stale map behind it
+        self.tool("graph", repo="Pretty_Project-Portfolio", doc={"nodes": 13}, by="cse_1")
+        kept = json.loads(Path(self.home, "state.json").read_text(encoding="utf-8"))["graphs"]["pretty_project-portfolio"]
+        self.assertEqual([kept["nodes"], kept["by"], "map" in kept], [13, "cse_1", False])
+        for bad in ({"repo": "x"}, {"repo": "x", "doc": "a map"}, {"repo": "x", "doc": [1, 2]},
+                    {"repo": "x", "doc": {"pad": "z" * 70 * 1024}}):
+            self.assertTrue(self.rpc("tools/call", {"name": "graph", "arguments": bad})["result"]["isError"], bad.get("doc"))
 
     def test_errors_are_tool_errors(self):
         self.rpc("initialize", {})

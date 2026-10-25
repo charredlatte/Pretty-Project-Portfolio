@@ -41,6 +41,14 @@ export const TOOLS = [
 		{ repo: said("owner/repo, or the repository's name"), summary: said("The top findings, one line each"),
 			by: said("Who audited, when it is not you: your session or agent id") },
 		["repo", "summary"]),
+	tool("graph", "Save a repository's project map: the graphify digest the house rules ask you to build before you " +
+			"dig. The café shows it in that project's filing cabinet -- the map and its neighbourhoods, its hubs, the " +
+			"surprising links, and the questions the owner can put to a cat with one click. Writing it again replaces " +
+			"the one before.",
+		{ repo: said("owner/repo, or the repository's name"),
+			doc: { type: "object", description: "The document graph_doc.py prints after the document id, or the catio-graph.json it saves beside the graph" },
+			by: said("Who built it, when it is not you: your session or agent id") },
+		["repo", "doc"]),
 	tool("list_agents", "Every agent cat in the Catio: who works where, what each needs, and what it last said (said). " +
 		"The queen of the house is the cat \"queen\": her runner is present when it is there.", { archived: { type: "boolean" } }),
 	tool("inbox",
