@@ -810,7 +810,7 @@ TOOLS = {
     "house_rules": (house_rules, "The KittyChat house rules every agent in the Catio follows. Read them when you start.", {}, []),
     "report_status": (report_status, "Join the Catio as a cat, or update your cat: what you're working on and whether you need the owner. "
                       "Call it when you start, when you need them, and when you finish. Returns what's waiting for you.",
-                      {"agent": dict(S, description="Your stable id, e.g. codex-montfortoise"), "name": S, "model": dict(S, description="e.g. gpt-5, gemini-2.5-pro"),
+                      {"agent": dict(S, description="Your stable id, e.g. codex-shop"), "name": S, "model": dict(S, description="e.g. gpt-5, gemini-2.5-pro"),
                        "provider": dict(S, description="openai, google, anthropic, local..."), "title": S, "project": S, "repo": dict(S, description="owner/repo"),
                        "branch": S, "mood": {"type": "string", "enum": list(MOODS)}, "ask": dict(S, description="What you need from the owner, when mood is needs"),
                        "link": S, "session": dict(S, description="Your own session id, for the wake command"),

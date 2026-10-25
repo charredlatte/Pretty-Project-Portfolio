@@ -83,7 +83,7 @@ screen("Layout: the shell", false);
 // 4. GitHub, connected, and the not-connected state beside it.
 { const c = col(12); c.appendChild(text("The tires. Your repositories are where the work meets the road.", 14, BOLD, INK, 560)); c.appendChild(text("Each repository lives in a room. Its sessions are that room's cats.", 14, REG, INK, 560));
   c.appendChild(button("Connect GitHub", true));
-  const list = col(6, "repos"); for (const r of [["my-portfolio", "Lounge"], ["grocery-app", "Kitchen"], ["shop-theme", "Craft room"], ["tiktok-saves", "Lounge"]]) {
+  const list = col(6, "repos"); for (const r of [["my-portfolio", "Lounge"], ["grocery-app", "Kitchen"], ["shop-theme", "Craft room"], ["video-saves", "Lounge"]]) {
     const li = row(12, "repo"); li.appendChild(text(r[0], 14, REG, INK, 240)); li.appendChild(field(r[1] + " ▾", 160)); list.appendChild(li); }
   c.appendChild(list); c.appendChild(text("Anything not listed goes to the lounge.", 12, REG, GREY)); step(3, "GitHub", c); }
 { const c = col(12); c.appendChild(text("The tires. Your repositories are where the work meets the road.", 14, BOLD, INK, 560)); c.appendChild(text("Not connected.", 14, BOLD)); c.appendChild(text("Connect GitHub in claude.ai (Settings → Connectors), and install the Claude GitHub App on your repositories. Then check again.", 14, REG, INK, 560));

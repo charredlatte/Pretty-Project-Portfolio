@@ -89,7 +89,7 @@ Mind the quota: a Starter plan with a View seat gets six MCP calls a month.
 - **The prices, and Basic's cap.** The business plan proposes them (`[basic]`, `[monthly]`, `[cap]`, `[setup-plus]`); the frames show
   placeholders until she picks. The polling calls (`list_agents`, `comments`) are never metered; which others count is
   the plan's list.
-- **The store's domain.** A separate store from Montfortoise (her choice, 2 October), named KittyChat Café, the
+- **The store's domain.** A separate store from her stationery shop (her choice, 2 October), named KittyChat Café, the
   one name for the café and its engine (4 October, `docs/engine.md`). On 4 October Shopify's check found
   kittychatcafe.com available. An INPI search for "KittyChat" comes before buying it.
 - **Monthly or yearly first.** Shopify Subscriptions handles both; the wireframe shows both selling plans.
