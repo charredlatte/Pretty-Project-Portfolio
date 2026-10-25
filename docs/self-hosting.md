@@ -15,12 +15,12 @@ Making these one setting, read from one place, is the step that turns "run your 
 
 | Where | Value | What it does | Set it to |
 |---|---|---|---|
-| `catio/index.html` | `CATIO_URL` | Her café's artifact link, quoted in every file delivery so the session knows where to fetch the file | Your café's artifact link |
+| The café's database | `house/main.url` | The café's own link, quoted in a file delivery to a session that reports to no gateway, so it knows where to fetch from; nothing is written into the page | Set once after your first publish (`ArtifactData` `update` on `house/main`); a café on a gateway needs none |
 | `catio/index.html` | `INSTALL` | The two install lines the wizard's How it works step shows | Your fork's address in the first line |
 | `catio/index.html` | `"charredlatte/" + rp` in `openNewCat()` | Turns a bare repository name in a room into one of her repositories when New cat starts a session | Your GitHub name, or write `owner/repo` in Edit rooms |
 | `catio/index.html` | `GATEWAY = "CATIO"` | The connector the page asks claude.ai for | Name your gateway's connector `CATIO`, as hers is |
-| `harness/rules.json` | `catio` | Her own café, named in the session-start preamble and used by the `catio` skill when `CATIO_URL` is unset | Your café's address |
-| `harness/rules.json` | `public` | The repositories where nothing may credit Claude | Your public repositories, or none |
+| Your sessions' environment | `CATIO_URL`, `CATIO_TOKEN` | The café a session reports to; the rules file names none, so a session without them is told it isn't connected rather than handed somebody else's café | Your gateway's address and your key |
+| `.claude/catio-rules.json` | `public` | Every repo counts as public (no Claude credit lines) unless its own file says `{"public": false}` | Nothing, unless a private repo of yours should keep them |
 | `harness/rules.json` | `merging.audits`, `merging.review` | The skills a self-merge needs to have run, `ponytail-audit` and `code-review`; the first even with the opening audit switched off | Skills you have |
 | The rules' skills | `ponytail-audit`, `browser-agent-preflight` | Called by the rules, not in this repository (`code-review` comes with Claude Code) | Install them, or switch their rules off in a repository's `.claude/catio-rules.json` |
 | `harness/README.md`, `.claude/settings.json` | The `kittychat` marketplace | Where the house rules are installed from | Your fork |
@@ -36,16 +36,17 @@ Making these one setting, read from one place, is the step that turns "run your 
 
 These work in a fork, but say "Charlotte" to every session, the queen or the person reading:
 
-- **Before a file's note**, `Charlotte's note:`: written by the page and `harness/mcp/catio_mcp.py`
-  (`harness/hooks/report.py` writes `Her note:`). It marks which words are the owner's instruction rather than the
-  file's, which the rules rely on: rename it, but keep a label there.
+- **Before a file's note**, `Charlotte's note:`: written by `harness/mcp/catio_mcp.py` (`harness/hooks/report.py`
+  writes `Her note:`; the page writes `The owner's note:`). It marks which words are the owner's instruction rather
+  than the file's, which the rules rely on: rename it, but keep a label there.
 - **The words before a message**, `[Catio] Charlotte says:`: written by the page, `harness/hooks/report.py`,
   `harness/mcp/catio_mcp.py` and `harness/runner/queen.py`; read by the `catio` skill and `harness/runner/queen.md`;
   checked by the tests. Change them all together or not at all.
 - **The queen's character**: `harness/runner/queen.md` points to a section `queen.py` writes, "As Charlotte set you
   up". Change the two together.
-- **The rules' texts** in `harness/rules.json`, and the messages of `harness/hooks/session_start.py` ("a cat in
-  Charlotte's Catio"), `gates.py` and `ship_gate.py`.
+- **The rules' texts** in `harness/rules.json`, and the messages of `harness/hooks/session_start.py`, `gates.py` and
+  `ship_gate.py` (the brief names no café of anyone's: a session is told the one in its `CATIO_URL`, or that it
+  isn't connected).
 - **Descriptions and authors**: `harness/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`,
   `catio-plugin/.claude-plugin/plugin.json`, `harness/README.md`, `harness/skills/catio/SKILL.md`.
 - **Before accounts**: `charlotte` in `harness/gateway/src/houses.js`, `cafe.js` and `house.js`, and in

@@ -18,14 +18,14 @@ def main():
     cwd = data.get("cwd")
     r = rules()
     gateway = os.environ.get("CATIO_URL", "").strip()
-    if gateway:   # the café this session reports to, whoever's it is: the hook can't tell if it is Charlotte's
-        whose, they = "their", "They"
+    whose, they = "their", "They"
+    # The café is wherever CATIO_URL points, and nowhere else. The rules file names no address of anyone's, so a
+    # session without one is told it isn't connected, rather than handed somebody else's café as its own.
+    if gateway:
         cafe = f"This session is a cat in the KittyChat Café of the person you are working for, at {gateway}."
-        if gateway.rstrip("/") != r["catio"].rstrip("/"):   # somebody else's café: say whose it isn't
-            cafe += f"\n(Charlotte made the café; her own is at {r['catio']}, which isn't theirs unless they are her.)"
     else:
-        whose, they = "Charlotte's", "She"
-        cafe = "This session is a cat in Charlotte's Catio, her harness: " + r["catio"]
+        cafe = ("This session isn't connected to a KittyChat Café: CATIO_URL isn't set, so no cat checks in and nothing is "
+                "handed over. The house rules below still hold; harness/gateway/README.md says how to connect one.")
     lines = [
         "# KittyChat house rules",
         "",

@@ -335,7 +335,7 @@ The artifact database, written by the page and seeded with `ArtifactData`:
 
 | Collection | Document | Holds |
 |---|---|---|
-| `house` | `main` | `name`: the café's own name on the brand and the title (none: "KittyChat Café"), `onboarded`: when the wizard last opened the doors, `owner`: how she looks in the queen's scene `{hair, hairColor, top, skin, extra}` |
+| `house` | `main` | `name`: the café's own name on the brand and the title (none: "KittyChat Café"), `onboarded`: when the wizard last opened the doors, `owner`: how she looks in the queen's scene `{hair, hairColor, top, skin, extra}`, `url`: the café's own link, quoted in a file delivery to a session that reports to no gateway (written once by whoever published the page; none: the delivery points at the café repo's `artifacts.json`) |
 | `rooms` | one per room key (`garden` (the catio), `kitchen`, `dining`, `living`, `sunroom`, `study`, `bedroom`, `bath`, `hall`, `brain`) | `name`, `blurb`, `repos[]` (repo names or `owner/repo`), `catchAll`, `model`, `closed` (no key: open) |
 | `sessions` | the Claude Code session id | `name`, `room`: her rename or move of one session's cat |
 | `cats` | generated id | an adopted chat: `title`, `link`, `project`, `room`, `mood` (`needs` / `busy` / `done`), `note`, `name` |
@@ -470,7 +470,10 @@ The page now **writes** through Claude Code Remote, always on an explicit action
   document (`name, type, size, asset, url, cat, kind, project, room, how, reason, note, status`
   `unsorted | waiting | pushed | picked`). `route()` sorts: the cat dropped on, a session/chat link in
   the file, a keyword score, then the sorter (`sample.json` in claude.ai; an OpenAI-compatible endpoint
-  on localhost, `localStorage` `catio.sorter`), else the tray.
+  on localhost, `localStorage` `catio.sorter`), else the tray. A file for an agent, or for a session that
+  reports to the gateway, is handed over whole with `drop_file`, and its hook fetches it with `pick_up`; one the
+  gateway refuses (over 1 MiB) stays in the brain and the toast says why. Only a session that reports nowhere is
+  *told* about the file (`deliveryText`), with the café's link from `house/main.url` and never from the page.
 - **Posting into a session**: Claude Code Remote's `send_message` (argument names read from its schema with
   `describeTool`, else `session_id` and `message`), on trial from
   version 18. Every `[Catio] Delivery…`, `[Catio] Charlotte says: …` and `[Catio] Request: wrap_up` that it

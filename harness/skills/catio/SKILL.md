@@ -5,8 +5,8 @@ description: Handle what Charlotte sends from the Catio, her KittyChat harness -
 
 # The Catio
 
-The Catio is Charlotte's harness: a café where every session is a cat in a manor. Hers is the link in this
-plugin's `rules.json` (`catio`), served by the gateway in `harness/gateway/`.
+The Catio is Charlotte's harness: a café where every session is a cat in a manor. The one this session reports
+to is `CATIO_URL` in its environment, served by a gateway (`harness/gateway/`); the rules file names no café.
 
 **You reach it two ways, and both are the gateway.** This plugin's `report.py` hook keeps your cat live there
 once `CATIO_URL` and `CATIO_TOKEN` are in the environment, and when a turn ends it hands over what she sent, as

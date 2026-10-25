@@ -3638,6 +3638,25 @@ await check("tools/skin.py: a map piece is pixel art only drawn near the art pix
   await ctx.close();
 }
 
+// Her ask, 25 October: nothing in the page names her café. A file for a session that reports to the gateway goes
+// the way an agent's does, into the gateway's own inbox (its hook says "[Catio] Delivery for you" and fetches it
+// with pick_up); the page never posts a note that points the session at an artifact, hers or anyone's.
+{
+  const { page, ctx, errors } = await open("?via=gateway&mode=blocked");
+  await openCat(page, "Shop about page");
+  await giveFiles(page, { name: "copy-fr.md", mimeType: "text/markdown", buffer: Buffer.from("Notre boutique") });
+  await page.click("#dropSend");
+  await page.waitForTimeout(300);
+  await check("a file for a session that reports to the gateway is handed over whole, like an agent's, and no note points it at an artifact", async () => {
+    const drop = (await tools(page, "drop_file")).pop();
+    expect(drop && drop[0] === "CATIO" && drop[2].for === "cse_blocked1" && Buffer.from(drop[2].base64, "base64").toString() === "Notre boutique", JSON.stringify(drop).slice(0, 200));
+    const notes = (await tools(page, "comment")).filter((c) => /Delivery for you|Artifact read|claude\.ai\/artifact/.test((c[2] && c[2].text) || ""));
+    expect(notes.length === 0, "a delivery note went out: " + JSON.stringify(notes).slice(0, 200));
+    expect(errors.length === 0, errors.join("; "));
+  });
+  await ctx.close();
+}
+
 await browser.close();
 console.log(results.join("\n"));
 console.log(`\n${pass} passed, ${fail} failed`);
