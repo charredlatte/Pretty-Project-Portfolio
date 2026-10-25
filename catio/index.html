@@ -3876,7 +3876,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   function adoptForm(c, room) {
     const d = c ? S.adopted.find((x) => x.id === c.docId) || {} : {};
     const f = el("form", "dlg"); f.style.padding = "0";
-    const title = el("input"); title.id = "adTitle"; title.required = true; title.maxLength = 80; title.value = d.title || ""; title.placeholder = "Montfortoise business plan";
+    const title = el("input"); title.id = "adTitle"; title.required = true; title.maxLength = 80; title.value = d.title || ""; title.placeholder = "A business plan";
     const link = el("input"); link.id = "adLink"; link.type = "url"; link.value = d.link || ""; link.placeholder = "https://claude.ai/chat/…";
     const mood = el("select"); mood.id = "adMood";
     for (const [v, l] of [["needs", "Needs me"], ["busy", "In progress"], ["done", "Done for now"]]) { const o = el("option", null, l); o.value = v; if ((d.mood || "needs") === v) o.selected = true; mood.appendChild(o); }

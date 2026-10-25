@@ -43,10 +43,10 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
   |---|---|
   | Kitchen | The grocery app |
   | Dining room | Business plans |
-  | Sunroom | TikTok saves |
-  | Craft room | The Montfortoise shop |
+  | Sunroom | Video saves |
+  | Craft room | The shop |
   | Bedroom | Legal |
-  | Hall | Snail mail |
+  | Hall | The post |
   | Catio | This portfolio |
 
 - **A saved copy of her sessions** shows when the live read is blocked. A Routine refreshed it every two
@@ -149,8 +149,8 @@ Claude keeps no memory between sessions, so anything worth keeping goes in one o
 - **Yes to deleting the 14 old branches**; she deleted them herself, since this session's git access can't.
 - **"Use the house-rules plugin on all of the repos"**, then **"merge the 7 PRs"**: on in all seven since
   1 October.
-- **`intermarche-grocery-data` is deleted**: "there is no need for a private repo", it was surface-level grocery
-  data. The Kitchen lists only the grocery app.
+- **The private grocery-data repo is deleted**: "there is no need for a private repo", it was surface-level
+  grocery data. The Kitchen lists only the grocery app.
 - **"Update the READMEs with the correct information, and tell me again why it isn't an MCP or some server."**
   The answer is in `harness/README.md`: nothing outside claude.ai can wake a session; the gateway makes the cats
   live and hands a running session her message at the end of its turn.
