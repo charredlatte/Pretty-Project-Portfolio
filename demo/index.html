@@ -1,0 +1,1373 @@
+<title>KittyChat Café Tour</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400..700&family=Nunito:ital,wght@0,300..900;1,300..900&display=swap">
+
+<style>
+/* ------------------------------------------------------------------------------------------
+   A tour of the KittyChat Café, for whoever clicks the link at the top of the README.
+
+   Layout: one column at a 68ch measure, broken twice by a full-bleed pixel stage — the café
+   itself up top, the setup wizard further down — so the two things you can actually play with
+   are the two things that interrupt the reading.
+
+   Every pixel here is this repo's own (demo/tools/sprites.py). The café's real art comes from
+   six licensed packs that may not be redistributed, so none of it appears on this page; where a
+   pack would have drawn something, a sprite drawn for the demo stands in. The colours are the
+   café's own skin all the same: catio/art/skin.json, the 90s Barbie palette.
+   ------------------------------------------------------------------------------------------ */
+
+:root {
+  /* colour — the café's own skin tokens, light */
+  --ink: #4B1C5E;            /* every outline, and the text */
+  --ink-soft: #7A4E8C;
+  --accent: #FF3FA4;         /* hot pink: the thing that matters */
+  --pink: #FFB0DB;
+  --go: #19A9A2;             /* teal: a thing that is fine */
+  --paper: #FBF4FF;          /* the page */
+  --well: #F3E8FF;           /* a panel on the page */
+  --lav: #DCC8FF;
+  --line: #E2D0F5;
+  --grass: #BFE9C4;
+  --warn: #E8562F;
+  --gold: #C98A00;
+  --shadow: 0 2px 0 var(--lav);
+
+  /* type */
+  --pixel: "Press Start 2P", ui-monospace, monospace;      /* the brand, small caps labels */
+  --display: "Pixelify Sans", "Trebuchet MS", sans-serif;  /* headings */
+  --body: "Nunito", system-ui, -apple-system, sans-serif;  /* everything you read */
+  --measure: 68ch;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #F6E9FF; --ink-soft: #C3A8D8; --accent: #FF72BE; --pink: #C8569B;
+    --go: #5FD6D0; --paper: #1A0F26; --well: #2A1838; --lav: #462C60; --line: #3C2554;
+    --grass: #2F6B46; --warn: #FF8E6B; --gold: #FFD35A;
+    --shadow: 0 2px 0 #140A1E;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #F6E9FF; --ink-soft: #C3A8D8; --accent: #FF72BE; --pink: #C8569B;
+  --go: #5FD6D0; --paper: #1A0F26; --well: #2A1838; --lav: #462C60; --line: #3C2554;
+  --grass: #2F6B46; --warn: #FF8E6B; --gold: #FFD35A;
+  --shadow: 0 2px 0 #140A1E;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 400 1.0625rem/1.65 var(--body);
+  -webkit-font-smoothing: antialiased;
+}
+img { image-rendering: pixelated; }
+
+.wrap {
+  max-width: var(--measure); margin-inline: auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.band { padding-block: clamp(2.5rem, 6vw, 4.5rem); }
+.band + .band { border-top: 1px solid var(--line); }
+
+h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.1; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2.4rem, 8vw, 3.9rem); letter-spacing: -0.01em; }
+h2 { font-size: clamp(1.7rem, 4.5vw, 2.4rem); }
+h3 { font-size: 1.25rem; }
+p { margin: 0; }
+a { color: inherit; text-underline-offset: 3px; text-decoration-color: var(--accent); text-decoration-thickness: 2px; }
+a:hover { color: var(--accent); }
+.stack { display: flex; flex-direction: column; gap: 1.1rem; }
+.stack-s { display: flex; flex-direction: column; gap: .55rem; }
+.lede { font-size: 1.2rem; color: var(--ink-soft); }
+.eyebrow {
+  font-family: var(--pixel); font-size: .62rem; letter-spacing: .14em;
+  color: var(--accent); text-transform: uppercase;
+}
+code, .mono { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: .92em; }
+code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
+
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* ---- the hero ----------------------------------------------------------------------------- */
+.hero { padding-block: clamp(2rem, 5vw, 3.5rem) 0; }
+.brand { display: flex; align-items: center; gap: .7rem; }
+.brand .mark { width: 36px; height: 36px; }
+.mark {
+  display: inline-block; width: 22px; height: 22px; flex: none;
+  background-repeat: no-repeat; background-position: 0 0;
+  background-size: calc(100% * var(--frames)) 100%; image-rendering: pixelated;
+}
+.brand b { font-family: var(--pixel); font-size: .78rem; letter-spacing: .02em; }
+.hero h1 { margin-top: 1.4rem; }
+.hero .lede { max-width: 54ch; }
+
+/* ---- the café stage ----------------------------------------------------------------------- */
+.stage-bleed { padding-block: 2rem 0; }
+.stage {
+  position: relative; width: 100%; aspect-ratio: 872 / 584; container-type: inline-size;
+  max-width: 100%; border: 3px solid var(--ink); border-radius: 4px;
+  background: var(--well); overflow: hidden; touch-action: manipulation;
+  box-shadow: 0 6px 0 var(--lav);
+}
+.stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage .layer { position: absolute; inset: 0; }
+
+.cat, .queen-pin {
+  /* left/top are where its feet stand; the box hangs up and left from there */
+  position: absolute; width: 4.8%; aspect-ratio: 1; transform: translate(-50%, -100%);
+  transition: left 1.6s linear, top 1.6s linear;
+}
+.cat .spr, .queen-pin .spr {
+  width: 100%; height: 100%; cursor: pointer;
+  background-repeat: no-repeat; background-size: calc(100% * var(--frames)) 100%;
+}
+.cat.flip .spr { transform: scaleX(-1); }
+.cat .spr:hover, .cat.lit .spr, .queen-pin .spr:hover, .queen-pin.lit .spr {
+  filter: drop-shadow(1px 0 #FFF6FC) drop-shadow(-1px 0 #FFF6FC)
+          drop-shadow(0 1px #FFF6FC) drop-shadow(0 -1px #FFF6FC);
+}
+
+.room-hit { cursor: pointer; fill: transparent; }
+.room-br { stroke: #FFF6FC; stroke-width: 3; fill: none; opacity: 0; pointer-events: none; }
+.room.on .room-br { opacity: 1; }
+
+/* the two things on screen, and nothing else */
+.hud {
+  position: absolute; top: 2.2cqi; left: 2.2cqi; display: flex; align-items: center; gap: .9cqi;
+  padding: .9cqi 1.3cqi; background: var(--paper); border: 2px solid var(--ink); border-radius: 3px;
+  font-family: var(--pixel); font-size: max(7px, 1.35cqi); box-shadow: var(--shadow);
+}
+.hud .mark { width: 3.2cqi; height: 3.2cqi; }
+.badge {
+  background: var(--accent); color: #FFF6FC; border-radius: 999px;
+  padding: .15em .45em; font-size: .9em; line-height: 1;
+}
+.mappanel {
+  position: absolute; top: 2.2cqi; right: 2.2cqi; display: flex; flex-direction: column; gap: .7cqi;
+  padding: .8cqi; background: var(--paper); border: 2px solid var(--ink); border-radius: 3px;
+  box-shadow: var(--shadow);
+}
+.mappanel[data-folded="true"] > :not(.fold) { display: none; }
+.mappanel .row { display: flex; gap: .3rem; }
+.pbtn {
+  font: 400 max(7px, 1.3cqi)/1 var(--pixel); color: var(--ink); background: var(--lav);
+  border: 2px solid var(--ink); border-radius: 2px; padding: .9cqi 1.1cqi; cursor: pointer;
+}
+.pbtn[aria-pressed="true"] { background: var(--accent); color: #FFF6FC; }
+.pbtn:hover { background: var(--pink); }
+.pbtn .pip {
+  display: inline-block; width: 1.1cqi; height: 1.1cqi; min-width: 4px; min-height: 4px; margin-left: .5cqi;
+  border-radius: 999px; background: var(--accent); vertical-align: middle;
+}
+.pbtn[aria-pressed="true"] .pip { background: #FFF6FC; }
+.mini { width: 22cqi; height: 13.8cqi; border: 2px solid var(--ink); background: var(--well); display: block; }
+
+.tip {
+  position: absolute; left: 2.2cqi; bottom: 2.2cqi; max-width: calc(100% - 4.4cqi);
+  padding: .8cqi 1.2cqi; background: var(--paper); border: 2px solid var(--ink); border-radius: 3px;
+  font-size: max(10px, 1.7cqi); line-height: 1.35; box-shadow: var(--shadow); margin: 0;
+}
+.tip:empty { display: none; }
+
+/* a menu: the name, one line under it, what matters now, then the actions as a list */
+.menu {
+  position: absolute; z-index: 5; width: min(240px, 46cqi); max-width: calc(100% - 4.4cqi);
+  padding: 1.1cqi 1.3cqi; background: var(--paper); border: 3px solid var(--ink); border-radius: 3px;
+  box-shadow: 0 4px 0 var(--lav); font-size: max(10px, 1.6cqi);
+}
+.menu[hidden] { display: none; }
+.menu h4 { margin: 0; font: 400 max(8px, 1.5cqi)/1.3 var(--pixel); display: flex; gap: .4rem; align-items: center; }
+.menu .sub { color: var(--ink-soft); font-size: .92em; margin-top: .3em; }
+.menu .now {
+  margin-top: .6em; padding: .5em .6em; background: var(--well);
+  border: 2px solid var(--lav); border-radius: 2px; font-size: .92em;
+}
+.menu ul { list-style: none; margin: .6em 0 0; padding: 0; display: flex; flex-direction: column; }
+.menu li button {
+  width: 100%; text-align: left; background: none; border: 0; cursor: pointer; color: inherit;
+  font: inherit; padding: .32em .3em .32em 1.3em; border-radius: 2px; position: relative;
+}
+.menu li button::before {
+  content: ""; position: absolute; left: .1rem; top: 50%; transform: translateY(-50%);
+  width: .7em; height: 1em; background: url(art/pointer.png) no-repeat center / contain; opacity: 0;
+}
+.menu li button:hover, .menu li button:focus-visible { background: var(--well); }
+.menu li button:hover::before, .menu li button:focus-visible::before { opacity: 1; }
+.menu li button.primary { font-weight: 800; }
+
+.stage-note { margin-top: .9rem; color: var(--ink-soft); font-size: .95rem; }
+
+/* ---- the plain-words table ------------------------------------------------------------------ */
+.tbl { width: 100%; border-collapse: collapse; font-size: .98rem; }
+.tbl th, .tbl td { text-align: left; padding: .6rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl th { font-family: var(--pixel); font-size: .56rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+.tbl td:first-child { color: var(--ink-soft); width: 46%; }
+.scrollx { overflow-x: auto; }
+
+/* ---- the moods ------------------------------------------------------------------------------ */
+.moods { display: grid; grid-template-columns: repeat(5, 1fr); gap: .8rem; }
+.moods-wide { max-width: 58rem; }          /* five moods, five columns: none of them sits alone */
+@media (max-width: 760px) { .moods { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 400px) { .moods { grid-template-columns: 1fr; } }
+.mood {
+  display: flex; flex-direction: column; gap: .4rem; align-items: flex-start;
+  padding: .9rem; background: var(--well); border: 2px solid var(--line); border-radius: 4px;
+}
+.mood .pic {
+  width: 60px; height: 60px; background-repeat: no-repeat;
+  background-size: calc(60px * var(--frames)) 60px; align-self: center;
+}
+.mood b { font-family: var(--pixel); font-size: .58rem; line-height: 1.5; }
+.mood span { font-size: .88rem; color: var(--ink-soft); }
+
+/* ---- the queen's scene --------------------------------------------------------------------- */
+.scene {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 1rem; align-items: end;
+  padding: 1.2rem; border: 3px solid var(--ink); border-radius: 4px;
+  background: var(--well); box-shadow: 0 6px 0 var(--lav);
+}
+.who { display: flex; flex-direction: column; align-items: center; gap: .4rem; min-width: 0; }
+.fig { width: 64px; height: 92px; object-fit: contain; object-position: bottom; image-rendering: pixelated; }
+.fig.queen {
+  height: 64px; background-repeat: no-repeat; background-position: 0 0;
+  background-size: calc(100% * var(--frames)) 100%;
+}
+.crown { height: 20px; }
+.crown img { height: 20px; width: auto; }
+.plate {
+  font: 400 .55rem/1 var(--pixel); padding: .35rem .5rem; background: var(--paper);
+  border: 2px solid var(--ink); border-radius: 2px; white-space: nowrap;
+}
+.said { min-width: 0; align-self: center; }
+.said p {
+  padding: .8rem 1rem; background: var(--paper); border: 2px solid var(--ink); border-radius: 3px;
+  font-size: 1.02rem; min-height: 3.4rem;
+}
+.replies { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .6rem; }
+.replies button {
+  font: 400 .52rem/1.5 var(--pixel); color: var(--ink); background: var(--lav); cursor: pointer;
+  border: 2px solid var(--ink); border-radius: 2px; padding: .45rem .55rem;
+}
+.replies button:hover { background: var(--pink); }
+.sub-note { color: var(--ink-soft); font-size: .92rem; }
+@media (max-width: 560px) {
+  .scene { grid-template-columns: 1fr 1fr; }
+  .said { grid-column: 1 / -1; grid-row: 1; }
+}
+
+/* ---- the wizard ------------------------------------------------------------------------------ */
+.wiz {
+  border: 3px solid var(--ink); border-radius: 4px; background: var(--paper);
+  box-shadow: 0 6px 0 var(--lav); overflow: hidden;
+}
+.wiz-top { padding: 1rem 1.1rem .7rem; border-bottom: 2px solid var(--line); }
+.wiz-top h3 { font-family: var(--pixel); font-size: .78rem; line-height: 1.5; }
+.dots { display: flex; gap: .35rem; margin-top: .7rem; }
+.dots span { width: 10px; height: 10px; border: 2px solid var(--ink); border-radius: 999px; background: var(--paper); }
+.dots span.on { background: var(--accent); }
+.wiz-body { padding: 1.1rem; display: flex; flex-direction: column; gap: .85rem; min-height: 15rem; }
+.wiz-body p { font-size: .97rem; }
+.wiz-foot { display: flex; gap: .5rem; align-items: center; padding: .8rem 1.1rem; border-top: 2px solid var(--line); }
+.wiz-foot .spacer { flex: 1; }
+.btn {
+  font: 400 .58rem/1 var(--pixel); color: var(--ink); background: var(--lav);
+  border: 2px solid var(--ink); border-radius: 2px; padding: .65rem .8rem; cursor: pointer;
+}
+.btn:hover { background: var(--pink); }
+.btn.green { background: var(--go); color: #06231F; }
+.btn.green:hover { filter: brightness(1.12); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.field { display: flex; flex-direction: column; gap: .3rem; font-size: .85rem; color: var(--ink-soft); }
+.field input, .field select {
+  font: inherit; font-size: .95rem; color: var(--ink); background: var(--well);
+  border: 2px solid var(--lav); border-radius: 2px; padding: .45rem .55rem; width: 100%;
+}
+.counter { display: flex; align-items: center; gap: .6rem; }
+.counter b { font-family: var(--pixel); font-size: .9rem; min-width: 1.4rem; text-align: center; }
+.counter .note { font-size: .88rem; color: var(--ink-soft); }
+.roomgrid { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .35rem; }
+.roomgrid li {
+  font: 400 .52rem/1 var(--pixel); padding: .45rem .5rem; border: 2px solid var(--lav);
+  border-radius: 2px; color: var(--ink-soft); background: var(--paper);
+}
+.roomgrid li[data-open="true"] { border-color: var(--ink); color: var(--ink); background: var(--well); }
+.namegrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .6rem; }
+.repo { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+.repo code { flex: 1 1 10rem; min-width: 0; }
+.repo select { flex: 0 1 11rem; }
+.how { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .55rem; }
+.how li { font-size: .95rem; }
+.how b { display: block; font-family: var(--display); font-size: 1.02rem; font-weight: 700; }
+.sum { margin: 0; padding-left: 1.1rem; }
+.sum li { font-size: .97rem; }
+.drop {
+  border: 2px dashed var(--lav); border-radius: 3px; padding: 1.1rem; text-align: center;
+  color: var(--ink-soft); font-size: .9rem; background: var(--well);
+}
+pre.lines {
+  margin: 0; padding: .7rem .8rem; background: var(--well); border: 2px solid var(--lav);
+  border-radius: 3px; overflow-x: auto; font-size: .8rem; line-height: 1.7;
+  /* wrap at spaces so a long command folds before its URL instead of being cut off */
+  white-space: pre-wrap; overflow-wrap: break-word;
+}
+
+/* ---- setup ----------------------------------------------------------------------------------- */
+.steps { list-style: none; counter-reset: s; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1.3rem; }
+.steps > li { counter-increment: s; display: grid; grid-template-columns: 2rem 1fr; gap: .9rem; }
+.steps > li::before {
+  content: counter(s); font: 400 .72rem/2rem var(--pixel); text-align: center;
+  width: 2rem; height: 2rem; border: 2px solid var(--ink); border-radius: 999px; color: var(--accent);
+}
+.steps h3 { margin-bottom: .3rem; }
+.steps p { font-size: .97rem; color: var(--ink-soft); }
+.steps pre.lines { margin-top: .55rem; }
+
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; }
+.card { padding: 1rem; background: var(--well); border: 2px solid var(--line); border-radius: 4px; }
+.card h3 { font-size: 1.05rem; margin-bottom: .35rem; }
+.card p { font-size: .92rem; color: var(--ink-soft); }
+.yes { color: var(--go); font-weight: 800; }
+.no  { color: var(--warn); font-weight: 800; }
+.part { color: var(--gold); font-weight: 800; }
+
+footer { color: var(--ink-soft); font-size: .88rem; }
+footer .wrap { padding-block: 2.5rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+/* grid and flex children that hold code, tables or long words must shrink, not push the page wide */
+.steps > li > div, .card, .mood, .repo code, .wiz-body { min-width: 0; }
+.steps > li > div > *, .card > * { min-width: 0; max-width: 100%; }
+</style>
+
+<main>
+
+<section class="band hero">
+  <div class="wrap stack">
+    <div class="brand">
+      <span class="mark" style="--frames:2;background-image:url(art/cat-meow.png)"></span>
+      <b>KittyChat Café</b>
+    </div>
+    <h1>Every chat you have open, as a cat in a café.</h1>
+    <p class="lede">
+      Using AI means a dozen chats open at once, often across two or three assistants, and you forget which
+      one is waiting for you. KittyChat Café turns each one into a cat in a little pixel-art manor. You see
+      who is busy, who is done, and who needs you.
+    </p>
+    <p class="lede" style="font-size:1rem">
+      This page is the tour. The café below is real and runs on invented cats: point at one, click it,
+      change floor. Nothing here is anybody's actual data.
+    </p>
+  </div>
+</section>
+
+<section class="stage-bleed">
+  <div class="wrap">
+    <div class="stage" id="stage">
+      <svg id="plan" viewBox="72 -56 872 584" aria-hidden="true"></svg>
+      <div class="layer" id="cats"></div>
+      <div class="hud">
+        <span class="mark" style="--frames:4;background-image:url(art/cat-work.png);width:22px;height:22px"></span>
+        <span>KittyChat Café</span>
+        <span class="badge" id="houseBadge">2</span>
+      </div>
+      <div class="mappanel" id="mapPanel" data-folded="true">
+        <button class="pbtn fold" id="mapFold" aria-expanded="false">MAP <span class="pip" id="foldPip"></span></button>
+        <canvas class="mini" id="mini" width="224" height="136" aria-hidden="true"></canvas>
+        <div class="row">
+          <button class="pbtn" id="tabGround" aria-pressed="true">GROUND</button>
+          <button class="pbtn" id="tabUpper" aria-pressed="false">UPSTAIRS <span class="pip" hidden id="upPip"></span></button>
+        </div>
+      </div>
+      <p class="tip" id="tip" role="status"></p>
+      <div class="menu" id="menu" hidden></div>
+    </div>
+    <p class="stage-note">
+      Two things sit on the screen and nothing else: the house button, top left, which carries a badge when
+      cats need you, and the map panel, top right, which starts folded. Nothing is drawn on the cats
+      themselves — no letters, no counts, no crowns. Point at one and it tells you what it needs.
+    </p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap stack">
+    <p class="eyebrow">In plain words</p>
+    <h2>You never need to know what is under the hood.</h2>
+    <div class="scrollx">
+      <table class="tbl">
+        <thead><tr><th>In real life</th><th>In the café</th></tr></thead>
+        <tbody>
+          <tr><td>An AI chat or coding session, whoever makes it</td><td>A cat</td></tr>
+          <tr><td>A project — a website, a shop, a legal file</td><td>A room, with a filing cabinet</td></tr>
+          <tr><td>A chat waiting for your answer</td><td>A cat that meows; point at it and it says what it needs</td></tr>
+          <tr><td>A chat that has finished</td><td>A cat asleep</td></tr>
+          <tr><td>Your main assistant</td><td>The queen, who sits in the entrance hall and runs the errands</td></tr>
+          <tr><td>You</td><td>The owner of the café</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      The manor runs from public to private, the way houses and game levels both do. Downstairs is the cat
+      café: the café itself, the kitchen, the cat lounge, the craft room, the entrance hall, the glazed
+      terrace and the fenced catio. Upstairs are your own rooms — the library, the bedroom, the ensuite —
+      over the back of the house. The stair is in the same place on both floors, so changing floor never
+      moves the camera.
+    </p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap stack moods-wide">
+    <p class="eyebrow">The five moods</p>
+    <h2>A cat's mood is the whole status report.</h2>
+    <p>
+      A session checks in as it works. The café turns that into something you can read across a room, and
+      the house button's badge counts only the cats in the first three states — the ones that want you.
+    </p>
+    <div class="moods" id="moods"></div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap stack">
+    <p class="eyebrow">The queen</p>
+    <h2>One cat you talk to, who is not a chat.</h2>
+    <p>
+      Ninine sits in the entrance hall and never leaves. She is not one of your sessions — she is the
+      assistant running the place, on your own computer. She keeps what matters, runs your routines,
+      carries your words to the cats, and hands you what they brought back. She is deliberately left out
+      of every count, because she is not work waiting to be done.
+    </p>
+    <div class="scene">
+      <div class="who">
+        <img src="art/owner.png" alt="You, seen from behind" class="fig owner">
+        <span class="plate">You</span>
+      </div>
+      <div class="said">
+        <p id="qsay">Biscuit is waiting on you, and Clementine has something to read.</p>
+        <div class="replies" id="qreplies"></div>
+      </div>
+      <div class="who">
+        <span class="crown"><img src="art/crown.png" alt=""></span>
+        <span class="fig queen" style="--frames:4;background-image:url(art/cat-work.png)"></span>
+        <span class="plate">Ninine</span>
+      </div>
+    </div>
+    <p class="sub-note">
+      In the café this fills the window, with the room blurred behind it. Her crown shows here and in her
+      menu, and never on the map.
+    </p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap stack">
+    <p class="eyebrow">Opening the doors</p>
+    <h2>The wizard, as it actually runs.</h2>
+    <p>
+      The first time you open a café with no rooms in it, this is what you get: seven short steps, and
+      nothing is written to your café until the last one. The copy below is the page's own, word for word;
+      the answers are invented. "Set up again…" in the house menu replays it, prefilled.
+    </p>
+  </div>
+  <div class="wrap" style="margin-top:1.4rem">
+    <div class="wiz">
+      <div class="wiz-top">
+        <h3 id="wizTitle">Welcome</h3>
+        <div class="dots" id="wizDots" aria-hidden="true"></div>
+      </div>
+      <div class="wiz-body" id="wizBody"></div>
+      <div class="wiz-foot">
+        <button class="btn" id="wizBack" hidden>Back</button>
+        <span class="spacer"></span>
+        <span class="mono" id="wizWhere" style="font-size:.78rem;color:var(--ink-soft)"></span>
+        <button class="btn green" id="wizNext">Next</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap stack">
+    <p class="eyebrow">The harness is a car</p>
+    <h2>Claude on its own is a stripped car: a brilliant engine, and nothing else.</h2>
+    <p>
+      That is the owner's own way of putting it, and the café is built around it. The engine is whichever
+      assistant you already use. Everything the café adds is a part of the car, and every step of the
+      wizard fits one.
+    </p>
+    <div class="cols">
+      <div class="card"><h3>The driver</h3><p>Ninine, the queen cat. She runs your routines, passes your words to the cats, and tells you what they are up to — from your own computer.</p></div>
+      <div class="card"><h3>The windshield</h3><p>The café page. Every chat is a cat in its project's room, in view, whoever made it.</p></div>
+      <div class="card"><h3>The tires</h3><p>Your repositories, each parked in a room. Their sessions are that room's cats.</p></div>
+      <div class="card"><h3>Seatbelts and brakes</h3><p>Checks that run before a cat may change or publish anything, which it cannot talk its way round. Anything it guessed waits for you.</p></div>
+      <div class="card"><h3>The intercom</h3><p>The café cannot wake a cat. What you say is kept, and the cat hears it the next time it checks in.</p></div>
+      <div class="card"><h3>The glovebox</h3><p>The litter box: loose notes, half-ideas, and the pull requests the rules held back, waiting until you have checked them.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap stack">
+    <p class="eyebrow">Running your own</p>
+    <h2>What it takes to open a café.</h2>
+    <p>
+      It is open source and runs on free tiers. There is no hosted version to sign up for yet, and nothing
+      on this page pretends otherwise.
+    </p>
+    <ol class="steps">
+      <li>
+        <div>
+          <h3>Clone the repo</h3>
+          <p>
+            The café is one HTML file plus the tools that build its art. Nothing is minified and there is no
+            build step to run the page itself.
+          </p>
+          <pre class="lines">git clone https://github.com/charredlatte/Pretty-Project-Portfolio.git</pre>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Bring your own art</h3>
+          <p>
+            The café's own look is drawn from six art packs whose licences forbid redistribution, so the repo
+            ships none of them. <code>catio/tools/build-art.py</code> cuts the interface and the manor from
+            packs you buy or download yourself, and the design system is slots and tokens throughout: any
+            piece swaps for a drawing of your own with no code change. The sprites on this page were drawn
+            for the demo for exactly that reason.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Install the plugin</h3>
+          <p>
+            One Claude Code plugin carries the house rules — the checks before a cat may push or publish —
+            and the hook that makes every session check in as a cat.
+          </p>
+          <pre class="lines">claude plugin marketplace add https://github.com/charredlatte/Pretty-Project-Portfolio.git
+claude plugin install kittychat-house-rules@kittychat --scope user</pre>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Put up a front desk</h3>
+          <p>
+            The gateway is a Cloudflare Worker on the free plan: it holds your café's data, serves the page
+            behind your own password, and gives every agent one address to check in at. Five steps, in
+            <code>harness/gateway/README.md</code>. Then give your sessions its address and a key as
+            <code>CATIO_URL</code> and <code>CATIO_TOKEN</code>.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Open the doors</h3>
+          <p>
+            The wizard above runs on first load. Name the café, open as many rooms as you have kinds of work,
+            file your repositories into them, and the cats move in.
+          </p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap stack">
+    <p class="eyebrow">Being honest about it</p>
+    <h2>It is not tied to one AI company.</h2>
+    <p>
+      Anything that speaks MCP joins as a cat: Claude Code, Codex, Gemini CLI, Grok, Cursor, or a script of
+      your own. The café page runs in a plain browser and needs no assistant at all, and the small model
+      that makes the café's own judgement calls is not Claude either. What differs is how much each one can
+      do once it is in.
+    </p>
+    <div class="scrollx">
+      <table class="tbl">
+        <thead><tr><th>Part</th><th>Where it stands</th></tr></thead>
+        <tbody>
+          <tr><td>The café page, the manor, the cats</td><td><span class="yes">Any browser.</span> No assistant, no account, no server.</td></tr>
+          <tr><td>Checking in as a cat</td><td><span class="yes">Anything that speaks MCP</span>, or a one-line HTTP POST.</td></tr>
+          <tr><td>The house rules and their checks</td><td><span class="part">Claude Code today.</span> They are hooks on its plugin system; another runner needs its own.</td></tr>
+          <tr><td>The queen's runner</td><td><span class="part">Claude Code today</span>, one turn per thing she is told. Swappable in one file.</td></tr>
+          <tr><td>The café's own judgement calls</td><td><span class="yes">A small model on Cloudflare</span>, or any endpoint you point it at.</td></tr>
+          <tr><td>A hosted café, nothing to install</td><td><span class="no">Not open yet.</span> Planned, not promised.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap stack-s">
+    <p>
+      <b>Every pixel on this page was drawn for it</b> — the cats, the furniture, the panels — by
+      <code>demo/tools/sprites.py</code> in the repo. The café's real art comes from six licensed packs
+      that may not be redistributed, so none of it appears here. The type is Press Start 2P, Pixelify Sans
+      and Nunito, all under the SIL Open Font License.
+    </p>
+    <p>
+      The cats, projects and repositories in the demo and the wizard are invented. <a href="https://github.com/charredlatte/Pretty-Project-Portfolio">The repo</a> has the rest.
+    </p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---- the manor ---------------------------------------------------------------------------
+     The room boxes are the real plan, generated from catio/tools/manor.py into
+     catio-app/generated/manor.json. Both floors stand on one grid, so every upstairs wall
+     stands on a ground-floor wall.                                                            */
+  var W = 960, H = 576;
+  // what the stage shows of that world: the house, with a band of air above it for the two controls
+  var VIEW = { x: 72, y: -56, w: 872, h: 584 };
+  function left(x) { return ((x - VIEW.x) / VIEW.w * 100) + "%"; }
+  function top_(y) { return ((y - VIEW.y) / VIEW.h * 100) + "%"; }
+  var ROOMS = {
+    dining:  { name: "Café",          floor: "ground", box: [96, 48, 181, 165],  art: "counter",   aw: 18 },
+    kitchen: { name: "Kitchen",       floor: "ground", box: [272, 48, 245, 165], art: "stove",     aw: 18 },
+    living:  { name: "Cat lounge",    floor: "ground", box: [512, 48, 181, 165], art: "bench",     aw: 18 },
+    study:   { name: "Craft room",    floor: "ground", box: [96, 208, 181, 181], art: "workbench", aw: 18 },
+    hall:    { name: "Entrance hall", floor: "ground", box: [272, 208, 245, 181], art: "door",     aw: 18 },
+    sunroom: { name: "Terrace",       floor: "ground", box: [512, 208, 181, 181], art: "glass",    aw: 18 },
+    garden:  { name: "Catio",         floor: "ground", box: [688, 176, 224, 288], art: "fence",    aw: 18 },
+    brain:   { name: "Library",       floor: "upper",  box: [96, 48, 181, 165],  art: "shelf",     aw: 18 },
+    bedroom: { name: "Bedroom",       floor: "upper",  box: [512, 48, 101, 165], art: "bed",       aw: 18 },
+    bath:    { name: "Ensuite",       floor: "upper",  box: [608, 48, 85, 165],  art: "tub",       aw: 18 }
+  };
+  var LANDING = [272, 48, 245, 341];
+  var STAIR = [362, 213, 64, 80];
+  // each doorway as a gap in the wall it cuts: [x, y, w, h]
+  var DOORS = [
+    [264, 132, 24, 30], [504, 132, 24, 30], [160, 198, 30, 24], [304, 198, 30, 24],
+    [460, 198, 30, 24], [588, 198, 30, 24], [264, 302, 24, 30], [504, 302, 24, 30],
+    [684, 308, 16, 20], [382, 378, 26, 14]
+  ];
+  var UPPER_DOORS = [[264, 132, 24, 30], [504, 132, 24, 30], [588, 130, 30, 24]];
+
+  /* ---- the cats. Invented, like the test suite's own: never anybody's real sessions. ------- */
+  var CATS = [
+    { id: "c1", name: "Mochi",      room: "dining",  mood: "work",   coat: 1,
+      line: "Building the shop's checkout page", project: "pixel-shop" },
+    { id: "c2", name: "Biscuit",    room: "kitchen", mood: "meow",   coat: 3,
+      line: "Needs you", project: "recipe-site",
+      ask: "Two ways to do the image uploads. Which one?" },
+    { id: "c3", name: "Pepper",     room: "living",  mood: "sleep",  coat: 5,
+      line: "Asleep: nothing to do", project: "pixel-shop" },
+    { id: "c4", name: "Clementine", room: "study",   mood: "review", coat: 6,
+      line: "Brought you something to review", project: "knit-patterns",
+      ask: "A pull request, ready for you to read." },
+    { id: "c5", name: "Noodle",     room: "sunroom", mood: "work",   coat: 4,
+      line: "Chasing a flaky test", project: "recipe-site" },
+    { id: "c6", name: "Sable",      room: "brain",   mood: "sleep",  coat: 7,
+      line: "Asleep: nothing to do", project: "reading-notes" },
+    { id: "c7", name: "Tofu",       room: "bedroom", mood: "cry",    coat: 2,
+      line: "Upset: the last run failed", project: "reading-notes",
+      ask: "The build died. It has not tried again." }
+  ];
+  var QUEEN = { id: "queen", name: "Ninine", room: "hall", mood: "work", coat: 0,
+    line: "The queen of the house", say: "Biscuit is waiting on you, and Clementine has something to read." };
+
+  // the eight coats, as the page does them today: one fur ramp, tinted
+  var COATS = ["none", "hue-rotate(-18deg) saturate(1.3)", "grayscale(1) brightness(1.05)",
+    "sepia(.5) saturate(1.4)", "hue-rotate(180deg) saturate(.45) brightness(1.02)",
+    "brightness(.62) saturate(.5)", "hue-rotate(20deg) saturate(1.7)", "grayscale(.6) brightness(.8)"];
+
+  var MOODS = {
+    work:   { label: "Busy working",                   short: "Working",   frames: 4, needs: false },
+    review: { label: "Brought you something to review", short: "To review", frames: 2, needs: true },
+    meow:   { label: "Meowing for you",                frames: 2, short: "Needs you", needs: true },
+    cry:    { label: "Upset: the last run failed",     short: "Upset",     frames: 3, needs: true },
+    sleep:  { label: "Asleep: nothing to do",          short: "Asleep",    frames: 3, needs: false }
+  };
+
+  var FPS = { work: 5, review: 3, meow: 3, cry: 4, sleep: 2 };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { floor: "ground", open: null, hot: null };
+
+  /* ---- the plan ----------------------------------------------------------------------------- */
+  var NS = "http://www.w3.org/2000/svg";
+  function svg(tag, attrs) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) { e.setAttribute(k, attrs[k]); }
+    return e;
+  }
+  function tok(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  function drawPlan() {
+    var plan = $("plan");
+    plan.replaceChildren();
+    var ink = tok("--ink"), well = tok("--well"), lav = tok("--lav"), paper = tok("--paper");
+    var grass = tok("--grass"), line = tok("--line");
+
+    // the grounds, under everything
+    plan.appendChild(svg("rect", { x: 60, y: -70, width: 900, height: 620, fill: well }));
+    plan.appendChild(svg("rect", { x: 60, y: 20, width: 900, height: 530, fill: lav, opacity: ".55" }));
+    var upper = state.floor === "upper";
+    if (!upper) {
+      // the drive up to the front door, and the forest round the edges of the grounds
+      plan.appendChild(svg("rect", { x: 366, y: 384, width: 56, height: 148, fill: lav }));
+      plan.appendChild(svg("rect", { x: 378, y: 384, width: 32, height: 148, fill: well }));
+      // the forest along the foot of the grounds, clear of the drive
+      [120, 196, 272, 496, 572, 648, 724, 800, 876].forEach(function (x) {
+        var y = 520 + (x % 3) * 6;
+        plan.appendChild(svg("rect", { x: x - 3, y: y - 8, width: 6, height: 10, fill: ink }));
+        plan.appendChild(svg("polygon", { points: [x - 16, y - 6, x, y - 42, x + 16, y - 6].join(" "), fill: grass }));
+        plan.appendChild(svg("polygon", { points: [x - 11, y - 18, x, y - 42, x + 11, y - 18].join(" "), fill: grass, opacity: ".65" }));
+      });
+    }
+    // the other floor, faint underneath, so the house keeps its shape when you change floor
+    var ghost = svg("g", { opacity: ".22" });
+    Object.keys(ROOMS).forEach(function (k) {
+      if ((ROOMS[k].floor === "upper") === upper) { return; }
+      var b = ROOMS[k].box;
+      ghost.appendChild(svg("rect", { x: b[0], y: b[1], width: b[2], height: b[3], fill: lav }));
+    });
+    plan.appendChild(ghost);
+
+    if (!upper) {
+      // the catio's lawn
+      var g = ROOMS.garden.box;
+      plan.appendChild(svg("rect", { x: g[0], y: g[1], width: g[2], height: g[3], fill: grass }));
+    } else {
+      // the landing, over the kitchen and the hall: the stairwell and the attic ladder
+      plan.appendChild(svg("rect", {
+        x: LANDING[0], y: LANDING[1], width: LANDING[2], height: LANDING[3],
+        fill: paper, stroke: ink, "stroke-width": 4
+      }));
+      for (var ly = LANDING[1] + 16; ly < LANDING[1] + LANDING[3] - 4; ly += 16) {
+        plan.appendChild(svg("line", {
+          x1: LANDING[0] + 4, y1: ly, x2: LANDING[0] + LANDING[2] - 4, y2: ly,
+          stroke: line, "stroke-width": 2
+        }));
+      }
+      // the attic ladder, in the corner of the landing: where a finished cat goes to nap
+      plan.appendChild(svg("rect", { x: LANDING[0] + 18, y: LANDING[1] + 16, width: 34, height: 54, fill: lav, stroke: ink, "stroke-width": 3 }));
+      for (var r2 = 1; r2 < 4; r2++) {
+        plan.appendChild(svg("line", {
+          x1: LANDING[0] + 18, y1: LANDING[1] + 16 + r2 * 13, x2: LANDING[0] + 52,
+          y2: LANDING[1] + 16 + r2 * 13, stroke: ink, "stroke-width": 3
+        }));
+      }
+    }
+
+    Object.keys(ROOMS).forEach(function (k) {
+      var r = ROOMS[k];
+      if ((r.floor === "upper") !== upper) { return; }
+      var b = r.box;
+      var grp = svg("g", { class: "room", "data-room": k });
+      grp.appendChild(svg("rect", {
+        x: b[0], y: b[1], width: b[2], height: b[3],
+        fill: k === "garden" ? "none" : paper, stroke: ink, "stroke-width": 4
+      }));
+      // the floorboards, so a room reads as a floor rather than a box
+      if (k !== "garden") {
+        for (var y = b[1] + 16; y < b[1] + b[3] - 4; y += 16) {
+          grp.appendChild(svg("line", {
+            x1: b[0] + 4, y1: y, x2: b[0] + b[2] - 4, y2: y, stroke: line, "stroke-width": 2
+          }));
+        }
+      }
+      grp.appendChild(svg("rect", {
+        class: "room-br", x: b[0] - 5, y: b[1] - 5, width: b[2] + 10, height: b[3] + 10, rx: 2
+      }));
+      grp.appendChild(svg("rect", {
+        class: "room-hit", x: b[0], y: b[1], width: b[2], height: b[3], "data-room": k
+      }));
+      plan.appendChild(grp);
+    });
+
+    // the doorways: a clean cut through the wall, no sign on it
+    (upper ? UPPER_DOORS : DOORS).forEach(function (d) {
+      plan.appendChild(svg("rect", { x: d[0], y: d[1], width: d[2], height: d[3], fill: paper }));
+    });
+
+    // the stair, in the same place on both floors, so changing floor never moves the camera
+    var st = svg("g", {});
+    st.appendChild(svg("rect", {
+      x: STAIR[0], y: STAIR[1], width: STAIR[2], height: STAIR[3], fill: lav, stroke: ink, "stroke-width": 4
+    }));
+    for (var s = 1; s < 6; s++) {
+      st.appendChild(svg("line", {
+        x1: STAIR[0], y1: STAIR[1] + s * (STAIR[3] / 6), x2: STAIR[0] + STAIR[2],
+        y2: STAIR[1] + s * (STAIR[3] / 6), stroke: ink, "stroke-width": 2
+      }));
+    }
+    plan.appendChild(st);
+
+    // the furniture: one piece a room, enough for the room to read as itself
+    Object.keys(ROOMS).forEach(function (k) {
+      var r = ROOMS[k];
+      if ((r.floor === "upper") !== upper) { return; }
+      var b = r.box, scale = 2.6;
+      // the hall's front door is on the south wall: the stair holds the middle of the room
+      var ay = k === "hall" ? b[1] + b[3] - 46 : b[1] + 14;
+      plan.appendChild(svg("image", {
+        href: "art/" + r.art + ".png",
+        x: b[0] + b[2] / 2 - (r.aw * scale) / 2, y: ay,
+        width: r.aw * scale, height: 12 * scale, "image-rendering": "pixelated"
+      }));
+      // and where the project lives: a filing cabinet, or the chest in the catio and the library
+      var chest = k === "garden" || k === "brain";
+      plan.appendChild(svg("image", {
+        href: chest ? "art/chest.png" : "art/cabinet.png",
+        x: b[0] + b[2] - 46, y: b[1] + b[3] - (chest ? 46 : 52),
+        width: chest ? 32 : 28, height: chest ? 26 : 32, "image-rendering": "pixelated"
+      }));
+    });
+  }
+
+  /* ---- the cats on the floor ------------------------------------------------------------------ */
+  function spotsIn(room, n) {
+    var b = ROOMS[room].box, out = [], cols = Math.min(n, 3);
+    for (var i = 0; i < n; i++) {
+      out.push([
+        b[0] + b[2] * (0.28 + 0.44 * ((i % cols) / Math.max(1, cols - 1 || 1))),
+        b[1] + b[3] * (0.74 + 0.1 * Math.floor(i / cols))
+      ]);
+    }
+    return out;
+  }
+
+  function placeCats() {
+    var host = $("cats");
+    host.replaceChildren();
+    var here = CATS.filter(function (c) { return ROOMS[c.room].floor === state.floor; });
+    if (state.floor === "ground") { here = here.concat([QUEEN]); }
+    var byRoom = {};
+    here.forEach(function (c) { (byRoom[c.room] = byRoom[c.room] || []).push(c); });
+
+    Object.keys(byRoom).forEach(function (room) {
+      var group = byRoom[room], spots = spotsIn(room, group.length);
+      group.forEach(function (c, i) {
+        var m = MOODS[c.mood];
+        var d = document.createElement("div");
+        d.className = c.id === "queen" ? "queen-pin" : "cat";
+        d.style.left = left(spots[i][0]);
+        d.style.top = top_(spots[i][1]);
+        d.dataset.cat = c.id;
+        var spr = document.createElement("div");
+        spr.className = "spr";
+        spr.style.setProperty("--frames", m.frames);
+        spr.style.backgroundImage = "url(art/cat-" + c.mood + ".png)";
+        spr.style.filter = COATS[c.coat] === "none" ? "" : COATS[c.coat];
+        spr.tabIndex = 0;
+        spr.setAttribute("role", "button");
+        spr.setAttribute("aria-label", c.name + ", " + m.label);
+        d.appendChild(spr);
+        host.appendChild(d);
+        d._cat = c;
+      });
+    });
+    animate();
+    wander();
+  }
+
+  // the frames, one at a time, each mood at its own speed; and cats that wander their room
+  var raf = null, roam = null;
+
+  function sheetOf(d, mood) {
+    var m = MOODS[mood] || WALK;
+    d._showing = mood;
+    var spr = d.querySelector(".spr");
+    spr.style.setProperty("--frames", m.frames);
+    spr.style.backgroundImage = "url(art/cat-" + mood + ".png)";
+  }
+
+  var WALK = { frames: 4, fps: 8 };
+
+  function animate() {
+    if (raf) { cancelAnimationFrame(raf); }
+    if (still()) { return; }
+    function step(t) {
+      [].forEach.call(document.querySelectorAll("#cats > div"), function (d) {
+        var showing = d._showing || d._cat.mood;
+        var m = showing === "walk-side" ? WALK : MOODS[showing];
+        var f = Math.floor(t / (1000 / (m.fps || FPS[showing] || 3))) % m.frames;
+        d.querySelector(".spr").style.backgroundPositionX =
+          (m.frames > 1 ? (f / (m.frames - 1)) * 100 : 0) + "%";
+      });
+      raf = requestAnimationFrame(step);
+    }
+    raf = requestAnimationFrame(step);
+  }
+
+  function still() { return matchMedia("(prefers-reduced-motion: reduce)").matches; }
+
+  /* A working cat gets up and crosses its room now and then. It walks facing the way it is
+     going (the sheet is drawn facing right and mirrored for left), then settles back. */
+  function wander() {
+    clearTimeout(roam);
+    if (still()) { return; }
+    roam = setTimeout(function () {
+      var able = [].filter.call(document.querySelectorAll("#cats > .cat"), function (d) {
+        return d._cat.mood === "work" || d._cat.mood === "meow";
+      });
+      if (able.length && !state.open) {
+        var d = able[Math.floor(Math.random() * able.length)];
+        var b = ROOMS[d._cat.room].box;
+        var toX = b[0] + b[2] * (0.24 + Math.random() * 0.5);
+        var toY = b[1] + b[3] * (0.66 + Math.random() * 0.2);
+        var fromX = parseFloat(d.style.left) / 100 * VIEW.w + VIEW.x;
+        d.classList.toggle("flip", toX < fromX);
+        sheetOf(d, "walk-side");
+        d.style.left = left(toX);
+        d.style.top = top_(toY);
+        setTimeout(function () {
+          d.classList.remove("flip");
+          sheetOf(d, d._cat.mood);
+        }, 1600);
+      }
+      wander();
+    }, 2600 + Math.random() * 3200);
+  }
+
+  /* ---- hover names a thing; a click opens its menu ------------------------------------------- */
+  function say(text) { $("tip").textContent = text || ""; }
+
+  function catLine(c) {
+    var m = MOODS[c.mood];
+    if (c.id === "queen") { return c.name + " · the queen of the house — " + c.say; }
+    return c.name + " · " + m.label + (c.ask ? " — " + c.ask : "");
+  }
+
+  function closeMenu() {
+    $("menu").hidden = true;
+    state.open = null;
+    [].forEach.call(document.querySelectorAll(".cat, .queen-pin"), function (d) { d.classList.remove("lit"); });
+    [].forEach.call(document.querySelectorAll(".room"), function (g) { g.classList.remove("on"); });
+  }
+
+  function openMenu(target, title, sub, now, actions) {
+    var menu = $("menu");
+    menu.replaceChildren();
+    var h = document.createElement("h4");
+    h.textContent = title;
+    menu.appendChild(h);
+    if (sub) {
+      var s = document.createElement("p");
+      s.className = "sub"; s.textContent = sub;
+      menu.appendChild(s);
+    }
+    if (now) {
+      var n = document.createElement("p");
+      n.className = "now"; n.textContent = now;
+      menu.appendChild(n);
+    }
+    var ul = document.createElement("ul");
+    actions.forEach(function (a, i) {
+      var li = document.createElement("li");
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = a;
+      if (i === 0) { b.className = "primary"; }
+      b.addEventListener("click", function () {
+        say("This is the tour — in a real café, " + a.replace(/…$/, "") + " does exactly that.");
+        closeMenu();
+      });
+      li.appendChild(b); ul.appendChild(li);
+    });
+    menu.appendChild(ul);
+    menu.hidden = false;
+
+    // open clear of the panel, by whichever of left, below or above moves it least
+    var stage = $("stage").getBoundingClientRect(), r = target.getBoundingClientRect();
+    var x = r.left - stage.left + r.width + 8, y = r.top - stage.top;
+    if (x + menu.offsetWidth > stage.width - 8) { x = r.left - stage.left - menu.offsetWidth - 8; }
+    if (x < 8) { x = 8; }
+    if (y + menu.offsetHeight > stage.height - 8) { y = stage.height - menu.offsetHeight - 8; }
+    if (y < 8) { y = 8; }
+    menu.style.left = x + "px";
+    menu.style.top = y + "px";
+    state.open = target;
+  }
+
+  function wireStage() {
+    var stage = $("stage");
+
+    stage.addEventListener("pointerover", function (e) {
+      var spr = e.target.closest(".spr");
+      if (spr) {
+        say(catLine(spr.parentElement._cat));
+        return;
+      }
+      var hit = e.target.closest("[data-room]");
+      if (hit) {
+        var k = hit.getAttribute("data-room"), r = ROOMS[k];
+        var n = CATS.filter(function (c) { return c.room === k; }).length;
+        hit.closest(".room").classList.add("on");
+        say(r.name + (n ? " · " + n + (n === 1 ? " cat" : " cats") : " · empty"));
+      }
+    });
+    stage.addEventListener("pointerout", function (e) {
+      var hit = e.target.closest("[data-room]");
+      if (hit && !state.open) { hit.closest(".room").classList.remove("on"); }
+      if (!stage.contains(e.relatedTarget)) { say(""); }
+    });
+
+    stage.addEventListener("click", function (e) {
+      var spr = e.target.closest(".spr");
+      if (spr) {
+        e.stopPropagation();
+        closeMenu();
+        var host = spr.parentElement, c = host._cat;
+        host.classList.add("lit");
+        if (c.id === "queen") {
+          openMenu(spr, c.name, "The queen of the house", c.say,
+            ["Talk to her…", "Quest log (3)", "What she keeps", "Her character"]);
+        } else {
+          openMenu(spr, c.name, MOODS[c.mood].label + " · " + c.project, c.ask || c.line,
+            ["Open its chat…", "Say something…", "Rename…", "Move to another room…", "Let it go"]);
+        }
+        return;
+      }
+      var hit = e.target.closest("[data-room]");
+      if (hit) {
+        e.stopPropagation();
+        closeMenu();
+        var k = hit.getAttribute("data-room");
+        var mine = CATS.filter(function (c) { return c.room === k; });
+        var need = mine.filter(function (c) { return MOODS[c.mood].needs; });
+        hit.closest(".room").classList.add("on");
+        openMenu(hit, ROOMS[k].name,
+          mine.length ? mine.length + (mine.length === 1 ? " cat" : " cats") + " live here" : "No cats here yet",
+          need.length ? need.map(function (c) { return c.name + " needs you"; }).join(", ") : null,
+          ["Open the filing cabinet…", "New cat here…", "Rename this room…", "Close this room"]);
+        return;
+      }
+      closeMenu();
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { closeMenu(); }
+    });
+    document.addEventListener("click", function (e) {
+      if (!stage.contains(e.target)) { closeMenu(); }
+    });
+  }
+
+  /* ---- the map panel --------------------------------------------------------------------------- */
+  function drawMini() {
+    var cv = $("mini"), g = cv.getContext("2d");
+    var sx = cv.width / W, sy = cv.height / H;
+    g.clearRect(0, 0, cv.width, cv.height);
+    g.fillStyle = tok("--well"); g.fillRect(0, 0, cv.width, cv.height);
+    Object.keys(ROOMS).forEach(function (k) {
+      var r = ROOMS[k], b = r.box, here = r.floor === state.floor;
+      g.globalAlpha = here ? 1 : 0.25;
+      g.fillStyle = here ? tok("--lav") : tok("--line");
+      g.fillRect(b[0] * sx, b[1] * sy, b[2] * sx, b[3] * sy);
+      g.globalAlpha = 1;
+      if (here) {
+        g.strokeStyle = tok("--ink"); g.lineWidth = 1;
+        g.strokeRect(b[0] * sx, b[1] * sy, b[2] * sx, b[3] * sy);
+      }
+    });
+    // a pip where a cat needs you, on this floor or the other
+    CATS.forEach(function (c) {
+      if (!MOODS[c.mood].needs) { return; }
+      var b = ROOMS[c.room].box;
+      g.fillStyle = ROOMS[c.room].floor === state.floor ? tok("--accent") : tok("--pink");
+      g.beginPath();
+      g.arc((b[0] + b[2] / 2) * sx, (b[1] + b[3] / 2) * sy, 3, 0, Math.PI * 2);
+      g.fill();
+    });
+  }
+
+  function setFloor(f) {
+    state.floor = f;
+    $("tabGround").setAttribute("aria-pressed", String(f === "ground"));
+    $("tabUpper").setAttribute("aria-pressed", String(f === "upper"));
+    closeMenu();
+    drawPlan(); placeCats(); drawMini();
+    say("");
+  }
+
+  function wirePanel() {
+    var panel = $("mapPanel"), fold = $("mapFold");
+    fold.addEventListener("click", function () {
+      var folded = panel.dataset.folded === "true";
+      panel.dataset.folded = String(!folded);
+      fold.setAttribute("aria-expanded", String(folded));
+      if (folded) { drawMini(); }
+    });
+    $("tabGround").addEventListener("click", function () { setFloor("ground"); });
+    $("tabUpper").addEventListener("click", function () { setFloor("upper"); });
+
+    // the badge, and the pips: the queen is never counted — she is not work to be done
+    var needing = CATS.filter(function (c) { return MOODS[c.mood].needs; });
+    $("houseBadge").textContent = String(needing.length);
+    $("houseBadge").hidden = !needing.length;
+    var upstairsNeeds = needing.some(function (c) { return ROOMS[c.room].floor === "upper"; });
+    $("upPip").hidden = !upstairsNeeds;
+    $("foldPip").style.display = needing.length ? "" : "none";
+  }
+
+  /* ---- the moods, as a row of cards ------------------------------------------------------------ */
+  function buildMoods() {
+    var order = [
+      ["cry", "Upset", "The last run failed. It stopped where it broke and has not tried again."],
+      ["meow", "Needs you", "It is blocked on an answer only you can give. Point at it and it asks."],
+      ["review", "To review", "It finished something and brought it to you: a pull request, a draft, a note."],
+      ["work", "Working", "Busy. Nothing for you to do; it will say so when there is."],
+      ["sleep", "Asleep", "Done, and nothing waiting. It stays until you let it go."]
+    ];
+    var host = $("moods");
+    order.forEach(function (row) {
+      var k = row[0], m = MOODS[k];
+      var d = document.createElement("div");
+      d.className = "mood";
+      var pic = document.createElement("div");
+      pic.className = "pic";
+      pic.style.setProperty("--frames", m.frames);
+      pic.style.backgroundImage = "url(art/cat-" + k + ".png)";
+      var b = document.createElement("b"); b.textContent = row[1];
+      var s = document.createElement("span"); s.textContent = row[2];
+      d.append(pic, b, s);
+      host.appendChild(d);
+    });
+  }
+
+  /* ---- the wizard ------------------------------------------------------------------------------
+     The copy is openSetup() in catio/index.html, word for word. The answers are invented.        */
+  var STEPS = ["Welcome", "Rooms", "GitHub", "Sessions", "Litter box", "How it works", "Done"];
+  var OPENING = [
+    ["living", "Cat lounge"], ["dining", "Café"], ["kitchen", "Kitchen"], ["study", "Craft room"],
+    ["sunroom", "Terrace"], ["garden", "Catio"], ["brain", "Library"], ["bedroom", "Bedroom"],
+    ["bath", "Ensuite"], ["hall", "Entrance hall"]
+  ];
+  var DEMO_REPOS = ["pixel-shop", "recipe-site", "knit-patterns", "reading-notes"];
+  var INSTALL = "claude plugin marketplace add https://github.com/charredlatte/Pretty-Project-Portfolio.git\n" +
+    "claude plugin install kittychat-house-rules@kittychat --scope user";
+
+  var wiz = { step: 0, name: "", rooms: 4, repos: {}, names: {} };
+  DEMO_REPOS.forEach(function (r, i) { wiz.repos[r] = OPENING[i % 4][0]; });
+
+  function p(text, cls) {
+    var e = document.createElement("p");
+    if (cls) { e.className = cls; }
+    e.textContent = text;
+    return e;
+  }
+
+  function wizStep() {
+    var body = $("wizBody");
+    body.replaceChildren();
+    var i = wiz.step;
+
+    if (i === 0) {
+      body.appendChild(p("All your Claude chats, in one cozy café. Each chat becomes a cat, each project a " +
+        "room. Claude on its own is a stripped car: a brilliant engine, with no seatbelts, no windshield and " +
+        "no tires. The café is the rest of the car, and Ninine, the queen cat, drives. Seven short steps fit " +
+        "the parts, then the doors open."));
+      var f = document.createElement("label");
+      f.className = "field";
+      f.appendChild(document.createTextNode("Name your café"));
+      var nm = document.createElement("input");
+      nm.id = "wizName"; nm.maxLength = 40; nm.placeholder = "KittyChat Café"; nm.value = wiz.name;
+      nm.addEventListener("input", function () { wiz.name = nm.value; });
+      f.appendChild(nm);
+      body.appendChild(f);
+
+    } else if (i === 1) {
+      body.appendChild(p("The manor has ten rooms. Open as many as you have kinds of work: they open from " +
+        "the front of the house, and the rest stay closed until you open them under Edit rooms."));
+      var ctr = document.createElement("div");
+      ctr.className = "counter";
+      var less = document.createElement("button");
+      less.className = "btn"; less.type = "button"; less.textContent = "-";
+      less.setAttribute("aria-label", "One room fewer");
+      less.disabled = wiz.rooms <= 1;
+      var more = document.createElement("button");
+      more.className = "btn"; more.type = "button"; more.textContent = "+";
+      more.setAttribute("aria-label", "One room more");
+      more.disabled = wiz.rooms >= 10;
+      var n = document.createElement("b"); n.textContent = String(wiz.rooms);
+      var note = document.createElement("span");
+      note.className = "note";
+      note.textContent = wiz.rooms === 1 ? "room open" : "rooms open";
+      less.addEventListener("click", function () { wiz.rooms--; wizStep(); });
+      more.addEventListener("click", function () { wiz.rooms++; wizStep(); });
+      ctr.append(less, n, more, note);
+      body.appendChild(ctr);
+      var grid = document.createElement("ul");
+      grid.className = "roomgrid";
+      OPENING.forEach(function (r, idx) {
+        var li = document.createElement("li");
+        li.dataset.open = String(idx < wiz.rooms);
+        li.textContent = r[1];
+        grid.appendChild(li);
+      });
+      body.appendChild(grid);
+      var names = document.createElement("div");
+      names.className = "namegrid";
+      OPENING.slice(0, wiz.rooms).forEach(function (r, idx) {
+        var f = document.createElement("label");
+        f.className = "field";
+        f.appendChild(document.createTextNode(r[1] + (idx === 0 ? " · new cats come in here" : "")));
+        var inp = document.createElement("input");
+        inp.maxLength = 30; inp.placeholder = r[1];
+        inp.value = wiz.names[r[0]] || "";
+        inp.addEventListener("input", function () { wiz.names[r[0]] = inp.value; });
+        f.appendChild(inp);
+        names.appendChild(f);
+      });
+      body.appendChild(names);
+      body.appendChild(p("A closed room is dimmed on the map with no sign on it, gets no cats, and keeps " +
+        "its name for when you open it again.", "sub"));
+
+    } else if (i === 2) {
+      body.appendChild(p("The tires. Your repositories are where the work meets the road."));
+      body.appendChild(p("Each repository lives in a room. Its sessions are that room's cats."));
+      DEMO_REPOS.forEach(function (name) {
+        var row = document.createElement("div");
+        row.className = "repo";
+        var c = document.createElement("code"); c.textContent = name;
+        var sel = document.createElement("select");
+        sel.setAttribute("aria-label", "Room for " + name);
+        OPENING.slice(0, wiz.rooms).forEach(function (r) {
+          var o = document.createElement("option");
+          o.value = r[0]; o.textContent = r[1];
+          sel.appendChild(o);
+        });
+        sel.value = wiz.repos[name] && OPENING.slice(0, wiz.rooms).some(function (r) {
+          return r[0] === wiz.repos[name];
+        }) ? wiz.repos[name] : OPENING[0][0];
+        wiz.repos[name] = sel.value;
+        sel.addEventListener("change", function () { wiz.repos[name] = sel.value; });
+        row.append(c, sel);
+        body.appendChild(row);
+      });
+
+    } else if (i === 3) {
+      body.appendChild(p("The windshield. Through it you see every chat on the road, each one a cat."));
+      body.appendChild(p("7 sessions found. They'll move in when you open the doors."));
+      body.appendChild(p("When your settings block the live read, the café shows the last copy it saved " +
+        "instead, with one line saying so and when it was taken. The step is never a dead end.", "sub"));
+
+    } else if (i === 4) {
+      body.appendChild(p("The glovebox. Loose notes, half-ideas, things for later. Drop a file here and it " +
+        "waits on the brain's tray until it is sorted to a cat, a room or the house: nothing leaves until " +
+        "you've checked."));
+      var dz = document.createElement("div");
+      dz.className = "drop";
+      dz.textContent = "Drop files here";
+      body.appendChild(dz);
+      body.appendChild(p("In your clone the litter box is the litterbox/ folder: Markdown notes go in, " +
+        "python3 litterbox/sort.py piles them by project and files them, and pull requests the merging " +
+        "rule holds for you land there too. Holding is the rule's doing, not a setting here."));
+
+    } else if (i === 5) {
+      body.appendChild(p("Claude on its own is a stripped car: an engine, and nothing else. The café is the " +
+        "rest of it:"));
+      var ul = document.createElement("ul");
+      ul.className = "how";
+      [["Ninine drives.", "The queen cat at the wheel: she runs your routines, passes your words to the cats and tells you what they're up to, from your own computer."],
+       ["The windshield and the dashboard.", "Each chat is a cat in its project's room, checking in as it works: busy, finished, or stuck and needs you. The badge counts who needs you."],
+       ["Seatbelts and brakes.", "Checks run before a cat may change or publish anything, and Claude can't talk its way round them. Anything it guessed waits for you."],
+       ["The intercom.", "The café can't wake a cat. What you say is kept, and the cat hears it the next time it checks in."],
+       ["The glovebox.", "Loose notes and held pull requests wait in the litter box until you check them."]
+      ].forEach(function (row) {
+        var li = document.createElement("li");
+        var b = document.createElement("b"); b.textContent = row[0];
+        li.append(b, document.createTextNode(row[1]));
+        ul.appendChild(li);
+      });
+      body.appendChild(ul);
+      body.appendChild(p("The seatbelts and brakes come as one Claude Code plugin. Type these two lines in a " +
+        "terminal where Claude Code is installed, or put them in a cloud environment's setup script. With a " +
+        "front desk (a gateway), the same plugin is how every cat checks in there: give your sessions its " +
+        "address and your key as CATIO_URL and CATIO_TOKEN."));
+      var pre = document.createElement("pre");
+      pre.className = "lines"; pre.textContent = INSTALL;
+      body.appendChild(pre);
+
+    } else {
+      body.appendChild(p("Your car is ready, and Ninine has the keys."));
+      var ul2 = document.createElement("ul");
+      ul2.className = "sum";
+      [(wiz.name.trim() || "KittyChat Café"),
+       wiz.rooms + (wiz.rooms === 1 ? " room open" : " rooms open"),
+       DEMO_REPOS.length + " repositories filed",
+       "7 cats at the door"
+      ].forEach(function (t) {
+        var li = document.createElement("li"); li.textContent = t;
+        ul2.appendChild(li);
+      });
+      body.appendChild(ul2);
+      body.appendChild(p("Nothing was written until this step. On a real café, \"Open the doors\" is where " +
+        "the rooms, the repositories and the name are saved, and the cats walk in by the front door.", "sub"));
+    }
+
+    $("wizTitle").textContent = STEPS[i];
+    $("wizWhere").textContent = "Step " + (i + 1) + " of " + STEPS.length;
+    $("wizBack").hidden = i === 0;
+    $("wizNext").textContent = i === STEPS.length - 1 ? "Open the doors" : "Next";
+    var dots = $("wizDots");
+    dots.replaceChildren();
+    STEPS.forEach(function (_, j) {
+      var s = document.createElement("span");
+      if (j === i) { s.className = "on"; }
+      dots.appendChild(s);
+    });
+  }
+
+  function wireWizard() {
+    $("wizBack").addEventListener("click", function () {
+      if (wiz.step > 0) { wiz.step--; wizStep(); }
+    });
+    $("wizNext").addEventListener("click", function () {
+      if (wiz.step < STEPS.length - 1) { wiz.step++; wizStep(); return; }
+      wiz.step = 0; wizStep();
+      $("wizBody").prepend(p("That is the whole wizard. It has started again, so you can walk it twice.", "sub"));
+    });
+    wizStep();
+  }
+
+  /* ---- the queen answers: the three quick replies her card offers ---------------------------- */
+  function wireQueen() {
+    var says = [
+      ["What is waiting for me?", "Two: Biscuit wants an answer about the image uploads, and Clementine " +
+        "left a pull request in the craft room. Tofu's build failed, but it has not asked for you yet."],
+      ["Anything for me to hand in?", "One quiz, from the litter box: a note about the recipe site that I " +
+        "could not place. Two taps and it is filed."],
+      ["Good-bye.", "Off you go. I will keep the place and tell you if anything turns."]
+    ];
+    var host = $("qreplies");
+    says.forEach(function (row) {
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = row[0];
+      b.addEventListener("click", function () { $("qsay").textContent = row[1]; });
+      host.appendChild(b);
+    });
+  }
+
+  /* ---- go --------------------------------------------------------------------------------------- */
+  drawPlan();
+  placeCats();
+  wireStage();
+  wirePanel();
+  drawMini();
+  buildMoods();
+  wireQueen();
+  wireWizard();
+
+  // the theme can change under us; the plan is drawn with the tokens, so redraw it
+  var mq = matchMedia("(prefers-color-scheme: dark)");
+  (mq.addEventListener ? mq.addEventListener.bind(mq, "change") : mq.addListener.bind(mq))(function () {
+    drawPlan(); drawMini();
+  });
+})();
+</script>

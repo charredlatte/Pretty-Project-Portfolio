@@ -1,5 +1,11 @@
 # KittyChat Café
 
+### ▶ [See it: take the tour](https://claude.ai/artifact/SUr62MfU18hzRUBYgA9o8Y)
+
+A playable page: the manor with its cats, what each mood means, the queen you talk to, and the seven-step
+setup wizard as it actually runs. Invented cats, nobody's real data, and every pixel on it drawn for the
+demo, since the café's own art packs may not be redistributed. Source: [`demo/`](demo/).
+
 Every AI session you have on the go, as a cat in a little pixel-art café. Each session is a cat that plays while it
 works, sleeps when it's done, and **meows** when it's waiting on you: point at it and it says what it needs. Chats in
 an app that no connector can read, like a business plan or a legal question, you adopt as cats by hand. One queen cat,
