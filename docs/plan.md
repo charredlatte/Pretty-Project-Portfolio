@@ -337,18 +337,15 @@ decisions quiz page is retired). The small facts (who made `plants.zip`) stay he
     a typo in a repo's cap reported, the gates failing closed, one transcript reader), and a Keys item in the House
     menu of a café on its own address (step 13 above). Both are pushed; the port's review was still to come.
 
-## Publishing
+## Shipping (publishing is retired)
 
-1. CLAUDE.md's "Checking a change": looked at against her words, then `sh catio/test/run.sh`, everything passing.
-2. Read the live artifact in full (`Artifact` read, then every line of the saved file), and compare it with
-   the branch's page. If the live one is newer, merge it first; never overwrite it.
-3. Publish `catio/index.html` to the café's URL (`kittychat-cafe` in `artifacts.json`) with `files` and
-   `capabilities` as CLAUDE.md's "Republishing" says: leave `capabilities` out to keep the stored set, unless CLAUDE.md's
-   "The stored capabilities" says a tool joined since the last publish, or to add one on purpose, and then pass the
-   whole set it gives.
-4. Afterwards: list the files, read back and look at any art that changed, list `rooms`, and create, update
-   and delete one probe in `cats`.
-5. Add a line to `docs/history.md`.
+1. CLAUDE.md's "Checking a change": looked at against her words, then the e2e suite, everything passing.
+2. Merge to `main`. Workers Builds deploys the gateway, which serves `catio/index.html`, so the merge is what
+   puts a change in front of her — there is nothing to publish (CLAUDE.md, "Where the café lives").
+3. Art is the exception, because `art/licensed/` isn't in git: after changing any of it, run
+   `python3 harness/gateway/cafe/move-in.py` and look at the Cloudflare link, since the gateway keeps the old
+   copy of every file that upload doesn't replace.
+4. Add a line to `docs/history.md`.
 
 ## Rules worth repeating
 

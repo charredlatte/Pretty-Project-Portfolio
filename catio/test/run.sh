@@ -26,8 +26,8 @@ art_note() {   # $1: "look" when only screenshots are being taken
     echo "      her own pieces, slots, frames and fonts. A failure outside those is real, and once the art"
     echo "      is here every failure is. Most of them say nothing about art/licensed, so go by the check."
   fi
-  echo "      Two ways back, in CLAUDE.md, \"Republishing\": read every path under art/licensed/ back from"
-  echo "      the published artifact (list its files, then one read -- those paths and no others: the rest"
+  echo "      Two ways back, in CLAUDE.md, \"The licensed art\": read every path under art/licensed/ back from"
+  echo "      the retired artifact (list its files, then one read -- those paths and no others: the rest"
   echo "      of the listing is committed work here), or rebuild from her zips with catio/tools/build-art.py."
   echo
 }

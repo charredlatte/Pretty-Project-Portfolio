@@ -186,8 +186,21 @@ dropped on a cat; `sample` lets the page ask Claude which cat a file is for. On 
 the rest.
 
 Once their front desk is up (`harness/gateway/README.md`) and its connector is named `CATIO` in claude.ai,
-republish with the whole set in `CLAUDE.md` ("The stored capabilities"), the `CATIO` server included: until then the
-page can't reach the front desk. It worked when the House menu says *Gateway live* with a time.
+republish with the whole set below, the `CATIO` server included: until then the page can't reach the front desk.
+It worked when the House menu says *Gateway live* with a time.
+
+```
+capabilities: { mcp: { servers: [
+    { server: "Claude Code Remote", tools: ["list_sessions", "list_repos", "send_message", "create_session",
+      "set_session_title", "archive_session", "unarchive_session", "interrupt_session"] },
+    { server: "CATIO", tools: ["list_agents", "comment", "comments", "drop_file", "manage", "decide",
+      "quizzes", "answer"] }] },
+  db: {}, assets: {}, sample: {}, downloads: true }
+```
+
+`send_message` posts into a session, `decide` asks the front desk's decider where a dropped file goes, `quizzes`
+and `answer` are the queen's quest log, and `downloads` is what The look's Export tokens writes through. Passing
+`capabilities` replaces the whole set, so pass all of it or none.
 
 If the sign says claude.ai won't let the page read sessions live, there is nothing for them to
 switch: Claude Code Remote is built into claude.ai and has no entry in their Connectors list. The
@@ -226,7 +239,10 @@ of those counts.
   session start without it, and without it both are blind: the screenshots show the no-art fallbacks rather
   than the page, and the check that wants no warning sign fails along with the checks of The look and a
   skin, which stand in for her own drawings. A failure outside those is real. `run.sh` says so when it
-  starts and again if the run goes red; CLAUDE.md, "Republishing", has the two ways back.
+  starts and again if the run goes red. Two ways back: build it again from their zips (step 2 above), or, once
+  their page is up, read every path under `art/licensed/` back out of it (`Artifact` list its files, then one
+  read with `out_dir: "catio"` whose `paths` hold those and no others — the rest of that listing is the
+  checkout's own committed work, which the published copy would overwrite).
 - `sh catio/test/run.sh` runs the end-to-end suite in headless Chromium, against a stand-in for the
   artifact runtime and against the local bundle on a real server. Run it after every change; it
   builds the bundle as part of the run, so a broken bundler fails the suite.

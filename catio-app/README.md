@@ -50,8 +50,8 @@ catio-app/build/catio_look catio catio-app/generated/manor.json catio-app/test/f
     catio-app/.look/ground.png ground          # the floor alone: or upper, or a room key
 ```
 
-Both read the art from `catio/art/`, so they need `catio/art/licensed/` -- gitignored, and fetched back
-from the artifact as CLAUDE.md's "Republishing" says. Without it the house is missing and the sign says
+Both read the art from `catio/art/`, so they need `catio/art/licensed/` -- gitignored, and got back one of
+the two ways CLAUDE.md's "The licensed art" gives. Without it the house is missing and the sign says
 so. **The frames contain the licensed art**, which is why `catio-app/.look/` is gitignored: never commit
 one. The cats are the invented ones in `test/fixtures/` (`--data` names another folder), never her real
 data.

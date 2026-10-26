@@ -14,9 +14,9 @@ compressed. Read this before starting something new. Last updated 2 October 2026
 | `litterbox/` | The back burner: new notes land here, `litterbox/sort.py` piles them by project for her to check, then files each checked pile into its project's own repo and pushes it |
 | `catio/art/CREDITS.md` | Every pack, its artist and its licence |
 | `harness/README.md`, `harness/rules.json` | The KittyChat house rules and the Catio MCP server |
-| `artifacts.json` | The café's artifact URL (`kittychat-cafe`), and her two retired quiz pages |
+| `artifacts.json` | The retired pages, read-only: the old café artifact (`kittychat-cafe`, which still holds the licensed art and her project maps) and her two quiz pages |
 | GitHub | Issue #3 (the KittyChat Cafe); the merged PRs, whose descriptions record each round |
-| The artifact's database | Her private data: rooms, renames, adopted chats, queens' notes, the brain's files, notes, the outbox. Never in git |
+| The café's database, in the gateway | Her private data: rooms, renames, adopted chats, the queen's notes, the brain's files, notes, the outbox. Never in git |
 | Her Drive folder "KittyChat Cafe Assets" | The asset-pack zips |
 
 Claude keeps no memory between sessions, so anything worth keeping goes in one of these.

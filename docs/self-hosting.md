@@ -30,7 +30,7 @@ Making these one setting, read from one place, is the step that turns "run your 
 | `catio/data/projects.json` | Not committed | The words that point a note or a cat at one of your repos, and where each repo's filed notes go (`read_projects` in `catio/tools/digest.py`) | Your projects, or nothing at all |
 | `artifacts.json` | Her published pages | Where republishing goes | Yours, once published |
 | `README.md`, `catio-plugin/skills/catio/SKILL.md`, `harness/gateway/README.md` | `charredlatte/Pretty-Project-Portfolio` | The clone in Running your own and in the setup skill, and the repository the gateway's Worker is imported from (and redeployed from on every merge) | Your fork |
-| The publish's `capabilities` | The setup skill's set | Lacks `send_message` (which claude.ai refuses from a page today, so posts wait in the outbox either way), `downloads` and the `CATIO` server, so the page can't export tokens or reach a gateway | The whole set in `CLAUDE.md` ("The stored capabilities"), the `CATIO` server once your gateway is set up |
+| The publish's `capabilities` | The setup skill's first-publish set | Lacks `send_message` (which claude.ai refuses from a page today, so posts wait in the outbox either way), `downloads` and the `CATIO` server, so the page can't export tokens or reach a gateway | The whole set in `catio-plugin/skills/catio/SKILL.md`, once your gateway is set up |
 
 ## Where it only names her
 
