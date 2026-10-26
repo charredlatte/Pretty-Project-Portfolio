@@ -46,10 +46,14 @@ console.log("\nthe plan takes its own pointer events");
 // right. So sweep a grid over every room, at the widths where the overlays are largest, with
 // the longest hover line the page can produce showing. The room boxes are read off the drawn
 // SVG, not copied here: a copy would go stale and keep passing.
-for (const width of [1200, 390, 360]) {
+for (const [width, panel] of [[1200, "folded"], [390, "folded"], [360, "folded"],
+                              [1200, "open"], [390, "open"]]) {
   await page.setViewportSize({ width, height: 800 });
   await page.waitForTimeout(250);
   await page.locator("#stage").scrollIntoViewIfNeeded();
+  const isOpen = (await page.locator("#mapPanel").getAttribute("data-folded")) === "false";
+  if ((panel === "open") !== isOpen) { await page.locator("#mapFold").click(); }
+  await page.waitForTimeout(200);
   // make the tip as big as it gets, so its footprint is in the sweep
   await page.locator("#cats .cat .spr").nth(1).hover();
   await page.waitForTimeout(150);
@@ -71,7 +75,8 @@ for (const width of [1200, 390, 360]) {
           const el = document.elementFromPoint(x, y);
           const hit = el && el.closest("[data-room]");
           // a cat standing on the spot is allowed to take it; nothing else is
-          if (!hit && !(el && el.closest(".cat, .queen-pin"))) {
+          // a cat standing there may take it, and so may a real button; nothing else
+          if (!hit && !(el && el.closest(".cat, .queen-pin, button"))) {
             out.push(`${want} at ${Math.round(wx)},${Math.round(wy)} → ${el ? (el.id || el.className.baseVal || el.tagName) : "null"}`);
           } else if (hit && hit.getAttribute("data-room") !== want) {
             out.push(`${want} at ${Math.round(wx)},${Math.round(wy)} → ${hit.getAttribute("data-room")}`);
@@ -81,8 +86,11 @@ for (const width of [1200, 390, 360]) {
     }
     return out;
   });
-  ok(`${width}px: every room owns all 25 points of itself`, dead.length === 0,
+  ok(`${width}px, map ${panel}: every room owns its 25 points`, dead.length === 0,
     dead.slice(0, 4).join("; ") + (dead.length > 4 ? ` (+${dead.length - 4} more)` : ""));
+}
+if ((await page.locator("#mapPanel").getAttribute("data-folded")) === "false") {
+  await page.locator("#mapFold").click();
 }
 await page.setViewportSize({ width: 1200, height: 900 });
 await page.waitForTimeout(250);
@@ -91,7 +99,9 @@ await page.mouse.move(5, 5);
 await page.waitForTimeout(150);
 
 console.log("\nhover names a thing, and stops naming it");
-await page.locator('rect.room-hit[data-room="kitchen"]').hover();
+// a room's centre is where a wandering cat can be; its top-left corner never is
+const CORNER = { position: { x: 24, y: 24 } };
+await page.locator('rect.room-hit[data-room="kitchen"]').hover(CORNER);
 await page.waitForTimeout(150);
 ok("a room is named and its cats counted", (await page.locator("#tip").innerText()) === "Kitchen · 1 cat");
 ok("one room bracketed", (await page.locator(".room.on").count()) === 1);
@@ -104,7 +114,7 @@ await page.waitForTimeout(150);
 ok("the line clears when the pointer leaves", (await page.locator("#tip").innerText()) === "");
 
 console.log("\na click opens a menu beside the thing");
-await page.locator('rect.room-hit[data-room="dining"]').click({ force: true });
+await page.locator('rect.room-hit[data-room="dining"]').click({ ...CORNER, force: true });
 await page.waitForTimeout(200);
 ok("a room menu opens", await page.locator("#menu").isVisible());
 ok("named for the room", (await page.locator("#menu h4").innerText()) === "Café");
@@ -220,6 +230,50 @@ ok("a cat's element holds only its sprite", await page.evaluate(() =>
   [...document.querySelectorAll("#cats > div")].every((d) => d.children.length === 1 &&
     d.firstElementChild.classList.contains("spr") && d.textContent.trim() === "")));
 ok("no sign anywhere on the plan", (await page.locator("#plan text").count()) === 0);
+
+console.log("\nhovering a cat outlines it, whatever coat it wears");
+// the coat used to be an inline filter, which outranks the stylesheet, so no cat was outlined
+for (const which of [0, 3]) {
+  const spr = page.locator("#cats .cat .spr").nth(which);
+  await spr.hover();
+  await page.waitForTimeout(150);
+  const f = await spr.evaluate((e) => getComputedStyle(e).filter);
+  ok(`cat ${which}: outlined on hover, coat kept`, /drop-shadow/.test(f), f);
+}
+await page.mouse.move(5, 5);
+await page.waitForTimeout(150);
+
+console.log("\na menu action says what it did, and the saying sticks");
+await page.locator("#cats .cat .spr").first().click();
+await page.waitForTimeout(200);
+await page.locator("#menu li button").first().click();
+await page.waitForTimeout(400);     // long enough for a stray pointerover to have wiped it
+ok("the confirmation survives the menu closing",
+  /in a real café/.test(await page.locator("#tip").innerText()),
+  JSON.stringify(await page.locator("#tip").innerText()));
+await page.mouse.move(5, 5);
+await page.waitForTimeout(150);
+
+console.log("\nthe wizard remembers what you chose");
+await page.locator(".wiz").scrollIntoViewIfNeeded();
+await page.locator("#wizNext").click();                     // to Rooms
+await page.waitForTimeout(120);
+const filed = async () => page.locator(".repo select").evaluateAll((s) => s.map((e) => e.value));
+await page.locator("#wizNext").click();                     // to GitHub
+await page.waitForTimeout(120);
+const before2 = await filed();
+await page.locator("#wizBack").click();
+await page.waitForTimeout(120);
+for (let i = 0; i < 3; i++) { await page.locator('[data-step="less"]').click(); await page.waitForTimeout(60); }
+for (let i = 0; i < 3; i++) { await page.locator('[data-step="more"]').click(); await page.waitForTimeout(60); }
+await page.locator("#wizNext").click();
+await page.waitForTimeout(150);
+ok("the rooms the repos were filed in survive a dip in the room count",
+  JSON.stringify(await filed()) === JSON.stringify(before2),
+  `${JSON.stringify(before2)} → ${JSON.stringify(await filed())}`);
+await page.reload({ waitUntil: "networkidle" });
+await page.locator("#stage").scrollIntoViewIfNeeded();
+await page.waitForTimeout(300);
 
 console.log("\nthe pixel art is drawn as pixel art");
 const smoothed = await page.evaluate(() =>

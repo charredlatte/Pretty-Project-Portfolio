@@ -139,8 +139,13 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   background-repeat: no-repeat; background-size: calc(100% * var(--frames)) 100%;
 }
 .cat.flip .spr { transform: scaleX(-1); }
-.cat .spr:hover, .cat.lit .spr, .queen-pin .spr:hover, .queen-pin.lit .spr {
-  filter: drop-shadow(1px 0 #FFF6FC) drop-shadow(-1px 0 #FFF6FC)
+/* the coat is a token, not an inline style, so the outline can be composed after it rather
+   than be outranked by it */
+.cat .spr, .queen-pin .spr { filter: var(--coat, none); }
+.cat .spr:hover, .cat.lit .spr, .cat .spr:focus-visible,
+.queen-pin .spr:hover, .queen-pin.lit .spr, .queen-pin .spr:focus-visible {
+  filter: var(--coat, none)
+          drop-shadow(1px 0 #FFF6FC) drop-shadow(-1px 0 #FFF6FC)
           drop-shadow(0 1px #FFF6FC) drop-shadow(0 -1px #FFF6FC);
 }
 
@@ -161,6 +166,9 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   padding: .15em .45em; font-size: .9em; line-height: 1;
 }
 .mappanel {
+  /* the panel's frame and its plan are not clickable here, so they must not take the events
+     the rooms underneath need: the demo has no camera to move a covered room out from under it */
+  pointer-events: none;
   position: absolute; top: 2.2cqi; right: 2.2cqi; display: flex; flex-direction: column; gap: .7cqi;
   padding: .8cqi; background: var(--paper); border: 2px solid var(--ink); border-radius: 3px;
   box-shadow: var(--shadow);
@@ -168,6 +176,7 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
 .mappanel[data-folded="true"] > :not(.fold) { display: none; }
 .mappanel .row { display: flex; gap: .3rem; }
 .pbtn {
+  pointer-events: auto;
   font: 400 max(7px, 1.3cqi)/1 var(--pixel); color: var(--ink); background: var(--lav);
   border: 2px solid var(--ink); border-radius: 2px; padding: .9cqi 1.1cqi; cursor: pointer;
 }
@@ -397,7 +406,7 @@ footer .wrap { padding-block: 2.5rem; }
       <svg id="plan"></svg>
       <div class="layer" id="cats"></div>
       <div class="hud" id="hud">
-        <span class="mark" style="--frames:4;background-image:url(art/cat-work.png);width:22px;height:22px"></span>
+        <span class="mark" style="--frames:4;background-image:url(art/cat-work.png)"></span>
         <span>KittyChat Café</span>
         <span class="badge" id="houseBadge" hidden></span>
       </div>
@@ -909,7 +918,7 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
         spr.className = "spr";
         spr.style.setProperty("--frames", m.frames);
         spr.style.backgroundImage = "url(art/cat-" + c.mood + ".png)";
-        spr.style.filter = COATS[c.coat] === "none" ? "" : COATS[c.coat];
+        if (COATS[c.coat] !== "none") { spr.style.setProperty("--coat", COATS[c.coat]); }
         spr.tabIndex = 0;
         spr.setAttribute("role", "button");
         spr.setAttribute("aria-label", c.id === "queen" ? c.name + ", " + QUEEN_IS
@@ -996,6 +1005,18 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
 
   /* ---- hover names a thing; a click opens its menu ------------------------------------------- */
   function say(text) { $("tip").textContent = text || ""; }
+  // the pointer has to really have moved: closing a menu slides a room under a still pointer,
+  // and without this its name replaces whatever the action just said (CLAUDE.md, moved())
+  var hover = { at: null, armed: true };     // not "still": that is the reduced-motion test
+  function moved(e) {
+    if (hover.armed) { return true; }
+    if (hover.at && Math.abs(e.clientX - hover.at[0]) < 2 && Math.abs(e.clientY - hover.at[1]) < 2) {
+      return false;
+    }
+    hover.armed = true;
+    return true;
+  }
+  function holdTip(e) { hover.armed = false; hover.at = e ? [e.clientX, e.clientY] : null; }
   // said out loud: only on focus, so sweeping the pointer over the plan queues nothing
   function announce(text) { $("say").textContent = text || ""; }
 
@@ -1035,9 +1056,10 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
       var b = document.createElement("button");
       b.type = "button"; b.textContent = a;
       if (i === 0) { b.className = "primary"; }
-      b.addEventListener("click", function () {
-        say("This is the tour — in a real café, " + a.replace(/…$/, "") + " does exactly that.");
+      b.addEventListener("click", function (ev) {
         closeMenu();
+        holdTip(ev);        // the menu vanishing must not let a room rename the line
+        say("This is the tour — in a real café, " + a.replace(/…$/, "") + " does exactly that.");
       });
       li.appendChild(b); ul.appendChild(li);
     });
@@ -1092,7 +1114,14 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
         g.classList.toggle("on", g === room || (state.openRoom && g === state.openRoom));
       });
     };
+    stage.addEventListener("pointermove", function (e) {
+      if (!hover.armed && hover.at &&
+          (Math.abs(e.clientX - hover.at[0]) >= 2 || Math.abs(e.clientY - hover.at[1]) >= 2)) {
+        hover.armed = true;
+      }
+    });
     stage.addEventListener("pointerover", function (e) {
+      if (!moved(e)) { return; }
       var spr = e.target.closest(".spr");
       if (spr) {
         bracket(null);
@@ -1361,10 +1390,10 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
           o.value = r[0]; o.textContent = r[1];
           sel.appendChild(o);
         });
-        sel.value = wiz.repos[name] && OPENING.slice(0, wiz.rooms).some(function (r) {
-          return r[0] === wiz.repos[name];
-        }) ? wiz.repos[name] : OPENING[0][0];
-        wiz.repos[name] = sel.value;
+        // what is shown falls back to the first open room, but only her own change is kept:
+        // writing the fallback back here loses the choice when the room count dips and returns
+        var open = OPENING.slice(0, wiz.rooms).some(function (r) { return r[0] === wiz.repos[name]; });
+        sel.value = wiz.repos[name] && open ? wiz.repos[name] : OPENING[0][0];
         sel.addEventListener("change", function () { wiz.repos[name] = sel.value; });
         row.append(c, sel);
         body.appendChild(row);
