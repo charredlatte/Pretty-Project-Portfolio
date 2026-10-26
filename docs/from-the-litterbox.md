@@ -149,6 +149,33 @@ from. Edit them freely: the sorter only adds, and never files a note that is alr
 
 - [ ] [charredlatte/Pretty-Project-Portfolio#130](https://github.com/charredlatte/Pretty-Project-Portfolio/pull/130) merged on 21 October; it was held for her review (claude-sonnet-5-5 worked on it, and only opus or fable may merge; and the gate's short-SHA bug, a finding of this round), and the code review hadn't run since its last commit. A review of that commit is still owed: tick this once one has run. *— litterbox/held-pretty-project-portfolio-130.md, 2026-10-21*
 
+### Held for review: charredlatte/Pretty-Project-Portfolio#139
+
+- [ ] [charredlatte/Pretty-Project-Portfolio#139](https://github.com/charredlatte/Pretty-Project-Portfolio/pull/139) is held for your review before it merges: claude-sonnet-5-5 worked on it, and only opus or fable may merge.
+  Merge it on GitHub if it's right, or say what to change. *— litterbox/held-pretty-project-portfolio-139.md, 2026-10-21*
+
+### Held for review: charredlatte/Pretty-Project-Portfolio#140
+
+- [ ] [charredlatte/Pretty-Project-Portfolio#140](https://github.com/charredlatte/Pretty-Project-Portfolio/pull/140) is held for your review before it merges: it changes harness, which always waits for her; guesses: that Claude Code shows her the permission prompt a PreToolUse "ask" returns in her sessions, including in Auto mode (not tried in a live session).
+  Merge it on GitHub if it's right, or say what to change. *— litterbox/held-pretty-project-portfolio-140.md, 2026-10-21*
+
+### Held for review: charredlatte/Pretty-Project-Portfolio#142
+
+- [ ] [charredlatte/Pretty-Project-Portfolio#142](https://github.com/charredlatte/Pretty-Project-Portfolio/pull/142) is held for your review before it merges: it changes .claude, harness, which always waits for her.
+  Merge it on GitHub if it's right, or say what to change. *— litterbox/held-pretty-project-portfolio-142.md, 2026-10-22*
+
+### Held for review: charredlatte/Pretty-Project-Portfolio#156
+
+- [ ] [charredlatte/Pretty-Project-Portfolio#156](https://github.com/charredlatte/Pretty-Project-Portfolio/pull/156) is held for your review before it merges: it changes harness, which always waits for her.
+  It is the blank-house change you asked for on 25 October: nothing a clone downloads names your repos any more. Two things need you after it merges — your checkout loses `catio/data/rooms.json` on the next pull (your real rooms live in the café's database, so nothing is lost), and `digest.py` and `sort.py` want a `catio/data/projects.json` on your PC to keep routing your notes. A private repo that should keep `Co-Authored-By` lines now needs `{"public": false}` in its own `.claude/catio-rules.json`.
+  Merge it on GitHub if it's right, or say what to change. *— litterbox/held-pretty-project-portfolio-156.md, 2026-10-25*
+
+### Held for review: charredlatte/Pretty-Project-Portfolio#157
+
+- [ ] [charredlatte/Pretty-Project-Portfolio#157](https://github.com/charredlatte/Pretty-Project-Portfolio/pull/157) is held for your review before it merges: it changes harness, which always waits for her.
+  Two follow-ups to #156: the last of the blurbs you quoted leaves the test fixtures, and the café's address is never written into the download. The page no longer carries your artifact's link and `harness/rules.json` no longer carries your gateway; a session is told the café in its `CATIO_URL` or that it isn't connected. On the gateway a session now gets its file the way an agent does (`drop_file`, then its hook's `pick_up`), which also fixes a note that pointed sessions at an artifact the file was never in. `artifacts.json` keeps your published pages on purpose.
+  Merge it on GitHub if it's right, or say what to change. *— litterbox/held-pretty-project-portfolio-157.md, 2026-10-25*
+
 ## Ideas not built
 
 ### What's missing: art and sound for the Catio
