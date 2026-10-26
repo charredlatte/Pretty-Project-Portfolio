@@ -36,6 +36,13 @@ await page.goto(PAGE, { waitUntil: "networkidle" });
 await page.locator("#stage").scrollIntoViewIfNeeded();
 await page.waitForTimeout(300);
 
+// read before anything in this file touches the panel: the sweep below folds and unfolds it,
+// so asking later would only confirm what the test itself did
+const onArrival = await page.evaluate(() => ({
+  folded: document.getElementById("mapPanel").dataset.folded,
+  expanded: document.getElementById("mapFold").getAttribute("aria-expanded")
+}));
+
 console.log("the document");
 ok("standards mode, not quirks", (await page.evaluate(() => document.compatMode)) === "CSS1Compat");
 ok("no horizontal scroll", !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
@@ -144,7 +151,9 @@ ok("Enter opens a room's menu", (await page.locator("#menu h4").innerText()) ===
 await page.keyboard.press("Escape");
 
 console.log("\nthe two controls, and nothing else");
-ok("the map panel starts folded", (await page.locator("#mapPanel").getAttribute("data-folded")) === "true");
+// CLAUDE.md: it "starts folded, on every screen and every load"
+ok("the map panel starts folded", onArrival.folded === "true" && onArrival.expanded === "false",
+  JSON.stringify(onArrival));
 ok("the badge counts every cat that needs you", (await page.locator("#houseBadge").innerText()) === "3");
 // The queen stands in the hall but is not one of the cats: she is in no count, and the badge
 // of 3 above is the three CATS that need you, not four.
@@ -231,6 +240,24 @@ ok("a cat's element holds only its sprite", await page.evaluate(() =>
     d.firstElementChild.classList.contains("spr") && d.textContent.trim() === "")));
 ok("no sign anywhere on the plan", (await page.locator("#plan text").count()) === 0);
 
+console.log("\nwhat the menus say and show");
+await page.locator('rect.room-hit[data-room="kitchen"]').click({ ...CORNER, force: true });
+await page.waitForTimeout(200);
+ok("a room with one cat says so in the singular",
+  (await page.locator("#menu .sub").innerText()) === "1 cat lives here",
+  await page.locator("#menu .sub").innerText());
+// a click inside the menu is not a click elsewhere: it must stay pinned
+await page.locator("#menu h4").click();
+await page.waitForTimeout(150);
+ok("clicking inside the menu does not dismiss it", await page.locator("#menu").isVisible());
+await page.keyboard.press("Escape");
+
+await page.locator(".queen-pin .spr").click();
+await page.waitForTimeout(200);
+ok("the queen wears her crown in her menu", (await page.locator("#menu h4 img").count()) === 1);
+ok("and no crown is drawn on the map", (await page.locator("#cats img").count()) === 0);
+await page.keyboard.press("Escape");
+
 console.log("\nhovering a cat outlines it, whatever coat it wears");
 // the coat used to be an inline filter, which outranks the stylesheet, so no cat was outlined
 for (const which of [0, 3]) {
@@ -291,6 +318,16 @@ ok("the cats line up with the plan they stand on", await page.evaluate(() => {
   const bySvg = box.left + ((96 - vb[0]) / vb[2]) * box.width;
   const byLayer = layer.left + ((96 - vb[0]) / vb[2]) * layer.width;
   return Math.abs(bySvg - byLayer) < 0.5;
+}));
+
+// frame 0 of cat-meow has its mouth shut and frame 0 of cat-cry has no tear: a card showing
+// either is a card that does not show its mood
+ok("each mood card shows the frame that names it", await page.evaluate(() => {
+  const want = { cry: 2, meow: 1 };
+  return [...document.querySelectorAll(".mood .pic")].every((e) => {
+    const k = (/art\/cat-([a-z-]+)\.png/.exec(getComputedStyle(e).backgroundImage) || [])[1];
+    return String(want[k] ?? 0) === e.dataset.frame;
+  });
 }));
 
 console.log("\nthe wizard runs");
