@@ -59,7 +59,14 @@ def rgb(h):
 
 
 class Layer:
-    """A frame of pixels. Every call clips, so a shape may run off the edge."""
+    """A frame of pixels. Every call clips, so a shape may run off the edge.
+
+    landing/tools/scene.py has a Layer with the same surface, built on ImageDraw. It is not
+    shared: its ellipse and poly are ImageDraw's, which bound a shape differently from these
+    inclusive ones, so every sprite here would have to be redrawn against it and the landing
+    scene re-checked. That is a bigger change than the ~70 lines it would save, and it belongs
+    with whoever next touches both.
+    """
 
     def __init__(self, w=W, h=H):
         self.im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
@@ -121,9 +128,6 @@ class Layer:
                     edge.append((x, y))
         for x, y in edge:
             self.put(x, y, c)
-
-    def save(self, path):
-        self.im.save(path)
 
 
 # ---- the cat ----------------------------------------------------------------------------------

@@ -14,6 +14,7 @@
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { readFile } from "node:fs/promises";
 
 // resolved the way catio/test/e2e.mjs does, so PLAYWRIGHT points at the one on the machine
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT || "playwright");
@@ -127,22 +128,63 @@ await page.waitForTimeout(400);
 ok("ground pip set from upstairs", (await pip("groundPip")) === false);
 ok("upstairs pip unset while upstairs", (await pip("upPip")) === true);
 
-console.log("\nmenus open clear of the controls");
-await page.locator("#cats .cat .spr").last().click();
-await page.waitForTimeout(250);
-ok("a menu clears the brand and the map panel", await page.evaluate(() => {
-  const m = document.getElementById("menu").getBoundingClientRect();
-  return ["hud", "mapPanel"].every((id) => {
-    const b = document.getElementById(id).getBoundingClientRect();
-    return m.right <= b.left || m.left >= b.right || m.bottom <= b.top || m.top >= b.bottom;
+console.log("\nmenus open clear of the controls, at every width");
+// A menu is never clipped and never covers the brand or the map panel. The phone widths are
+// here because the stage is only ~240px tall there, which is shorter than the menu itself —
+// the case a 1200px check and an eyeballed screenshot both miss.
+for (const width of [1200, 760, 390, 360]) {
+  await page.setViewportSize({ width, height: 800 });
+  await page.waitForTimeout(250);
+  await page.locator("#stage").scrollIntoViewIfNeeded();
+  await page.locator("#cats .cat .spr").first().click();
+  await page.waitForTimeout(250);
+  const m = await page.evaluate(() => {
+    const r = (id) => document.getElementById(id).getBoundingClientRect();
+    const menu = document.getElementById("menu").getBoundingClientRect();
+    const stage = r("stage");
+    const over = (b) => !(menu.right <= b.left || menu.left >= b.right ||
+                          menu.bottom <= b.top || menu.top >= b.bottom);
+    return {
+      clear: !over(r("hud")) && !over(r("mapPanel")),
+      overStage: menu.left >= stage.left - 2 && menu.right <= stage.right + 2,
+      whole: menu.height > 40 && menu.width > 40,
+      // it must not be inside the stage, which clips: that is what cut it off at phone width
+      outsideTheClip: !document.getElementById("stage").contains(document.getElementById("menu"))
+    };
   });
-}));
-ok("and stays inside the stage", await page.evaluate(() => {
-  const s = document.getElementById("stage").getBoundingClientRect();
-  const m = document.getElementById("menu").getBoundingClientRect();
-  return m.left >= s.left - 1 && m.right <= s.right + 1 && m.top >= s.top - 1 && m.bottom <= s.bottom + 1;
-}));
-await page.keyboard.press("Escape");
+  ok(`${width}px: clear of the brand and the map panel`, m.clear);
+  ok(`${width}px: horizontally over the stage`, m.overStage);
+  ok(`${width}px: drawn whole, not clipped`, m.whole && m.outsideTheClip);
+  await page.keyboard.press("Escape");
+}
+await page.setViewportSize({ width: 1200, height: 900 });
+await page.waitForTimeout(200);
+await page.locator("#stage").scrollIntoViewIfNeeded();
+
+// back downstairs, where the queen is
+await page.locator("#tabGround").click();
+await page.waitForTimeout(400);
+
+console.log("\nwhat a screen reader is told");
+// A tab stop inside an aria-hidden subtree is announced as nothing. This is the regression the
+// previous round shipped: seven focusable rooms that assistive tech could not see.
+const named = await page.evaluate(() => {
+  const inHidden = (el) => el.closest('[aria-hidden="true"]') !== null;
+  const rooms = [...document.querySelectorAll("rect.room-hit")];
+  const cats = [...document.querySelectorAll("#cats .spr")];
+  return {
+    rooms: rooms.length,
+    roomsNamed: rooms.filter((e) => e.getAttribute("aria-label") && !inHidden(e)).length,
+    catsNamed: cats.filter((e) => e.getAttribute("aria-label") && !inHidden(e)).length,
+    queen: document.querySelector(".queen-pin .spr").getAttribute("aria-label")
+  };
+});
+ok("every room is a named button nothing hides", named.rooms === 7 && named.roomsNamed === 7,
+  `${named.roomsNamed}/${named.rooms} named and visible to AT`);
+ok("every cat is named too", named.catsNamed === 6, String(named.catsNamed));
+// the page exists to say she is not one of your sessions, so she must not be announced as one
+ok("the queen is not announced as a working session",
+  /queen of the house/.test(named.queen) && !/Busy working/.test(named.queen), named.queen);
 
 console.log("\nnothing is drawn on the cats");
 ok("a cat's element holds only its sprite", await page.evaluate(() =>
@@ -168,6 +210,31 @@ const before = await page.locator("#qsay").innerText();
 await page.locator("#qreplies button").nth(1).click();
 await page.waitForTimeout(120);
 ok("a quick reply changes what she says", (await page.locator("#qsay").innerText()) !== before);
+
+console.log("\nthe page agrees with the sprites it was given");
+// sprites.json is what sprites.py recorded; the page hardcodes the same counts. Without this
+// the two drift silently and a sheet renders a squashed cycle with a sliver of the next frame.
+const sprites = JSON.parse(
+  await readFile(join(dirname(fileURLToPath(import.meta.url)), "..", "art", "sprites.json"), "utf8"));
+const pageFrames = await page.evaluate(() => {
+  const out = {};
+  for (const d of document.querySelectorAll("#cats > div")) {
+    const spr = d.querySelector(".spr");
+    out["cat-" + (d._showing || d._cat.mood)] = Number(getComputedStyle(spr).getPropertyValue("--frames"));
+  }
+  for (const e of document.querySelectorAll(".mood .pic, .mark, .fig.queen")) {
+    const url = /art\/([a-z-]+)\.png/.exec(getComputedStyle(e).backgroundImage);
+    if (url) out[url[1]] = Number(getComputedStyle(e).getPropertyValue("--frames"));
+  }
+  return out;
+});
+const wrong = Object.entries(pageFrames)
+  .filter(([k, n]) => sprites[k] && sprites[k].frames !== n)
+  .map(([k, n]) => `${k}: page ${n}, sheet ${sprites[k].frames}`);
+ok("every frame count matches its sheet", wrong.length === 0, wrong.join("; "));
+const want = ["cat-work", "cat-review", "cat-meow", "cat-cry", "cat-sleep"];
+const missing = want.filter((k) => !(k in pageFrames));
+ok("and all five mood sheets were among them", missing.length === 0, "not on the page: " + missing.join(", "));
 
 console.log("\nno errors");
 ok("no page errors and no failed loads", errors.length === 0, errors.join(" | "));
