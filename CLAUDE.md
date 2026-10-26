@@ -12,6 +12,15 @@ link.** Whenever a session tells her what it did to the café, the link is the C
 change reaches it by a merge to `main` (Workers Builds deploys the gateway, which serves `catio/index.html`), so
 "done" for her means merged, and until then say so: "it shows at the Cloudflare link once #N merges".
 
+**One artifact is not the café: the public demo** (her ask, 26 October 2026: "an artifact that will do a demo
+of what the Kitty Chat Cafe is without putting any of my personal information in it… like a link that would be at
+the top of the README"). `demo/index.html` is a tour for whoever finds the repo, published at
+https://claude.ai/artifact/SUr62MfU18hzRUBYgA9o8Y and linked from the README's first line. It is a separate
+artifact from the café's: it has no database, writes nothing, reads nothing of hers, and carries no personal
+data at all. **It is hers to share** -- published private, so the README link is dead for anyone else until she
+shares it. The rule above is unchanged: the café is still the Cloudflare link alone, and the café's own artifact
+is still never published and never linked. `demo/README.md` has the rest.
+
 **Nothing in this repo writes to the artifact any more.** No publish, no `ArtifactData`, no stored capabilities
 to keep in step: the gateway is the café, and the two databases never shared changes anyway. The artifact and
 its own database are still there, untouched -- her four project maps live nowhere else -- so nothing was thrown

@@ -116,15 +116,17 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
 /* ---- the café stage ----------------------------------------------------------------------- */
 .stage-bleed { padding-block: 2rem 0; }
 .stage {
-  position: relative; width: 100%; aspect-ratio: 872 / 584; container-type: inline-size;
+  position: relative; width: 100%; container-type: inline-size;
   max-width: 100%; border: 3px solid var(--ink); border-radius: 4px;
   background: var(--well); overflow: hidden; touch-action: manipulation;
   box-shadow: 0 6px 0 var(--lav);
 }
 .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-/* the cat layer spans the stage, so it must let room hovers and clicks through to the plan */
+/* the cat layer spans the stage, and the plan's furniture, doorways and stair are drawn over
+   the rooms: both must let a room's own hover and click through to it */
 .stage .layer { position: absolute; inset: 0; pointer-events: none; }
 .cat, .queen-pin { pointer-events: auto; }
+#plan > :not(.room) { pointer-events: none; }
 
 .cat, .queen-pin {
   /* left/top are where its feet stand; the box hangs up and left from there */
@@ -182,7 +184,7 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   padding: .8cqi 1.2cqi; background: var(--paper); border: 2px solid var(--ink); border-radius: 3px;
   font-size: max(10px, 1.7cqi); line-height: 1.35; box-shadow: var(--shadow); margin: 0;
 }
-.tip:empty { display: none; }
+.tip:empty { visibility: hidden; }   /* stays in the DOM: a display:none live region is not announced */
 
 /* a menu: the name, one line under it, what matters now, then the actions as a list */
 .menu {
@@ -380,18 +382,18 @@ footer .wrap { padding-block: 2.5rem; }
 <section class="stage-bleed">
   <div class="wrap">
     <div class="stage" id="stage">
-      <svg id="plan" viewBox="72 -56 872 584" aria-hidden="true"></svg>
+      <svg id="plan"></svg>
       <div class="layer" id="cats"></div>
       <div class="hud" id="hud">
         <span class="mark" style="--frames:4;background-image:url(art/cat-work.png);width:22px;height:22px"></span>
         <span>KittyChat Café</span>
-        <span class="badge" id="houseBadge">2</span>
+        <span class="badge" id="houseBadge" hidden></span>
       </div>
       <div class="mappanel" id="mapPanel" data-folded="true">
         <button class="pbtn fold" id="mapFold" aria-expanded="false">MAP <span class="pip" id="foldPip"></span></button>
         <canvas class="mini" id="mini" width="224" height="136" aria-hidden="true"></canvas>
         <div class="row">
-          <button class="pbtn" id="tabGround" aria-pressed="true">GROUND</button>
+          <button class="pbtn" id="tabGround" aria-pressed="true">GROUND <span class="pip" hidden id="groundPip"></span></button>
           <button class="pbtn" id="tabUpper" aria-pressed="false">UPSTAIRS <span class="pip" hidden id="upPip"></span></button>
         </div>
       </div>
@@ -461,7 +463,7 @@ footer .wrap { padding-block: 2.5rem; }
         <span class="plate">You</span>
       </div>
       <div class="said">
-        <p id="qsay">Biscuit is waiting on you, and Clementine has something to read.</p>
+        <p id="qsay">Three need you: Biscuit is waiting on an answer, Clementine left you something to read, and Tofu's build failed.</p>
         <div class="replies" id="qreplies"></div>
       </div>
       <div class="who">
@@ -688,7 +690,8 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
       ask: "The build died. It has not tried again." }
   ];
   var QUEEN = { id: "queen", name: "Ninine", room: "hall", mood: "work", coat: 0,
-    line: "The queen of the house", say: "Biscuit is waiting on you, and Clementine has something to read." };
+    line: "The queen of the house",
+    say: "Three need you: Biscuit is waiting on an answer, Clementine left you something to read, and Tofu's build failed." };
 
   // the eight coats, as the page does them today: one fur ramp, tinted
   var COATS = ["none", "hue-rotate(-18deg) saturate(1.3)", "grayscale(1) brightness(1.05)",
@@ -706,7 +709,7 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
   var FPS = { work: 5, review: 3, meow: 3, cry: 4, sleep: 2 };
 
   var $ = function (id) { return document.getElementById(id); };
-  var state = { floor: "ground", open: null, hot: null };
+  var state = { floor: "ground", open: null, openRoom: null };
 
   /* ---- the plan ----------------------------------------------------------------------------- */
   var NS = "http://www.w3.org/2000/svg";
@@ -715,10 +718,14 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
     for (var k in attrs) { e.setAttribute(k, attrs[k]); }
     return e;
   }
+  // bracket() is defined in wireStage(), but drawPlan() wires each room's focus to it
+  var bracket = function () {};
+
   function tok(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 
   function drawPlan() {
     var plan = $("plan");
+    plan.setAttribute("aria-hidden", "true");
     plan.replaceChildren();
     var ink = tok("--ink"), well = tok("--well"), lav = tok("--lav"), paper = tok("--paper");
     var grass = tok("--grass"), line = tok("--line");
@@ -779,6 +786,7 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
       if ((r.floor === "upper") !== upper) { return; }
       var b = r.box;
       var grp = svg("g", { class: "room", "data-room": k });
+      grp.setAttribute("aria-hidden", "false");
       grp.appendChild(svg("rect", {
         x: b[0], y: b[1], width: b[2], height: b[3],
         fill: k === "garden" ? "none" : paper, stroke: ink, "stroke-width": 4
@@ -794,9 +802,20 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
       grp.appendChild(svg("rect", {
         class: "room-br", x: b[0] - 5, y: b[1] - 5, width: b[2] + 10, height: b[3] + 10, rx: 2
       }));
-      grp.appendChild(svg("rect", {
-        class: "room-hit", x: b[0], y: b[1], width: b[2], height: b[3], "data-room": k
-      }));
+      var n = CATS.filter(function (c) { return c.room === k; }).length;
+      var hit = svg("rect", {
+        class: "room-hit", x: b[0], y: b[1], width: b[2], height: b[3], "data-room": k,
+        tabindex: "0", role: "button",
+        "aria-label": r.name + ", " + (n ? n + (n === 1 ? " cat" : " cats") : "empty")
+      });
+      hit.addEventListener("focus", function () {
+        bracket(grp);
+        say(r.name + (n ? " · " + n + (n === 1 ? " cat" : " cats") : " · empty"));
+      });
+      hit.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); hit.dispatchEvent(new MouseEvent("click", { bubbles: true })); }
+      });
+      grp.appendChild(hit);
       plan.appendChild(grp);
     });
 
@@ -880,6 +899,7 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
         spr.setAttribute("role", "button");
         spr.setAttribute("aria-label", c.name + ", " + m.label);
         spr.addEventListener("focus", function () { say(catLine(c)); });
+        spr.addEventListener("blur", function () { if (!state.open) { say(""); } });
         spr.addEventListener("keydown", function (e) {
           if (e.key === "Enter" || e.key === " ") { e.preventDefault(); spr.click(); }
         });
@@ -970,6 +990,7 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
   function closeMenu() {
     $("menu").hidden = true;
     state.open = null;
+    state.openRoom = null;
     [].forEach.call(document.querySelectorAll(".cat, .queen-pin"), function (d) { d.classList.remove("lit"); });
     [].forEach.call(document.querySelectorAll(".room"), function (g) { g.classList.remove("on"); });
   }
@@ -1006,11 +1027,14 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
     menu.hidden = false;
 
     // open clear of the two controls, by whichever of right, left or below moves it least
-    var stage = $("stage").getBoundingClientRect(), r = target.getBoundingClientRect();
+    var el0 = $("stage"), stage = el0.getBoundingClientRect(), r = target.getBoundingClientRect();
+    var bx = el0.clientLeft, by = el0.clientTop;        // the stage's own border, in both spaces
     var mw = menu.offsetWidth, mh = menu.offsetHeight;
+    var inner = { w: el0.clientWidth, h: el0.clientHeight };
     var blocks = [$("hud"), $("mapPanel")].map(function (e) {
       var b = e.getBoundingClientRect();
-      return [b.left - stage.left, b.top - stage.top, b.right - stage.left, b.bottom - stage.top];
+      return [b.left - stage.left - bx, b.top - stage.top - by,
+              b.right - stage.left - bx, b.bottom - stage.top - by];
     });
     function hits(x, y) {
       return blocks.some(function (b) {
@@ -1018,10 +1042,10 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
       });
     }
     function clamp(x, y) {
-      return [Math.min(Math.max(8, x), Math.max(8, stage.width - mw - 8)),
-              Math.min(Math.max(8, y), Math.max(8, stage.height - mh - 8))];
+      return [Math.min(Math.max(8, x), Math.max(8, inner.w - mw - 8)),
+              Math.min(Math.max(8, y), Math.max(8, inner.h - mh - 8))];
     }
-    var rx = r.left - stage.left, ry = r.top - stage.top;
+    var rx = r.left - stage.left - bx, ry = r.top - stage.top - by;
     var tries = [[rx + r.width + 8, ry], [rx - mw - 8, ry],
                  [rx + r.width + 8, ry + r.height + 8], [rx - mw - 8, ry + r.height + 8]];
     var at = clamp(tries[0][0], tries[0][1]);
@@ -1038,24 +1062,33 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
   function wireStage() {
     var stage = $("stage");
 
+    // at most one room is bracketed at a time; the room a pinned menu belongs to keeps its own
+    bracket = function (room) {
+      [].forEach.call(document.querySelectorAll(".room"), function (g) {
+        g.classList.toggle("on", g === room || (state.openRoom && g === state.openRoom));
+      });
+    };
     stage.addEventListener("pointerover", function (e) {
       var spr = e.target.closest(".spr");
       if (spr) {
+        bracket(null);
         say(catLine(spr.parentElement._cat));
         return;
       }
       var hit = e.target.closest("[data-room]");
-      if (hit) {
-        var k = hit.getAttribute("data-room"), r = ROOMS[k];
-        var n = CATS.filter(function (c) { return c.room === k; }).length;
-        hit.closest(".room").classList.add("on");
-        say(r.name + (n ? " · " + n + (n === 1 ? " cat" : " cats") : " · empty"));
+      if (!hit) {                      // the sky, the grounds, the gap between rooms: nothing named
+        bracket(null);
+        if (!state.open) { say(""); }
+        return;
       }
+      var k = hit.getAttribute("data-room"), r = ROOMS[k];
+      var n = CATS.filter(function (c) { return c.room === k; }).length;
+      bracket(hit.closest(".room"));
+      say(r.name + (n ? " · " + n + (n === 1 ? " cat" : " cats") : " · empty"));
     });
-    stage.addEventListener("pointerout", function (e) {
-      var hit = e.target.closest("[data-room]");
-      if (hit && !state.open) { hit.closest(".room").classList.remove("on"); }
-      if (!stage.contains(e.relatedTarget)) { say(""); }
+    stage.addEventListener("pointerleave", function () {
+      bracket(null);
+      if (!state.open) { say(""); }
     });
 
     stage.addEventListener("click", function (e) {
@@ -1081,7 +1114,8 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
         var k = hit.getAttribute("data-room");
         var mine = CATS.filter(function (c) { return c.room === k; });
         var need = mine.filter(function (c) { return MOODS[c.mood].needs; });
-        hit.closest(".room").classList.add("on");
+        state.openRoom = hit.closest(".room");
+        state.openRoom.classList.add("on");
         openMenu(hit, ROOMS[k].name,
           mine.length ? mine.length + (mine.length === 1 ? " cat" : " cats") + " live here" : "No cats here yet",
           need.length ? need.map(function (c) { return c.name + " needs you"; }).join(", ") : null,
@@ -1129,12 +1163,27 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
     });
   }
 
+  // the badge counts every cat that needs you; a floor tab's pip means the floor you are NOT on
+  // needs you, and the fold's means one is out of view. The queen is in none of them: she is not
+  // work to be done (CLAUDE.md, "The house has one queen").
+  function pips() {
+    var needing = CATS.filter(function (c) { return MOODS[c.mood].needs; });
+    $("houseBadge").textContent = String(needing.length);
+    $("houseBadge").hidden = !needing.length;
+    var elsewhere = function (floor) {
+      return state.floor !== floor && needing.some(function (c) { return ROOMS[c.room].floor === floor; });
+    };
+    $("groundPip").hidden = !elsewhere("ground");
+    $("upPip").hidden = !elsewhere("upper");
+    $("foldPip").hidden = !needing.length;
+  }
+
   function setFloor(f) {
     state.floor = f;
     $("tabGround").setAttribute("aria-pressed", String(f === "ground"));
     $("tabUpper").setAttribute("aria-pressed", String(f === "upper"));
     closeMenu();
-    drawPlan(); placeCats(); drawMini();
+    drawPlan(); placeCats(); drawMini(); pips();
     say("");
   }
 
@@ -1149,13 +1198,7 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
     $("tabGround").addEventListener("click", function () { setFloor("ground"); });
     $("tabUpper").addEventListener("click", function () { setFloor("upper"); });
 
-    // the badge, and the pips: the queen is never counted — she is not work to be done
-    var needing = CATS.filter(function (c) { return MOODS[c.mood].needs; });
-    $("houseBadge").textContent = String(needing.length);
-    $("houseBadge").hidden = !needing.length;
-    var upstairsNeeds = needing.some(function (c) { return ROOMS[c.room].floor === "upper"; });
-    $("upPip").hidden = !upstairsNeeds;
-    $("foldPip").hidden = !needing.length;
+    pips();
   }
 
   /* ---- the moods, as a row of cards ------------------------------------------------------------ */
@@ -1382,8 +1425,8 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
   /* ---- the queen answers: the three quick replies her card offers ---------------------------- */
   function wireQueen() {
     var says = [
-      ["What is waiting for me?", "Two: Biscuit wants an answer about the image uploads, and Clementine " +
-        "left a pull request in the craft room. Tofu's build failed, but it has not asked for you yet."],
+      ["What is waiting for me?", "Three, which is what the badge says: Biscuit wants an answer about the " +
+        "image uploads, Clementine left a pull request in the craft room, and Tofu's build failed upstairs."],
       ["Anything for me to hand in?", "One quiz, from the litter box: a note about the recipe site that I " +
         "could not place. Two taps and it is filed."],
       ["Good-bye.", "Off you go. I will keep the place and tell you if anything turns."]
@@ -1398,6 +1441,9 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
   }
 
   /* ---- go --------------------------------------------------------------------------------------- */
+  // the stage's shape and the plan's viewBox both come from VIEW, so there is one camera
+  $("plan").setAttribute("viewBox", [VIEW.x, VIEW.y, VIEW.w, VIEW.h].join(" "));
+  $("stage").style.aspectRatio = VIEW.w + " / " + VIEW.h;
   drawPlan();
   placeCats();
   wireStage();
@@ -1407,9 +1453,18 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
   wireQueen();
   wireWizard();
 
+  // once the stage has scrolled away there is nothing to animate: stop until it comes back
+  if (window.IntersectionObserver) {
+    new IntersectionObserver(function (es) {
+      if (es[0].isIntersecting) { animate(); wander(); }
+      else { if (raf) { cancelAnimationFrame(raf); raf = null; } clearTimeout(roam); }
+    }, { rootMargin: "100px" }).observe($("stage"));
+  }
+
   // the theme can change under us; the plan is drawn with the tokens, so redraw it
   var mq = matchMedia("(prefers-color-scheme: dark)");
   (mq.addEventListener ? mq.addEventListener.bind(mq, "change") : mq.addListener.bind(mq))(function () {
+    closeMenu();                        // drawPlan() replaces every room node the menu was pinned to
     drawPlan(); drawMini();
   });
 })();

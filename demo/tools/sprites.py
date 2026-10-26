@@ -47,9 +47,15 @@ W, H = 30, 30          # every cat frame; its feet are on row 27
 FX, FY = 10, 28
 
 
+_RGB = {}
+
+
 def rgb(h):
-    h = h.lstrip("#")
-    return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), 255)
+    """Every put() passes a hex string, so parse each one once rather than per pixel."""
+    if h not in _RGB:
+        c = h.lstrip("#")
+        _RGB[h] = (int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16), 255)
+    return _RGB[h]
 
 
 class Layer:

@@ -37,6 +37,25 @@ the CSS filters the page uses today.
 The type is Press Start 2P, Pixelify Sans and Nunito from Google Fonts, all under the SIL Open Font
 License. The pack's own pixel font (`sprout.ttf`) is licensed and never appears here.
 
+## Checking it
+
+```
+PLAYWRIGHT=/opt/node22/lib/node_modules/playwright node demo/test/check.mjs
+```
+
+Thirty-odd assertions in a real browser: that every pixel of a room (its floor, its furniture, its filing
+cabinet, the stair) belongs to that room, that hover names a thing and stops naming it, that a click opens the
+right menu clear of the two controls, that the keyboard reaches both cats and rooms, that the pips follow the
+floor, that nothing is drawn on the cats and no sign is on the plan, that the wizard runs all seven steps, and
+that the page throws nothing.
+
+It exists because two rounds of review found the same bug twice: something drawn over the plan swallowing the
+pointer events the rooms need, so hovering a room silently did nothing while every screenshot looked right. A
+screenshot cannot see that.
+
+It is **not** wired into `.github/workflows/tests.yml`: that is a held path, so adding the step is Charlotte's.
+Until then, run it by hand after changing the page.
+
 ## What it keeps in step with
 
 The page is a copy, not an import, so three things can drift. Check them when you change the café:
