@@ -118,14 +118,24 @@ each needs a little code once, and after that choosing one is configuration. For
 Claude Code's throughout, from the command `Runner.args()` builds to the stream `Runner.turn()` reads
 (`harness/runner/queen.py`).
 
-| Driver | How it is driven | Status |
-| --- | --- | --- |
-| Hosted runner | A tool-calling loop in the gateway with the buyer's API key (Anthropic, OpenAI, OpenRouter); a container for kits that run scripts | To build: the path for buyers |
-| Claude (Claude Code) | `claude -p` turns from the self-hosted runner, held in by restricted mode and `--strict-mcp-config`, which leave it only the Catio's tools, not by the hooks; every driver needs the same containment | Built, for the queen; other agents report but aren't run by it |
-| OpenAI (Codex CLI) | `codex exec`, registered as the agent's `wake` command through `report_status`: the local stdio twin runs it; the hosted gateway ignores it, so there the agent checks its inbox | Joins today |
-| Gemini (Gemini CLI) | `gemini -p`, the same way | Joins today |
+One column cannot hold this, which is what made the decider look like a driver when its row said "Built".
+Reporting, starting itself and driving the queen are three different facts, and a client can have any of them
+without the others — so they get a column each, as `README.md`'s own table of assistants does:
 
-The decider is not in that table: it answers questions and drives nothing (above).
+| Client | Joins as a cat | Work starts itself | Drives the queen |
+| --- | --- | --- | --- |
+| Claude (Claude Code) | Today | Yes, from her runner: `claude -p` turns held in by restricted mode and `--strict-mcp-config`, which leave it only the Catio's tools, not by the hooks | **Today**, and it is the only one. Every other driver will need that same containment |
+| OpenAI (Codex CLI) | Today, over MCP | Yes, **where the local stdio twin runs it**: `codex exec`, registered as the agent's `wake` command through `report_status`. The hosted gateway can't run commands, so there it checks its inbox instead | Not yet |
+| Gemini (Gemini CLI) | Today, over MCP | `gemini -p`, the same way | Not yet |
+
+So Codex and Gemini already have work start itself where the local server runs, which is what the old table's
+"Joins today" hid: it read as a reporting fact while the row beside it described a driving one.
+
+The hosted runner is a second runner rather than a client, and is still to build: a tool-calling loop in the
+gateway with the buyer's API key (Anthropic, OpenAI, OpenRouter), and a container for kits that run scripts. It
+calls the models directly instead of a CLI, so it needs none of the per-CLI code above.
+
+The decider is in none of those columns: it answers questions and drives nothing (above).
 
 | Environment | What runs there |
 | --- | --- |
