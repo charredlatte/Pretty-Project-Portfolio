@@ -29,7 +29,8 @@ BASH = shutil.which("bash") or "bash"   # hook commands run in bash (Git Bash on
 
 
 # what the hooks read from the environment, cleared for every run and set only where it is the subject
-ENV_KEYS = ("CLAUDE_CODE_REMOTE", "XDG_CACHE_HOME", "CLAUDE_CODE_SUBAGENT_MODEL", "CLAUDE_CODE_SUBAGENT_MODEL_FORCE")
+ENV_KEYS = ("CLAUDE_CODE_REMOTE", "XDG_CACHE_HOME", "CLAUDE_CODE_SUBAGENT_MODEL", "CLAUDE_CODE_SUBAGENT_MODEL_FORCE",
+            "CATIO_URL", "CATIO_TOKEN")   # a developer's own café must not leak into a run
 
 
 # a cache of its own, so a marker left by a real session on this machine can't decide a test
@@ -1381,9 +1382,12 @@ class SessionStart(unittest.TestCase):
         self.assertEqual(r.returncode, 0)
         for words in ("KittyChat house rules", "browser-agent-preflight", "ponytail-audit", "[Catio]"):
             self.assertIn(words, r.stdout)
-        # it names the café, and names the one rules.json carries: a host written into the hook would
-        # outlive the move off the artifact, which is how the old link survived her asking twice.
-        self.assertIn(json.loads((HOOKS.parent / "rules.json").read_text(encoding="utf-8"))["catio"], r.stdout)
+        # it names no café of its own: the address is CATIO_URL's or nothing. A host written into the hook or the
+        # rules file outlived the move off the artifact (how the old link survived her asking twice), and reached
+        # every fork, whose sessions read "Charlotte's Catio" as their own (her ask, 25 October).
+        self.assertIn("isn't connected to a KittyChat Café", r.stdout)
+        for host in ("workers.dev", "claude.ai/artifact", "Charlotte's Catio"):
+            self.assertNotIn(host, r.stdout)
 
     def test_says_when_a_repo_merges(self):
         tmp = Path(tempfile.mkdtemp(), "cafe")
@@ -1470,7 +1474,7 @@ class SessionStart(unittest.TestCase):
         """session_start had no guard at all: any exception exited 1, SessionStart reads that as a warning,
         and the session began with no rules, no hold list and no "run ponytail-audit first" - just a
         traceback. That is the class gates.py was hardened against in this same branch."""
-        for break_it in (lambda r: r.pop("catio"), lambda r: r.update(rules={"not": "a list"})):
+        for break_it in (lambda r: r.pop("rules"), lambda r: r.update(rules={"not": "a list"})):
             plugin = Path(tempfile.mkdtemp())
             shutil.copytree(HOOKS, plugin / "hooks")
             r = json.loads((HOOKS.parent / "rules.json").read_text(encoding="utf-8"))
@@ -1500,16 +1504,15 @@ class SessionStart(unittest.TestCase):
             return subprocess.run([sys.executable, str(HOOKS / "session_start.py")], capture_output=True, text=True,
                                   input=json.dumps({"source": "startup", "model": "claude-fable-5-1",
                                                     "cwd": tempfile.mkdtemp()}), env=env).stdout
-        hers = json.loads((HOOKS.parent / "rules.json").read_text(encoding="utf-8"))["catio"]
         guest = start("https://catio-gateway.someone.workers.dev")
         self.assertIn("KittyChat Café of the person you are working for, at https://catio-gateway.someone.workers.dev", guest)
-        for words in ("Charlotte's Catio", "Charlotte's allowance"):
+        # nobody else's café is named, so there is nothing to disclaim: the rules file carries no address
+        for words in ("Charlotte's Catio", "Charlotte's allowance", "her own is at", "charlotte-badot"):
             self.assertNotIn(words, guest)
-        self.assertIn("her own is at " + hers, guest)   # a guest is told whose café theirs isn't
-        self.assertIn("Charlotte's Catio, her harness: " + hers, start(None))
-        # in her own café the two are one link, and "her own is at <this very link>" reads as a warning
-        # about her own café, so it isn't said at all
-        self.assertNotIn("her own is at", start(hers))
+        # and with no CATIO_URL there is no café at all; the brief says so instead of handing over hers
+        alone = start(None)
+        self.assertIn("isn't connected to a KittyChat Café", alone)
+        self.assertNotIn("workers.dev", alone)
         self.assertIn('{"opening_audit": false} in .claude/catio-rules.json', guest)
 
 

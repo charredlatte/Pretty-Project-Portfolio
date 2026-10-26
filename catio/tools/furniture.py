@@ -222,7 +222,7 @@ LAYOUT = {
         ("bath_mat", 668, 96), ("toilet", 668, 130),
         ("plant_bath", 618, 180), ("cushion_white", 640, 186),
     ],
-    # Bedroom (legal questions, kept quiet), over the cat lounge: the bed between nightstands under the window (a cat
+    # Bedroom (the quiet room), over the cat lounge: the bed between nightstands under the window (a cat
     # asleep on it), the filing cabinet, a rug, a reading chair for the queen; the doors to the landing and the
     # ensuite stay clear
     "bedroom": [

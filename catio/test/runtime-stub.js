@@ -23,7 +23,7 @@
   "living":  { "name": "Cat lounge",  "blurb": "New cats come in here",              "repos": [], "catchAll": true },
   "sunroom": { "name": "Terrace",     "blurb": "Video saves, in the light",         "repos": ["video-saves"] },
   "study":   { "name": "Craft room",  "blurb": "The corner shop",              "repos": ["corner-shop"] },
-  "bedroom": { "name": "Bedroom",     "blurb": "Legal questions, kept quiet",        "repos": [] },
+  "bedroom": { "name": "Bedroom",     "blurb": "The quiet room",                    "repos": [] },
   "bath":    { "name": "Ensuite",     "blurb": "Spare",                              "repos": [] },
   "hall":    { "name": "Entrance hall", "blurb": "Postcards, by the front door",      "repos": ["postcard-trail"] },
   "brain":   { "name": "Library",     "blurb": "The brain",                          "repos": [] }
@@ -190,8 +190,10 @@
   };
   // assets: kept in memory; sample: answers with T.sampleAnswer, recording each prompt
   T.uploads = []; T.assetsDeleted = [];
-  const assets = { upload: async (blob, opts) => { const id = "a" + (T.uploads.length + 1) + "0123456789abcdef0123456789abcd".slice(0, 30); T.uploads.push({ id, name: blob.name, size: blob.size, type: (opts && opts.type) || blob.type }); return { id, url: "/_blob/" + id, sizeBytes: blob.size, contentType: blob.type }; },
-    delete: async (id) => { T.assetsDeleted.push(id); return { deleted: true }; }, list: async () => ({ assets: [], usage: {} }) };
+  const blobs = {};   // what was uploaded, so href can hand it back the way the localhost runtime's does
+  const assets = { upload: async (blob, opts) => { const id = "a" + (T.uploads.length + 1) + "0123456789abcdef0123456789abcd".slice(0, 30); T.uploads.push({ id, name: blob.name, size: blob.size, type: (opts && opts.type) || blob.type }); blobs[id] = blob; return { id, url: "/_blob/" + id, sizeBytes: blob.size, contentType: blob.type }; },
+    delete: async (id) => { T.assetsDeleted.push(id); return { deleted: true }; }, list: async () => ({ assets: [], usage: {} }),
+    href: async (id) => (blobs[id] ? URL.createObjectURL(blobs[id]) : null) };
   T.prompts = []; T.sampleAnswer = { cat: null, reason: "nothing fits" };
   // the decider (the gateway's decide tool): what it answers a sort question, until a test changes it
   T.decideAnswer = { model: "stub", answers: { cat: { type: "choice", choice: "none", confidence: 0.9, probabilities: { none: 0.9 } } }, usage: null };

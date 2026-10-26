@@ -161,8 +161,9 @@ artifact, and they record that URL in their own copy of `artifacts.json`, republ
 afterwards with `url` so nothing they have done on the page is lost.
 
 `docs/self-hosting.md` lists Charlotte's values still written into the page and the harness. Change them on their
-fork; two of them (`CATIO_URL` in the page, `catio` in `harness/rules.json`) are this artifact's link, which only
-exists after the first publish, so set those then and republish to the same URL.
+fork. The café's own link is not one of them: it is data, `house/main.url`, which the page quotes in a file
+delivery so a session knows where to fetch from. It exists only after the first publish, so write it then
+(`ArtifactData` `update` on `house/main` with `{"url": "<the artifact's URL>"}`); nothing needs republishing for it.
 
 On the first publish it needs these capabilities:
 

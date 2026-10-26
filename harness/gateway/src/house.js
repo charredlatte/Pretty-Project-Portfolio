@@ -114,7 +114,7 @@ function nextFire(r, now) {
 
 const TOOLS = {
 	house_rules() {
-		return { catio: RULES.catio, rules: RULES.rules.filter((r) => r.on !== false) };
+		return { rules: RULES.rules.filter((r) => r.on !== false) };
 	},
 
 	report_status(h, args, who) {

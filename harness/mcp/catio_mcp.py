@@ -156,7 +156,7 @@ def wake(agent, message):
 # ---------- tools ----------
 def house_rules(args):
     r = json.loads(RULES.read_text(encoding="utf-8"))
-    return {"catio": r.get("catio"), "rules": [x for x in r["rules"] if x.get("on", True)]}
+    return {"rules": [x for x in r["rules"] if x.get("on", True)]}
 
 
 def _project_slug(v):
