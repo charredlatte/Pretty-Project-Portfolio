@@ -43,15 +43,25 @@ License. The pack's own pixel font (`sprout.ttf`) is licensed and never appears 
 PLAYWRIGHT=/opt/node22/lib/node_modules/playwright node demo/test/check.mjs
 ```
 
-Thirty-odd assertions in a real browser: that every pixel of a room (its floor, its furniture, its filing
-cabinet, the stair) belongs to that room, that hover names a thing and stops naming it, that a click opens the
-right menu clear of the two controls, that the keyboard reaches both cats and rooms, that the pips follow the
-floor, that nothing is drawn on the cats and no sign is on the plan, that the wizard runs all seven steps, and
-that the page throws nothing.
+What it holds the page to, in a real browser (the run prints each one, so the list below needs no count
+kept in step): that every room owns every pixel of itself — its floor, its furniture, its filing cabinet, the
+stair — swept as a grid at desk and phone widths, with the map panel both folded and open; that hover names a
+thing and stops naming it, and outlines a cat whatever coat it wears; that a click opens the right menu, clear
+of the two controls, drawn whole and pinned until a click elsewhere; that the keyboard reaches both cats and
+rooms and every one of them is named to assistive tech; that the pips follow the floor and the queen is in no
+count; that nothing is drawn on the cats and no sign is on the plan; that each mood card shows the frame that
+names its mood and the page's frame counts match `sprites.json`; that the wizard runs its seven steps and
+remembers what you chose; and that the page throws nothing.
 
-It exists because two rounds of review found the same bug twice: something drawn over the plan swallowing the
-pointer events the rooms need, so hovering a room silently did nothing while every screenshot looked right. A
-screenshot cannot see that.
+It exists because review after review found the same bug: something drawn over the plan swallowing the pointer
+events the rooms need, so hovering a room silently did nothing while every screenshot looked right. It happened
+with the cat layer, then the furniture, then the hover line. A screenshot cannot see that, and neither can a
+handful of fixed sample points — which is why the sweep reads the room boxes off the drawn SVG and covers every
+room rather than a few.
+
+Two habits worth keeping when you add to it: check a thing by breaking it first and watching the check go red,
+and never assert a state the test itself has just set (the "starts folded" check once read the panel 55 lines
+after the sweep had folded it, and passed with the markup broken).
 
 It is **not** wired into `.github/workflows/tests.yml`: that is a held path, so adding the step is Charlotte's.
 Until then, run it by hand after changing the page.
