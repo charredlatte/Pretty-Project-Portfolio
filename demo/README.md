@@ -79,7 +79,10 @@ The page is a copy, not an import, so three things can drift. Check them when yo
   `docs/onboarding/README.md` says which lines the page, the wireframes and the public skill must all
   agree on.
 - **The interface rules.** No signs on the map, nothing drawn on the cats, two things on screen, every menu
-  one shape, the map panel folded on load, the queen out of every count. `CLAUDE.md` is the source.
+  one shape, the map panel folded on load and bottom right on a phone, the queen out of every count.
+  `CLAUDE.md` is the source. One of them the demo cannot keep: the café answers an overlay covering a room
+  by letting you pan the camera, and this page has no camera, so an open map panel sits on whatever is
+  beneath it. The check holds that to controls only, and refuses a room buried under them.
 
 It is a demo, not a second café: it has no database, no connectors and no gateway, and it never will.
 Anything that needs those belongs in `catio/index.html`.

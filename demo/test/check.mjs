@@ -82,7 +82,8 @@ for (const [width, panel] of [[1200, "folded"], [390, "folded"], [360, "folded"]
           const el = document.elementFromPoint(x, y);
           const hit = el && el.closest("[data-room]");
           // a cat standing on the spot is allowed to take it; nothing else is
-          // a cat standing there may take it, and so may a real button; nothing else
+          // a cat standing there may take it, and so may a control; both are counted, because
+          // a control sitting on most of a room still costs the room
           if (!hit && !(el && el.closest(".cat, .queen-pin, button"))) {
             out.push(`${want} at ${Math.round(wx)},${Math.round(wy)} → ${el ? (el.id || el.className.baseVal || el.tagName) : "null"}`);
           } else if (hit && hit.getAttribute("data-room") !== want) {
@@ -95,6 +96,30 @@ for (const [width, panel] of [[1200, "folded"], [390, "folded"], [360, "folded"]
   });
   ok(`${width}px, map ${panel}: every room owns its 25 points`, dead.length === 0,
     dead.slice(0, 4).join("; ") + (dead.length > 4 ? ` (+${dead.length - 4} more)` : ""));
+  // and no room is so far under the controls that it stops being usable
+  const buried = await page.evaluate(() => {
+    const svg = document.getElementById("plan");
+    const box = svg.getBoundingClientRect();
+    const vb = svg.getAttribute("viewBox").split(" ").map(Number);
+    const out = [];
+    for (const g of document.querySelectorAll(".room")) {
+      const r = g.querySelector("rect.room-hit");
+      const [rx, ry, rw, rh] = ["x", "y", "width", "height"].map((a) => Number(r.getAttribute(a)));
+      let lost = 0;
+      for (let i = 1; i <= 5; i++) {
+        for (let j = 1; j <= 5; j++) {
+          const x = box.left + ((rx + (rw * i) / 6 - vb[0]) / vb[2]) * box.width;
+          const y = box.top + ((ry + (rh * j) / 6 - vb[1]) / vb[3]) * box.height;
+          const el = document.elementFromPoint(x, y);
+          if (el && el.closest(".hud, .mappanel")) { lost++; }
+        }
+      }
+      if (lost > 8) { out.push(`${g.dataset.room} loses ${lost}/25`); }
+    }
+    return out;
+  });
+  ok(`${width}px, map ${panel}: no room is buried under the controls`, buried.length === 0,
+    buried.join("; "));
 }
 if ((await page.locator("#mapPanel").getAttribute("data-folded")) === "false") {
   await page.locator("#mapFold").click();
@@ -258,6 +283,23 @@ ok("the queen wears her crown in her menu", (await page.locator("#menu h4 img").
 ok("and no crown is drawn on the map", (await page.locator("#cats img").count()) === 0);
 await page.keyboard.press("Escape");
 
+console.log("\nopening a menu says so, and puts you in it");
+await page.evaluate(() => document.querySelector('rect.room-hit[data-room="kitchen"]').focus());
+await page.keyboard.press("Enter");
+await page.waitForTimeout(250);
+ok("focus moves into the menu", await page.evaluate(() =>
+  document.getElementById("menu").contains(document.activeElement)));
+ok("the opener says it is open", await page.evaluate(() =>
+  document.querySelector('rect.room-hit[data-room="kitchen"]').getAttribute("aria-expanded") === "true"));
+ok("and it is announced", /menu/.test(await page.locator("#say").innerText()),
+  JSON.stringify(await page.locator("#say").innerText()));
+await page.keyboard.press("Escape");
+await page.waitForTimeout(200);
+ok("Escape gives focus back to what opened it", await page.evaluate(() =>
+  document.activeElement === document.querySelector('rect.room-hit[data-room="kitchen"]')));
+await page.mouse.move(5, 5);
+await page.waitForTimeout(150);
+
 console.log("\nhovering a cat outlines it, whatever coat it wears");
 // the coat used to be an inline filter, which outranks the stylesheet, so no cat was outlined
 for (const which of [0, 3]) {
@@ -276,6 +318,12 @@ await page.waitForTimeout(200);
 await page.locator("#menu li button").first().click();
 await page.waitForTimeout(400);     // long enough for a stray pointerover to have wiped it
 ok("the confirmation survives the menu closing",
+  /in a real café/.test(await page.locator("#tip").innerText()),
+  JSON.stringify(await page.locator("#tip").innerText()));
+// and survives the pointer drifting off the stage, which fires pointerleave
+await page.mouse.move(8, 8);
+await page.waitForTimeout(250);
+ok("and survives the pointer leaving the stage",
   /in a real café/.test(await page.locator("#tip").innerText()),
   JSON.stringify(await page.locator("#tip").innerText()));
 await page.mouse.move(5, 5);
@@ -373,6 +421,26 @@ ok("every frame count matches its sheet", wrong.length === 0, wrong.join("; "));
 const want = ["cat-work", "cat-review", "cat-meow", "cat-cry", "cat-sleep"];
 const missing = want.filter((k) => !(k in pageFrames));
 ok("and all five mood sheets were among them", missing.length === 0, "not on the page: " + missing.join(", "));
+
+console.log("\nwith motion turned off");
+{
+  const ctx2 = await browser.newContext({ viewport: { width: 1200, height: 900 }, reducedMotion: "reduce" });
+  const p2 = await ctx2.newPage();
+  await p2.goto(PAGE, { waitUntil: "networkidle" });
+  await p2.locator("#stage").scrollIntoViewIfNeeded();
+  await p2.waitForTimeout(400);
+  const wrong = await p2.evaluate(() => {
+    const naming = { meow: 1, cry: 2 };
+    return [...document.querySelectorAll("#cats > div")].filter((d) => {
+      const m = { work: 4, review: 2, meow: 2, cry: 3, sleep: 3 }[d._cat.mood];
+      const want = ((naming[d._cat.mood] || 0) / (m - 1)) * 100;
+      const got = parseFloat(getComputedStyle(d.querySelector(".spr")).backgroundPositionX);
+      return Math.abs(got - want) > 1;
+    }).map((d) => d._cat.name + " " + d._cat.mood);
+  });
+  ok("every cat still shows the frame that names its mood", wrong.length === 0, wrong.join(", "));
+  await ctx2.close();
+}
 
 console.log("\nno errors");
 ok("no page errors and no failed loads", errors.length === 0, errors.join(" | "));

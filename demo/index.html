@@ -374,6 +374,12 @@ footer .wrap { padding-block: 2.5rem; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+/* CLAUDE.md: "the map panel (#controls, top right; bottom right on a phone) … On a phone the
+   buttons sit at the panel's foot, so the fold keeps the bottom right corner." */
+@media (max-width: 560px) {
+  .mappanel { top: auto; bottom: 2.2cqi; flex-direction: column-reverse; }
+}
+
 /* grid and flex children that hold code, tables or long words must shrink, not push the page wide */
 .steps > li > div, .card, .mood, .repo code, .wiz-body { min-width: 0; }
 .steps > li > div > *, .card > * { min-width: 0; max-width: 100%; }
@@ -426,7 +432,7 @@ footer .wrap { padding-block: 2.5rem; }
     </div>
     <p class="stage-note">
       Two things sit on the screen and nothing else: the house button, top left, which carries a badge when
-      cats need you, and the map panel, top right, which starts folded. Nothing is drawn on the cats
+      cats need you, and the map panel, top right — bottom right on a phone — which starts folded. Nothing is drawn on the cats
       themselves — no letters, no counts, no crowns. Point at one and it tells you what it needs.
     </p>
   </div>
@@ -733,9 +739,12 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
   };
 
   var FPS = { work: 5, review: 3, meow: 3, cry: 4, sleep: 2 };
+  // the frame that carries what names the mood: the open mouth, the tear. Used by the cards,
+  // and by the map when motion is off and there is only ever one frame to show.
+  var NAMING = { meow: 1, cry: 2 };
 
   var $ = function (id) { return document.getElementById(id); };
-  var state = { floor: "ground", open: null, openRoom: null };
+  var state = { floor: "ground", open: null, openRoom: null, opener: null };
 
   /* ---- the plan ----------------------------------------------------------------------------- */
   var NS = "http://www.w3.org/2000/svg";
@@ -829,14 +838,18 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
       var n = CATS.filter(function (c) { return c.room === k; }).length;
       var hit = svg("rect", {
         class: "room-hit", x: b[0], y: b[1], width: b[2], height: b[3], "data-room": k,
-        tabindex: "0", role: "button",
+        tabindex: "0", role: "button", "aria-haspopup": "dialog", "aria-expanded": "false",
         "aria-label": r.name + ", " + (n ? n + (n === 1 ? " cat" : " cats") : "empty")
       });
       hit.addEventListener("focus", function () {
         bracket(grp);
         say(r.name + (n ? " · " + n + (n === 1 ? " cat" : " cats") : " · empty"));
       });
-      hit.addEventListener("blur", function () { announce(""); if (!state.open) { bracket(null); say(""); } });
+      hit.addEventListener("blur", function () {
+        if (state.open) { return; }          // focus went into the menu this just opened
+        announce("");
+        if (hover.armed) { bracket(null); say(""); }
+      });
       hit.addEventListener("keydown", function (e) {
         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); hit.dispatchEvent(new MouseEvent("click", { bubbles: true })); }
       });
@@ -922,10 +935,16 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
         if (COATS[c.coat] !== "none") { spr.style.setProperty("--coat", COATS[c.coat]); }
         spr.tabIndex = 0;
         spr.setAttribute("role", "button");
+        spr.setAttribute("aria-haspopup", "dialog");
+        spr.setAttribute("aria-expanded", "false");
         spr.setAttribute("aria-label", c.id === "queen" ? c.name + ", " + QUEEN_IS
           : c.name + ", " + m.label);
         spr.addEventListener("focus", function () { say(catLine(c)); announce(catLine(c)); });
-        spr.addEventListener("blur", function () { announce(""); if (!state.open) { say(""); } });
+        spr.addEventListener("blur", function () {
+          if (state.open) { return; }        // focus went into the menu this just opened
+          announce("");
+          if (hover.armed) { say(""); }
+        });
         spr.addEventListener("keydown", function (e) {
           if (e.key === "Enter" || e.key === " ") { e.preventDefault(); spr.click(); }
         });
@@ -954,7 +973,14 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
 
   function animate() {
     if (raf) { cancelAnimationFrame(raf); }
-    if (still()) { return; }
+    if (still()) {        // no motion: show each cat the one frame that names its mood
+      [].forEach.call(document.querySelectorAll("#cats > div"), function (d) {
+        var m = MOODS[d._cat.mood], f = NAMING[d._cat.mood] || 0;
+        d.querySelector(".spr").style.backgroundPositionX =
+          (m.frames > 1 ? (f / (m.frames - 1)) * 100 : 0) + "%";
+      });
+      return;
+    }
     // the node list is fixed between placements, and a sheet advances at 2-8 fps, not 60:
     // only write when the frame actually changes
     var pinned = [].slice.call(document.querySelectorAll("#cats > div")).map(function (d) {
@@ -1028,7 +1054,12 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
   }
 
   function closeMenu() {
-    $("menu").hidden = true;
+    var menu = $("menu"), back = state.opener;
+    var had = !menu.hidden && menu.contains(document.activeElement);
+    menu.hidden = true;
+    if (back && back.setAttribute) { back.setAttribute("aria-expanded", "false"); }
+    if (had && back && back.focus) { back.focus(); }   // put focus where it came from
+    state.opener = null;
     state.open = null;
     state.openRoom = null;
     [].forEach.call(document.querySelectorAll(".cat, .queen-pin"), function (d) { d.classList.remove("lit"); });
@@ -1071,6 +1102,10 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
     });
     menu.appendChild(ul);
     menu.hidden = false;
+    menu.setAttribute("role", "dialog");
+    menu.setAttribute("aria-label", title + " menu");
+    if (target.setAttribute) { target.setAttribute("aria-expanded", "true"); }
+    state.opener = target;
 
     // open clear of the two controls, by whichever of right, left or below moves it least
     // positioned against .stage-wrap, which the stage fills, so x is clamped to the stage but
@@ -1109,6 +1144,10 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
     menu.style.left = x + "px";
     menu.style.top = y + "px";
     state.open = target;
+    // last, so the opener's own blur knows a menu is open and leaves the line alone
+    announce(title + " menu, " + actions.length + " actions");
+    var first = menu.querySelector("button");
+    if (first) { first.focus(); }       // or the next Tab is the rest of the plan, not the menu
   }
 
   function wireStage() {
@@ -1147,7 +1186,7 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
     });
     stage.addEventListener("pointerleave", function () {
       bracket(null);
-      if (!state.open) { say(""); }
+      if (!state.open && hover.armed) { say(""); }    // not over what an action just said
     });
 
     stage.addEventListener("click", function (e) {
@@ -1271,13 +1310,12 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
   /* ---- the moods, as a row of cards ------------------------------------------------------------ */
   function buildMoods() {
     // the heading of each card is MOODS[k].short, so renaming a mood renames it here too
-    // the frame to show is the one carrying what names the mood: the open mouth, the tear
     var order = [
-      ["cry", 2, "The last run failed. It stopped where it broke and has not tried again."],
-      ["meow", 1, "It is blocked on an answer only you can give. Point at it and it asks."],
-      ["review", 0, "It finished something and brought it to you: a pull request, a draft, a note."],
-      ["work", 0, "Busy. Nothing for you to do; it will say so when there is."],
-      ["sleep", 0, "Done, and nothing waiting. It stays until you let it go."]
+      ["cry", "The last run failed. It stopped where it broke and has not tried again."],
+      ["meow", "It is blocked on an answer only you can give. Point at it and it asks."],
+      ["review", "It finished something and brought it to you: a pull request, a draft, a note."],
+      ["work", "Busy. Nothing for you to do; it will say so when there is."],
+      ["sleep", "Done, and nothing waiting. It stays until you let it go."]
     ];
     var host = $("moods");
     order.forEach(function (row) {
@@ -1288,10 +1326,11 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
       pic.className = "pic";
       pic.style.setProperty("--frames", m.frames);
       pic.style.backgroundImage = "url(art/cat-" + k + ".png)";
-      pic.style.backgroundPositionX = (m.frames > 1 ? (row[1] / (m.frames - 1)) * 100 : 0) + "%";
-      pic.dataset.frame = String(row[1]);
+      var f = NAMING[k] || 0;                        // the same frame the map shows when still
+      pic.style.backgroundPositionX = (m.frames > 1 ? (f / (m.frames - 1)) * 100 : 0) + "%";
+      pic.dataset.frame = String(f);
       var b = document.createElement("b"); b.textContent = m.short;
-      var s = document.createElement("span"); s.textContent = row[2];
+      var s = document.createElement("span"); s.textContent = row[1];
       d.append(pic, b, s);
       host.appendChild(d);
     });
