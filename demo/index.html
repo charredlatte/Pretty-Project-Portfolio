@@ -135,7 +135,7 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   transition: left 1.6s linear, top 1.6s linear;
 }
 .cat .spr, .queen-pin .spr {
-  width: 100%; height: 100%; cursor: pointer;
+  width: 100%; height: 100%; cursor: pointer; image-rendering: pixelated;
   background-repeat: no-repeat; background-size: calc(100% * var(--frames)) 100%;
 }
 .cat.flip .spr { transform: scaleX(-1); }
@@ -153,6 +153,7 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   position: absolute; top: 2.2cqi; left: 2.2cqi; display: flex; align-items: center; gap: .9cqi;
   padding: .9cqi 1.3cqi; background: var(--paper); border: 2px solid var(--ink); border-radius: 3px;
   font-family: var(--pixel); font-size: max(7px, 1.35cqi); box-shadow: var(--shadow);
+  pointer-events: none;                 /* it floats over the plan and takes no clicks */
 }
 .hud .mark { width: 3.2cqi; height: 3.2cqi; }
 .badge {
@@ -184,8 +185,14 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   position: absolute; left: 2.2cqi; bottom: 2.2cqi; max-width: calc(100% - 4.4cqi);
   padding: .8cqi 1.2cqi; background: var(--paper); border: 2px solid var(--ink); border-radius: 3px;
   font-size: max(10px, 1.7cqi); line-height: 1.35; box-shadow: var(--shadow); margin: 0;
+  pointer-events: none;
 }
-.tip:empty { visibility: hidden; }   /* stays in the DOM: a display:none live region is not announced */
+.tip:empty { visibility: hidden; }
+/* what is announced, apart from the hover line: only focus writes here, never a mouse move */
+.sr-live {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
 
 /* a menu: the name, one line under it, what matters now, then the actions as a list */
 .menu {
@@ -210,6 +217,7 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
 .menu li button::before {
   content: ""; position: absolute; left: .1rem; top: 50%; transform: translateY(-50%);
   width: .7em; height: 1em; background: url(art/pointer.png) no-repeat center / contain; opacity: 0;
+  image-rendering: pixelated;
 }
 .menu li button:hover, .menu li button:focus-visible { background: var(--well); }
 .menu li button:hover::before, .menu li button:focus-visible::before { opacity: 1; }
@@ -234,7 +242,7 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   padding: .9rem; background: var(--well); border: 2px solid var(--line); border-radius: 4px;
 }
 .mood .pic {
-  width: 60px; height: 60px; background-repeat: no-repeat;
+  width: 60px; height: 60px; background-repeat: no-repeat; image-rendering: pixelated;
   background-size: calc(60px * var(--frames)) 60px; align-self: center;
 }
 .mood b { font-family: var(--pixel); font-size: .58rem; line-height: 1.5; }
@@ -401,7 +409,8 @@ footer .wrap { padding-block: 2.5rem; }
           <button class="pbtn" id="tabUpper" aria-pressed="false">UPSTAIRS <span class="pip" hidden id="upPip"></span></button>
         </div>
       </div>
-      <p class="tip" id="tip" role="status"></p>
+      <p class="tip" id="tip"></p>
+      <p class="sr-live" id="say" aria-live="polite"></p>
     </div>
     <div class="menu" id="menu" hidden></div>
     </div>
@@ -817,7 +826,7 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
         bracket(grp);
         say(r.name + (n ? " · " + n + (n === 1 ? " cat" : " cats") : " · empty"));
       });
-      hit.addEventListener("blur", function () { if (!state.open) { bracket(null); say(""); } });
+      hit.addEventListener("blur", function () { announce(""); if (!state.open) { bracket(null); say(""); } });
       hit.addEventListener("keydown", function (e) {
         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); hit.dispatchEvent(new MouseEvent("click", { bubbles: true })); }
       });
@@ -905,8 +914,8 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
         spr.setAttribute("role", "button");
         spr.setAttribute("aria-label", c.id === "queen" ? c.name + ", " + QUEEN_IS
           : c.name + ", " + m.label);
-        spr.addEventListener("focus", function () { say(catLine(c)); });
-        spr.addEventListener("blur", function () { if (!state.open) { say(""); } });
+        spr.addEventListener("focus", function () { say(catLine(c)); announce(catLine(c)); });
+        spr.addEventListener("blur", function () { announce(""); if (!state.open) { say(""); } });
         spr.addEventListener("keydown", function (e) {
           if (e.key === "Enter" || e.key === " ") { e.preventDefault(); spr.click(); }
         });
@@ -987,6 +996,8 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
 
   /* ---- hover names a thing; a click opens its menu ------------------------------------------- */
   function say(text) { $("tip").textContent = text || ""; }
+  // said out loud: only on focus, so sweeping the pointer over the plan queues nothing
+  function announce(text) { $("say").textContent = text || ""; }
 
   function catLine(c) {
     var m = MOODS[c.mood];
@@ -1422,10 +1433,15 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
     $("wizTitle").textContent = STEPS[i];
     $("wizWhere").textContent = "Step " + (i + 1) + " of " + STEPS.length;
     $("wizBack").hidden = i === 0;
+    $("wizBack").dataset.step = "back";
+    $("wizNext").dataset.step = "next";
     $("wizNext").textContent = i === STEPS.length - 1 ? "Open the doors" : "Next";
     if (refocus) {
-      var back = body.querySelector('[data-step="' + refocus + '"]');
-      if (back) { back.focus(); }
+      // Back and the counter buttons both vanish on the step they trigger, so focus is put
+      // back on whichever button is still there
+      var onto = body.querySelector('[data-step="' + refocus + '"]') ||
+                 document.querySelector('.wiz-foot [data-step="' + refocus + '"]');
+      if (onto && !onto.hidden) { onto.focus(); }
     }
     var dots = $("wizDots");
     dots.replaceChildren();
@@ -1438,7 +1454,7 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
 
   function wireWizard() {
     $("wizBack").addEventListener("click", function () {
-      if (wiz.step > 0) { wiz.step--; wizStep(); }
+      if (wiz.step > 0) { wiz.step--; wizStep(wiz.step === 0 ? "next" : "back"); }
     });
     $("wizNext").addEventListener("click", function () {
       if (wiz.step < STEPS.length - 1) { wiz.step++; wizStep(); return; }
@@ -1469,6 +1485,9 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
   /* ---- go --------------------------------------------------------------------------------------- */
   // the stage's shape and the plan's viewBox both come from VIEW, so there is one camera
   $("plan").setAttribute("viewBox", [VIEW.x, VIEW.y, VIEW.w, VIEW.h].join(" "));
+  // the SVG fills the padding box, which the stage's 3px border makes a hair shorter than the
+  // ratio below: without this the plan letterboxes and the cats drift off their rooms
+  $("plan").setAttribute("preserveAspectRatio", "none");
   $("stage").style.aspectRatio = VIEW.w + " / " + VIEW.h;
   drawPlan();
   placeCats();

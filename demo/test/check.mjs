@@ -41,25 +41,54 @@ ok("standards mode, not quirks", (await page.evaluate(() => document.compatMode)
 ok("no horizontal scroll", !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
 
 console.log("\nthe plan takes its own pointer events");
-// every pixel of a room — its floor, its furniture, its cabinet — must resolve to that room
-for (const [room, pick] of [["dining", "floor"], ["dining", "furniture"], ["kitchen", "cabinet"], ["hall", "stair"]]) {
-  const inRoom = await page.evaluate(({ room, pick }) => {
-    const b = { dining: [96, 48, 181, 165], kitchen: [272, 48, 245, 165], hall: [272, 208, 245, 181] }[room];
+// Three times now something floating over the plan — the cat layer, then the furniture, then
+// the hover line — has swallowed the events a room needs, and every screenshot still looked
+// right. So sweep a grid over every room, at the widths where the overlays are largest, with
+// the longest hover line the page can produce showing. The room boxes are read off the drawn
+// SVG, not copied here: a copy would go stale and keep passing.
+for (const width of [1200, 390, 360]) {
+  await page.setViewportSize({ width, height: 800 });
+  await page.waitForTimeout(250);
+  await page.locator("#stage").scrollIntoViewIfNeeded();
+  // make the tip as big as it gets, so its footprint is in the sweep
+  await page.locator("#cats .cat .spr").nth(1).hover();
+  await page.waitForTimeout(150);
+
+  const dead = await page.evaluate(() => {
     const svg = document.getElementById("plan");
     const box = svg.getBoundingClientRect();
     const vb = svg.getAttribute("viewBox").split(" ").map(Number);
-    const at = { floor: [b[0] + b[2] * 0.5, b[1] + b[3] * 0.55],
-                 furniture: [b[0] + b[2] / 2, b[1] + 24],
-                 cabinet: [b[0] + b[2] - 30, b[1] + b[3] - 30],
-                 stair: [394, 250] }[pick];
-    const x = box.left + ((at[0] - vb[0]) / vb[2]) * box.width;
-    const y = box.top + ((at[1] - vb[1]) / vb[3]) * box.height;
-    const el = document.elementFromPoint(x, y);
-    const hit = el && el.closest("[data-room]");
-    return hit ? hit.getAttribute("data-room") : null;
-  }, { room, pick });
-  ok(`${room}: its ${pick} belongs to the room`, inRoom === room, `got ${inRoom}`);
+    const out = [];
+    for (const g of document.querySelectorAll(".room")) {
+      const want = g.getAttribute("data-room");
+      const r = g.querySelector("rect.room-hit");
+      const [rx, ry, rw, rh] = ["x", "y", "width", "height"].map((a) => Number(r.getAttribute(a)));
+      for (let i = 1; i <= 5; i++) {
+        for (let j = 1; j <= 5; j++) {
+          const wx = rx + (rw * i) / 6, wy = ry + (rh * j) / 6;
+          const x = box.left + ((wx - vb[0]) / vb[2]) * box.width;
+          const y = box.top + ((wy - vb[1]) / vb[3]) * box.height;
+          const el = document.elementFromPoint(x, y);
+          const hit = el && el.closest("[data-room]");
+          // a cat standing on the spot is allowed to take it; nothing else is
+          if (!hit && !(el && el.closest(".cat, .queen-pin"))) {
+            out.push(`${want} at ${Math.round(wx)},${Math.round(wy)} → ${el ? (el.id || el.className.baseVal || el.tagName) : "null"}`);
+          } else if (hit && hit.getAttribute("data-room") !== want) {
+            out.push(`${want} at ${Math.round(wx)},${Math.round(wy)} → ${hit.getAttribute("data-room")}`);
+          }
+        }
+      }
+    }
+    return out;
+  });
+  ok(`${width}px: every room owns all 25 points of itself`, dead.length === 0,
+    dead.slice(0, 4).join("; ") + (dead.length > 4 ? ` (+${dead.length - 4} more)` : ""));
 }
+await page.setViewportSize({ width: 1200, height: 900 });
+await page.waitForTimeout(250);
+await page.locator("#stage").scrollIntoViewIfNeeded();
+await page.mouse.move(5, 5);
+await page.waitForTimeout(150);
 
 console.log("\nhover names a thing, and stops naming it");
 await page.locator('rect.room-hit[data-room="kitchen"]').hover();
@@ -191,6 +220,24 @@ ok("a cat's element holds only its sprite", await page.evaluate(() =>
   [...document.querySelectorAll("#cats > div")].every((d) => d.children.length === 1 &&
     d.firstElementChild.classList.contains("spr") && d.textContent.trim() === "")));
 ok("no sign anywhere on the plan", (await page.locator("#plan text").count()) === 0);
+
+console.log("\nthe pixel art is drawn as pixel art");
+const smoothed = await page.evaluate(() =>
+  [...document.querySelectorAll("#cats .spr, .mood .pic, .mark, .fig")]
+    .filter((e) => getComputedStyle(e).imageRendering !== "pixelated").length);
+ok("nothing with a sprite in it is smoothed", smoothed === 0, smoothed + " smoothed");
+
+// the plan and the cats are placed by two different boxes; they have to agree on where a room is
+ok("the cats line up with the plan they stand on", await page.evaluate(() => {
+  const svg = document.getElementById("plan");
+  const box = svg.getBoundingClientRect();
+  const vb = svg.getAttribute("viewBox").split(" ").map(Number);
+  const layer = document.getElementById("cats").getBoundingClientRect();
+  // world (96,48) by the SVG, and by the percentages the cat layer uses
+  const bySvg = box.left + ((96 - vb[0]) / vb[2]) * box.width;
+  const byLayer = layer.left + ((96 - vb[0]) / vb[2]) * layer.width;
+  return Math.abs(bySvg - byLayer) < 0.5;
+}));
 
 console.log("\nthe wizard runs");
 await page.locator(".wiz").scrollIntoViewIfNeeded();
