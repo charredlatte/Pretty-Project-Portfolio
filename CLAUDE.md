@@ -29,8 +29,10 @@ one up that way for someone who has no gateway.
 `art/licensed/` is not in git (licences below), so a fresh clone and every cloud session start without it. Get
 it back one of two ways:
 
-1. **Read it out of the artifact** -- reading is all it is for. `Artifact` on the `kittychat-cafe` URL in
-   `artifacts.json`, with `out_dir: "catio"`: list its files (`action: "list"`, `scope: "files"`), then one read
+1. **Read it out of the artifact** -- reading is all it is for. The link is `CATIO_ARTIFACT` in the session's
+   environment; with none set, ask her for it, because it is the address of a private page of hers and this
+   repository is public (`artifacts.json` is empty for that reason, and a check keeps it so). `Artifact` on that
+   URL, with `out_dir: "catio"`: list its files (`action: "list"`, `scope: "files"`), then one read
    whose `paths` hold every path **under `art/licensed/`** -- the nested `ui/` and `pastel/` ones are most of
    them -- **and no others**. `out_dir` writes straight into the checkout, and everything else in that listing
    is committed work here (`index.html`, `art/furniture.png`, and her `art/skin.json` and `art/skin/*` once she

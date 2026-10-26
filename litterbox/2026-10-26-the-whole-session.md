@@ -149,8 +149,17 @@ gitignored — found three things, and cleared two of them.
   named here so the next scan doesn't mistake it for a leak. The same goes for her name as author and copyright
   holder in `README.md` and the two plugin manifests.
 
-- **Not decided, and hers:** `artifacts.json` still holds three private claude.ai artifact URLs. They are opaque
-  ids that identify nobody, but they are the addresses of pages holding her own data, and one of them is the
-  quick way back to `art/licensed/` for a fresh clone (CLAUDE.md, "The licensed art"). Moving them to the
-  environment, as the gateway's address now is, costs that route unless she pastes the link. Say the word and
-  they go.
+- **The artifact URLs went too, on her word.** `artifacts.json` held three private claude.ai pages of hers;
+  it is empty now, and the café artifact's link is `CATIO_ARTIFACT` in her environment, beside `CATIO_URL`.
+  Two things actually read those values and both were changed with them: route 1 for the licensed art in
+  `CLAUDE.md`, and the page's delivery fallback, which pointed a session at an `artifacts.json` entry that no
+  longer exists and now says to ask the owner, because nothing in the repo knows the link any more. The file
+  stays as the empty slot a fork records its own page in. The check grew a second needle for it: a full
+  `claude.ai/artifact/<id>` link fails, while the bare path in prose does not, since the docs and this box
+  discuss it as a thing and only a real link gives a real page away. Both halves were proved by planting
+  each and watching the right one go red.
+
+  The page change was held against a baseline rather than guessed at: the e2e suite ran on this branch and on
+  `main`, and the two failure sets are **identical** — 329 passed, 30 failed, every one of them art-dependent,
+  as a run without `art/licensed/` always is. The run is not a verdict on the page; the comparison is a verdict
+  on the change.

@@ -1525,7 +1525,10 @@ class Plugin(unittest.TestCase):
         session with none is told it isn't connected. The needle is built from parts so this file doesn't
         contain the thing it forbids, and the scan is over tracked files only: a developer's own checkout may
         hold her address in catio/data or catio/dist, which are gitignored and never leave their machine."""
-        needle = "catio-" + "gateway." + "charlotte" + "-badot"
+        host = "catio-" + "gateway." + "charlotte" + "-badot"
+        # A published page's own address, id and all. The bare path is left alone on purpose: the docs and the
+        # litter box discuss "claude.ai/artifact/" as a thing, and only a real link gives a real page away.
+        page = re.compile(r"claude\.ai/" + "artifact" + r"/[A-Za-z0-9_-]{10,}")
         root = HOOKS.parent.parent
         found = subprocess.run(["git", "ls-files", "-z"], cwd=root, capture_output=True, text=True)
         self.assertEqual(found.returncode, 0, found.stderr)
@@ -1535,12 +1538,12 @@ class Plugin(unittest.TestCase):
             try:
                 body = f.read_text(encoding="utf-8")
             except (OSError, UnicodeDecodeError):
-                continue   # binary, or gone in a half-finished checkout: neither can carry the address
+                continue   # binary, or gone in a half-finished checkout: neither can carry an address
             for i, line in enumerate(body.splitlines(), 1):
-                if needle in line:
+                if host in line or page.search(line):
                     named.append("%s:%d" % (name, i))
-        self.assertEqual(named, [], "her café's address is in these tracked files; it belongs in CATIO_URL: "
-                         + ", ".join(named))
+        self.assertEqual(named, [], "a private address of hers is in these tracked files; the gateway's belongs "
+                         "in CATIO_URL and the artifact's in CATIO_ARTIFACT: " + ", ".join(named))
 
     def test_no_tracked_manifest_has_a_duplicate_key(self):
         """A merge that fuses two versions of a manifest leaves both keys, and json.loads takes the last and

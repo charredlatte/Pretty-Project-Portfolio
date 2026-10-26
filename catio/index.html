@@ -4730,9 +4730,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // What a delivery says in a session that reports to no gateway: where the file is, the note with it, and the
   // text itself when small. The café's own link is data, house/main.url, written once by whoever published the
   // page (the setup skill says when): a page can't learn its own artifact's address, and nothing written in here
-  // may name anyone's café. Without it the session is pointed at the café repo's own record of the link.
+  // may name anyone's café. Without it the session is told to ask, because the repo no longer records the link
+  // either: it is a private page's address and the repo is public (CLAUDE.md, "The licensed art").
   function deliveryText(doc, id, inline) {
-    const at = S.house && S.house.url ? " in the Catio at " + S.house.url : " in the Catio's artifact (its link is the kittychat-cafe entry in the café repo's artifacts.json)";
+    const at = S.house && S.house.url ? " in the Catio at " + S.house.url : " in the Catio's artifact (ask the owner for its link: nothing here knows it)";
     return "[Catio] Delivery for you: " + doc.name + " (" + (doc.type || "file") + ", " + size(doc.size) + "). brain/" + id + ", asset " + doc.asset +
       "," + at + ". Fetch it with Artifact read (path = the asset id), then mark brain/" + id + " picked up." +
       (doc.note ? "\n\nThe owner's note: " + doc.note : "") +
