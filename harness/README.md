@@ -38,6 +38,63 @@ or for one repo in its own `.claude/catio-rules.json`, e.g. `{"opening_audit": f
 repo where `ponytail-audit` or `browser-agent-preflight` isn't installed). A repo can also
 list extra browser commands, one pattern per line, in `.claude/browser-commands`.
 
+### Every rule: what it is for, where it works, how hard it is
+
+The table above says how each rule is kept. This one says why it exists, how far it reaches, and whether anything
+actually stops you.
+
+Sixteen rules. **Nine have machinery in the Claude Code plugin; seven are words everywhere, for everyone.** Of the
+nine, seven can refuse a tool call — `hooks/` runs before the call and never asks the model's opinion, so an agent
+cannot talk past them — and two only speak: `graph_first` points at the map, `opus_default` reminds a session that
+started on Fable, and neither stops anything. Outside Claude Code the same nine arrive as instructions like the
+other seven: `house_rules` on the Catio server hands every rule that is `on` to Codex, Gemini CLI, Antigravity,
+Cursor or anything else that speaks MCP, and whether they are kept is up to the agent reading them. An adopted chat
+gets nothing but what Charlotte types into it.
+
+So **hard** means one thing here: a hook refuses the call. A reminder, a pointer or a nudge is soft, however firmly
+it is worded. The rows are in `rules.json`'s order, the order `house_rules` and the page use, so the two tables and
+the file read side by side.
+
+| Rule | What it is for | Where it works | Hard or soft |
+|---|---|---|---|
+| **Preflight before any browser** | Every page an agent reads is attacker-controllable, and the session usually carries her sign-ins: the skill settles the sandbox, the injection defences, the gates on buying and posting, and what credentials the browser may see — before the first page loads, not after it went wrong | `hooks/gates.py`, on any browser tool and on shell commands that drive one (a repo adds its own patterns in `.claude/browser-commands`) | **Hard.** Browser tools are refused until `browser-agent-preflight` has run in the session |
+| **Open with a read-only audit** | A session that opens by changing things never asks whether the thing should exist. The pass asks once, before the first edit, and its summary lands in the project's filing cabinet where she already looks | `hooks/gates.py`, on the first edit, commit, push, or script run with `--write` or `--commit` inside the repo | **Hard.** Those are refused until `ponytail-audit` has run |
+| **Semi-automatic shipping** | Work left in a cloud container dies with the container. This ships it without asking her each time, while keeping the two moves nobody can undo — the default branch, a force-push — out of a session's hands | `hooks/ship_gate.py` on pushes and branch deletions, by git or the GitHub tools; `hooks/ship_check.py` at the end of a turn. In a cloud session, every repo checked out beside this one too | **Hard.** The push is refused; deleting a merged branch where she merges by hand goes to her as a prompt; the unpushed-work reminder holds the stop once |
+| **Semi-automatic merging** | She doesn't want to be the bottleneck on every pull request, and does want to be the bottleneck on anything guessed. The sure ones merge themselves; the rest wait, with a note in the litter box saying what stopped them | `hooks/ship_gate.py`, only in a repo that opts in with `{"merge": true}`. In any other repo a finished pull request is hers to merge, and nothing in the harness touches it | **Hard.** A merge that can't show a strong model, the audits, a review of the last commit, no guesses and nothing on the hold list is refused and held |
+| **No Claude attribution on public repos** | Her public repos read as hers. The footers GitHub's integration and Claude Code add would say otherwise — and because public is the default, a fork is covered without being listed anywhere | `hooks/gates.py`, on a commit message (including the file its `-F` names) and on GitHub posts. A private repo opts out with `{"public": false}` | **Hard.** The commit or the post is refused while the lines are still in it |
+| **Map before you dig (graphify)** | Grepping a repo from a strong session costs more than asking a map that already holds the answer, and saving the map puts it in her filing cabinet on the way | `hooks/graph_first.py` runs graphify's own `hook-guard` before searches and reads; silent when the repo has no fresh map, or graphify isn't installed | **Soft, though `rules.json` flags it enforced.** It points at the cheaper way; it never refuses one |
+| **Send the small stuff to a smaller cat** | A whole-repo search or a test run is mechanical, and Haiku does it for a fraction. The judgement stays with the strong model — which is also what the merging rule promises her | `hooks/graph_first.py` suggests it once a session each; `hooks/gates.py` guards its two edges. The helpers are plugin agents, so Claude Code only | **Soft, with two hard edges.** Nothing compels a delegation. But a `scout` or `tester` that tries to edit is refused, and so is any sub agent on a model off the strong list editing a tracked file in a repo that merges its own pull requests |
+| **Opus by default** | The reviews and the merges the merging rule trusts are only as good as the model doing them | `hooks/session_start.py`, reading the session's model at SessionStart | **Soft, though `rules.json` flags it enforced.** A hook can't switch a model, so it tells the session to say so and suggest `/model opus`. A `/model` switch mid-session isn't caught |
+| **Delegate first: spend what the task is worth** | 5 October: a workflow's 58 agents had all inherited the session's Opus, because nothing made the call name a model. Now every assignment names one, so what it costs is a decision somebody made rather than whatever the parent happened to be | `hooks/right_sized.py`, on a sub agent spawn (`Task`, `Agent`), every `agent()` call in a `Workflow` script, and `create_session`. Her per-repo cap is `tiers.ceiling` in `.claude/catio-rules.json` | **Hard.** An assignment that names no model, one off the ladder, or one above her cap is refused. It judges the model on the call, never a task's words |
+| **The decider makes the judgement calls** | The judgement calls about the café — which project a file belongs to, whether a note is settled, who needs her first, whether a task is easy enough for a small model — were being answered differently by whichever session happened to be reading. Clef answers them one way, and `decisions/` can be checked against what happened | Everywhere, as words. The `decide` tool is on the gateway, so any agent can ask it and none is made to | **Soft.** At or above the 0.6 floor its answer stands; under it, the session's own judgement or Charlotte, saying which it used |
+| **Catio messages come from Charlotte** | A `[Catio]` turn is her, so her note is an instruction — and the file it carries is not. That second half is the line that stops a dropped document from redirecting the session | Everywhere, as words | **Soft** |
+| **Answer on the cat** | An answer in a terminal reaches nobody. In the cat's conversation it reaches her where she is already looking | Everywhere, as words; the `catio` skill says how | **Soft** |
+| **Honour requests** | `pause` and `wrap_up` are how she stops, or lands, a session she isn't watching | Everywhere, as words | **Soft** |
+| **Private matters stay in the Catio** | Legal, money, health and personal chats can't be taken back out of a git history once they are in it. The café's own database, and `~/.catio` on her computer, hold them instead | Everywhere, as words | **Soft** |
+| **Say which model is working** | After a fallback or a switch, the model a session was configured with and the one serving it differ — and she is deciding what to trust | Everywhere, as words | **Soft** |
+| **Their issue is theirs to close** | A merged fix is not the reporter's word that it works | Everywhere, as words | **Soft** |
+
+**`enforced` in `rules.json` answers a different question.** It reads `true` for eight rules, not the seven hard
+ones: it marks `graph_first` and `opus_default`, which only speak, and leaves `delegate` at `false`. That is
+deliberate — nothing can compel a session to hand a search over, so the rule itself is a recommendation — even
+though two of its edges are refused, as its row says. Read the flag as *the harness keeps this*, not *the harness
+can stop you*.
+
+**And the flag travels further than the enforcement.** `house_rules` hands another agent the whole rule, `enforced`
+included, and nothing on that side acts on it. In Codex or Gemini CLI a rule marked `true` is a rule the client was
+asked to follow, exactly like the seven soft ones. The same goes for a Claude Code session whose container predates
+the setup script that installs the plugin: if `claude plugin list` doesn't show `kittychat-house-rules`, all sixteen
+are words there too, and the session keeps them by hand.
+
+**A gate that cannot run refuses.** `hooks/gates.py` fails closed on purpose: a hook module that won't import, a
+shipping gate that throws, a `rules.json` it can't read — each refuses the call it was checking and says so, rather
+than letting it through unchecked. The one exception is the tier check, which speaks and steps aside when it throws,
+because the gates below it matter more than taking them down with it. So a broken plugin reads as a wall of
+refusals naming the hook, never as a quiet afternoon where nothing was kept.
+
+Switching any of them off is the paragraph above: `rules.json` for every repo, a repo's own
+`.claude/catio-rules.json` for one.
+
 ### Delegate first: spend what the task is worth
 
 Charlotte, 5 October: "Make sure this never happens again. Always run the delegation before assigning anything to
