@@ -96,7 +96,15 @@ class Layer:
                 self.hline(round(xs[i]), round(xs[i + 1]), y, c)
 
     def outline(self, c=INK):
-        """One pixel traced round everything drawn so far, as the pack's own sprites have."""
+        """One pixel traced round everything drawn so far, as the pack's own sprites have.
+
+        A shape filled corner to corner has no transparent neighbour, so draw its frame instead:
+        otherwise the sprite silently ships with no ink at all.
+        """
+        if all(self.px[x, y][3] for y in range(self.h) for x in range(self.w)):
+            self.hline(0, self.w - 1, 0, c); self.hline(0, self.w - 1, self.h - 1, c)
+            self.vline(0, 0, self.h - 1, c); self.vline(self.w - 1, 0, self.h - 1, c)
+            return
         edge = []
         for y in range(self.h):
             for x in range(self.w):
@@ -466,7 +474,8 @@ def main():
 
     for name, im in sorted(made.items()):
         im.save(out / (name + ".png"))
-    (out / "sprites.json").write_text(json.dumps(meta, indent=2, sort_keys=True) + "\n")
+    (out / "sprites.json").write_text(json.dumps(meta, indent=2, sort_keys=True) + "\n",
+                                  encoding="utf-8")
     print("%d sprites -> %s" % (len(made), out))
 
     if a.sheet:

@@ -1,8 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>KittyChat Café Tour</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400..700&family=Nunito:ital,wght@0,300..900;1,300..900&display=swap">
+</head>
+<body>
 
 <style>
 /* ------------------------------------------------------------------------------------------
@@ -115,7 +122,9 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   box-shadow: 0 6px 0 var(--lav);
 }
 .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.stage .layer { position: absolute; inset: 0; }
+/* the cat layer spans the stage, so it must let room hovers and clicks through to the plan */
+.stage .layer { position: absolute; inset: 0; pointer-events: none; }
+.cat, .queen-pin { pointer-events: auto; }
 
 .cat, .queen-pin {
   /* left/top are where its feet stand; the box hangs up and left from there */
@@ -165,6 +174,7 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   border-radius: 999px; background: var(--accent); vertical-align: middle;
 }
 .pbtn[aria-pressed="true"] .pip { background: #FFF6FC; }
+.pbtn .pip[hidden] { display: none; }
 .mini { width: 22cqi; height: 13.8cqi; border: 2px solid var(--ink); background: var(--well); display: block; }
 
 .tip {
@@ -372,7 +382,7 @@ footer .wrap { padding-block: 2.5rem; }
     <div class="stage" id="stage">
       <svg id="plan" viewBox="72 -56 872 584" aria-hidden="true"></svg>
       <div class="layer" id="cats"></div>
-      <div class="hud">
+      <div class="hud" id="hud">
         <span class="mark" style="--frames:4;background-image:url(art/cat-work.png);width:22px;height:22px"></span>
         <span>KittyChat Café</span>
         <span class="badge" id="houseBadge">2</span>
@@ -636,16 +646,16 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
   function left(x) { return ((x - VIEW.x) / VIEW.w * 100) + "%"; }
   function top_(y) { return ((y - VIEW.y) / VIEW.h * 100) + "%"; }
   var ROOMS = {
-    dining:  { name: "Café",          floor: "ground", box: [96, 48, 181, 165],  art: "counter",   aw: 18 },
-    kitchen: { name: "Kitchen",       floor: "ground", box: [272, 48, 245, 165], art: "stove",     aw: 18 },
-    living:  { name: "Cat lounge",    floor: "ground", box: [512, 48, 181, 165], art: "bench",     aw: 18 },
-    study:   { name: "Craft room",    floor: "ground", box: [96, 208, 181, 181], art: "workbench", aw: 18 },
-    hall:    { name: "Entrance hall", floor: "ground", box: [272, 208, 245, 181], art: "door",     aw: 18 },
-    sunroom: { name: "Terrace",       floor: "ground", box: [512, 208, 181, 181], art: "glass",    aw: 18 },
-    garden:  { name: "Catio",         floor: "ground", box: [688, 176, 224, 288], art: "fence",    aw: 18 },
-    brain:   { name: "Library",       floor: "upper",  box: [96, 48, 181, 165],  art: "shelf",     aw: 18 },
-    bedroom: { name: "Bedroom",       floor: "upper",  box: [512, 48, 101, 165], art: "bed",       aw: 18 },
-    bath:    { name: "Ensuite",       floor: "upper",  box: [608, 48, 85, 165],  art: "tub",       aw: 18 }
+    dining:  { name: "Café",          floor: "ground", box: [96, 48, 181, 165], art: "counter" },
+    kitchen: { name: "Kitchen",       floor: "ground", box: [272, 48, 245, 165], art: "stove" },
+    living:  { name: "Cat lounge",    floor: "ground", box: [512, 48, 181, 165], art: "bench" },
+    study:   { name: "Craft room",    floor: "ground", box: [96, 208, 181, 181], art: "workbench" },
+    hall:    { name: "Entrance hall", floor: "ground", box: [272, 208, 245, 181], art: "door" },
+    sunroom: { name: "Terrace",       floor: "ground", box: [512, 208, 181, 181], art: "glass" },
+    garden:  { name: "Catio",         floor: "ground", box: [688, 176, 224, 288], art: "fence" },
+    brain:   { name: "Library",       floor: "upper",  box: [96, 48, 181, 165], art: "shelf" },
+    bedroom: { name: "Bedroom",       floor: "upper",  box: [512, 48, 101, 165], art: "bed" },
+    bath:    { name: "Ensuite",       floor: "upper",  box: [608, 48, 85, 165], art: "tub" }
   };
   var LANDING = [272, 48, 245, 341];
   var STAIR = [362, 213, 64, 80];
@@ -812,20 +822,22 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
     Object.keys(ROOMS).forEach(function (k) {
       var r = ROOMS[k];
       if ((r.floor === "upper") !== upper) { return; }
-      var b = r.box, scale = 2.6;
+      var b = r.box, scale = 2.6, aw = 18, ah = 12;
       // the hall's front door is on the south wall: the stair holds the middle of the room
       var ay = k === "hall" ? b[1] + b[3] - 46 : b[1] + 14;
       plan.appendChild(svg("image", {
         href: "art/" + r.art + ".png",
-        x: b[0] + b[2] / 2 - (r.aw * scale) / 2, y: ay,
-        width: r.aw * scale, height: 12 * scale, "image-rendering": "pixelated"
+        x: b[0] + b[2] / 2 - (aw * scale) / 2, y: ay,
+        width: aw * scale, height: ah * scale, "image-rendering": "pixelated"
       }));
       // and where the project lives: a filing cabinet, or the chest in the catio and the library
+      // the chest is 16x13, the cabinet 14x16: both at x2, so neither is stretched
       var chest = k === "garden" || k === "brain";
+      var cw = (chest ? 16 : 14) * 2, ch = (chest ? 13 : 16) * 2;
       plan.appendChild(svg("image", {
         href: chest ? "art/chest.png" : "art/cabinet.png",
-        x: b[0] + b[2] - 46, y: b[1] + b[3] - (chest ? 46 : 52),
-        width: chest ? 32 : 28, height: chest ? 26 : 32, "image-rendering": "pixelated"
+        x: b[0] + b[2] - cw - 14, y: b[1] + b[3] - ch - 14,
+        width: cw, height: ch, "image-rendering": "pixelated"
       }));
     });
   }
@@ -867,6 +879,10 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
         spr.tabIndex = 0;
         spr.setAttribute("role", "button");
         spr.setAttribute("aria-label", c.name + ", " + m.label);
+        spr.addEventListener("focus", function () { say(catLine(c)); });
+        spr.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); spr.click(); }
+        });
         d.appendChild(spr);
         host.appendChild(d);
         d._cat = c;
@@ -882,6 +898,7 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
   function sheetOf(d, mood) {
     var m = MOODS[mood] || WALK;
     d._showing = mood;
+    if (raf) { animate(); }                 // the pinned list caches the sheet, so start it again
     var spr = d.querySelector(".spr");
     spr.style.setProperty("--frames", m.frames);
     spr.style.backgroundImage = "url(art/cat-" + mood + ".png)";
@@ -892,13 +909,19 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
   function animate() {
     if (raf) { cancelAnimationFrame(raf); }
     if (still()) { return; }
+    // the node list is fixed between placements, and a sheet advances at 2-8 fps, not 60:
+    // only write when the frame actually changes
+    var pinned = [].slice.call(document.querySelectorAll("#cats > div")).map(function (d) {
+      return { d: d, spr: d.querySelector(".spr"), at: -1 };
+    });
     function step(t) {
-      [].forEach.call(document.querySelectorAll("#cats > div"), function (d) {
-        var showing = d._showing || d._cat.mood;
+      pinned.forEach(function (c) {
+        var showing = c.d._showing || c.d._cat.mood;
         var m = showing === "walk-side" ? WALK : MOODS[showing];
         var f = Math.floor(t / (1000 / (m.fps || FPS[showing] || 3))) % m.frames;
-        d.querySelector(".spr").style.backgroundPositionX =
-          (m.frames > 1 ? (f / (m.frames - 1)) * 100 : 0) + "%";
+        if (f === c.at) { return; }
+        c.at = f;
+        c.spr.style.backgroundPositionX = (m.frames > 1 ? (f / (m.frames - 1)) * 100 : 0) + "%";
       });
       raf = requestAnimationFrame(step);
     }
@@ -914,7 +937,7 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
     if (still()) { return; }
     roam = setTimeout(function () {
       var able = [].filter.call(document.querySelectorAll("#cats > .cat"), function (d) {
-        return d._cat.mood === "work" || d._cat.mood === "meow";
+        return d._cat.mood === "work";
       });
       if (able.length && !state.open) {
         var d = able[Math.floor(Math.random() * able.length)];
@@ -982,13 +1005,31 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
     menu.appendChild(ul);
     menu.hidden = false;
 
-    // open clear of the panel, by whichever of left, below or above moves it least
+    // open clear of the two controls, by whichever of right, left or below moves it least
     var stage = $("stage").getBoundingClientRect(), r = target.getBoundingClientRect();
-    var x = r.left - stage.left + r.width + 8, y = r.top - stage.top;
-    if (x + menu.offsetWidth > stage.width - 8) { x = r.left - stage.left - menu.offsetWidth - 8; }
-    if (x < 8) { x = 8; }
-    if (y + menu.offsetHeight > stage.height - 8) { y = stage.height - menu.offsetHeight - 8; }
-    if (y < 8) { y = 8; }
+    var mw = menu.offsetWidth, mh = menu.offsetHeight;
+    var blocks = [$("hud"), $("mapPanel")].map(function (e) {
+      var b = e.getBoundingClientRect();
+      return [b.left - stage.left, b.top - stage.top, b.right - stage.left, b.bottom - stage.top];
+    });
+    function hits(x, y) {
+      return blocks.some(function (b) {
+        return x < b[2] && x + mw > b[0] && y < b[3] && y + mh > b[1];
+      });
+    }
+    function clamp(x, y) {
+      return [Math.min(Math.max(8, x), Math.max(8, stage.width - mw - 8)),
+              Math.min(Math.max(8, y), Math.max(8, stage.height - mh - 8))];
+    }
+    var rx = r.left - stage.left, ry = r.top - stage.top;
+    var tries = [[rx + r.width + 8, ry], [rx - mw - 8, ry],
+                 [rx + r.width + 8, ry + r.height + 8], [rx - mw - 8, ry + r.height + 8]];
+    var at = clamp(tries[0][0], tries[0][1]);
+    for (var t = 0; t < tries.length; t++) {
+      var c2 = clamp(tries[t][0], tries[t][1]);
+      if (!hits(c2[0], c2[1])) { at = c2; break; }
+    }
+    var x = at[0], y = at[1];
     menu.style.left = x + "px";
     menu.style.top = y + "px";
     state.open = target;
@@ -1062,16 +1103,18 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
   function drawMini() {
     var cv = $("mini"), g = cv.getContext("2d");
     var sx = cv.width / W, sy = cv.height / H;
+    var well = tok("--well"), lav = tok("--lav"), line = tok("--line"), ink = tok("--ink");
+    var accent = tok("--accent"), pink = tok("--pink");
     g.clearRect(0, 0, cv.width, cv.height);
-    g.fillStyle = tok("--well"); g.fillRect(0, 0, cv.width, cv.height);
+    g.fillStyle = well; g.fillRect(0, 0, cv.width, cv.height);
     Object.keys(ROOMS).forEach(function (k) {
       var r = ROOMS[k], b = r.box, here = r.floor === state.floor;
       g.globalAlpha = here ? 1 : 0.25;
-      g.fillStyle = here ? tok("--lav") : tok("--line");
+      g.fillStyle = here ? lav : line;
       g.fillRect(b[0] * sx, b[1] * sy, b[2] * sx, b[3] * sy);
       g.globalAlpha = 1;
       if (here) {
-        g.strokeStyle = tok("--ink"); g.lineWidth = 1;
+        g.strokeStyle = ink; g.lineWidth = 1;
         g.strokeRect(b[0] * sx, b[1] * sy, b[2] * sx, b[3] * sy);
       }
     });
@@ -1079,7 +1122,7 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
     CATS.forEach(function (c) {
       if (!MOODS[c.mood].needs) { return; }
       var b = ROOMS[c.room].box;
-      g.fillStyle = ROOMS[c.room].floor === state.floor ? tok("--accent") : tok("--pink");
+      g.fillStyle = ROOMS[c.room].floor === state.floor ? accent : pink;
       g.beginPath();
       g.arc((b[0] + b[2] / 2) * sx, (b[1] + b[3] / 2) * sy, 3, 0, Math.PI * 2);
       g.fill();
@@ -1112,7 +1155,7 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
     $("houseBadge").hidden = !needing.length;
     var upstairsNeeds = needing.some(function (c) { return ROOMS[c.room].floor === "upper"; });
     $("upPip").hidden = !upstairsNeeds;
-    $("foldPip").style.display = needing.length ? "" : "none";
+    $("foldPip").hidden = !needing.length;
   }
 
   /* ---- the moods, as a row of cards ------------------------------------------------------------ */
@@ -1371,3 +1414,5 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
   });
 })();
 </script>
+</body>
+</html>
