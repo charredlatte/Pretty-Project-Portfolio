@@ -32,6 +32,13 @@ October notes are its working papers and their open items have moved here.
   stale conflicts is probably the wrong move; rebuilding it from its findings and checking what `main` already
   carries is probably the right one. #115 is the audit document itself, from `ohwellwhy10-jpg`'s fork.
 
+- [ ] **GitHub's Claude integration still appends its footer to every new pull request here**, and it still has
+  to be edited off by hand: it happened on both of this session's pull requests, and the house-rules hook caught
+  both. Carried from the 23 October note, and observed twice since. The hook makes it safe, not quiet.
+
+- [ ] **The repo's own over-engineering audit was last run on 22 October**, said the 23 October note; I have not
+  re-run it, so that is its word rather than mine.
+
 - [ ] **`fix/the-skill-reads-the-cafe` is back on the remote, and it is my fault.** I checked #155's state, found
   it stale, pushed a merge — and it had already been merged and the branch deleted, so the push recreated it. Its
   content is byte-identical to `main` (zero diff; the only commit on it is an empty merge), so nothing is wrong
@@ -116,3 +123,34 @@ refresh, and `docs/plan.md`'s publishing procedure.
   `Turn.args()`. I had verified the symbol did not exist and still passed the claim along. It is false:
   `Runner.turn()` parses Claude's stream-JSON, `mcp_file()` writes Claude's `mcpServers` shape, and `main()`
   resolves only `claude`. Corrected in the same PR.
+
+## The public repository, and what was in it
+
+Her ask on 26 October: *"make sure that no more personal information ends up in the public repo"*. A scan of
+tracked files — not the working tree, which may hold her data under `catio/data` and `catio/dist`, both
+gitignored — found three things, and cleared two of them.
+
+- **Her own name was in the café's address, in the brief.** The gateway's host carries her full name, and
+  `CLAUDE.md` printed it as the one link to give her. #157 had already taken that address out of
+  `harness/rules.json`, `harness/hooks/session_start.py` and the page; the brief was the copy left behind, and
+  an unfiled pile note had it too. Both now say `CATIO_URL`, which is where it belongs. **A check now enforces
+  it** (`test_no_tracked_file_names_the_owner_s_own_cafe`): it walks every tracked file and fails on the host,
+  and it was proved by planting the address and watching it go red, because a check nobody has seen fail is not
+  a check. Its needle is built from parts so the file does not contain the thing it forbids.
+
+- **Her benefits status was named in `docs/requests.md`.** The line's job was to record that the business plan
+  is private and never in git — but it listed *which* private circumstances it covers, one of them ARE. The line
+  now says the circumstances are private without naming them, which is what it was for.
+
+- **Her full name beside "EI" in the shop and landing pages is deliberate, and stays.** `docs/kittychat-shop/`
+  and `landing/index.html` carry "Charlotte Badot, EI" in mentions légales, a contact tile and a footer. French
+  law requires an e-commerce site to publish exactly that, so these are drafts of pages whose purpose is to be
+  public. Whoever drew them was careful: SIREN, RNE, address and email are all placeholders. Left alone, and
+  named here so the next scan doesn't mistake it for a leak. The same goes for her name as author and copyright
+  holder in `README.md` and the two plugin manifests.
+
+- **Not decided, and hers:** `artifacts.json` still holds three private claude.ai artifact URLs. They are opaque
+  ids that identify nobody, but they are the addresses of pages holding her own data, and one of them is the
+  quick way back to `art/licensed/` for a fresh clone (CLAUDE.md, "The licensed art"). Moving them to the
+  environment, as the gateway's address now is, costs that route unless she pastes the link. Say the word and
+  they go.

@@ -4,13 +4,18 @@
 
 ## Where the café lives, and the one link to give her
 
-**The café is the Cloudflare link, https://catio-gateway.charlotte-badot.workers.dev, and nothing else** (her call,
+**The café is the Cloudflare link in `CATIO_URL`, and nothing else** (her call,
 20 October 2026: "Please stop updating the artifact. Only use the Cloudflare link", then, 21 October: "The artifact
 is absolutely useless. Can you please make it so that I have only the Cloudflare link every time you share with me
 things that you've done to the Kitty Chat Cafe?"). So: **never publish the artifact again, and never give her its
 link.** Whenever a session tells her what it did to the café, the link is the Cloudflare one, and only that one. A
 change reaches it by a merge to `main` (Workers Builds deploys the gateway, which serves `catio/index.html`), so
 "done" for her means merged, and until then say so: "it shows at the Cloudflare link once #N merges".
+
+**Her address is never written down here.** It is `CATIO_URL` in the session's environment, because the host
+carries her own name and this repository is public (`harness/rules.json` and `harness/hooks/session_start.py`
+name no address of anyone's, and a check below keeps it that way). A session without `CATIO_URL` isn't connected
+to a café and says so, rather than reaching for a link.
 
 **Nothing in this repo writes to the artifact any more.** No publish, no `ArtifactData`, no stored capabilities
 to keep in step: the gateway is the café, and the two databases never shared changes anyway. The artifact and

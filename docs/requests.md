@@ -193,8 +193,9 @@ The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.
 ## 2 October, evening
 
 - **Sell the KittyChat Café.** A Shopify wireframe for distributing it (`docs/kittychat-shop/`, drawn in Figma like
-  the onboarding frames), and a business plan grounded in French law and her legal status. The plan is private
-  (her status, ARE, VAT): a private artifact, linked from the Café's queen, never in git.
+  the onboarding frames), and a business plan grounded in French law and her own circumstances. Those
+  circumstances are private and are not named here: the plan is a private artifact, linked from the Café's
+  queen, and never in git.
 - **The litter box quiz as a skill on GitHub**: `catio-plugin/skills/litterbox-quiz/`, with the licensed interface
   art left out ("for the UI, just drop the assets that are licensed").
 - **No lifetime seat** (3 October): "Instead of relying on a lifetime guarantee sale, maybe there could be an in between
