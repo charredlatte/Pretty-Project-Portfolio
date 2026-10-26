@@ -17,8 +17,9 @@ of what the Kitty Chat Cafe is without putting any of my personal information in
 the top of the README"). `demo/index.html` is a tour for whoever finds the repo, published at
 https://claude.ai/artifact/SUr62MfU18hzRUBYgA9o8Y and linked from the README's first line. It is a separate
 artifact from the café's: it has no database, writes nothing, reads nothing of hers, and carries no personal
-data at all. **It is hers to share** -- published private, so the README link is dead for anyone else until she
-shares it. The rule above is unchanged: the café is still the Cloudflare link alone, and the café's own artifact
+data at all. She shared it the same day ("anyone with the link"), which is what makes the README link work;
+sharing is hers alone, from the page's Share menu, and a session can neither read nor change it. The rule above
+is unchanged: the café is still the Cloudflare link alone, and the café's own artifact
 is still never published and never linked. `demo/README.md` has the rest.
 
 **Nothing in this repo writes to the artifact any more.** No publish, no `ArtifactData`, no stored capabilities
