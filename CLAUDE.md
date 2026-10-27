@@ -4,13 +4,18 @@
 
 ## Where the café lives, and the one link to give her
 
-**The café is the Cloudflare link, https://catio-gateway.charlotte-badot.workers.dev, and nothing else** (her call,
+**The café is the Cloudflare link in `CATIO_URL`, and nothing else** (her call,
 20 October 2026: "Please stop updating the artifact. Only use the Cloudflare link", then, 21 October: "The artifact
 is absolutely useless. Can you please make it so that I have only the Cloudflare link every time you share with me
 things that you've done to the Kitty Chat Cafe?"). So: **never publish the artifact again, and never give her its
 link.** Whenever a session tells her what it did to the café, the link is the Cloudflare one, and only that one. A
 change reaches it by a merge to `main` (Workers Builds deploys the gateway, which serves `catio/index.html`), so
 "done" for her means merged, and until then say so: "it shows at the Cloudflare link once #N merges".
+
+**Her address is never written down here.** It is `CATIO_URL` in the session's environment, because the host
+carries her own name and this repository is public (`harness/rules.json` and `harness/hooks/session_start.py`
+name no address of anyone's, and a check below keeps it that way). A session without `CATIO_URL` isn't connected
+to a café and says so, rather than reaching for a link.
 
 **One artifact is not the café: the public demo** (her ask, 26 October 2026: "an artifact that will do a demo
 of what the Kitty Chat Cafe is without putting any of my personal information in it… like a link that would be at
@@ -34,8 +39,10 @@ one up that way for someone who has no gateway.
 `art/licensed/` is not in git (licences below), so a fresh clone and every cloud session start without it. Get
 it back one of two ways:
 
-1. **Read it out of the artifact** -- reading is all it is for. `Artifact` on the `kittychat-cafe` URL in
-   `artifacts.json`, with `out_dir: "catio"`: list its files (`action: "list"`, `scope: "files"`), then one read
+1. **Read it out of the artifact** -- reading is all it is for. The link is `CATIO_ARTIFACT` in the session's
+   environment; with none set, ask her for it, because it is the address of a private page of hers and this
+   repository is public (`artifacts.json` is empty for that reason, and a check keeps it so). `Artifact` on that
+   URL, with `out_dir: "catio"`: list its files (`action: "list"`, `scope: "files"`), then one read
    whose `paths` hold every path **under `art/licensed/`** -- the nested `ui/` and `pastel/` ones are most of
    them -- **and no others**. `out_dir` writes straight into the checkout, and everything else in that listing
    is committed work here (`index.html`, `art/furniture.png`, and her `art/skin.json` and `art/skin/*` once she
