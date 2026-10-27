@@ -9,5 +9,6 @@
 # years: Image.open, paste, crop and resize, and fontTools' subsetter and pens.
 # Pin a version here if a release ever breaks the art build.
 
-pillow      # the art build and the landing scene: catio/tools/{build-art,manor,furniture}.py, landing/tools/scene.py
+pillow      # the art build, the landing scene and the demo's sprites:
+            # catio/tools/{build-art,manor,furniture}.py, landing/tools/scene.py, demo/tools/sprites.py
 fonttools   # the pixel font's accents (catio/tools/build-art.py) and the app's Nunito cuts (catio-app/tools/fonts.py)
