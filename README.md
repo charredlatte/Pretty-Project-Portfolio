@@ -49,7 +49,7 @@ How it connects, start to finish:
 5. The queen handles the rest: she keeps what you give her, runs your routines, and can set a stuck cat's homework as
    a short quiz. She thinks on your own computer.
 
-**Or think of it as a car.** A model on its own is a stripped car: a brilliant engine and nothing else. No seatbelts,
+**Or think of it as a car.** A flagship LLM (AI) on its own is a stripped car: a brilliant engine and nothing else. No seatbelts,
 no windshield, no brakes, no tires. You can drive it if you know engines. The café is the rest of the car. **The
 engine is yours and you bring your own** — Claude, Gemini, Grok, Codex, or several at once, each paid to its own
 provider; the café never resells anyone's tokens. Your repositories are the tires, where the work meets the road. The
