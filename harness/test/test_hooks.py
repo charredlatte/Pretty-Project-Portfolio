@@ -1528,7 +1528,11 @@ class Plugin(unittest.TestCase):
         host = "catio-" + "gateway." + "charlotte" + "-badot"
         # A published page's own address, id and all. The bare path is left alone on purpose: the docs and the
         # litter box discuss "claude.ai/artifact/" as a thing, and only a real link gives a real page away.
-        page = re.compile(r"claude\.ai/" + "artifact" + r"/[A-Za-z0-9_-]{10,}")
+        page = re.compile(r"claude\.ai/" + "artifact" + r"/([A-Za-z0-9_-]{10,})")
+        # The one page meant for strangers: the public demo (her ask, 26 October: "a demo … without putting any
+        # of my personal information in it… a link that would be at the top of the README"), shared by her with
+        # anyone who has the link. It reads nothing of hers, so naming it gives nothing away. Any other is hers.
+        public = {"SUr62MfU18hzRUBYgA9o8Y"}
         root = HOOKS.parent.parent
         found = subprocess.run(["git", "ls-files", "-z"], cwd=root, capture_output=True, text=True)
         self.assertEqual(found.returncode, 0, found.stderr)
@@ -1540,7 +1544,7 @@ class Plugin(unittest.TestCase):
             except (OSError, UnicodeDecodeError):
                 continue   # binary, or gone in a half-finished checkout: neither can carry an address
             for i, line in enumerate(body.splitlines(), 1):
-                if host in line or page.search(line):
+                if host in line or any(m.group(1) not in public for m in page.finditer(line)):
                     named.append("%s:%d" % (name, i))
         self.assertEqual(named, [], "a private address of hers is in these tracked files; the gateway's belongs "
                          "in CATIO_URL and the artifact's in CATIO_ARTIFACT: " + ", ".join(named))
