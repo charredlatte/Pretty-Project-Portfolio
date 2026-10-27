@@ -1,6 +1,8 @@
 """The queen's runner (harness/runner/queen.py) against a stand-in gateway and a fake claude on the PATH: it relays a
 turn as it streams, keeps her session, runs a routine, strips CATIO_* from the turn, and a Stop ends a turn in
-progress (SIGINT here; Ctrl+Break on Windows can't be sent from this test).
+progress (SIGINT here; Ctrl+Break on Windows can't be sent from this test). And against a stand-in OpenAI-compatible
+model (CATIO_MODEL_URL) with no claude anywhere: a turn streamed, a tool called through the gateway's /mcp, her
+conversation kept in messages.json, a Stop mid-stream, and a model that refuses or isn't there.
 
     python3 -m unittest discover -s harness/test
 """
@@ -18,6 +20,10 @@ from pathlib import Path
 
 RUNNER = Path(__file__).resolve().parent.parent / "runner" / "queen.py"
 KEY = "queen-key-0123456789abcdef"
+MODEL_KEY = "sk-model-key"
+TOOLS = [{"name": "list_agents", "description": "Every cat.", "inputSchema": {"type": "object", "properties": {"archived": {"type": "boolean"}}}},
+         {"name": "comments", "description": "A cat's conversation.", "inputSchema": {"type": "object", "properties": {"cat": {"type": "string"}, "limit": {"type": "integer"}}, "required": ["cat"]}}]
+ANSWER = ["Good ", "morrow, ", "my ", "lady. ", "Two ", "cats ", "need ", "thee."]
 EMPTY = {"notes": [], "routine": None, "stop": False}
 
 # claude, as the runner sees it: prints stream-json, records what it was given, and stops on SIGINT
@@ -81,6 +87,16 @@ class Gateway(BaseHTTPRequestHandler):
             out["homework"] = dict(s.homework)
         elif self.path == "/api/runner/say":
             s.says.append(body); out = {"ok": True, "id": None}
+        elif self.path == "/mcp":   # the Catio's tools, as the queen's model is handed them
+            method, params, rid = body.get("method"), body.get("params") or {}, body.get("id")
+            if method == "tools/list":
+                out = {"jsonrpc": "2.0", "id": rid, "result": {"tools": TOOLS}}
+            elif method == "tools/call":
+                s.calls.append(params)
+                got = {"notes": [{"author": "owner", "text": "Praline, are you there?"}]}
+                out = {"jsonrpc": "2.0", "id": rid, "result": {"content": [{"type": "text", "text": json.dumps(got)}], "structuredContent": got}}
+            else:
+                out = {"jsonrpc": "2.0", "id": rid, "error": {"code": -32601, "message": "method not found: %s" % method}}
         else:
             self.send_response(404); self.end_headers(); return
         data = json.dumps(out).encode()
@@ -94,10 +110,58 @@ class Gateway(BaseHTTPRequestHandler):
             pass
 
 
+class Model(BaseHTTPRequestHandler):
+    """An OpenAI-compatible server, as the runner's ModelDriver sees it: POST /v1/chat/completions, streamed as
+    server-sent events, scripted by the last thing Charlotte said. "look in" asks for a tool first (the call's
+    arguments arrive in fragments, as OpenAI sends them), "slowly" goes on and on (for a Stop), anything else
+    is her answer, word by word. Every request is recorded."""
+    def log_message(self, *a):
+        pass
+
+    def chunk(self, delta, finish=None):
+        c = {"id": "chatcmpl-1", "object": "chat.completion.chunk", "model": "fake", "choices": [{"index": 0, "delta": delta, "finish_reason": finish}]}
+        self.wfile.write(("data: " + json.dumps(c) + "\n\n").encode()); self.wfile.flush()
+
+    def do_POST(self):
+        s = self.server
+        body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
+        s.asks.append({"path": self.path, "auth": self.headers.get("Authorization"), "body": body})
+        if self.path != "/v1/chat/completions":
+            self.send_response(404); self.end_headers(); return
+        if self.headers.get("Authorization") != "Bearer " + MODEL_KEY:
+            self.send_response(401); self.send_header("Content-Type", "application/json"); self.end_headers()
+            self.wfile.write(b'{"error": {"message": "Incorrect API key provided"}}'); return
+        msgs = body.get("messages") or []
+        asked = next((m.get("content") or "" for m in reversed(msgs) if m.get("role") == "user"), "").lower()
+        answered_tool = any(m.get("role") == "tool" for m in msgs)
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.end_headers()
+        try:
+            self.chunk({"role": "assistant", "content": ""})
+            if "look in" in asked and not answered_tool:   # she reaches for a tool before she answers
+                self.chunk({"tool_calls": [{"index": 0, "id": "call_1", "type": "function", "function": {"name": "comments", "arguments": ""}}]})
+                self.chunk({"tool_calls": [{"index": 0, "function": {"arguments": '{"cat": "cse'}}]})
+                self.chunk({"tool_calls": [{"index": 0, "function": {"arguments": '_1", "limit": 5}'}}]})
+                self.chunk({}, "tool_calls")
+            else:
+                slow = "slowly" in asked
+                for w in ANSWER[:4] + (["(and on) "] * 40 if slow else ANSWER[4:]):
+                    self.chunk({"content": w})
+                    time.sleep(0.25 if slow else 0.01)
+                self.chunk({}, "stop")
+            self.wfile.write(b"data: [DONE]\n\n"); self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError):   # the runner closed it: a Stop
+            s.cut.append(True)
+
+
 class Queen(unittest.TestCase):
     def setUp(self):
         self.srv = ThreadingHTTPServer(("127.0.0.1", 0), Gateway)
-        self.srv.jobs, self.srv.says, self.srv.waits, self.srv.refuse, self.srv.garble = queue.Queue(), [], [], [], []
+        self.srv.jobs, self.srv.says, self.srv.waits, self.srv.refuse, self.srv.garble, self.srv.calls = queue.Queue(), [], [], [], [], []
+        self.model = ThreadingHTTPServer(("127.0.0.1", 0), Model)
+        self.model.asks, self.model.cut = [], []
+        threading.Thread(target=self.model.serve_forever, daemon=True).start()
         self.srv.character = {"name": "Duchesse", "manner": "Elizabethan English, warm.", "greeting": "Good morrow."}
         self.srv.homework = {}
         threading.Thread(target=self.srv.serve_forever, daemon=True).start()
@@ -133,14 +197,21 @@ class Queen(unittest.TestCase):
             self.out.close()
         self.srv.shutdown()
         self.srv.server_close()
+        self.model.shutdown()
+        self.model.server_close()
 
-    def start(self):
+    def start(self, model=False, **more):
+        """With model, the runner thinks with the stand-in model (CATIO_MODEL_URL) and has no claude on its PATH at all."""
         env = {k: v for k, v in os.environ.items() if not k.startswith(("CATIO_", "CLAUDE_CODE_"))}
         env.update(CATIO_URL="http://127.0.0.1:%d" % self.srv.server_address[1], CATIO_QUEEN=KEY, CATIO_QUEEN_DIR=str(self.home),
                    CATIO_TOKEN="the-agents-key-never-passed-on", FAKE_CLAUDE_LOG=str(self.log),
                    CATIO_NOTIFY=str(self.notifier), FAKE_NOTIFY_LOG=str(self.toasts),
                    PATH=str(self.tmp / "bin") + os.pathsep + env.get("PATH", ""),
                    NO_PROXY="127.0.0.1,localhost", no_proxy="127.0.0.1,localhost")
+        if model:
+            env.update(CATIO_MODEL_URL="http://127.0.0.1:%d/v1" % self.model.server_address[1], CATIO_MODEL_KEY=MODEL_KEY, CATIO_MODEL="llama3.1",
+                       PATH=str(self.tmp / "no-bin"), CATIO_CLAUDE="no-such-claude-here")
+        env.update(more)
         self.out = open(self.tmp / "runner.log", "w")
         self.proc = subprocess.Popen([sys.executable, str(RUNNER)], env=env, stdout=self.out, stderr=subprocess.STDOUT)
 
@@ -157,6 +228,8 @@ class Queen(unittest.TestCase):
         self.fail("the runner didn't finish %d turn(s):\n%s" % (n, (self.tmp / "runner.log").read_text()))
 
     def claude_calls(self):
+        if not self.log.exists():
+            return []
         return [json.loads(l) for l in self.log.read_text(encoding="utf-8").splitlines() if l.strip()]
 
     def toasted(self, n, timeout=10):
@@ -310,6 +383,100 @@ class Queen(unittest.TestCase):
         # and she goes on with the next thing
         self.srv.jobs.put({"notes": [{"id": "n2", "cat": "queen", "author": "owner", "text": "Thank you.", "at": 2}]})
         self.assertEqual(self.said(2)[-1]["text"], "Good morrow, my lady. Two cats need thee.")
+
+    # ---- a model of her own: CATIO_MODEL_URL, with no claude anywhere ----
+
+    def model_asks(self):
+        return [a["body"] for a in self.model.asks if a["path"] == "/v1/chat/completions"]
+
+    def test_a_model_relays_a_turn_as_it_streams_and_keeps_her_conversation(self):
+        self.srv.jobs.put({"notes": [{"id": "n1", "cat": "queen", "author": "owner", "text": "Who needs me today?", "at": 1}]})
+        self.start(model=True)
+        says = self.said()
+        self.assertEqual(says[-1]["text"], "Good morrow, my lady. Two cats need thee.")
+        self.assertEqual((says[0]["text"], says[0]["done"]), ("", False), "she is up before her first word")
+        partial = [s for s in says if not s["done"] and s["text"]]
+        self.assertTrue(partial, "nothing streamed before the end")
+        self.assertTrue("Good morrow, my lady. Two cats need thee.".startswith(partial[-1]["text"]))
+        self.assertEqual(self.claude_calls(), [], "claude was never run")
+        ask, = self.model_asks()
+        self.assertEqual(self.model.asks[0]["auth"], "Bearer " + MODEL_KEY)
+        self.assertEqual(ask["model"], "llama3.1")
+        self.assertTrue(ask["stream"])
+        self.assertEqual([t["function"]["name"] for t in ask["tools"]], ["list_agents", "comments"])
+        self.assertEqual(ask["tools"][1]["function"]["parameters"], TOOLS[1]["inputSchema"])
+        self.assertEqual(ask["messages"][0]["role"], "system")
+        for words in ("queen of the house", "Thy name is Duchesse.", "Elizabethan English, warm."):
+            self.assertIn(words, ask["messages"][0]["content"])
+        self.assertEqual(ask["messages"][-1], {"role": "user", "content": "[Catio] Charlotte says: Who needs me today?"})
+        kept = json.loads((self.home / "messages.json").read_text(encoding="utf-8"))
+        self.assertEqual([m["role"] for m in kept], ["user", "assistant"])
+        self.assertNotIn("system", [m["role"] for m in kept], "her character is never stored: it is rebuilt each turn")
+        # the next turn carries the conversation on
+        self.srv.jobs.put({"notes": [{"id": "n2", "cat": "queen", "author": "owner", "text": "And the shop?", "at": 2}]})
+        self.said(2)
+        second = self.model_asks()[-1]
+        self.assertEqual([(m["role"], m["content"]) for m in second["messages"][1:]],
+                         [("user", "[Catio] Charlotte says: Who needs me today?"), ("assistant", "Good morrow, my lady. Two cats need thee."),
+                          ("user", "[Catio] Charlotte says: And the shop?")])
+
+    def test_a_model_reaches_for_a_tool_through_the_gateway_and_the_cafe_is_told(self):
+        self.srv.jobs.put({"notes": [{"id": "n1", "cat": "queen", "author": "owner", "text": "Look in on Praline.", "at": 1}]})
+        self.start(model=True)
+        says = self.said()
+        self.assertEqual(says[-1]["text"], "Good morrow, my lady. Two cats need thee.")
+        self.assertEqual(self.srv.calls, [{"name": "comments", "arguments": {"cat": "cse_1", "limit": 5}}], "the call reached /mcp, with the queen's key")
+        tool = [s for s in says if s.get("steps")]
+        self.assertTrue(tool, "no step told: %r" % says)
+        self.assertEqual(tool[0]["steps"], [{"tool": "comments", "cat": "cse_1"}])
+        self.assertNotIn("steps", says[-1])
+        first, second = self.model_asks()
+        asked = second["messages"][-2]
+        self.assertEqual(asked["role"], "assistant")
+        self.assertEqual(asked["tool_calls"][0]["id"], "call_1")
+        self.assertEqual(json.loads(asked["tool_calls"][0]["function"]["arguments"]), {"cat": "cse_1", "limit": 5}, "the fragments were put together")
+        answered = second["messages"][-1]
+        self.assertEqual((answered["role"], answered["tool_call_id"]), ("tool", "call_1"))
+        self.assertIn("Praline, are you there?", answered["content"])
+        kept = json.loads((self.home / "messages.json").read_text(encoding="utf-8"))
+        self.assertEqual([m["role"] for m in kept], ["user", "assistant", "tool", "assistant"], "the call and its answer are remembered together")
+
+    def test_a_stop_ends_a_model_turn_and_keeps_what_she_said(self):
+        self.srv.jobs.put({"notes": [{"id": "n1", "cat": "queen", "author": "owner", "text": "Tell me slowly.", "at": 1}]})
+        self.start(model=True)
+        end = time.time() + 15
+        while time.time() < end and not any(s["text"].startswith("Good morrow, my lady.") for s in self.srv.says):
+            time.sleep(0.05)
+        self.assertTrue(self.srv.says, "nothing streamed")
+        self.srv.jobs.put({"stop": True})
+        says = self.said()
+        self.assertTrue(says[-1]["text"].startswith("Good morrow, my lady."), says[-1]["text"])
+        self.assertLess(len(says[-1]["text"]), len("Good morrow, my lady. " + "(and on) " * 40), "it stopped before the end")
+        kept = json.loads((self.home / "messages.json").read_text(encoding="utf-8"))
+        self.assertEqual(kept[-1]["role"], "assistant")
+        self.assertTrue(kept[-1]["content"].startswith("Good morrow, my lady."), "what she had said is remembered")
+        # and she goes on with the next thing
+        self.srv.jobs.put({"notes": [{"id": "n2", "cat": "queen", "author": "owner", "text": "Thank you.", "at": 2}]})
+        self.assertEqual(self.said(2)[-1]["text"], "Good morrow, my lady. Two cats need thee.")
+
+    def test_a_model_that_refuses_or_isnt_there_is_said_and_she_stays_up(self):
+        self.srv.jobs.put({"notes": [{"id": "n1", "cat": "queen", "author": "owner", "text": "Hello?", "at": 1}]})
+        self.start(model=True, CATIO_MODEL_KEY="the-wrong-key", CATIO_MODEL="")
+        says = self.said()
+        self.assertTrue(says[-1]["text"].startswith("Forgive me, my lady"), says[-1]["text"])
+        self.assertIn("401", says[-1]["text"])
+        self.assertIn("CATIO_MODEL_KEY", says[-1]["text"])
+        self.assertIsNone(self.proc.poll(), "the model is replaceable: she stays up")
+        self.assertNotIn("model", self.model_asks()[0], "CATIO_MODEL unset: no model named, for a server that serves one")
+        self.proc.terminate(); self.proc.wait(5); self.out.close()
+        time.sleep(0.5)   # a wait of the stopped runner's may still be at the gateway: let it come back empty
+        self.srv.says.clear()
+        self.srv.jobs.put({"notes": [{"id": "n2", "cat": "queen", "author": "owner", "text": "Anyone?", "at": 2}]})
+        self.start(model=True, CATIO_MODEL_URL="http://127.0.0.1:9/v1")
+        says = self.said()
+        self.assertTrue(says[-1]["text"].startswith("Forgive me, my lady"), says[-1]["text"])
+        self.assertIn("no model", says[-1]["text"])
+        self.assertIsNone(self.proc.poll())
 
     def test_says_why_without_the_gateway_or_claude(self):
         env = {k: v for k, v in os.environ.items() if not k.startswith("CATIO_")}

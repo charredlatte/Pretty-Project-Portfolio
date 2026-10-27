@@ -79,16 +79,18 @@ Three parts of the café answer this question differently, so here they are apar
   own provider and model shown on its card (`report_status` carries them: `openai`, `google`, `anthropic`, `local`,
   and a model like `gpt-5` or `gemini-2.5-pro`). This is the part that makes the café compatible with any agentic AI
   distributor, and it is true today.
-- **The queen's runner** drives Claude Code today, and only that. She is one program on your own computer
-  (`harness/runner/queen.py`) that runs one model turn per thing you say to her, and what it runs is Claude Code's
-  throughout, from the command `Runner.args()` builds to the stream `Runner.turn()` reads. Codex, Gemini and the
-  rest report to the café today, and a command of their own can wake them where the local server runs it, never on
-  the hosted gateway; being driven by *her runner* is the part that needs a little code once each, in
-  [`docs/engine.md`](docs/engine.md).
+- **The queen's runner** drives Claude Code, or any OpenAI-compatible model. She is one program on your own
+  computer (`harness/runner/queen.py`) that runs one model turn per thing you say to her: Claude Code by default,
+  or, with `CATIO_MODEL_URL` set, OpenAI, OpenRouter, Together, Groq, or Ollama and llama.cpp on that same computer,
+  so she can run with no company in the loop at all ([`harness/runner/README.md`](harness/runner/README.md)).
+  Codex, Gemini and the rest report to the café today, and a command of their own can wake them where the local
+  server runs it, never on the hosted gateway; being driven by *her runner* as CLIs is the part that still needs a
+  little code once each, in [`docs/engine.md`](docs/engine.md).
 
 | Your assistant | Joins as a cat | Checks in by itself | Drives the queen |
 |---|---|---|---|
 | **Claude Code** (terminal, cloud, IDE) | Yes | Yes, automatically: the house-rules plugin's hooks | Yes, today |
+| **Any OpenAI-compatible model** (OpenAI, OpenRouter, Together, Groq, Ollama, llama.cpp) | — (a model, not an assistant) | — | Yes, today: `CATIO_MODEL_URL` on her runner |
 | **Codex CLI** | Yes, over MCP | When its `AGENTS.md` tells it to | Not yet |
 | **Gemini CLI** | Yes, over MCP (an address and a header) | When its `GEMINI.md` tells it to | Not yet |
 | **Antigravity** (Google's agent editor) | Yes, through `catio_bridge.py` | When its rules file tells it to | Not yet |
@@ -129,7 +131,7 @@ decision model that answers typed questions rather than prose — Clef by defaul
 [the decider](#the-judgement-calls-it-makes-itself) below says what it is. And the brain's file sorter, on your own
 computer, takes any OpenAI-compatible endpoint: Ollama, LM Studio, OpenAI, Gemini's. Neither is Claude.
 
-**What is Claude-shaped, honestly.** The queen's runner, as above. The house rules' enforcement, as above. And one of
+**What is Claude-shaped, honestly.** The queen's runner's default, as above (point it at Ollama and it isn't). The house rules' enforcement, as above. And one of
 the three places the café page can run: a private claude.ai artifact, which was Charlotte's original and is still
 hers. The other two places — your front desk's own address, and a folder on your computer — involve no Claude at all.
 
@@ -472,8 +474,8 @@ It is a different kind of model, and the difference is the point. You hand it a 
 questions — yes/no, a choice between options, a score on a scale — and it hands back numbers and nothing else: no
 prose, no tool calls, no turn to take. Up to sixty-four questions about one state, in a
 single call with an eight-second budget. That is also why the decider can never be the thing that *drives* a cat: it
-cannot write a sentence or call a tool. Driving a cat with her runner is Claude Code's job today, and other CLIs'
-in time ([`docs/engine.md`](docs/engine.md)); deciding is the decider's.
+cannot write a sentence or call a tool. Driving the queen is Claude Code's job, or any OpenAI-compatible model's,
+and other CLIs' in time ([`docs/engine.md`](docs/engine.md)); deciding is the decider's.
 
 - **It needs no setting up.** With nothing set it is Clef on Cloudflare's Workers AI — Cloudflare's own model, open
   weights, inside the free plan. `DECIDE_MODEL` swaps in another Workers AI model, Jev among them; `DECIDE_URL`

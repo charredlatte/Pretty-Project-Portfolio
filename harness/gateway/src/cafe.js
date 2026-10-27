@@ -249,8 +249,8 @@ export async function cafe(request, env) {
 		if (!by || by.role !== "queen") return refuse(401, "unauthorized", "The queen's key is needed: the CATIO_QUEEN secret in Cloudflare, or a key minted for her in the café.");
 		const house = houseOf(env, by);
 		if (path === "/api/runner/wait") {
-			const { ack } = await bodyOf(request);
-			return json(await house.waitForQueen(typeof ack === "number" ? ack : undefined));
+			const { ack, provider, model } = await bodyOf(request);
+			return json(await house.waitForQueen(typeof ack === "number" ? ack : undefined, { provider, model }));
 		}
 		if (path === "/api/runner/say") {
 			const text = await request.text();

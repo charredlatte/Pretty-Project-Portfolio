@@ -354,7 +354,11 @@ skipped there too, because she is not work to be done. Keep her out of the count
 that inflates "3 need you" makes the sign a liar.
 
 - **Her brain is her runner** (`harness/runner/queen.py`, on Charlotte's PC): it waits on the gateway, runs one
-  Claude Code turn per thing she says or routine due, and streams the answer back. `queenState()` reads the agent
+  model turn per thing she says or routine due, and streams the answer back. Two drivers, one `Runner.turn()`:
+  Claude Code (`ClaudeDriver`, the default), or any OpenAI-compatible model (`ModelDriver`, when `CATIO_MODEL_URL`
+  is set, with `CATIO_MODEL` and `CATIO_MODEL_KEY`: OpenAI, OpenRouter, Ollama or llama.cpp on her PC...), which
+  gets the gateway's tools over `/mcp` and nothing else, and keeps her conversation in `messages.json`. Each wait
+  names the brain (`provider`, `model`) so her card says which. `queenState()` reads the agent
   record `queen`: away (no runner for two minutes: asleep, "start her runner"), busy (answering) or here.
 - **Her conversation** is the gateway's notes for the cat `queen`: Charlotte's lines (`comment`, author
   `owner`) and hers (author `queen`, which only the runner's key may write). In the gateway café a `{type:
