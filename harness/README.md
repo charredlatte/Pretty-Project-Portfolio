@@ -9,7 +9,8 @@ The Catio (`catio/`) is the cafe you see. This folder is the harness behind it:
 - the **gateway**, `gateway/`, the always-on hub every session reports to, which also serves the café on its own
   address;
 - the **queen's runner**, `runner/queen.py`, the brain of the queen of the house, the cat Charlotte talks to in
-  the café: it runs on her PC and answers through the gateway (`runner/README.md`).
+  the café: it runs on her PC and answers through the gateway, thinking with Claude Code or with any
+  OpenAI-compatible model, Ollama on the PC itself included (`runner/README.md`).
 
 ## The house rules
 
@@ -352,7 +353,7 @@ same tools as the Catio MCP server below. It changes three things:
   API takes the questions itself, and any other is prompted for the same answers and read back into the same shape,
   so the rule holds wherever it is asked. The result says which answered (`via`). It is cheaper than Opus, but cost
   is not what picks it: what comes back is numbers to hold against a floor rather than prose to parse, and it holds
-  no tools and no session, so it can never *drive* a cat the way `runner/queen.py` drives Claude Code. A different
+  no tools and no session, so it can never *drive* a cat the way `runner/queen.py` drives Claude Code or an OpenAI-compatible model. A different
   instrument, not a lower price for the same one. The page asks it where a dropped file goes and logs the answer
   beside the old sorter's (`decisions/`); `preset: easy` is the easy-task rubric. `docs/delegation.md`, phase D.
 
