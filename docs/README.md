@@ -21,6 +21,7 @@ What each file here is for. The README says what the café is; `CLAUDE.md` says 
 | [`camera-and-minimap.md`](camera-and-minimap.md) | The Sims-style camera (phase 2), and the minimap as it was planned |
 | [`renovation-mode.md`](renovation-mode.md) | Build mode's spec (phase 3): moving furniture and choosing each filing cabinet's look |
 | [`delegation.md`](delegation.md) | Handing easy work to smaller models, and the decider that sorts dropped files |
+| [`memory.md`](memory.md) | What the café remembers: the four kinds, a project's memory in its filing cabinet, and the house's in Charlotte's own words |
 | [`accounts.md`](accounts.md) | One café per person on the gateway: the three phases of accounts, and what phase 1 built |
 | [`drawing-plan.md`](drawing-plan.md) | Every asset to draw, at what size, so the café can ship its own art instead of the packs |
 | [`mobile-app.md`](mobile-app.md) | The café as a native C++ app for a phone: the case for it and the design |

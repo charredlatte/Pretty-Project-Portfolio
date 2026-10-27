@@ -223,3 +223,23 @@ The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.
 - **Asked, she chose:** the queen keeps one quest log of everything waiting on her (quizzes that unblock cats, litter box
   notes to sort, decisions), like an NPC quest giver; the litter box is a piece on the map with no sign that opens the
   same list at its notes; the two quiz pages are retired; the cards live in her gateway, so both cafés read them.
+
+## Decided 27 October, from the quest log
+
+Her quest log was taken in Claude rather than in the café (her runner was asleep): sixteen cards, every one
+answered, and the four below are this repo's to act on. The three about the shop and the one about SkipScene
+stay answered in the gateway for those repos' own sessions; Aman's contract note she kept out of any
+repository, for her adviser.
+
+- **The session brief names `.claude/` as held** as well as `harness/`. `CLAUDE.md` already says a change there
+  always waits for her, and the brief each session opens with should say so too.
+- **A crash inside the model-tier check warns and lets the spawn through**, as it does now. Against the
+  recommendation to fail closed: a broken check should not stop her work while it is being fixed. So the gates
+  fail closed everywhere except here.
+- **A test run without the licensed art marks those checks skipped in `e2e.mjs`**, rather than failing with
+  exit 1 like a real failure or taking an exit code of its own. The run then names exactly which checks could
+  not run, and the tester helper relays that instead of a bare count.
+- **One definition of "the licensed art is here":** one list of sentinel files that `run.sh` and `move-in.py`
+  both read, so the three places that each decide it their own way cannot drift apart.
+
+Two of the four are under `harness/`, so they wait for her merge whoever writes them.

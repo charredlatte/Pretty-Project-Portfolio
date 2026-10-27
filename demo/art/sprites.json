@@ -1,0 +1,107 @@
+{
+  "bed": {
+    "frames": 1,
+    "h": 12,
+    "w": 18
+  },
+  "bench": {
+    "frames": 1,
+    "h": 12,
+    "w": 18
+  },
+  "cabinet": {
+    "frames": 1,
+    "h": 16,
+    "w": 14
+  },
+  "cat-cry": {
+    "frames": 3,
+    "h": 30,
+    "w": 30
+  },
+  "cat-meow": {
+    "frames": 2,
+    "h": 30,
+    "w": 30
+  },
+  "cat-review": {
+    "frames": 2,
+    "h": 30,
+    "w": 30
+  },
+  "cat-sleep": {
+    "frames": 3,
+    "h": 30,
+    "w": 30
+  },
+  "cat-walk-side": {
+    "frames": 4,
+    "h": 30,
+    "w": 30
+  },
+  "cat-work": {
+    "frames": 4,
+    "h": 30,
+    "w": 30
+  },
+  "chest": {
+    "frames": 1,
+    "h": 13,
+    "w": 16
+  },
+  "counter": {
+    "frames": 1,
+    "h": 12,
+    "w": 18
+  },
+  "crown": {
+    "frames": 1,
+    "h": 9,
+    "w": 16
+  },
+  "door": {
+    "frames": 1,
+    "h": 12,
+    "w": 18
+  },
+  "fence": {
+    "frames": 1,
+    "h": 12,
+    "w": 18
+  },
+  "glass": {
+    "frames": 1,
+    "h": 12,
+    "w": 18
+  },
+  "owner": {
+    "frames": 1,
+    "h": 30,
+    "w": 20
+  },
+  "pointer": {
+    "frames": 1,
+    "h": 10,
+    "w": 7
+  },
+  "shelf": {
+    "frames": 1,
+    "h": 12,
+    "w": 18
+  },
+  "stove": {
+    "frames": 1,
+    "h": 12,
+    "w": 18
+  },
+  "tub": {
+    "frames": 1,
+    "h": 12,
+    "w": 18
+  },
+  "workbench": {
+    "frames": 1,
+    "h": 12,
+    "w": 18
+  }
+}
