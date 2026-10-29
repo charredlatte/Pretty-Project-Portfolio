@@ -482,11 +482,12 @@ const small = await page.evaluate(() => {
 await page.locator("#mapFold").click();
 await page.waitForTimeout(200);
 // a sprite's hit area is read by what sits 21px from its centre, each way: still the cat. The
-// cats that need you stand still; a working cat wanders, so its probe could land anywhere
+// cats that need you stand still, and so does the queen; a working cat wanders, so its probe
+// could land anywhere
 small.push(...await page.evaluate(() => {
   const out = [];
   for (const d of document.querySelectorAll("#cats > div")) {
-    if (!/meow|cry|review/.test(d._cat.mood)) continue;
+    if (d._cat.id !== "queen" && !/meow|cry|review/.test(d._cat.mood)) continue;
     const r = d.querySelector(".spr").getBoundingClientRect();
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     for (const [dx, dy] of [[-21, 0], [21, 0], [0, -21], [0, 21]]) {
@@ -496,7 +497,7 @@ small.push(...await page.evaluate(() => {
   }
   return out;
 }));
-ok("on a phone, every cat that needs you and every map button is at least 44px to touch", small.length === 0, small.join("; "));
+ok("on a phone, every cat that needs you, the queen and every map button are at least 44px to touch", small.length === 0, small.join("; "));
 
 // The open map panel paints only its pieces, and never over the cat its pip leads you to: on
 // either floor, at every width, every cat that needs you stands clear of them, and no room on

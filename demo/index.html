@@ -400,8 +400,8 @@ footer .wrap { padding-block: 2.5rem; }
   .pbtn { padding: 0 2px; }
   /* the brand keeps to the air above the house */
   .hud { padding: 2px 6px; }
-  /* the hover line sits above that row, never on a tab's label */
-  .tip { bottom: calc(2.2cqi + var(--hit) + 1cqi); }
+  /* the hover line sits above that row and short of the plan: never on a tab's label or a pip */
+  .tip { bottom: calc(2.2cqi + var(--hit) + 1cqi); max-width: 72cqi; }
   /* the thing a finger touches is at least --hit square, centred on the sprite, whatever size
      the sprite is drawn at: on a phone a cat is 17px wide, and nobody hits that. On a desk, where
      a pointer is a point, the sprite is its own target */
@@ -753,9 +753,9 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
       ask: "A pull request, ready for you to read." },
     { id: "c5", name: "Noodle",     room: "sunroom", mood: "work",   coat: 4,
       line: "Chasing a flaky test", project: "recipe-site" },
-    { id: "c6", name: "Sable",      room: "bedroom", mood: "sleep",  coat: 7,
+    { id: "c6", name: "Sable",      room: "brain",   mood: "sleep",  coat: 7,
       line: "Asleep: nothing to do", project: "reading-notes" },
-    { id: "c7", name: "Tofu",       room: "brain",   mood: "cry",    coat: 2,
+    { id: "c7", name: "Tofu",       room: "bedroom", mood: "cry",    coat: 2,
       line: "Upset: the last run failed", project: "reading-notes",
       ask: "The build died. It has not tried again." }
   ];
