@@ -47,6 +47,28 @@ console.log("the document");
 ok("standards mode, not quirks", (await page.evaluate(() => document.compatMode)) === "CSS1Compat");
 ok("no horizontal scroll", !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
 
+// Runs in the page: each room whose 5×5 grid loses more than 8 points to a control's button.
+// (The brand and the panel's own frame and plan are pointer-events: none, so what can take a
+// point is a button; what paints over a cat is checked by its box, below.)
+function buriedRooms() {
+  const svg = document.getElementById("plan"), box = svg.getBoundingClientRect();
+  const vb = svg.getAttribute("viewBox").split(" ").map(Number);
+  const out = [];
+  for (const g of document.querySelectorAll(".room")) {
+    const r = g.querySelector("rect.room-hit");
+    const [rx, ry, rw, rh] = ["x", "y", "width", "height"].map((a) => Number(r.getAttribute(a)));
+    let lost = 0;
+    for (let i = 1; i <= 5; i++) for (let j = 1; j <= 5; j++) {
+      const x = box.left + ((rx + (rw * i) / 6 - vb[0]) / vb[2]) * box.width;
+      const y = box.top + ((ry + (rh * j) / 6 - vb[1]) / vb[3]) * box.height;
+      const el = document.elementFromPoint(x, y);
+      if (el && el.closest(".hud, .mappanel")) lost++;
+    }
+    if (lost > 8) out.push(`${g.dataset.room} loses ${lost}/25`);
+  }
+  return out;
+}
+
 console.log("\nthe plan takes its own pointer events");
 // Three times now something floating over the plan — the cat layer, then the furniture, then
 // the hover line — has swallowed the events a room needs, and every screenshot still looked
@@ -97,27 +119,7 @@ for (const [width, panel] of [[1200, "folded"], [390, "folded"], [360, "folded"]
   ok(`${width}px, map ${panel}: every room owns its 25 points`, dead.length === 0,
     dead.slice(0, 4).join("; ") + (dead.length > 4 ? ` (+${dead.length - 4} more)` : ""));
   // and no room is so far under the controls that it stops being usable
-  const buried = await page.evaluate(() => {
-    const svg = document.getElementById("plan");
-    const box = svg.getBoundingClientRect();
-    const vb = svg.getAttribute("viewBox").split(" ").map(Number);
-    const out = [];
-    for (const g of document.querySelectorAll(".room")) {
-      const r = g.querySelector("rect.room-hit");
-      const [rx, ry, rw, rh] = ["x", "y", "width", "height"].map((a) => Number(r.getAttribute(a)));
-      let lost = 0;
-      for (let i = 1; i <= 5; i++) {
-        for (let j = 1; j <= 5; j++) {
-          const x = box.left + ((rx + (rw * i) / 6 - vb[0]) / vb[2]) * box.width;
-          const y = box.top + ((ry + (rh * j) / 6 - vb[1]) / vb[3]) * box.height;
-          const el = document.elementFromPoint(x, y);
-          if (el && el.closest(".hud, .mappanel")) { lost++; }
-        }
-      }
-      if (lost > 8) { out.push(`${g.dataset.room} loses ${lost}/25`); }
-    }
-    return out;
-  });
+  const buried = await page.evaluate(buriedRooms);
   ok(`${width}px, map ${panel}: no room is buried under the controls`, buried.length === 0,
     buried.join("; "));
 }
@@ -501,33 +503,15 @@ for (const width of [1200, 561, 390, 360]) {
   for (const floor of ["ground", "upper"]) {
     await page.locator(floor === "upper" ? "#tabUpper" : "#tabGround").click();
     await page.waitForTimeout(300);
-    const bad = await page.evaluate(() => {
-      const out = [];
-      const panel = document.getElementById("mapPanel");
-      const paints = getComputedStyle(panel).backgroundColor !== "rgba(0, 0, 0, 0)"
-        ? [panel] : [...panel.children];
-      const boxes = paints.map((e) => e.getBoundingClientRect()).filter((b) => b.width && b.height);
-      for (const d of document.querySelectorAll("#cats > div")) {
-        if (!/meow|cry|review/.test(d._cat.mood)) continue;
+    const bad = (await page.evaluate(() => {
+      const boxes = [...document.getElementById("mapPanel").children]
+        .map((e) => e.getBoundingClientRect()).filter((b) => b.width && b.height);
+      return [...document.querySelectorAll("#cats > div")].filter((d) => {
+        if (!/meow|cry|review/.test(d._cat.mood)) return false;
         const r = d.querySelector(".spr").getBoundingClientRect();
-        if (boxes.some((b) => r.right > b.left && r.left < b.right && r.bottom > b.top && r.top < b.bottom)) out.push(d._cat.name + " is under the panel");
-      }
-      const svg = document.getElementById("plan"), box = svg.getBoundingClientRect();
-      const vb = svg.getAttribute("viewBox").split(" ").map(Number);
-      for (const g of document.querySelectorAll(".room")) {
-        const r = g.querySelector("rect.room-hit");
-        const [rx, ry, rw, rh] = ["x", "y", "width", "height"].map((a) => Number(r.getAttribute(a)));
-        let lost = 0;
-        for (let i = 1; i <= 5; i++) for (let j = 1; j <= 5; j++) {
-          const x = box.left + ((rx + (rw * i) / 6 - vb[0]) / vb[2]) * box.width;
-          const y = box.top + ((ry + (rh * j) / 6 - vb[1]) / vb[3]) * box.height;
-          const el = document.elementFromPoint(x, y);
-          if (el && el.closest(".hud, .mappanel")) lost++;
-        }
-        if (lost > 8) out.push(`${g.dataset.room} loses ${lost}/25`);
-      }
-      return out;
-    });
+        return boxes.some((b) => r.right > b.left && r.left < b.right && r.bottom > b.top && r.top < b.bottom);
+      }).map((d) => d._cat.name + " is under the panel");
+    })).concat(await page.evaluate(buriedRooms));
     ok(`${width}px, ${floor}: no cat that needs you under the open panel, no room buried under it`, bad.length === 0, bad.join("; "));
   }
   // and the two controls never overlap each other
