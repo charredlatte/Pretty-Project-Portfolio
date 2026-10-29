@@ -493,7 +493,7 @@ await page.waitForTimeout(200);
 // The open map panel covers rooms, since the demo has no camera; but never the cat its pip leads
 // you to. On either floor, at every width the sweep uses, every cat that needs you stands clear of
 // whatever the open panel paints: its own box where it has a background, else its pieces.
-for (const width of [1200, 760, 390, 360]) {
+for (const width of [1200, 561, 390, 360]) {
   await page.setViewportSize({ width, height: 900 });
   await page.waitForTimeout(250);
   await page.locator("#stage").scrollIntoViewIfNeeded();
