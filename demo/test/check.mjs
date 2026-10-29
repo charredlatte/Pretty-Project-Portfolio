@@ -442,6 +442,75 @@ console.log("\nwith motion turned off");
   await ctx2.close();
 }
 
+console.log("\nthe type is readable and the targets can be hit");
+// Press Start 2P is an 8px-grid font: one font pixel is one screen pixel only at a whole multiple
+// of 8px, and 16px is the floor for anything that is read. A rem or a cqi gives 8.3px or 7px and
+// every label blurs. Checked at both widths, on every element that sets the pixel face.
+for (const width of [1200, 390]) {
+  await page.setViewportSize({ width, height: 800 });
+  await page.waitForTimeout(250);
+  const off = await page.evaluate(() => {
+    const out = [];
+    for (const e of document.querySelectorAll("body *")) {
+      const cs = getComputedStyle(e);
+      if (!/Press Start 2P/.test(cs.fontFamily) || !e.textContent.trim()) continue;
+      const px = parseFloat(cs.fontSize);
+      if (px < 16 || px % 8 !== 0) out.push(`${e.tagName.toLowerCase()}${e.id ? "#" + e.id : ""}.${e.className} ${px}px`);
+    }
+    return [...new Set(out)];
+  });
+  ok(`${width}px: every pixel-font label is a whole multiple of 8px, 16px at least`, off.length === 0,
+    off.slice(0, 5).join("; ") + (off.length > 5 ? ` (+${off.length - 5} more)` : ""));
+}
+// On a phone a cat is 17px wide. What a finger touches — a cat, the queen, the fold and both floor
+// tabs — is at least 44px each way, the usual phone target (WCAG 2.2 asks 24px at the least).
+await page.setViewportSize({ width: 390, height: 800 });
+await page.waitForTimeout(250);
+await page.locator("#stage").scrollIntoViewIfNeeded();
+if ((await page.locator("#mapPanel").getAttribute("data-folded")) === "true") { await page.locator("#mapFold").click(); }
+await page.waitForTimeout(200);
+const small = await page.evaluate(() => {
+  const out = [];
+  for (const id of ["mapFold", "tabGround", "tabUpper"]) {
+    const r = document.getElementById(id).getBoundingClientRect();
+    if (r.width < 44 || r.height < 44) out.push(`#${id} ${Math.round(r.width)}×${Math.round(r.height)}`);
+  }
+  // a sprite's hit area is read by what sits 21px from its centre, each way: still the cat
+  for (const d of document.querySelectorAll("#cats > div")) {
+    const r = d.querySelector(".spr").getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    for (const [dx, dy] of [[-21, 0], [21, 0], [0, -21], [0, 21]]) {
+      const el = document.elementFromPoint(cx + dx, cy + dy);
+      if (!el || el.closest("#cats > div") !== d) { out.push(`${d._cat.name} misses at ${dx},${dy}`); break; }
+    }
+  }
+  return out;
+});
+ok("on a phone, every cat and every map button is at least 44px to touch", small.length === 0, small.join("; "));
+await page.locator("#mapFold").click();
+await page.waitForTimeout(200);
+
+// The open map panel covers rooms, since the demo has no camera; but never the cat its pip leads
+// you to. At desk width, upstairs, with the panel open, every cat that needs you stands clear of it.
+await page.setViewportSize({ width: 1200, height: 900 });
+await page.waitForTimeout(250);
+await page.locator("#stage").scrollIntoViewIfNeeded();
+await page.locator("#mapFold").click();
+await page.locator("#tabUpper").click();
+await page.waitForTimeout(300);
+const hidden = await page.evaluate(() => {
+  const panel = document.getElementById("mapPanel").getBoundingClientRect();
+  return [...document.querySelectorAll("#cats > div")].filter((d) => {
+    if (!/meow|cry|review/.test(d._cat.mood)) return false;
+    const r = d.querySelector(".spr").getBoundingClientRect();
+    return r.right > panel.left && r.left < panel.right && r.bottom > panel.top && r.top < panel.bottom;
+  }).map((d) => d._cat.name);
+});
+ok("upstairs, no cat that needs you is under the open map panel", hidden.length === 0, hidden.join(", "));
+await page.locator("#tabGround").click();
+await page.locator("#mapFold").click();
+await page.waitForTimeout(200);
+
 console.log("\nno errors");
 ok("no page errors and no failed loads", errors.length === 0, errors.join(" | "));
 

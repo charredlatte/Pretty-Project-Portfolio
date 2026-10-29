@@ -51,7 +51,10 @@ of the two controls, drawn whole and pinned until a click elsewhere; that the ke
 rooms and every one of them is named to assistive tech; that the pips follow the floor and the queen is in no
 count; that nothing is drawn on the cats and no sign is on the plan; that each mood card shows the frame that
 names its mood and the page's frame counts match `sprites.json`; that the wizard runs its seven steps and
-remembers what you chose; and that the page throws nothing.
+remembers what you chose; that every pixel-font label is a whole multiple of 8px and at least 16px (Press
+Start 2P is an 8px-grid face: anything else blurs); that on a phone a cat, the queen, the fold and both floor
+tabs are at least 44px to touch, whatever size the sprite is drawn at; that upstairs the open map panel never
+covers a cat that needs you; and that the page throws nothing.
 
 It exists because review after review found the same bug: something drawn over the plan swallowing the pointer
 events the rooms need, so hovering a room silently did nothing while every screenshot looked right. It happened
