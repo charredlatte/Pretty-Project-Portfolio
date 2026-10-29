@@ -181,8 +181,7 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   position: absolute; top: 2.2cqi; right: 2.2cqi; max-width: calc(100% - 4.4cqi);
   display: grid; grid-template-columns: 1fr auto; gap: .7cqi; justify-items: end; align-items: end;
 }
-.mappanel[data-folded="true"] { display: block; }
-.mappanel[data-folded="true"] > :not(.fold) { display: none; }
+.mappanel[data-folded="true"] > :not(.fold) { display: none; }   /* the grid's 1fr column collapses: the fold keeps the corner */
 .mappanel .fold { grid-row: 1; grid-column: 2; }
 .mappanel .row { grid-row: 2; grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .3rem; justify-content: flex-end; }
 .mappanel .mini { grid-row: 3; grid-column: 1 / -1; }
@@ -1154,7 +1153,7 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
     var mw = menu.offsetWidth, mh = menu.offsetHeight;
     var ox = stage.left - wrap.left, oy = stage.top - wrap.top;
     // the panel paints nothing itself: what a menu keeps clear of is its pieces
-    var blocks = [$("hud")].concat([].slice.call($("mapPanel").children)).map(function (e) {
+    var blocks = [$("hud")].concat([].slice.call($("mapPanel").querySelectorAll(".pbtn, .mini"))).map(function (e) {
       var b = e.getBoundingClientRect();
       return [b.left - wrap.left, b.top - wrap.top, b.right - wrap.left, b.bottom - wrap.top];
     }).filter(function (b) { return b[2] > b[0] && b[3] > b[1]; });

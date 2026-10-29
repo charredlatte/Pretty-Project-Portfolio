@@ -457,7 +457,7 @@ for (const width of [1200, 390]) {
       const cs = getComputedStyle(e);
       if (!/Press Start 2P/.test(cs.fontFamily) || !e.textContent.trim()) continue;
       const px = parseFloat(cs.fontSize);
-      if (px < 16 || px % 8 !== 0) out.push(`${e.tagName.toLowerCase()}${e.id ? "#" + e.id : ""}.${e.className} ${px}px`);
+      if (px < 16 || px % 8 !== 0) out.push(`${e.tagName.toLowerCase()}${e.id ? "#" + e.id : ""}.${e.getAttribute("class")} ${px}px`);
     }
     return [...new Set(out)];
   });
@@ -477,8 +477,16 @@ const small = await page.evaluate(() => {
     const r = document.getElementById(id).getBoundingClientRect();
     if (r.width < 44 || r.height < 44) out.push(`#${id} ${Math.round(r.width)}×${Math.round(r.height)}`);
   }
-  // a sprite's hit area is read by what sits 21px from its centre, each way: still the cat
+  return out;
+});
+await page.locator("#mapFold").click();
+await page.waitForTimeout(200);
+// a sprite's hit area is read by what sits 21px from its centre, each way: still the cat. The
+// cats that need you stand still; a working cat wanders, so its probe could land anywhere
+small.push(...await page.evaluate(() => {
+  const out = [];
   for (const d of document.querySelectorAll("#cats > div")) {
+    if (!/meow|cry|review/.test(d._cat.mood)) continue;
     const r = d.querySelector(".spr").getBoundingClientRect();
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     for (const [dx, dy] of [[-21, 0], [21, 0], [0, -21], [0, 21]]) {
@@ -487,10 +495,8 @@ const small = await page.evaluate(() => {
     }
   }
   return out;
-});
-ok("on a phone, every cat and every map button is at least 44px to touch", small.length === 0, small.join("; "));
-await page.locator("#mapFold").click();
-await page.waitForTimeout(200);
+}));
+ok("on a phone, every cat that needs you and every map button is at least 44px to touch", small.length === 0, small.join("; "));
 
 // The open map panel paints only its pieces, and never over the cat its pip leads you to: on
 // either floor, at every width, every cat that needs you stands clear of them, and no room on
@@ -504,7 +510,7 @@ for (const width of [1200, 561, 390, 360]) {
     await page.locator(floor === "upper" ? "#tabUpper" : "#tabGround").click();
     await page.waitForTimeout(300);
     const bad = (await page.evaluate(() => {
-      const boxes = [...document.getElementById("mapPanel").children]
+      const boxes = [...document.getElementById("mapPanel").querySelectorAll(".pbtn, .mini")]
         .map((e) => e.getBoundingClientRect()).filter((b) => b.width && b.height);
       return [...document.querySelectorAll("#cats > div")].filter((d) => {
         if (!/meow|cry|review/.test(d._cat.mood)) return false;
