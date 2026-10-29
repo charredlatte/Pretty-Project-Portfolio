@@ -55,7 +55,7 @@ remembers what you chose; that every pixel-font label is a whole multiple of 8px
 Start 2P is an 8px-grid face: anything else blurs); that on a phone a cat, the queen, the fold and both floor
 tabs are at least 44px to touch, whatever size the sprite is drawn at; that on either floor, at desk and phone widths, the open map
 panel's pieces never cover a cat that needs you nor bury a room, and keep clear of the brand; and that the page
-throws nothing. The page is drawn for stages 360px and wider: on a narrower one the panel's row of three 16px
+throws nothing. The page is drawn for viewports 360px and wider: on a narrower one the panel's row of three 16px
 labels wraps, and the checks do not go there.
 
 It exists because review after review found the same bug: something drawn over the plan swallowing the pointer

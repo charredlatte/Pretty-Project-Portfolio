@@ -391,8 +391,8 @@ footer .wrap { padding-block: 2.5rem; }
 @media (max-width: 760px) {
   /* Below a desk's width the panel's row no longer fits beside the brand, so the panel sits at the
      foot: the plan, then the floor tabs and the fold, which keeps the corner. That row is the only
-     place three 16px labels at --hit tall sit on a 360px stage without burying a room: under the
-     house's south wall they cost only the catio's last row (on a 320px stage the row wraps). */
+     place three 16px labels at --hit tall sit on a 360px-wide phone without burying a room: under
+     the house's south wall they cost only the catio's last row (on a 320px phone the row wraps). */
   .mappanel { top: auto; bottom: 2.2cqi; }
   .mappanel .mini { grid-row: 1; }
   .mappanel .row { grid-row: 2; grid-column: 1; gap: .2rem; }
@@ -409,8 +409,6 @@ footer .wrap { padding-block: 2.5rem; }
     content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
     width: max(100%, var(--hit)); height: max(100%, var(--hit));
   }
-  /* and the next tap after a cat, its menu's actions, is a finger's height too */
-  .menu li button { min-height: var(--hit); }
 }
 /* the brand's own cat gives way on the narrowest phones, so the name and its badge fit in one line */
 @media (max-width: 400px) {
