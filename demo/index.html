@@ -43,6 +43,10 @@
 
   /* type */
   --pixel: "Press Start 2P", ui-monospace, monospace;      /* the brand, small caps labels */
+  /* Press Start 2P is drawn on an 8px grid: one font pixel is one screen pixel only at a whole
+     multiple of 8px, and 16px is the floor for anything that is read. Never a rem or a cqi. */
+  --px: 16px;
+  --hit: 44px;               /* the smallest thing a finger is asked to touch */
   --display: "Pixelify Sans", "Trebuchet MS", sans-serif;  /* headings */
   --body: "Nunito", system-ui, -apple-system, sans-serif;  /* everything you read */
   --measure: 68ch;
@@ -92,7 +96,7 @@ a:hover { color: var(--accent); }
 .stack-s { display: flex; flex-direction: column; gap: .55rem; }
 .lede { font-size: 1.2rem; color: var(--ink-soft); }
 .eyebrow {
-  font-family: var(--pixel); font-size: .62rem; letter-spacing: .14em;
+  font-family: var(--pixel); font-size: var(--px); letter-spacing: .14em;
   color: var(--accent); text-transform: uppercase;
 }
 code, .mono { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: .92em; }
@@ -109,7 +113,7 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   background-repeat: no-repeat; background-position: 0 0;
   background-size: calc(100% * var(--frames)) 100%; image-rendering: pixelated;
 }
-.brand b { font-family: var(--pixel); font-size: .78rem; letter-spacing: .02em; }
+.brand b { font-family: var(--pixel); font-size: var(--px); letter-spacing: .02em; }
 .hero h1 { margin-top: 1.4rem; }
 .hero .lede { max-width: 54ch; }
 
@@ -135,9 +139,10 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   transition: left 1.6s linear, top 1.6s linear;
 }
 .cat .spr, .queen-pin .spr {
-  width: 100%; height: 100%; cursor: pointer; image-rendering: pixelated;
+  position: relative; width: 100%; height: 100%; cursor: pointer; image-rendering: pixelated;
   background-repeat: no-repeat; background-size: calc(100% * var(--frames)) 100%;
 }
+
 .cat.flip .spr { transform: scaleX(-1); }
 /* the coat is a token, not an inline style, so the outline can be composed after it rather
    than be outranked by it */
@@ -157,38 +162,45 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
 .hud {
   position: absolute; top: 2.2cqi; left: 2.2cqi; display: flex; align-items: center; gap: .9cqi;
   padding: .9cqi 1.3cqi; background: var(--paper); border: 2px solid var(--ink); border-radius: 3px;
-  font-family: var(--pixel); font-size: max(7px, 1.35cqi); box-shadow: var(--shadow);
+  font-family: var(--pixel); font-size: var(--px); box-shadow: var(--shadow);
   pointer-events: none;                 /* it floats over the plan and takes no clicks */
 }
 .hud .mark { width: 3.2cqi; height: 3.2cqi; }
 .badge {
   background: var(--accent); color: #FFF6FC; border-radius: 999px;
-  padding: .15em .45em; font-size: .9em; line-height: 1;
+  padding: .15em .45em; font-size: var(--px); line-height: 1;
 }
 .mappanel {
-  /* the panel's frame and its plan are not clickable here, so they must not take the events
-     the rooms underneath need: the demo has no camera to move a covered room out from under it */
+  /* the panel's plan is not clickable here, so it must not take the events the rooms underneath
+     need: the demo has no camera to move a covered room out from under it. The panel paints
+     nothing of its own either: each piece carries its frame, so a cat behind it stays in view.
+     Its buttons are 16px labels at --hit tall. On a desk the fold sits in the air above the
+     house, the floor tabs under it and the plan under them, which costs the ensuite one row of
+     the sweep's points; on a phone they sit in one row along the stage's foot, the plan above. */
   pointer-events: none;
-  position: absolute; top: 2.2cqi; right: 2.2cqi; display: flex; flex-direction: column; gap: .7cqi;
-  padding: .8cqi; background: var(--paper); border: 2px solid var(--ink); border-radius: 3px;
-  box-shadow: var(--shadow);
+  position: absolute; top: 2.2cqi; right: 2.2cqi; max-width: calc(100% - 4.4cqi);
+  display: grid; grid-template-columns: 1fr auto; gap: .7cqi; justify-items: end; align-items: end;
 }
-.mappanel[data-folded="true"] > :not(.fold) { display: none; }
-.mappanel .row { display: flex; gap: .3rem; }
+.mappanel[data-folded="true"] > :not(.fold) { display: none; }   /* the grid's 1fr column collapses: the fold keeps the corner */
+.mappanel .fold { grid-row: 1; grid-column: 2; }
+.mappanel .row { grid-row: 2; grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .3rem; justify-content: flex-end; }
+.mappanel .mini { grid-row: 3; grid-column: 1 / -1; }
 .pbtn {
   pointer-events: auto;
-  font: 400 max(7px, 1.3cqi)/1 var(--pixel); color: var(--ink); background: var(--lav);
-  border: 2px solid var(--ink); border-radius: 2px; padding: .9cqi 1.1cqi; cursor: pointer;
+  position: relative; min-height: var(--hit); min-width: var(--hit);
+  font: 400 var(--px)/1 var(--pixel); color: var(--ink); background: var(--lav);
+  border: 2px solid var(--ink); border-radius: 2px; padding: 0 .9cqi; cursor: pointer; box-shadow: var(--shadow);
 }
 .pbtn[aria-pressed="true"] { background: var(--accent); color: #FFF6FC; }
 .pbtn:hover { background: var(--pink); }
 .pbtn .pip {
-  display: inline-block; width: 1.1cqi; height: 1.1cqi; min-width: 4px; min-height: 4px; margin-left: .5cqi;
-  border-radius: 999px; background: var(--accent); vertical-align: middle;
+  position: absolute; top: 3px; right: 3px; width: 1.1cqi; height: 1.1cqi; min-width: 6px; min-height: 6px;
+  border-radius: 999px; background: var(--accent);
 }
 .pbtn[aria-pressed="true"] .pip { background: #FFF6FC; }
 .pbtn .pip[hidden] { display: none; }
-.mini { width: 22cqi; height: 13.8cqi; border: 2px solid var(--ink); background: var(--well); display: block; }
+/* the plan keeps the canvas's own shape, so nothing drawn on it is squashed */
+.mini { width: 20cqi; height: calc(20cqi * 136 / 224); border: 2px solid var(--ink); background: var(--well); display: block; box-shadow: var(--shadow); }
 
 .tip {
   position: absolute; left: 2.2cqi; bottom: 2.2cqi; max-width: calc(100% - 4.4cqi);
@@ -212,8 +224,8 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   box-shadow: 0 4px 0 var(--lav); font-size: .85rem;
 }
 .menu[hidden] { display: none; }
-.menu h4 { margin: 0; font: 400 11px/1.3 var(--pixel); display: flex; gap: .4rem; align-items: center; }
-.menu h4 img { image-rendering: pixelated; height: 1.1em; width: auto; }
+.menu h4 { margin: 0; font: 400 var(--px)/1.3 var(--pixel); display: flex; gap: .4rem; align-items: center; }
+.menu h4 img { image-rendering: pixelated; height: 18px; width: auto; }   /* the 16 by 9 crown at twice its size: whole pixels */
 .menu .sub { color: var(--ink-soft); font-size: .92em; margin-top: .3em; }
 .menu .now {
   margin-top: .6em; padding: .5em .6em; background: var(--well);
@@ -238,7 +250,7 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
 /* ---- the plain-words table ------------------------------------------------------------------ */
 .tbl { width: 100%; border-collapse: collapse; font-size: .98rem; }
 .tbl th, .tbl td { text-align: left; padding: .6rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
-.tbl th { font-family: var(--pixel); font-size: .56rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+.tbl th { font-family: var(--pixel); font-size: var(--px); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
 .tbl td:first-child { color: var(--ink-soft); width: 46%; }
 .scrollx { overflow-x: auto; }
 
@@ -255,7 +267,7 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   width: 60px; height: 60px; background-repeat: no-repeat; image-rendering: pixelated;
   background-size: calc(60px * var(--frames)) 60px; align-self: center;
 }
-.mood b { font-family: var(--pixel); font-size: .58rem; line-height: 1.5; }
+.mood b { font-family: var(--pixel); font-size: var(--px); line-height: 1.5; }
 .mood span { font-size: .88rem; color: var(--ink-soft); }
 
 /* ---- the queen's scene --------------------------------------------------------------------- */
@@ -273,7 +285,7 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
 .crown { height: 20px; }
 .crown img { height: 20px; width: auto; }
 .plate {
-  font: 400 .55rem/1 var(--pixel); padding: .35rem .5rem; background: var(--paper);
+  font: 400 var(--px)/1 var(--pixel); padding: .35rem .5rem; background: var(--paper);
   border: 2px solid var(--ink); border-radius: 2px; white-space: nowrap;
 }
 .said { min-width: 0; align-self: center; }
@@ -283,8 +295,8 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
 }
 .replies { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .6rem; }
 .replies button {
-  font: 400 .52rem/1.5 var(--pixel); color: var(--ink); background: var(--lav); cursor: pointer;
-  border: 2px solid var(--ink); border-radius: 2px; padding: .45rem .55rem;
+  font: 400 var(--px)/1.5 var(--pixel); color: var(--ink); background: var(--lav); cursor: pointer;
+  border: 2px solid var(--ink); border-radius: 2px; padding: .45rem .55rem; min-height: var(--hit);
 }
 .replies button:hover { background: var(--pink); }
 .sub-note { color: var(--ink-soft); font-size: .92rem; }
@@ -299,7 +311,7 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   box-shadow: 0 6px 0 var(--lav); overflow: hidden;
 }
 .wiz-top { padding: 1rem 1.1rem .7rem; border-bottom: 2px solid var(--line); }
-.wiz-top h3 { font-family: var(--pixel); font-size: .78rem; line-height: 1.5; }
+.wiz-top h3 { font-family: var(--pixel); font-size: var(--px); line-height: 1.5; }
 .dots { display: flex; gap: .35rem; margin-top: .7rem; }
 .dots span { width: 10px; height: 10px; border: 2px solid var(--ink); border-radius: 999px; background: var(--paper); }
 .dots span.on { background: var(--accent); }
@@ -308,8 +320,8 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
 .wiz-foot { display: flex; gap: .5rem; align-items: center; padding: .8rem 1.1rem; border-top: 2px solid var(--line); }
 .wiz-foot .spacer { flex: 1; }
 .btn {
-  font: 400 .58rem/1 var(--pixel); color: var(--ink); background: var(--lav);
-  border: 2px solid var(--ink); border-radius: 2px; padding: .65rem .8rem; cursor: pointer;
+  font: 400 var(--px)/1 var(--pixel); color: var(--ink); background: var(--lav);
+  border: 2px solid var(--ink); border-radius: 2px; padding: .65rem .8rem; cursor: pointer; min-height: var(--hit);
 }
 .btn:hover { background: var(--pink); }
 .btn.green { background: var(--go); color: #06231F; }
@@ -321,11 +333,11 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   border: 2px solid var(--lav); border-radius: 2px; padding: .45rem .55rem; width: 100%;
 }
 .counter { display: flex; align-items: center; gap: .6rem; }
-.counter b { font-family: var(--pixel); font-size: .9rem; min-width: 1.4rem; text-align: center; }
+.counter b { font-family: var(--pixel); font-size: var(--px); min-width: 1.4rem; text-align: center; }
 .counter .note { font-size: .88rem; color: var(--ink-soft); }
 .roomgrid { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .35rem; }
 .roomgrid li {
-  font: 400 .52rem/1 var(--pixel); padding: .45rem .5rem; border: 2px solid var(--lav);
+  font: 400 var(--px)/1 var(--pixel); padding: .45rem .5rem; border: 2px solid var(--lav);
   border-radius: 2px; color: var(--ink-soft); background: var(--paper);
 }
 .roomgrid li[data-open="true"] { border-color: var(--ink); color: var(--ink); background: var(--well); }
@@ -353,7 +365,7 @@ pre.lines {
 .steps { list-style: none; counter-reset: s; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1.3rem; }
 .steps > li { counter-increment: s; display: grid; grid-template-columns: 2rem 1fr; gap: .9rem; }
 .steps > li::before {
-  content: counter(s); font: 400 .72rem/2rem var(--pixel); text-align: center;
+  content: counter(s); font: 400 var(--px)/2rem var(--pixel); text-align: center;
   width: 2rem; height: 2rem; border: 2px solid var(--ink); border-radius: 999px; color: var(--accent);
 }
 .steps h3 { margin-bottom: .3rem; }
@@ -376,8 +388,31 @@ footer .wrap { padding-block: 2.5rem; }
 }
 /* CLAUDE.md: "the map panel (#controls, top right; bottom right on a phone) … On a phone the
    buttons sit at the panel's foot, so the fold keeps the bottom right corner." */
-@media (max-width: 560px) {
-  .mappanel { top: auto; bottom: 2.2cqi; flex-direction: column-reverse; }
+@media (max-width: 760px) {
+  /* Below a desk's width the panel's row no longer fits beside the brand, so the panel sits at the
+     foot: the plan, then the floor tabs and the fold, which keeps the corner. That row is the only
+     place three 16px labels at --hit tall sit on a 360px-wide phone without burying a room: under
+     the house's south wall they cost only the catio's last row (on a 320px phone the row wraps). */
+  .mappanel { top: auto; bottom: 2.2cqi; }
+  .mappanel .mini { grid-row: 1; }
+  .mappanel .row { grid-row: 2; grid-column: 1; gap: .2rem; }
+  .mappanel .fold { grid-row: 2; }
+  .pbtn { padding: 0 2px; }
+  /* the brand keeps to the air above the house */
+  .hud { padding: 2px 6px; }
+  /* the hover line sits above that row and short of the plan: never on a tab's label or a pip */
+  .tip { bottom: calc(2.2cqi + var(--hit) + 1cqi); max-width: 72cqi; }
+  /* the thing a finger touches is at least --hit square, centred on the sprite, whatever size
+     the sprite is drawn at: on a phone a cat is 17px wide, and nobody hits that. On a desk, where
+     a pointer is a point, the sprite is its own target */
+  .cat .spr::after, .queen-pin .spr::after {
+    content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: max(100%, var(--hit)); height: max(100%, var(--hit));
+  }
+}
+/* the brand's own cat gives way on the narrowest phones, so the name and its badge fit in one line */
+@media (max-width: 400px) {
+  .hud .mark { display: none; }
 }
 
 /* grid and flex children that hold code, tables or long words must shrink, not push the page wide */
@@ -418,11 +453,11 @@ footer .wrap { padding-block: 2.5rem; }
         <span class="badge" id="houseBadge" hidden></span>
       </div>
       <div class="mappanel" id="mapPanel" data-folded="true">
-        <button class="pbtn fold" id="mapFold" aria-expanded="false">MAP <span class="pip" id="foldPip"></span></button>
+        <button class="pbtn fold" id="mapFold" aria-expanded="false">MAP<span class="pip" id="foldPip"></span></button>
         <canvas class="mini" id="mini" width="224" height="136" aria-hidden="true"></canvas>
         <div class="row">
-          <button class="pbtn" id="tabGround" aria-pressed="true">GROUND <span class="pip" hidden id="groundPip"></span></button>
-          <button class="pbtn" id="tabUpper" aria-pressed="false">UPSTAIRS <span class="pip" hidden id="upPip"></span></button>
+          <button class="pbtn" id="tabGround" aria-pressed="true">GROUND<span class="pip" hidden id="groundPip"></span></button>
+          <button class="pbtn" id="tabUpper" aria-pressed="false">UPSTAIRS<span class="pip" hidden id="upPip"></span></button>
         </div>
       </div>
       <p class="tip" id="tip"></p>
@@ -1115,10 +1150,11 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
     var stage = el0.getBoundingClientRect(), r = target.getBoundingClientRect();
     var mw = menu.offsetWidth, mh = menu.offsetHeight;
     var ox = stage.left - wrap.left, oy = stage.top - wrap.top;
-    var blocks = [$("hud"), $("mapPanel")].map(function (e) {
+    // the panel paints nothing itself: what a menu keeps clear of is its pieces
+    var blocks = [$("hud")].concat([].slice.call($("mapPanel").querySelectorAll(".pbtn, .mini"))).map(function (e) {
       var b = e.getBoundingClientRect();
       return [b.left - wrap.left, b.top - wrap.top, b.right - wrap.left, b.bottom - wrap.top];
-    });
+    }).filter(function (b) { return b[2] > b[0] && b[3] > b[1]; });
     function hits(x, y) {
       return blocks.some(function (b) {
         return x < b[2] && x + mw > b[0] && y < b[3] && y + mh > b[1];

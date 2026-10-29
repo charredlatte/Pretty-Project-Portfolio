@@ -47,6 +47,28 @@ console.log("the document");
 ok("standards mode, not quirks", (await page.evaluate(() => document.compatMode)) === "CSS1Compat");
 ok("no horizontal scroll", !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
 
+// Runs in the page: each room whose 5×5 grid loses more than 8 points to a control's button.
+// (The brand and the panel's own frame and plan are pointer-events: none, so what can take a
+// point is a button; what paints over a cat is checked by its box, below.)
+function buriedRooms() {
+  const svg = document.getElementById("plan"), box = svg.getBoundingClientRect();
+  const vb = svg.getAttribute("viewBox").split(" ").map(Number);
+  const out = [];
+  for (const g of document.querySelectorAll(".room")) {
+    const r = g.querySelector("rect.room-hit");
+    const [rx, ry, rw, rh] = ["x", "y", "width", "height"].map((a) => Number(r.getAttribute(a)));
+    let lost = 0;
+    for (let i = 1; i <= 5; i++) for (let j = 1; j <= 5; j++) {
+      const x = box.left + ((rx + (rw * i) / 6 - vb[0]) / vb[2]) * box.width;
+      const y = box.top + ((ry + (rh * j) / 6 - vb[1]) / vb[3]) * box.height;
+      const el = document.elementFromPoint(x, y);
+      if (el && el.closest(".hud, .mappanel")) lost++;
+    }
+    if (lost > 8) out.push(`${g.dataset.room} loses ${lost}/25`);
+  }
+  return out;
+}
+
 console.log("\nthe plan takes its own pointer events");
 // Three times now something floating over the plan — the cat layer, then the furniture, then
 // the hover line — has swallowed the events a room needs, and every screenshot still looked
@@ -97,27 +119,7 @@ for (const [width, panel] of [[1200, "folded"], [390, "folded"], [360, "folded"]
   ok(`${width}px, map ${panel}: every room owns its 25 points`, dead.length === 0,
     dead.slice(0, 4).join("; ") + (dead.length > 4 ? ` (+${dead.length - 4} more)` : ""));
   // and no room is so far under the controls that it stops being usable
-  const buried = await page.evaluate(() => {
-    const svg = document.getElementById("plan");
-    const box = svg.getBoundingClientRect();
-    const vb = svg.getAttribute("viewBox").split(" ").map(Number);
-    const out = [];
-    for (const g of document.querySelectorAll(".room")) {
-      const r = g.querySelector("rect.room-hit");
-      const [rx, ry, rw, rh] = ["x", "y", "width", "height"].map((a) => Number(r.getAttribute(a)));
-      let lost = 0;
-      for (let i = 1; i <= 5; i++) {
-        for (let j = 1; j <= 5; j++) {
-          const x = box.left + ((rx + (rw * i) / 6 - vb[0]) / vb[2]) * box.width;
-          const y = box.top + ((ry + (rh * j) / 6 - vb[1]) / vb[3]) * box.height;
-          const el = document.elementFromPoint(x, y);
-          if (el && el.closest(".hud, .mappanel")) { lost++; }
-        }
-      }
-      if (lost > 8) { out.push(`${g.dataset.room} loses ${lost}/25`); }
-    }
-    return out;
-  });
+  const buried = await page.evaluate(buriedRooms);
   ok(`${width}px, map ${panel}: no room is buried under the controls`, buried.length === 0,
     buried.join("; "));
 }
@@ -440,6 +442,98 @@ console.log("\nwith motion turned off");
   });
   ok("every cat still shows the frame that names its mood", wrong.length === 0, wrong.join(", "));
   await ctx2.close();
+}
+
+console.log("\nthe type is readable and the targets can be hit");
+// Press Start 2P is an 8px-grid font: one font pixel is one screen pixel only at a whole multiple
+// of 8px, and 16px is the floor for anything that is read. A rem or a cqi gives 8.3px or 7px and
+// every label blurs. Checked at both widths, on every element that sets the pixel face.
+for (const width of [1200, 390]) {
+  await page.setViewportSize({ width, height: 800 });
+  await page.waitForTimeout(250);
+  const off = await page.evaluate(() => {
+    const out = [];
+    for (const e of document.querySelectorAll("body *")) {
+      const cs = getComputedStyle(e);
+      if (!/Press Start 2P/.test(cs.fontFamily) || !e.textContent.trim()) continue;
+      const px = parseFloat(cs.fontSize);
+      if (px < 16 || px % 8 !== 0) out.push(`${e.tagName.toLowerCase()}${e.id ? "#" + e.id : ""}.${e.getAttribute("class")} ${px}px`);
+    }
+    return [...new Set(out)];
+  });
+  ok(`${width}px: every pixel-font label is a whole multiple of 8px, 16px at least`, off.length === 0,
+    off.slice(0, 5).join("; ") + (off.length > 5 ? ` (+${off.length - 5} more)` : ""));
+}
+// On a phone a cat is 17px wide. What a finger touches — a cat, the queen, the fold and both floor
+// tabs — is at least 44px each way, the usual phone target (WCAG 2.2 asks 24px at the least).
+await page.setViewportSize({ width: 390, height: 800 });
+await page.waitForTimeout(250);
+await page.locator("#stage").scrollIntoViewIfNeeded();
+if ((await page.locator("#mapPanel").getAttribute("data-folded")) === "true") { await page.locator("#mapFold").click(); }
+await page.waitForTimeout(200);
+const small = await page.evaluate(() => {
+  const out = [];
+  for (const id of ["mapFold", "tabGround", "tabUpper"]) {
+    const r = document.getElementById(id).getBoundingClientRect();
+    if (r.width < 44 || r.height < 44) out.push(`#${id} ${Math.round(r.width)}×${Math.round(r.height)}`);
+  }
+  return out;
+});
+await page.locator("#mapFold").click();
+await page.waitForTimeout(200);
+// a sprite's hit area is read by what sits just inside 22px from its centre, each way (the box's
+// far edge is exclusive): still the cat. The
+// cats that need you stand still, and so does the queen; a working cat wanders, so its probe
+// could land anywhere
+small.push(...await page.evaluate(() => {
+  const out = [];
+  for (const d of document.querySelectorAll("#cats > div")) {
+    if (d._cat.id !== "queen" && !/meow|cry|review/.test(d._cat.mood)) continue;
+    const r = d.querySelector(".spr").getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    for (const [dx, dy] of [[-21.5, 0], [21.5, 0], [0, -21.5], [0, 21.5]]) {
+      const el = document.elementFromPoint(cx + dx, cy + dy);
+      if (!el || el.closest("#cats > div") !== d) { out.push(`${d._cat.name} misses at ${dx},${dy}`); break; }
+    }
+  }
+  return out;
+}));
+ok("on a phone, every cat that needs you, the queen and every map button are at least 44px to touch", small.length === 0, small.join("; "));
+
+// The open map panel paints only its pieces, and never over the cat its pip leads you to: on
+// either floor, at every width, every cat that needs you stands clear of them, and no room on
+// the floor you are on is buried under its buttons (the ground floor's own sweep, upstairs too).
+for (const width of [1200, 561, 390, 360]) {
+  await page.setViewportSize({ width, height: 900 });
+  await page.waitForTimeout(250);
+  await page.locator("#stage").scrollIntoViewIfNeeded();
+  if ((await page.locator("#mapPanel").getAttribute("data-folded")) === "true") { await page.locator("#mapFold").click(); }
+  for (const floor of ["ground", "upper"]) {
+    await page.locator(floor === "upper" ? "#tabUpper" : "#tabGround").click();
+    await page.waitForTimeout(300);
+    const bad = (await page.evaluate(() => {
+      const boxes = [document.getElementById("hud"), ...document.getElementById("mapPanel").querySelectorAll(".pbtn, .mini")]
+        .map((e) => e.getBoundingClientRect()).filter((b) => b.width && b.height);
+      return [...document.querySelectorAll("#cats > div")].filter((d) => {
+        if (!/meow|cry|review/.test(d._cat.mood)) return false;
+        const r = d.querySelector(".spr").getBoundingClientRect();
+        return boxes.some((b) => r.right > b.left && r.left < b.right && r.bottom > b.top && r.top < b.bottom);
+      }).map((d) => d._cat.name + " is under a control");
+    })).concat(await page.evaluate(buriedRooms));
+    ok(`${width}px, ${floor}: no cat that needs you under the brand or the open panel, no room buried under it`, bad.length === 0, bad.join("; "));
+  }
+  // and the two controls never overlap each other
+  const lap = await page.evaluate(() => {
+    const h = document.getElementById("hud").getBoundingClientRect();
+    return [...document.getElementById("mapPanel").children].some((e) => {
+      const p = e.getBoundingClientRect();
+      return p.width && h.right > p.left && h.left < p.right && h.bottom > p.top && h.top < p.bottom;
+    });
+  });
+  ok(`${width}px: the brand and the open map panel keep apart`, !lap);
+  await page.locator("#tabGround").click();
+  await page.locator("#mapFold").click();
+  await page.waitForTimeout(200);
 }
 
 console.log("\nno errors");
