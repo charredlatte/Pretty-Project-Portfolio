@@ -387,16 +387,27 @@ footer .wrap { padding-block: 2.5rem; }
 }
 /* CLAUDE.md: "the map panel (#controls, top right; bottom right on a phone) … On a phone the
    buttons sit at the panel's foot, so the fold keeps the bottom right corner." */
-@media (max-width: 560px) {
-  /* open, it is the plan, then one row along the stage's foot: the floor tabs and the fold, which
-     keeps the corner. Three 16px labels at --hit tall sit nowhere else on a 360px stage without
-     burying a room: under the house's south wall they cost only the catio's last row */
-  .mappanel { top: auto; bottom: 2.2cqi; display: grid; grid-template-columns: 1fr auto; justify-items: end; }
+@media (max-width: 760px) {
+  /* Below a desk's width the panel's 16px labels at --hit tall no longer fit beside the brand, so
+     it sits at the foot. Open, it is the plan, then one row along the stage's foot: the floor tabs
+     and the fold, which keeps the corner. That row is the only place three such labels sit on a
+     360px stage without burying a room: under the house's south wall they cost only the catio's
+     last row. The panel itself paints nothing there: each piece carries its own frame, so the cats
+     in the rooms behind it (the craft room, the hall, the terrace) stay in view between them. */
+  .mappanel {
+    top: auto; bottom: 2.2cqi; max-width: calc(100% - 4.4cqi);
+    display: grid; grid-template-columns: 1fr auto; justify-items: end; align-items: end;
+    padding: 0; background: none; border: 0; box-shadow: none;
+  }
   .mappanel[data-folded="true"] { display: block; }
-  .mappanel .mini { grid-row: 1; grid-column: 1 / -1; }
-  .mappanel .row { grid-row: 2; grid-column: 1; gap: .2rem; }
+  .mappanel .mini { grid-row: 1; grid-column: 1 / -1; box-shadow: var(--shadow); }
+  .mappanel .row { grid-row: 2; grid-column: 1; gap: .2rem; flex-wrap: wrap; justify-content: flex-end; }
   .mappanel .fold { grid-row: 2; grid-column: 2; }
-  .pbtn { padding: 0 2px; }
+  .pbtn { padding: 0 2px; box-shadow: var(--shadow); }
+}
+/* the brand's own cat gives way on the narrowest phones, so the name and its badge fit in one line */
+@media (max-width: 400px) {
+  .hud .mark { display: none; }
 }
 
 /* grid and flex children that hold code, tables or long words must shrink, not push the page wide */

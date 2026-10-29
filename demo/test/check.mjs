@@ -491,25 +491,39 @@ await page.locator("#mapFold").click();
 await page.waitForTimeout(200);
 
 // The open map panel covers rooms, since the demo has no camera; but never the cat its pip leads
-// you to. At desk width, upstairs, with the panel open, every cat that needs you stands clear of it.
-await page.setViewportSize({ width: 1200, height: 900 });
-await page.waitForTimeout(250);
-await page.locator("#stage").scrollIntoViewIfNeeded();
-await page.locator("#mapFold").click();
-await page.locator("#tabUpper").click();
-await page.waitForTimeout(300);
-const hidden = await page.evaluate(() => {
-  const panel = document.getElementById("mapPanel").getBoundingClientRect();
-  return [...document.querySelectorAll("#cats > div")].filter((d) => {
-    if (!/meow|cry|review/.test(d._cat.mood)) return false;
-    const r = d.querySelector(".spr").getBoundingClientRect();
-    return r.right > panel.left && r.left < panel.right && r.bottom > panel.top && r.top < panel.bottom;
-  }).map((d) => d._cat.name);
-});
-ok("upstairs, no cat that needs you is under the open map panel", hidden.length === 0, hidden.join(", "));
-await page.locator("#tabGround").click();
-await page.locator("#mapFold").click();
-await page.waitForTimeout(200);
+// you to. On either floor, at every width the sweep uses, every cat that needs you stands clear of
+// whatever the open panel paints: its own box where it has a background, else its pieces.
+for (const width of [1200, 760, 390, 360]) {
+  await page.setViewportSize({ width, height: 900 });
+  await page.waitForTimeout(250);
+  await page.locator("#stage").scrollIntoViewIfNeeded();
+  if ((await page.locator("#mapPanel").getAttribute("data-folded")) === "true") { await page.locator("#mapFold").click(); }
+  for (const floor of ["ground", "upper"]) {
+    await page.locator(floor === "upper" ? "#tabUpper" : "#tabGround").click();
+    await page.waitForTimeout(300);
+    const hidden = await page.evaluate(() => {
+      const panel = document.getElementById("mapPanel");
+      const paints = getComputedStyle(panel).backgroundColor !== "rgba(0, 0, 0, 0)"
+        ? [panel] : [...panel.querySelectorAll(".mini, .pbtn")];
+      const boxes = paints.map((e) => e.getBoundingClientRect()).filter((b) => b.width && b.height);
+      return [...document.querySelectorAll("#cats > div")].filter((d) => {
+        if (!/meow|cry|review/.test(d._cat.mood)) return false;
+        const r = d.querySelector(".spr").getBoundingClientRect();
+        return boxes.some((b) => r.right > b.left && r.left < b.right && r.bottom > b.top && r.top < b.bottom);
+      }).map((d) => d._cat.name);
+    });
+    ok(`${width}px, ${floor}: no cat that needs you is under the open map panel`, hidden.length === 0, hidden.join(", "));
+  }
+  // and the two controls never overlap each other
+  const lap = await page.evaluate(() => {
+    const h = document.getElementById("hud").getBoundingClientRect(), p = document.getElementById("mapPanel").getBoundingClientRect();
+    return h.right > p.left && h.left < p.right && h.bottom > p.top && h.top < p.bottom;
+  });
+  ok(`${width}px: the brand and the open map panel keep apart`, !lap);
+  await page.locator("#tabGround").click();
+  await page.locator("#mapFold").click();
+  await page.waitForTimeout(200);
+}
 
 console.log("\nno errors");
 ok("no page errors and no failed loads", errors.length === 0, errors.join(" | "));
