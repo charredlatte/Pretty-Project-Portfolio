@@ -481,7 +481,7 @@ const small = await page.evaluate(() => {
 });
 await page.locator("#mapFold").click();
 await page.waitForTimeout(200);
-// a sprite's hit area is read by what sits 21px from its centre, each way: still the cat. The
+// a sprite's hit area is read by what sits 22px from its centre, each way: still the cat. The
 // cats that need you stand still, and so does the queen; a working cat wanders, so its probe
 // could land anywhere
 small.push(...await page.evaluate(() => {
@@ -490,7 +490,7 @@ small.push(...await page.evaluate(() => {
     if (d._cat.id !== "queen" && !/meow|cry|review/.test(d._cat.mood)) continue;
     const r = d.querySelector(".spr").getBoundingClientRect();
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    for (const [dx, dy] of [[-21, 0], [21, 0], [0, -21], [0, 21]]) {
+    for (const [dx, dy] of [[-22, 0], [22, 0], [0, -22], [0, 22]]) {
       const el = document.elementFromPoint(cx + dx, cy + dy);
       if (!el || el.closest("#cats > div") !== d) { out.push(`${d._cat.name} misses at ${dx},${dy}`); break; }
     }
