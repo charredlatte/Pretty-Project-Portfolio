@@ -142,12 +142,7 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   position: relative; width: 100%; height: 100%; cursor: pointer; image-rendering: pixelated;
   background-repeat: no-repeat; background-size: calc(100% * var(--frames)) 100%;
 }
-/* the thing a finger touches is at least --hit square, centred on the sprite, whatever size the
-   sprite is drawn at: on a phone a cat is 17px wide, and nobody hits that */
-.cat .spr::after, .queen-pin .spr::after {
-  content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  width: max(100%, var(--hit)); height: max(100%, var(--hit));
-}
+
 .cat.flip .spr { transform: scaleX(-1); }
 /* the coat is a token, not an inline style, so the outline can be composed after it rather
    than be outranked by it */
@@ -176,20 +171,26 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
   padding: .15em .45em; font-size: var(--px); line-height: 1;
 }
 .mappanel {
-  /* the panel's frame and its plan are not clickable here, so they must not take the events
-     the rooms underneath need: the demo has no camera to move a covered room out from under it */
+  /* the panel's plan is not clickable here, so it must not take the events the rooms underneath
+     need: the demo has no camera to move a covered room out from under it. The panel paints
+     nothing of its own either: each piece carries its frame, so a cat behind it stays in view.
+     Its buttons are 16px labels at --hit tall. On a desk the fold sits in the air above the
+     house, the floor tabs under it and the plan under them, which costs the ensuite one row of
+     the sweep's points; on a phone they sit in one row along the stage's foot, the plan above. */
   pointer-events: none;
-  position: absolute; top: 2.2cqi; right: 2.2cqi; display: flex; flex-direction: column; align-items: flex-end; gap: .7cqi;
-  padding: .8cqi; background: var(--paper); border: 2px solid var(--ink); border-radius: 3px;
-  box-shadow: var(--shadow);
+  position: absolute; top: 2.2cqi; right: 2.2cqi; max-width: calc(100% - 4.4cqi);
+  display: grid; grid-template-columns: 1fr auto; gap: .7cqi; justify-items: end; align-items: end;
 }
+.mappanel[data-folded="true"] { display: block; }
 .mappanel[data-folded="true"] > :not(.fold) { display: none; }
-.mappanel .row { display: flex; gap: .3rem; justify-content: flex-end; }
+.mappanel .fold { grid-row: 1; grid-column: 2; }
+.mappanel .row { grid-row: 2; grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .3rem; justify-content: flex-end; }
+.mappanel .mini { grid-row: 3; grid-column: 1 / -1; }
 .pbtn {
   pointer-events: auto;
   position: relative; min-height: var(--hit); min-width: var(--hit);
   font: 400 var(--px)/1 var(--pixel); color: var(--ink); background: var(--lav);
-  border: 2px solid var(--ink); border-radius: 2px; padding: 0 .9cqi; cursor: pointer;
+  border: 2px solid var(--ink); border-radius: 2px; padding: 0 .9cqi; cursor: pointer; box-shadow: var(--shadow);
 }
 .pbtn[aria-pressed="true"] { background: var(--accent); color: #FFF6FC; }
 .pbtn:hover { background: var(--pink); }
@@ -199,8 +200,8 @@ code { background: var(--well); padding: .1em .35em; border-radius: 3px; }
 }
 .pbtn[aria-pressed="true"] .pip { background: #FFF6FC; }
 .pbtn .pip[hidden] { display: none; }
-/* the plan keeps the canvas's own shape, so the rooms on it are the rooms on the stage */
-.mini { width: 20cqi; height: calc(20cqi * 136 / 224); border: 2px solid var(--ink); background: var(--well); display: block; }
+/* the plan keeps the canvas's own shape, so nothing drawn on it is squashed */
+.mini { width: 20cqi; height: calc(20cqi * 136 / 224); border: 2px solid var(--ink); background: var(--well); display: block; box-shadow: var(--shadow); }
 
 .tip {
   position: absolute; left: 2.2cqi; bottom: 2.2cqi; max-width: calc(100% - 4.4cqi);
@@ -389,24 +390,26 @@ footer .wrap { padding-block: 2.5rem; }
 /* CLAUDE.md: "the map panel (#controls, top right; bottom right on a phone) … On a phone the
    buttons sit at the panel's foot, so the fold keeps the bottom right corner." */
 @media (max-width: 760px) {
-  /* Below a desk's width the panel's 16px labels at --hit tall no longer fit beside the brand, so
-     it sits at the foot. Open, it is the plan, then one row along the stage's foot: the floor tabs
-     and the fold, which keeps the corner. That row is the only place three such labels sit on a
-     360px stage without burying a room: under the house's south wall they cost only the catio's
-     last row. The panel itself paints nothing there: each piece carries its own frame, so the cats
-     in the rooms behind it (the craft room, the hall, the terrace) stay in view between them. */
-  .mappanel {
-    top: auto; bottom: 2.2cqi; max-width: calc(100% - 4.4cqi);
-    display: grid; grid-template-columns: 1fr auto; justify-items: end; align-items: end;
-    padding: 0; background: none; border: 0; box-shadow: none;
-  }
-  .mappanel[data-folded="true"] { display: block; }
-  .mappanel .mini { grid-row: 1; grid-column: 1 / -1; box-shadow: var(--shadow); }
-  .mappanel .row { grid-row: 2; grid-column: 1; gap: .2rem; flex-wrap: wrap; justify-content: flex-end; }
-  .mappanel .fold { grid-row: 2; grid-column: 2; }
-  .pbtn { padding: 0 2px; box-shadow: var(--shadow); }
+  /* Below a desk's width the panel's row no longer fits beside the brand, so the panel sits at the
+     foot: the plan, then the floor tabs and the fold, which keeps the corner. That row is the only
+     place three 16px labels at --hit tall sit on a 360px stage without burying a room: under the
+     house's south wall they cost only the catio's last row (on a 320px stage the row wraps). */
+  .mappanel { top: auto; bottom: 2.2cqi; }
+  .mappanel .mini { grid-row: 1; }
+  .mappanel .row { grid-row: 2; grid-column: 1; gap: .2rem; }
+  .mappanel .fold { grid-row: 2; }
+  .pbtn { padding: 0 2px; }
+  /* the brand keeps to the air above the house */
+  .hud { padding: 2px 6px; }
   /* the hover line sits above that row, never on a tab's label */
   .tip { bottom: calc(2.2cqi + var(--hit) + 1cqi); }
+  /* the thing a finger touches is at least --hit square, centred on the sprite, whatever size
+     the sprite is drawn at: on a phone a cat is 17px wide, and nobody hits that. On a desk, where
+     a pointer is a point, the sprite is its own target */
+  .cat .spr::after, .queen-pin .spr::after {
+    content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: max(100%, var(--hit)); height: max(100%, var(--hit));
+  }
   /* and the next tap after a cat, its menu's actions, is a finger's height too */
   .menu li button { min-height: var(--hit); }
 }
@@ -1150,10 +1153,11 @@ claude plugin install kittychat-house-rules@kittychat --scope user</pre>
     var stage = el0.getBoundingClientRect(), r = target.getBoundingClientRect();
     var mw = menu.offsetWidth, mh = menu.offsetHeight;
     var ox = stage.left - wrap.left, oy = stage.top - wrap.top;
-    var blocks = [$("hud"), $("mapPanel")].map(function (e) {
+    // the panel paints nothing itself: what a menu keeps clear of is its pieces
+    var blocks = [$("hud")].concat([].slice.call($("mapPanel").children)).map(function (e) {
       var b = e.getBoundingClientRect();
       return [b.left - wrap.left, b.top - wrap.top, b.right - wrap.left, b.bottom - wrap.top];
-    });
+    }).filter(function (b) { return b[2] > b[0] && b[3] > b[1]; });
     function hits(x, y) {
       return blocks.some(function (b) {
         return x < b[2] && x + mw > b[0] && y < b[3] && y + mh > b[1];

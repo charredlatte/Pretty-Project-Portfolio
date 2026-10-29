@@ -53,8 +53,9 @@ count; that nothing is drawn on the cats and no sign is on the plan; that each m
 names its mood and the page's frame counts match `sprites.json`; that the wizard runs its seven steps and
 remembers what you chose; that every pixel-font label is a whole multiple of 8px and at least 16px (Press
 Start 2P is an 8px-grid face: anything else blurs); that on a phone a cat, the queen, the fold and both floor
-tabs are at least 44px to touch, whatever size the sprite is drawn at; that upstairs the open map panel never
-covers a cat that needs you; and that the page throws nothing.
+tabs are at least 44px to touch, whatever size the sprite is drawn at; that on either floor, at desk and phone widths, the open map
+panel's pieces never cover a cat that needs you nor bury a room, and keep clear of the brand; and that the page
+throws nothing.
 
 It exists because review after review found the same bug: something drawn over the plan swallowing the pointer
 events the rooms need, so hovering a room silently did nothing while every screenshot looked right. It happened

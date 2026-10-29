@@ -490,9 +490,9 @@ ok("on a phone, every cat and every map button is at least 44px to touch", small
 await page.locator("#mapFold").click();
 await page.waitForTimeout(200);
 
-// The open map panel covers rooms, since the demo has no camera; but never the cat its pip leads
-// you to. On either floor, at every width the sweep uses, every cat that needs you stands clear of
-// whatever the open panel paints: its own box where it has a background, else its pieces.
+// The open map panel paints only its pieces, and never over the cat its pip leads you to: on
+// either floor, at every width, every cat that needs you stands clear of them, and no room on
+// the floor you are on is buried under its buttons (the ground floor's own sweep, upstairs too).
 for (const width of [1200, 561, 390, 360]) {
   await page.setViewportSize({ width, height: 900 });
   await page.waitForTimeout(250);
@@ -501,23 +501,42 @@ for (const width of [1200, 561, 390, 360]) {
   for (const floor of ["ground", "upper"]) {
     await page.locator(floor === "upper" ? "#tabUpper" : "#tabGround").click();
     await page.waitForTimeout(300);
-    const hidden = await page.evaluate(() => {
+    const bad = await page.evaluate(() => {
+      const out = [];
       const panel = document.getElementById("mapPanel");
       const paints = getComputedStyle(panel).backgroundColor !== "rgba(0, 0, 0, 0)"
-        ? [panel] : [...panel.querySelectorAll(".mini, .pbtn")];
+        ? [panel] : [...panel.children];
       const boxes = paints.map((e) => e.getBoundingClientRect()).filter((b) => b.width && b.height);
-      return [...document.querySelectorAll("#cats > div")].filter((d) => {
-        if (!/meow|cry|review/.test(d._cat.mood)) return false;
+      for (const d of document.querySelectorAll("#cats > div")) {
+        if (!/meow|cry|review/.test(d._cat.mood)) continue;
         const r = d.querySelector(".spr").getBoundingClientRect();
-        return boxes.some((b) => r.right > b.left && r.left < b.right && r.bottom > b.top && r.top < b.bottom);
-      }).map((d) => d._cat.name);
+        if (boxes.some((b) => r.right > b.left && r.left < b.right && r.bottom > b.top && r.top < b.bottom)) out.push(d._cat.name + " is under the panel");
+      }
+      const svg = document.getElementById("plan"), box = svg.getBoundingClientRect();
+      const vb = svg.getAttribute("viewBox").split(" ").map(Number);
+      for (const g of document.querySelectorAll(".room")) {
+        const r = g.querySelector("rect.room-hit");
+        const [rx, ry, rw, rh] = ["x", "y", "width", "height"].map((a) => Number(r.getAttribute(a)));
+        let lost = 0;
+        for (let i = 1; i <= 5; i++) for (let j = 1; j <= 5; j++) {
+          const x = box.left + ((rx + (rw * i) / 6 - vb[0]) / vb[2]) * box.width;
+          const y = box.top + ((ry + (rh * j) / 6 - vb[1]) / vb[3]) * box.height;
+          const el = document.elementFromPoint(x, y);
+          if (el && el.closest(".hud, .mappanel")) lost++;
+        }
+        if (lost > 8) out.push(`${g.dataset.room} loses ${lost}/25`);
+      }
+      return out;
     });
-    ok(`${width}px, ${floor}: no cat that needs you is under the open map panel`, hidden.length === 0, hidden.join(", "));
+    ok(`${width}px, ${floor}: no cat that needs you under the open panel, no room buried under it`, bad.length === 0, bad.join("; "));
   }
   // and the two controls never overlap each other
   const lap = await page.evaluate(() => {
-    const h = document.getElementById("hud").getBoundingClientRect(), p = document.getElementById("mapPanel").getBoundingClientRect();
-    return h.right > p.left && h.left < p.right && h.bottom > p.top && h.top < p.bottom;
+    const h = document.getElementById("hud").getBoundingClientRect();
+    return [...document.getElementById("mapPanel").children].some((e) => {
+      const p = e.getBoundingClientRect();
+      return p.width && h.right > p.left && h.left < p.right && h.bottom > p.top && h.top < p.bottom;
+    });
   });
   ok(`${width}px: the brand and the open map panel keep apart`, !lap);
   await page.locator("#tabGround").click();
