@@ -511,15 +511,15 @@ for (const width of [1200, 561, 390, 360]) {
     await page.locator(floor === "upper" ? "#tabUpper" : "#tabGround").click();
     await page.waitForTimeout(300);
     const bad = (await page.evaluate(() => {
-      const boxes = [...document.getElementById("mapPanel").querySelectorAll(".pbtn, .mini")]
+      const boxes = [document.getElementById("hud"), ...document.getElementById("mapPanel").querySelectorAll(".pbtn, .mini")]
         .map((e) => e.getBoundingClientRect()).filter((b) => b.width && b.height);
       return [...document.querySelectorAll("#cats > div")].filter((d) => {
         if (!/meow|cry|review/.test(d._cat.mood)) return false;
         const r = d.querySelector(".spr").getBoundingClientRect();
         return boxes.some((b) => r.right > b.left && r.left < b.right && r.bottom > b.top && r.top < b.bottom);
-      }).map((d) => d._cat.name + " is under the panel");
+      }).map((d) => d._cat.name + " is under a control");
     })).concat(await page.evaluate(buriedRooms));
-    ok(`${width}px, ${floor}: no cat that needs you under the open panel, no room buried under it`, bad.length === 0, bad.join("; "));
+    ok(`${width}px, ${floor}: no cat that needs you under the brand or the open panel, no room buried under it`, bad.length === 0, bad.join("; "));
   }
   // and the two controls never overlap each other
   const lap = await page.evaluate(() => {

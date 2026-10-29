@@ -52,9 +52,9 @@ rooms and every one of them is named to assistive tech; that the pips follow the
 count; that nothing is drawn on the cats and no sign is on the plan; that each mood card shows the frame that
 names its mood and the page's frame counts match `sprites.json`; that the wizard runs its seven steps and
 remembers what you chose; that every pixel-font label is a whole multiple of 8px and at least 16px (Press
-Start 2P is an 8px-grid face: anything else blurs); that on a phone a cat, the queen, the fold and both floor
-tabs are at least 44px to touch, whatever size the sprite is drawn at; that on either floor, at desk and phone widths, the open map
-panel's pieces never cover a cat that needs you nor bury a room, and keep clear of the brand; and that the page
+Start 2P is an 8px-grid face: anything else blurs); that on a phone every cat that needs you, the queen, the fold and
+both floor tabs are at least 44px to touch, whatever size the sprite is drawn at; that on either floor, at desk and phone widths, neither the brand
+nor the open map panel's pieces cover a cat that needs you, no room is buried under them, and they keep apart; and that the page
 throws nothing. The page is drawn for viewports 360px and wider: on a narrower one the panel's row of three 16px
 labels wraps, and the checks do not go there.
 
