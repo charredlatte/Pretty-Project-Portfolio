@@ -467,6 +467,29 @@ pull request, issue or comment: edit it off straight after (`update_pull_request
 where they run: if `claude plugin list` doesn't show `kittychat-house-rules`, this session's container is older than
 the setup script that installs it, so keep the rules by hand.
 
+**What a cloud session can do on GitHub, and what comes back to her.** A container's GitHub writes go two
+ways, and only one of them carries. The **MCP tools** (`mcp__github__*`) are the way that works:
+`create_pull_request`, `merge_pull_request`, `update_pull_request`, `push_files`, `create_branch`, `issue_write`,
+`add_issue_comment` and the review tools all leave through Claude's own proxy, which the agent proxy's path rules
+never see. Raw `curl` or `gh` against `api.github.com` is the way that doesn't: the agent proxy answers a write
+path with `403 Write access to this GitHub API path is not permitted through this proxy`, and a repository-settings
+write with a refusal of its own. That is the proxy's policy and not a permission: the injected token is hers and
+carries `admin`, so a 403 there is never something to ask her to widen, and never worth a retry. So **the
+`mcp__github__` tool list is the capability list** -- a GitHub write with no tool behind it has no route out of a
+cloud session at all. Today that is tags, releases, collaborator invites, branch protection and repository
+settings, and each of those is hers to do. `git push` is a third route, to `github.com` rather than the API, so
+branches ship as they always have; a tag push passes the push gate and a `--dry-run` cleanly (checked 30 October
+2026, though the repo has no tags, so none has ever been pushed in earnest). Deleting a branch from here has
+never worked, which is why *Automatically delete head branches* is on (checked the same day): a merge tidies up
+after itself and no session needs to.
+
+**Merging is not one of those walls.** `merge_pull_request` reaches GitHub from a cloud session like any other MCP
+write. A session that finds it cannot merge is being held by the merging rule above -- a weak model did the work,
+an audit or the review of the last commit didn't run, something is a guess, or the change touches `harness/`,
+`.claude/` or `.github/` -- and the hook says which of those it was. Read that as the rule working rather than the
+container refusing: the pull request stays open and she is told it is ready for her, which is the whole point. Only
+the five things in the list above are the container's doing.
+
 ## The harness (KittyChat)
 
 `harness/` is the harness behind the page (see `harness/README.md`): the `kittychat-house-rules`
