@@ -479,9 +479,10 @@ carries `admin`, so a 403 there is never something to ask her to widen, and neve
 cloud session at all. Today that is tags, releases, collaborator invites, branch protection and repository
 settings, and each of those is hers to do. `git push` is a third route, to `github.com` rather than the API, so
 branches ship as they always have; a tag push passes the push gate and a `--dry-run` cleanly (checked 30 October
-2026, though the repo has no tags, so none has ever been pushed in earnest). Deleting a branch from here has
-never worked, which is why *Automatically delete head branches* is on (checked the same day): a merge tidies up
-after itself and no session needs to.
+2026, though the repo has no tags, so none has ever been pushed in earnest, and a `--dry-run` proves the gate and
+the auth rather than the server's answer). Deleting a branch from here has never worked -- `harness/README.md`
+says so and this didn't retest it -- which is why *Automatically delete head branches* is on (that much was
+checked, 30 October 2026): a merge tidies up after itself and no session needs to.
 
 **Merging is not one of those walls.** `merge_pull_request` reaches GitHub from a cloud session like any other MCP
 write. A session that finds it cannot merge is being held by the merging rule above -- a weak model did the work,
