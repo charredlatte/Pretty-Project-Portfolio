@@ -11,6 +11,7 @@ What each file here is for. The README says what the café is; `CLAUDE.md` says 
 | [`onboarding/README.md`](onboarding/README.md) | The first run's wireframes and the wizard built from them, in plain words |
 | [`self-hosting.md`](self-hosting.md) | Running your own: every value still set for Charlotte's café, and what a fork sets it to |
 | [`engine.md`](engine.md) | The engine under the café, for the people who build on it or set cafés up for others: what is built and what a product still needs |
+| [`steam.md`](steam.md) | Releasing KittyChat as a game on Steam: why the harness itself has no category there, the art the licences force, and the costing of a game that shares the manor. Nothing started |
 | [`landing-page/README.md`](landing-page/README.md) | The landing page's draft and every decision on it, each with a box for her to tick: the fireside scene, the game screens it opens with, the motion. The page itself is `landing/` |
 
 ## Building it
