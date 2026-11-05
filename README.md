@@ -3,7 +3,7 @@
 ## Quick Explanation
 
 **All your AI chats, in one cozy café.** Each chat or coding session becomes a cat in a little pixel-art café. Busy
-cats play, finished cats sleep, and a cat that is waiting on you **meows**. Point at it and it says what it needs.
+cats play, finished cats sleep, and a cat that is waiting on you **meows**. The Cafe is a rules framework for every chat or session, and each project or repository is a room.
 
 **It works with any AI, and with several at once.** Claude, Gemini, Grok, Codex and the rest each join as a cat.
 A chat the café can't see on its own, like a business plan or a legal question in some other app, you add as a cat by
