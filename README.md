@@ -2,6 +2,8 @@
 
 ### ▶ [See it: take the tour](https://claude.ai/artifact/SUr62MfU18hzRUBYgA9o8Y)
 
+## Quick Explanation
+
 **All your AI chats, in one cozy café.** Each chat or coding session becomes a cat in a little pixel-art café. Busy
 cats play, finished cats sleep, and a cat that is waiting on you **meows**. Point at it and it says what it needs.
 
