@@ -20,7 +20,7 @@ Made in the open by Charlotte Badot. [Which assistants it works with](#which-ass
 [Run your own](#running-your-own) · [What you get](#what-you-get) ·
 [Open source, and the hosted café](#open-source-and-what-stays-behind-the-paywall)
 
-## In plain words
+## Explanation
 
 **All your AI chats, in one cozy café.** Using AI means a dozen chats open at once, often across two or three
 different assistants, and you forget which one is waiting for you. KittyChat Café turns each chat into a cat in a
