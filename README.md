@@ -5,13 +5,6 @@
 **All your AI chats, in one cozy café.** Each chat or coding session becomes a cat in a little pixel-art café. Busy
 cats play, finished cats sleep, and a cat that is waiting on you **meows**. Point at it and it says what it needs.
 
-Made in the open by Charlotte Badot. [Take the tour](#demo)
-
-Using AI means a dozen chats open at once, often across two or three different assistants, and you forget which one
-is waiting for you. KittyChat Café puts them all in one place. Each chat is a cat and each project is a room, so you
-see at a glance who is busy, who is done and who needs you. One friendly queen cat, Ninine, helps you run the place.
-You never need to know what's under the hood.
-
 **It works with any AI, and with several at once.** Claude, Gemini, Grok, Codex and the rest each join as a cat.
 A chat the café can't see on its own, like a business plan or a legal question in some other app, you add as a cat by
 hand. Your chats stay in your own account, never in this repository.
