@@ -1,4 +1,4 @@
-# KittyChat Café
+# The KittyChat Café
 
 ## Quick Explanation
 
@@ -24,23 +24,18 @@ Source: [`demo/`](demo/).
 
 ### Running your own
 
-You can run your own café today, from this repository, for free. It needs a terminal (steps 2 to 5): if you only use
-assistants in a browser, the hosted café is the one for you, and it isn't open yet. The engine is yours already; this
-section fits the rest of the car around it, one part at a time. Each step says what to click or type and how you know
-it worked. Stop after step 3 and you have a café of your own with your rooms in it; step 4 fills it with cats, and
-step 5 brings Ninine.
+You can run your own café today, from this repository, for free.
 
 **Before you start, you need:**
 
-- an **AI assistant you already use**, with a CLI or a client that speaks MCP (the table above). For the queen, and
-  for the automatic check-ins, that means Claude Code on a Claude plan that includes it (Pro or Max);
+- an **AI assistant you already use**, with a CLI or a client that speaks MCP.
 - a **GitHub** account, with your projects in repositories (the café files each project by its repository);
 - **Git** (git-scm.com; on Windows, Git for Windows), for step 2's `git clone`;
 - a computer with **Python 3** (python.org, or the Microsoft Store on Windows) and, for the Claude Code plugin,
   **Node.js** (nodejs.org). On Windows, type `python` wherever this README says `python3` (the plugin's own hooks pick
   `py` or `python` there by themselves). The art build in step 2 wants two Python packages on top;
   [`dependencies/README.md`](dependencies/README.md) says what every part of the café needs installed;
-- a free **Cloudflare** account (cloudflare.com) for the front desk;
+- a free **Cloudflare** account (cloudflare.com) for the queen cat that uses Cloudflare workers.;
 - the **cat art**: the packs are not in this repository and cannot be (their licences forbid sharing). Most have a
   free tier; the list is in [`catio/art/CREDITS.md`](catio/art/CREDITS.md). Without them the café draws no house and
   no cats and says so on its sign. Today the house and the cats need all ten packs at once, and one of them,
