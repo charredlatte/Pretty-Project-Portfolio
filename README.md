@@ -30,32 +30,7 @@ setup wizard as it actually runs. Every pixel on it drawn by Claude Fable for th
 demo, since the café's own art packs may not be redistributed. It carries no personal data and writes nothing.
 Source: [`demo/`](demo/).
 
-## For developers and technical readers
-
-Everything above is all you need to know to use the café. Everything below is the detail: which assistants join and how,
-how to run your own café, how the pieces talk to each other, and how to work on the code.
-
-**Jump to:** [Which assistants it works with](#which-assistants-it-works-with) ·
-[Run your own](#running-your-own) · [What you get](#what-you-get) · [How it works](#how-it-works) ·
-[On your own computer](#on-your-own-computer) · [The pieces and the tests](#the-pieces) ·
-[Open source, and the hosted café](#open-source-and-what-stays-behind-the-paywall) · [Licence](#licence)
-
-### How it connects, start to finish
-
-1. You work with your assistants as usual. Each coding session becomes a cat on its own, and its project decides its
-   room. A chat in an app, which no connector can read, you add as a cat by hand from a room's menu.
-2. Each cat checks in at a small always-on online front desk (the gateway) with a short note: working, finished, or
-   stuck and needs you. The front desk doesn't care which company made the cat.
-3. The café page shows what the front desk knows. Busy cats look busy, sleeping cats sleep, and a badge counts the
-   ones that need you.
-4. You answer from the same page: click a cat, type a line or drop a file on it. The cat finds it the next time it
-   checks in.
-5. The queen handles the rest: she keeps what you give her, runs your routines, and can set a stuck cat's homework as
-   a short quiz. She thinks on your own computer.
-
-### Which assistants it works with
-
-Three parts of the café answer this question differently, so here they are apart:
+### Three parts of the café answer this question differently, so here they are apart:
 
 - **The café page** needs no AI at all. It is one HTML file with no build step and no dependencies. It runs in any
   browser, from your own front desk's address or a folder on your computer.
