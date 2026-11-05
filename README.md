@@ -35,17 +35,8 @@ You can run your own café today, from this repository, for free.
   **Node.js** (nodejs.org). On Windows, type `python` wherever this README says `python3` (the plugin's own hooks pick
   `py` or `python` there by themselves). The art build in step 2 wants two Python packages on top;
   [`dependencies/README.md`](dependencies/README.md) says what every part of the café needs installed;
-- a free **Cloudflare** account (cloudflare.com) for the queen cat that uses Cloudflare workers.;
+- a free **Cloudflare** account (cloudflare.com) for the queen cat that uses a Cloudflare Worker;
 - your own 2D assets. The cafe is plug and play.
-
-**Invited to someone's café?** An invite is a café of your own on someone else's front desk, so most of
-[Running your own](#running-your-own) is done for you. Open the invite link, pick a handle and a password, and keep
-the key it shows you in your password manager: it is your cats' key, yours alone. Then do step 1 (your assistant) and
-step 4 (the check-ins), with `CATIO_URL` set to the café's address (your invite link up to `/signup`) and
-`CATIO_TOKEN` set to your key. Skip steps 2 and 3: your café is at that address, behind your handle and password. It
-draws no house and no cats: the art packs' licences are personal, so only the café owner's own café is given them.
-Ninine's runner (step 5) needs a queen's key of your own:
-[`harness/gateway/README.md`](harness/gateway/README.md#the-queen-and-her-runner) says how to make one.
 
 #### Step 1: your assistant
 
