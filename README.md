@@ -6,8 +6,7 @@
 cats play, finished cats sleep, and a cat that is waiting on you **meows**. The Cafe is a rules framework for every chat or session, and each project or repository is a room in the house.
 
 **It works with any AI, and with several at once.** Claude, Gemini, Grok, Codex and the rest each join as a cat.
-A chat the café can't see on its own, like a business plan or a legal question in some other app, you add as a cat by
-hand. Your chats stay in your own account, never in this repository.
+
 
 **Where it stands.** The code is open source and you can run your own café today (see
 [Running your own](#running-your-own)). A hosted café with nothing to install is planned and not open yet.
