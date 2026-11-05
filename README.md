@@ -36,11 +36,7 @@ You can run your own café today, from this repository, for free.
   `py` or `python` there by themselves). The art build in step 2 wants two Python packages on top;
   [`dependencies/README.md`](dependencies/README.md) says what every part of the café needs installed;
 - a free **Cloudflare** account (cloudflare.com) for the queen cat that uses Cloudflare workers.;
-- the **cat art**: the packs are not in this repository and cannot be (their licences forbid sharing). Most have a
-  free tier; the list is in [`catio/art/CREDITS.md`](catio/art/CREDITS.md). Without them the café draws no house and
-  no cats and says so on its sign. Today the house and the cats need all ten packs at once, and one of them,
-  `plants.zip`, has no public source yet, so a full build is Charlotte's alone for now. The interface alone builds
-  from the Sprout Lands UI pack, and the café works without the rest, on plain panels.
+- your own 2D assets. The cafe is plug and play.
 
 **Invited to someone's café?** An invite is a café of your own on someone else's front desk, so most of
 [Running your own](#running-your-own) is done for you. Open the invite link, pick a handle and a password, and keep
