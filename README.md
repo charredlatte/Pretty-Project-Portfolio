@@ -10,9 +10,9 @@ Made in the open by Charlotte Badot. [Take the tour](#demo) · [For developers](
 ## What it is
 
 Using AI means a dozen chats open at once, often across two or three different assistants, and you forget which one
-is waiting for you. KittyChat Café turns each chat into a cat in a little café. You see who is busy, who is done and
-who needs you, and one friendly queen cat, Ninine, helps you run the place. You never need to know what's under the
-hood.
+is waiting for you. KittyChat Café puts them all in one place. Each chat is a cat and each project is a room, so you
+see at a glance who is busy, who is done and who needs you. One friendly queen cat, Ninine, helps you run the place.
+You never need to know what's under the hood.
 
 | In real life | In the café |
 |---|---|
@@ -23,17 +23,22 @@ hood.
 | Your main assistant | The queen, who sits in the entrance hall and does the errands |
 | You | The owner of the café |
 
-**It is not tied to one AI company.** Anything that speaks MCP joins as a cat: Claude Code, Codex, Gemini CLI, Grok,
-Cursor, Antigravity, or a script of your own. Chats in an app that no connector can read, like a business plan or a
-legal question, you adopt as cats by hand. Your private chats stay in your own account, never in this repository.
+**It works with any AI, and with several at once.** Claude, Gemini, Grok, Codex and the rest each join as a cat.
+A chat the café can't see on its own, like a business plan or a legal question in some other app, you add as a cat by
+hand. Your chats stay in your own account, never in this repository.
 
-**Or think of it as a car.** Even the best AI, on its own, is a stripped car: a brilliant engine and nothing else. No seatbelts,
-no windshield, no brakes, no tires. You can drive it if you know engines. The café is the rest of the car. **The
-engine is yours and you bring your own** — Claude, Gemini, Grok, Codex, or several at once, each paid to its own
-provider; the café never resells anyone's tokens. Your repositories are the tires, where the work meets the road. The
-café page and the front desk are the windshield and the dashboard. The house rules are the seatbelts and brakes:
-checks an agent can't skip, and anything guessed waits for you. The litter box is the glovebox, for loose notes and
-held pull requests. And Ninine, the queen cat, drives.
+**Think of it as a car.** Even the best AI, on its own, is an engine on a workshop floor: brilliant, and no use to
+anyone who isn't a mechanic. No seatbelts, no windshield, no brakes, no wheels. The café is the rest of the car.
+
+- **The engine is yours, and you bring your own:** Claude, Gemini, Grok, Codex, or several at once. Each is paid to
+  its own maker; the café never resells anyone's AI.
+- **The windshield and the dashboard** are the café page and its front desk, the small always-on service the cats
+  check in with. Together they show you where you are and what is going on.
+- **The wheels** are your projects, where the work meets the road.
+- **The seatbelts and brakes** are the house rules: checks no cat can skip, so anything it had to guess at waits for
+  you instead of going out.
+- **The glovebox** is the litter box, where loose notes and anything held for your decision are kept.
+- **And Ninine, the queen cat, drives.** You tell her where to go.
 
 **Where it stands.** The code is open source and you can run your own café today (see
 [Running your own](#running-your-own)). A hosted café with nothing to install is planned and not open yet.
