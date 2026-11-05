@@ -38,7 +38,7 @@ held pull requests. And Ninine, the queen cat, drives.
 **Where it stands.** The code is open source and you can run your own café today (see
 [Running your own](#running-your-own)). A hosted café with nothing to install is planned and not open yet.
 Separately, Charlotte plans to launch the KittyChat Café app in December 2027. The pixel art comes from third-party
-packs that cannot be shared, so check each pack's terms before posting screenshots.
+packs that cannot be shared.
 
 ## Demo
 
