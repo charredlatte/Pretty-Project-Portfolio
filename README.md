@@ -16,19 +16,6 @@ You never need to know what's under the hood.
 A chat the café can't see on its own, like a business plan or a legal question in some other app, you add as a cat by
 hand. Your chats stay in your own account, never in this repository.
 
-**Think of it as a car.** Even the best AI, on its own, is an engine on a workshop floor: brilliant, and no use to
-anyone who isn't a mechanic. No seatbelts, no windshield, no brakes, no wheels. The café is the rest of the car.
-
-- **The engine is yours, and you bring your own:** Claude, Gemini, Grok, Codex, or several at once. Each is paid to
-  its own maker; the café never resells anyone's AI.
-- **The windshield and the dashboard** are the café page and its front desk, the small always-on service the cats
-  check in with. Together they show you where you are and what is going on.
-- **The wheels** are your projects, where the work meets the road.
-- **The seatbelts and brakes** are the house rules: checks no cat can skip, so anything it had to guess at waits for
-  you instead of going out.
-- **The glovebox** is the litter box, where loose notes and anything held for your decision are kept.
-- **And Ninine, the queen cat, drives.** You tell her where to go.
-
 **Where it stands.** The code is open source and you can run your own café today (see
 [Running your own](#running-your-own)). A hosted café with nothing to install is planned and not open yet.
 Separately, Charlotte plans to launch the KittyChat Café app in December 2027. The pixel art comes from third-party
