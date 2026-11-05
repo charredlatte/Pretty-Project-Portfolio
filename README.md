@@ -2,30 +2,17 @@
 
 ### ▶ [See it: take the tour](https://claude.ai/artifact/SUr62MfU18hzRUBYgA9o8Y)
 
-A playable page: the manor with its cats, what each mood means, the queen you talk to, and the seven-step
-setup wizard as it actually runs. Every pixel on it drawn by Claude Fable for the
-demo, since the café's own art packs may not be redistributed. Source: [`demo/`](demo/).
+**All your AI chats, in one cozy café.** Each chat or coding session becomes a cat in a little pixel-art café. Busy
+cats play, finished cats sleep, and a cat that is waiting on you **meows**. Point at it and it says what it needs.
 
-Every AI session you have on the go, as a cat in a little pixel-art café. Each session is a cat that plays while it
-works, sleeps when it's done, and **meows** when it's waiting on you: point at it and it says what it needs. Chats in
-an app that no connector can read, like a business plan or a legal question, you adopt as cats by hand. One queen cat,
-Ninine, runs the place for you.
+Made in the open by Charlotte Badot. [Take the tour](#demo) · [For developers](#for-developers-and-technical-readers)
 
-**It is not tied to one AI company.** Anything that speaks MCP joins as a cat: Claude Code, Codex, Gemini CLI, Grok,
-Cursor, Antigravity, or a script of your own. The café page itself runs in a plain browser and needs no assistant at
-all, and the small model that makes the café's own judgement calls isn't Claude either.
-[Which assistants it works with](#which-assistants-it-works-with) is the honest table, part by part.
+## What it is
 
-Made in the open by Charlotte Badot. [Which assistants it works with](#which-assistants-it-works-with) ·
-[Run your own](#running-your-own) · [What you get](#what-you-get) ·
-[Open source, and the hosted café](#open-source-and-what-stays-behind-the-paywall)
-
-## Explanation
-
-**All your AI chats, in one cozy café.** Using AI means a dozen chats open at once, often across two or three
-different assistants, and you forget which one is waiting for you. KittyChat Café turns each chat into a cat in a
-little café. You see who is busy, who is done and who needs you, and one friendly queen cat helps you run the place.
-You never need to know what's under the hood.
+Using AI means a dozen chats open at once, often across two or three different assistants, and you forget which one
+is waiting for you. KittyChat Café turns each chat into a cat in a little café. You see who is busy, who is done and
+who needs you, and one friendly queen cat, Ninine, helps you run the place. You never need to know what's under the
+hood.
 
 | In real life | In the café |
 |---|---|
@@ -36,7 +23,43 @@ You never need to know what's under the hood.
 | Your main assistant | The queen, who sits in the entrance hall and does the errands |
 | You | The owner of the café |
 
-How it connects, start to finish:
+**It is not tied to one AI company.** Anything that speaks MCP joins as a cat: Claude Code, Codex, Gemini CLI, Grok,
+Cursor, Antigravity, or a script of your own. Chats in an app that no connector can read, like a business plan or a
+legal question, you adopt as cats by hand. Your private chats stay in your own account, never in this repository.
+
+**Or think of it as a car.** Even the best AI, on its own, is a stripped car: a brilliant engine and nothing else. No seatbelts,
+no windshield, no brakes, no tires. You can drive it if you know engines. The café is the rest of the car. **The
+engine is yours and you bring your own** — Claude, Gemini, Grok, Codex, or several at once, each paid to its own
+provider; the café never resells anyone's tokens. Your repositories are the tires, where the work meets the road. The
+café page and the front desk are the windshield and the dashboard. The house rules are the seatbelts and brakes:
+checks an agent can't skip, and anything guessed waits for you. The litter box is the glovebox, for loose notes and
+held pull requests. And Ninine, the queen cat, drives.
+
+**Where it stands.** The code is open source and you can run your own café today (see
+[Running your own](#running-your-own)). A hosted café with nothing to install is planned and not open yet.
+Separately, Charlotte plans to launch the KittyChat Café app in December 2027. The pixel art comes from third-party
+packs that cannot be shared, so check each pack's terms before posting screenshots.
+
+## Demo
+
+### ▶ [Take the tour](https://claude.ai/artifact/SUr62MfU18hzRUBYgA9o8Y)
+
+A playable page: the manor with its cats, what each mood means, the queen you talk to, and the seven-step
+setup wizard as it actually runs. Every pixel on it drawn by Claude Fable for the
+demo, since the café's own art packs may not be redistributed. It carries no personal data and writes nothing.
+Source: [`demo/`](demo/).
+
+## For developers and technical readers
+
+Everything above is all you need to know to use the café. Everything below is the detail: which assistants join and how,
+how to run your own café, how the pieces talk to each other, and how to work on the code.
+
+**Jump to:** [Which assistants it works with](#which-assistants-it-works-with) ·
+[Run your own](#running-your-own) · [What you get](#what-you-get) · [How it works](#how-it-works) ·
+[On your own computer](#on-your-own-computer) · [The pieces and the tests](#the-pieces) ·
+[Open source, and the hosted café](#open-source-and-what-stays-behind-the-paywall) · [Licence](#licence)
+
+### How it connects, start to finish
 
 1. You work with your assistants as usual. Each coding session becomes a cat on its own, and its project decides its
    room. A chat in an app, which no connector can read, you add as a cat by hand from a room's menu.
@@ -49,33 +72,7 @@ How it connects, start to finish:
 5. The queen handles the rest: she keeps what you give her, runs your routines, and can set a stuck cat's homework as
    a short quiz. She thinks on your own computer.
 
-**Or think of it as a car.** Even the best AI, on its own, is a stripped car: a brilliant engine and nothing else. No seatbelts,
-no windshield, no brakes, no tires. You can drive it if you know engines. The café is the rest of the car. **The
-engine is yours and you bring your own** — Claude, Gemini, Grok, Codex, or several at once, each paid to its own
-provider; the café never resells anyone's tokens. Your repositories are the tires, where the work meets the road. The
-café page and the front desk are the windshield and the dashboard. The house rules are the seatbelts and brakes:
-checks an agent can't skip, and anything guessed waits for you. The litter box is the glovebox, for loose notes and
-held pull requests. And Ninine, the queen cat, drives.
-
-Your private chats stay in your own account, never in this repository.
-
-**Where it stands.** The code is open source and you can run your own café today (see
-[Running your own](#running-your-own)). A hosted café with nothing to install is planned and not open yet.
-Separately, Charlotte plans to launch the KittyChat Café app in December 2027. The pixel art comes from third-party
-packs that cannot be shared, so check each pack's terms before posting screenshots.
-
-**Invited to someone's café?** An invite is a café of your own on someone else's front desk, so most of
-[Running your own](#running-your-own) is done for you. Open the invite link, pick a handle and a password, and keep
-the key it shows you in your password manager: it is your cats' key, yours alone. Then do step 1 (your assistant) and
-step 4 (the check-ins), with `CATIO_URL` set to the café's address (your invite link up to `/signup`) and
-`CATIO_TOKEN` set to your key. Skip steps 2 and 3: your café is at that address, behind your handle and password. It
-draws no house and no cats: the art packs' licences are personal, so only the café owner's own café is given them.
-Ninine's runner (step 5) needs a queen's key of your own:
-[`harness/gateway/README.md`](harness/gateway/README.md#the-queen-and-her-runner) says how to make one.
-
-Everything below is the detail.
-
-## Which assistants it works with
+### Which assistants it works with
 
 Three parts of the café answer this question differently, so here they are apart:
 
@@ -142,8 +139,7 @@ hers. The other two places — your front desk's own address, and a folder on yo
 **Walked through end to end so far:** Claude Code, and Antigravity through the bridge. The rest are the same two
 lines, and `report_status` was built for them from the start. If one of them trips, open an issue and say where: that
 is how the bridge got written.
-
-## Running your own
+### Running your own
 
 You can run your own café today, from this repository, for free. It needs a terminal (steps 2 to 5): if you only use
 assistants in a browser, the hosted café is the one for you, and it isn't open yet. The engine is yours already; this
@@ -168,7 +164,16 @@ step 5 brings Ninine.
   `plants.zip`, has no public source yet, so a full build is Charlotte's alone for now. The interface alone builds
   from the Sprout Lands UI pack, and the café works without the rest, on plain panels.
 
-### Step 1: your assistant
+**Invited to someone's café?** An invite is a café of your own on someone else's front desk, so most of
+[Running your own](#running-your-own) is done for you. Open the invite link, pick a handle and a password, and keep
+the key it shows you in your password manager: it is your cats' key, yours alone. Then do step 1 (your assistant) and
+step 4 (the check-ins), with `CATIO_URL` set to the café's address (your invite link up to `/signup`) and
+`CATIO_TOKEN` set to your key. Skip steps 2 and 3: your café is at that address, behind your handle and password. It
+draws no house and no cats: the art packs' licences are personal, so only the café owner's own café is given them.
+Ninine's runner (step 5) needs a queen's key of your own:
+[`harness/gateway/README.md`](harness/gateway/README.md#the-queen-and-her-runner) says how to make one.
+
+#### Step 1: your assistant
 
 Whatever you already use. If that is Claude Code, in a terminal (Terminal on a Mac, PowerShell on Windows):
 
@@ -180,7 +185,7 @@ claude
 Type `/login` if it asks. If it is Codex, Gemini CLI, Cursor, Antigravity or anything else, install it as its own
 maker says; step 4 is where you point it at your café. **It worked when** your assistant answers you.
 
-### Step 2: your projects, and your copy of the café
+#### Step 2: your projects, and your copy of the café
 
 The café files each cat into a room by its GitHub repository, so your projects want to be in repositories. Then fork
 this one: on GitHub, open <https://github.com/charredlatte/Pretty-Project-Portfolio> and press **Fork**. Your fork is
@@ -196,7 +201,7 @@ The art packs' zips go in one folder. The build draws with Pillow and fontTools,
 house and the cats from them, naming each zip by what is inside it. **It worked when** you have the repository and,
 if you have the packs, `catio/art/licensed/` is full.
 
-### Step 3: the front desk, on Cloudflare
+#### Step 3: the front desk, on Cloudflare
 
 The gateway is a small program that runs on Cloudflare's free plan and never sleeps. Every cat checks in at it,
 whoever made that cat, so the café shows live cats from every assistant at once; it is also where your café page
@@ -250,7 +255,7 @@ House menu, and the look travels as a design tokens file that Figma's variables 
 [`CONTRIBUTING.md`](CONTRIBUTING.md) says what stays on your fork and what comes back here. Press **Sync fork** on
 GitHub now and then, and always before reporting a problem.
 
-### Step 4: the check-ins, so your cats are live
+#### Step 4: the check-ins, so your cats are live
 
 Now tell your assistants where the front desk is. Two values do it everywhere: `CATIO_URL` (your café's address — the
 Worker's, or the address of the café you were invited to) and `CATIO_TOKEN` (your own cats' key, never someone
@@ -286,7 +291,7 @@ start local programs, and add the one paragraph to its instructions file. Make a
 **It worked when** a new session of any of your assistants turns up in the café as a cat, and goes busy as it works.
 For Claude Code, `claude plugin list` shows `kittychat-house-rules` and a new session opens with its read-only audit.
 
-### Step 5: Ninine's runner, on your computer
+#### Step 5: Ninine's runner, on your computer
 
 The queen thinks on your own computer, on your own plan, so she costs nothing extra and runs only while your computer
 does. She drives Claude Code today (see [Which assistants it works with](#which-assistants-it-works-with)). Give her
@@ -314,12 +319,12 @@ python3 harness/runner/queen.py
 Keep the window open; close it and she falls asleep. [`harness/runner/README.md`](harness/runner/README.md) has the
 details and how to start her with the computer.
 
-### Step 6: open the doors
+#### Step 6: open the doors
 
 Open your café, say hello to Ninine, drop a file on a cat and watch it pick the file up at its next turn. The sign
 under the brand shows only when something is wrong, and then it says how to fix it.
 
-### Other places the page can run
+#### Other places the page can run
 
 The café page is one HTML file, so it runs in three places. Your front desk's address, above, is the one that needs
 no assistant and shows live cats from every vendor. The other two:
@@ -333,8 +338,7 @@ no assistant and shows live cats from every vendor. The other two:
   the least capable one; the front desk is better.
 
 The three keep their own data and don't share changes.
-
-## What you get
+### What you get
 
 - **A manor that fills the screen**, seen from above in a meadow, one floor at a time: a cat café downstairs, private
   rooms upstairs, with the ground floor faded underneath. Each room is a space for one kind of work, and each project
@@ -363,7 +367,7 @@ The three keep their own data and don't share changes.
   merge their own pull requests; then anything guessed is held for you to review
   ([`harness/README.md`](harness/README.md)).
 
-### Getting around
+#### Getting around
 
 - **Moving**: drag the house to pan it (with any mouse button) and use the wheel or a pinch to zoom around the
   pointer. The map panel, top right (bottom right on a phone), zooms in, out and back to the whole house, and holds a
@@ -384,7 +388,7 @@ The three keep their own data and don't share changes.
   repositories whose cats move in, open or close it, and choose the room new cats come in to.
 - **The sign** under the brand shows only when something is wrong, and then it says how to fix it.
 
-### The manor
+#### The manor
 
 A real two-storey plan, drawn in a storybook Transylvanian Baroque: ochre limewash with stucco corners outside,
 plaster and oak inside, stained glass, and a pediment over the front door. It stands among spruce woods, with lamp
@@ -407,10 +411,9 @@ a downstairs wall. It runs from public to private: the café downstairs, the qui
 Every room can be renamed, closed, or pointed at your own repositories. Outside, the drive runs from the front steps
 round a fountain with a praying statue to a stone archway with its wooden doors open, with parterres, a bench and a
 signpost to the catio either side.
+### How it works
 
-## How it works
-
-### How it knows what the cats are doing
+#### How it knows what the cats are doing
 
 - **Every cat checks in at the front desk** (`harness/gateway/`) when it starts, when it needs you and when it
   finishes, so its cat is live wherever you open the café. Claude Code sessions do it from the plugin's hooks; every
@@ -436,7 +439,7 @@ Sleeping sessions and ones waiting for review, once they're a week old, and arch
 of sight: the brand's count is only what really waits on you. Turn on Sound and a cat that starts meowing makes a
 small meow.
 
-### How what you send reaches a session
+#### How what you send reaches a session
 
 In the car, this is **the intercom**. You speak from the driver's seat (the café page); a cat hears you where it sits.
 Everything you send — a line typed to a cat, a file dropped on it, a Pause or Wrap up — is **written down the moment
@@ -463,7 +466,7 @@ claude.ai doesn't let a web page do it; why is in
 no such limit, which is what a `wake` command is for. Each hop, program by program, and how the design holds up on
 scale, speed, extensibility, security, debugging and tests: [`docs/delivery.md`](docs/delivery.md).
 
-### The judgement calls it makes itself
+#### The judgement calls it makes itself
 
 Some of what the café does is a decision rather than a task: which project a dropped file belongs to, whether a note
 is settled or still waiting on you, which cat needs you first, whether a task is easy enough for a cheap model. Those
@@ -491,7 +494,7 @@ in time ([`docs/engine.md`](docs/engine.md)); deciding is the decider's.
   and how sure it was, so you can read a week of the log before letting it decide anything for real. The rubric and
   the rollout: [`docs/delegation.md`](docs/delegation.md).
 
-### The litter box, and the one thing it will not do
+#### The litter box, and the one thing it will not do
 
 Not everything a session finds is work it can finish. A loose end, a question only you can answer, a fact learned the
 hard way, a pull request the rules held back: each lands in `litterbox/` as a note, and the sifter
@@ -510,8 +513,7 @@ with no project at all: that is what sends it to a pile to wait, rather than out
 notes reach you as cards in the queen's quest log, one note a card, from the library's chest or the House menu — the
 other way to check a pile, a tap an answer. Which header does what, dealing the cards, and how held pull requests get
 here: [`litterbox/README.md`](litterbox/README.md).
-
-## On your own computer
+### On your own computer
 
 The café also runs from a folder, with no account anywhere. `python3 catio/tools/bundle.py` makes
 `catio/dist/catio-local/` (and a zip of it): the page as one HTML file, all the art, and, if you have made
@@ -533,8 +535,7 @@ sessions): ask it to save your sessions for the café and send you the file (it 
 Claude Code cats; cats from other vendors don't need it.
 
 The folder holds your licensed art and your session titles, so it is for your own use: never commit it or share it.
-
-## Open source, and what stays behind the paywall
+### Open source, and what stays behind the paywall
 
 The code is open source: the page, the harness, the gateway and the queen's runner, under the
 [GNU AGPL-3.0](LICENSE). Anyone with GitHub can run their own café, free, with the clone above and a Cloudflare Worker
@@ -556,8 +557,7 @@ a product, is [`docs/engine.md`](docs/engine.md).
   pay for the gateway's hosting and the médiateur, and put your name in the café's credits.
 - **Back the app on Ulule**: https://ulule.com/[campaign] *(campaign coming, once the first cafés are open)*. It
   funds the app; the rewards are a year of the hosted café and a drawn cat of your own.
-
-## Made from ten asset packs
+### Made from ten asset packs
 
 Every piece of the picture and the interface comes from packs Charlotte chose; which pack drew what is in
 [`catio/art/CREDITS.md`](catio/art/CREDITS.md), and the footer credits them all.
@@ -576,8 +576,7 @@ Every piece of the picture and the interface comes from packs Charlotte chose; w
 | plants.zip | (no licence came with it) | No: treated as licensed |
 
 The uncommitted art (`catio/art/licensed/`) ships only to a café's owner, signed in.
-
-## The pieces
+### The pieces
 
 - `catio/index.html`: the whole page, with no build step and no dependencies.
 - `catio/tools/`: the two floor plans and the furniture that write the manor (`manor.py`, `furniture.py`), the art
@@ -609,7 +608,7 @@ The tests: `sh catio/test/run.sh` (the page, about seven minutes),
 what to set outside Charlotte's cloud sessions, and why a run without the licensed art is not a verdict, is in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-## Licence
+### Licence
 
 The code is © 2026 Charlotte Badot, under the [GNU Affero General Public License v3.0](LICENSE), except
 `harness/skills/graphify/`, which is [graphify](https://github.com/Graphify-Labs/graphify)'s own, by Safi Shamsi and
