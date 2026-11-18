@@ -101,6 +101,13 @@
       "on": true
     },
     {
+          "id": "caveman",
+          "title": "Talk caveman to the cats",
+          "text": "Charlotte, 18 November: caveman compression (her repo charredlatte/caveman-compression; the rules are its SPEC.md, the prompt prompts/compression.txt) is a house rule. Text only a model will read is written caveman: the ask you write a sub agent (scout, tester or any spawn), every agent() prompt in a Workflow script, a message to another session (send_message), and the brief a session leaves for the next one. Short sentences, one fact each. Drop articles, auxiliaries, connectives and intensifiers. Keep every number, name, date, path, technical term, negation and qualifier (at least, might, never). Spell each step of a chain out rather than skipping one. Text a person reads stays plain prose: anything said to Charlotte, a note on a cat, a cat's ask or title, an audit, the queen's words, pull requests, issues, comments, commit messages, documentation and code comments. Never compress code, commands, quoted text or a file's contents. Before sending, check the facts in and out are the same: a fact lost is a bug, not a saving. When she asks for something in caveman, run the repo's caveman_compress_nlp.py (offline, no key) and read its output against the original.",
+          "enforced": false,
+          "on": true
+    },
+    {
       "id": "say_the_model",
       "title": "Say which model is working",
       "text": "When asked which model you are, say the model that is actually serving the session.",
