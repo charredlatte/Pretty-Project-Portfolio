@@ -102,10 +102,15 @@ def path_like(p):
     return bool(parts) and all(parts) and not ({".", ".."} & set(parts))
 
 
+def rule(rule_id):
+    """One house rule by its id, or {} when rules.json hasn't got it."""
+    return next((r for r in rules()["rules"] if r["id"] == rule_id), {})
+
+
 def enforced(rule_id, cwd=None):
     """Is this enforced rule on, here? rules.json says so, unless the repo's .claude/catio-rules.json switches it off."""
-    rule = next((r for r in rules()["rules"] if r["id"] == rule_id), None)
-    if not rule or not rule.get("on", True):
+    r = rule(rule_id)
+    if not r or not r.get("on", True):
         return False
     return local(cwd).get(rule_id, True) is not False
 
@@ -113,8 +118,7 @@ def enforced(rule_id, cwd=None):
 def merges(cwd=None):
     """Does this repo merge its own pull requests? Only when the merging rule is on and the repo's
     .claude/catio-rules.json says {"merge": true}."""
-    rule = next((r for r in rules()["rules"] if r["id"] == "merge"), {})
-    return rule.get("on", False) is not False and local(cwd).get("merge") is True
+    return rule("merge").get("on", False) is not False and local(cwd).get("merge") is True
 
 
 def git(*args, cwd=None):
