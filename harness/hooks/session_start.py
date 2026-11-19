@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 try:   # a brief that cannot be built must say so: exit 1 loses all of it and leaves only a traceback
-    from common import enforced, holds, hook_input, local, merges, repos, rules
+    from common import enforced, holds, hook_input, local, merges, repos, rule, rules
 except Exception as _e:
     import sys
     print("# KittyChat house rules\n\nThe house rules couldn't be loaded (%s: %s), so this session has not "
@@ -34,13 +34,13 @@ def main():
         "that start with [Catio]; use the `catio` skill to handle them.",
         "",
     ]
-    for rule in r["rules"]:
-        if not rule.get("on", True):
+    for each in r["rules"]:          # not "rule": that is the helper this module calls below
+        if not each.get("on", True):
             continue
-        if rule["enforced"] and not enforced(rule["id"], cwd):
+        if each["enforced"] and not enforced(each["id"], cwd):
             continue
-        lines.append(f"- **{rule['title']}**{' (enforced)' if rule['enforced'] else ''}: {rule['text']}")
-        if rule["id"] == "merge":
+        lines.append(f"- **{each['title']}**{' (enforced)' if each['enforced'] else ''}: {each['text']}")
+        if each["id"] == "merge":
             _, house_odd = holds(r.get("merging", {}))   # the same for every checkout: read it once
             for repo in repos(cwd):
                 # Both lists are checked, the same two the merge gate reads, because the gate holds on
@@ -64,7 +64,7 @@ def main():
                   "ponytail-audit: if it isn't installed, say so, and ask whether to install it or switch the rule off for this",
                   'repo with {"opening_audit": false} in .claude/catio-rules.json (not yours to decide).']
     model = data.get("model") or ""
-    costly = next((x.get("costly", []) for x in r["rules"] if x["id"] == "opus_default"), [])
+    costly = rule("opus_default").get("costly", [])
     if enforced("opus_default", cwd) and any(c in model.lower() for c in costly):
         lines += ["", f"This session is on {model}, which uses {whose} allowance several times faster than Opus. Unless "
                   f"{they.lower()}", "asked for it by name, say so in one line in your first reply and suggest /model opus."]
