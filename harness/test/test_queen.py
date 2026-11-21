@@ -24,7 +24,9 @@ MODEL_KEY = "sk-model-key"
 TOOLS = [{"name": "list_agents", "description": "Every cat.", "inputSchema": {"type": "object", "properties": {"archived": {"type": "boolean"}}}},
          {"name": "comments", "description": "A cat's conversation.", "inputSchema": {"type": "object", "properties": {"cat": {"type": "string"}, "limit": {"type": "integer"}}, "required": ["cat"]}}]
 ANSWER = ["Good ", "morrow, ", "my ", "lady. ", "Two ", "cats ", "need ", "thee."]
+AUTH = "Failed to authenticate: OAuth session expired and could not be refreshed"
 EMPTY = {"notes": [], "routine": None, "stop": False}
+NOTE = lambda i, text: {"id": "n%d" % i, "cat": "queen", "author": "owner", "text": text, "at": i}
 
 # claude, as the runner sees it: prints stream-json, records what it was given, and stops on SIGINT
 FAKE_CLAUDE = r'''#!/usr/bin/env python3
@@ -37,6 +39,16 @@ argv = sys.argv[1:]
 note({"argv": argv, "stdin": prompt, "env": {k: v for k, v in os.environ.items() if k.startswith("CATIO_")}, "cwd": os.getcwd(),
       "prompt_file": open(argv[argv.index("--append-system-prompt-file") + 1], encoding="utf-8").read(),
       "mcp": json.load(open(argv[argv.index("--mcp-config") + 1]))})
+if "fail auth" in prompt.lower():   # the CLI never got going: an error result, no session, non-zero exit
+    out({"type": "result", "subtype": "error_during_execution", "is_error": True,
+         "result": "Failed to authenticate: OAuth session expired and could not be refreshed"})
+    sys.exit(1)
+if "half" in prompt.lower():   # she gets some words out, then the turn errors
+    out({"type": "system", "subtype": "init", "session_id": "s-half"})
+    out({"type": "stream_event", "event": {"type": "message_start"}})
+    out({"type": "stream_event", "event": {"type": "content_block_delta", "delta": {"type": "text_delta", "text": "Two cats need thee."}}})
+    out({"type": "result", "subtype": "error_during_execution", "is_error": True, "result": "Error: it broke", "session_id": "s-half"})
+    sys.exit(1)
 if "--resume" in argv and argv[argv.index("--resume") + 1] == "s-gone":
     sys.stderr.write("No conversation found with session ID: s-gone\n"); sys.exit(1)
 sid = argv[argv.index("--resume") + 1] if "--resume" in argv else "s-" + str(int(time.time() * 1000))
@@ -477,6 +489,44 @@ class Queen(unittest.TestCase):
         self.assertTrue(says[-1]["text"].startswith("Forgive me, my lady"), says[-1]["text"])
         self.assertIn("no model", says[-1]["text"])
         self.assertIsNone(self.proc.poll())
+    def done(self, n=1):
+        return [s["text"] for s in self.said(n) if s.get("done")]
+
+    def test_claudes_own_error_is_never_put_in_her_mouth(self):
+        """The CLI's "Failed to authenticate" is the runner's trouble, not a word the queen said."""
+        self.srv.jobs.put({"notes": [NOTE(1, "fail auth")]})
+        self.start()
+        said = self.done()[-1]
+        self.assertNotEqual(said.strip(), AUTH, "the CLI's error was stored as the queen's own words")
+        self.assertTrue(said.startswith("Forgive me, my lady"), said)
+        self.assertIn("runner's window", said)   # it says where to look
+        self.assertIn("signing in", said)        # and what is likely wanted there
+        self.assertIn(AUTH, said, "the reason is still there, as an aside")
+
+    def test_a_queue_of_notes_hitting_one_wall_leaves_one_note(self):
+        """Six notes waiting and a wall none of them can pass: she says so once, not six times over."""
+        self.srv.jobs.put({"notes": [NOTE(i, "fail auth") for i in range(1, 7)]})
+        self.start()
+        done = self.done(6)
+        self.assertEqual(len(done), 6, "every turn must end, so no café is left waiting on her")
+        kept = [t for t in done if t.strip()]
+        self.assertEqual(len(kept), 1, "her conversation got %d copies of the same trouble: %r" % (len(kept), kept))
+
+    def test_a_failed_turn_keeps_the_words_she_got_out(self):
+        """She spoke, then the turn broke: her own words stand, and the error is not appended to them."""
+        self.srv.jobs.put({"notes": [NOTE(1, "half")]})
+        self.start()
+        self.assertEqual(self.done()[-1], "Two cats need thee.")
+
+    def test_she_says_the_wall_again_once_a_turn_has_worked(self):
+        """The wall is said once per spell of being stuck, not once ever."""
+        self.srv.jobs.put({"notes": [NOTE(1, "fail auth"), NOTE(2, "Good morrow."), NOTE(3, "fail auth")]})
+        self.start()
+        done = self.done(3)
+        self.assertEqual([bool(t.strip()) for t in done], [True, True, True], done)
+        self.assertIn(AUTH, done[0])
+        self.assertIn("Two cats need thee.", done[1])
+        self.assertIn(AUTH, done[2])
 
     def test_says_why_without_the_gateway_or_claude(self):
         env = {k: v for k, v in os.environ.items() if not k.startswith("CATIO_")}

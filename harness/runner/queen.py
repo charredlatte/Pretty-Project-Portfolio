@@ -57,6 +57,8 @@ TOOL_RESULT = 4000                # characters of a tool's result a model is sho
 HISTORY = 40                      # messages ModelDriver keeps of her conversation, the counterpart of --resume
 WINDOWS = os.name == "nt"
 SORRY = "Forgive me, my lady: my turn ended before I could answer."
+STUCK = ("Forgive me, my lady: my thoughts would not come. Look to the runner's window on your PC -- my brain "
+         "there may want signing in again.")
 TITLE = "KittyChat Cafe"           # a notification's title, and never anything from the café: see notify()
 # Her quest log, in words, by the kind the gateway counts: one, then more than one. A kind that isn't here is
 # not said at all -- give it its words, rather than letting a document's own text reach a notification.
@@ -261,7 +263,13 @@ class ClaudeDriver:
             self.r.remember()
             yield from self.events(prompt, retry=False)
             return
-        why = (failed or stderr[-200:] or "exit %d" % code) if (failed or stderr or code) else None
+        # A failed turn's `final` is Claude Code's own error ("Failed to authenticate: OAuth session expired and
+        # could not be refreshed"), not a word of hers, and `final` here is her answer alone: it goes in `why`
+        # instead, and whatever she streamed before it broke is what she is left saying.
+        if failed:
+            yield ("result", None, (final or "").strip() or failed or stderr[-200:] or "exit %d" % code)
+            return
+        why = (stderr[-200:] or "exit %d" % code) if (stderr or code) else None
         yield ("result", final, why)
 
 
@@ -444,6 +452,7 @@ class Runner:
         self.jobs = queue.Queue()      # what to do, in order: ("note", {...}) or ("routine", {...})
         self.lock = threading.Lock()
         self.character = {}            # her name, manner and greeting, as set in the café
+        self.stuck = None              # what the last turn failed on, so one wall is said once, not once a note
         self.state_file = home / "state.json"
         try:
             self.state = json.loads(self.state_file.read_text(encoding="utf-8"))
@@ -580,9 +589,17 @@ class Runner:
                 self.say(turn_id, text, False, routine, steps)
             elif kind == "result":
                 final, why = ev[1], ev[2]
-        said = (final if final is not None else text).strip()
+        # `final` is her answer alone (the drivers' contract above): a brain that failed puts its own words in
+        # `why`, never in her mouth, so her streamed text stands if she got any out.
+        own = (final if final is not None else text).strip()
+        said = own
         if not said:
-            said = SORRY + ((" (" + why + ")") if why else "")
+            said = (STUCK if why else SORRY) + ((" (" + why + ")") if why else "")
+        wall = why if (not own and why) else None   # she could not think at all, and this is what stopped her
+        if wall and wall == self.stuck:   # the same wall again: she has said it once, and the notes queued
+            log("still stuck:", wall[:120])   # behind it mustn't each add their own copy to her conversation
+            return self.say(turn_id, "", True, routine)   # the turn ends; an empty answer is kept as no note
+        self.stuck = wall
         self.say(turn_id, said, True, routine)
         log("said %d characters%s" % (len(said), " (stopped)" if why and final is None and text else ""))
 
