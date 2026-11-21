@@ -88,7 +88,7 @@ answer without looking: give her at least an 8B instruct model.
 
 - Waits on `POST /api/runner/wait` (held up to 25 seconds; Cloudflare holds a request while the client stays
   connected). It comes back the moment she writes to the queen, a routine comes due, or she clicks Stop. Each wait carries
-  `ack`, the newest note she has been given: the gateway offers a note until then, so one lost when a connection
+  `ack`, the newest note whose turn has **finished**: the gateway offers a note until then, so one lost when a connection
   dropped is offered again. A 503 is waited out like any other error; only a refused key (401) stops her.
 - For each note or routine, one turn of her brain (`Runner.turn()` reads one stream of events, whichever driver
   makes them). With Claude Code (`ClaudeDriver`): `claude -p --output-format stream-json --verbose
@@ -113,6 +113,12 @@ answer without looking: give her at least an 8B instruct model.
   out before it broke, those words stand on their own. And one wall is said **once**: the notes queued behind
   it end their turns quietly rather than filling her conversation with the same line, until a turn works
   again. So a runner left overnight with an expired sign-in leaves one note, not one per thing she said.
+- **A note is kept until its turn is finished, and a turn has an end.** The wait's `ack` is the newest note
+  whose turn has *ended*, never one merely received, so a runner killed mid-turn hears that note again rather
+  than losing what she said; a note offered again while its turn still runs is skipped, not answered twice. And
+  a turn that goes past `TURN_LIMIT` (15 minutes, `CATIO_TURN_LIMIT` to change) is stopped and says so, because
+  a brain that accepts a turn and never answers -- `claude` waiting on a sign-in that never comes -- would
+  otherwise block every note behind it for ever, and that queue is how Charlotte's words reach her.
 - Her character (`queens/house` in the café: name, manner, greeting) comes with every wait, so a change in
   her card applies on the next turn. `queen.md` is the part that doesn't change.
 - **Says her homework on Charlotte's desktop.** Every wait also carries the open quizzes counted by kind, and
