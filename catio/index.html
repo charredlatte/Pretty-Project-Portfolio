@@ -652,17 +652,20 @@ dialog.scene::backdrop { background: color-mix(in srgb, var(--shade) 28%, transp
    against nothing, and is dropped from that sizing altogether, so the card grew to the length of the conversation.
    The cap is on the window instead, which is always definite, and the chat scrolls inside it. */
 .sk-lines { grid-area: 1 / 2 / 3 / 3; align-self: end; justify-self: center; width: min(100%, 1200px); max-height: 50dvh; display: grid; grid-template-rows: minmax(0, 1fr); }
-.sk-lines .thread { list-style: none; margin: 0; padding: 2px; min-width: 0; min-height: 0; gap: 8px; align-content: start; overflow: auto; overscroll-behavior: contain; }
+.sk-lines ul.thread { list-style: none; margin: 0; padding: 2px; min-width: 0; min-height: 0; gap: 8px; align-content: start; overflow: auto; overscroll-behavior: contain; }
 /* each line its own bubble, hers to the left and yours to the right, as a chat has them. Round corners and never the
    whole width of the scene, both her ask of 21 November; see-through over the café, her ask of 20 October. The border
-   art is 9-sliced and square, so a bubble drops it for its face colour and a radius, as the map panel's pieces do. */
-.sk-lines .thread li { display: block; width: fit-content; max-width: min(74%, 560px); margin: 0; padding: 5px 12px 8px; border: 0; border-image: none; border-radius: 14px;
+   art is 9-sliced and square, so a bubble drops it for its face colour and a radius, as the map panel's pieces do.
+   `ul.thread li` above, which gives a reply the pack's bubble, is as specific as this: these say `ul` too, so the
+   scene's own bubble wins on being later. Without it a line of hers kept the pack's square frame over the radius. */
+.sk-lines ul.thread li { display: block; width: fit-content; max-width: min(74%, 560px); margin: 0; padding: 5px 12px 8px;
+  border: 0; border-image: none; border-radius: 14px;
   background: color-mix(in srgb, var(--well) 82%, transparent); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
   font: 700 clamp(1rem, 1.7vw, 1.2rem)/1.45 var(--body); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
-.sk-lines .thread li.me { margin-left: auto; background: color-mix(in srgb, var(--cream) 82%, transparent); }
-.sk-lines .thread li .who { display: block; margin-bottom: 2px; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); }
-.sk-lines .thread li .lead { display: block; font-size: .8rem; font-weight: 800; color: var(--ink); }
-.sk-lines .thread li .open { display: inline-block; margin-top: 6px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }   /* .btn is nowrap: without this a cat with a long name runs off the side */
+.sk-lines ul.thread li.me { margin-left: auto; background: color-mix(in srgb, var(--cream) 82%, transparent); }
+.sk-lines ul.thread li .who { display: block; margin-bottom: 2px; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); }
+.sk-lines ul.thread li .lead { display: block; font-size: .8rem; font-weight: 800; color: var(--ink); }
+.sk-lines ul.thread li .open { display: inline-block; margin-top: 6px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }   /* .btn is nowrap: without this a cat with a long name runs off the side */
 /* under the stage: her turn as it goes (#queenWork, on her side), the quick replies, then your own words */
 .sk-reply { display: grid; gap: 6px; }
 .sk-reply > #queenWork { grid-row: auto; }
@@ -2945,34 +2948,39 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const plateYou = el("span", "sk-plate you", "You"), plateThem = el("span", "sk-plate her", o.name);
     plateYou.setAttribute("aria-hidden", "true"); plateThem.setAttribute("aria-hidden", "true");
     const lines = el("div", "sk-lines"); lines.setAttribute("role", "group"); lines.setAttribute("aria-label", "What is being said");
-    const ul = el("ul", "thread"); ul.id = o.ulId; ul.setAttribute("aria-live", "polite");
+    // tabindex: the chat is a scroller, and Earlier and Click to continue used to be the keyboard's way through the
+    // conversation. Without it the arrow keys have nothing to take hold of and the earlier lines can't be reached.
+    const ul = el("ul", "thread"); ul.id = o.ulId; ul.setAttribute("aria-live", "polite"); ul.tabIndex = 0;
     lines.append(ul);
     stage.append(owner, o.figure, lines, plateYou, plateThem);
     let toFoot = true;   // the first draw, and after you send: show the newest line
-    // The chat is redrawn on every refresh and on every word of hers as it comes, so it is built back only where it
-    // has changed: a line that is the same is left alone. Otherwise a selection would be wiped every few seconds,
-    // and a screen reader would hear the whole chat again each time instead of the line that is new.
+    // The chat is redrawn on every refresh and on every word of hers as it comes. While the lines are the same ones,
+    // it is left standing and only their words and times are written over: her answer as it grows, and "just now"
+    // turning into "1 min ago". Otherwise a selection would be wiped every few seconds and a screen reader would
+    // hear the whole chat again. A line arriving or leaving does build it back, which is the rare case.
     let drawn = [];   // the items the chat holds now, beside their <li>
     const who = (it) => (it.kind === "owner" ? "You" : o.name) + (it.at ? " · " + ago(it.at) : "");
     const bubble = (it) => {
       const li = el("li", (it.kind === "owner" ? "me" : "them") + (it.cls ? " " + it.cls : ""));
       if (it.id) li.id = it.id;
-      li.append(el("span", "who", who(it)));
+      li.append(li.name = el("span", "who", who(it)));
       if (it.lead) li.appendChild(el("span", "lead", it.lead));
       li.appendChild(li.words = document.createTextNode(it.text));
       if (it.extra) li.appendChild(it.extra());
       return li;
     };
-    // all of a line but its words, the said-at as it reads: when that turns over ("just now" to "1 min ago") the
-    // line is drawn again, as it was before
-    const place = (it) => [it.key, it.kind, it.cls, it.id, it.lead, who(it)].join("\u0000");
+    const place = (it) => [it.key, it.kind, it.cls, it.id, it.lead].join("\u0000");   // which line it is, not what it says
     const draw = () => {
       const items = o.items();
       const keep = ul.scrollTop;
       const foot = toFoot || ul.scrollHeight - keep - ul.clientHeight < 24;   // she is at the foot already: follow the newest
-      toFoot = false;
+      if (ul.clientHeight) toFoot = false;   // nothing is laid out while the card is still shut: the next draw is the one that can scroll
       const put = items.length === drawn.length && items.every((it, i) => place(it) === place(drawn[i]));
-      if (put) items.forEach((it, i) => { it.li = drawn[i].li; if (it.text !== drawn[i].text) it.li.words.data = it.text; });   // only the words grew: her answer as it comes
+      if (put) items.forEach((it, i) => {   // the same lines: their words and times, in place
+        it.li = drawn[i].li;
+        if (it.text !== drawn[i].text) it.li.words.data = it.text;
+        const said = who(it); if (it.li.name.textContent !== said) it.li.name.textContent = said;
+      });
       else ul.replaceChildren(...items.map((it) => (it.li = bubble(it))));
       drawn = items;
       const said = items[items.length - 1];   // whoever spoke last is the one speaking: the other is dimmed
