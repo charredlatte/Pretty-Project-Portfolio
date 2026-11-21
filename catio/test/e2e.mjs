@@ -895,37 +895,39 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     await page.waitForTimeout(400);
     let w = await where();
     expect(w.end > 0 && w.at >= w.end - 2, "not at the newest to begin with: " + JSON.stringify(w));
-    // a change of size must not strand her above the foot: the chat's height is the window's
-    await resize(page, 900, 560); await page.waitForTimeout(300);
-    await T(page, () => window.__catio.queenSays("A line said after the window changed size.", true, "s90"));
-    await page.waitForTimeout(400);
-    w = await where();
-    expect(w.at >= w.end - 2, "a change of size stopped the chat following the newest: " + JSON.stringify(w));
-    expect((await ul.locator("li").last().innerText()).includes("after the window changed size"), "the newest line isn't the one at the foot");
-    // scrolled back, a new line must leave her where she is reading. With the wheel, as she would: only her own
-    // scrolling says she has stopped following, so that a resize moving the chat by itself doesn't read as hers
-    const over = await ul.boundingBox();
-    await page.mouse.move(over.x + over.width / 2, over.y + over.height / 2);
-    await page.mouse.wheel(0, -4000);
-    await page.waitForTimeout(300);
-    await T(page, () => window.__catio.queenSays("A line said while you were reading further up.", true, "s91"));
-    await page.waitForTimeout(400);
-    expect((await where()).at <= 4, "a new line yanked her away from what she was reading: " + JSON.stringify(await where()));
-    // her place has to survive the chat losing its size: hiding Talk resets the scroll to nothing
-    const upAt = await ul.evaluate((u) => Math.round(u.scrollTop));
-    await page.click("#queenTab-quests"); await page.waitForTimeout(300);
-    await page.click("#queenTab-talk"); await page.waitForTimeout(500);
-    expect(Math.abs(await ul.evaluate((u) => Math.round(u.scrollTop)) - upAt) <= 4,
-      "a tab away and back lost the line she was reading: " + upAt + " -> " + await ul.evaluate((u) => Math.round(u.scrollTop)));
-    const back = await ul.boundingBox();   // the chat moved with the resize: take hold of it where it is now
-    await page.mouse.move(back.x + back.width / 2, back.y + back.height / 2);
-    await page.mouse.wheel(0, 4000);   // back to the foot: it follows again
-    await page.waitForTimeout(400);
-    await T(page, () => window.__catio.queenSays("A line said once you were back at the foot.", true, "s92"));
-    await page.waitForTimeout(400);
-    w = await where();
-    expect(w.at >= w.end - 2, "back at the foot, it didn't start following again: " + JSON.stringify(w));
-    await resize(page, 1440, 900); await page.waitForTimeout(300);
+    // through atSizes, so a failure in here still puts the window back and doesn't fail every later check
+    await atSizes(page, async () => {
+      // a change of size must not strand her above the foot: the chat's height is the window's
+      await resize(page, 900, 560); await page.waitForTimeout(300);
+      await T(page, () => window.__catio.queenSays("A line said after the window changed size.", true, "s90"));
+      await page.waitForTimeout(400);
+      w = await where();
+      expect(w.at >= w.end - 2, "a change of size stopped the chat following the newest: " + JSON.stringify(w));
+      expect((await ul.locator("li").last().innerText()).includes("after the window changed size"), "the newest line isn't the one at the foot");
+      // scrolled back, a new line must leave her where she is reading. With the wheel, as she would: only her own
+      // scrolling says she has stopped following, so that a resize moving the chat by itself doesn't read as hers
+      const over = await ul.boundingBox();
+      await page.mouse.move(over.x + over.width / 2, over.y + over.height / 2);
+      await page.mouse.wheel(0, -4000);
+      await page.waitForTimeout(300);
+      await T(page, () => window.__catio.queenSays("A line said while you were reading further up.", true, "s91"));
+      await page.waitForTimeout(400);
+      expect((await where()).at <= 4, "a new line yanked her away from what she was reading: " + JSON.stringify(await where()));
+      // her place has to survive the chat losing its size: hiding Talk resets the scroll to nothing
+      const upAt = await ul.evaluate((u) => Math.round(u.scrollTop));
+      await page.click("#queenTab-quests"); await page.waitForTimeout(300);
+      await page.click("#queenTab-talk"); await page.waitForTimeout(500);
+      expect(Math.abs(await ul.evaluate((u) => Math.round(u.scrollTop)) - upAt) <= 4,
+        "a tab away and back lost the line she was reading: " + upAt + " -> " + await ul.evaluate((u) => Math.round(u.scrollTop)));
+      const back = await ul.boundingBox();   // the chat moved with the resize: take hold of it where it is now
+      await page.mouse.move(back.x + back.width / 2, back.y + back.height / 2);
+      await page.mouse.wheel(0, 4000);   // back to the foot: it follows again
+      await page.waitForTimeout(400);
+      await T(page, () => window.__catio.queenSays("A line said once you were back at the foot.", true, "s92"));
+      await page.waitForTimeout(400);
+      w = await where();
+      expect(w.at >= w.end - 2, "back at the foot, it didn't start following again: " + JSON.stringify(w));
+    });
   });
   // "Round out the corners of the speech bubbles, and don't allow them to span 100% of the width of the screen" (21 November)
   await check("each line is a bubble with round corners, and none of them spans the screen", async () => {
