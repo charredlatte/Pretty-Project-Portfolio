@@ -1517,6 +1517,38 @@ class SessionStart(unittest.TestCase):
 
 
 class Plugin(unittest.TestCase):
+    def test_no_tracked_file_names_the_owner_s_own_cafe(self):
+        """This repository is public, and the gateway's host carries the owner's own name, so writing her
+        address down here publishes it. #157 took it out of rules.json, session_start.py and the page, and the
+        brief was the copy left behind; without a check the next session writes it back, because a worked
+        example is the easiest thing to reach for. The address lives in CATIO_URL, in the environment, and a
+        session with none is told it isn't connected. The needle is built from parts so this file doesn't
+        contain the thing it forbids, and the scan is over tracked files only: a developer's own checkout may
+        hold her address in catio/data or catio/dist, which are gitignored and never leave their machine."""
+        host = "catio-" + "gateway." + "charlotte" + "-badot"
+        # A published page's own address, id and all. The bare path is left alone on purpose: the docs and the
+        # litter box discuss "claude.ai/artifact/" as a thing, and only a real link gives a real page away.
+        page = re.compile(r"claude\.ai/" + "artifact" + r"/([A-Za-z0-9_-]{10,})")
+        # The one page meant for strangers: the public demo (her ask, 26 October: "a demo … without putting any
+        # of my personal information in it… a link that would be at the top of the README"), shared by her with
+        # anyone who has the link. It reads nothing of hers, so naming it gives nothing away. Any other is hers.
+        public = {"SUr62MfU18hzRUBYgA9o8Y"}
+        root = HOOKS.parent.parent
+        found = subprocess.run(["git", "ls-files", "-z"], cwd=root, capture_output=True, text=True)
+        self.assertEqual(found.returncode, 0, found.stderr)
+        named = []
+        for name in [n for n in found.stdout.split("\0") if n]:
+            f = root / name
+            try:
+                body = f.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError):
+                continue   # binary, or gone in a half-finished checkout: neither can carry an address
+            for i, line in enumerate(body.splitlines(), 1):
+                if host in line or any(m.group(1) not in public for m in page.finditer(line)):
+                    named.append("%s:%d" % (name, i))
+        self.assertEqual(named, [], "a private address of hers is in these tracked files; the gateway's belongs "
+                         "in CATIO_URL and the artifact's in CATIO_ARTIFACT: " + ", ".join(named))
+
     def test_no_tracked_manifest_has_a_duplicate_key(self):
         """A merge that fuses two versions of a manifest leaves both keys, and json.loads takes the last and
         says nothing - which is how a broken rules.json, plugin.json and hooks.json all reached main on

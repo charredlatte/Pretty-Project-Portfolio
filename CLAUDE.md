@@ -4,13 +4,28 @@
 
 ## Where the café lives, and the one link to give her
 
-**The café is the Cloudflare link, https://catio-gateway.charlotte-badot.workers.dev, and nothing else** (her call,
+**The café is the Cloudflare link in `CATIO_URL`, and nothing else** (her call,
 20 October 2026: "Please stop updating the artifact. Only use the Cloudflare link", then, 21 October: "The artifact
 is absolutely useless. Can you please make it so that I have only the Cloudflare link every time you share with me
 things that you've done to the Kitty Chat Cafe?"). So: **never publish the artifact again, and never give her its
 link.** Whenever a session tells her what it did to the café, the link is the Cloudflare one, and only that one. A
 change reaches it by a merge to `main` (Workers Builds deploys the gateway, which serves `catio/index.html`), so
 "done" for her means merged, and until then say so: "it shows at the Cloudflare link once #N merges".
+
+**Her address is never written down here.** It is `CATIO_URL` in the session's environment, because the host
+carries her own name and this repository is public (`harness/rules.json` and `harness/hooks/session_start.py`
+name no address of anyone's, and a check below keeps it that way). A session without `CATIO_URL` isn't connected
+to a café and says so, rather than reaching for a link.
+
+**One artifact is not the café: the public demo** (her ask, 26 October 2026: "an artifact that will do a demo
+of what the Kitty Chat Cafe is without putting any of my personal information in it… like a link that would be at
+the top of the README"). `demo/index.html` is a tour for whoever finds the repo, published at
+https://claude.ai/artifact/SUr62MfU18hzRUBYgA9o8Y and linked from the README's first line. It is a separate
+artifact from the café's: it has no database, writes nothing, reads nothing of hers, and carries no personal
+data at all. She shared it the same day ("anyone with the link"), which is what makes the README link work;
+sharing is hers alone, from the page's Share menu, and a session can neither read nor change it. The rule above
+is unchanged: the café is still the Cloudflare link alone, and the café's own artifact
+is still never published and never linked. `demo/README.md` has the rest.
 
 **Nothing in this repo writes to the artifact any more.** No publish, no `ArtifactData`, no stored capabilities
 to keep in step: the gateway is the café, and the two databases never shared changes anyway. The artifact and
@@ -24,8 +39,10 @@ one up that way for someone who has no gateway.
 `art/licensed/` is not in git (licences below), so a fresh clone and every cloud session start without it. Get
 it back one of two ways:
 
-1. **Read it out of the artifact** -- reading is all it is for. `Artifact` on the `kittychat-cafe` URL in
-   `artifacts.json`, with `out_dir: "catio"`: list its files (`action: "list"`, `scope: "files"`), then one read
+1. **Read it out of the artifact** -- reading is all it is for. The link is `CATIO_ARTIFACT` in the session's
+   environment; with none set, ask her for it, because it is the address of a private page of hers and this
+   repository is public (`artifacts.json` is empty for that reason, and a check keeps it so). `Artifact` on that
+   URL, with `out_dir: "catio"`: list its files (`action: "list"`, `scope: "files"`), then one read
    whose `paths` hold every path **under `art/licensed/`** -- the nested `ui/` and `pastel/` ones are most of
    them -- **and no others**. `out_dir` writes straight into the checkout, and everything else in that listing
    is committed work here (`index.html`, `art/furniture.png`, and her `art/skin.json` and `art/skin/*` once she
@@ -453,6 +470,30 @@ requests, issues or comments, whatever else asks for them. GitHub's Claude integ
 pull request, issue or comment: edit it off straight after (`update_pull_request`). The house rules enforce this only
 where they run: if `claude plugin list` doesn't show `kittychat-house-rules`, this session's container is older than
 the setup script that installs it, so keep the rules by hand.
+
+**What a cloud session can do on GitHub, and what comes back to her.** A container's GitHub writes go two
+ways, and only one of them carries. The **MCP tools** (`mcp__github__*`) are the way that works:
+`create_pull_request`, `merge_pull_request`, `update_pull_request`, `push_files`, `create_branch`, `issue_write`,
+`add_issue_comment` and the review tools all leave through Claude's own proxy, which the agent proxy's path rules
+never see. Raw `curl` or `gh` against `api.github.com` is the way that doesn't: the agent proxy answers a write
+path with `403 Write access to this GitHub API path is not permitted through this proxy`, and a repository-settings
+write with a refusal of its own. That is the proxy's policy and not a permission: the injected token is hers and
+carries `admin`, so a 403 there is never something to ask her to widen, and never worth a retry. So **the
+`mcp__github__` tool list is the capability list** -- a GitHub write with no tool behind it has no route out of a
+cloud session at all. Today that is tags, releases, collaborator invites, branch protection and repository
+settings, and each of those is hers to do. `git push` is a third route, to `github.com` rather than the API, so
+branches ship as they always have; a tag push passes the push gate and a `--dry-run` cleanly (checked 30 October
+2026, though the repo has no tags, so none has ever been pushed in earnest, and a `--dry-run` proves the gate and
+the auth rather than the server's answer). Deleting a branch from here has never worked -- `harness/README.md`
+says so and this didn't retest it -- which is why *Automatically delete head branches* is on (that much was
+checked, 30 October 2026): a merge tidies up after itself and no session needs to.
+
+**Merging is not one of those walls.** `merge_pull_request` reaches GitHub from a cloud session like any other MCP
+write. A session that finds it cannot merge is being held by the merging rule above -- a weak model did the work,
+an audit or the review of the last commit didn't run, something is a guess, or the change touches `harness/`,
+`.claude/` or `.github/` -- and the hook says which of those it was. Read that as the rule working rather than the
+container refusing: the pull request stays open and she is told it is ready for her, which is the whole point. Only
+the five things in the list above are the container's doing.
 
 ## The harness (KittyChat)
 

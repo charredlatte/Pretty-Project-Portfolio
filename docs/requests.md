@@ -14,7 +14,7 @@ compressed. Read this before starting something new. Last updated 2 October 2026
 | `litterbox/` | The back burner: new notes land here, `litterbox/sort.py` piles them by project for her to check, then files each checked pile into its project's own repo and pushes it |
 | `catio/art/CREDITS.md` | Every pack, its artist and its licence |
 | `harness/README.md`, `harness/rules.json` | The KittyChat house rules and the Catio MCP server |
-| `artifacts.json` | The retired pages, read-only: the old café artifact (`kittychat-cafe`, which still holds the licensed art and her project maps) and her two quiz pages |
+| `CATIO_ARTIFACT`, in her environment | The retired café artifact's link, which still holds the licensed art and her project maps. Out of the repo because the repo is public; `artifacts.json` is the empty slot where a fork records its own |
 | GitHub | Issue #3 (the KittyChat Cafe); the merged PRs, whose descriptions record each round |
 | The café's database, in the gateway | Her private data: rooms, renames, adopted chats, the queen's notes, the brain's files, notes, the outbox. Never in git |
 | Her Drive folder "KittyChat Cafe Assets" | The asset-pack zips |
@@ -193,8 +193,9 @@ The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.
 ## 2 October, evening
 
 - **Sell the KittyChat Café.** A Shopify wireframe for distributing it (`docs/kittychat-shop/`, drawn in Figma like
-  the onboarding frames), and a business plan grounded in French law and her legal status. The plan is private
-  (her status, ARE, VAT): a private artifact, linked from the Café's queen, never in git.
+  the onboarding frames), and a business plan grounded in French law and her own circumstances. Those
+  circumstances are private and are not named here: the plan is a private artifact, linked from the Café's
+  queen, and never in git.
 - **The litter box quiz as a skill on GitHub**: `catio-plugin/skills/litterbox-quiz/`, with the licensed interface
   art left out ("for the UI, just drop the assets that are licensed").
 - **No lifetime seat** (3 October): "Instead of relying on a lifetime guarantee sale, maybe there could be an in between
@@ -222,3 +223,23 @@ The list is kept in one place: "Waiting on Charlotte" in `docs/plan.md`.
 - **Asked, she chose:** the queen keeps one quest log of everything waiting on her (quizzes that unblock cats, litter box
   notes to sort, decisions), like an NPC quest giver; the litter box is a piece on the map with no sign that opens the
   same list at its notes; the two quiz pages are retired; the cards live in her gateway, so both cafés read them.
+
+## Decided 27 October, from the quest log
+
+Her quest log was taken in Claude rather than in the café (her runner was asleep): sixteen cards, every one
+answered, and the four below are this repo's to act on. The three about the shop and the one about SkipScene
+stay answered in the gateway for those repos' own sessions; Aman's contract note she kept out of any
+repository, for her adviser.
+
+- **The session brief names `.claude/` as held** as well as `harness/`. `CLAUDE.md` already says a change there
+  always waits for her, and the brief each session opens with should say so too.
+- **A crash inside the model-tier check warns and lets the spawn through**, as it does now. Against the
+  recommendation to fail closed: a broken check should not stop her work while it is being fixed. So the gates
+  fail closed everywhere except here.
+- **A test run without the licensed art marks those checks skipped in `e2e.mjs`**, rather than failing with
+  exit 1 like a real failure or taking an exit code of its own. The run then names exactly which checks could
+  not run, and the tester helper relays that instead of a bare count.
+- **One definition of "the licensed art is here":** one list of sentinel files that `run.sh` and `move-in.py`
+  both read, so the three places that each decide it their own way cannot drift apart.
+
+Two of the four are under `harness/`, so they wait for her merge whoever writes them.
