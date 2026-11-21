@@ -573,8 +573,8 @@ ul.thread li.handoff.new .who::after { content: " · new"; color: var(--ink); }
    button with a pixel icon (the icons are drawn in code from the tokens, like her own figure), the chosen one pressed
    in with the pack's pointer bobbing over it; its name on a cream banner between two rules; its page; and the keys
    along the foot. Talk is a game dialogue (her Breath of the Wild and Dota 2 Crownfall screens): the two of them on
-   the hall's floor with a name plate each, the line being said in a see-through box between them, one at a time,
-   Click to continue stepping on, quick replies under it. Quest log is the list of everything waiting on her, the
+   the hall's floor with a name plate each, and what they say in a see-through box between them, as a chat,
+   quick replies under it. Quest log is the list of everything waiting on her, the
    chosen one open beside it. What she keeps, Her character, Routines and You are the tabs that were the Settings
    overlay. The card fills the window it is given (the height is on the dialog, which draws the panel); under the floor
    the dialog scrolls. */
@@ -605,7 +605,7 @@ dialog.scene::backdrop { background: color-mix(in srgb, var(--shade) 28%, transp
 .sk-section h3 { margin: 0; display: flex; align-items: center; gap: 10px; font: calc(2 * var(--px-size))/calc(2 * var(--px-line)) var(--pixel); color: var(--ink); padding: 0 calc(3 * var(--u)); text-align: center; }
 .sk-section h3::before, .sk-section h3::after { content: ""; flex: none; width: 20px; height: 16px; background: var(--art-stars) 0 0 / 40px 16px no-repeat; image-rendering: pixelated; }
 .sk-body { min-height: 0; }
-.sk-panel[hidden], .sk-count[hidden], .sk-back .btn[hidden], .sk-next[hidden] { display: none; }
+.sk-panel[hidden], .sk-count[hidden] { display: none; }
 .sk-panel { height: 100%; min-height: 0; overflow: auto; display: grid; gap: 10px; align-content: start; overscroll-behavior: contain; padding: 2px; }
 .sk-hints { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 20px; font-size: .8rem; color: var(--ink-soft); }
 .sk-keys { margin: 0; display: flex; gap: 14px; align-items: center; }
@@ -613,8 +613,8 @@ dialog.scene::backdrop { background: color-mix(in srgb, var(--shade) 28%, transp
 .sk-line { margin: 2px 0 0; min-width: 0; overflow-wrap: anywhere; font-size: .85rem; font-weight: 700; color: var(--ink); }
 .sk-line:empty { display: none; }
 @media (pointer: coarse) { .sk-keys { display: none; } }
-/* Talk: the two of them on the hall's floor in the pack's picture frame, a name plate under each, the line being said
-   between them. Whoever isn't speaking is dimmed; she bobs only once she has words (talking). */
+/* Talk: the two of them standing on the blurred café, a name plate under each, and the chat between them.
+   Whoever spoke last is the speaker; the other is dimmed, and she bobs only once she has words (talking). */
 .sk-talk { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(200px, 1fr) auto; gap: 8px; overflow: hidden; align-content: stretch; }   /* the stage keeps a floor the two of them fit in */
 .qstage { position: relative; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr) auto; column-gap: 6px; padding: 6px 8px 8px; overflow: hidden; }
 .qstage > * { position: relative; min-width: 0; min-height: 0; }
@@ -643,24 +643,29 @@ dialog.scene::backdrop { background: color-mix(in srgb, var(--shade) 28%, transp
   border: solid transparent; border-width: var(--btn-px); border-image: var(--art-button) var(--btn-s) fill / var(--btn-px) stretch; }
 .sk-plate.you { grid-column: 1; }
 .sk-plate.her { grid-column: 3; }
-/* the line being said: a see-through box (her ask, 20 October: "opaque, almost transparent"), the hall showing through,
-   in the pack's bubble with no fill. Every line is in the thread; one is current and shown, the rest wait for Earlier
-   and Click to continue. */
-.sk-lines.end { cursor: default; }
-.sk-lines { grid-area: 1 / 2 / 3 / 3; align-self: end; justify-self: center; width: min(100%, 1200px); max-height: 100%; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 4px; padding: 4px 8px 8px; cursor: var(--point);
-  border: solid transparent; border-width: var(--bubble-px); border-image: var(--art-bubble) var(--bubble-s) / var(--bubble-px) stretch;
-  background: color-mix(in srgb, var(--well) 42%, transparent) padding-box; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
-.sk-lines .thread { list-style: none; margin: 0; padding: 0; min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; }
-.sk-lines .thread li { display: none; }
-.sk-lines .thread li[aria-current="true"] { display: block; max-width: none; margin: 0; padding: 0; background: none; border: 0; border-image: none; font: 700 clamp(1.05rem, 2.2vw, 1.4rem)/1.45 var(--body); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
-.sk-lines .thread li .who { display: block; margin-bottom: 2px; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); }
-.sk-lines .thread li .lead { display: block; font-size: .8rem; font-weight: 800; color: var(--ink); }
-.sk-lines .thread li .open { display: inline-block; margin-top: 6px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }   /* .btn is nowrap: without this a cat with a long name runs off the side */
-.sk-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 26px; }
-.sk-back { display: flex; align-items: center; gap: 8px; }
-.sk-of { font-size: .78rem; font-weight: 800; color: var(--ink); }
-.sk-next { position: relative; margin-left: auto; padding: 0 16px 0 0; background: none; border: 0; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); }
-.sk-next::after { content: ""; position: absolute; right: 2px; top: 50%; margin-top: -6px; width: 7px; height: 12px; rotate: 90deg; background: var(--art-pointer) no-repeat; image-rendering: pixelated; animation: sk-bob .8s steps(2) infinite; }
+/* what they say: every line of it, as a chat, the newest at the foot, and it scrolls. The see-through box (her ask,
+   20 October: "opaque, almost transparent") is each line's own now, so the stage draws nothing around them -- a
+   frame round a chat of framed lines reads as two boxes, one inside the other. */
+/* The chat scrolls; the card doesn't grow with it. The card is allowed to grow (a long form on a short window
+   scrolls the dialog), so the row the stage sits in is sized by its content -- and a chat is the one thing with no
+   end to it. max-height: 100% can't hold it: a percentage against a row that is itself sized by content resolves
+   against nothing, and is dropped from that sizing altogether, so the card grew to the length of the conversation.
+   The cap is on the window instead, which is always definite, and the chat scrolls inside it. */
+.sk-lines { grid-area: 1 / 2 / 3 / 3; align-self: end; justify-self: center; width: min(100%, 1200px); max-height: 50dvh; display: grid; grid-template-rows: minmax(0, 1fr); }
+.sk-lines ul.thread { list-style: none; margin: 0; padding: 2px; min-width: 0; min-height: 0; gap: 8px; align-content: start; overflow: auto; overscroll-behavior: contain; }
+/* each line its own bubble, hers to the left and yours to the right, as a chat has them. Round corners and never the
+   whole width of the scene, both her ask of 21 November; see-through over the café, her ask of 20 October. The border
+   art is 9-sliced and square, so a bubble drops it for its face colour and a radius, as the map panel's pieces do.
+   `ul.thread li` above, which gives a reply the pack's bubble, is as specific as this: these say `ul` too, so the
+   scene's own bubble wins on being later. Without it a line of hers kept the pack's square frame over the radius. */
+.sk-lines ul.thread li { display: block; width: fit-content; max-width: min(74%, 560px); margin: 0; padding: 5px 12px 8px;
+  border: 0; border-image: none; border-radius: 14px;
+  background: color-mix(in srgb, var(--well) 85%, transparent);   /* no blur of its own: the scene's backdrop blurs the café already, and a chat would stack twenty of them */
+  font: 700 clamp(1rem, 1.7vw, 1.2rem)/1.45 var(--body); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.sk-lines ul.thread li.me { margin-left: auto; background: color-mix(in srgb, var(--cream) 85%, transparent); }
+.sk-lines ul.thread li .who { display: block; margin-bottom: 2px; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); }
+.sk-lines ul.thread li .lead { display: block; font-size: .8rem; font-weight: 800; color: var(--ink); }
+.sk-lines ul.thread li .open { display: inline-block; margin-top: 6px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }   /* .btn is nowrap: without this a cat with a long name runs off the side */
 /* under the stage: her turn as it goes (#queenWork, on her side), the quick replies, then your own words */
 .sk-reply { display: grid; gap: 6px; }
 .sk-reply > #queenWork { grid-row: auto; }
@@ -721,7 +726,7 @@ dialog.scene::backdrop { background: color-mix(in srgb, var(--shade) 28%, transp
   .saybar .btn { padding-inline: calc(1 * var(--u)); }
   .qstage { grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) auto auto; }
   .qstage { padding: 4px 2px 6px; }
-  .sk-lines { grid-area: 1 / 1 / 2 / 3; align-self: start; width: 100%; padding: 4px 6px 6px; }   /* its row's height at most: under that the line scrolls, and the two of them keep their own row */
+  .sk-lines { grid-area: 1 / 1 / 2 / 3; align-self: start; width: 100%; padding: 4px 6px 6px; }   /* the whole width, over the two of them, who keep their own row; the chat is capped on the window as everywhere */
   .owner { grid-area: 2 / 1; justify-self: start; }
   .qchar { grid-area: 2 / 2; justify-self: end; }
   .sk-plate { grid-row: 3; }
@@ -733,7 +738,7 @@ dialog.scene::backdrop { background: color-mix(in srgb, var(--shade) 28%, transp
   /* a short phone (the keyboard up, or a small one): the two of them give way again so the line keeps a bubble's worth */
   @media (max-height: 620px) { .owner, .qchar { --fz: .4; } }
 }
-@media (prefers-reduced-motion: reduce) { .sk-tab[aria-selected="true"]::before, .sk-next::after, .qchar.talking, .owner.talking { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .sk-tab[aria-selected="true"]::before, .qchar.talking, .owner.talking { animation: none; } }
 /* her turn as it goes, under the talk on her side (4 October). Waking is Animal Crossing's pause: the grey bubble
    with her name on a tab. At work it is The Sims' action queue: each step done a small pressed-in tile with the
    pack's tick, the one she is on a lit cream tile. The dots are art pixels; stopping is the pink button and the cross. */
@@ -2930,54 +2935,110 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // A cat's card: who it is and what it needs, then the conversation with it. Everything else (the facts,
   // pausing, archiving, its name, room and title) is folded under Manage until she wants it.
   // A game dialogue (her Breath of the Wild and Dota 2 Crownfall screens, 20 October): the owner of the house on the
-  // left, seen from behind, whoever she talks to on the right, a name plate under each, the line being said in a
-  // see-through box between them, one at a time. Every line is in the thread (the ul); one is current. Click to
-  // continue steps on, Earlier back; a new line jumps to the newest unless she has stepped back. The queen's card and
-  // a cat's card both talk through it: o.items() gives the lines ({key, kind: owner|them, cls, id, who, lead, text,
-  // at, extra(), live, handoff}), o.after() runs after each draw, o.themKey names the speaker when it isn't her.
+  // left, seen from behind, whoever she talks to on the right, a name plate under each, and what they say in a
+  // see-through box between them. It reads as a normal chat (her ask, 21 November: "I want to see the previous chats
+  // without having to press earlier"): every line is there, hers to one side and yours to the other, the newest at
+  // the foot, and the box scrolls. A new line follows the newest unless she has scrolled back to read. The queen's
+  // card and a cat's card both talk through it: o.items() gives the lines ({key, kind: owner|them, cls, id, who,
+  // lead, text, at, extra(), live, handoff}), o.after() runs after each draw, o.themKey names the speaker when it
+  // isn't her — whoever spoke last.
   function talkStage(o) {
     const stage = el("section", "qstage"); stage.setAttribute("aria-label", "Talking with " + o.name);
     const owner = el("div", "owner"); owner.appendChild(ownerSVG(ownerOf()));
     const plateYou = el("span", "sk-plate you", "You"), plateThem = el("span", "sk-plate her", o.name);
     plateYou.setAttribute("aria-hidden", "true"); plateThem.setAttribute("aria-hidden", "true");
     const lines = el("div", "sk-lines"); lines.setAttribute("role", "group"); lines.setAttribute("aria-label", "What is being said");
-    const ul = el("ul", "thread"); ul.id = o.ulId; ul.setAttribute("aria-live", "polite");
-    const nav = el("div", "sk-nav"), counter = el("span", "sk-of");
-    let pos = 0, follow = true, last = 0, curKey = null;   // curKey: the line she is on, so a new line never shifts it
-    const earlier = plainBtn("Earlier", "tiny", () => { if (pos > 0) { pos--; follow = false; curKey = null; draw(); } });   // curKey null: pos is the line she chose
-    const onward = el("button", "sk-next", "Click to continue"); onward.type = "button";
-    const step = () => { if (pos < last) { pos++; follow = pos === last; curKey = null; draw(); } };
-    onward.addEventListener("click", (e) => { e.stopPropagation(); step(); });
-    const back = el("span", "sk-back"); back.append(earlier, counter);
-    nav.append(back, onward);
-    lines.append(ul, nav);
-    lines.addEventListener("click", (e) => { if (!e.target.closest("button, a") && !(getSelection() || "").toString().trim()) step(); });   // a click, not a selection
+    // log, not a live region: every line is in the chat now, and aria-live would read the whole conversation out
+    // on opening. A log announces what arrives -- but it takes text with it by default, and a line's said-at is
+    // rewritten as it ticks over, which would announce that line again, so it is told to take additions alone.
+    // tabindex: the chat is a scroller, and Earlier and Click to continue used to be the keyboard's way through
+    // the conversation. Without it the arrow keys have nothing to take hold of and the earlier lines can't be reached.
+    const ul = el("ul", "thread"); ul.id = o.ulId; ul.setAttribute("role", "log"); ul.setAttribute("aria-relevant", "additions"); ul.tabIndex = 0;
+    lines.append(ul);
     stage.append(owner, o.figure, lines, plateYou, plateThem);
+    // Whether she is reading the newest line, which is what a new one follows, and where she was if she isn't.
+    //
+    // Only a scroll of her own can say she has stopped following, and a scroll says whose it is by whether the
+    // chat changed size under it. The chat is capped on the window, so a phone's keyboard, turning it, the URL
+    // bar and any resize all move the scroll by themselves: the lines rewrap and the browser keeps what was on
+    // screen where it was. That scroll is delivered before the observer below, so there is no undoing it there --
+    // it has to not be read as hers in the first place. Going by what she last touched instead would miss a
+    // scrollbar drag that outlasts the guess, and Safari gives scrollbars no pointer events at all.
+    let follow = true, back = 0, hadH = 0, hadS = 0;   // back: where she was reading, for when the chat returns
+    const foot = () => ul.scrollHeight - ul.scrollTop - ul.clientHeight < 24;
+    const noted = () => { hadH = ul.clientHeight; hadS = ul.scrollHeight; };   // the size this chat was last left at
+    ul.addEventListener("scroll", () => {
+      if (!ul.clientHeight) return;   // hidden: the card is shut, or Talk is not the tab showing. Its scroll is reset to
+      const moved = ul.clientHeight !== hadH || ul.scrollHeight !== hadS;   // nothing, which is not hers to answer for
+      noted();
+      if (moved) return;   // the chat changed size under this scroll, so the scroll is the layout's, not hers
+      follow = foot();
+      back = ul.scrollTop;
+    });
+    // A resize rewraps every line, so the chat goes on growing taller for several frames: pinning once lands short
+    // of the foot, and it is held there until its height settles, a dozen frames at most in case it never does.
+    // One loop at a time, and it lets go the moment she takes hold of the chat or it leaves the screen. While it
+    // runs, the chat is changing size, so a scroll of hers in those frames reads as the layout's -- which is only
+    // as long as the rewrap, unless the window is still being dragged or a phone's keyboard is on its way up.
+    // Kept on the element: an observer made and dropped in one breath is reachable from nothing and may be collected.
+    let frame = 0, left = 0, tall = -1;
+    const hold = () => {
+      frame = 0;
+      if (!follow || !ul.clientHeight) return;
+      ul.scrollTop = ul.scrollHeight; noted();
+      if (ul.scrollHeight !== tall && left--) { tall = ul.scrollHeight; frame = requestAnimationFrame(hold); }
+    };
+    let seen = 0;   // the size the chat was last seen at, to tell coming back on screen from merely changing size
+    ul.watch = new ResizeObserver(() => {
+      const gone = !seen;
+      seen = ul.clientHeight;
+      if (!ul.clientHeight) return;
+      // Reading further up: her place is only put back when the chat is coming back from having no size at all --
+      // the card shut, or Talk not the tab showing, both of which reset the scroll to nothing. Through an ordinary
+      // resize the browser's own anchoring keeps her line better than a remembered pixel would.
+      if (!follow) { if (gone) { ul.scrollTop = back; noted(); } return; }
+      left = 12; tall = -1;
+      if (frame) cancelAnimationFrame(frame);
+      hold();
+    });
+    ul.watch.observe(ul);
+    // The chat is redrawn on every refresh and on every word of hers as it comes, so a line already drawn is left
+    // standing: only what is new goes in, what has gone comes out, and a line that has merely grown or aged is
+    // written over where it stands (her answer as it comes, "just now" turning into "1 min ago"). Rebuilding the
+    // lot instead would wipe a selection every few seconds and read the whole chat back to a screen reader each
+    // time, rather than the line that arrived.
+    let drawn = [];   // the items the chat holds now, each beside its <li>
+    const who = (it) => (it.kind === "owner" ? "You" : o.name) + (it.at ? " · " + ago(it.at) : "");
+    const bubble = (it) => {
+      const li = el("li", (it.kind === "owner" ? "me" : "them") + (it.cls ? " " + it.cls : ""));
+      if (it.id) li.id = it.id;
+      li.append(li.name = el("span", "who", who(it)));
+      if (it.lead) li.appendChild(el("span", "lead", it.lead));
+      li.appendChild(li.words = document.createTextNode(it.text));
+      if (it.extra) li.appendChild(it.extra());
+      return li;
+    };
+    const place = (it) => [it.key, it.kind, it.cls, it.id, it.lead, !!it.extra].join("\u0000");   // which line it is, not what it says
     const draw = () => {
       const items = o.items();
-      last = items.length - 1;
-      const found = follow ? -1 : items.findIndex((it) => it.key === curKey);
-      pos = follow ? last : found >= 0 ? found : Math.min(pos, last);
-      const same = items[pos] && items[pos].key === curKey, keep = ul.scrollTop;   // the same line, grown: she stays where she read
-      curKey = items[pos] ? items[pos].key : null;
-      ul.replaceChildren();
-      items.forEach((it, i) => {
-        const li = el("li", (it.kind === "owner" ? "me" : "them") + (it.cls ? " " + it.cls : ""));
-        if (it.id) li.id = it.id;
-        li.append(el("span", "who", (it.kind === "owner" ? "You" : o.name) + (it.at ? " · " + ago(it.at) : "")));
-        if (it.lead) li.appendChild(el("span", "lead", it.lead));
-        li.appendChild(document.createTextNode(it.text));
-        if (it.extra) li.appendChild(it.extra());
-        if (i === pos) li.setAttribute("aria-current", "true");
-        ul.appendChild(li);
+      const was = new Map();   // the lines drawn, by key and in order: two that share a key take one <li> each,
+      for (const it of drawn) { const q = was.get(it.key); if (q) q.push(it); else was.set(it.key, [it]); }   // or one of them is lost
+      const now = items.map((it) => {
+        const had = (was.get(it.key) || []).shift();
+        const li = it.li = had && place(had) === place(it) ? had.li : bubble(it);
+        if (li.words.data !== it.text) li.words.data = it.text;
+        const said = who(it); if (li.name.textContent !== said) li.name.textContent = said;
+        return li;
       });
-      stage.dataset.speaker = items[pos] && items[pos].kind === "owner" ? "owner" : o.themKey || "them";
+      const stays = new Set(now);
+      for (const li of [...ul.children]) if (!stays.has(li)) li.remove();
+      now.forEach((li, i) => { if (ul.children[i] !== li) ul.insertBefore(li, ul.children[i] || null); });
+      drawn = items;
+      const said = items[items.length - 1];   // whoever spoke last is the one speaking: the other is dimmed
+      stage.dataset.speaker = said && said.kind === "owner" ? "owner" : o.themKey || "them";
       owner.classList.toggle("talking", stage.dataset.speaker === "owner");
-      counter.textContent = (pos + 1) + " / " + (last + 1);
-      const fe = document.activeElement;
-      earlier.hidden = pos === 0; onward.hidden = pos === last; lines.classList.toggle("end", pos === last);
-      if (earlier.hidden && fe === earlier) onward.focus(); else if (onward.hidden && fe === onward) earlier.focus();   // a key's focus stays on the nav
-      ul.scrollTop = items[pos] && items[pos].live ? ul.scrollHeight : same ? keep : 0;   // words as they come; a line she is reading stays put
+      if (follow) ul.scrollTop = ul.scrollHeight;   // scrolled back to read, she is left where she is
+      noted();   // a line of its own changes the chat's height: her next scroll is hers, not this
       if (o.after) o.after();
     };
     const newest = () => { follow = true; draw(); };
@@ -3017,7 +3078,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   }
 
   // A cat's card, as a scene over the blurred café: the talk with it as a game dialogue (its ask, then every line said,
-  // one at a time), your words under it, and what else there is to it (the brain's files, Manage, Open session) on a
+  // as a chat), your words under it, and what else there is to it (the brain's files, Manage, Open session) on a
   // see-through sheet below.
   function openCatScene(c, dlg, m) {
     const box = el("div", "dlg queen cat");
@@ -3336,7 +3397,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     "Open chat": "chat", "Open session": "chat", "Open": "chat", "See them all": "paw", "The look": "sparkle", "Keys": "key" };
   // Her card, as a pause menu (her asks, 20 October; CSS: "Her card is a pause menu"): tabs along the top (Talk, Quest
   // log, What she keeps, Her character, Routines on the gateway, You), the chosen one named under them, its page below.
-  // Talk is a game dialogue: the two of them on the hall's floor, the line being said between them, one at a time.
+  // Talk is a game dialogue: the two of them on the hall's floor, what they say between them, as a chat.
   // Quest log is everything waiting on her in a list, the chosen one open beside it. The last four are what the
   // Settings overlay held. Opening it counts the handoffs as read.
   let QSEL = null, SELIDX = 0, landList = false;   // landList: a hand-in just took the focus with its form, so the next quest gets it   // the quest open in the log ("q:<id>" for homework, "d:<deck>:<id>" for a card), and where it sat in the list
@@ -3392,12 +3453,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (!to) return;
       e.preventDefault(); selectTab(to); tabBtns[to].focus();
     });
-    box.addEventListener("keydown", (e) => {   // Page Up and Page Down turn the tabs from anywhere that isn't typing
-      if ((e.key !== "PageUp" && e.key !== "PageDown") || e.target.closest("input, textarea, select")) return;
+    box.addEventListener("keydown", (e) => {   // Page Up and Page Down turn the tabs, except where they page the thing in hand
+      if ((e.key !== "PageUp" && e.key !== "PageDown") || e.target.closest("input, textarea, select, ul.thread")) return;   // the chat pages itself
       e.preventDefault(); const to = stepTab(e.key === "PageDown" ? 1 : -1); selectTab(to); tabBtns[to].focus();
     });
 
-    // ---- Talk: the owner of the house on the left, from behind; the queen on the right; the line being said between ----
+    // ---- Talk: the owner of the house on the left, from behind; the queen on the right; the chat between them ----
     const her = el("div", "qchar"); her.id = "queenFig"; her.setAttribute("aria-hidden", "true");
     const T = talkStage({ name: q.name, figure: her, ulId: "queenThread", themKey: "queen", after: () => { dress(); drawWork(); }, items: () => {
       const cats = allCats(true).cats;

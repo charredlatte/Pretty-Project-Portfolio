@@ -872,29 +872,87 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   });
   await T(page, () => window.__catio.queenSays("Good morrow, my lady. Two cats need thee.", true, "t9"));
   await page.waitForTimeout(300);
-  await check("her answer is said in the box, one line at a time, in her name; Earlier steps back to your line and Click to continue on again", async () => {
+  // "I want to see the previous chats without having to press earlier. It should look like a normal chat." (21 November)
+  await check("every line is in the chat and readable without pressing anything, hers and yours, the newest at the foot", async () => {
     const n = (sel) => page.locator(sel).count();
     expect(await n("#queenThread li.me") > 0 && await n("#queenThread li.them:not(.handoff)") > 0, "a line is missing: " + (await page.locator("#queenThread").innerHTML()).slice(0, 600));
-    const cur = () => page.locator('#queenThread li[aria-current="true"]');
-    expect(await cur().count() === 1 && (await cur().getAttribute("class")).includes("them"), "the newest line isn't the one shown");
-    expect((await cur().innerText()).includes("Two cats need thee"), await cur().innerText());
-    expect((await page.locator(".qstage").getAttribute("data-speaker")) === "queen", "she isn't the speaker");
-    await page.locator('#queenDlg button:has-text("Earlier")').click();
-    expect((await cur().getAttribute("class")).includes("me"), "Earlier didn't step back to your line: " + await cur().getAttribute("class"));
-    expect((await page.locator(".qstage").getAttribute("data-speaker")) === "owner", "you aren't the speaker of your own line");
-    await page.locator('#queenDlg button:has-text("Click to continue")').click();
-    expect((await cur().getAttribute("class")).includes("them"), "Click to continue didn't step on");
+    expect(await n('#queenDlg button:has-text("Earlier")') === 0 && await n('#queenDlg button:has-text("Click to continue")') === 0, "the chat still has to be stepped through");
+    const shown = await page.locator("#queenThread li").evaluateAll((lis) => lis.map((li) => [li.className, getComputedStyle(li).display]));
+    expect(shown.length > 1, "only one line is in the chat: " + JSON.stringify(shown));
+    expect(shown.every(([, d]) => d !== "none"), "an earlier line is hidden: " + JSON.stringify(shown));
+    const last = page.locator("#queenThread li").last();
+    expect((await last.getAttribute("class")).includes("them"), "the newest line isn't hers: " + await last.getAttribute("class"));
+    expect((await last.innerText()).includes("Two cats need thee"), await last.innerText());
+    expect((await page.locator(".qstage").getAttribute("data-speaker")) === "queen", "whoever spoke last isn't the speaker");
     expect(!(await page.locator("#queenFig").getAttribute("class")).includes("talking"), "still talking when done");
     expect(!(await page.locator("#queenWork").isVisible()), "the strip outlived her answer");
   });
+  // the other half of a normal chat: it follows the newest line, and stops following while she is reading back
+  await check("a new line follows the newest, unless she has scrolled back to read, and a change of size doesn't lose her place", async () => {
+    const ul = page.locator("#queenThread");
+    const where = () => ul.evaluate((u) => ({ at: Math.round(u.scrollTop), end: Math.round(u.scrollHeight - u.clientHeight) }));
+    await T(page, () => { for (let i = 0; i < 12; i++) window.__catio.queenSays("A line to fill the chat so that it scrolls, number " + i + ".", true, "s" + i); });
+    await page.waitForTimeout(400);
+    let w = await where();
+    expect(w.end > 0 && w.at >= w.end - 2, "not at the newest to begin with: " + JSON.stringify(w));
+    // through atSizes, so a failure in here still puts the window back and doesn't fail every later check
+    await atSizes(page, async () => {
+      // a change of size must not strand her above the foot: the chat's height is the window's
+      await resize(page, 900, 560); await page.waitForTimeout(300);
+      await T(page, () => window.__catio.queenSays("A line said after the window changed size.", true, "s90"));
+      await page.waitForTimeout(400);
+      w = await where();
+      expect(w.at >= w.end - 2, "a change of size stopped the chat following the newest: " + JSON.stringify(w));
+      expect((await ul.locator("li").last().innerText()).includes("after the window changed size"), "the newest line isn't the one at the foot");
+      // scrolled back, a new line must leave her where she is reading. With the wheel, as she would: only her own
+      // scrolling says she has stopped following, so that a resize moving the chat by itself doesn't read as hers
+      const over = await ul.boundingBox();
+      await page.mouse.move(over.x + over.width / 2, over.y + over.height / 2);
+      await page.mouse.wheel(0, -4000);
+      await page.waitForTimeout(300);
+      await T(page, () => window.__catio.queenSays("A line said while you were reading further up.", true, "s91"));
+      await page.waitForTimeout(400);
+      expect((await where()).at <= 4, "a new line yanked her away from what she was reading: " + JSON.stringify(await where()));
+      // her place has to survive the chat losing its size: hiding Talk resets the scroll to nothing
+      const upAt = await ul.evaluate((u) => Math.round(u.scrollTop));
+      await page.click("#queenTab-quests"); await page.waitForTimeout(300);
+      await page.click("#queenTab-talk"); await page.waitForTimeout(500);
+      expect(Math.abs(await ul.evaluate((u) => Math.round(u.scrollTop)) - upAt) <= 4,
+        "a tab away and back lost the line she was reading: " + upAt + " -> " + await ul.evaluate((u) => Math.round(u.scrollTop)));
+      const back = await ul.boundingBox();   // the chat moved with the resize: take hold of it where it is now
+      await page.mouse.move(back.x + back.width / 2, back.y + back.height / 2);
+      await page.mouse.wheel(0, 4000);   // back to the foot: it follows again
+      await page.waitForTimeout(400);
+      await T(page, () => window.__catio.queenSays("A line said once you were back at the foot.", true, "s92"));
+      await page.waitForTimeout(400);
+      w = await where();
+      expect(w.at >= w.end - 2, "back at the foot, it didn't start following again: " + JSON.stringify(w));
+    });
+  });
+  // "Round out the corners of the speech bubbles, and don't allow them to span 100% of the width of the screen" (21 November)
+  await check("each line is a bubble with round corners, and none of them spans the screen", async () => {
+    const m = await page.locator("#queenThread li").evaluateAll((lis) => lis.map((li) => ({
+      round: parseFloat(getComputedStyle(li).borderTopLeftRadius) || 0,
+      w: Math.round(li.getBoundingClientRect().width), box: li.parentElement.clientWidth, screen: innerWidth,
+    })));
+    expect(m.length > 1, "too few lines to judge: " + JSON.stringify(m));
+    expect(m.every((x) => x.round >= 6), "a corner is square: " + JSON.stringify(m.map((x) => x.round)));
+    expect(m.every((x) => x.w <= x.box * .8 && x.w <= x.screen * .8), "a bubble takes the whole width: " + JSON.stringify(m));
+  });
   await T(page, () => { for (let i = 0; i < 14; i++) window.__catio.queenSays("Line " + i + " of a long answer, my lady, for the scroll.", true, "t" + (20 + i)); });
   await page.waitForTimeout(400);
-  await check("a long conversation is still one line at a time: the newest shows, the count says where you are, and the card never grows", async () => {
-    const cur = page.locator('#queenThread li[aria-current="true"]');
-    expect((await cur.innerText()).includes("Line 13"), "not at the newest: " + await cur.innerText());
-    const of = (await page.locator("#queenDlg .sk-of").innerText()).trim();
-    expect(/^(\d+) \/ \1$/.test(of), "the count doesn't say it is the last: " + of);
-    expect(await page.locator("#queenThread li").count() <= 20, "more than the last twenty lines are kept");
+  await check("a long conversation keeps the last twenty lines, every one of them in the chat, scrolled to the newest, and the card never grows", async () => {
+    const lis = page.locator("#queenThread li");
+    expect(await lis.count() <= 20, "more than the last twenty lines are kept");
+    expect(await lis.count() > 1, "the earlier lines went: " + await lis.count());
+    // all fourteen were said in one tick, so they share a said-at and the ids built from it: not one may be lost
+    const t = await page.locator("#queenThread").innerText();
+    const gone = Array.from({ length: 14 }, (_, i) => i).filter((i) => !t.includes("Line " + i + " of"));
+    expect(!gone.length, "lines said in the same tick were lost: " + gone.join(", "));
+    expect((await lis.last().innerText()).includes("Line 13"), "the newest isn't at the foot: " + await lis.last().innerText());
+    // scrolled down to it, with the earlier lines above to scroll back to: the chat scrolls, the card doesn't grow
+    const s = await page.locator("#queenThread").evaluate((u) => ({ over: u.scrollHeight - u.clientHeight, at: Math.round(u.scrollTop) }));
+    expect(s.over > 0 && s.at >= s.over - 2, "not scrolled to the newest, with the earlier lines above it: " + JSON.stringify(s));
     const card = await box("#queenDlg");
     expect(card.height <= 900, "the card grew instead of scrolling: " + card.height);
   });

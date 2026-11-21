@@ -186,7 +186,7 @@ the upper one: `S.floor`, `data-floor` on everything, upper pieces lifted by `ZU
   came for first and folds the rest (a cat's facts, management, name and title under Manage). **A session's or
   agent's card is a scene** (`openCatScene()`, her ask of 20 October: the Dota 2 style chat "with the cats" over the
   blurred café): the talk with it first, as the queen's (`talkStage()`: its ask or what it is on as the first line,
-  then every line said, one at a time, in `#thread`), your words under it, and the rest (the brain's files, Manage,
+  then every line said, as a chat, in `#thread`), your words under it, and the rest (the brain's files, Manage,
   Open session) on a see-through sheet below. An adopted chat keeps the plain card with its adopt form.
 - Hover means the pointer really moved onto the thing (`moved()`). When the camera moves or a dialog
   closes, the room that slides under a still pointer isn't named until she moves.
@@ -391,7 +391,8 @@ that inflates "3 need you" makes the sign a liar.
   (`::backdrop`), and nothing drawn around the talk or the log. Along the top her name, with the note she is saying
   under it, a row of tabs, each a square button with a pixel icon, the chosen one pressed in with the pack's pointer
   bobbing over it, and Close; the chosen tab's name in plain pixel type under them; then its page (← → turn the tabs
-  from the tab row, Page Up and Page Down from anywhere that isn't typing). The tabs are Talk, Quest log (with a count),
+  from the tab row, Page Up and Page Down from anywhere that isn't a field or the chat, which pages itself). The tabs
+  are Talk, Quest log (with a count),
   What she keeps, Her character, Routines (on the gateway) and You: the last four are what the Settings overlay held
   (`#queenKeeps`, `#queenCharacter`, `#queenRoutines`, `#queenYou`; her voice switch is on Her character), each on a
   see-through sheet (`.sk-page`, the line box's look), since a form on the blurred café can't be read. The icons
@@ -402,12 +403,18 @@ that inflates "3 need you" makes the sign a liar.
   of the house on the left, seen from behind (`ownerSVG()`, pixel art drawn in code since no pack has people,
   dressed from `house/main.owner`), the queen on the right, both standing on the blurred café itself (no frame, no
   floor of its own), a name plate under each, whoever isn't speaking dimmed
-  (`data-speaker` on `.qstage`), her sprite `talking` once she has words. Between them the line being said, in a
-  see-through box (her ask: "opaque, almost transparent": the pack's bubble with no fill over the hall, `color-mix`
-  of `--well`), in the speaker's name. **Every line is in the thread** (`#queenThread`, the last twenty: yours
-  `li.me`, hers `li.them`, a handoff `li.handoff` with its Open button, her greeting `li.greet`, her live answer
-  `#queenLive`) and one is current (`aria-current`), the newest unless she stepped back: Click to continue steps
-  on, Earlier back, a new line jumps to the newest. Under the stage, on her side, her turn as it goes
+  (`data-speaker` on `.qstage`), her sprite `talking` once she has words. **Between them the whole chat**
+  (`#queenThread`, the last twenty: yours `li.me`, hers `li.them`, a handoff `li.handoff` with its Open button,
+  her greeting `li.greet`, her live answer `#queenLive`), read as any chat is (her ask, 21 November: "I want to see
+  the previous chats without having to press earlier. It should look like a normal chat"): **every line at once**,
+  hers to the left and yours to the right, the newest at the foot, and it scrolls — there is no Earlier, no Click
+  to continue and no current line. A new line follows the newest unless she has scrolled back to read. Each line is
+  its own see-through bubble (her ask of 20 October: "opaque, almost transparent", a `color-mix` of `--well`, of
+  `--cream` for yours), **with round corners and never the whole width** (hers, the same day): the stage draws
+  nothing around them, since a frame round a chat of framed lines reads as two boxes. The 9-sliced bubble art is
+  square, so a line takes a `border-radius` instead, as the map panel's pieces do. A redraw touches only what
+  changed, so a selection survives one and her words as they come grow the one line. Under the stage, on her side,
+  her turn as it goes
   (`#queenWork`, below); then quick replies ("What is waiting for me?", "Anything for me to hand in?", "Good-bye.")
   and Speak, the box and Send. The two of them are drawn at `zoom` steps (`--fz`, each with a crown scale that
   lands on whole art pixels); on a phone the box takes the whole width of the scene and they stand under it, and
