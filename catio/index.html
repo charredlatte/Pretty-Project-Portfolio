@@ -2954,11 +2954,12 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     lines.append(ul);
     stage.append(owner, o.figure, lines, plateYou, plateThem);
     let toFoot = true;   // the first draw, and after you send: show the newest line
-    // The chat is redrawn on every refresh and on every word of hers as it comes. While the lines are the same ones,
-    // it is left standing and only their words and times are written over: her answer as it grows, and "just now"
-    // turning into "1 min ago". Otherwise a selection would be wiped every few seconds and a screen reader would
-    // hear the whole chat again. A line arriving or leaving does build it back, which is the rare case.
-    let drawn = [];   // the items the chat holds now, beside their <li>
+    // The chat is redrawn on every refresh and on every word of hers as it comes, so a line already drawn is left
+    // standing: only what is new goes in, what has gone comes out, and a line that has merely grown or aged is
+    // written over where it stands (her answer as it comes, "just now" turning into "1 min ago"). Rebuilding the
+    // lot instead would wipe a selection every few seconds and read the whole chat back to a screen reader each
+    // time, rather than the line that arrived.
+    let drawn = [];   // the items the chat holds now, each beside its <li>
     const who = (it) => (it.kind === "owner" ? "You" : o.name) + (it.at ? " · " + ago(it.at) : "");
     const bubble = (it) => {
       const li = el("li", (it.kind === "owner" ? "me" : "them") + (it.cls ? " " + it.cls : ""));
@@ -2969,24 +2970,34 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (it.extra) li.appendChild(it.extra());
       return li;
     };
-    const place = (it) => [it.key, it.kind, it.cls, it.id, it.lead].join("\u0000");   // which line it is, not what it says
+    const place = (it) => [it.key, it.kind, it.cls, it.id, it.lead, !!it.extra].join("\u0000");   // which line it is, not what it says
     const draw = () => {
       const items = o.items();
       const keep = ul.scrollTop;
       const foot = toFoot || ul.scrollHeight - keep - ul.clientHeight < 24;   // she is at the foot already: follow the newest
-      if (ul.clientHeight) toFoot = false;   // nothing is laid out while the card is still shut: the next draw is the one that can scroll
-      const put = items.length === drawn.length && items.every((it, i) => place(it) === place(drawn[i]));
-      if (put) items.forEach((it, i) => {   // the same lines: their words and times, in place
-        it.li = drawn[i].li;
-        if (it.text !== drawn[i].text) it.li.words.data = it.text;
-        const said = who(it); if (it.li.name.textContent !== said) it.li.name.textContent = said;
+      const was = new Map(drawn.map((it) => [it.key, it]));
+      const now = items.map((it) => {
+        const had = was.get(it.key);
+        const li = it.li = had && place(had) === place(it) ? had.li : bubble(it);
+        if (li.words.data !== it.text) li.words.data = it.text;
+        const said = who(it); if (li.name.textContent !== said) li.name.textContent = said;
+        return li;
       });
-      else ul.replaceChildren(...items.map((it) => (it.li = bubble(it))));
+      const stays = new Set(now);
+      for (const li of [...ul.children]) if (!stays.has(li)) li.remove();
+      now.forEach((li, i) => { if (ul.children[i] !== li) ul.insertBefore(li, ul.children[i] || null); });
       drawn = items;
       const said = items[items.length - 1];   // whoever spoke last is the one speaking: the other is dimmed
       stage.dataset.speaker = said && said.kind === "owner" ? "owner" : o.themKey || "them";
       owner.classList.toggle("talking", stage.dataset.speaker === "owner");
-      ul.scrollTop = foot ? ul.scrollHeight : keep;   // the newest, unless she has scrolled back to read
+      if (!foot) ul.scrollTop = keep;   // she has scrolled back to read: leave her there
+      else {
+        ul.scrollTop = ul.scrollHeight;
+        // nothing is laid out while the card is still shut, so that did nothing: do it again once it is open,
+        // or her card opens on the oldest line and the newest is only a scroll away
+        if (ul.clientHeight) toFoot = false;
+        else requestAnimationFrame(() => { ul.scrollTop = ul.scrollHeight; toFoot = !ul.clientHeight; });
+      }
       if (o.after) o.after();
     };
     const newest = () => { toFoot = true; draw(); };
