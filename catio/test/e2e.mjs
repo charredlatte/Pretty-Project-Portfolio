@@ -911,8 +911,16 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     await T(page, () => window.__catio.queenSays("A line said while you were reading further up.", true, "s91"));
     await page.waitForTimeout(400);
     expect((await where()).at <= 4, "a new line yanked her away from what she was reading: " + JSON.stringify(await where()));
+    // her place has to survive the chat losing its size: hiding Talk resets the scroll to nothing
+    const upAt = await ul.evaluate((u) => Math.round(u.scrollTop));
+    await page.click("#queenTab-quests"); await page.waitForTimeout(300);
+    await page.click("#queenTab-talk"); await page.waitForTimeout(500);
+    expect(Math.abs(await ul.evaluate((u) => Math.round(u.scrollTop)) - upAt) <= 4,
+      "a tab away and back lost the line she was reading: " + upAt + " -> " + await ul.evaluate((u) => Math.round(u.scrollTop)));
+    const back = await ul.boundingBox();   // the chat moved with the resize: take hold of it where it is now
+    await page.mouse.move(back.x + back.width / 2, back.y + back.height / 2);
     await page.mouse.wheel(0, 4000);   // back to the foot: it follows again
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(400);
     await T(page, () => window.__catio.queenSays("A line said once you were back at the foot.", true, "s92"));
     await page.waitForTimeout(400);
     w = await where();
