@@ -28,6 +28,8 @@ Environment:
                      serves one model
     CATIO_NOTIFY     a program to say homework on her desktop instead of the platform's own; it is called
                      with the text as its one argument. Set it empty for no notifications at all.
+    CATIO_TURN_LIMIT seconds one turn may take before it is stopped (default 900). A brain that hangs would
+                     otherwise block every note queued behind it for ever.
 
 README.md says how to set it up. Standard library only; Python 3.9 or later.
 """
@@ -52,6 +54,11 @@ WAIT_TIMEOUT = 40                 # the gateway holds a wait up to 25 s
 SAY_EVERY = 0.4                   # seconds between streamed updates to the café
 GRACE = 10                        # seconds a stopped turn gets to end on its own
 MAX_TURNS = "30"                  # rounds of tools in one turn, for either driver
+# A turn gets this long before it is ended. A brain that hangs -- claude waiting on a sign-in that never comes,
+# a model endpoint that accepts and never answers -- would otherwise block every note queued behind it for ever,
+# and that queue is how Charlotte's words reach her. CATIO_TURN_LIMIT (seconds) changes it.
+TURN_LIMIT = max(1, int(os.environ.get("CATIO_TURN_LIMIT") or 15 * 60))
+TURN_WORDS = ("%d minutes" % (TURN_LIMIT // 60)) if TURN_LIMIT >= 120 else ("%d seconds" % TURN_LIMIT)
 MODEL_TIMEOUT = 120               # seconds a model may stay silent before the turn is given up
 TOOL_RESULT = 4000                # characters of a tool's result a model is shown
 HISTORY = 40                      # messages ModelDriver keeps of her conversation, the counterpart of --resume
@@ -579,25 +586,40 @@ class Runner:
     def turn(self, prompt, routine):
         turn_id = str(int(time.time() * 1000))
         text, final, why, last_sent, steps = "", None, None, 0.0, []
-        for ev in self.driver.events(prompt):
-            kind = ev[0]
-            if kind == "awake":
-                self.say(turn_id, "", False, routine, steps)
-            elif kind == "start":
-                text = ""
-            elif kind == "delta":
-                text += ev[1]
-                if time.time() - last_sent >= SAY_EVERY:
+        late = []   # the turn outlasted TURN_LIMIT and was stopped; the note then says so rather than "exit N"
+
+        def give_up():
+            late.append(True)
+            log("no end to this turn after " + TURN_WORDS + ": stopping it")
+            self.interrupt()   # whichever brain is on it, which ends the turn as her Stop does
+
+        limit = threading.Timer(TURN_LIMIT, give_up)
+        limit.daemon = True
+        limit.start()
+        try:
+            for ev in self.driver.events(prompt):
+                kind = ev[0]
+                if kind == "awake":
+                    self.say(turn_id, "", False, routine, steps)
+                elif kind == "start":
+                    text = ""
+                elif kind == "delta":
+                    text += ev[1]
+                    if time.time() - last_sent >= SAY_EVERY:
+                        self.say(turn_id, text, False, routine, steps)
+                        last_sent = time.time()
+                elif kind == "text":
+                    text = ev[1]
                     self.say(turn_id, text, False, routine, steps)
-                    last_sent = time.time()
-            elif kind == "text":
-                text = ev[1]
-                self.say(turn_id, text, False, routine, steps)
-            elif kind == "tools":
-                steps += ev[1]
-                self.say(turn_id, text, False, routine, steps)
-            elif kind == "result":
-                final, why = ev[1], ev[2]
+                elif kind == "tools":
+                    steps += ev[1]
+                    self.say(turn_id, text, False, routine, steps)
+                elif kind == "result":
+                    final, why = ev[1], ev[2]
+        finally:
+            limit.cancel()
+        if late:
+            why = "no answer in " + TURN_WORDS
         # `final` is her answer alone (the drivers' contract above): a brain that failed puts its own words in
         # `why`, never in her mouth, so her streamed text stands if she got any out.
         own = (final if final is not None else text).strip()

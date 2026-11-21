@@ -39,6 +39,9 @@ argv = sys.argv[1:]
 note({"argv": argv, "stdin": prompt, "env": {k: v for k, v in os.environ.items() if k.startswith("CATIO_")}, "cwd": os.getcwd(),
       "prompt_file": open(argv[argv.index("--append-system-prompt-file") + 1], encoding="utf-8").read(),
       "mcp": json.load(open(argv[argv.index("--mcp-config") + 1]))})
+if "wedge" in prompt.lower():   # accepts the turn and never answers, emitting nothing at all
+    signal.signal(signal.SIGINT, lambda *a: sys.exit(130))
+    time.sleep(600)
 if "fail auth" in prompt.lower():   # the CLI never got going: an error result, no session, non-zero exit
     out({"type": "result", "subtype": "error_during_execution", "is_error": True,
          "result": "Failed to authenticate: OAuth session expired and could not be refreshed"})
@@ -489,8 +492,17 @@ class Queen(unittest.TestCase):
         self.assertTrue(says[-1]["text"].startswith("Forgive me, my lady"), says[-1]["text"])
         self.assertIn("no model", says[-1]["text"])
         self.assertIsNone(self.proc.poll())
-    def done(self, n=1):
-        return [s["text"] for s in self.said(n) if s.get("done")]
+    def done(self, n=1, timeout=20):
+        return [s["text"] for s in self.said(n, timeout) if s.get("done")]
+
+    def test_a_turn_that_never_answers_is_ended_so_the_notes_behind_it_arent_stuck(self):
+        """A brain that accepts the turn and never answers must not block the notes queued behind it: that queue
+        is how Charlotte's words reach her, and one wedged turn leaves her waiting for ever."""
+        self.srv.jobs.put({"notes": [NOTE(1, "wedge"), NOTE(2, "Good morrow.")]})
+        self.start(CATIO_TURN_LIMIT="2")
+        done = self.done(2, timeout=90)
+        self.assertIn("no answer in", done[0], "the wedged turn should have been ended, and say so")
+        self.assertIn("Two cats need thee.", done[1], "and the note behind it answered")
 
     def test_claudes_own_error_is_never_put_in_her_mouth(self):
         """The CLI's "Failed to authenticate" is the runner's trouble, not a word the queen said."""

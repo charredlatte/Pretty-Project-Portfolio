@@ -113,6 +113,12 @@ answer without looking: give her at least an 8B instruct model.
   out before it broke, those words stand on their own. And one wall is said **once**: the notes queued behind
   it end their turns quietly rather than filling her conversation with the same line, until a turn works
   again. So a runner left overnight with an expired sign-in leaves one note, not one per thing she said.
+- **A note is kept until its turn is finished, and a turn has an end.** The wait's `ack` is the newest note
+  whose turn has *ended*, never one merely received, so a runner killed mid-turn hears that note again rather
+  than losing what she said; a note offered again while its turn still runs is skipped, not answered twice. And
+  a turn that goes past `TURN_LIMIT` (15 minutes, `CATIO_TURN_LIMIT` to change) is stopped and says so, because
+  a brain that accepts a turn and never answers -- `claude` waiting on a sign-in that never comes -- would
+  otherwise block every note behind it for ever, and that queue is how Charlotte's words reach her.
 - Her character (`queens/house` in the café: name, manner, greeting) comes with every wait, so a change in
   her card applies on the next turn. `queen.md` is the part that doesn't change.
 - **Says her homework on Charlotte's desktop.** Every wait also carries the open quizzes counted by kind, and
