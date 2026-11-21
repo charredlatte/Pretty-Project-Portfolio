@@ -391,7 +391,8 @@ that inflates "3 need you" makes the sign a liar.
   (`::backdrop`), and nothing drawn around the talk or the log. Along the top her name, with the note she is saying
   under it, a row of tabs, each a square button with a pixel icon, the chosen one pressed in with the pack's pointer
   bobbing over it, and Close; the chosen tab's name in plain pixel type under them; then its page (← → turn the tabs
-  from the tab row, Page Up and Page Down from anywhere that isn't typing). The tabs are Talk, Quest log (with a count),
+  from the tab row, Page Up and Page Down from anywhere that isn't a field or the chat, which pages itself). The tabs
+  are Talk, Quest log (with a count),
   What she keeps, Her character, Routines (on the gateway) and You: the last four are what the Settings overlay held
   (`#queenKeeps`, `#queenCharacter`, `#queenRoutines`, `#queenYou`; her voice switch is on Her character), each on a
   see-through sheet (`.sk-page`, the line box's look), since a form on the blurred café can't be read. The icons

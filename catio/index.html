@@ -2976,16 +2976,30 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       back = ul.scrollTop;
     });
     // A resize rewraps every line, so the chat goes on growing taller for several frames: pinning once lands short
-    // of the foot. Hold it there until its height settles, a dozen frames at most in case it never does. The same
-    // observer carries her place over the chat having no size at all -- the card shut, or Talk not the tab showing,
-    // both of which reset the scroll -- by putting it back when it has one again.
+    // of the foot, and it is held there until its height settles, a dozen frames at most in case it never does.
+    // One loop at a time, and it lets go the moment she takes hold of the chat or it leaves the screen. While it
+    // runs, the chat is changing size, so a scroll of hers in those frames reads as the layout's -- which is only
+    // as long as the rewrap, unless the window is still being dragged or a phone's keyboard is on its way up.
     // Kept on the element: an observer made and dropped in one breath is reachable from nothing and may be collected.
+    let frame = 0, left = 0, tall = -1;
+    const hold = () => {
+      frame = 0;
+      if (!follow || !ul.clientHeight) return;
+      ul.scrollTop = ul.scrollHeight; noted();
+      if (ul.scrollHeight !== tall && left--) { tall = ul.scrollHeight; frame = requestAnimationFrame(hold); }
+    };
+    let seen = 0;   // the size the chat was last seen at, to tell coming back on screen from merely changing size
     ul.watch = new ResizeObserver(() => {
+      const gone = !seen;
+      seen = ul.clientHeight;
       if (!ul.clientHeight) return;
-      if (!follow) { ul.scrollTop = back; noted(); return; }   // she was reading further up: put her back there
-      let was = -1, n = 12;
-      const pin = () => { ul.scrollTop = ul.scrollHeight; noted(); if (ul.scrollHeight !== was && n--) { was = ul.scrollHeight; requestAnimationFrame(pin); } };
-      pin();
+      // Reading further up: her place is only put back when the chat is coming back from having no size at all --
+      // the card shut, or Talk not the tab showing, both of which reset the scroll to nothing. Through an ordinary
+      // resize the browser's own anchoring keeps her line better than a remembered pixel would.
+      if (!follow) { if (gone) { ul.scrollTop = back; noted(); } return; }
+      left = 12; tall = -1;
+      if (frame) cancelAnimationFrame(frame);
+      hold();
     });
     ul.watch.observe(ul);
     // The chat is redrawn on every refresh and on every word of hers as it comes, so a line already drawn is left
@@ -3439,7 +3453,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       if (!to) return;
       e.preventDefault(); selectTab(to); tabBtns[to].focus();
     });
-    box.addEventListener("keydown", (e) => {   // Page Up and Page Down turn the tabs from anywhere that isn't typing
+    box.addEventListener("keydown", (e) => {   // Page Up and Page Down turn the tabs, except where they page the thing in hand
       if ((e.key !== "PageUp" && e.key !== "PageDown") || e.target.closest("input, textarea, select, ul.thread")) return;   // the chat pages itself
       e.preventDefault(); const to = stepTab(e.key === "PageDown" ? 1 : -1); selectTab(to); tabBtns[to].focus();
     });
