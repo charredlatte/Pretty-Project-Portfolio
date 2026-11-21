@@ -453,6 +453,9 @@ class Runner:
         self.lock = threading.Lock()
         self.character = {}            # her name, manner and greeting, as set in the café
         self.stuck = None              # what the last turn failed on, so one wall is said once, not once a note
+        self.answered = 0              # the newest note whose turn has finished: what the gateway is told it may
+                                       # stop offering. Receiving a note is not finishing it -- a runner that dies
+                                       # mid-turn must hear that note again rather than lose what she said.
         self.state_file = home / "state.json"
         try:
             self.state = json.loads(self.state_file.read_text(encoding="utf-8"))
@@ -465,10 +468,12 @@ class Runner:
 
     # ---- waiting on the gateway, on a thread of its own, so a Stop reaches the turn in progress ----
     def watch(self):
-        pause, acked = 5, 0   # acked: the newest note she has been given; the gateway offers a note again until the next wait says so
+        pause, queued = 5, set()   # the gateway offers a note until a wait says its turn is done (self.answered);
+                                   # queued remembers the ones already with the job loop, so an offer made again
+                                   # while that turn is still running doesn't put it in a second time
         while True:
             try:
-                got = self.gw.post("/api/runner/wait", {"ack": acked, "provider": self.driver.provider, "model": self.driver.model}, WAIT_TIMEOUT)
+                got = self.gw.post("/api/runner/wait", {"ack": self.answered, "provider": self.driver.provider, "model": self.driver.model}, WAIT_TIMEOUT)
                 pause = 5
             except urllib.error.HTTPError as e:
                 detail = e.read().decode(errors="replace")[:200]
@@ -496,8 +501,11 @@ class Runner:
             if got.get("stop"):
                 self.interrupt()
             for note in got.get("notes") or []:
+                nid = str(note.get("id") or note.get("at") or "")
+                if nid in queued:
+                    continue   # offered again because its turn hasn't finished: it is already waiting its turn
+                queued.add(nid)
                 self.jobs.put(("note", note))
-                acked = max(acked, note.get("at") or 0)
             if got.get("routine"):
                 self.jobs.put(("routine", got["routine"]))
 
@@ -530,6 +538,7 @@ class Runner:
                 prompt = "[Catio] Charlotte says: " + str(job.get("text") or "")
                 log("Charlotte:", str(job.get("text") or "")[:80])
                 self.turn(prompt, None)
+                self.answered = max(self.answered, job.get("at") or 0)   # answered: the gateway may let it go
             else:
                 name = str(job.get("name") or job.get("id") or "")
                 log("routine:", name)
@@ -596,8 +605,11 @@ class Runner:
         if not said:
             said = (STUCK if why else SORRY) + ((" (" + why + ")") if why else "")
         wall = why if (not own and why) else None   # she could not think at all, and this is what stopped her
-        if wall and wall == self.stuck:   # the same wall again: she has said it once, and the notes queued
-            log("still stuck:", wall[:120])   # behind it mustn't each add their own copy to her conversation
+        # The same wall, with more still waiting behind it: those mustn't each add their own copy to her
+        # conversation. The last of a run always answers, whatever it hit, because a turn that ends with no note
+        # is indistinguishable from one still thinking to anything waiting for her words.
+        if wall and wall == self.stuck and not self.jobs.empty():
+            log("still stuck:", wall[:120])
             return self.say(turn_id, "", True, routine)   # the turn ends; an empty answer is kept as no note
         self.stuck = wall
         self.say(turn_id, said, True, routine)
