@@ -613,8 +613,8 @@ dialog.scene::backdrop { background: color-mix(in srgb, var(--shade) 28%, transp
 .sk-line { margin: 2px 0 0; min-width: 0; overflow-wrap: anywhere; font-size: .85rem; font-weight: 700; color: var(--ink); }
 .sk-line:empty { display: none; }
 @media (pointer: coarse) { .sk-keys { display: none; } }
-/* Talk: the two of them on the hall's floor in the pack's picture frame, a name plate under each, the line being said
-   between them. Whoever isn't speaking is dimmed; she bobs only once she has words (talking). */
+/* Talk: the two of them standing on the blurred café, a name plate under each, and the chat between them.
+   Whoever spoke last is the speaker; the other is dimmed, and she bobs only once she has words (talking). */
 .sk-talk { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(200px, 1fr) auto; gap: 8px; overflow: hidden; align-content: stretch; }   /* the stage keeps a floor the two of them fit in */
 .qstage { position: relative; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr) auto; column-gap: 6px; padding: 6px 8px 8px; overflow: hidden; }
 .qstage > * { position: relative; min-width: 0; min-height: 0; }
@@ -660,9 +660,9 @@ dialog.scene::backdrop { background: color-mix(in srgb, var(--shade) 28%, transp
    scene's own bubble wins on being later. Without it a line of hers kept the pack's square frame over the radius. */
 .sk-lines ul.thread li { display: block; width: fit-content; max-width: min(74%, 560px); margin: 0; padding: 5px 12px 8px;
   border: 0; border-image: none; border-radius: 14px;
-  background: color-mix(in srgb, var(--well) 82%, transparent); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  background: color-mix(in srgb, var(--well) 85%, transparent);   /* no blur of its own: the scene's backdrop blurs the café already, and a chat would stack twenty of them */
   font: 700 clamp(1rem, 1.7vw, 1.2rem)/1.45 var(--body); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
-.sk-lines ul.thread li.me { margin-left: auto; background: color-mix(in srgb, var(--cream) 82%, transparent); }
+.sk-lines ul.thread li.me { margin-left: auto; background: color-mix(in srgb, var(--cream) 85%, transparent); }
 .sk-lines ul.thread li .who { display: block; margin-bottom: 2px; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); }
 .sk-lines ul.thread li .lead { display: block; font-size: .8rem; font-weight: 800; color: var(--ink); }
 .sk-lines ul.thread li .open { display: inline-block; margin-top: 6px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }   /* .btn is nowrap: without this a cat with a long name runs off the side */
@@ -2982,9 +2982,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       const keep = ul.scrollTop;
       const live = ul.clientHeight > 0;   // laid out: the card is open and Talk is the tab showing
       const foot = toFoot || !live || ul.scrollHeight - keep - ul.clientHeight < 24;   // she is at the foot already: follow the newest
-      const was = new Map(drawn.map((it) => [it.key, it]));
+      const was = new Map();   // the lines drawn, by key and in order: two that share a key take one <li> each,
+      for (const it of drawn) { const q = was.get(it.key); if (q) q.push(it); else was.set(it.key, [it]); }   // or one of them is lost
       const now = items.map((it) => {
-        const had = was.get(it.key);
+        const had = (was.get(it.key) || []).shift();
         const li = it.li = had && place(had) === place(it) ? had.li : bubble(it);
         if (li.words.data !== it.text) li.words.data = it.text;
         const said = who(it); if (li.name.textContent !== said) li.name.textContent = said;
@@ -3419,7 +3420,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       e.preventDefault(); const to = stepTab(e.key === "PageDown" ? 1 : -1); selectTab(to); tabBtns[to].focus();
     });
 
-    // ---- Talk: the owner of the house on the left, from behind; the queen on the right; the line being said between ----
+    // ---- Talk: the owner of the house on the left, from behind; the queen on the right; the chat between them ----
     const her = el("div", "qchar"); her.id = "queenFig"; her.setAttribute("aria-hidden", "true");
     const T = talkStage({ name: q.name, figure: her, ulId: "queenThread", themKey: "queen", after: () => { dress(); drawWork(); }, items: () => {
       const cats = allCats(true).cats;

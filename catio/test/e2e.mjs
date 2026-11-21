@@ -903,6 +903,10 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     const lis = page.locator("#queenThread li");
     expect(await lis.count() <= 20, "more than the last twenty lines are kept");
     expect(await lis.count() > 1, "the earlier lines went: " + await lis.count());
+    // all fourteen were said in one tick, so they share a said-at and the ids built from it: not one may be lost
+    const t = await page.locator("#queenThread").innerText();
+    const gone = Array.from({ length: 14 }, (_, i) => i).filter((i) => !t.includes("Line " + i + " of"));
+    expect(!gone.length, "lines said in the same tick were lost: " + gone.join(", "));
     expect((await lis.last().innerText()).includes("Line 13"), "the newest isn't at the foot: " + await lis.last().innerText());
     // scrolled down to it, with the earlier lines above to scroll back to: the chat scrolls, the card doesn't grow
     const s = await page.locator("#queenThread").evaluate((u) => ({ over: u.scrollHeight - u.clientHeight, at: Math.round(u.scrollTop) }));
