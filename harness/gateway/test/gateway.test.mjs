@@ -574,6 +574,7 @@ describe("the queen", () => {
 		assert.deepEqual([got.stop, got.routine], [false, null]);
 		assert.deepEqual(got.character, { name: "Duchesse", manner: "Elizabethan English, warm.", greeting: "Good morrow, my lady." });
 		assert.equal((await queen()).via, "runner", "her runner is present");
+		assert.equal((await queen()).provider, "anthropic", "a runner that doesn't say what thinks for her is Claude Code's");
 		// each note is handed out once
 		const again = wait();
 		await sleep(300);
@@ -788,6 +789,20 @@ describe("the queen", () => {
 		assert.equal((await api("/api/keys", { method: "POST", body: JSON.stringify({ name: "odd", role: "king" }) })).status, 400);
 		assert.equal((await api("/api/keys/pc", { method: "DELETE" })).status, 200);
 		assert.equal((await fetch(base + "/api/runner/say", { method: "POST", headers: { Authorization: "Bearer " + minted.key }, body: "{}" })).status, 401, "a dropped key is dead");
+	});
+
+	test("her card says what thinks for her: the brain her runner names on each wait", async () => {
+		const waiting = runner("/api/runner/wait", { ack: 0, provider: "local", model: "llama3.1" }).then((r) => r.json());
+		await sleep(300);
+		await tool(her, "comment", { cat: "queen", text: "Still there?" });
+		const got = await waiting;
+		assert.deepEqual(got.notes.map((n) => n.text), ["Still there?"]);
+		assert.deepEqual([(await queen()).provider, (await queen()).model], ["local", "llama3.1"], "a model of her own on her own computer");
+		const back = runner("/api/runner/wait", { ack: got.notes[0].at, provider: "x".repeat(80), model: { not: "a string" } }).then((r) => r.json());
+		await sleep(300);
+		await tool(her, "comment", { cat: "queen", text: "And now?" });
+		await back;
+		assert.deepEqual([(await queen()).provider, (await queen()).model], ["x".repeat(60), "llama3.1"], "cut to 60; what isn't a string is left as it was");
 	});
 });
 

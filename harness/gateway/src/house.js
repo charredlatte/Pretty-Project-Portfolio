@@ -447,13 +447,17 @@ export class House extends DurableObject {
 	/** Held until Charlotte writes to the queen, a routine comes due or her turn is to stop, or HOLD passes:
 	 * {notes, routine, stop, character}. A routine is handed out once (a lost one comes round again, see LEASE). A note
 	 * is handed out until the runner acknowledges it: `ack` is the `at` of the last note it was given, sent with its next
-	 * wait, so a note lost with a dropped connection is offered again. A runner that sends no `ack` is handed each note once. */
-	async waitForQueen(ack) {
+	 * wait, so a note lost with a dropped connection is offered again. A runner that sends no `ack` is handed each note once.
+	 * `brain` is what thinks for her, {provider, model}, so her card says which (Claude Code, or a model of the owner's own). */
+	async waitForQueen(ack, brain = {}) {
 		const acking = Number.isFinite(ack);
 		if (acking) this.ackQueen(ack);
 		const a = this.agent(QUEEN);
 		const back = !a || Date.now() - (a.updated || 0) > AWAY;
-		if (this.presence(a && a.mood === "busy" ? "busy" : "done") || back) this.tell({ type: "agents" });   // she is back: the cafés show her
+		const breed = {};
+		for (const k of ["provider", "model"]) if (typeof brain[k] === "string" && brain[k].trim()) breed[k] = brain[k].trim().slice(0, 60);
+		const changed = a && Object.keys(breed).some((k) => a[k] !== breed[k]);
+		if (this.presence(a && a.mood === "busy" ? "busy" : "done", breed) || back || changed) this.tell({ type: "agents" });   // she is back: the cafés show her
 		this.armAlarm();
 		let out = this.queenReady(acking);
 		if (!out) {
@@ -534,10 +538,11 @@ export class House extends DurableObject {
 
 	/** The queen's presence: the agent record "queen", kept by her runner's calls (the page keeps it out of the
 	 * cats). True when her mood changed. */
-	presence(mood) {
+	presence(mood, breed = {}) {
 		const a = this.agent(QUEEN) || { id: QUEEN, name: "The queen", via: "runner", provider: "anthropic", since: Date.now() };
 		const changed = a.mood !== mood;
 		a.mood = mood;
+		Object.assign(a, breed);
 		a.updated = Date.now();
 		this.save(a);
 		return changed;
