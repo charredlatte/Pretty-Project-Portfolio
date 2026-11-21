@@ -726,7 +726,7 @@ dialog.scene::backdrop { background: color-mix(in srgb, var(--shade) 28%, transp
   .saybar .btn { padding-inline: calc(1 * var(--u)); }
   .qstage { grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) auto auto; }
   .qstage { padding: 4px 2px 6px; }
-  .sk-lines { grid-area: 1 / 1 / 2 / 3; align-self: start; width: 100%; padding: 4px 6px 6px; }   /* its row's height at most: under that the line scrolls, and the two of them keep their own row */
+  .sk-lines { grid-area: 1 / 1 / 2 / 3; align-self: start; width: 100%; padding: 4px 6px 6px; }   /* the whole width, over the two of them, who keep their own row; the chat is capped on the window as everywhere */
   .owner { grid-area: 2 / 1; justify-self: start; }
   .qchar { grid-area: 2 / 2; justify-self: end; }
   .sk-plate { grid-row: 3; }
@@ -2955,11 +2955,34 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const ul = el("ul", "thread"); ul.id = o.ulId; ul.setAttribute("role", "log"); ul.tabIndex = 0;
     lines.append(ul);
     stage.append(owner, o.figure, lines, plateYou, plateThem);
-    // Show the newest line: on the first draw, after you send, and whenever the chat has no layout to scroll --
-    // the card still shut, or Talk not the tab showing, both of which leave it at nothing and reset the scroll.
-    // The observer is what carries it over: it fires when the chat gains a size, which is the moment it can be done.
-    let toFoot = true;
-    new ResizeObserver(() => { if (toFoot && ul.clientHeight) { ul.scrollTop = ul.scrollHeight; toFoot = false; } }).observe(ul);
+    // Whether she is reading the newest line, which is what a new one follows. It is kept rather than worked out
+    // at each draw: the chat's height is the window's, so turning a phone, raising its keyboard or opening the
+    // card at another size all leave the scroll where it no longer reaches the foot, and reading the position
+    // then would take that for her having scrolled back. The scroll tells us instead -- a scroll of ours lands at
+    // the foot and leaves this true -- and the observer puts her back at the foot whenever the chat is resized,
+    // or gains a size at all: nothing is laid out while the card is shut or Talk is not the tab showing, and
+    // being hidden resets the scroll, which is why that reset must not be read either.
+    let follow = true, touched = 0;   // touched: when she last took hold of the chat herself
+    const foot = () => ul.scrollHeight - ul.scrollTop - ul.clientHeight < 24;
+    // Only her own scrolling says whether she is still reading the newest. A resize scrolls the chat by itself --
+    // the lines rewrap and the browser keeps what was on screen where it was -- and that scroll is delivered
+    // before the observer below, so reading every scroll took a resize for her having scrolled back, and the
+    // chat stopped following for good.
+    for (const ev of ["wheel", "touchstart", "touchmove", "keydown", "pointerdown"]) ul.addEventListener(ev, () => { touched = Date.now(); }, { passive: true });
+    ul.addEventListener("scroll", () => { if (ul.clientHeight && Date.now() - touched < 1000) follow = foot(); });
+    // A resize changes the chat's width, so every line rewraps and the chat goes on growing taller for several
+    // frames after. Pinning it once lands short of the foot, and the scroll that lands short arrives after the
+    // rewrap, where it reads as her having scrolled back. So hold it at the foot frame by frame until its height
+    // settles (at most a dozen, in case it never does), and don't take the scrolls in between for hers.
+    // kept in a variable on purpose: nothing else refers to an observer made and dropped in one breath, and the
+    // browser is free to collect it, which it does -- the chat then stopped following the newest after a resize
+    const watch = new ResizeObserver(() => {
+      if (!follow || !ul.clientHeight) return;
+      let was = -1, n = 12;   // the lines go on rewrapping for a few frames: hold it at the foot until it settles
+      const pin = () => { ul.scrollTop = ul.scrollHeight; if (ul.scrollHeight !== was && n--) { was = ul.scrollHeight; requestAnimationFrame(pin); } };
+      pin();
+    });
+    watch.observe(ul);
     // The chat is redrawn on every refresh and on every word of hers as it comes, so a line already drawn is left
     // standing: only what is new goes in, what has gone comes out, and a line that has merely grown or aged is
     // written over where it stands (her answer as it comes, "just now" turning into "1 min ago"). Rebuilding the
@@ -2979,9 +3002,6 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const place = (it) => [it.key, it.kind, it.cls, it.id, it.lead, !!it.extra].join("\u0000");   // which line it is, not what it says
     const draw = () => {
       const items = o.items();
-      const keep = ul.scrollTop;
-      const live = ul.clientHeight > 0;   // laid out: the card is open and Talk is the tab showing
-      const foot = toFoot || !live || ul.scrollHeight - keep - ul.clientHeight < 24;   // she is at the foot already: follow the newest
       const was = new Map();   // the lines drawn, by key and in order: two that share a key take one <li> each,
       for (const it of drawn) { const q = was.get(it.key); if (q) q.push(it); else was.set(it.key, [it]); }   // or one of them is lost
       const now = items.map((it) => {
@@ -2998,12 +3018,10 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       const said = items[items.length - 1];   // whoever spoke last is the one speaking: the other is dimmed
       stage.dataset.speaker = said && said.kind === "owner" ? "owner" : o.themKey || "them";
       owner.classList.toggle("talking", stage.dataset.speaker === "owner");
-      if (!foot) ul.scrollTop = keep;   // she has scrolled back to read: leave her there
-      else if (live) { ul.scrollTop = ul.scrollHeight; toFoot = false; }
-      else toFoot = true;   // nothing to scroll yet: the observer does it when the chat has a size
+      if (follow) ul.scrollTop = ul.scrollHeight;   // scrolled back to read, she is left where she is
       if (o.after) o.after();
     };
-    const newest = () => { toFoot = true; draw(); };
+    const newest = () => { follow = true; draw(); };
     return { stage, owner, ul, draw, newest };
   }
   // the top of a scene: a name and a line under it, Close in the corner (a cat's card has no tabs)

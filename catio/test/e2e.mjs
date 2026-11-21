@@ -887,6 +887,38 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
     expect(!(await page.locator("#queenFig").getAttribute("class")).includes("talking"), "still talking when done");
     expect(!(await page.locator("#queenWork").isVisible()), "the strip outlived her answer");
   });
+  // the other half of a normal chat: it follows the newest line, and stops following while she is reading back
+  await check("a new line follows the newest, unless she has scrolled back to read, and a change of size doesn't lose her place", async () => {
+    const ul = page.locator("#queenThread");
+    const where = () => ul.evaluate((u) => ({ at: Math.round(u.scrollTop), end: Math.round(u.scrollHeight - u.clientHeight) }));
+    await T(page, () => { for (let i = 0; i < 12; i++) window.__catio.queenSays("A line to fill the chat so that it scrolls, number " + i + ".", true, "s" + i); });
+    await page.waitForTimeout(400);
+    let w = await where();
+    expect(w.end > 0 && w.at >= w.end - 2, "not at the newest to begin with: " + JSON.stringify(w));
+    // a change of size must not strand her above the foot: the chat's height is the window's
+    await resize(page, 900, 560); await page.waitForTimeout(300);
+    await T(page, () => window.__catio.queenSays("A line said after the window changed size.", true, "s90"));
+    await page.waitForTimeout(400);
+    w = await where();
+    expect(w.at >= w.end - 2, "a change of size stopped the chat following the newest: " + JSON.stringify(w));
+    expect((await ul.locator("li").last().innerText()).includes("after the window changed size"), "the newest line isn't the one at the foot");
+    // scrolled back, a new line must leave her where she is reading. With the wheel, as she would: only her own
+    // scrolling says she has stopped following, so that a resize moving the chat by itself doesn't read as hers
+    const over = await ul.boundingBox();
+    await page.mouse.move(over.x + over.width / 2, over.y + over.height / 2);
+    await page.mouse.wheel(0, -4000);
+    await page.waitForTimeout(300);
+    await T(page, () => window.__catio.queenSays("A line said while you were reading further up.", true, "s91"));
+    await page.waitForTimeout(400);
+    expect((await where()).at <= 4, "a new line yanked her away from what she was reading: " + JSON.stringify(await where()));
+    await page.mouse.wheel(0, 4000);   // back to the foot: it follows again
+    await page.waitForTimeout(300);
+    await T(page, () => window.__catio.queenSays("A line said once you were back at the foot.", true, "s92"));
+    await page.waitForTimeout(400);
+    w = await where();
+    expect(w.at >= w.end - 2, "back at the foot, it didn't start following again: " + JSON.stringify(w));
+    await resize(page, 1440, 900); await page.waitForTimeout(300);
+  });
   // "Round out the corners of the speech bubbles, and don't allow them to span 100% of the width of the screen" (21 November)
   await check("each line is a bubble with round corners, and none of them spans the screen", async () => {
     const m = await page.locator("#queenThread li").evaluateAll((lis) => lis.map((li) => ({
