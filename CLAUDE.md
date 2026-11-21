@@ -411,7 +411,8 @@ that inflates "3 need you" makes the sign a liar.
   (`#queenThread`, the last twenty: yours `li.me`, hers `li.them`, a handoff `li.handoff` with its Open button,
   her greeting `li.greet`, her live answer `#queenLive`), read as any chat is (her ask, 21 November: "I want to see
   the previous chats without having to press earlier. It should look like a normal chat"): **every line at once**,
-  hers to the left and yours to the right, the newest at the foot, and it scrolls — there is no Earlier, no Click
+  each on its speaker's own side -- yours on the left and hers on the right, where the two of them stand (her
+  correction the same day) -- the newest at the foot, and it scrolls — there is no Earlier, no Click
   to continue and no current line. A new line follows the newest unless she has scrolled back to read. Each line is
   its own see-through bubble (her ask of 20 October: "opaque, almost transparent", a `color-mix` of `--well`, of
   `--cream` for yours), **with round corners and never the whole width** (hers, the same day): the stage draws

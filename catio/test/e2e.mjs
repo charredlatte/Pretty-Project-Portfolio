@@ -873,13 +873,21 @@ const menuButton = (page, name) => page.locator("#menu").getByRole("button", { n
   await T(page, () => window.__catio.queenSays("Good morrow, my lady. Two cats need thee.", true, "t9"));
   await page.waitForTimeout(300);
   // "I want to see the previous chats without having to press earlier. It should look like a normal chat." (21 November)
-  await check("every line is in the chat and readable without pressing anything, hers and yours, the newest at the foot", async () => {
+  await check("every line is in the chat, each on its speaker's own side, readable without pressing anything, the newest at the foot", async () => {
     const n = (sel) => page.locator(sel).count();
     expect(await n("#queenThread li.me") > 0 && await n("#queenThread li.them:not(.handoff)") > 0, "a line is missing: " + (await page.locator("#queenThread").innerHTML()).slice(0, 600));
     expect(await n('#queenDlg button:has-text("Earlier")') === 0 && await n('#queenDlg button:has-text("Click to continue")') === 0, "the chat still has to be stepped through");
     const shown = await page.locator("#queenThread li").evaluateAll((lis) => lis.map((li) => [li.className, getComputedStyle(li).display]));
     expect(shown.length > 1, "only one line is in the chat: " + JSON.stringify(shown));
     expect(shown.every(([, d]) => d !== "none"), "an earlier line is hidden: " + JSON.stringify(shown));
+    // each on its speaker's own side, where the two of them stand: yours left, hers right (her correction, 21 November)
+    const sides = await page.locator("#queenThread li").evaluateAll((lis) => lis.map((li) => {
+      const b = li.getBoundingClientRect(), p = li.parentElement.getBoundingClientRect();
+      return { me: li.classList.contains("me"), left: Math.round(b.left - p.left), right: Math.round(p.right - b.right) };
+    }));
+    expect(sides.some((x) => x.me) && sides.some((x) => !x.me), "need a line each way to judge the sides");
+    expect(sides.filter((x) => x.me).every((x) => x.left < x.right), "your lines aren't on your side, the left: " + JSON.stringify(sides.filter((x) => x.me)));
+    expect(sides.filter((x) => !x.me).every((x) => x.right < x.left), "her lines aren't on her side, the right: " + JSON.stringify(sides.filter((x) => !x.me)));
     const last = page.locator("#queenThread li").last();
     expect((await last.getAttribute("class")).includes("them"), "the newest line isn't hers: " + await last.getAttribute("class"));
     expect((await last.innerText()).includes("Two cats need thee"), await last.innerText());

@@ -653,16 +653,17 @@ dialog.scene::backdrop { background: color-mix(in srgb, var(--shade) 28%, transp
    The cap is on the window instead, which is always definite, and the chat scrolls inside it. */
 .sk-lines { grid-area: 1 / 2 / 3 / 3; align-self: end; justify-self: center; width: min(100%, 1200px); max-height: 50dvh; display: grid; grid-template-rows: minmax(0, 1fr); }
 .sk-lines ul.thread { list-style: none; margin: 0; padding: 2px; min-width: 0; min-height: 0; gap: 8px; align-content: start; overflow: auto; overscroll-behavior: contain; }
-/* each line its own bubble, hers to the left and yours to the right, as a chat has them. Round corners and never the
-   whole width of the scene, both her ask of 21 November; see-through over the café, her ask of 20 October. The border
-   art is 9-sliced and square, so a bubble drops it for its face colour and a radius, as the map panel's pieces do.
+/* each line its own bubble, on its speaker's own side of the scene: yours to the left, where you stand, and hers to
+   the right, where she sits (her correction, 21 November). Round corners and never the whole width of the scene,
+   both her ask the same day; see-through over the café, her ask of 20 October. The border art is 9-sliced and
+   square, so a bubble drops it for its face colour and a radius, as the map panel's pieces do.
    `ul.thread li` above, which gives a reply the pack's bubble, is as specific as this: these say `ul` too, so the
    scene's own bubble wins on being later. Without it a line of hers kept the pack's square frame over the radius. */
 .sk-lines ul.thread li { display: block; width: fit-content; max-width: min(74%, 560px); margin: 0; padding: 5px 12px 8px;
   border: 0; border-image: none; border-radius: 14px;
-  background: color-mix(in srgb, var(--well) 85%, transparent);   /* no blur of its own: the scene's backdrop blurs the café already, and a chat would stack twenty of them */
+  background: color-mix(in srgb, var(--cream) 85%, transparent);   /* no blur of its own: the scene's backdrop blurs the café already, and a chat would stack twenty of them */
   font: 700 clamp(1rem, 1.7vw, 1.2rem)/1.45 var(--body); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
-.sk-lines ul.thread li.me { margin-left: auto; background: color-mix(in srgb, var(--cream) 85%, transparent); }
+.sk-lines ul.thread li.them { margin-left: auto; background: color-mix(in srgb, var(--well) 85%, transparent); }   /* her side, where she sits */
 .sk-lines ul.thread li .who { display: block; margin-bottom: 2px; font: var(--px-size)/var(--px-line) var(--pixel); color: var(--ink); }
 .sk-lines ul.thread li .lead { display: block; font-size: .8rem; font-weight: 800; color: var(--ink); }
 .sk-lines ul.thread li .open { display: inline-block; margin-top: 6px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }   /* .btn is nowrap: without this a cat with a long name runs off the side */
@@ -2937,8 +2938,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
   // A game dialogue (her Breath of the Wild and Dota 2 Crownfall screens, 20 October): the owner of the house on the
   // left, seen from behind, whoever she talks to on the right, a name plate under each, and what they say in a
   // see-through box between them. It reads as a normal chat (her ask, 21 November: "I want to see the previous chats
-  // without having to press earlier"): every line is there, hers to one side and yours to the other, the newest at
-  // the foot, and the box scrolls. A new line follows the newest unless she has scrolled back to read. The queen's
+  // without having to press earlier"): every line is there, each on its speaker's own side of the scene -- yours
+  // on the left and hers on the right, where the two of them stand -- the newest at the foot, and the box scrolls. A new line follows the newest unless she has scrolled back to read. The queen's
   // card and a cat's card both talk through it: o.items() gives the lines ({key, kind: owner|them, cls, id, who,
   // lead, text, at, extra(), live, handoff}), o.after() runs after each draw, o.themKey names the speaker when it
   // isn't her — whoever spoke last.
