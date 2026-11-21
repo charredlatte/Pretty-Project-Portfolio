@@ -2948,12 +2948,18 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const plateYou = el("span", "sk-plate you", "You"), plateThem = el("span", "sk-plate her", o.name);
     plateYou.setAttribute("aria-hidden", "true"); plateThem.setAttribute("aria-hidden", "true");
     const lines = el("div", "sk-lines"); lines.setAttribute("role", "group"); lines.setAttribute("aria-label", "What is being said");
-    // tabindex: the chat is a scroller, and Earlier and Click to continue used to be the keyboard's way through the
-    // conversation. Without it the arrow keys have nothing to take hold of and the earlier lines can't be reached.
-    const ul = el("ul", "thread"); ul.id = o.ulId; ul.setAttribute("aria-live", "polite"); ul.tabIndex = 0;
+    // log, not a live region: every line is in the chat now, and aria-live would read the whole conversation out
+    // on opening and again whenever a said-at ticked over. A log announces the lines that arrive, which is the lot.
+    // tabindex: the chat is a scroller, and Earlier and Click to continue used to be the keyboard's way through
+    // the conversation. Without it the arrow keys have nothing to take hold of and the earlier lines can't be reached.
+    const ul = el("ul", "thread"); ul.id = o.ulId; ul.setAttribute("role", "log"); ul.tabIndex = 0;
     lines.append(ul);
     stage.append(owner, o.figure, lines, plateYou, plateThem);
-    let toFoot = true;   // the first draw, and after you send: show the newest line
+    // Show the newest line: on the first draw, after you send, and whenever the chat has no layout to scroll --
+    // the card still shut, or Talk not the tab showing, both of which leave it at nothing and reset the scroll.
+    // The observer is what carries it over: it fires when the chat gains a size, which is the moment it can be done.
+    let toFoot = true;
+    new ResizeObserver(() => { if (toFoot && ul.clientHeight) { ul.scrollTop = ul.scrollHeight; toFoot = false; } }).observe(ul);
     // The chat is redrawn on every refresh and on every word of hers as it comes, so a line already drawn is left
     // standing: only what is new goes in, what has gone comes out, and a line that has merely grown or aged is
     // written over where it stands (her answer as it comes, "just now" turning into "1 min ago"). Rebuilding the
@@ -2974,7 +2980,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
     const draw = () => {
       const items = o.items();
       const keep = ul.scrollTop;
-      const foot = toFoot || ul.scrollHeight - keep - ul.clientHeight < 24;   // she is at the foot already: follow the newest
+      const live = ul.clientHeight > 0;   // laid out: the card is open and Talk is the tab showing
+      const foot = toFoot || !live || ul.scrollHeight - keep - ul.clientHeight < 24;   // she is at the foot already: follow the newest
       const was = new Map(drawn.map((it) => [it.key, it]));
       const now = items.map((it) => {
         const had = was.get(it.key);
@@ -2991,13 +2998,8 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       stage.dataset.speaker = said && said.kind === "owner" ? "owner" : o.themKey || "them";
       owner.classList.toggle("talking", stage.dataset.speaker === "owner");
       if (!foot) ul.scrollTop = keep;   // she has scrolled back to read: leave her there
-      else {
-        ul.scrollTop = ul.scrollHeight;
-        // nothing is laid out while the card is still shut, so that did nothing: do it again once it is open,
-        // or her card opens on the oldest line and the newest is only a scroll away
-        if (ul.clientHeight) toFoot = false;
-        else requestAnimationFrame(() => { ul.scrollTop = ul.scrollHeight; toFoot = !ul.clientHeight; });
-      }
+      else if (live) { ul.scrollTop = ul.scrollHeight; toFoot = false; }
+      else toFoot = true;   // nothing to scroll yet: the observer does it when the chat has a size
       if (o.after) o.after();
     };
     const newest = () => { toFoot = true; draw(); };
@@ -3413,7 +3415,7 @@ ul.art .acts { display: grid; gap: 4px; justify-items: end; }
       e.preventDefault(); selectTab(to); tabBtns[to].focus();
     });
     box.addEventListener("keydown", (e) => {   // Page Up and Page Down turn the tabs from anywhere that isn't typing
-      if ((e.key !== "PageUp" && e.key !== "PageDown") || e.target.closest("input, textarea, select")) return;
+      if ((e.key !== "PageUp" && e.key !== "PageDown") || e.target.closest("input, textarea, select, ul.thread")) return;   // the chat pages itself
       e.preventDefault(); const to = stepTab(e.key === "PageDown" ? 1 : -1); selectTab(to); tabBtns[to].focus();
     });
 
