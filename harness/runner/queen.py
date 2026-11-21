@@ -40,6 +40,8 @@ GRACE = 10                        # seconds a stopped turn gets to end on its ow
 MAX_TURNS = "30"
 WINDOWS = os.name == "nt"
 SORRY = "Forgive me, my lady: my turn ended before I could answer."
+STUCK = ("Forgive me, my lady: my thoughts would not come. Look to the runner's window on your PC -- if the "
+         "Claude Code there wants signing in again, run `claude` and sign in, and I shall be myself.")
 TITLE = "KittyChat Cafe"           # a notification's title, and never anything from the café: see notify()
 # Her quest log, in words, by the kind the gateway counts: one, then more than one. A kind that isn't here is
 # not said at all -- give it its words, rather than letting a document's own text reach a notification.
@@ -119,6 +121,7 @@ class Runner:
         self.child = None              # the turn in progress
         self.lock = threading.Lock()
         self.character = {}            # her name, manner and greeting, as set in the café
+        self.stuck = None              # what the last turn failed on, so one wall is said once, not once a note
         self.state_file = home / "state.json"
         try:
             self.state = json.loads(self.state_file.read_text(encoding="utf-8"))
@@ -333,9 +336,17 @@ class Runner:
             self.state.pop("session", None)
             self.remember()
             return self.turn(prompt, routine, retry=False)
-        said = (final if final is not None else text).strip()
+        # A failed turn answers with Claude Code's own error ("Failed to authenticate: ..."), not a word of hers.
+        # That never goes in her mouth as her note: her streamed text stands if she got any out, and the reason
+        # goes in the aside, where it reads as the runner's trouble rather than as something the queen said.
+        why = ((final or "").strip() if failed else "") or failed or stderr[-200:] or (("exit %d" % code) if code else "")
+        said = (text if failed else (final if final is not None else text)).strip()
         if not said:
-            said = SORRY + ((" (" + (failed or stderr[-200:] or "exit %d" % code) + ")") if (failed or stderr or code) else "")
+            said = (STUCK if failed else SORRY) + ((" (%s)" % why) if why else "")
+        if failed and why == self.stuck:   # the same wall again: she has said it once, and the notes behind it in
+            log("still stuck:", why[:120])  # the queue mustn't each add their own copy to her conversation
+            return self.say(turn_id, "", True, routine)   # the turn ends; an empty answer is kept as no note
+        self.stuck = why if failed else None
         self.say(turn_id, said, True, routine)
         log("said %d characters%s" % (len(said), " (stopped)" if code and final is None and text else ""))
 
