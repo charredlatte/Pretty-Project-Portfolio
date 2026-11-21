@@ -104,9 +104,11 @@ answer without looking: give her at least an 8B instruct model.
   `done`, which the gateway keeps as the queen's note. Stop (`manage pause` on the cat `queen`) sends the turn
   `Ctrl+Break` on Windows (the child runs in its own process group) or `SIGINT` elsewhere; what she had said
   so far is kept.
-- **A turn that fails is the runner's trouble, never her words.** When Claude Code can't answer -- its sign-in
-  has expired, the plan's limit is reached -- it ends the turn with an error of its own ("Failed to
-  authenticate: OAuth session expired and could not be refreshed"). That is never kept as the queen's note:
+- **A turn that fails is the runner's trouble, never her words.** When whichever brain she is on can't answer
+  -- Claude Code's sign-in has expired, the plan's limit is reached, the model isn't there -- the turn ends
+  with an error of its own ("Failed to authenticate: OAuth session expired and could not be refreshed"). A
+  driver yields that as its `why` and never as `final`, which is her answer alone, so it is never kept as her
+  note:
   she says she couldn't think and where to look, with the reason in brackets after it. If she had got words
   out before it broke, those words stand on their own. And one wall is said **once**: the notes queued behind
   it end their turns quietly rather than filling her conversation with the same line, until a turn works
