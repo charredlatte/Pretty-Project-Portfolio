@@ -377,6 +377,12 @@ that inflates "3 need you" makes the sign a liar.
   gets the gateway's tools over `/mcp` and nothing else, and keeps her conversation in `messages.json`. Each wait
   names the brain (`provider`, `model`) so her card says which. `queenState()` reads the agent
   record `queen`: away (no runner for two minutes: asleep, "start her runner"), busy (answering) or here.
+  **A queen who answers nothing at all is usually a sign-in, not a bug here.** When Claude Code on her PC says
+  "Failed to authenticate: OAuth session expired and could not be refreshed", the cure is on that computer: run
+  `claude` there and sign in; the next turn works and no restart is wanted. The café says such a wall once and
+  then falls quiet on purpose (one note, not one per thing she said), so the runner also says it on her desktop,
+  and a lapsed sign-in never costs her the conversation. `harness/runner/README.md` has the rest. If she is
+  *saying* that error as her own words, her runner is older than 21 November 2026: `git pull` on her PC.
 - **Her conversation** is the gateway's notes for the cat `queen`: Charlotte's lines (`comment`, author
   `owner`) and hers (author `queen`, which only the runner's key may write). In the gateway café a `{type:
   "queen"}` push (`catio:queen`) grows her live bubble as she speaks and her voice says each sentence; in claude.ai

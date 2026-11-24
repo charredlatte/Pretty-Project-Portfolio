@@ -119,6 +119,18 @@ answer without looking: give her at least an 8B instruct model.
   a turn that goes past `TURN_LIMIT` (15 minutes, `CATIO_TURN_LIMIT` to change) is stopped and says so, because
   a brain that accepts a turn and never answers -- `claude` waiting on a sign-in that never comes -- would
   otherwise block every note behind it for ever, and that queue is how Charlotte's words reach her.
+- **A sign-in wall is said on her desktop too.** That quiet is the right thing for her conversation and the
+  wrong thing for her: a message she sends in the middle of a run gets no answer at all, and nothing in the
+  café says why. So when what stopped the turn reads like a sign-in rather than a thought -- Claude Code's
+  "Failed to authenticate", a model's 401, a key refused -- the runner also says so where she is sitting, with
+  the same `notify()` the homework uses, at most once every ten minutes and in its own words (never the brain's
+  error text: a Mac and Windows take it inside a quoted string). Once a turn works, the next lapse is said at
+  once rather than waiting the ten minutes out. **The cure is on her own computer:** run `claude` there and
+  sign in. The runner needs no restart -- the next turn works and she is herself again.
+- **A lapsed sign-in never costs her the conversation.** A resumed turn that gets nowhere is usually a session
+  Claude Code no longer has, so the runner tries once without `--resume`. An expired sign-in looks exactly the
+  same from here. If that fresh turn gets nowhere either, the session was not what was wrong, so her session id
+  is given back rather than dropped: she comes back to a queen who still remembers her.
 - Her character (`queens/house` in the café: name, manner, greeting) comes with every wait, so a change in
   her card applies on the next turn. `queen.md` is the part that doesn't change.
 - **Says her homework on Charlotte's desktop.** Every wait also carries the open quizzes counted by kind, and

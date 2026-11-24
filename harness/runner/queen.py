@@ -66,6 +66,15 @@ WINDOWS = os.name == "nt"
 SORRY = "Forgive me, my lady: my turn ended before I could answer."
 STUCK = ("Forgive me, my lady: my thoughts would not come. Look to the runner's window on your PC -- my brain "
          "there may want signing in again.")
+TELL_EVERY = 600                  # seconds between desktop notifications about one sign-in wall
+# What stopped her, when it is a sign-in rather than a thought: Claude Code's "Failed to authenticate: OAuth session
+# expired and could not be refreshed", a model's 401, a key that was refused. Matched loosely on purpose -- the words
+# belong to whichever brain she is on, and a wall we fail to recognise is a wall she is never told about.
+SIGNIN = ("authentic", "oauth", "unauthorized", "unauthorised", "sign in", "log in", "login", "credentials",
+          "api key", "401")
+# Her own words, for her own desktop: never the brain's error text. notify() puts these inside a quoted string on a
+# Mac and on Windows, and the rule there is that only this file's words ever reach it.
+WANTS_SIGNIN = "The queen cannot think: her brain on this PC wants signing in again -- run claude there and sign in."
 TITLE = "KittyChat Cafe"           # a notification's title, and never anything from the café: see notify()
 # Her quest log, in words, by the kind the gateway counts: one, then more than one. A kind that isn't here is
 # not said at all -- give it its words, rather than letting a document's own text reach a notification.
@@ -108,6 +117,12 @@ def notify(body):
         log("no desktop notification here:", e)
         return
     threading.Thread(target=said.wait, daemon=True).start()   # reaped, so months of these leave nothing behind
+
+
+def signin(why):
+    """Whether what stopped her is a sign-in rather than a thought, in whatever words her brain puts it."""
+    low = (why or "").lower()
+    return any(w in low for w in SIGNIN)
 
 
 def counted(kind, n):
@@ -264,11 +279,19 @@ class ClaudeDriver:
             state["session"] = session
             self.r.remember()
         stderr = (errors[0] if errors else "").strip()
-        if final is None and not text and code != 0 and resumed and retry:   # her session is gone: start afresh, once
-            log("couldn't resume the queen's session; starting a new one.", stderr[-200:])
-            state.pop("session", None)
+        # A resumed turn that got nowhere is usually a session Claude Code no longer has, so try once without it.
+        # But it is just as often a sign-in that lapsed overnight, and a turn given up on for that reason must not
+        # cost her the conversation as well: if the fresh turn doesn't get going either, the session wasn't the
+        # trouble, so she gets it back and picks up where she was once the sign-in is hers again.
+        if final is None and not text and code != 0 and resumed and retry:
+            log("couldn't resume the queen's session; trying once without it.", stderr[-200:])
+            kept = state.pop("session", None)
             self.r.remember()
             yield from self.events(prompt, retry=False)
+            if not state.get("session"):
+                state["session"] = kept
+                self.r.remember()
+                log("that wasn't her session's doing: she keeps it.")
             return
         # A failed turn's `final` is Claude Code's own error ("Failed to authenticate: OAuth session expired and
         # could not be refreshed"), not a word of hers, and `final` here is her answer alone: it goes in `why`
@@ -460,6 +483,7 @@ class Runner:
         self.lock = threading.Lock()
         self.character = {}            # her name, manner and greeting, as set in the café
         self.stuck = None              # what the last turn failed on, so one wall is said once, not once a note
+        self.told = 0.0                # when her desktop was last told about a sign-in wall
         self.answered = 0              # the newest note whose turn has finished: what the gateway is told it may
                                        # stop offering. Receiving a note is not finishing it -- a runner that dies
                                        # mid-turn must hear that note again rather than lose what she said.
@@ -583,6 +607,16 @@ class Runner:
         except (OSError, ValueError) as e:
             log("couldn't tell the café:", e)
 
+    def tell_her(self):
+        """Say a sign-in wall on Charlotte's own desktop. The café says such a wall once and the turns behind it end
+        quietly, so every message she sends after that gets no answer at all and nothing says why. This does, where
+        she is sitting -- at most once every TELL_EVERY, so six notes hitting one wall are not six notifications."""
+        if time.time() - self.told < TELL_EVERY:
+            return
+        self.told = time.time()
+        log("telling her desktop: the brain wants signing in again")
+        notify(WANTS_SIGNIN)
+
     def turn(self, prompt, routine):
         turn_id = str(int(time.time() * 1000))
         text, final, why, last_sent, steps = "", None, None, 0.0, []
@@ -627,6 +661,10 @@ class Runner:
         if not said:
             said = (STUCK if why else SORRY) + ((" (" + why + ")") if why else "")
         wall = why if (not own and why) else None   # she could not think at all, and this is what stopped her
+        if wall and signin(wall):   # the one wall she has to do something about, and the café says it at the front
+            self.tell_her()          # of a run and at its end: her desktop is where it reaches her in between
+        elif not wall:
+            self.told = 0.0          # a turn worked: the next lapse is told at once rather than waiting out the gap
         # The same wall, with more still waiting behind it: those mustn't each add their own copy to her
         # conversation. The last of a run always answers, whatever it hit, because a turn that ends with no note
         # is indistinguishable from one still thinking to anything waiting for her words.
