@@ -39,6 +39,9 @@ argv = sys.argv[1:]
 note({"argv": argv, "stdin": prompt, "env": {k: v for k, v in os.environ.items() if k.startswith("CATIO_")}, "cwd": os.getcwd(),
       "prompt_file": open(argv[argv.index("--append-system-prompt-file") + 1], encoding="utf-8").read(),
       "mcp": json.load(open(argv[argv.index("--mcp-config") + 1]))})
+if "wedge" in prompt.lower():   # accepts the turn and never answers, emitting nothing at all
+    signal.signal(signal.SIGINT, lambda *a: sys.exit(130))
+    time.sleep(600)
 if "fail auth" in prompt.lower():   # the CLI never got going: an error result, no session, non-zero exit
     out({"type": "result", "subtype": "error_during_execution", "is_error": True,
          "result": "Failed to authenticate: OAuth session expired and could not be refreshed"})
@@ -491,8 +494,17 @@ class Queen(unittest.TestCase):
         self.assertTrue(says[-1]["text"].startswith("Forgive me, my lady"), says[-1]["text"])
         self.assertIn("no model", says[-1]["text"])
         self.assertIsNone(self.proc.poll())
-    def done(self, n=1):
-        return [s["text"] for s in self.said(n) if s.get("done")]
+    def done(self, n=1, timeout=20):
+        return [s["text"] for s in self.said(n, timeout) if s.get("done")]
+
+    def test_a_turn_that_never_answers_is_ended_so_the_notes_behind_it_arent_stuck(self):
+        """A brain that accepts the turn and never answers must not block the notes queued behind it: that queue
+        is how Charlotte's words reach her, and one wedged turn leaves her waiting for ever."""
+        self.srv.jobs.put({"notes": [NOTE(1, "wedge"), NOTE(2, "Good morrow.")]})
+        self.start(CATIO_TURN_LIMIT="2")
+        done = self.done(2, timeout=90)
+        self.assertIn("no answer in", done[0], "the wedged turn should have been ended, and say so")
+        self.assertIn("Two cats need thee.", done[1], "and the note behind it answered")
 
     def test_claudes_own_error_is_never_put_in_her_mouth(self):
         """The CLI's "Failed to authenticate" is the runner's trouble, not a word the queen said."""
@@ -505,14 +517,44 @@ class Queen(unittest.TestCase):
         self.assertIn("signing in", said)        # and what is likely wanted there
         self.assertIn(AUTH, said, "the reason is still there, as an aside")
 
-    def test_a_queue_of_notes_hitting_one_wall_leaves_one_note(self):
-        """Six notes waiting and a wall none of them can pass: she says so once, not six times over."""
+    def test_a_queue_of_notes_hitting_one_wall_doesnt_fill_her_conversation(self):
+        """Six notes and a wall none of them can pass: she says so at the front and again at the end, not six
+        times over. The last of a run always answers, whatever it hit, because a turn that ends with no note is
+        indistinguishable from one still thinking to anything waiting on her words."""
         self.srv.jobs.put({"notes": [NOTE(i, "fail auth") for i in range(1, 7)]})
         self.start()
         done = self.done(6)
         self.assertEqual(len(done), 6, "every turn must end, so no café is left waiting on her")
         kept = [t for t in done if t.strip()]
-        self.assertEqual(len(kept), 1, "her conversation got %d copies of the same trouble: %r" % (len(kept), kept))
+        self.assertEqual(len(kept), 2, "expected the first and the last to answer, got %d: %r" % (len(kept), kept))
+        self.assertTrue(done[-1].strip(), "the last turn of a run must never end with no note at all")
+
+    def test_a_note_is_acknowledged_only_once_its_turn_is_finished(self):
+        """A runner that dies mid-turn has to hear that note again rather than lose what she said, so the gateway
+        is told a note is done with only after its turn has ended -- never when it arrives."""
+        self.srv.jobs.put({"notes": [NOTE(7, "Tell me slowly.")]})
+        self.start()
+        end = time.time() + 15
+        while time.time() < end and not any(s["text"].startswith("Good morrow") for s in self.srv.says):
+            time.sleep(0.05)
+        self.assertTrue(self.srv.says, "nothing streamed")
+        self.assertTrue(all((w.get("ack") or 0) < 7 for w in self.srv.waits),
+                        "acknowledged while the turn was still running: %r" % [w.get("ack") for w in self.srv.waits])
+        self.said(1)
+        end = time.time() + 10
+        while time.time() < end and not any(w.get("ack") == 7 for w in self.srv.waits):
+            time.sleep(0.05)
+        self.assertIn(7, [w.get("ack") for w in self.srv.waits], "and acknowledged once the turn is over")
+
+    def test_a_note_offered_again_isnt_answered_twice(self):
+        """The gateway offers a note until its turn is done, so the same one comes round again: the runner takes
+        it once."""
+        self.srv.jobs.put({"notes": [NOTE(3, "Good morrow.")]})
+        self.srv.jobs.put({"notes": [NOTE(3, "Good morrow.")]})
+        self.start()
+        self.said(1)
+        time.sleep(2)
+        self.assertEqual(len([s for s in self.srv.says if s.get("done")]), 1, "she answered the same note twice")
 
     def test_a_failed_turn_keeps_the_words_she_got_out(self):
         """She spoke, then the turn broke: her own words stand, and the error is not appended to them."""
