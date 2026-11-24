@@ -446,7 +446,8 @@ export class House extends DurableObject {
 
 	/** Held until Charlotte writes to the queen, a routine comes due or her turn is to stop, or HOLD passes:
 	 * {notes, routine, stop, character}. A routine is handed out once (a lost one comes round again, see LEASE). A note
-	 * is handed out until the runner acknowledges it: `ack` is the `at` of the last note it was given, sent with its next
+	 * is handed out until the runner acknowledges it: `ack` is the `at` of the newest note whose turn the runner has
+	 * finished, sent with its next
 	 * wait, so a note lost with a dropped connection is offered again. A runner that sends no `ack` is handed each note once.
 	 * `brain` is what thinks for her, {provider, model}, so her card says which (Claude Code, or a model of the owner's own). */
 	async waitForQueen(ack, brain = {}) {
