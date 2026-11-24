@@ -113,6 +113,18 @@ answer without looking: give her at least an 8B instruct model.
   out before it broke, those words stand on their own. And one wall is said **once**: the notes queued behind
   it end their turns quietly rather than filling her conversation with the same line, until a turn works
   again. So a runner left overnight with an expired sign-in leaves one note, not one per thing she said.
+- **A sign-in wall is said on her desktop too.** That quiet is the right thing for her conversation and the
+  wrong thing for her: every message she sends after the first note gets no answer at all, and nothing in the
+  café says why. So when what stopped the turn reads like a sign-in rather than a thought -- Claude Code's
+  "Failed to authenticate", a model's 401, a key refused -- the runner also says so where she is sitting, with
+  the same `notify()` the homework uses, at most once every ten minutes and in its own words (never the brain's
+  error text: a Mac and Windows take it inside a quoted string). Once a turn works, the next lapse is said at
+  once rather than waiting the ten minutes out. **The cure is on her own computer:** run `claude` there and
+  sign in. The runner needs no restart -- the next turn works and she is herself again.
+- **A lapsed sign-in never costs her the conversation.** A resumed turn that gets nowhere is usually a session
+  Claude Code no longer has, so the runner tries once without `--resume`. An expired sign-in looks exactly the
+  same from here. If that fresh turn gets nowhere either, the session was not what was wrong, so her session id
+  is given back rather than dropped: she comes back to a queen who still remembers her.
 - Her character (`queens/house` in the café: name, manner, greeting) comes with every wait, so a change in
   her card applies on the next turn. `queen.md` is the part that doesn't change.
 - **Says her homework on Charlotte's desktop.** Every wait also carries the open quizzes counted by kind, and

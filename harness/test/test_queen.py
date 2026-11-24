@@ -43,6 +43,8 @@ if "fail auth" in prompt.lower():   # the CLI never got going: an error result, 
     out({"type": "result", "subtype": "error_during_execution", "is_error": True,
          "result": "Failed to authenticate: OAuth session expired and could not be refreshed"})
     sys.exit(1)
+if "signed out" in prompt.lower():   # the CLI died before printing anything: its error is on stderr alone
+    sys.stderr.write("Failed to authenticate: OAuth session expired and could not be refreshed\n"); sys.exit(1)
 if "half" in prompt.lower():   # she gets some words out, then the turn errors
     out({"type": "system", "subtype": "init", "session_id": "s-half"})
     out({"type": "stream_event", "event": {"type": "message_start"}})
@@ -527,6 +529,48 @@ class Queen(unittest.TestCase):
         self.assertIn(AUTH, done[0])
         self.assertIn("Two cats need thee.", done[1])
         self.assertIn(AUTH, done[2])
+
+    def test_a_signin_wall_reaches_her_desktop(self):
+        """The café says one wall once and the turns behind it end quietly, so after that her desktop is the only
+        place it still reaches her: a message she sends then gets no answer at all and nothing else says why."""
+        self.srv.jobs.put({"notes": [NOTE(1, "fail auth")]})
+        self.start()
+        self.said()
+        told, = self.toasted(1)
+        self.assertIn("signing in", told, told)
+        self.assertNotIn("Failed to authenticate", told,
+                         "the brain's own error reached a quoted string on her desktop; the words must be the runner's")
+
+    def test_a_queue_of_notes_hitting_one_wall_is_one_notification(self):
+        """The same guard the café has: six notes and one wall must not be six toasts either."""
+        self.srv.jobs.put({"notes": [NOTE(i, "fail auth") for i in range(1, 7)]})
+        self.start()
+        self.done(6)
+        time.sleep(1.0)
+        lines = [l for l in self.toasts.read_text(encoding="utf-8").splitlines() if l.strip()]
+        self.assertEqual(len(lines), 1, "six notes on one wall told her desktop %d times" % len(lines))
+
+    def test_a_turn_that_merely_worked_tells_her_nothing(self):
+        self.srv.jobs.put({"notes": [NOTE(1, "Good morrow.")]})
+        self.start()
+        self.said()
+        self.quiet()
+
+    def test_an_expired_signin_doesnt_cost_her_the_conversation(self):
+        """A resumed turn that gets nowhere is usually a session Claude Code has dropped, so the runner tries once
+        without it. A sign-in that lapsed overnight looks exactly the same from here, and she must not come back to
+        a queen who has forgotten her as well: if the fresh turn gets nowhere either, her session is given back."""
+        self.home.mkdir(parents=True)
+        (self.home / "state.json").write_text(json.dumps({"session": "s-kept"}))
+        self.srv.jobs.put({"notes": [NOTE(1, "signed out")]})
+        self.start()
+        self.said()
+        self.assertEqual(json.loads((self.home / "state.json").read_text()).get("session"), "s-kept",
+                         "an expired sign-in threw the queen's conversation away with it")
+        calls = [c for c in self.claude_calls() if "argv" in c]
+        self.assertEqual(len(calls), 2, "the session is tried once, then once without it")
+        self.assertEqual(calls[0]["argv"][calls[0]["argv"].index("--resume") + 1], "s-kept")
+        self.assertNotIn("--resume", calls[1]["argv"])
 
     def test_says_why_without_the_gateway_or_claude(self):
         env = {k: v for k, v in os.environ.items() if not k.startswith("CATIO_")}
